@@ -1,0 +1,85 @@
+name: Bug Report
+description: Something isn't working as expected
+labels: [bug]
+body:
+- type: markdown
+  attributes:
+    value: |
+      Thank you for contributing to the SharingGRDB!
+
+      Before you submit your issue, please complete each text area below with the relevant details for your bug, and complete the steps in the checklist
+- type: textarea
+  attributes:
+    label: Description
+    description: |
+      A short description of the incorrect behavior.
+
+      If you think this issue has been recently introduced and did not occur in an earlier version, please note that. If possible, include the last version that the behavior was correct in addition to your current version.
+  validations:
+    required: true
+- type: checkboxes
+  attributes:
+    label: Checklist
+    options:
+    - label: I have determined whether this bug is also reproducible in a vanilla SwiftUI project.
+      required: false
+    - label: I have determined whether this bug is also reproducible in a vanilla GRDB project.
+      required: false
+    - label: If possible, I've reproduced the issue using the `main` branch of this package.
+      required: false
+    - label: This issue hasn't been addressed in an [existing GitHub issue](https://github.com/pointfreeco/sharing-grdb/issues) or [discussion](https://github.com/pointfreeco/sharing-grdb/discussions).
+      required: true
+- type: textarea
+  attributes:
+    label: Expected behavior
+    description: Describe what you expected to happen.
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Actual behavior
+    description: Describe or copy/paste the behavior you observe.
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Reproducing project
+    description: |
+      Provide a full SPM package or Xcode project that demonstrates the problem you are seeing. If you cannot reproduce the problem in a standalone project, then provide a detailed explanation of how to reproduce the incorrect behavior.
+
+      Note that without a project that reproduces the problem we are likely to close this issue and convert it to a discussion until more details are provided.
+    placeholder: |
+      Drag and drop a full SPM package or Xcode project into this text field that demonstrates the problem you are seeing.
+  validations:
+    required: false
+- type: input
+  attributes:
+    label: SharingGRDB version information
+    description: The version of SharingGRDB used to reproduce this issue.
+    placeholder: "'0.1.0' for example, or a commit hash"
+- type: input
+  attributes:
+    label: Sharing version information
+    description: The version of Sharing used to reproduce this issue.
+    placeholder: "'2.3.0' for example, or a commit hash"
+- type: input
+  attributes:
+    label: GRDB version information
+    description: The version of GRDB used to reproduce this issue.
+    placeholder: "'7.1.0' for example, or a commit hash"
+- type: input
+  attributes:
+    label: Destination operating system
+    description: The OS running your application.
+    placeholder: "'iOS 18' for example"
+- type: input
+  attributes:
+    label: Xcode version information
+    description: The version of Xcode used to reproduce this issue.
+    placeholder: "The version displayed from 'Xcode 〉About Xcode'"
+- type: textarea
+  attributes:
+    label: Swift Compiler version information
+    description: The version of Swift used to reproduce this issue.
+    placeholder: Output from 'xcrun swiftc --version'
+    render: shell
