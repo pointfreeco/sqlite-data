@@ -8,7 +8,7 @@ struct AnimationsCaseStudy: SwiftUICaseStudy {
     the database. Simply provide the `animation` argument to `fetchAll` (or the other querying \
     tools, such as `fetch` and `fetchOne`). 
     
-    This is analagous to how animations work in SwiftData in which one provides an `animation` \
+    This is analogous to how animations work in SwiftData in which one provides an `animation` \
     argument to the `@Query` macro.
     """
   let caseStudyTitle = "Animations"
