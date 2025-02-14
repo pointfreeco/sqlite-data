@@ -1,7 +1,7 @@
 import Dependencies
+import Dispatch
 import GRDB
 import Sharing
-import SwiftUI
 
 #if canImport(Combine)
   @preconcurrency import Combine
