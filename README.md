@@ -4,9 +4,9 @@ A lightweight replacement for SwiftData and `@Query`.
 
 <!--
 [![CI](https://github.com/pointfreeco/sharing-grdb/workflows/CI/badge.svg)](https://github.com/pointfreeco/sharing-grdb/actions?query=workflow%3ACI)
+-->
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
--->
 
 * [Learn more](#Learn-more)
 * [Overview](#Overview)
@@ -236,8 +236,8 @@ Sharing. Check out [this](./Examples) directory to see them all, including:
 
 The documentation for releases and `main` are available here:
 
-* [`main`](https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharing-grdb/)
-* [0.1.0](https://swiftpackageindex.com/pointfreeco/sharing-grdb/0.1.0/documentation/sharing-grdb/)
+* [`main`](https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/)
+* [0.1.0](https://swiftpackageindex.com/pointfreeco/sharing-grdb/0.1.0/documentation/sharinggrdb/)
 
 ## Installation
 
