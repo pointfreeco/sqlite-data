@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 
 import PackageDescription
 
@@ -8,7 +8,7 @@ let package = Package(
     .iOS(.v13),
     .macOS(.v10_15),
     .tvOS(.v13),
-    .watchOS(.v6),
+    .watchOS(.v7),
   ],
   products: [
     .library(
@@ -36,5 +36,13 @@ let package = Package(
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
       ]
     ),
-  ]
+  ],
+  swiftLanguageModes: [.v6]
 )
+
+#if !os(Windows)
+  // Add the documentation compiler plugin if possible
+  package.dependencies.append(
+    .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0")
+  )
+#endif
