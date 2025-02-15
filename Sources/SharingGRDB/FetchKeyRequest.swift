@@ -22,7 +22,7 @@ import GRDB
 ///
 /// ```swift
 /// struct PlayersView: View {
-///   @SharedReader(.fetch(Players()) var players
+///   @SharedReader(.fetch(Players())) var players
 ///
 ///   var body: some View {
 ///     ForEach(players) { player in
