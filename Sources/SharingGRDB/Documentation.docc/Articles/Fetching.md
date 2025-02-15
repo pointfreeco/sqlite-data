@@ -38,7 +38,7 @@ you can do so using the
 [`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:scheduler:)>) key:
 
 ```swift
-@SharedReader(.fetchAll(sql: "SELECT count(*) FROM items")) 
+@SharedReader(.fetchOne(sql: "SELECT count(*) FROM items")) 
 var itemsCount = 0
 ```
 
@@ -113,7 +113,7 @@ let query = Item.all()
 ```sql
 SELECT * FROM items
 WHERE NOT isInStock
-ORDER createdAt DESC
+ORDER BY createdAt DESC
 ```
 
 Some may prefer writing their SQL statements in this style rather than a raw SQL string, but we
@@ -167,7 +167,7 @@ items, as well as the count of all items (in stock plus out of stock) like so:
 @SharedReader(.fetchOne(sql: "SELECT count(*) FROM items"))
 var itemsCount = 0
 
-@SharedReader(.fetchOne(sql: "SELECT * FROM items WHERE isInStock"))
+@SharedReader(.fetchAll(sql: "SELECT * FROM items WHERE isInStock"))
 var inStockItems: [Item]
 ```
 
