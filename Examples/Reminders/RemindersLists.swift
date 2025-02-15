@@ -109,7 +109,10 @@ struct RemindersListsView: View {
       try Record.fetchAll(
         db,
         RemindersList.annotated(
-          with: RemindersList.hasMany(Reminder.self).count
+          with: RemindersList
+            .hasMany(Reminder.self)
+            .filter(!Column("isCompleted"))
+            .count
         )
       )
     }
