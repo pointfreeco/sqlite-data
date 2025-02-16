@@ -239,11 +239,11 @@ The documentation for releases and `main` are available here:
 
 ## Installation
 
-You can add Sharing to an Xcode project by adding it to your project as a package.
+You can add SharingGRDB to an Xcode project by adding it to your project as a package.
 
 > https://github.com/pointfreeco/sharing-grdb
 
-If you want to use Sharing in a [SwiftPM](https://swift.org/package-manager/) project, it's as
+If you want to use SharingGRDB in a [SwiftPM](https://swift.org/package-manager/) project, it's as
 simple as adding it to your `Package.swift`:
 
 ``` swift
