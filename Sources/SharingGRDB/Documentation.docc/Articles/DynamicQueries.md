@@ -57,13 +57,17 @@ struct ContentView: View {
     List {
       // ...
     }
-    .onChange(of: [filterDate, order] as [AnyHashable], initial: true) {
-      updateQuery()
+    .task(id: [filter, ordering] as [AnyHashable]) {
+      await updateQuery()
     }
   }
 
-  private func updateQuery() {
-    $items.load(.fetch(Items(filterDate: filterDate, order: order)))
+  private func updateQuery() async {
+    do {
+      try await $items.load(.fetch(Items(filterDate: filterDate, order: order)))
+    } catch {
+      // Handle error...
+    }
   }
 
   private struct Items: FetchKeyRequest {
