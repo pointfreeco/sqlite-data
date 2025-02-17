@@ -12,31 +12,17 @@ struct ReminderFormView: View {
   @State var isPresentingTagsPopover = false
   @State var remindersList: RemindersList
   @State var reminder: Reminder
-  @State var selectedTags: [Tag]
+  @State var selectedTags: [Tag] = []
 
   @Dependency(\.defaultDatabase) private var database
   @Environment(\.dismiss) var dismiss
 
   init?(existingReminder: Reminder? = nil, remindersList: RemindersList) {
-    _remindersList = State(wrappedValue: remindersList)
-    if let existingReminder, let reminderID = existingReminder.id {
-      _reminder = State(wrappedValue: existingReminder)
-      do {
-        let tags = try _database.wrappedValue.read { db in
-          try Tag.all()
-            .joining(optional: Tag.hasMany(ReminderTag.self))
-            .filter(Column("reminderID").detached == reminderID)
-            .order(Column("name"))
-            .fetchAll(db)
-        }
-        _selectedTags = State(wrappedValue: tags)
-      } catch {
-        _selectedTags = State(wrappedValue: [])
-        reportIssue(error)
-      }
+    self.remindersList = remindersList
+    if let existingReminder {
+      reminder = existingReminder
     } else if let listID = remindersList.id {
-      _reminder = State(wrappedValue: Reminder(listID: listID))
-      _selectedTags = State(wrappedValue: [])
+      reminder = Reminder(listID: listID)
     } else {
       reportIssue("'list.id' is required to be non-nil.")
       return nil
@@ -135,6 +121,20 @@ struct ReminderFormView: View {
         .onChange(of: remindersList) {
           reminder.listID = remindersList.id!
         }
+      }
+    }
+    .task { [reminderID = reminder.id] in
+      do {
+        selectedTags = try await database.read { db in
+          try Tag.all()
+            .joining(optional: Tag.hasMany(ReminderTag.self))
+            .filter(Column("reminderID").detached == reminderID)
+            .order(Column("name"))
+            .fetchAll(db)
+        }
+      } catch {
+        selectedTags = []
+        reportIssue(error)
       }
     }
     .navigationTitle(remindersList.name)
