@@ -7,7 +7,7 @@ struct SyncUpsApp: App {
 
   init() {
     try! prepareDependencies {
-      $0.defaultDatabase = try SyncUps.appDatabase(inMemory: false)
+      $0.defaultDatabase = try SyncUps.appDatabase()
     }
   }
 

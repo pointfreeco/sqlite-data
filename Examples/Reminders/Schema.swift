@@ -50,7 +50,7 @@ struct ReminderTag: Codable, FetchableRecord, MutablePersistableRecord {
   var tagID: Int64?
 }
 
-func appDatabase(inMemory: Bool) throws -> any DatabaseWriter {
+func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
   let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true

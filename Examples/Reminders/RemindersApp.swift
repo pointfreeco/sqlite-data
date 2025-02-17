@@ -6,7 +6,7 @@ import SwiftUI
 struct RemindersApp: App {
   init() {
     try! prepareDependencies {
-      $0.defaultDatabase = try Reminders.appDatabase(inMemory: false)
+      $0.defaultDatabase = try Reminders.appDatabase()
     }
   }
   
