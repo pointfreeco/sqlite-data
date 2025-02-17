@@ -228,7 +228,6 @@ struct TagsPopover: View {
     }
     return ReminderFormConfig(reminder: reminder, remindersList: remindersList)
   }()
-  
   NavigationStack {
     ReminderFormView(config: $config)
   }
