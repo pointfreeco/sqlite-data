@@ -58,9 +58,7 @@ struct ContentView: View {
       // ...
     }
     .task(id: [filter, ordering] as [AnyHashable]) {
-        await withErrorReporting {
-            try await updateQuery()
-        }
+      await updateQuery()
     }
   }
 
