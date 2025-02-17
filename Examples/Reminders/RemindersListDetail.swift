@@ -8,8 +8,8 @@ struct RemindersListDetailView: View {
   @Shared private var showCompleted: Bool
   private let remindersList: RemindersList
 
-  @State var isNewReminderSheetPresented = false
-
+  @State var newReminderFormConfig = ReminderFormConfig()
+  
   @Dependency(\.defaultDatabase) private var database
 
   enum Ordering: String, CaseIterable {
@@ -72,16 +72,16 @@ struct RemindersListDetailView: View {
     }
     .navigationTitle(Text(remindersList.name))
     .navigationBarTitleDisplayMode(.large)
-    .sheet(isPresented: $isNewReminderSheetPresented) {
+    .sheet(isPresented: $newReminderFormConfig.isEditing) {
       NavigationStack {
-        ReminderFormView(remindersList: remindersList)
+        ReminderFormView(config: $newReminderFormConfig)
       }
     }
     .toolbar {
       ToolbarItem(placement: .bottomBar) {
         HStack {
           Button {
-            isNewReminderSheetPresented = true
+            newReminderFormConfig.present(remindersList: remindersList)
           } label: {
             HStack {
               Image(systemName: "plus.circle.fill")

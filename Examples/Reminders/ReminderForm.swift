@@ -5,34 +5,56 @@ import Sharing
 import SharingGRDB
 import SwiftUI
 
+struct ReminderFormConfig {
+  var reminder = Reminder(listID: 0)
+  var remindersList = RemindersList() {
+    didSet{
+      reminder.listID = remindersList.id!
+    }
+  }
+  var selectedTags: [Tag] = []
+  
+  var isEditing = false
+  
+  mutating func present(remindersList: RemindersList, reminder: Reminder = Reminder(listID: 0), selectedTags: [Tag] = []) {
+    isEditing = true
+    self.reminder = reminder
+    self.remindersList = remindersList
+    self.selectedTags = selectedTags
+  }
+  
+  mutating func save(database: DatabaseWriter) {
+    withErrorReporting {
+      try database.write { db in
+        try reminder.save(db)
+        try ReminderTag.filter(Column("reminderID") == reminder.id!).deleteAll(db)
+        for tag in selectedTags {
+          _ = try ReminderTag(reminderID: reminder.id!, tagID: tag.id!).saved(db)
+        }
+        isEditing = false
+      }
+    }
+  }
+  
+  mutating func cancel() {
+    isEditing = false
+  }
+}
+
 struct ReminderFormView: View {
   @SharedReader(.fetchAll(sql: #"SELECT * FROM "remindersLists" ORDER BY "name" ASC"#))
   var remindersLists: [RemindersList]
 
   @State var isPresentingTagsPopover = false
-  @State var remindersList: RemindersList
-  @State var reminder: Reminder
-  @State var selectedTags: [Tag] = []
 
+  @Binding var config: ReminderFormConfig
+  
   @Dependency(\.defaultDatabase) private var database
-  @Environment(\.dismiss) var dismiss
-
-  init?(existingReminder: Reminder? = nil, remindersList: RemindersList) {
-    self.remindersList = remindersList
-    if let existingReminder {
-      reminder = existingReminder
-    } else if let listID = remindersList.id {
-      reminder = Reminder(listID: listID)
-    } else {
-      reportIssue("'list.id' is required to be non-nil.")
-      return nil
-    }
-  }
 
   var body: some View {
     Form {
-      TextField("Title", text: $reminder.title)
-      TextEditor(text: $reminder.notes)
+      TextField("Title", text: $config.reminder.title)
+      TextEditor(text: $config.reminder.notes)
         .lineLimit(4)
 
       Section {
@@ -57,12 +79,12 @@ struct ReminderFormView: View {
       }
       .popover(isPresented: $isPresentingTagsPopover) {
         NavigationStack {
-          TagsPopover(selectedTags: $selectedTags)
+          TagsPopover(selectedTags: $config.selectedTags)
         }
       }
 
       Section {
-        Toggle(isOn: $reminder.isDateSet.animation()) {
+        Toggle(isOn: $config.reminder.isDateSet.animation()) {
           HStack {
             Image(systemName: "calendar.circle.fill")
               .font(.title)
@@ -70,10 +92,10 @@ struct ReminderFormView: View {
             Text("Date")
           }
         }
-        if let date = reminder.date {
+        if let date = config.reminder.date {
           DatePicker(
             "",
-            selection: $reminder.date[coalesce: date],
+            selection: $config.reminder.date[coalesce: date],
             displayedComponents: [.date, .hourAndMinute]
           )
           .padding([.top, .bottom], 2)
@@ -81,7 +103,7 @@ struct ReminderFormView: View {
       }
 
       Section {
-        Toggle(isOn: $reminder.isFlagged) {
+        Toggle(isOn: $config.reminder.isFlagged) {
           HStack {
             Image(systemName: "flag.circle.fill")
               .font(.title)
@@ -89,7 +111,7 @@ struct ReminderFormView: View {
             Text("Flag")
           }
         }
-        Picker(selection: $reminder.priority) {
+        Picker(selection: $config.reminder.priority) {
           Text("None").tag(Int?.none)
           Divider()
           Text("High").tag(3)
@@ -104,7 +126,7 @@ struct ReminderFormView: View {
           }
         }
 
-        Picker(selection: $remindersList) {
+        Picker(selection: $config.remindersList) {
           ForEach(remindersLists) { remindersList in
             Text(remindersList.name)
               .tag(remindersList)
@@ -114,61 +136,29 @@ struct ReminderFormView: View {
           HStack {
             Image(systemName: "list.bullet.circle.fill")
               .font(.title)
-              .foregroundStyle(Color.hex(remindersList.color))
+              .foregroundStyle(Color.hex(config.remindersList.color))
             Text("List")
           }
         }
-        .onChange(of: remindersList) {
-          reminder.listID = remindersList.id!
-        }
       }
     }
-    .task { [reminderID = reminder.id] in
-      do {
-        selectedTags = try await database.read { db in
-          try Tag.all()
-            .joining(optional: Tag.hasMany(ReminderTag.self))
-            .filter(Column("reminderID").detached == reminderID)
-            .order(Column("name"))
-            .fetchAll(db)
-        }
-      } catch {
-        selectedTags = []
-        reportIssue(error)
-      }
-    }
-    .navigationTitle(remindersList.name)
+    .navigationTitle(config.remindersList.name)
     .toolbar {
       ToolbarItem {
-        Button(action: saveButtonTapped) {
-          Text("Save")
-        }
+        Button("Save") { config.save(database: database) }
       }
       ToolbarItem(placement: .cancellationAction) {
         Button("Cancel") {
-          dismiss()
+          config.cancel()
         }
       }
     }
   }
 
   private var tagsDetail: Text {
-    selectedTags.reduce(Text("")) { result, tag in
+    config.selectedTags.reduce(Text("")) { result, tag in
       result + Text("#\(tag.name) ")
     }
-  }
-
-  private func saveButtonTapped() {
-    withErrorReporting {
-      try database.write { db in
-        try reminder.save(db)
-        try ReminderTag.filter(Column("reminderID") == reminder.id!).deleteAll(db)
-        for tag in selectedTags {
-          _ = try ReminderTag(reminderID: reminder.id!, tagID: tag.id!).saved(db)
-        }
-      }
-    }
-    dismiss()
   }
 }
 
@@ -225,17 +215,21 @@ struct TagsPopover: View {
 }
 
 #Preview {
-  let (remindersList, reminder) = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
-    return try $0.defaultDatabase.write { db in
-      let remindersList = try RemindersList.fetchOne(db)!
-      return (
-        remindersList,
-        try Reminder.filter(Column("listID") == remindersList.id).fetchOne(db)!
-      )
+  @Previewable @State var config = {
+    let (remindersList, reminder) = try! prepareDependencies {
+      $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+      return try $0.defaultDatabase.write { db in
+        let remindersList = try RemindersList.fetchOne(db)!
+        return (
+          remindersList,
+          try Reminder.filter(Column("listID") == remindersList.id).fetchOne(db)!
+        )
+      }
     }
-  }
+    return ReminderFormConfig(reminder: reminder, remindersList: remindersList)
+  }()
+  
   NavigationStack {
-    ReminderFormView(existingReminder: reminder, remindersList: remindersList)
+    ReminderFormView(config: $config)
   }
 }
