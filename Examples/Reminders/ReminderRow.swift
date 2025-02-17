@@ -1,5 +1,6 @@
 import Dependencies
 import SwiftUI
+import GRDB
 
 struct ReminderRow: View {
   let isPastDue: Bool
@@ -7,7 +8,7 @@ struct ReminderRow: View {
   let remindersList: RemindersList
   let tags: [String]
 
-  @State var editReminder: Reminder?
+  @State var editReminderFormConfig = ReminderFormConfig()
 
   @Dependency(\.defaultDatabase) private var database
   
@@ -43,7 +44,7 @@ struct ReminderRow: View {
               .foregroundStyle(.orange)
           }
           Button {
-            editReminder = reminder
+            showDetails()
           } label: {
             Image(systemName: "info.circle")
           }
@@ -73,16 +74,32 @@ struct ReminderRow: View {
       }
       .tint(.orange)
       Button("Details") {
-        editReminder = reminder
+        showDetails()
       }
     }
-    .sheet(item: $editReminder) { reminder in
+    .sheet(isPresented: $editReminderFormConfig.isEditing) {
       NavigationStack {
-        ReminderFormView(existingReminder: reminder, remindersList: remindersList)
+        ReminderFormView(config: $editReminderFormConfig)
       }
     }
   }
 
+  private func showDetails() {
+    guard let reminderID = reminder.id else { return }
+    do {
+      let tags = try _database.wrappedValue.read { db in
+        try Tag.all()
+          .joining(optional: Tag.hasMany(ReminderTag.self))
+          .filter(Column("reminderID").detached == reminderID)
+          .order(Column("name"))
+          .fetchAll(db)
+      }
+      editReminderFormConfig.present(remindersList: remindersList, reminder: reminder, selectedTags: tags)
+    } catch {
+      reportIssue(error)
+    } 
+  }
+  
   private func completeButtonTapped() {
     withErrorReporting {
       try database.write { db in
