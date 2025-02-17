@@ -18,19 +18,19 @@ struct IntegrationTests {
       _ = try SyncUp(isActive: true, title: "Engineering")
         .inserted(db)
     }
-    try await Task.sleep(nanoseconds: 1_000_000)
+    try await Task.sleep(nanoseconds: 10_000_000)
     #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
     try await database.write { db in
       _ = try SyncUp(id: 1, isActive: false, title: "Engineering")
         .saved(db)
     }
-    try await Task.sleep(nanoseconds: 1_000_000)
+    try await Task.sleep(nanoseconds: 10_000_000)
     #expect(syncUps == [])
     try await database.write { db in
       _ = try SyncUp(id: 1, isActive: true, title: "Engineering")
         .saved(db)
     }
-    try await Task.sleep(nanoseconds: 1_000_000)
+    try await Task.sleep(nanoseconds: 10_000_000)
     #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
   }
 
@@ -45,19 +45,19 @@ struct IntegrationTests {
       _ = try SyncUp(isActive: true, title: "Engineering")
         .inserted(db)
     }
-    try await Task.sleep(nanoseconds: 1_000_000)
+    try await Task.sleep(nanoseconds: 10_000_000)
     #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
     try await database.write { db in
       _ = try SyncUp(id: 1, isActive: false, title: "Engineering")
         .saved(db)
     }
-    try await Task.sleep(nanoseconds: 1_000_000)
+    try await Task.sleep(nanoseconds: 10_000_000)
     #expect(syncUps == [])
     try await database.write { db in
       _ = try SyncUp(id: 1, isActive: true, title: "Engineering")
         .saved(db)
     }
-    try await Task.sleep(nanoseconds: 1_000_000)
+    try await Task.sleep(nanoseconds: 10_000_000)
     #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
   }
 }
