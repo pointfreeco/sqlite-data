@@ -11,9 +11,9 @@ struct RemindersListForm: View {
 
   init(existingList: RemindersList? = nil) {
     if let existingList {
-      _remindersList = State(wrappedValue: existingList)
+      remindersList = existingList
     } else {
-      _remindersList = State(wrappedValue: RemindersList())
+      remindersList = RemindersList()
     }
   }
 
