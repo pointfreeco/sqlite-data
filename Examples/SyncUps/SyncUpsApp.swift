@@ -6,8 +6,8 @@ struct SyncUpsApp: App {
   static let model = AppModel()
 
   init() {
-    prepareDependencies {
-      $0.defaultDatabase = .appDatabase
+    try! prepareDependencies {
+      $0.defaultDatabase = try SyncUps.appDatabase()
     }
   }
 

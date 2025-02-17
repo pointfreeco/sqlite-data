@@ -127,9 +127,9 @@ struct ReminderRow: View {
 #Preview {
   var reminder: Reminder!
   var reminderList: RemindersList!
-  let _ = prepareDependencies {
-    $0.defaultDatabase = .appDatabase
-    try! $0.defaultDatabase.read { db in
+  let _ = try! prepareDependencies {
+    $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+    try $0.defaultDatabase.read { db in
       reminder = try Reminder.fetchOne(db)
       reminderList = try RemindersList.fetchOne(db)!
     }

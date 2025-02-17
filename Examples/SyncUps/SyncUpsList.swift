@@ -102,7 +102,9 @@ extension LabelStyle where Self == TrailingIconLabelStyle {
 }
 
 #Preview {
-  let _ = prepareDependencies { $0.defaultDatabase = .appDatabase }
+  let _ = prepareDependencies {
+    $0.defaultDatabase = SyncUps.appDatabase(inMemory: true)
+  }
   NavigationStack {
     SyncUpsList(model: SyncUpsListModel())
   }
