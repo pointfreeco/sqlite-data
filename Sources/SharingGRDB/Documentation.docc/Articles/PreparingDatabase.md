@@ -15,22 +15,19 @@ and Xcode previews.
 * [Step 4: Migrate database](#Step-4-Migrate-database)
 * [Step 5: Set database connection in entry point](#Step-5-Set-database-connection-in-entry-point)
 
-### Step 1: Static database connection
+### Step 1: App database connection
 
-We will begin by defining a static `appDatabase` that represents a connection to a local database
-stored on disk. We find that the place to put this value is on an extension of the protocol that
-abstracts the database connection from GRDB, `DatabaseWriter`:
+We will begin by defining a static `appDatabase` function that returns a connection to a local
+database stored on disk. We like to define this at the module level wherever the schema is defined:
 
 ```swift
-extension DatabaseWriter where Self == DatabaseQueue {
-  static var appDatabase: Self {
-    // ...
-  }
+func appDatabase() -> any DatabaseWriter {
+  // ...
 }
 ```
 
-> Note: Here we have used a [`DatabaseQueue`][db-q-docs], but it is also possible to use a
-> [`DatabasePool`][db-pool-docs].
+> Note: Here we are returning an `any DatabaseWriter`. This will allow us to return either a
+> [`DatabaseQueue`][db-q-docs] or [`DatabasePool`][db-pool-docs] from within.
 
 [db-q-docs]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/databasequeue
 [db-pool-docs]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/databasepool
@@ -43,7 +40,7 @@ configure the database. We highly recommend always turning on
 data:
 
 ```diff
- static var appDatabase: Self {
+ func appDatabase() -> any DatabaseWriter {
 +  var configuration = Configuration()
 +  configuration.foreignKeysEnabled = true
  }
@@ -60,7 +57,7 @@ than you expect. We also recommend only doing this in debug builds to avoid leak
 information when the app is running on a user's device:
 
 ```diff
- static var appDatabase: Self {
+ func appDatabase() -> any DatabaseWriter {
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
 +  #if DEBUG
@@ -89,7 +86,8 @@ Once a `Configuration` value is set up we can construct the actual database conn
 way to do this is to construct the database connection for a path on the file system like so:
 
 ```diff
- static var appDatabase: Self {
+-func appDatabase() -> any DatabaseWriter {
++func appDatabase() throws -> any DatabaseWriter {
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
    #if DEBUG
@@ -100,8 +98,8 @@ way to do this is to construct the database connection for a path on the file sy
      }
    #endif
 +  let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-+  let databaseQueue = try! DatabaseQueue(path: path, configuration: configuration)
-+  return databaseQueue
++  let database = try DatabasePool(path: path, configuration: configuration)
++  return database
  }
 ```
 
@@ -111,8 +109,8 @@ function that takes an `inMemory` option (that defaults to `false`) so that it c
 when setting up the database:
 
 ```diff
--static var appDatabase: Self {
-+static func appDatabase(inMemory: Bool = false) -> Self {
+ func appDatabase() -> any DatabaseWriter {
++func appDatabase(inMemory: Bool = false) -> any DatabaseWriter {
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
    #if DEBUG
@@ -122,44 +120,18 @@ when setting up the database:
        }
      }
    #endif
-+  let databaseQueue: DatabaseQueue
+-  let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
+-  let database = try DatabasePool(path: path, configuration: configuration)
++  let database: any DatabaseWriter
 +  if inMemory {
-+    databaseQueue = try! DatabaseQueue(configuration: configuration)
++    database = try DatabaseQueue(configuration: configuration)
 +  } else {
 +    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-+    databaseQueue = try! DatabaseQueue(path: path, configuration: configuration)
++    database = try DatabasePool(path: path, configuration: configuration)
 +  }
-   return databaseQueue
+   return database
  }
 ```
-
-> Tip: An alternative to an `inMemory` argument is to use `@Dependency(\.context)` to determine
-> if the code is running in tests or previews:
->
-> ```diff
-> -static func appDatabase(inMemory: Bool = false) -> Self {
-> +static var appDatabase: Self {
->    var configuration = Configuration()
->    configuration.foreignKeysEnabled = true
->    #if DEBUG
->      configuration.prepareDatabase { db in
->        db.trace(options: .profile) {
->          print($0.expandedDescription)
->        }
->      }
->    #endif
-> +  @Dependency(\.context) var context
->    let databaseQueue: DatabaseQueue
-> -  if inMemory {
-> +  if context != .live {
->      databaseQueue = try! DatabaseQueue(configuration: configuration)
->    } else {
->      let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
->      databaseQueue = try! DatabaseQueue(path: path, configuration: configuration)
->    }
->    return databaseQueue
->  }
-> ```
 
 ### Step 4: Migrate database
 
@@ -169,7 +141,7 @@ creating a `DatabaseMigrator`, registering migrations with it, and then using it
 database connection:
 
 ```diff
- static func appDatabase(inMemory: Bool = false) -> Self {
+ func appDatabase(inMemory: Bool = false) throws -> Self {
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
    #if DEBUG
@@ -179,12 +151,12 @@ database connection:
        }
      }
    #endif
-   let databaseQueue: DatabaseQueue
+   let database: any DatabaseWriter
    if inMemory {
-     databaseQueue = try! DatabaseQueue(configuration: configuration)
+     database = try DatabaseQueue(configuration: configuration)
    } else {
      let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-     databaseQueue = try! DatabaseQueue(path: path, configuration: configuration)
+     database = try DatabasePool(path: path, configuration: configuration)
    }
 +  var migrator = DatabaseMigrator()
 +  #if DEBUG
@@ -196,8 +168,8 @@ database connection:
 +  migrator.registerMigration("Create teams table") { db in
 +    // ...
 +  }
-+  try! migrator.migrate(databaseQueue)
-   return databaseQueue
++  try migrator.migrate(database)
+   return database
  }
 ```
 
@@ -207,7 +179,7 @@ That is all it takes to create, configure and migrate a database connection. Her
 we have just written in one snippet:
 
 ```swift
-static func appDatabase(inMemory: Bool = false) -> Self {
+func appDatabase(inMemory: Bool = false) throws -> Self {
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
   #if DEBUG
@@ -217,12 +189,12 @@ static func appDatabase(inMemory: Bool = false) -> Self {
       }
     }
   #endif
-  let databaseQueue: DatabaseQueue
+  let database: any DatabaseWriter
   if inMemory {
-    databaseQueue = try! DatabaseQueue(configuration: configuration)
+    database = try DatabaseQueue(configuration: configuration)
   } else {
     let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-    databaseQueue = try! DatabaseQueue(path: path, configuration: configuration)
+    database = try DatabasePool(path: path, configuration: configuration)
   }
   var migrator = DatabaseMigrator()
   #if DEBUG
@@ -234,8 +206,8 @@ static func appDatabase(inMemory: Bool = false) -> Self {
   migrator.registerMigration("Create teams table") { db in
     // ...
   }
-  try! migrator.migrate(databaseQueue)
-  return databaseQueue
+  try migrator.migrate(database)
+  return database
 }
 ```
 
@@ -255,7 +227,7 @@ import SwiftUI
 struct MyApp: App {
   init() {
     prepareDependencies { 
-      $0.defaultDatabase = .appDatabase()
+      $0.defaultDatabase = try! appDatabase()
     }
   }
   // ...
@@ -275,7 +247,7 @@ import UIKit
 class AppDelegate: NSObject, UIApplicationDelegate {
   func applicationDidFinishLaunching(_ application: UIApplication) {
     prepareDependencies {
-      $0.defaultDatabase = .appDatabase()
+      $0.defaultDatabase = try! appDatabase()
     }
   }
   // ...
@@ -292,7 +264,7 @@ to use an in-memory database. This can be done like so:
 ```swift
 #Preview {
   let _ = prepareDependencies { 
-    $0.defaultDatabase = .appDatabase(inMemory: true)
+    $0.defaultDatabase = try! appDatabase(inMemory: true)
   }
   // ...
 }
@@ -302,7 +274,7 @@ And similarly, in tests you will also want to use an in-memory database. This ca
 `.dependency` testing trait:
 
 ```swift
-@Test(.dependency(\.defaultDatabase, .appDatabase(inMemory: true))
+@Test(.dependency(\.defaultDatabase, try appDatabase(inMemory: true))
 func feature() {
   // ...
 }

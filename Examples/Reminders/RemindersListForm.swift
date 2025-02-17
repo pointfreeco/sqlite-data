@@ -65,7 +65,9 @@ extension Int {
 }
 
 #Preview {
-  let _ = prepareDependencies { $0.defaultDatabase = .appDatabase }
+  let _ = try! prepareDependencies {
+    $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+  }
   NavigationStack {
     RemindersListForm()
   }

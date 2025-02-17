@@ -87,66 +87,64 @@ enum Theme: String, CaseIterable, Codable, Hashable, Identifiable, DatabaseValue
   }
 }
 
-extension DatabaseReader where Self == DatabaseQueue {
-  static var appDatabase: Self {
-    let databaseQueue: DatabaseQueue
-    var configuration = Configuration()
-    configuration.foreignKeysEnabled = true
-    configuration.prepareDatabase { db in
-      #if DEBUG
-        db.trace(options: .profile) {
-          print($0.expandedDescription)
-        }
-      #endif
-    }
-    if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == nil && !isTesting {
-      let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-      print("open", path)
-      databaseQueue = try! DatabaseQueue(path: path, configuration: configuration)
-    } else {
-      databaseQueue = try! DatabaseQueue(configuration: configuration)
-    }
-    var migrator = DatabaseMigrator()
+func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
+  let database: any DatabaseWriter
+  var configuration = Configuration()
+  configuration.foreignKeysEnabled = true
+  configuration.prepareDatabase { db in
     #if DEBUG
-      migrator.eraseDatabaseOnSchemaChange = true
-    #endif
-    migrator.registerMigration("Create sync-ups table") { db in
-      try db.create(table: SyncUp.databaseTableName) { table in
-        table.autoIncrementedPrimaryKey("id")
-        table.column("seconds", .integer).defaults(to: 5 * 60).notNull()
-        table.column("theme", .text).notNull().defaults(to: Theme.bubblegum)
-        table.column("title", .text).notNull()
-      }
-    }
-    migrator.registerMigration("Create attendees table") { db in
-      try db.create(table: Attendee.databaseTableName) { table in
-        table.autoIncrementedPrimaryKey("id")
-        table.column("name", .text).notNull()
-        table.column("syncUpID", .integer)
-          .references(SyncUp.databaseTableName, column: "id", onDelete: .cascade)
-          .notNull()
-      }
-    }
-    migrator.registerMigration("Create meetings table") { db in
-      try db.create(table: Meeting.databaseTableName) { table in
-        table.autoIncrementedPrimaryKey("id")
-        table.column("date", .datetime).notNull().unique().defaults(sql: "CURRENT_TIMESTAMP")
-        table.column("syncUpID", .integer)
-          .references(SyncUp.databaseTableName, column: "id", onDelete: .cascade)
-          .notNull()
-        table.column("transcript", .text).notNull()
-      }
-    }
-    #if DEBUG
-      migrator.registerMigration("Insert sample data") { db in
-        try db.insertSampleData()
+      db.trace(options: .profile) {
+        print($0.expandedDescription)
       }
     #endif
-
-    try! migrator.migrate(databaseQueue)
-
-    return databaseQueue
   }
+  if inMemory {
+    database = try DatabaseQueue(configuration: configuration)
+  } else {
+    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
+    print("open", path)
+    database = try DatabasePool(path: path, configuration: configuration)
+  }
+  var migrator = DatabaseMigrator()
+  #if DEBUG
+    migrator.eraseDatabaseOnSchemaChange = true
+  #endif
+  migrator.registerMigration("Create sync-ups table") { db in
+    try db.create(table: SyncUp.databaseTableName) { table in
+      table.autoIncrementedPrimaryKey("id")
+      table.column("seconds", .integer).defaults(to: 5 * 60).notNull()
+      table.column("theme", .text).notNull().defaults(to: Theme.bubblegum)
+      table.column("title", .text).notNull()
+    }
+  }
+  migrator.registerMigration("Create attendees table") { db in
+    try db.create(table: Attendee.databaseTableName) { table in
+      table.autoIncrementedPrimaryKey("id")
+      table.column("name", .text).notNull()
+      table.column("syncUpID", .integer)
+        .references(SyncUp.databaseTableName, column: "id", onDelete: .cascade)
+        .notNull()
+    }
+  }
+  migrator.registerMigration("Create meetings table") { db in
+    try db.create(table: Meeting.databaseTableName) { table in
+      table.autoIncrementedPrimaryKey("id")
+      table.column("date", .datetime).notNull().unique().defaults(sql: "CURRENT_TIMESTAMP")
+      table.column("syncUpID", .integer)
+        .references(SyncUp.databaseTableName, column: "id", onDelete: .cascade)
+        .notNull()
+      table.column("transcript", .text).notNull()
+    }
+  }
+  #if DEBUG
+    migrator.registerMigration("Insert sample data") { db in
+      try db.insertSampleData()
+    }
+  #endif
+
+  try migrator.migrate(database)
+
+  return database
 }
 
 #if DEBUG

@@ -173,9 +173,9 @@ struct RemindersListDetailView: View {
 }
 
 #Preview {
-  let remindersList = prepareDependencies {
-    $0.defaultDatabase = .appDatabase
-    return try! $0.defaultDatabase.read { db in
+  let remindersList = try! prepareDependencies {
+    $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+    return try $0.defaultDatabase.read { db in
       try RemindersList.fetchOne(db)!
     }
   }

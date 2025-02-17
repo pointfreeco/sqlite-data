@@ -50,73 +50,69 @@ struct ReminderTag: Codable, FetchableRecord, MutablePersistableRecord {
   var tagID: Int64?
 }
 
-extension DatabaseReader where Self == DatabaseQueue {
-  static var appDatabase: Self {
-    let databaseQueue: DatabaseQueue
-    var configuration = Configuration()
-    configuration.foreignKeysEnabled = true
-    configuration.prepareDatabase { db in
-      #if DEBUG
-        db.trace(options: .profile) {
-          print($0.expandedDescription)
-        }
-      #endif
-    }
-    if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == nil && !isTesting {
-      let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-      print("open", path)
-      databaseQueue = try! DatabaseQueue(path: path, configuration: configuration)
-    } else {
-      databaseQueue = try! DatabaseQueue(configuration: configuration)
-    }
-    var migrator = DatabaseMigrator()
+func appDatabase(inMemory: Bool) throws -> any DatabaseWriter {
+  let database: any DatabaseWriter
+  var configuration = Configuration()
+  configuration.foreignKeysEnabled = true
+  configuration.prepareDatabase { db in
     #if DEBUG
-      migrator.eraseDatabaseOnSchemaChange = true
+      db.trace(options: .profile) {
+        print($0.expandedDescription)
+      }
     #endif
-    defer {
-      #if DEBUG
-      migrator.registerMigration("Add mock data") { db in
-        try db.createMockData()
-      }
-      #endif
-      try! migrator.migrate(databaseQueue)
-    }
-    migrator.registerMigration("Add reminders lists table") { db in
-      try db.create(table: RemindersList.databaseTableName) { table in
-        table.autoIncrementedPrimaryKey("id")
-        table.column("color", .integer).defaults(to: 0x4a99ef).notNull()
-        table.column("name", .text).notNull()
-      }
-    }
-    migrator.registerMigration("Add reminders table") { db in
-      try db.create(table: Reminder.databaseTableName) { table in
-        table.autoIncrementedPrimaryKey("id")
-        table.column("date", .date)
-        table.column("isCompleted", .boolean).defaults(to: false).notNull()
-        table.column("isFlagged", .boolean).defaults(to: false).notNull()
-        table.column("listID", .integer)
-          .references(RemindersList.databaseTableName, column: "id", onDelete: .cascade)
-          .notNull()
-        table.column("notes", .text).notNull()
-        table.column("priority", .integer)
-        table.column("title", .text).notNull()
-      }
-    }
-    migrator.registerMigration("Add tags table") { db in
-      try db.create(table: Tag.databaseTableName) { table in
-        table.autoIncrementedPrimaryKey("id")
-        table.column("name", .text).notNull().collate(.nocase).unique()
-      }
-      try db.create(table: ReminderTag.databaseTableName) { table in
-        table.column("reminderID", .integer).notNull()
-          .references(Reminder.databaseTableName, column: "id", onDelete: .cascade)
-        table.column("tagID", .integer).notNull()
-          .references(Tag.databaseTableName, column: "id", onDelete: .cascade)
-      }
-    }
-
-    return databaseQueue
   }
+  if inMemory {
+    database = try DatabaseQueue(configuration: configuration)
+  } else {
+    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
+    print("open", path)
+    database = try DatabasePool(path: path, configuration: configuration)
+  }
+  var migrator = DatabaseMigrator()
+  #if DEBUG
+    migrator.eraseDatabaseOnSchemaChange = true
+  #endif
+  migrator.registerMigration("Add reminders lists table") { db in
+    try db.create(table: RemindersList.databaseTableName) { table in
+      table.autoIncrementedPrimaryKey("id")
+      table.column("color", .integer).defaults(to: 0x4a99ef).notNull()
+      table.column("name", .text).notNull()
+    }
+  }
+  migrator.registerMigration("Add reminders table") { db in
+    try db.create(table: Reminder.databaseTableName) { table in
+      table.autoIncrementedPrimaryKey("id")
+      table.column("date", .date)
+      table.column("isCompleted", .boolean).defaults(to: false).notNull()
+      table.column("isFlagged", .boolean).defaults(to: false).notNull()
+      table.column("listID", .integer)
+        .references(RemindersList.databaseTableName, column: "id", onDelete: .cascade)
+        .notNull()
+      table.column("notes", .text).notNull()
+      table.column("priority", .integer)
+      table.column("title", .text).notNull()
+    }
+  }
+  migrator.registerMigration("Add tags table") { db in
+    try db.create(table: Tag.databaseTableName) { table in
+      table.autoIncrementedPrimaryKey("id")
+      table.column("name", .text).notNull().collate(.nocase).unique()
+    }
+    try db.create(table: ReminderTag.databaseTableName) { table in
+      table.column("reminderID", .integer).notNull()
+        .references(Reminder.databaseTableName, column: "id", onDelete: .cascade)
+      table.column("tagID", .integer).notNull()
+        .references(Tag.databaseTableName, column: "id", onDelete: .cascade)
+    }
+  }
+  #if DEBUG
+    migrator.registerMigration("Add mock data") { db in
+      try db.createMockData()
+    }
+  #endif
+  try migrator.migrate(database)
+
+  return database
 }
 
 #if DEBUG

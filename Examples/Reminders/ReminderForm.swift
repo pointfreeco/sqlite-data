@@ -225,9 +225,9 @@ struct TagsPopover: View {
 }
 
 #Preview {
-  let (remindersList, reminder) = prepareDependencies {
-    $0.defaultDatabase = .appDatabase
-    return try! $0.defaultDatabase.write { db in
+  let (remindersList, reminder) = try! prepareDependencies {
+    $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+    return try $0.defaultDatabase.write { db in
       let remindersList = try RemindersList.fetchOne(db)!
       return (
         remindersList,
