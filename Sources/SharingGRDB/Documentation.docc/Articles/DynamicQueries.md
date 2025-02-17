@@ -62,8 +62,12 @@ struct ContentView: View {
     }
   }
 
-  private func updateQuery() async throws {
-    try await $items.load(.fetch(Items(filterDate: filterDate, order: order)))
+  private func updateQuery() async {
+    do {
+      try await $items.load(.fetch(Items(filterDate: filterDate, order: order)))
+    } catch {
+      // Handle error...
+    }
   }
 
   private struct Items: FetchKeyRequest {
