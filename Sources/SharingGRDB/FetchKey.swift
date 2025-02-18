@@ -298,4 +298,4 @@ private struct FetchOne<Value: DatabaseValueConvertible>: FetchKeyRequest {
   }
 }
 
-private struct NotFound: Error {}
+struct NotFound: Error {}

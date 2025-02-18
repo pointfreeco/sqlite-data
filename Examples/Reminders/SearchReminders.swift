@@ -138,10 +138,9 @@ struct SearchRemindersView: View {
       // NB: We are loading lists as a separate query because we are not sure how to join
       //     "remindersLists" into the above query and decode it into 'State'. Ideally this
       //     could all be done with a single query.
-      let remindersLists = try RemindersList.fetchAll(
-        db,
-        keys: Set(reminders.map(\.remindersListID))
-      )
+      let remindersLists = try RemindersList
+        .where { reminders.map(\.remindersListID).contains($0.id) }
+        .fetchAll(db)
 
       let completedCount = try searchQueryBase(searchText: searchText)
         .filter(Column("isCompleted"))
@@ -162,7 +161,7 @@ struct SearchRemindersView: View {
     struct Value {
       var completedCount = 0
       var reminders: [Reminder] = []
-      struct Reminder: Decodable, FetchableRecord {
+      struct Reminder {
         var isPastDue: Bool
         let reminder: Reminders.Reminder
         let remindersList: RemindersList

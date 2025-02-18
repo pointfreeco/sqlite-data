@@ -2,23 +2,22 @@ import Foundation
 import GRDB
 import IssueReporting
 import SharingGRDB
+import StructuredQueriesGRDB
 
+@Table("remindersLists")
 struct RemindersList: Codable, FetchableRecord, Hashable, Identifiable, MutablePersistableRecord {
   static let databaseTableName = "remindersLists"
-
-  var id: Int64?
+  var id: Int64
   var color = 0x4a99ef
   var name = ""
-
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
+@Table("reminders")
 struct Reminder: Codable, Equatable, FetchableRecord, Identifiable, MutablePersistableRecord {
   static let databaseTableName = "reminders"
 
-  var id: Int64?
+  var id: Int64
+  @Column(as: .iso8601)
   var date: Date?
   var isCompleted = false
   var isFlagged = false
@@ -32,10 +31,11 @@ struct Reminder: Codable, Equatable, FetchableRecord, Identifiable, MutablePersi
   }
 }
 
+@Table("tags")
 struct Tag: Codable, FetchableRecord, MutablePersistableRecord {
   static let databaseTableName = "tags"
 
-  var id: Int64?
+  var id: Int64
   var name = ""
 
   mutating func didInsert(_ inserted: InsertionSuccess) {
@@ -43,11 +43,13 @@ struct Tag: Codable, FetchableRecord, MutablePersistableRecord {
   }
 }
 
+@Table("remindersTags")
 struct ReminderTag: Codable, FetchableRecord, MutablePersistableRecord {
   static let databaseTableName = "remindersTags"
 
-  var reminderID: Int64?
-  var tagID: Int64?
+  // TODO: Both of these should be non-optional even on 'main'
+  var reminderID: Int64
+  var tagID: Int64
 }
 
 func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
@@ -73,7 +75,7 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Add reminders lists table") { db in
-    try db.create(table: RemindersList.databaseTableName) { table in
+    try db.create(table: RemindersList.name) { table in
       table.autoIncrementedPrimaryKey("id")
       table.column("color", .integer).defaults(to: 0x4a99ef).notNull()
       table.column("name", .text).notNull()
@@ -86,7 +88,7 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
       table.column("isCompleted", .boolean).defaults(to: false).notNull()
       table.column("isFlagged", .boolean).defaults(to: false).notNull()
       table.column("listID", .integer)
-        .references(RemindersList.databaseTableName, column: "id", onDelete: .cascade)
+        .references(RemindersList.name, column: "id", onDelete: .cascade)
         .notNull()
       table.column("notes", .text).notNull()
       table.column("priority", .integer)
@@ -124,97 +126,102 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
     }
 
     func createDebugRemindersLists() throws {
-      _ = try RemindersList(color: 0x4a99ef, name: "Personal").inserted(self)
-      _ = try RemindersList(color: 0xed8935, name: "Family").inserted(self)
-      _ = try RemindersList(color: 0xb25dd3, name: "Business").inserted(self)
+      try execute(
+        RemindersList.insert {
+          ($0.color, $0.name)
+        } values: {
+          (color: 0x4a99ef, name: "Personal")
+          (color: 0xed8935, name: "Family")
+          (color: 0xb25dd3, name: "Business")
+        }
+      )
     }
 
     func createDebugReminders() throws {
-      _ = try Reminder(
-        date: Date(),
-        listID: 1,
-        notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
-        title: "Groceries"
+      // TODO: Support this?
+//      _ = try Reminder.Draft(
+//        date: Date(),
+//        listID: 1,
+//        notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
+//        title: "Groceries"
+//      )
+//      .inserted(self)
+      try execute(
+        Reminder.insert([
+          Reminder.Draft(
+            date: Date(),
+            listID: 1,
+            notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
+            title: "Groceries"
+          ),
+          Reminder.Draft(
+            date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+            isFlagged: true,
+            listID: 1,
+            title: "Haircut"
+          ),
+          Reminder.Draft(
+            date: Date(),
+            listID: 1,
+            notes: "Ask about diet",
+            priority: 3,
+            title: "Doctor appointment"
+          ),
+          Reminder.Draft(
+            date: Date().addingTimeInterval(-60 * 60 * 24 * 190),
+            isCompleted: true,
+            listID: 1,
+            title: "Take a walk"
+          ),
+          Reminder.Draft(
+            date: Date(),
+            listID: 1,
+            title: "Buy concert tickets"
+          ),
+          Reminder.Draft(
+            date: Date().addingTimeInterval(60 * 60 * 24 * 2),
+            isFlagged: true,
+            listID: 2,
+            priority: 3,
+            title: "Pick up kids from school"
+          ),
+          Reminder.Draft(
+            date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+            isCompleted: true,
+            listID: 2,
+            priority: 1,
+            title: "Get laundry"
+          ),
+          Reminder.Draft(
+            date: Date().addingTimeInterval(60 * 60 * 24 * 4),
+            isCompleted: false,
+            listID: 2,
+            priority: 3,
+            title: "Take out trash"
+          ),
+          Reminder.Draft(
+            date: Date().addingTimeInterval(60 * 60 * 24 * 2),
+            listID: 3,
+            notes: """
+            Status of tax return
+            Expenses for next year
+            Changing payroll company
+            """,
+            title: "Call accountant"
+          ),
+          Reminder.Draft(
+            date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+            isCompleted: true,
+            listID: 3,
+            priority: 2,
+            title: "Send weekly emails"
+          ),
+        ])
       )
-      .inserted(self)
-      _ = try Reminder(
-        date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
-        isFlagged: true,
-        listID: 1,
-        title: "Haircut"
-      )
-      .inserted(self)
-      _ = try Reminder(
-        date: Date(),
-        listID: 1,
-        notes: "Ask about diet",
-        priority: 3,
-        title: "Doctor appointment"
-      )
-      .inserted(self)
-      _ = try Reminder(
-        date: Date().addingTimeInterval(-60 * 60 * 24 * 190),
-        isCompleted: true,
-        listID: 1,
-        title: "Take a walk"
-      )
-      .inserted(self)
-      _ = try Reminder(
-        date: Date(),
-        listID: 1,
-        title: "Buy concert tickets"
-      )
-      .inserted(self)
-      _ = try Reminder(
-        date: Date().addingTimeInterval(60 * 60 * 24 * 2),
-        isFlagged: true,
-        listID: 2,
-        priority: 3,
-        title: "Pick up kids from school"
-      )
-      .inserted(self)
-      _ = try Reminder(
-        date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
-        isCompleted: true,
-        listID: 2,
-        priority: 1,
-        title: "Get laundry"
-      )
-      .inserted(self)
-      _ = try Reminder(
-        date: Date().addingTimeInterval(60 * 60 * 24 * 4),
-        isCompleted: false,
-        listID: 2,
-        priority: 3,
-        title: "Take out trash"
-      )
-      .inserted(self)
-      _ = try Reminder(
-        date: Date().addingTimeInterval(60 * 60 * 24 * 2),
-        listID: 3,
-        notes: """
-          Status of tax return
-          Expenses for next year
-          Changing payroll company
-          """,
-        title: "Call accountant"
-      )
-      .inserted(self)
-      _ = try Reminder(
-        date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
-        isCompleted: true,
-        listID: 3,
-        priority: 2,
-        title: "Send weekly emails"
-      )
-      .inserted(self)
     }
 
     func createDebugTags() throws {
-      _ = try Tag(name: "car").inserted(self)
-      _ = try Tag(name: "kids").inserted(self)
-      _ = try Tag(name: "someday").inserted(self)
-      _ = try Tag(name: "optional").inserted(self)
+      try execute(Tag.insert(\.name) { "car"; "kids"; "someday"; "optional" })
       _ = try ReminderTag(reminderID: 1, tagID: 3).inserted(self)
       _ = try ReminderTag(reminderID: 1, tagID: 4).inserted(self)
       _ = try ReminderTag(reminderID: 2, tagID: 3).inserted(self)

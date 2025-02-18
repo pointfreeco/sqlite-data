@@ -1,4 +1,6 @@
 import Dependencies
+// TODO: Comment this out and the error messages are bad
+import StructuredQueriesGRDB
 import SwiftUI
 
 struct ReminderRow: View {
@@ -86,9 +88,11 @@ struct ReminderRow: View {
   private func completeButtonTapped() {
     withErrorReporting {
       try database.write { db in
-        var reminder = reminder
-        reminder.isCompleted.toggle()
-        _ = try reminder.saved(db)
+        try db.execute(
+          Reminder
+            .where { $0.id == reminder.id }
+            .update { $0.isCompleted.toggle() }
+        )
       }
     }
   }

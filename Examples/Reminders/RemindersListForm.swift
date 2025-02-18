@@ -6,14 +6,17 @@ import SwiftUI
 struct RemindersListForm: View {
   @Dependency(\.defaultDatabase) private var database
 
-  @State var remindersList: RemindersList
+  let remindersListID: RemindersList.ID?
+  @State var remindersList: RemindersList.Draft
   @Environment(\.dismiss) var dismiss
 
   init(existingList: RemindersList? = nil) {
     if let existingList {
-      remindersList = existingList
+      remindersListID = existingList.id
+      remindersList = RemindersList.Draft(color: existingList.color, name: existingList.name)
     } else {
-      remindersList = RemindersList()
+      remindersListID = nil
+      remindersList = RemindersList.Draft()
     }
   }
 
@@ -28,7 +31,21 @@ struct RemindersListForm: View {
           withErrorReporting {
             do {
               try database.write { db in
-                _ = try remindersList.saved(db)
+                if let remindersListID {
+                  try db.execute(
+                    RemindersList.update(
+                      RemindersList(
+                        id: remindersListID,
+                        color: remindersList.color,
+                        name: remindersList.name
+                      )
+                    )
+                  )
+                } else {
+                  try db.execute(
+                    RemindersList.insert(remindersList)
+                  )
+                }
               }
             }
           }
@@ -57,7 +74,8 @@ extension Int {
     set {
       guard let components = newValue.components
       else { return }
-      self = (Int(components[0] * 255) << 16)
+      self =
+        (Int(components[0] * 255) << 16)
         | (Int(components[1] * 255) << 8)
         | Int(components[2] * 255)
     }

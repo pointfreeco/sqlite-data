@@ -1,17 +1,17 @@
 import Dependencies
 import GRDB
 import IssueReporting
-import Sharing
 import SharingGRDB
+import StructuredQueriesGRDB
 import SwiftUI
 
 struct ReminderFormView: View {
-  @SharedReader(.fetchAll(sql: #"SELECT * FROM "remindersLists" ORDER BY "name" ASC"#))
-  var remindersLists: [RemindersList]
+  @SharedReader(.fetchAll(RemindersList.order(by: \.name))) var remindersLists
 
   @State var isPresentingTagsPopover = false
   @State var remindersList: RemindersList
-  @State var reminder: Reminder
+  let reminderID: Reminder.ID?
+  @State var reminder: Reminder.Draft
   @State var selectedTags: [Tag] = []
 
   @Dependency(\.defaultDatabase) private var database
@@ -20,12 +20,19 @@ struct ReminderFormView: View {
   init?(existingReminder: Reminder? = nil, remindersList: RemindersList) {
     self.remindersList = remindersList
     if let existingReminder {
-      reminder = existingReminder
-    } else if let listID = remindersList.id {
-      reminder = Reminder(listID: listID)
+      reminderID = existingReminder.id
+      reminder = Reminder.Draft(
+        date: existingReminder.date,
+        isCompleted: existingReminder.isCompleted,
+        isFlagged: existingReminder.isFlagged,
+        listID: existingReminder.listID,
+        notes: existingReminder.notes,
+        priority: existingReminder.priority,
+        title: existingReminder.title
+      )
     } else {
-      reportIssue("'list.id' is required to be non-nil.")
-      return nil
+      reminderID = nil
+      reminder = Reminder.Draft(listID: remindersList.id)
     }
   }
 
@@ -119,17 +126,18 @@ struct ReminderFormView: View {
           }
         }
         .onChange(of: remindersList) {
-          reminder.listID = remindersList.id!
+          reminder.listID = remindersList.id
         }
       }
     }
-    .task { [reminderID = reminder.id] in
+    .task {
       do {
         selectedTags = try await database.read { db in
           try Tag.all()
-            .joining(optional: Tag.hasMany(ReminderTag.self))
-            .filter(Column("reminderID").detached == reminderID)
-            .order(Column("name"))
+            .order(by: \.name)
+            .leftJoin(ReminderTag.all()) { $0.id == $1.tagID }
+            .where { $1.reminderID == reminderID }
+            .select { tag, _ in tag }
             .fetchAll(db)
         }
       } catch {
@@ -161,18 +169,48 @@ struct ReminderFormView: View {
   private func saveButtonTapped() {
     withErrorReporting {
       try database.write { db in
-        try reminder.save(db)
-        try ReminderTag.filter(Column("reminderID") == reminder.id!).deleteAll(db)
-        for tag in selectedTags {
-          _ = try ReminderTag(reminderID: reminder.id!, tagID: tag.id!).saved(db)
+        //        try reminder.save(db)
+        let updatedReminderID: Reminder.ID
+        /*
+         let updatedReminderID = Reminder.upsert(id: reminderID, reminder).returning(\.id)
+
+         // If Draft had `id?`:
+         let updatedReminderID = Reminder.upsert(reminder).returning(\.id)
+         */
+        if let reminderID {
+          updatedReminderID = try Reminder
+            .where { $0.id == reminderID }
+            .update {
+              // TODO:
+              // $0.date = reminder.date
+              $0.isCompleted = reminder.isCompleted
+              $0.isFlagged = reminder.isFlagged
+              $0.listID = reminder.listID
+              $0.notes = reminder.notes
+              $0.priority = reminder.priority
+              $0.title = reminder.title
+            }
+            .returning(\.id)
+            .fetchOne(db)!
+          // TODO: This should be on this branch on 'main'
+          try db.execute(ReminderTag.where { $0.reminderID == reminderID }.delete())
+        } else {
+          updatedReminderID = try Reminder.insert(reminder).returning(\.id).fetchOne(db)!
         }
+        try db.execute(
+          ReminderTag.insert(
+            selectedTags.map { tag in
+              ReminderTag(reminderID: updatedReminderID, tagID: tag.id)
+            }
+          )
+        )
       }
     }
     dismiss()
   }
 }
 
-extension Reminder {
+extension Reminder.Draft {
   fileprivate var isDateSet: Bool {
     get { date != nil }
     set { date = newValue ? Date() : nil }
@@ -186,8 +224,7 @@ extension Optional {
 }
 
 struct TagsPopover: View {
-  @SharedReader(.fetchAll(sql: #"SELECT * FROM "tags" ORDER BY "name" ASC"#))
-  var availableTags: [Tag]
+  @SharedReader(.fetchAll(Tag.order(by: \.name))) var availableTags
 
   @Binding var selectedTags: [Tag]
 
@@ -231,6 +268,8 @@ struct TagsPopover: View {
       let remindersList = try RemindersList.fetchOne(db)!
       return (
         remindersList,
+        // TODO: Preview bug, use preview provider
+//        try Reminder.where { $0.listID == remindersList.id }.fetchOne(db)!
         try Reminder.filter(Column("listID") == remindersList.id).fetchOne(db)!
       )
     }

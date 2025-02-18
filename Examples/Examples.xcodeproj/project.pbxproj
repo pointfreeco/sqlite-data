@@ -12,6 +12,7 @@
 		DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = DC5FA7472D4C63D60082743E /* DependenciesMacros */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
 		DCBE8A162D4842C80071F499 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A152D4842C80071F499 /* SharingGRDB */; };
+		DCDCB67A2D64648C0038EB37 /* StructuredQueriesGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCDCB6792D64648C0038EB37 /* StructuredQueriesGRDB */; };
 		DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = DCF267382D48437300B680BE /* SwiftUINavigation */; };
 		DCF2684A2D4993BC00B680BE /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCF268492D4993BC00B680BE /* SharingGRDB */; };
 /* End PBXBuildFile section */
@@ -113,6 +114,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CAFDD64A2D5E823A00EE099E /* SharingGRDB in Frameworks */,
+				DCDCB67A2D64648C0038EB37 /* StructuredQueriesGRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -229,6 +231,7 @@
 			name = Reminders;
 			packageProductDependencies = (
 				CAFDD6492D5E823A00EE099E /* SharingGRDB */,
+				DCDCB6792D64648C0038EB37 /* StructuredQueriesGRDB */,
 			);
 			productName = Reminders;
 			productReference = CAF836D82D4735AB0047AEB5 /* Reminders.app */;
@@ -804,6 +807,10 @@
 		DCBE8A152D4842C80071F499 /* SharingGRDB */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SharingGRDB;
+		};
+		DCDCB6792D64648C0038EB37 /* StructuredQueriesGRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = StructuredQueriesGRDB;
 		};
 		DCF267382D48437300B680BE /* SwiftUINavigation */ = {
 			isa = XCSwiftPackageProductDependency;

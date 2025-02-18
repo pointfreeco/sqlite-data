@@ -1,6 +1,13 @@
 import Sharing
 import SharingGRDB
+import StructuredQueriesGRDB
 import SwiftUI
+
+extension OrderingBuilder {
+  public static func buildBlock(_ component: [OrderingTerm]...) -> [OrderingTerm] {
+    component.flatMap { $0 }
+  }
+}
 
 struct RemindersListDetailView: View {
   @State.SharedReader private var remindersState: [Reminders.Record]
@@ -23,35 +30,25 @@ struct RemindersListDetailView: View {
       case .title:    Image(systemName: "textformat.characters")
       }
     }
-    var queryString: String {
-      switch self {
-      case .dueDate:  #""date""#
-      case .priority: #""priority" DESC, "isFlagged" DESC"#
-      case .title:    #""title""#
-      }
-    }
   }
 
-  init?(remindersList: RemindersList) {
+  init(remindersList: RemindersList) {
     self.remindersList = remindersList
     _remindersState = State.SharedReader(value: [])
-    if let listID = remindersList.id {
-      _ordering = Shared(wrappedValue: .dueDate, .appStorage("ordering_list_\(listID)"))
-      _showCompleted = Shared(wrappedValue: false, .appStorage("show_completed_list_\(listID)"))
-      $remindersState = SharedReader(
-        .fetch(
-          Reminders(
-            listID: listID,
-            ordering: ordering,
-            showCompleted: showCompleted
-          ),
-          animation: .default
-        )
+    _ordering = Shared(wrappedValue: .dueDate, .appStorage("ordering_list_\(remindersList.id)"))
+    _showCompleted = Shared(
+      wrappedValue: false, .appStorage("show_completed_list_\(remindersList.id)")
+    )
+    $remindersState = SharedReader(
+      .fetch(
+        Reminders(
+          listID: remindersList.id,
+          ordering: ordering,
+          showCompleted: showCompleted
+        ),
+        animation: .default
       )
-    } else {
-      reportIssue("'list.id' required to be non-nil.")
-      return nil
-    }
+    )
   }
 
   var body: some View {
@@ -123,12 +120,9 @@ struct RemindersListDetailView: View {
   }
 
   private func updateQuery() async throws {
-    guard let listID = remindersList.id
-    else { return }
-
     try await $remindersState.load(
       .fetch(
-        Reminders(listID: listID, ordering: ordering, showCompleted: showCompleted),
+        Reminders(listID: remindersList.id, ordering: ordering, showCompleted: showCompleted),
         animation: .default
       )
     )
@@ -139,27 +133,40 @@ struct RemindersListDetailView: View {
     let ordering: Ordering
     let showCompleted: Bool
     func fetch(_ db: Database) throws -> [Record] {
-      try Record
-        .fetchAll(
-        db,
-        sql: """
-        SELECT 
-          "reminders".*, 
-          group_concat("tags"."name", ',') AS "commaSeparatedTags",
-          NOT "isCompleted" AND coalesce("reminders"."date", date('now')) < date('now') as "isPastDue"
-        FROM "reminders"
-        LEFT JOIN "remindersTags" ON "reminders"."id" = "remindersTags"."reminderID"
-        LEFT JOIN "tags" ON "remindersTags"."tagID" = "tags"."id"
-        WHERE 
-          "reminders"."listID" = ?
-          \(showCompleted ? "" : #"AND NOT "isCompleted""#)
-        GROUP BY "reminders"."id"
-        ORDER BY
-          "reminders"."isCompleted" ASC, 
-          \(ordering.queryString)
-        """,
-        arguments: [listID]
-      )
+      return try Reminder
+        .where { $0.listID == listID }
+      // TODO: Should `where` return `any Expression<Bool>` as `@_disfavoredOverload`?
+      //        .where { showCompleted ? true : !$0.isCompleted }
+        .where { showCompleted || !$0.isCompleted }
+        .group(by: \.id)
+        .order {
+          // TODO: Do we want to support this `buildBlock`
+          $0.isCompleted
+
+          switch ordering {
+          case .dueDate:
+            $0.date
+          case .priority:
+            ($0.priority.descending(), $0.isFlagged.descending())
+          case .title:
+            $0.title
+          }
+        }
+        .leftJoin(ReminderTag.all()) { $0.id == $1.reminderID }
+      // TODO: Overload to fix
+        .leftJoin(Tag.all()) { $0.1.tagID == $1.id }
+        .select {
+          (
+            $0.0,
+            $0.0.isCompleted
+            && .raw("coalesce(\(bind: $0.0.date), date('now')) < date('now')", as: Bool.self),
+            $1.name.groupConcat(separator: ",")
+            // TODO: Ambiguous '??'
+            //            !$0.0.isCompleted /* && ($0.0.date ?? .raw("date('now')")) < .raw("date('now')") */
+          )
+        }
+        .fetchAll(db)
+        .map(Record.init)
     }
     struct Record: Decodable, FetchableRecord {
       var reminder: Reminder
@@ -176,7 +183,7 @@ struct RemindersListDetailView: View {
   let remindersList = try! prepareDependencies {
     $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
     return try $0.defaultDatabase.read { db in
-      try RemindersList.fetchOne(db)!
+      try RemindersList.fetchOne(db)! as RemindersList
     }
   }
   NavigationStack {

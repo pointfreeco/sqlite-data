@@ -2,6 +2,7 @@ import Dependencies
 import GRDB
 import Sharing
 import SharingGRDB
+import StructuredQueries
 import SwiftUI
 
 struct RemindersListsView: View {
@@ -104,18 +105,16 @@ struct RemindersListsView: View {
     .searchable(text: $searchText)
   }
 
-  private struct RemindersLists: FetchKeyRequest {
+  struct RemindersLists: FetchKeyRequest {
     func fetch(_ db: Database) throws -> [Record] {
-      try Record.fetchAll(
-        db,
-        RemindersList.annotated(
-          with: RemindersList
-            .hasMany(Reminder.self)
-            .filter(!Column("isCompleted"))
-            .count
-        )
-      )
+      try RemindersList
+        .group(by: \.id)
+        .join(Reminder.where { !$0.isCompleted }) { $0.id == $1.listID }
+        .select { ($0, $1.id.count()) }
+        .fetchAll(db)
+        .map { Record(reminderCount: $1, remindersList: $0) }
     }
+    // TODO: Fix @Selection to support queryfragment changes
     struct Record: Decodable, FetchableRecord {
       var reminderCount: Int
       var remindersList: RemindersList
@@ -123,19 +122,15 @@ struct RemindersListsView: View {
   }
   private struct Stats: FetchKeyRequest {
     func fetch(_ db: Database) throws -> Value {
-      let todayCount = try Int.fetchOne(db, sql: """
-        SELECT count(*)
-        FROM "reminders"
-        WHERE date("date") = date('now')
-        """) ?? 0
+      let todayCount = try Reminder.count()
+        .where { .raw("date(\(bind: $0.date)) = date('now')") }
+        .fetchOne(db) ?? 0
       let allCount = try Reminder.fetchCount(db)
-      let scheduledCount = try Int.fetchOne(db, sql: """
-        SELECT count(*)
-        FROM "reminders"
-        WHERE date("date") > date('now')
-        """) ?? 0
-      let flaggedCount = try Reminder.filter(Column("isFlagged")).fetchCount(db)
-      let completedCount = try Reminder.filter(Column("isCompleted")).fetchCount(db)
+      let scheduledCount = try Reminder.count()
+        .where { .raw("date(\(bind: $0.date)) > date('now')") }
+        .fetchOne(db) ?? 0
+      let flaggedCount = try Reminder.where(\.isFlagged).count().fetchOne(db) ?? 0
+      let completedCount = try Reminder.where(\.isCompleted).count().fetchOne(db) ?? 0
       return Value(
         allCount: allCount,
         completedCount: completedCount,

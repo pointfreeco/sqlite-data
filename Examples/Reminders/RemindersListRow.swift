@@ -1,4 +1,5 @@
 import SharingGRDB
+import StructuredQueriesGRDB
 import SwiftUI
 
 struct RemindersListRow: View {
@@ -22,7 +23,11 @@ struct RemindersListRow: View {
       Button {
         withErrorReporting {
           _ = try database.write { db in
-            try remindersList.delete(db)
+            try db.execute(
+              RemindersList
+                .where { $0.id == remindersList.id }
+                .delete()
+            )
           }
         }
       } label: {
@@ -51,6 +56,7 @@ struct RemindersListRow: View {
       RemindersListRow(
         reminderCount: 10,
         remindersList: RemindersList(
+          id: 1,
           name: "Personal"
         )
       )
