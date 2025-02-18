@@ -88,11 +88,10 @@ struct ReminderRow: View {
   private func completeButtonTapped() {
     withErrorReporting {
       try database.write { db in
-        try db.execute(
-          Reminder
-            .where { $0.id == reminder.id }
-            .update { $0.isCompleted.toggle() }
-        )
+        try Reminder
+          .where { $0.id == reminder.id }
+          .update { $0.isCompleted.toggle() }
+          .execute(db)
       }
     }
   }

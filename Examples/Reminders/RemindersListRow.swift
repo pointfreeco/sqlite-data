@@ -23,11 +23,10 @@ struct RemindersListRow: View {
       Button {
         withErrorReporting {
           _ = try database.write { db in
-            try db.execute(
-              RemindersList
-                .where { $0.id == remindersList.id }
-                .delete()
-            )
+            try RemindersList
+              .where { $0.id == remindersList.id }
+              .delete()
+              .execute(db)
           }
         }
       } label: {

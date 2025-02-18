@@ -2,27 +2,13 @@ import GRDB
 import Foundation
 @_exported import StructuredQueriesCore
 
-extension StructuredQueriesCore.Table {
-  @_disfavoredOverload
-  public static func fetchAll(_ db: Database) throws -> [Self] {
-    try all().fetchAll(db)
-  }
-
-  @_disfavoredOverload
-  public static func fetchOne(_ db: Database) throws -> Self? {
-    try limit(1).fetchOne(db)
-  }
-}
-
-extension Database {
-  public func execute(_ statement: some StructuredQueriesCore.Statement) throws {
-    let query = statement.queryFragment
-    guard !query.isEmpty else { return }
-    try execute(sql: query.string, arguments: query.arguments)
-  }
-}
-
 extension StructuredQueriesCore.Statement {
+  public func execute(_ db: Database) throws {
+    let query = queryFragment
+    guard !query.isEmpty else { return }
+    try db.execute(sql: query.string, arguments: query.arguments)
+  }
+
   public func fetchAll<each Value: QueryDecodable>(
     _ db: Database
   ) throws -> [(repeat each Value)]
@@ -40,6 +26,23 @@ extension StructuredQueriesCore.Statement {
     return results
   }
 
+  public func fetchAll<Value: QueryDecodable>(
+    _ db: Database
+  ) throws -> [Value]
+  where QueryOutput == [Value] {
+    let query = queryFragment
+    guard !query.isEmpty else { return [] }
+    let cursor = try Row.fetchCursor(db, sql: query.string, arguments: query.arguments)
+    var results: [Value] = []
+    let decoder = GRDBQueryDecoder()
+    while let row = try cursor.next() {
+      try decoder.withRow(row) {
+        try results.append(Value(decoder: decoder))
+      }
+    }
+    return results
+  }
+
   public func fetchOne<each Value: QueryDecodable>(
     _ db: Database
   ) throws -> (repeat each Value)?
@@ -51,6 +54,20 @@ extension StructuredQueriesCore.Statement {
     let decoder = GRDBQueryDecoder()
     return try decoder.withRow(row) {
       try (repeat (each Value)(decoder: decoder))
+    }
+  }
+
+  public func fetchOne<Value: QueryDecodable>(
+    _ db: Database
+  ) throws -> Value?
+  where QueryOutput == [Value] {
+    let query = queryFragment
+    guard !query.isEmpty else { return nil }
+    let cursor = try Row.fetchCursor(db, sql: query.string, arguments: query.arguments)
+    guard let row = try cursor.next() else { return nil }
+    let decoder = GRDBQueryDecoder()
+    return try decoder.withRow(row) {
+      try Value(decoder: decoder)
     }
   }
 }

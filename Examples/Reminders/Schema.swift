@@ -126,15 +126,14 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
     }
 
     func createDebugRemindersLists() throws {
-      try execute(
-        RemindersList.insert {
-          ($0.color, $0.name)
-        } values: {
-          (color: 0x4a99ef, name: "Personal")
-          (color: 0xed8935, name: "Family")
-          (color: 0xb25dd3, name: "Business")
-        }
-      )
+      try RemindersList.insert {
+        ($0.color, $0.name)
+      } values: {
+        (color: 0x4a99ef, name: "Personal")
+        (color: 0xed8935, name: "Family")
+        (color: 0xb25dd3, name: "Business")
+      }
+      .execute(self)
     }
 
     func createDebugReminders() throws {
@@ -146,82 +145,81 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
 //        title: "Groceries"
 //      )
 //      .inserted(self)
-      try execute(
-        Reminder.insert([
-          Reminder.Draft(
-            date: Date(),
-            listID: 1,
-            notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
-            title: "Groceries"
-          ),
-          Reminder.Draft(
-            date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
-            isFlagged: true,
-            listID: 1,
-            title: "Haircut"
-          ),
-          Reminder.Draft(
-            date: Date(),
-            listID: 1,
-            notes: "Ask about diet",
-            priority: 3,
-            title: "Doctor appointment"
-          ),
-          Reminder.Draft(
-            date: Date().addingTimeInterval(-60 * 60 * 24 * 190),
-            isCompleted: true,
-            listID: 1,
-            title: "Take a walk"
-          ),
-          Reminder.Draft(
-            date: Date(),
-            listID: 1,
-            title: "Buy concert tickets"
-          ),
-          Reminder.Draft(
-            date: Date().addingTimeInterval(60 * 60 * 24 * 2),
-            isFlagged: true,
-            listID: 2,
-            priority: 3,
-            title: "Pick up kids from school"
-          ),
-          Reminder.Draft(
-            date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
-            isCompleted: true,
-            listID: 2,
-            priority: 1,
-            title: "Get laundry"
-          ),
-          Reminder.Draft(
-            date: Date().addingTimeInterval(60 * 60 * 24 * 4),
-            isCompleted: false,
-            listID: 2,
-            priority: 3,
-            title: "Take out trash"
-          ),
-          Reminder.Draft(
-            date: Date().addingTimeInterval(60 * 60 * 24 * 2),
-            listID: 3,
-            notes: """
+      try Reminder.insert([
+        Reminder.Draft(
+          date: Date(),
+          listID: 1,
+          notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
+          title: "Groceries"
+        ),
+        Reminder.Draft(
+          date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          isFlagged: true,
+          listID: 1,
+          title: "Haircut"
+        ),
+        Reminder.Draft(
+          date: Date(),
+          listID: 1,
+          notes: "Ask about diet",
+          priority: 3,
+          title: "Doctor appointment"
+        ),
+        Reminder.Draft(
+          date: Date().addingTimeInterval(-60 * 60 * 24 * 190),
+          isCompleted: true,
+          listID: 1,
+          title: "Take a walk"
+        ),
+        Reminder.Draft(
+          date: Date(),
+          listID: 1,
+          title: "Buy concert tickets"
+        ),
+        Reminder.Draft(
+          date: Date().addingTimeInterval(60 * 60 * 24 * 2),
+          isFlagged: true,
+          listID: 2,
+          priority: 3,
+          title: "Pick up kids from school"
+        ),
+        Reminder.Draft(
+          date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          isCompleted: true,
+          listID: 2,
+          priority: 1,
+          title: "Get laundry"
+        ),
+        Reminder.Draft(
+          date: Date().addingTimeInterval(60 * 60 * 24 * 4),
+          isCompleted: false,
+          listID: 2,
+          priority: 3,
+          title: "Take out trash"
+        ),
+        Reminder.Draft(
+          date: Date().addingTimeInterval(60 * 60 * 24 * 2),
+          listID: 3,
+          notes: """
             Status of tax return
             Expenses for next year
             Changing payroll company
             """,
-            title: "Call accountant"
-          ),
-          Reminder.Draft(
-            date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
-            isCompleted: true,
-            listID: 3,
-            priority: 2,
-            title: "Send weekly emails"
-          ),
-        ])
-      )
+          title: "Call accountant"
+        ),
+        Reminder.Draft(
+          date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          isCompleted: true,
+          listID: 3,
+          priority: 2,
+          title: "Send weekly emails"
+        ),
+      ])
+      .execute(self)
     }
 
     func createDebugTags() throws {
-      try execute(Tag.insert(\.name) { "car"; "kids"; "someday"; "optional" })
+      try Tag.insert(\.name) { "car"; "kids"; "someday"; "optional" }.execute(self)
       _ = try ReminderTag(reminderID: 1, tagID: 3).inserted(self)
       _ = try ReminderTag(reminderID: 1, tagID: 4).inserted(self)
       _ = try ReminderTag(reminderID: 2, tagID: 3).inserted(self)

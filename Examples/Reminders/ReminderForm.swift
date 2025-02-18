@@ -193,17 +193,16 @@ struct ReminderFormView: View {
             .returning(\.id)
             .fetchOne(db)!
           // TODO: This should be on this branch on 'main'
-          try db.execute(ReminderTag.where { $0.reminderID == reminderID }.delete())
+          try ReminderTag.where { $0.reminderID == reminderID }.delete().execute(db)
         } else {
-          updatedReminderID = try Reminder.insert(reminder).returning(\.id).fetchOne(db)!
+          updatedReminderID = try Reminder.insert(reminder).returning(\.id).fetchOne(db)!.id
         }
-        try db.execute(
-          ReminderTag.insert(
-            selectedTags.map { tag in
-              ReminderTag(reminderID: updatedReminderID, tagID: tag.id)
-            }
-          )
+        try ReminderTag.insert(
+          selectedTags.map { tag in
+            ReminderTag(reminderID: updatedReminderID, tagID: tag.id)
+          }
         )
+        .execute(db)
       }
     }
     dismiss()

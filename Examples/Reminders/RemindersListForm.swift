@@ -32,19 +32,16 @@ struct RemindersListForm: View {
             do {
               try database.write { db in
                 if let remindersListID {
-                  try db.execute(
-                    RemindersList.update(
-                      RemindersList(
-                        id: remindersListID,
-                        color: remindersList.color,
-                        name: remindersList.name
-                      )
+                  try RemindersList.update(
+                    RemindersList(
+                      id: remindersListID,
+                      color: remindersList.color,
+                      name: remindersList.name
                     )
                   )
+                  .execute(db)
                 } else {
-                  try db.execute(
-                    RemindersList.insert(remindersList)
-                  )
+                  try RemindersList.insert(remindersList).execute(db)
                 }
               }
             }
