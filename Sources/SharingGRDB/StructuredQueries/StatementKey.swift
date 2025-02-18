@@ -20,12 +20,30 @@ extension SharedReaderKey {
     fetch(FetchAllStatementRequest(statement: statement), database: database, scheduler: scheduler)
   }
 
+  public static func fetchAll<Value: QueryDecodable>(
+    _ statement: some StructuredQueriesCore.Statement<[Value]>,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+  ) -> Self
+  where Self == FetchKey<[Value]>.Default {
+    fetch(FetchAllStatementRequest(statement: statement), database: database, scheduler: scheduler)
+  }
+
   public static func fetchOne<each Value: QueryDecodable>(
     _ statement: some StructuredQueriesCore.Statement<[(repeat each Value)]>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler = .async(onQueue: .main)
   ) -> Self
   where Self == FetchKey<(repeat each Value)> {
+    fetch(FetchOneStatementRequest(statement: statement), database: database, scheduler: scheduler)
+  }
+
+  public static func fetchOne<Value: QueryDecodable>(
+    _ statement: some StructuredQueriesCore.Statement<[Value]>,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+  ) -> Self
+  where Self == FetchKey<Value> {
     fetch(FetchOneStatementRequest(statement: statement), database: database, scheduler: scheduler)
   }
 
@@ -41,12 +59,34 @@ extension SharedReaderKey {
       )
     }
 
+    public static func fetchAll<Value: QueryDecodable>(
+      _ statement: some StructuredQueriesCore.Statement<[Value]>,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    ) -> Self
+    where Self == FetchKey<[Value]>.Default {
+      fetch(
+        FetchAllStatementRequest(statement: statement), database: database, animation: animation
+      )
+    }
+
     public static func fetchOne<each Value: QueryDecodable>(
       _ statement: some StructuredQueriesCore.Statement<[(repeat each Value)]>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     ) -> Self
     where Self == FetchKey<(repeat each Value)> {
+      fetch(
+        FetchOneStatementRequest(statement: statement), database: database, animation: animation
+      )
+    }
+
+    public static func fetchOne<Value: QueryDecodable>(
+      _ statement: some StructuredQueriesCore.Statement<[Value]>,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    ) -> Self
+    where Self == FetchKey<Value> {
       fetch(
         FetchOneStatementRequest(statement: statement), database: database, animation: animation
       )
