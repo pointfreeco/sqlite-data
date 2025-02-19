@@ -2,15 +2,14 @@ import Dependencies
 // TODO: Comment this out and the error messages are bad
 import StructuredQueriesGRDB
 import SwiftUI
-import SwiftUINavigation
 
 struct ReminderRow: View {
   let isPastDue: Bool
   let reminder: Reminder
-  let remindersListColor: Int
+  let remindersList: RemindersList
   let tags: [String]
 
-  @State var editReminder: (Reminder, RemindersList)?
+  @State var editReminder: Reminder?
 
   @Dependency(\.defaultDatabase) private var database
   
@@ -46,7 +45,7 @@ struct ReminderRow: View {
               .foregroundStyle(.orange)
           }
           Button {
-            presentEditReminder()
+            editReminder = reminder
           } label: {
             Image(systemName: "info.circle")
           }
@@ -76,22 +75,12 @@ struct ReminderRow: View {
       }
       .tint(.orange)
       Button("Details") {
-        presentEditReminder()
+        editReminder = reminder
       }
     }
-    .sheet(item: $editReminder, id: \.0.id) { reminder, remindersList in
+    .sheet(item: $editReminder) { reminder in
       NavigationStack {
         ReminderFormView(existingReminder: reminder, remindersList: remindersList)
-      }
-    }
-  }
-
-  private func presentEditReminder() {
-    withErrorReporting {
-      try database.read { db in
-        // TODO: try RemindersList.find(reminder.listID)?
-        let remindersList = try RemindersList.where { $0.id == reminder.listID }.fetchOne(db)
-        editReminder = (reminder, remindersList!)
       }
     }
   }
@@ -130,7 +119,7 @@ struct ReminderRow: View {
     + (reminder.priority == nil ? "" : " ")
     return (
       Text(exclamations)
-        .foregroundStyle(reminder.isCompleted ? .gray : Color.hex(remindersListColor))
+        .foregroundStyle(reminder.isCompleted ? .gray : Color.hex(remindersList.color))
       + Text(reminder.title)
         .foregroundStyle(reminder.isCompleted ? .gray : .primary)
     )
@@ -154,7 +143,7 @@ struct ReminderRow: View {
       ReminderRow(
         isPastDue: false,
         reminder: reminder,
-        remindersListColor: 0xff0000,
+        remindersList: reminderList,
         tags: ["point-free", "adulting"]
       )
     }

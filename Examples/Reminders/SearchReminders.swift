@@ -64,7 +64,7 @@ struct SearchRemindersView: View {
       ReminderRow(
         isPastDue: reminder.isPastDue,
         reminder: reminder.reminder,
-        remindersListColor: reminder.remindersListColor,
+        remindersList: reminder.remindersList,
         tags: (reminder.commaSeparatedTags ?? "").split(separator: ",").map(String.init)
       )
     }
@@ -125,7 +125,7 @@ struct SearchRemindersView: View {
             return Value.Reminder.Columns(
               isPastDue: reminder.isPastDue,
               reminder: reminder,
-              remindersListColor: reminderList.color,
+              remindersList: reminderList,
               commaSeparatedTags: tag.name.groupConcat()
             )
           }
@@ -139,7 +139,7 @@ struct SearchRemindersView: View {
       struct Reminder {
         var isPastDue: Bool
         let reminder: Reminders.Reminder
-        let remindersListColor: Int
+        let remindersList: RemindersList
         let commaSeparatedTags: String?
       }
     }
