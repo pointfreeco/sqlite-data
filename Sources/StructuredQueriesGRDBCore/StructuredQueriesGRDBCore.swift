@@ -3,6 +3,8 @@ import Foundation
 @_exported import StructuredQueriesCore
 
 extension StructuredQueriesCore.Statement {
+  // TODO: Support try Record.find(reminder.listID)?
+
   public func execute(_ db: Database) throws {
     let query = queryFragment
     guard !query.isEmpty else { return }
