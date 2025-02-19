@@ -119,14 +119,13 @@ struct SearchRemindersView: View {
         reminders: Reminder.searching(searchText)
           .order { ($0.isCompleted, $0.date) }
           .withTags(showCompleted: showCompletedInSearchResults)
-          .leftJoin(RemindersList.all()) { $0.0.0.listID == $1.id }
+          .leftJoin(RemindersList.all()) { $0.listID == $3.id }
           .select {
-            let (reminder, reminderList, tag) = ($0.0.0, $1, $0.1)
-            return Value.Reminder.Columns(
-              isPastDue: reminder.isPastDue,
-              reminder: reminder,
-              remindersList: reminderList,
-              commaSeparatedTags: tag.name.groupConcat()
+            Value.Reminder.Columns(
+              isPastDue: $0.isPastDue,
+              reminder: $0,
+              remindersList: $3,
+              commaSeparatedTags: $2.name.groupConcat()
             )
           }
           .fetchAll(db)

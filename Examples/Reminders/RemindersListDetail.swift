@@ -154,11 +154,10 @@ struct RemindersListDetailView: View {
         }
         .withTags(showCompleted: showCompleted)
         .select {
-          let (reminder, tag) = ($0.0, $1)
-          return Record.Columns(
-            reminder: reminder,
-            isPastDue: reminder.isPastDue,
-            commaSeparatedTags: tag.name.groupConcat(separator: ",")
+          Record.Columns(
+            reminder: $0,
+            isPastDue: $0.isPastDue,
+            commaSeparatedTags: $2.name.groupConcat(separator: ",")
           )
         }
         .fetchAll(db)
@@ -180,13 +179,13 @@ extension SelectProtocol<Reminder.Columns, Reminder> {
     showCompleted: Bool
   )
   // TODO: Should a `Optional<Table>` be a `Table`? Would that allow `SelectOf<Reminder, ReminderTag?, Tag?>`?
-  -> Select<((Reminder.Columns, ReminderTag.Columns), Tag.Columns), ((Reminder, ReminderTag?), Tag?)>
+  -> Select<(Reminder.Columns, ReminderTag.Columns, Tag.Columns), (Reminder, ReminderTag?, Tag?)>
   {
     self.all()
       .where { showCompleted || !$0.isCompleted }
       .group(by: \.id)
       .leftJoin(ReminderTag.all()) { $0.id == $1.reminderID }
-      .leftJoin(Tag.all()) { $0.1.tagID == $1.id }
+      .leftJoin(Tag.all()) { $1.tagID == $2.id }
   }
 }
 
