@@ -25,9 +25,9 @@ struct RemindersListDetailView: View {
     case title = "Title"
     var icon: Image {
       switch self {
-      case .dueDate:  Image(systemName: "calendar")
+      case .dueDate: Image(systemName: "calendar")
       case .priority: Image(systemName: "chart.bar.fill")
-      case .title:    Image(systemName: "textformat.characters")
+      case .title: Image(systemName: "textformat.characters")
       }
     }
   }
@@ -128,47 +128,43 @@ struct RemindersListDetailView: View {
     )
   }
 
-  private struct Reminders: FetchKeyRequest {
+  fileprivate struct Reminders: FetchKeyRequest {
     let listID: Int64
     let ordering: Ordering
     let showCompleted: Bool
     func fetch(_ db: Database) throws -> [Record] {
-      return try Reminder
-        .where { $0.listID == listID }
       // TODO: Should `where` return `any Expression<Bool>` as `@_disfavoredOverload`?
       //        .where { showCompleted ? true : !$0.isCompleted }
-        .where { showCompleted || !$0.isCompleted }
-        .group(by: \.id)
+      // TODO: Do we want to support `buildBlock` in order to fact out `$0.isComplete`
+      // TODO: Overload to fix
+      // TODO: Ambiguous '??'
+      //            !$0.0.isCompleted /* && ($0.0.date ?? .raw("date('now')")) < .raw("date('now')") */
+      // TODO: tag.groupConcat(by: \.name, separat, ordering: …)
+      try Reminder
+        .where { $0.listID == listID }
         .order {
-          // TODO: Do we want to support this `buildBlock`
-          $0.isCompleted
-
           switch ordering {
           case .dueDate:
-            $0.date
+            ($0.isCompleted, $0.date)
           case .priority:
-            ($0.priority.descending(), $0.isFlagged.descending())
+            ($0.isCompleted, $0.priority.descending(), $0.isFlagged.descending())
           case .title:
-            $0.title
+            ($0.isCompleted, $0.title)
           }
         }
-        .leftJoin(ReminderTag.all()) { $0.id == $1.reminderID }
-      // TODO: Overload to fix
-        .leftJoin(Tag.all()) { $0.1.tagID == $1.id }
+        .withTags(showCompleted: showCompleted)
         .select {
-          (
-            $0.0,
-            $0.0.isCompleted
-            && .raw("coalesce(\(bind: $0.0.date), date('now')) < date('now')", as: Bool.self),
-            $1.name.groupConcat(separator: ",")
-            // TODO: Ambiguous '??'
-            //            !$0.0.isCompleted /* && ($0.0.date ?? .raw("date('now')")) < .raw("date('now')") */
+          let (reminder, tag) = ($0.0, $1)
+          return Record.Columns(
+            reminder: reminder,
+            isPastDue: reminder.isPastDue,
+            commaSeparatedTags: tag.name.groupConcat(separator: ",")
           )
         }
         .fetchAll(db)
-        .map(Record.init)
     }
-    struct Record: Decodable, FetchableRecord {
+    @Selection
+    fileprivate struct Record: Decodable {
       var reminder: Reminder
       var isPastDue: Bool
       var commaSeparatedTags: String?
@@ -176,6 +172,21 @@ struct RemindersListDetailView: View {
         (commaSeparatedTags ?? "").split(separator: ",").map(String.init)
       }
     }
+  }
+}
+
+extension SelectProtocol<Reminder.Columns, Reminder> {
+  func withTags(
+    showCompleted: Bool
+  )
+  // TODO: Should a `Optional<Table>` be a `Table`? Would that allow `SelectOf<Reminder, ReminderTag?, Tag?>`?
+  -> Select<((Reminder.Columns, ReminderTag.Columns), Tag.Columns), ((Reminder, ReminderTag?), Tag?)>
+  {
+    self.all()
+      .where { showCompleted || !$0.isCompleted }
+      .group(by: \.id)
+      .leftJoin(ReminderTag.all()) { $0.id == $1.reminderID }
+      .leftJoin(Tag.all()) { $0.1.tagID == $1.id }
   }
 }
 

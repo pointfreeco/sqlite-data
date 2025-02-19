@@ -17,7 +17,7 @@ struct ReminderFormView: View {
   @Dependency(\.defaultDatabase) private var database
   @Environment(\.dismiss) var dismiss
 
-  init?(existingReminder: Reminder? = nil, remindersList: RemindersList) {
+  init(existingReminder: Reminder? = nil, remindersList: RemindersList) {
     self.remindersList = remindersList
     if let existingReminder {
       reminderID = existingReminder.id
@@ -181,8 +181,7 @@ struct ReminderFormView: View {
           updatedReminderID = try Reminder
             .where { $0.id == reminderID }
             .update {
-              // TODO:
-              // $0.date = reminder.date
+              // TODO: $0.date = reminder.date
               $0.isCompleted = reminder.isCompleted
               $0.isFlagged = reminder.isFlagged
               $0.listID = reminder.listID
@@ -195,7 +194,7 @@ struct ReminderFormView: View {
           // TODO: This should be on this branch on 'main'
           try ReminderTag.where { $0.reminderID == reminderID }.delete().execute(db)
         } else {
-          updatedReminderID = try Reminder.insert(reminder).returning(\.id).fetchOne(db)!.id
+          updatedReminderID = try Reminder.insert(reminder).returning(\.id).fetchOne(db)!
         }
         try ReminderTag.insert(
           selectedTags.map { tag in

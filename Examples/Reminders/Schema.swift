@@ -29,6 +29,18 @@ struct Reminder: Codable, Equatable, FetchableRecord, Identifiable, MutablePersi
   mutating func didInsert(_ inserted: InsertionSuccess) {
     id = inserted.rowID
   }
+
+  static func searching(_ text: String) -> Where<Reminder> {
+    Self.where {
+      $0.title.collate(.nocase).contains(text)
+      || $0.notes.collate(.nocase).contains(text)
+    }
+  }
+}
+extension Reminder.Columns {
+  var isPastDue: some QueryExpression<Bool> {
+    isCompleted && .raw("coalesce(\(date), date('now')) < date('now')")
+  }
 }
 
 @Table("tags")
@@ -220,12 +232,17 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
 
     func createDebugTags() throws {
       try Tag.insert(\.name) { "car"; "kids"; "someday"; "optional" }.execute(self)
-      _ = try ReminderTag(reminderID: 1, tagID: 3).inserted(self)
-      _ = try ReminderTag(reminderID: 1, tagID: 4).inserted(self)
-      _ = try ReminderTag(reminderID: 2, tagID: 3).inserted(self)
-      _ = try ReminderTag(reminderID: 2, tagID: 4).inserted(self)
-      _ = try ReminderTag(reminderID: 4, tagID: 1).inserted(self)
-      _ = try ReminderTag(reminderID: 4, tagID: 2).inserted(self)
+      try ReminderTag.insert {
+        ($0.reminderID, $0.tagID)
+      } values: {
+        (1, 3)
+        (1, 4)
+        (2, 3)
+        (2, 4)
+        (4, 1)
+        (4, 2)
+      }
+      .execute(self)
     }
   }
 #endif
