@@ -21,7 +21,7 @@ struct Reminder: Codable, Equatable, FetchableRecord, Identifiable, MutablePersi
   var date: Date?
   var isCompleted = false
   var isFlagged = false
-  var listID: Int64
+  var listID: Int64 // TODO: rename to remindersListID?
   var notes = ""
   var priority: Int?
   var title = ""

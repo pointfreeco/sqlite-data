@@ -57,7 +57,7 @@ struct RemindersListDetailView: View {
         ReminderRow(
           isPastDue: reminderState.isPastDue,
           reminder: reminderState.reminder,
-          remindersList: remindersList,
+          remindersListColor: remindersList.color,
           tags: reminderState.tags
         )
       }
