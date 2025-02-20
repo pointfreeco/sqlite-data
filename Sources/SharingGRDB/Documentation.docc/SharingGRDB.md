@@ -2,7 +2,8 @@
 
 ## Overview
 
-SharingGRDB is lightweight replacement for SwiftData and the `@Query` macro:
+SharingGRDB is lightweight replacement for SwiftData and the `@Query` macro that deploys all the way
+back to the iOS 13 generation of targets.
 
 @Row {
   @Column {
