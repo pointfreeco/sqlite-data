@@ -3,12 +3,6 @@ import SharingGRDB
 import StructuredQueriesGRDB
 import SwiftUI
 
-extension OrderingBuilder {
-  public static func buildBlock(_ component: [OrderingTerm]...) -> [OrderingTerm] {
-    component.flatMap { $0 }
-  }
-}
-
 struct RemindersListDetailView: View {
   @State.SharedReader private var remindersState: [Reminders.Record]
   @Shared private var ordering: Ordering
@@ -133,8 +127,6 @@ struct RemindersListDetailView: View {
     let ordering: Ordering
     let showCompleted: Bool
     func fetch(_ db: Database) throws -> [Record] {
-      // TODO: Do we want to support `buildBlock` in order to fact out `$0.isComplete`
-      // TODO: tag.groupConcat(by: \.name, separator: ",", ordering: …)
       try Reminder
         .where { $0.listID == listID }
         .order {
