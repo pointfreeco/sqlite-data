@@ -133,13 +133,8 @@ struct RemindersListDetailView: View {
     let ordering: Ordering
     let showCompleted: Bool
     func fetch(_ db: Database) throws -> [Record] {
-      // TODO: Should `where` return `any Expression<Bool>` as `@_disfavoredOverload`?
-      //        .where { showCompleted ? true : !$0.isCompleted }
       // TODO: Do we want to support `buildBlock` in order to fact out `$0.isComplete`
-      // TODO: Overload to fix
-      // TODO: Ambiguous '??'
-      //            !$0.0.isCompleted /* && ($0.0.date ?? .raw("date('now')")) < .raw("date('now')") */
-      // TODO: tag.groupConcat(by: \.name, separat, ordering: …)
+      // TODO: tag.groupConcat(by: \.name, separator: ",", ordering: …)
       try Reminder
         .where { $0.listID == listID }
         .order {
@@ -157,7 +152,7 @@ struct RemindersListDetailView: View {
           Record.Columns(
             reminder: $0,
             isPastDue: $0.isPastDue,
-            commaSeparatedTags: $2.name.groupConcat(separator: ",")
+            commaSeparatedTags: $2.name.groupConcat()
           )
         }
         .fetchAll(db)
@@ -174,14 +169,9 @@ struct RemindersListDetailView: View {
   }
 }
 
-extension SelectProtocol<Reminder.Columns, Reminder> {
-  func withTags(
-    showCompleted: Bool
-  )
-  // TODO: Should a `Optional<Table>` be a `Table`? Would that allow `SelectOf<Reminder, ReminderTag?, Tag?>`?
-  -> Select<(Reminder.Columns, ReminderTag.Columns, Tag.Columns), (Reminder, ReminderTag?, Tag?)>
-  {
-    self.all()
+extension SelectStatementOf<Reminder> {
+  func withTags(showCompleted: Bool) -> SelectOf<Reminder, ReminderTag?, Tag?> {
+    all()
       .where { showCompleted || !$0.isCompleted }
       .group(by: \.id)
       .leftJoin(ReminderTag.all()) { $0.id == $1.reminderID }

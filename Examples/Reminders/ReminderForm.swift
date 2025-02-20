@@ -214,6 +214,7 @@ extension Reminder.Draft {
     set { date = newValue ? Date() : nil }
   }
 }
+
 extension Optional {
   fileprivate subscript(coalesce coalesce: Wrapped) -> Wrapped {
     get { self ?? coalesce }
