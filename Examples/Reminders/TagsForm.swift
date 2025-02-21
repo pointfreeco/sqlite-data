@@ -2,8 +2,6 @@ import SharingGRDB
 import SwiftUI
 
 struct TagsView: View {
-  @SharedReader(.fetchAll(sql: #"SELECT * FROM "tags" ORDER BY "name" ASC"#))
-  var availableTags: [Tag]
   @SharedReader(.fetch(Tags())) var tags = Tags.Value()
   @Binding var selectedTags: [Tag]
 
@@ -52,8 +50,10 @@ struct TagsView: View {
         sql: """
           SELECT "tags".*, count("reminders"."id")
           FROM "tags"
-          LEFT JOIN "remindersTags" ON "tags"."id" = "remindersTags"."tagID"
-          LEFT JOIN "reminders" ON "remindersTags"."reminderID" = "reminders"."id"
+          LEFT JOIN "remindersTags" 
+            ON "tags"."id" = "remindersTags"."tagID"
+          LEFT JOIN "reminders" 
+            ON "remindersTags"."reminderID" = "reminders"."id"
           GROUP BY "tags"."id"
           HAVING count("reminders"."id") > 0
           ORDER BY count("reminders"."id") DESC, "name"
