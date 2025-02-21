@@ -104,13 +104,14 @@ way to do this is to construct the database connection for a path on the file sy
 ```
 
 However, in tests and Xcode previews we would like to use an in-memory database so that each test
-and preview gets their own sandboxed database. To do this we can turn `appDatabase` into a static
-function that takes an `inMemory` option (that defaults to `false`) so that it can be configured
-when setting up the database:
+and preview gets their own sandboxed database. In fact, previews can crash if we attempt to load a
+database from the file system.
+
+To fix this we can use `@Dependency(\.context)` to determine if we are in a "live" application
+context or if we're in a preview or test.
 
 ```diff
  func appDatabase() -> any DatabaseWriter {
-+func appDatabase(inMemory: Bool = false) -> any DatabaseWriter {
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
    #if DEBUG
@@ -122,16 +123,22 @@ when setting up the database:
    #endif
 -  let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
 -  let database = try DatabasePool(path: path, configuration: configuration)
++  @Dependency(\.context) var context
 +  let database: any DatabaseWriter
-+  if inMemory {
-+    database = try DatabaseQueue(configuration: configuration)
-+  } else {
++  if context == .live {
 +    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
 +    database = try DatabasePool(path: path, configuration: configuration)
++  } else {
++    database = try DatabaseQueue(configuration: configuration)
 +  }
    return database
  }
 ```
+
+> Tip: `@Dependency(\.context)` comes from the [Swift Dependencies][swift-dependencies-gh] library,
+> which SharingGRDB uses to share its database connection across fetch keys.
+
+[swift-dependencies-gh]: https://github.com/pointfreeco/swift-dependencies
 
 ### Step 4: Migrate database
 
@@ -141,7 +148,7 @@ creating a `DatabaseMigrator`, registering migrations with it, and then using it
 database connection:
 
 ```diff
- func appDatabase(inMemory: Bool = false) throws -> Self {
+ func appDatabase() throws -> Self {
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
    #if DEBUG
@@ -151,12 +158,13 @@ database connection:
        }
      }
    #endif
+   @Dependency(\.context) var context
    let database: any DatabaseWriter
-   if inMemory {
-     database = try DatabaseQueue(configuration: configuration)
-   } else {
+   if context == .live {
      let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
      database = try DatabasePool(path: path, configuration: configuration)
+   } else {
+     database = try DatabaseQueue(configuration: configuration)
    }
 +  var migrator = DatabaseMigrator()
 +  #if DEBUG
@@ -179,7 +187,7 @@ That is all it takes to create, configure and migrate a database connection. Her
 we have just written in one snippet:
 
 ```swift
-func appDatabase(inMemory: Bool = false) throws -> Self {
+func appDatabase() throws -> Self {
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
   #if DEBUG
@@ -189,12 +197,13 @@ func appDatabase(inMemory: Bool = false) throws -> Self {
       }
     }
   #endif
+  @Dependency(\.context) var context
   let database: any DatabaseWriter
-  if inMemory {
-    database = try DatabaseQueue(configuration: configuration)
-  } else {
+  if context == .live {
     let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
     database = try DatabasePool(path: path, configuration: configuration)
+  } else {
+    database = try DatabaseQueue(configuration: configuration)
   }
   var migrator = DatabaseMigrator()
   #if DEBUG
@@ -258,23 +267,21 @@ And if using something besides UIKit or SwiftUI, then simply set the
 ``Dependencies/DependencyValues/defaultDatabase`` as early as possible in the application's 
 lifecycle.
 
-It is also important to prepare the database in Xcode previews, but in this situation you will want
-to use an in-memory database. This can be done like so:
+It is also important to prepare the database in Xcode previews. This can be done like so:
 
 ```swift
 #Preview {
   let _ = prepareDependencies { 
-    $0.defaultDatabase = try! appDatabase(inMemory: true)
+    $0.defaultDatabase = try! appDatabase()
   }
   // ...
 }
 ```
 
-And similarly, in tests you will also want to use an in-memory database. This can be done using the
-`.dependency` testing trait:
+And similarly, in tests, this can be done using the `.dependency` testing trait:
 
 ```swift
-@Test(.dependency(\.defaultDatabase, try appDatabase(inMemory: true))
+@Test(.dependency(\.defaultDatabase, try appDatabase())
 func feature() {
   // ...
 }
