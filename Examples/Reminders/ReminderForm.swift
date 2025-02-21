@@ -181,7 +181,8 @@ struct ReminderFormView: View {
           updatedReminderID = try Reminder
             .where { $0.id == reminderID }
             .update {
-              // TODO: $0.date = reminder.date
+              // TODO: Do we want to improve this?
+              $0.date = reminder.date.map { .bind($0, as: .iso8601) }
               $0.isCompleted = reminder.isCompleted
               $0.isFlagged = reminder.isFlagged
               $0.listID = reminder.listID

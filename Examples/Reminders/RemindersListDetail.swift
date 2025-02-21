@@ -105,8 +105,7 @@ struct RemindersListDetailView: View {
     try await $reminderStates.load(
       .fetchAll(
         Reminder
-          .where { $0.listID == remindersList.id }
-          .where { showCompleted || !$0.isCompleted }
+          .where { $0.listID == remindersList.id && (showCompleted || !$0.isCompleted) }
           .order {
             switch ordering {
             case .dueDate:

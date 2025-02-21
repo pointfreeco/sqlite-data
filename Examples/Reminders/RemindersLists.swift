@@ -14,7 +14,7 @@ struct RemindersListsView: View {
       animation: .default
     )
   )
-  private var lists
+  private var remindersLists
   @SharedReader(.fetch(Stats())) private var stats = Stats.Value()
 
   @State private var isAddListPresented = false
@@ -68,7 +68,7 @@ struct RemindersListsView: View {
         .buttonStyle(.plain)
         
         Section {
-          ForEach(lists, id: \.remindersList.id) { state in
+          ForEach(remindersLists) { state in
             NavigationLink {
               RemindersListDetailView(remindersList: state.remindersList)
             } label: {
@@ -114,7 +114,8 @@ struct RemindersListsView: View {
   }
 
   @Selection
-  fileprivate struct ReminderListState: Decodable, FetchableRecord {
+  fileprivate struct ReminderListState: Decodable, Identifiable {
+    var id: RemindersList.ID { remindersList.id }
     var reminderCount: Int
     var remindersList: RemindersList
   }

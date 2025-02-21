@@ -1,6 +1,5 @@
 import Dependencies
-// TODO: Comment this out and the error messages are bad
-import StructuredQueriesGRDB
+import SharingGRDB
 import SwiftUI
 
 struct ReminderRow: View {
@@ -65,9 +64,10 @@ struct ReminderRow: View {
       Button(reminder.isFlagged ? "Unflag" : "Flag") {
         withErrorReporting {
           try database.write { db in
-            var reminder = reminder
-            reminder.isFlagged.toggle()
-            _ = try reminder.saved(db)
+            try Reminder
+              .where { $0.id == reminder.id }
+              .update { $0.isFlagged.toggle() }
+              .execute(db)
           }
         }
       }
