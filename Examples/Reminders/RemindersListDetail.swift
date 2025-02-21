@@ -18,6 +18,7 @@ struct RemindersListDetailView: View {
     _showCompleted = Shared(
       wrappedValue: false, .appStorage("show_completed_list_\(remindersList.id)")
     )
+    $reminderStates = SharedReader(wrappedValue: [], remindersKey)
   }
 
   var body: some View {
@@ -102,32 +103,35 @@ struct RemindersListDetailView: View {
   }
 
   private func updateQuery() async throws {
-    try await $reminderStates.load(
-      .fetchAll(
-        Reminder
-          .where { $0.listID == remindersList.id && (showCompleted || !$0.isCompleted) }
-          .order {
-            switch ordering {
-            case .dueDate:
-              ($0.isCompleted, $0.date)
-            case .priority:
-              ($0.isCompleted, $0.priority.descending(), $0.isFlagged.descending())
-            case .title:
-              ($0.isCompleted, $0.title)
-            }
+    try await $reminderStates.load(remindersKey)
+  }
+
+  fileprivate var remindersKey: some SharedReaderKey<[ReminderState]> {
+    .fetchAll(
+      Reminder
+        .where { $0.listID == remindersList.id && (showCompleted || !$0.isCompleted) }
+        .order {
+          switch ordering {
+          case .dueDate:
+            ($0.isCompleted, $0.date)
+          case .priority:
+            ($0.isCompleted, $0.priority.descending(), $0.isFlagged.descending())
+          case .title:
+            ($0.isCompleted, $0.title)
           }
-          .withTags
-          .select {
-            ReminderState.Columns(
-              reminder: $0,
-              isPastDue: $0.isPastDue,
-              commaSeparatedTags: $2.name.groupConcat()
-            )
-          },
-        animation: .default
-      )
+        }
+        .withTags
+        .select {
+          ReminderState.Columns(
+            reminder: $0,
+            isPastDue: $0.isPastDue,
+            commaSeparatedTags: $2.name.groupConcat()
+          )
+        },
+      animation: .default
     )
   }
+
 
   @Selection
   fileprivate struct ReminderState: Decodable, Identifiable {
