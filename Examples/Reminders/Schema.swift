@@ -97,7 +97,7 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
       table.column("priority", .integer)
       table.column("title", .text).notNull()
     }
-    try db.create(indexOn: Reminder.name, columns: [Reminder.columns.listID.name])
+//    try db.create(indexOn: Reminder.name, columns: [Reminder.columns.listID.name])
   }
   migrator.registerMigration("Add tags table") { db in
     try db.create(table: Tag.name) { table in
@@ -110,8 +110,8 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
       table.column("tagID", .integer).notNull()
         .references(Tag.name, column: "id", onDelete: .cascade)
     }
-    try db.create(indexOn: ReminderTag.name, columns: [ReminderTag.columns.reminderID.name])
-    try db.create(indexOn: ReminderTag.name, columns: [ReminderTag.columns.tagID.name])
+//    try db.create(indexOn: ReminderTag.name, columns: [ReminderTag.columns.reminderID.name])
+//    try db.create(indexOn: ReminderTag.name, columns: [ReminderTag.columns.tagID.name])
   }
   #if DEBUG
     migrator.registerMigration("Add mock data") { db in
