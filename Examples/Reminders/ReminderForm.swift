@@ -57,7 +57,7 @@ struct ReminderFormView: View {
       }
       .popover(isPresented: $isPresentingTagsPopover) {
         NavigationStack {
-          TagsPopover(selectedTags: $selectedTags)
+          TagsView(selectedTags: $selectedTags)
         }
       }
 
@@ -182,45 +182,6 @@ extension Optional {
   fileprivate subscript(coalesce coalesce: Wrapped) -> Wrapped {
     get { self ?? coalesce }
     set { self = newValue }
-  }
-}
-
-struct TagsPopover: View {
-  @SharedReader(.fetchAll(sql: #"SELECT * FROM "tags" ORDER BY "name" ASC"#))
-  var availableTags: [Tag]
-
-  @Binding var selectedTags: [Tag]
-
-  @Environment(\.dismiss) var dismiss
-
-  var body: some View {
-    List {
-      let selectedTagIDs = Set(selectedTags.map(\.id))
-      ForEach(availableTags, id: \.id) { tag in
-        let tagIsSelected = selectedTagIDs.contains(tag.id)
-        Button {
-          if tagIsSelected {
-            selectedTags.removeAll(where: { $0.id == tag.id })
-          } else {
-            selectedTags.append(tag)
-          }
-        } label: {
-          HStack {
-            if tagIsSelected {
-              Image.init(systemName: "checkmark")
-            }
-            Text(tag.name)
-          }
-        }
-        .tint(tagIsSelected ? .blue : .black)
-      }
-    }
-    .toolbar {
-      ToolbarItem {
-        Button("Done") { dismiss() }
-      }
-    }
-    .navigationTitle(Text("Tags"))
   }
 }
 
