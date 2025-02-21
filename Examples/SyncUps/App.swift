@@ -80,7 +80,7 @@ struct AppView: View {
 
 #Preview("Happy path") {
   let _ = prepareDependencies {
-    $0.defaultDatabase = SyncUps.appDatabase(inMemory: true)
+    $0.defaultDatabase = SyncUps.appDatabase()
   }
   AppView(model: AppModel())
 }

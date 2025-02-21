@@ -183,7 +183,7 @@ private func searchQueryBase(searchText: String) -> QueryInterfaceRequest<Remind
 #Preview {
   @Previewable @State var searchText = "take"
   let _ = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+    $0.defaultDatabase = try Reminders.appDatabase()
   }
 
   NavigationStack {

@@ -50,7 +50,7 @@ struct ReminderTag: Codable, FetchableRecord, MutablePersistableRecord {
   var tagID: Int64?
 }
 
-func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
+func appDatabase() throws -> any DatabaseWriter {
   let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
@@ -61,12 +61,13 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
       }
     #endif
   }
-  if inMemory {
-    database = try DatabaseQueue(configuration: configuration)
-  } else {
+  @Dependency(\.context) var context
+  if context == .live {
     let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
     print("open", path)
     database = try DatabasePool(path: path, configuration: configuration)
+  } else {
+    database = try DatabaseQueue(configuration: configuration)
   }
   var migrator = DatabaseMigrator()
   #if DEBUG
