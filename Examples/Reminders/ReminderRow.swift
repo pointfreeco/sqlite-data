@@ -56,10 +56,8 @@ struct ReminderRow: View {
     .swipeActions {
       Button("Delete") {
         withErrorReporting {
-          do {
-            _ = try database.write { db in
-              try reminder.delete(db)
-            }
+          _ = try database.write { db in
+            try reminder.delete(db)
           }
         }
       }

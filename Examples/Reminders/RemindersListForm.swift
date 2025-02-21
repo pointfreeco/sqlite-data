@@ -29,21 +29,20 @@ struct RemindersListForm: View {
       ToolbarItem {
         Button("Save") {
           withErrorReporting {
-            do {
-              try database.write { db in
-                if let remindersListID {
-                  try RemindersList.update(
-                    RemindersList(
-                      id: remindersListID,
-                      color: remindersList.color,
-                      name: remindersList.name
-                    )
-                  )
-                  .execute(db)
-                } else {
-                  try RemindersList.insert(remindersList).execute(db)
-                }
+            try database.write { db in
+              guard let remindersListID
+              else {
+                try RemindersList.insert(remindersList).execute(db)
+                return
               }
+              try RemindersList.update(
+                RemindersList(
+                  id: remindersListID,
+                  color: remindersList.color,
+                  name: remindersList.name
+                )
+              )
+              .execute(db)
             }
           }
           dismiss()

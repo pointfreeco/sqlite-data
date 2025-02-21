@@ -10,15 +10,14 @@ extension Reminder: FetchableRecord, MutablePersistableRecord {}
 extension Tag: FetchableRecord, MutablePersistableRecord {}
 extension ReminderTag: FetchableRecord, MutablePersistableRecord {}
 
-@Table("remindersLists")
+@Table
 struct RemindersList: Codable, Hashable, Identifiable {
-  static let databaseTableName = "remindersLists"
   var id: Int64
   var color = 0x4a99ef
   var name = ""
 }
 
-@Table("reminders")
+@Table
 struct Reminder: Codable, Equatable, Identifiable {
   var id: Int64
   @Column(as: .iso8601)
@@ -35,14 +34,15 @@ struct Reminder: Codable, Equatable, Identifiable {
       || $0.notes.collate(.nocase).contains(text)
     }
   }
+  static let incomplete = Self.where { !$0.isCompleted }
 }
 extension Reminder.Columns {
   var isPastDue: some QueryExpression<Bool> {
-    isCompleted && .raw("coalesce(\(date), date('now')) < date('now')")
+    !isCompleted && .raw("coalesce(\(date), date('now')) < date('now')")
   }
 }
 
-@Table("tags")
+@Table
 struct Tag: Codable {
   var id: Int64
   var name = ""
@@ -85,7 +85,7 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
     }
   }
   migrator.registerMigration("Add reminders table") { db in
-    try db.create(table: Reminder.databaseTableName) { table in
+    try db.create(table: Reminder.name) { table in
       table.autoIncrementedPrimaryKey("id")
       table.column("date", .date)
       table.column("isCompleted", .boolean).defaults(to: false).notNull()
@@ -99,15 +99,15 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
     }
   }
   migrator.registerMigration("Add tags table") { db in
-    try db.create(table: Tag.databaseTableName) { table in
+    try db.create(table: Tag.name) { table in
       table.autoIncrementedPrimaryKey("id")
       table.column("name", .text).notNull().collate(.nocase).unique()
     }
-    try db.create(table: ReminderTag.databaseTableName) { table in
+    try db.create(table: ReminderTag.name) { table in
       table.column("reminderID", .integer).notNull()
-        .references(Reminder.databaseTableName, column: "id", onDelete: .cascade)
+        .references(Reminder.name, column: "id", onDelete: .cascade)
       table.column("tagID", .integer).notNull()
-        .references(Tag.databaseTableName, column: "id", onDelete: .cascade)
+        .references(Tag.name, column: "id", onDelete: .cascade)
     }
   }
   #if DEBUG

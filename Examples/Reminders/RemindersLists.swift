@@ -6,7 +6,15 @@ import StructuredQueries
 import SwiftUI
 
 struct RemindersListsView: View {
-  @SharedReader(.fetch(RemindersLists(), animation: .default)) private var lists
+  @SharedReader(
+    .fetchAll(
+      RemindersList.group(by: \.id)
+        .join(Reminder.incomplete) { $0.id == $1.listID }
+        .select { ReminderListState.Columns(reminderCount: $1.id.count(), remindersList: $0) },
+      animation: .default
+    )
+  )
+  private var lists
   @SharedReader(.fetch(Stats())) private var stats = Stats.Value()
 
   @State private var isAddListPresented = false
@@ -105,38 +113,23 @@ struct RemindersListsView: View {
     .searchable(text: $searchText)
   }
 
-  struct RemindersLists: FetchKeyRequest {
-    func fetch(_ db: Database) throws -> [Record] {
-      try RemindersList
-        .group(by: \.id)
-        .join(Reminder.where { !$0.isCompleted }) { $0.id == $1.listID }
-        .select { ($0, $1.id.count()) }
-        .fetchAll(db)
-        .map { Record(reminderCount: $1, remindersList: $0) }
-    }
-    // TODO: Fix @Selection to support queryfragment changes
-    struct Record: Decodable, FetchableRecord {
-      var reminderCount: Int
-      var remindersList: RemindersList
-    }
+  @Selection
+  fileprivate struct ReminderListState: Decodable, FetchableRecord {
+    var reminderCount: Int
+    var remindersList: RemindersList
   }
-  private struct Stats: FetchKeyRequest {
+  fileprivate struct Stats: FetchKeyRequest {
     func fetch(_ db: Database) throws -> Value {
-      let todayCount = try Reminder.count()
-        .where { .raw("date(\(bind: $0.date)) = date('now')") }
-        .fetchOne(db) ?? 0
-      let allCount = try Reminder.fetchCount(db)
-      let scheduledCount = try Reminder.count()
-        .where { .raw("date(\(bind: $0.date)) > date('now')") }
-        .fetchOne(db) ?? 0
-      let flaggedCount = try Reminder.where(\.isFlagged).count().fetchOne(db) ?? 0
-      let completedCount = try Reminder.where(\.isCompleted).count().fetchOne(db) ?? 0
-      return Value(
-        allCount: allCount,
-        completedCount: completedCount,
-        flaggedCount: flaggedCount,
-        scheduledCount: scheduledCount,
-        todayCount: todayCount
+      try Value(
+        allCount: Reminder.count().fetchOne(db) ?? 0,
+        completedCount: Reminder.where(\.isCompleted).count().fetchOne(db) ?? 0,
+        flaggedCount: Reminder.where(\.isFlagged).count().fetchOne(db) ?? 0,
+        scheduledCount: Reminder.count()
+          .where { .raw("date(\($0.date)) > date('now')") }
+          .fetchOne(db) ?? 0,
+        todayCount: Reminder.count()
+          .where { .raw("date(\($0.date)) = date('now')") }
+          .fetchOne(db) ?? 0
       )
     }
     struct Value {
