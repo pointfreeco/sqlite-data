@@ -55,7 +55,7 @@ struct SearchRemindersView: View {
         isPastDue: reminder.isPastDue,
         reminder: reminder.reminder,
         remindersList: reminder.remindersList,
-        tags: (reminder.commaSeparatedTags ?? "").split(separator: ",").map(String.init)
+        tags: reminder.tags
       )
     }
   }
@@ -81,10 +81,10 @@ struct SearchRemindersView: View {
           .leftJoin(RemindersList.all()) { $0.listID == $3.id }
           .select {
             ReminderState.Columns(
+              commaSeparatedTags: $2.name.groupConcat(),
               isPastDue: $0.isPastDue,
               reminder: $0,
-              remindersList: $3,
-              commaSeparatedTags: $2.name.groupConcat()
+              remindersList: $3
             )
           },
         animation: .default
@@ -99,14 +99,12 @@ struct SearchRemindersView: View {
           .searching(searchText)
           .where(\.isCompleted)
         if let monthsAgo {
-          _ = try baseQuery
+          try baseQuery
             .where { .raw("\($0.date) < date('now', '-\(monthsAgo) months") }
             .delete()
             .execute(db)
         } else {
-          _ = try baseQuery
-            .delete()
-            .execute(db)
+          try baseQuery.delete().execute(db)
         }
       }
     }
@@ -115,10 +113,13 @@ struct SearchRemindersView: View {
   @Selection
   struct ReminderState: Identifiable {
     var id: Reminder.ID { reminder.id }
+    let commaSeparatedTags: String?
     var isPastDue: Bool
     let reminder: Reminders.Reminder
     let remindersList: RemindersList
-    let commaSeparatedTags: String?
+    var tags: [String] {
+      (commaSeparatedTags ?? "").split(separator: ",").map(String.init)
+    }
   }
 }
 

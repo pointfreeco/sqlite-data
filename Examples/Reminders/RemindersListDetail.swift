@@ -22,7 +22,7 @@ struct RemindersListDetailView: View {
 
   var body: some View {
     List {
-      ForEach(reminderStates, id: \.reminder.id) { reminderState in
+      ForEach(reminderStates) { reminderState in
         ReminderRow(
           isPastDue: reminderState.isPastDue,
           reminder: reminderState.reminder,
@@ -130,7 +130,8 @@ struct RemindersListDetailView: View {
   }
 
   @Selection
-  fileprivate struct ReminderState: Decodable {
+  fileprivate struct ReminderState: Decodable, Identifiable {
+    var id: Reminder.ID { reminder.id }
     var reminder: Reminder
     var isPastDue: Bool
     var commaSeparatedTags: String?

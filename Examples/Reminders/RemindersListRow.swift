@@ -22,7 +22,7 @@ struct RemindersListRow: View {
     .swipeActions {
       Button {
         withErrorReporting {
-          _ = try database.write { db in
+          try database.write { db in
             try RemindersList
               .where { $0.id == remindersList.id }
               .delete()

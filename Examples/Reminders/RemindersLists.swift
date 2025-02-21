@@ -6,7 +6,7 @@ import StructuredQueries
 import SwiftUI
 
 struct RemindersListsView: View {
-  @SharedReader(
+  @State.SharedReader(
     .fetchAll(
       RemindersList.group(by: \.id)
         .join(Reminder.incomplete) { $0.id == $1.listID }
