@@ -4,50 +4,25 @@ import StructuredQueriesGRDB
 import SwiftUI
 
 struct RemindersListDetailView: View {
-  @State.SharedReader private var remindersState: [Reminders.Record]
+  @State.SharedReader(value: []) private var reminderStates: [ReminderState]
+  @State private var isNewReminderSheetPresented = false
   @Shared private var ordering: Ordering
   @Shared private var showCompleted: Bool
   private let remindersList: RemindersList
 
-  @State var isNewReminderSheetPresented = false
-
   @Dependency(\.defaultDatabase) private var database
-
-  enum Ordering: String, CaseIterable {
-    case dueDate = "Due Date"
-    case priority = "Priority"
-    case title = "Title"
-    var icon: Image {
-      switch self {
-      case .dueDate: Image(systemName: "calendar")
-      case .priority: Image(systemName: "chart.bar.fill")
-      case .title: Image(systemName: "textformat.characters")
-      }
-    }
-  }
 
   init(remindersList: RemindersList) {
     self.remindersList = remindersList
-    _remindersState = State.SharedReader(value: [])
     _ordering = Shared(wrappedValue: .dueDate, .appStorage("ordering_list_\(remindersList.id)"))
     _showCompleted = Shared(
       wrappedValue: false, .appStorage("show_completed_list_\(remindersList.id)")
-    )
-    $remindersState = SharedReader(
-      .fetch(
-        Reminders(
-          listID: remindersList.id,
-          ordering: ordering,
-          showCompleted: showCompleted
-        ),
-        animation: .default
-      )
     )
   }
 
   var body: some View {
     List {
-      ForEach(remindersState, id: \.reminder.id) { reminderState in
+      ForEach(reminderStates, id: \.reminder.id) { reminderState in
         ReminderRow(
           isPastDue: reminderState.isPastDue,
           reminder: reminderState.reminder,
@@ -113,58 +88,62 @@ struct RemindersListDetailView: View {
     }
   }
 
+  private enum Ordering: String, CaseIterable {
+    case dueDate = "Due Date"
+    case priority = "Priority"
+    case title = "Title"
+    var icon: Image {
+      switch self {
+      case .dueDate: Image(systemName: "calendar")
+      case .priority: Image(systemName: "chart.bar.fill")
+      case .title: Image(systemName: "textformat.characters")
+      }
+    }
+  }
+
   private func updateQuery() async throws {
-    try await $remindersState.load(
-      .fetch(
-        Reminders(listID: remindersList.id, ordering: ordering, showCompleted: showCompleted),
+    try await $reminderStates.load(
+      .fetchAll(
+        Reminder
+          .where { $0.listID == remindersList.id }
+          .where { showCompleted || !$0.isCompleted }
+          .order {
+            switch ordering {
+            case .dueDate:
+              ($0.isCompleted, $0.date)
+            case .priority:
+              ($0.isCompleted, $0.priority.descending(), $0.isFlagged.descending())
+            case .title:
+              ($0.isCompleted, $0.title)
+            }
+          }
+          .withTags
+          .select {
+            ReminderState.Columns(
+              reminder: $0,
+              isPastDue: $0.isPastDue,
+              commaSeparatedTags: $2.name.groupConcat()
+            )
+          },
         animation: .default
       )
     )
   }
 
-  fileprivate struct Reminders: FetchKeyRequest {
-    let listID: Int64
-    let ordering: Ordering
-    let showCompleted: Bool
-    func fetch(_ db: Database) throws -> [Record] {
-      try Reminder
-        .where { $0.listID == listID }
-        .order {
-          switch ordering {
-          case .dueDate:
-            ($0.isCompleted, $0.date)
-          case .priority:
-            ($0.isCompleted, $0.priority.descending(), $0.isFlagged.descending())
-          case .title:
-            ($0.isCompleted, $0.title)
-          }
-        }
-        .withTags(showCompleted: showCompleted)
-        .select {
-          Record.Columns(
-            reminder: $0,
-            isPastDue: $0.isPastDue,
-            commaSeparatedTags: $2.name.groupConcat()
-          )
-        }
-        .fetchAll(db)
-    }
-    @Selection
-    fileprivate struct Record: Decodable {
-      var reminder: Reminder
-      var isPastDue: Bool
-      var commaSeparatedTags: String?
-      var tags: [String] {
-        (commaSeparatedTags ?? "").split(separator: ",").map(String.init)
-      }
+  @Selection
+  fileprivate struct ReminderState: Decodable {
+    var reminder: Reminder
+    var isPastDue: Bool
+    var commaSeparatedTags: String?
+    var tags: [String] {
+      (commaSeparatedTags ?? "").split(separator: ",").map(String.init)
     }
   }
 }
 
 extension SelectStatementOf<Reminder> {
-  func withTags(showCompleted: Bool) -> SelectOf<Reminder, ReminderTag?, Tag?> {
+  var withTags: SelectOf<Reminder, ReminderTag?, Tag?> {
     all()
-      .where { showCompleted || !$0.isCompleted }
       .group(by: \.id)
       .leftJoin(ReminderTag.all()) { $0.id == $1.reminderID }
       .leftJoin(Tag.all()) { $1.tagID == $2.id }

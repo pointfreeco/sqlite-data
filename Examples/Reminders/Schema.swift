@@ -4,8 +4,14 @@ import IssueReporting
 import SharingGRDB
 import StructuredQueriesGRDB
 
+// TODO: remove once previews are updated
+extension RemindersList: FetchableRecord, MutablePersistableRecord {}
+extension Reminder: FetchableRecord, MutablePersistableRecord {}
+extension Tag: FetchableRecord, MutablePersistableRecord {}
+extension ReminderTag: FetchableRecord, MutablePersistableRecord {}
+
 @Table("remindersLists")
-struct RemindersList: Codable, FetchableRecord, Hashable, Identifiable, MutablePersistableRecord {
+struct RemindersList: Codable, Hashable, Identifiable {
   static let databaseTableName = "remindersLists"
   var id: Int64
   var color = 0x4a99ef
@@ -13,9 +19,7 @@ struct RemindersList: Codable, FetchableRecord, Hashable, Identifiable, MutableP
 }
 
 @Table("reminders")
-struct Reminder: Codable, Equatable, FetchableRecord, Identifiable, MutablePersistableRecord {
-  static let databaseTableName = "reminders"
-
+struct Reminder: Codable, Equatable, Identifiable {
   var id: Int64
   @Column(as: .iso8601)
   var date: Date?
@@ -25,11 +29,6 @@ struct Reminder: Codable, Equatable, FetchableRecord, Identifiable, MutablePersi
   var notes = ""
   var priority: Int?
   var title = ""
-
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
-
   static func searching(_ text: String) -> Where<Reminder> {
     Self.where {
       $0.title.collate(.nocase).contains(text)
@@ -44,21 +43,13 @@ extension Reminder.Columns {
 }
 
 @Table("tags")
-struct Tag: Codable, FetchableRecord, MutablePersistableRecord {
-  static let databaseTableName = "tags"
-
+struct Tag: Codable {
   var id: Int64
   var name = ""
-
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
 @Table("remindersTags")
-struct ReminderTag: Codable, FetchableRecord, MutablePersistableRecord {
-  static let databaseTableName = "remindersTags"
-
+struct ReminderTag: Codable {
   // TODO: Both of these should be non-optional even on 'main'
   var reminderID: Int64
   var tagID: Int64

@@ -4,8 +4,8 @@ import StructuredQueries
 import SwiftUI
 
 struct SearchRemindersView: View {
-  @State.SharedReader(value: SearchReminders.Value()) var searchReminders
-
+  @State.SharedReader(value: 0) var completedCount: Int
+  @State.SharedReader(value: []) var reminders: [ReminderState]
   let searchText: String
   @State var showCompletedInSearchResults = false
 
@@ -13,24 +13,14 @@ struct SearchRemindersView: View {
 
   init(searchText: String) {
     self.searchText = searchText
-    $searchReminders = SharedReader(
-      wrappedValue: searchReminders,
-      .fetch(
-        SearchReminders(
-          showCompletedInSearchResults: showCompletedInSearchResults,
-          searchText: searchText
-        ),
-        animation: .default
-      )
-    )
   }
 
   var body: some View {
     HStack {
-      Text("\(searchReminders.completedCount) Completed")
+      Text("\(completedCount) Completed")
         .monospacedDigit()
         .contentTransition(.numericText())
-      if searchReminders.completedCount > 0 {
+      if completedCount > 0 {
         Text("•")
         Menu {
           Text("Clear Completed Reminders")
@@ -60,7 +50,7 @@ struct SearchRemindersView: View {
       }
     }
 
-    ForEach(searchReminders.reminders, id: \.reminder.id) { reminder in
+    ForEach(reminders) { reminder in
       ReminderRow(
         isPastDue: reminder.isPastDue,
         reminder: reminder.reminder,
@@ -74,12 +64,29 @@ struct SearchRemindersView: View {
     if searchText.isEmpty {
       showCompletedInSearchResults = false
     }
-    try await $searchReminders.load(
-      .fetch(
-        SearchReminders(
-          showCompletedInSearchResults: showCompletedInSearchResults,
-          searchText: searchText
-        ),
+    try await $completedCount.load(
+      .fetchOne(
+        Reminder.searching(searchText)
+          .where(\.isCompleted)
+          .count(),
+        animation: .default
+      )
+    )
+    try await $reminders.load(
+      .fetchAll(
+        Reminder.searching(searchText)
+          .where { showCompletedInSearchResults || !$0.isCompleted }
+          .order { ($0.isCompleted, $0.date) }
+          .withTags
+          .leftJoin(RemindersList.all()) { $0.listID == $3.id }
+          .select {
+            ReminderState.Columns(
+              isPastDue: $0.isPastDue,
+              reminder: $0,
+              remindersList: $3,
+              commaSeparatedTags: $2.name.groupConcat()
+            )
+          },
         animation: .default
       )
     )
@@ -105,43 +112,13 @@ struct SearchRemindersView: View {
     }
   }
 
-  struct SearchReminders: FetchKeyRequest {
-    let showCompletedInSearchResults: Bool
-    let searchText: String
-
-    func fetch(_ db: Database) throws -> Value {
-      try Value(
-        completedCount: Reminder.searching(searchText)
-          .where(\.isCompleted)
-          .count()
-          .fetchOne(db) ?? 0,
-
-        reminders: Reminder.searching(searchText)
-          .order { ($0.isCompleted, $0.date) }
-          .withTags(showCompleted: showCompletedInSearchResults)
-          .leftJoin(RemindersList.all()) { $0.listID == $3.id }
-          .select {
-            Value.Reminder.Columns(
-              isPastDue: $0.isPastDue,
-              reminder: $0,
-              remindersList: $3,
-              commaSeparatedTags: $2.name.groupConcat()
-            )
-          }
-          .fetchAll(db)
-      )
-    }
-    struct Value {
-      var completedCount = 0
-      var reminders: [Reminder] = []
-      @Selection
-      struct Reminder {
-        var isPastDue: Bool
-        let reminder: Reminders.Reminder
-        let remindersList: RemindersList
-        let commaSeparatedTags: String?
-      }
-    }
+  @Selection
+  struct ReminderState: Identifiable {
+    var id: Reminder.ID { reminder.id }
+    var isPastDue: Bool
+    let reminder: Reminders.Reminder
+    let remindersList: RemindersList
+    let commaSeparatedTags: String?
   }
 }
 
