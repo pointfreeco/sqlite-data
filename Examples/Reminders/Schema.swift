@@ -74,9 +74,9 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
     database = try DatabasePool(path: path, configuration: configuration)
   }
   var migrator = DatabaseMigrator()
-  #if DEBUG
-    migrator.eraseDatabaseOnSchemaChange = true
-  #endif
+//  #if DEBUG
+//    migrator.eraseDatabaseOnSchemaChange = true
+//  #endif
   migrator.registerMigration("Add reminders lists table") { db in
     try db.create(table: RemindersList.name) { table in
       table.autoIncrementedPrimaryKey("id")
