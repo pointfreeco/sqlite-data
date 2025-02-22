@@ -82,7 +82,7 @@ struct SearchRemindersView: View {
         .where { showCompletedInSearchResults || !$0.isCompleted }
         .order { ($0.isCompleted, $0.date) }
         .withTags
-        .leftJoin(RemindersList.all()) { $0.listID == $3.id }
+        .leftJoin(RemindersList.all()) { $0.remindersListID == $3.id }
         .select {
           ReminderState.Columns(
             commaSeparatedTags: $2.name.groupConcat(),

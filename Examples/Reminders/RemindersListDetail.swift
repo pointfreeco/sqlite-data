@@ -109,7 +109,7 @@ struct RemindersListDetailView: View {
   fileprivate var remindersKey: some SharedReaderKey<[ReminderState]> {
     .fetchAll(
       Reminder
-        .where { $0.listID == remindersList.id && (showCompleted || !$0.isCompleted) }
+        .where { $0.remindersListID == remindersList.id && (showCompleted || !$0.isCompleted) }
         .order {
           switch ordering {
           case .dueDate:

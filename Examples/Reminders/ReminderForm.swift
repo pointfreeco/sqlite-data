@@ -25,14 +25,14 @@ struct ReminderFormView: View {
         date: existingReminder.date,
         isCompleted: existingReminder.isCompleted,
         isFlagged: existingReminder.isFlagged,
-        listID: existingReminder.listID,
         notes: existingReminder.notes,
         priority: existingReminder.priority,
+        remindersListID: existingReminder.remindersListID,
         title: existingReminder.title
       )
     } else {
       reminderID = nil
-      reminder = Reminder.Draft(listID: remindersList.id)
+      reminder = Reminder.Draft(remindersListID: remindersList.id)
     }
   }
 
@@ -126,7 +126,7 @@ struct ReminderFormView: View {
           }
         }
         .onChange(of: remindersList) {
-          reminder.listID = remindersList.id
+          reminder.remindersListID = remindersList.id
         }
       }
     }
@@ -185,9 +185,9 @@ struct ReminderFormView: View {
               $0.date = reminder.date.map { .bind($0, as: .iso8601) }
               $0.isCompleted = reminder.isCompleted
               $0.isFlagged = reminder.isFlagged
-              $0.listID = reminder.listID
               $0.notes = reminder.notes
               $0.priority = reminder.priority
+              $0.remindersListID = reminder.remindersListID
               $0.title = reminder.title
             }
             .returning(\.id)
@@ -269,7 +269,7 @@ struct ReminderFormPreview: PreviewProvider {
         let remindersList = try RemindersList.all().fetchOne(db)!
         return (
           remindersList,
-          try Reminder.where { $0.listID == remindersList.id }.fetchOne(db)!
+          try Reminder.where { $0.remindersListID == remindersList.id }.fetchOne(db)!
         )
       }
     }

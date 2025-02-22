@@ -9,7 +9,7 @@ struct RemindersListsView: View {
   @State.SharedReader(
     .fetchAll(
       RemindersList.group(by: \.id)
-        .join(Reminder.incomplete) { $0.id == $1.listID }
+        .join(Reminder.incomplete) { $0.id == $1.remindersListID }
         .select { ReminderListState.Columns(reminderCount: $1.id.count(), remindersList: $0) },
       animation: .default
     )

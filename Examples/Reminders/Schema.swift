@@ -18,9 +18,9 @@ struct Reminder: Codable, Equatable, Identifiable {
   var date: Date?
   var isCompleted = false
   var isFlagged = false
-  var listID: Int64  // TODO: rename to reminderListID?
   var notes = ""
   var priority: Int?
+  var remindersListID: Int64
   var title = ""
   static func searching(_ text: String) -> Where<Reminder> {
     Self.where {
@@ -84,14 +84,14 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
       table.column("date", .date)
       table.column("isCompleted", .boolean).defaults(to: false).notNull()
       table.column("isFlagged", .boolean).defaults(to: false).notNull()
-      table.column("listID", .integer)
+      table.column("remindersListID", .integer)
         .references(RemindersList.name, column: "id", onDelete: .cascade)
         .notNull()
       table.column("notes", .text).notNull()
       table.column("priority", .integer)
       table.column("title", .text).notNull()
     }
-    try db.create(indexOn: Reminder.name, columns: [Reminder.columns.listID.name])
+    try db.create(indexOn: Reminder.name, columns: [Reminder.columns.remindersListID.name])
   }
   migrator.registerMigration("Add tags table") { db in
     try db.create(table: Tag.name) { table in
@@ -140,78 +140,78 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
       // TODO: Support this?
 //      _ = try Reminder.Draft(
 //        date: Date(),
-//        listID: 1,
 //        notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
+//        remindersListID: 1,
 //        title: "Groceries"
 //      )
 //      .inserted(self)
       try Reminder.insert([
         Reminder.Draft(
           date: Date(),
-          listID: 1,
           notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
+          remindersListID: 1,
           title: "Groceries"
         ),
         Reminder.Draft(
           date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isFlagged: true,
-          listID: 1,
+          remindersListID: 1,
           title: "Haircut"
         ),
         Reminder.Draft(
           date: Date(),
-          listID: 1,
           notes: "Ask about diet",
           priority: 3,
+          remindersListID: 1,
           title: "Doctor appointment"
         ),
         Reminder.Draft(
           date: Date().addingTimeInterval(-60 * 60 * 24 * 190),
           isCompleted: true,
-          listID: 1,
+          remindersListID: 1,
           title: "Take a walk"
         ),
         Reminder.Draft(
           date: Date(),
-          listID: 1,
+          remindersListID: 1,
           title: "Buy concert tickets"
         ),
         Reminder.Draft(
           date: Date().addingTimeInterval(60 * 60 * 24 * 2),
           isFlagged: true,
-          listID: 2,
           priority: 3,
+          remindersListID: 2,
           title: "Pick up kids from school"
         ),
         Reminder.Draft(
           date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
-          listID: 2,
           priority: 1,
+          remindersListID: 2,
           title: "Get laundry"
         ),
         Reminder.Draft(
           date: Date().addingTimeInterval(60 * 60 * 24 * 4),
           isCompleted: false,
-          listID: 2,
           priority: 3,
+          remindersListID: 2,
           title: "Take out trash"
         ),
         Reminder.Draft(
           date: Date().addingTimeInterval(60 * 60 * 24 * 2),
-          listID: 3,
           notes: """
             Status of tax return
             Expenses for next year
             Changing payroll company
             """,
+          remindersListID: 3,
           title: "Call accountant"
         ),
         Reminder.Draft(
           date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
-          listID: 3,
           priority: 2,
+          remindersListID: 3,
           title: "Send weekly emails"
         ),
       ])
