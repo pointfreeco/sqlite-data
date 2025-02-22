@@ -55,8 +55,11 @@ struct ReminderRow: View {
     .swipeActions {
       Button("Delete") {
         withErrorReporting {
-          _ = try database.write { db in
-            try reminder.delete(db)
+          try database.write { db in
+            try Reminder
+              .where { $0.id == reminder.id }
+              .delete()
+              .execute(db)
           }
         }
       }
@@ -125,25 +128,27 @@ struct ReminderRow: View {
   }
 }
 
-#Preview {
-  var reminder: Reminder!
-  var reminderList: RemindersList!
-  let _ = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
-    try $0.defaultDatabase.read { db in
-      reminder = try Reminder.fetchOne(db)
-      reminderList = try RemindersList.fetchOne(db)!
+struct ReminderRowPreview: PreviewProvider {
+  static var previews: some View {
+    var reminder: Reminder!
+    var reminderList: RemindersList!
+    let _ = try! prepareDependencies {
+      $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+      try $0.defaultDatabase.read { db in
+        reminder = try Reminder.all().fetchOne(db)
+        reminderList = try RemindersList.all().fetchOne(db)!
+      }
     }
-  }
-  
-  NavigationStack {
-    List {
-      ReminderRow(
-        isPastDue: false,
-        reminder: reminder,
-        remindersList: reminderList,
-        tags: ["point-free", "adulting"]
-      )
+
+    NavigationStack {
+      List {
+        ReminderRow(
+          isPastDue: false,
+          reminder: reminder,
+          remindersList: reminderList,
+          tags: ["point-free", "adulting"]
+        )
+      }
     }
   }
 }

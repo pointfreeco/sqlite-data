@@ -4,12 +4,6 @@ import IssueReporting
 import SharingGRDB
 import StructuredQueriesGRDB
 
-// TODO: remove once previews are updated
-extension RemindersList: FetchableRecord, MutablePersistableRecord {}
-extension Reminder: FetchableRecord, MutablePersistableRecord {}
-extension Tag: FetchableRecord, MutablePersistableRecord {}
-extension ReminderTag: FetchableRecord, MutablePersistableRecord {}
-
 @Table
 struct RemindersList: Codable, Hashable, Identifiable {
   var id: Int64

@@ -261,20 +261,20 @@ struct TagsPopover: View {
   }
 }
 
-#Preview {
-  let (remindersList, reminder) = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
-    return try $0.defaultDatabase.write { db in
-      let remindersList = try RemindersList.fetchOne(db)!
-      return (
-        remindersList,
-        // TODO: Preview bug, use preview provider
-//        try Reminder.where { $0.listID == remindersList.id }.fetchOne(db)!
-        try Reminder.filter(Column("listID") == remindersList.id).fetchOne(db)!
-      )
+struct ReminderFormPreview: PreviewProvider {
+  static var previews: some View {
+    let (remindersList, reminder) = try! prepareDependencies {
+      $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+      return try $0.defaultDatabase.write { db in
+        let remindersList = try RemindersList.all().fetchOne(db)!
+        return (
+          remindersList,
+          try Reminder.where { $0.listID == remindersList.id }.fetchOne(db)!
+        )
+      }
     }
-  }
-  NavigationStack {
-    ReminderFormView(existingReminder: reminder, remindersList: remindersList)
+    NavigationStack {
+      ReminderFormView(existingReminder: reminder, remindersList: remindersList)
+    }
   }
 }

@@ -154,14 +154,16 @@ extension SelectStatementOf<Reminder> {
   }
 }
 
-#Preview {
-  let remindersList = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
-    return try $0.defaultDatabase.read { db in
-      try RemindersList.fetchOne(db)! as RemindersList
+struct RemindersListDetailPreview: PreviewProvider {
+  static var previews: some View {
+    let remindersList = try! prepareDependencies {
+      $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+      return try $0.defaultDatabase.read { db in
+        try RemindersList.all().fetchOne(db)!
+      }
     }
-  }
-  NavigationStack {
-    RemindersListDetailView(remindersList: remindersList)
+    NavigationStack {
+      RemindersListDetailView(remindersList: remindersList)
+    }
   }
 }
