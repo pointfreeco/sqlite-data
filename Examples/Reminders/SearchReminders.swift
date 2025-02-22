@@ -13,6 +13,7 @@ struct SearchRemindersView: View {
 
   init(searchText: String) {
     self.searchText = searchText
+    $reminders = SharedReader(wrappedValue: [], searchKey)
   }
 
   var body: some View {
@@ -72,23 +73,25 @@ struct SearchRemindersView: View {
         animation: .default
       )
     )
-    try await $reminders.load(
-      .fetchAll(
-        Reminder.searching(searchText)
-          .where { showCompletedInSearchResults || !$0.isCompleted }
-          .order { ($0.isCompleted, $0.date) }
-          .withTags
-          .leftJoin(RemindersList.all()) { $0.listID == $3.id }
-          .select {
-            ReminderState.Columns(
-              commaSeparatedTags: $2.name.groupConcat(),
-              isPastDue: $0.isPastDue,
-              reminder: $0,
-              remindersList: $3
-            )
-          },
-        animation: .default
-      )
+    try await $reminders.load(searchKey)
+  }
+
+  private var searchKey: some SharedReaderKey<[ReminderState]> {
+    .fetchAll(
+      Reminder.searching(searchText)
+        .where { showCompletedInSearchResults || !$0.isCompleted }
+        .order { ($0.isCompleted, $0.date) }
+        .withTags
+        .leftJoin(RemindersList.all()) { $0.listID == $3.id }
+        .select {
+          ReminderState.Columns(
+            commaSeparatedTags: $2.name.groupConcat(),
+            isPastDue: $0.isPastDue,
+            reminder: $0,
+            remindersList: $3
+          )
+        },
+      animation: .default
     )
   }
 
