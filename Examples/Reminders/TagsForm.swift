@@ -103,8 +103,8 @@ private struct TagView: View {
 
 #Preview {
   @Previewable @State var tags: [Tag] = []
-  let _ = prepareDependencies {
-    $0.defaultDatabase = try! Reminders.appDatabase(inMemory: true)
+  let _ = try! prepareDependencies {
+    $0.defaultDatabase = try Reminders.appDatabase()
   }
 
   TagsView(selectedTags: $tags)
