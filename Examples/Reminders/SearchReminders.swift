@@ -3,7 +3,7 @@ import SharingGRDB
 import SwiftUI
 
 struct SearchRemindersView: View {
-  @State.SharedReader(value: SearchReminders.Value()) var searchReminders
+  @SharedReader var searchReminders: SearchReminders.Value
 
   let searchText: String
   @State var showCompletedInSearchResults = false
@@ -12,11 +12,11 @@ struct SearchRemindersView: View {
 
   init(searchText: String) {
     self.searchText = searchText
-    $searchReminders = SharedReader(
-      wrappedValue: searchReminders,
+    _searchReminders = SharedReader(
+      wrappedValue: SearchReminders.Value(),
       .fetch(
         SearchReminders(
-          showCompletedInSearchResults: showCompletedInSearchResults,
+          showCompletedInSearchResults: _showCompletedInSearchResults.wrappedValue,
           searchText: searchText
         ),
         animation: .default
