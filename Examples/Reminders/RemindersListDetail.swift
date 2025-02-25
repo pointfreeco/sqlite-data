@@ -3,7 +3,7 @@ import SharingGRDB
 import SwiftUI
 
 struct RemindersListDetailView: View {
-  @State.SharedReader private var remindersState: [Reminders.Record]
+  @SharedReader private var remindersState: [Reminders.Record]
   @AppStorage private var ordering: Ordering
   @AppStorage private var showCompleted: Bool
   private let remindersList: RemindersList
@@ -32,16 +32,15 @@ struct RemindersListDetailView: View {
 
   init?(remindersList: RemindersList) {
     self.remindersList = remindersList
-    _remindersState = State.SharedReader(value: [])
     if let listID = remindersList.id {
       _ordering = AppStorage(wrappedValue: .dueDate, "ordering_list_\(listID)")
       _showCompleted = AppStorage(wrappedValue: false, "show_completed_list_\(listID)")
-      _remindersState = State.SharedReader(
+      _remindersState = SharedReader(
         .fetch(
           Reminders(
             listID: listID,
-            ordering: ordering,
-            showCompleted: showCompleted
+            ordering: _ordering.wrappedValue,
+            showCompleted: _showCompleted.wrappedValue
           ),
           animation: .default
         )
@@ -68,7 +67,7 @@ struct RemindersListDetailView: View {
         try await updateQuery()
       }
     }
-    .navigationTitle(Text(remindersList.name))
+    .navigationTitle(remindersList.name)
     .navigationBarTitleDisplayMode(.large)
     .sheet(isPresented: $isNewReminderSheetPresented) {
       NavigationStack {
