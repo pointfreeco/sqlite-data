@@ -32,8 +32,18 @@ struct ReminderFormView: View {
   var body: some View {
     Form {
       TextField("Title", text: $reminder.title)
-      TextEditor(text: $reminder.notes)
-        .lineLimit(4)
+
+      ZStack {
+        if reminder.notes.isEmpty {
+          TextEditor(text: .constant("Notes"))
+            .foregroundStyle(.placeholder)
+            .accessibilityHidden(true, isEnabled: false)
+        }
+
+        TextEditor(text: $reminder.notes)
+      }
+      .lineLimit(4)
+      .padding([.leading, .trailing], -5)
 
       Section {
         Button {
