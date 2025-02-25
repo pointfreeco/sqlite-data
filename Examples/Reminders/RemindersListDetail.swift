@@ -4,13 +4,11 @@ import SwiftUI
 
 struct RemindersListDetailView: View {
   @State.SharedReader private var remindersState: [Reminders.Record]
-  @Shared private var ordering: Ordering
-  @Shared private var showCompleted: Bool
+  @AppStorage private var ordering: Ordering
+  @AppStorage private var showCompleted: Bool
   private let remindersList: RemindersList
 
   @State var isNewReminderSheetPresented = false
-
-  @Dependency(\.defaultDatabase) private var database
 
   enum Ordering: String, CaseIterable {
     case dueDate = "Due Date"
@@ -36,9 +34,9 @@ struct RemindersListDetailView: View {
     self.remindersList = remindersList
     _remindersState = State.SharedReader(value: [])
     if let listID = remindersList.id {
-      _ordering = Shared(wrappedValue: .dueDate, .appStorage("ordering_list_\(listID)"))
-      _showCompleted = Shared(wrappedValue: false, .appStorage("show_completed_list_\(listID)"))
-      $remindersState = SharedReader(
+      _ordering = AppStorage(wrappedValue: .dueDate, "ordering_list_\(listID)")
+      _showCompleted = AppStorage(wrappedValue: false, "show_completed_list_\(listID)")
+      _remindersState = State.SharedReader(
         .fetch(
           Reminders(
             listID: listID,
@@ -98,7 +96,7 @@ struct RemindersListDetailView: View {
           Menu {
             ForEach(Ordering.allCases, id: \.self) { ordering in
               Button {
-                $ordering.withLock { $0 = ordering }
+                self.ordering = ordering
               } label: {
                 Text(ordering.rawValue)
                 ordering.icon
@@ -110,7 +108,7 @@ struct RemindersListDetailView: View {
             Image(systemName: "arrow.up.arrow.down")
           }
           Button {
-            $showCompleted.withLock { $0.toggle() }
+            showCompleted.toggle()
           } label: {
             Text(showCompleted ? "Hide Completed" : "Show Completed")
             Image(systemName: showCompleted ? "eye.slash.fill" : "eye")
