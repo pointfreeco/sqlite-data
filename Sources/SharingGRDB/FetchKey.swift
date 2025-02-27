@@ -32,53 +32,49 @@ extension SharedReaderKey {
   /// ```
   ///
   /// For simpler querying needs, you can skip the ceremony of defining a ``FetchKeyRequest`` and
-  /// use a raw SQL query with
-  /// ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:scheduler:)`` or
-  /// ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:scheduler:)``, instead.
+  /// use a raw SQL query with ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)`` or
+  /// ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)``, instead.
+  ///
+  /// To animate or observe changes with a custom scheduler, see
+  /// ``Sharing/SharedReaderKey/fetch(_:database:animation:)-rgj4`` or
+  /// ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)-9arcp``.
   ///
   /// - Parameters:
   ///   - request: A request describing the data to fetch.
   ///   - database: The database to read from. A value of `nil` will use the
   ///     ``Dependencies/DependencyValues/defaultDatabase``.
-  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
-  ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   public static func fetch<Value>(
     _ request: some FetchKeyRequest<Value>,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+    database: (any DatabaseReader)? = nil
   ) -> Self
   where Self == FetchKey<Value> {
-    FetchKey(request: request, database: database, scheduler: scheduler)
+    FetchKey(request: request, database: database, scheduler: nil)
   }
 
   /// A key that can query for a collection of data in a SQLite database.
   ///
-  /// A version of ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)-8kkig`` that allows you to
-  /// omit the type and default from the `@SharedReader` property wrapper:
+  /// A version of ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` that allows you to omit the
+  /// type and default from the `@SharedReader` property wrapper:
   ///
   /// ```diff
   /// -@SharedReader(.fetch(Items()) var items: [Item] = []
   /// +@SharedReader(.fetch(Items()) var items
   /// ```
   ///
-  /// See ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)-8kkig`` for more info on how to
-  /// use this API.
+  /// See ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` for more info on how to use this API.
   ///
   /// - Parameters:
   ///   - request: A request describing the data to fetch.
   ///   - database: The database to read from. A value of `nil` will use the
   ///     ``Dependencies/DependencyValues/defaultDatabase``.
-  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
-  ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   public static func fetch<Records: RangeReplaceableCollection>(
     _ request: some FetchKeyRequest<Records>,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+    database: (any DatabaseReader)? = nil
   ) -> Self
   where Self == FetchKey<Records>.Default {
-    Self[.fetch(request, database: database, scheduler: scheduler), default: Value()]
+    Self[.fetch(request, database: database), default: Value()]
   }
 
   /// A key that can query for a collection of data in a SQLite database.
@@ -90,26 +86,22 @@ extension SharedReaderKey {
   /// @SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
   /// ```
   ///
-  /// For more complex querying needs, see
-  /// ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)-8kkig``.
+  /// For more complex querying needs, see ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd``.
   ///
   /// - Parameters:
   ///   - sql: A raw SQL string describing the data to fetch.
   ///   - arguments: Arguments to bind to the SQL statement.
   ///   - database: The database to read from. A value of `nil` will use the
   ///     ``Dependencies/DependencyValues/defaultDatabase``.
-  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
-  ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   public static func fetchAll<Record: FetchableRecord>(
     sql: String,
     arguments: StatementArguments = StatementArguments(),
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+    database: (any DatabaseReader)? = nil
   ) -> Self
   where Self == FetchKey<[Record]>.Default {
     Self[
-      .fetch(FetchAll(sql: sql, arguments: arguments), database: database, scheduler: scheduler),
+      .fetch(FetchAll(sql: sql, arguments: arguments), database: database),
       default: []
     ]
   }
@@ -123,8 +115,101 @@ extension SharedReaderKey {
   /// @SharedReader(.fetchOne(sql: "SELECT count(*) FROM items")) var itemsCount = 0
   /// ```
   ///
-  /// For more complex querying needs, see
-  /// ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)-8kkig``.
+  /// For more complex querying needs, see ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd``.
+  ///
+  /// - Parameters:
+  ///   - sql: A raw SQL string describing the data to fetch.
+  ///   - arguments: Arguments to bind to the SQL statement.
+  ///   - database: The database to read from. A value of `nil` will use the
+  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  public static func fetchOne<Value: DatabaseValueConvertible>(
+    sql: String,
+    arguments: StatementArguments = StatementArguments(),
+    database: (any DatabaseReader)? = nil
+  ) -> Self
+  where Self == FetchKey<Value> {
+    .fetch(FetchOne(sql: sql, arguments: arguments), database: database)
+  }
+}
+
+extension SharedReaderKey {
+  /// A key that can query for data in a SQLite database.
+  ///
+  /// A version of ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` that can be configured
+  /// with a scheduler. See ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` for more info on
+  /// how to use this API.
+  ///
+  /// - Parameters:
+  ///   - request: A request describing the data to fetch.
+  ///   - database: The database to read from. A value of `nil` will use the
+  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  public static func fetch<Value>(
+    _ request: some FetchKeyRequest<Value>,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  ) -> Self
+  where Self == FetchKey<Value> {
+    FetchKey(request: request, database: database, scheduler: scheduler)
+  }
+
+  /// A key that can query for a collection of data in a SQLite database.
+  ///
+  /// A version of ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` that can be configured
+  /// with a scheduler. See ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` for more info on
+  /// how to use this API.
+  ///
+  /// - Parameters:
+  ///   - request: A request describing the data to fetch.
+  ///   - database: The database to read from. A value of `nil` will use the
+  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  public static func fetch<Records: RangeReplaceableCollection>(
+    _ request: some FetchKeyRequest<Records>,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  ) -> Self
+  where Self == FetchKey<Records>.Default {
+    Self[.fetch(request, database: database, scheduler: scheduler), default: Value()]
+  }
+
+  /// A key that can query for a collection of data in a SQLite database.
+  ///
+  /// A version of ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)`` that can be
+  /// configured with a scheduler. See ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)``
+  /// for more info on how to use this API.
+  ///
+  /// - Parameters:
+  ///   - sql: A raw SQL string describing the data to fetch.
+  ///   - arguments: Arguments to bind to the SQL statement.
+  ///   - database: The database to read from. A value of `nil` will use the
+  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  public static func fetchAll<Record: FetchableRecord>(
+    sql: String,
+    arguments: StatementArguments = StatementArguments(),
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  ) -> Self
+  where Self == FetchKey<[Record]>.Default {
+    Self[
+      .fetch(FetchAll(sql: sql, arguments: arguments), database: database, scheduler: scheduler),
+      default: []
+    ]
+  }
+
+  /// A key that can query for a value in a SQLite database.
+  ///
+  /// A version of ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)`` that can be
+  /// configured with a scheduler. See ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)``
+  /// for more info on how to use this API.
   ///
   /// - Parameters:
   ///   - sql: A raw SQL string describing the data to fetch.
@@ -138,7 +223,7 @@ extension SharedReaderKey {
     sql: String,
     arguments: StatementArguments = StatementArguments(),
     database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+    scheduler: some ValueObservationScheduler & Hashable
   ) -> Self
   where Self == FetchKey<Value> {
     .fetch(FetchOne(sql: sql, arguments: arguments), database: database, scheduler: scheduler)
@@ -148,14 +233,14 @@ extension SharedReaderKey {
 /// A type defining a reader of GRDB queries.
 ///
 /// You typically do not refer to this type directly, and will use
-/// [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:scheduler:)>),
-/// [`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:scheduler:)>), and
-/// [`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:scheduler:)-8m3f7>) to create instances,
+/// [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>),
+/// [`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)>), and
+/// [`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)-3qcpd>) to create instances,
 /// instead.
 public struct FetchKey<Value: Sendable>: SharedReaderKey {
   let database: any DatabaseReader
   let request: any FetchKeyRequest<Value>
-  let scheduler: any ValueObservationScheduler
+  let scheduler: (any ValueObservationScheduler & Hashable)?
   #if DEBUG
     let isDefaultDatabase: Bool
   #endif
@@ -163,13 +248,13 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
   public typealias ID = FetchKeyID
 
   public var id: ID {
-    ID(database: database, request: request)
+    ID(database: database, request: request, scheduler: scheduler)
   }
 
   init(
     request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+    scheduler: (any ValueObservationScheduler & Hashable)?
   ) {
     @Dependency(\.defaultDatabase) var defaultDatabase
     self.scheduler = scheduler
@@ -195,6 +280,7 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
       continuation.resume(with: Result { try database.read(request.fetch) })
       return
     }
+    let scheduler: any ValueObservationScheduler = scheduler ?? .async(onQueue: .main)
     database.asyncRead { dbResult in
       let result = dbResult.flatMap { db in
         Result {
@@ -225,6 +311,7 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
     let observation = ValueObservation.tracking { db in
       Result { try request.fetch(db) }
     }
+    let scheduler: any ValueObservationScheduler = scheduler ?? .async(onQueue: .main)
     #if canImport(Combine)
       let dropFirst =
         switch context {
@@ -257,7 +344,14 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
       let cancellable = observation.start(in: database, scheduling: scheduler) { error in
         subscriber.yield(throwing: error)
       } onChange: { newValue in
-        subscriber.yield(newValue)
+        switch newValue {
+        case let .success(value):
+          subscriber.yield(value)
+        case let .failure(error) where error is NotFound:
+          subscriber.yieldReturningInitialValue()
+        case let .failure(error):
+          subscriber.yield(throwing: error)
+        }
       }
       return SharedSubscription {
         cancellable.cancel()
@@ -271,21 +365,17 @@ public struct FetchKeyID: Hashable {
   fileprivate let databaseID: ObjectIdentifier
   fileprivate let request: AnyHashableSendable
   fileprivate let requestTypeID: ObjectIdentifier
+  fileprivate let scheduler: AnyHashableSendable?
 
   fileprivate init(
     database: any DatabaseReader,
-    request: some FetchKeyRequest
+    request: some FetchKeyRequest,
+    scheduler: (any ValueObservationScheduler & Hashable)?
   ) {
     self.databaseID = ObjectIdentifier(database)
     self.request = AnyHashableSendable(request)
     self.requestTypeID = ObjectIdentifier(type(of: request))
-
-  }
-
-  public func hash(into hasher: inout Hasher) {
-    hasher.combine(databaseID)
-    hasher.combine(request)
-    hasher.combine(requestTypeID)
+    self.scheduler = scheduler.map { AnyHashableSendable($0) }
   }
 }
 

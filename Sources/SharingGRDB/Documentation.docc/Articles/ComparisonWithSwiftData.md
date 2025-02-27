@@ -110,7 +110,7 @@ whereas you use the `@Query` macro with SwiftData:
 The `@SharedReader` property wrapper takes a variety of options, detailed more in <doc:Fetching>,
 and allows you to write raw SQL queries for fetching and aggregating data from your database. It 
 is also possibly to construct SQL queries using GRDB's query builder syntax. See
-[`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:scheduler:)-8m3f7>) for more information.
+[`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)-3qcpd>) for more information.
 
 ### Fetching data for an @Observable model
 
