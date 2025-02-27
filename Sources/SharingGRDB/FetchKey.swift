@@ -97,7 +97,7 @@ extension SharedReaderKey {
   public static func fetchAll<Record: FetchableRecord>(
     sql: String,
     arguments: StatementArguments = StatementArguments(),
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseReader)? = nil
   ) -> Self
   where Self == FetchKey<[Record]>.Default {
     Self[
