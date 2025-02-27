@@ -162,7 +162,9 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
 
   public typealias ID = FetchKeyID
 
-  public var id: ID { ID(rawValue: request) }
+  public var id: ID {
+    ID(database: database, request: request)
+  }
 
   init(
     request: some FetchKeyRequest<Value>,
@@ -266,17 +268,24 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
 
 /// A value that uniquely identifies a fetch key.
 public struct FetchKeyID: Hashable {
-  fileprivate let rawValue: AnyHashableSendable
-  fileprivate let typeID: ObjectIdentifier
+  fileprivate let databaseID: ObjectIdentifier
+  fileprivate let request: AnyHashableSendable
+  fileprivate let requestTypeID: ObjectIdentifier
 
-  fileprivate init(rawValue: some FetchKeyRequest) {
-    self.rawValue = AnyHashableSendable(rawValue)
-    self.typeID = ObjectIdentifier(type(of: rawValue))
+  fileprivate init(
+    database: any DatabaseReader,
+    request: some FetchKeyRequest
+  ) {
+    self.databaseID = ObjectIdentifier(database)
+    self.request = AnyHashableSendable(request)
+    self.requestTypeID = ObjectIdentifier(type(of: request))
+
   }
 
   public func hash(into hasher: inout Hasher) {
-    hasher.combine(rawValue)
-    hasher.combine(typeID)
+    hasher.combine(databaseID)
+    hasher.combine(request)
+    hasher.combine(requestTypeID)
   }
 }
 
