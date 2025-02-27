@@ -108,10 +108,19 @@ private struct FetchAllStatementRequest<each Value: QueryDecodable>: FetchKeyReq
   }
 
   static func == (lhs: Self, rhs: Self) -> Bool {
-    AnyHashable(lhs.statement) == AnyHashable(rhs.statement)
+    // NB: A Swift 6.1 regression prevents this from compiling:
+    //     https://github.com/swiftlang/swift/issues/79623
+    // return AnyHashable(lhs.statement) == AnyHashable(rhs.statement)
+    let lhs = lhs.statement
+    let rhs = rhs.statement
+    return AnyHashable(lhs) == AnyHashable(rhs)
   }
 
   func hash(into hasher: inout Hasher) {
+    // NB: A Swift 6.1 regression prevents this from compiling:
+    //     https://github.com/swiftlang/swift/issues/79623
+    // hasher.combine(statement)
+    let statement = statement
     hasher.combine(statement)
   }
 }
@@ -132,10 +141,19 @@ private struct FetchOneStatementRequest<each Value: QueryDecodable>: FetchKeyReq
   }
 
   static func == (lhs: Self, rhs: Self) -> Bool {
-    AnyHashable(lhs.statement) == AnyHashable(rhs.statement)
+    // NB: A Swift 6.1 regression prevents this from compiling:
+    //     https://github.com/swiftlang/swift/issues/79623
+    // AnyHashable(lhs.statement) == AnyHashable(rhs.statement)
+    let lhs = lhs.statement
+    let rhs = rhs.statement
+    return AnyHashable(lhs) == AnyHashable(rhs)
   }
 
   func hash(into hasher: inout Hasher) {
+    // NB: A Swift 6.1 regression prevents this from compiling:
+    //     https://github.com/swiftlang/swift/issues/79623
+    // hasher.combine(statement)
+    let statement = statement
     hasher.combine(statement)
   }
 }

@@ -10,7 +10,6 @@ struct ReminderFormView: View {
 
   @State var isPresentingTagsPopover = false
   @State var remindersList: RemindersList
-  let reminderID: Reminder.ID?
   @State var reminder: Reminder.Draft
   @State var selectedTags: [Tag] = []
 
@@ -20,18 +19,8 @@ struct ReminderFormView: View {
   init(existingReminder: Reminder? = nil, remindersList: RemindersList) {
     self.remindersList = remindersList
     if let existingReminder {
-      reminderID = existingReminder.id
-      reminder = Reminder.Draft(
-        date: existingReminder.date,
-        isCompleted: existingReminder.isCompleted,
-        isFlagged: existingReminder.isFlagged,
-        notes: existingReminder.notes,
-        priority: existingReminder.priority,
-        remindersListID: existingReminder.remindersListID,
-        title: existingReminder.title
-      )
+      reminder = Reminder.Draft(existingReminder)
     } else {
-      reminderID = nil
       reminder = Reminder.Draft(remindersListID: remindersList.id)
     }
   }
@@ -131,6 +120,8 @@ struct ReminderFormView: View {
       }
     }
     .task {
+      guard let reminderID = reminder.id
+      else { return }
       do {
         selectedTags = try await database.read { db in
           try Tag.all()
@@ -169,37 +160,13 @@ struct ReminderFormView: View {
   private func saveButtonTapped() {
     withErrorReporting {
       try database.write { db in
-        //        try reminder.save(db)
-        let updatedReminderID: Reminder.ID
-        /*
-         let updatedReminderID = Reminder.upsert(id: reminderID, reminder).returning(\.id)
-
-         // If Draft had `id?`:
-         let updatedReminderID = Reminder.upsert(reminder).returning(\.id)
-         */
-        if let reminderID {
-          updatedReminderID = try Reminder
-            .where { $0.id == reminderID }
-            .update {
-              // TODO: Do we want to improve this?
-              $0.date = reminder.date.map { .bind($0, as: .iso8601) }
-              $0.isCompleted = reminder.isCompleted
-              $0.isFlagged = reminder.isFlagged
-              $0.notes = reminder.notes
-              $0.priority = reminder.priority
-              $0.remindersListID = reminder.remindersListID
-              $0.title = reminder.title
-            }
-            .returning(\.id)
-            .fetchOne(db)!
-          // TODO: This should be on this branch on 'main'
+        let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)!
+        if reminder.id != nil {
           try ReminderTag.where { $0.reminderID == reminderID }.delete().execute(db)
-        } else {
-          updatedReminderID = try Reminder.insert(reminder).returning(\.id).fetchOne(db)!
         }
         try ReminderTag.insert(
           selectedTags.map { tag in
-            ReminderTag(reminderID: updatedReminderID, tagID: tag.id)
+            ReminderTag(reminderID: reminderID, tagID: tag.id)
           }
         )
         .execute(db)
