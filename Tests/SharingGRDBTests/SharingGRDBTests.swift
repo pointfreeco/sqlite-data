@@ -74,6 +74,13 @@ import Testing
     let fetchKey2: some SharedReaderKey<Void> = .fetch(Fetch2())
     #expect(fetchKey1.id.hashValue != fetchKey2.id.hashValue)
   }
+
+  @Test(.dependency(\.defaultDatabase, try .database))
+  func fetchAnimationHashValue() async throws {
+    let fetchKey1: some SharedReaderKey<Void> = .fetch(Fetch1())
+    let fetchKey2: some SharedReaderKey<Void> = .fetch(Fetch2(), animation: .default)
+    #expect(fetchKey1.id.hashValue != fetchKey2.id.hashValue)
+  }
 }
 
 fileprivate struct Fetch1: FetchKeyRequest {

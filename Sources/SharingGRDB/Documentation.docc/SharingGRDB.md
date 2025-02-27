@@ -179,6 +179,6 @@ with SQLite to take full advantage of GRDB and SharingGRDB.
 
 ### Fetch strategies
 
-- ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:scheduler:)``
-- ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:scheduler:)``
-- ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)-8kkig``
+- ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)``
+- ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)``
+- ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd``
