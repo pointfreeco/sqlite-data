@@ -126,7 +126,7 @@ extension SharedReaderKey {
   public static func fetchOne<Value: DatabaseValueConvertible>(
     sql: String,
     arguments: StatementArguments = StatementArguments(),
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseReader)? = nil
   ) -> Self
   where Self == FetchKey<Value> {
     .fetch(FetchOne(sql: sql, arguments: arguments), database: database)
