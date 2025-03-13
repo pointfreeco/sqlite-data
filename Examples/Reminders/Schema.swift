@@ -14,7 +14,7 @@ struct RemindersList: Codable, Hashable, Identifiable {
 @Table
 struct Reminder: Codable, Equatable, Identifiable {
   var id: Int64
-  @Column(as: .iso8601)
+  @Column(as: Date.ISO8601Representation?.self)
   var date: Date?
   var isCompleted = false
   var isFlagged = false
@@ -32,7 +32,7 @@ struct Reminder: Codable, Equatable, Identifiable {
 }
 extension Reminder.Columns {
   var isPastDue: some QueryExpression<Bool> {
-    !isCompleted && .raw("coalesce(\(date), date('now')) < date('now')")
+    !isCompleted && #raw("coalesce(\(date), date('now')) < date('now')")
   }
 }
 
@@ -44,7 +44,6 @@ struct Tag: Codable {
 
 @Table("remindersTags")
 struct ReminderTag: Codable {
-  // TODO: Both of these should be non-optional even on 'main'
   var reminderID: Int64
   var tagID: Int64
 }
@@ -72,40 +71,40 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Add reminders lists table") { db in
-    try db.create(table: RemindersList.name) { table in
+    try db.create(table: RemindersList.tableName) { table in
       table.autoIncrementedPrimaryKey("id")
       table.column("color", .integer).defaults(to: 0x4a99ef).notNull()
       table.column("name", .text).notNull()
     }
   }
   migrator.registerMigration("Add reminders table") { db in
-    try db.create(table: Reminder.name) { table in
+    try db.create(table: Reminder.tableName) { table in
       table.autoIncrementedPrimaryKey("id")
       table.column("date", .date)
       table.column("isCompleted", .boolean).defaults(to: false).notNull()
       table.column("isFlagged", .boolean).defaults(to: false).notNull()
       table.column("remindersListID", .integer)
-        .references(RemindersList.name, column: "id", onDelete: .cascade)
+        .references(RemindersList.tableName, column: "id", onDelete: .cascade)
         .notNull()
       table.column("notes", .text).notNull()
       table.column("priority", .integer)
       table.column("title", .text).notNull()
     }
-    try db.create(indexOn: Reminder.name, columns: [Reminder.columns.remindersListID.name])
+    try db.create(indexOn: Reminder.tableName, columns: [Reminder.columns.remindersListID.name])
   }
   migrator.registerMigration("Add tags table") { db in
-    try db.create(table: Tag.name) { table in
+    try db.create(table: Tag.tableName) { table in
       table.autoIncrementedPrimaryKey("id")
       table.column("name", .text).notNull().collate(.nocase).unique()
     }
-    try db.create(table: ReminderTag.name) { table in
+    try db.create(table: ReminderTag.tableName) { table in
       table.column("reminderID", .integer).notNull()
-        .references(Reminder.name, column: "id", onDelete: .cascade)
+        .references(Reminder.tableName, column: "id", onDelete: .cascade)
       table.column("tagID", .integer).notNull()
-        .references(Tag.name, column: "id", onDelete: .cascade)
+        .references(Tag.tableName, column: "id", onDelete: .cascade)
     }
-    try db.create(indexOn: ReminderTag.name, columns: [ReminderTag.columns.reminderID.name])
-    try db.create(indexOn: ReminderTag.name, columns: [ReminderTag.columns.tagID.name])
+    try db.create(indexOn: ReminderTag.tableName, columns: [ReminderTag.columns.reminderID.name])
+    try db.create(indexOn: ReminderTag.tableName, columns: [ReminderTag.columns.tagID.name])
   }
   #if DEBUG
     migrator.registerMigration("Add mock data") { db in

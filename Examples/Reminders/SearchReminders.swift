@@ -13,7 +13,6 @@ struct SearchRemindersView: View {
 
   init(searchText: String) {
     self.searchText = searchText
-    $reminders = SharedReader(wrappedValue: [], searchKey)
   }
 
   var body: some View {
@@ -77,22 +76,22 @@ struct SearchRemindersView: View {
   }
 
   private var searchKey: some SharedReaderKey<[ReminderState]> {
-    .fetchAll(
-      Reminder.searching(searchText)
-        .where { showCompletedInSearchResults || !$0.isCompleted }
-        .order { ($0.isCompleted, $0.date) }
-        .withTags
-        .leftJoin(RemindersList.all()) { $0.remindersListID == $3.id }
-        .select {
-          ReminderState.Columns(
-            commaSeparatedTags: $2.name.groupConcat(),
-            isPastDue: $0.isPastDue,
-            reminder: $0,
-            remindersList: $3
-          )
-        },
-      animation: .default
-    )
+    let query = Reminder.searching(searchText)
+      .where { showCompletedInSearchResults || !$0.isCompleted }
+      .order { ($0.isCompleted, $0.date) }
+      .withTags
+      // TODO: Investigate this failure
+      // .leftJoin(RemindersList.all()) { $0.remindersListID == $3.id }
+      .join(RemindersList.all()) { $0.remindersListID.eq($3.id) }
+      .select {
+        ReminderState.Columns(
+          commaSeparatedTags: $2.name.groupConcat(),
+          isPastDue: $0.isPastDue,
+          reminder: $0,
+          remindersList: $3
+        )
+      }
+    return .fetchAll(query, animation: .default)
   }
 
   private func deleteCompletedReminders(monthsAgo: Int? = nil) {
@@ -103,7 +102,7 @@ struct SearchRemindersView: View {
           .where(\.isCompleted)
         if let monthsAgo {
           try baseQuery
-            .where { .raw("\($0.date) < date('now', '-\(monthsAgo) months") }
+            .where { #raw("\($0.date) < date('now', '-\(monthsAgo) months") }
             .delete()
             .execute(db)
         } else {

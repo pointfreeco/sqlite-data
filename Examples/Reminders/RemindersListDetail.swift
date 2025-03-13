@@ -18,7 +18,6 @@ struct RemindersListDetailView: View {
     _showCompleted = Shared(
       wrappedValue: false, .appStorage("show_completed_list_\(remindersList.id)")
     )
-    $reminderStates = SharedReader(wrappedValue: [], remindersKey)
   }
 
   var body: some View {
@@ -115,7 +114,7 @@ struct RemindersListDetailView: View {
           case .dueDate:
             ($0.isCompleted, $0.date)
           case .priority:
-            ($0.isCompleted, $0.priority.descending(), $0.isFlagged.descending())
+            ($0.isCompleted, $0.priority.desc(), $0.isFlagged.desc())
           case .title:
             ($0.isCompleted, $0.title)
           }
@@ -132,7 +131,6 @@ struct RemindersListDetailView: View {
     )
   }
 
-
   @Selection
   fileprivate struct ReminderState: Decodable, Identifiable {
     var id: Reminder.ID { reminder.id }
@@ -145,13 +143,10 @@ struct RemindersListDetailView: View {
   }
 }
 
-extension SelectStatementOf<Reminder> {
-  var withTags: SelectOf<Reminder, ReminderTag?, Tag?> {
-    all()
-      .group(by: \.id)
-      .leftJoin(ReminderTag.all()) { $0.id == $1.reminderID }
-      .leftJoin(Tag.all()) { $1.tagID == $2.id }
-  }
+extension Reminder {
+  static let withTags = group(by: \.id)
+    .leftJoin(ReminderTag.all()) { $0.id.eq($1.reminderID) }
+    .leftJoin(Tag.all()) { $1.tagID.eq($2.id) }
 }
 
 struct RemindersListDetailPreview: PreviewProvider {

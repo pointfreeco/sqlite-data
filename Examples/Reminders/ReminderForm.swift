@@ -126,8 +126,8 @@ struct ReminderFormView: View {
         selectedTags = try await database.read { db in
           try Tag.all()
             .order(by: \.name)
-            .leftJoin(ReminderTag.all()) { $0.id == $1.tagID }
-            .where { $1.reminderID == reminderID }
+            .leftJoin(ReminderTag.all()) { $0.id.eq($1.tagID) }
+            .where { $1.reminderID.eq(reminderID) }
             .select { tag, _ in tag }
             .fetchAll(db)
         }

@@ -9,7 +9,7 @@ struct RemindersListsView: View {
   @State.SharedReader(
     .fetchAll(
       RemindersList.group(by: \.id)
-        .join(Reminder.incomplete) { $0.id == $1.remindersListID }
+        .join(Reminder.incomplete) { $0.id.eq($1.remindersListID) }
         .select { ReminderListState.Columns(reminderCount: $1.id.count(), remindersList: $0) },
       animation: .default
     )
@@ -126,10 +126,10 @@ struct RemindersListsView: View {
         completedCount: Reminder.where(\.isCompleted).count().fetchOne(db) ?? 0,
         flaggedCount: Reminder.where(\.isFlagged).count().fetchOne(db) ?? 0,
         scheduledCount: Reminder.count()
-          .where { .raw("date(\($0.date)) > date('now')") }
+          .where { #raw("date(\($0.date)) > date('now')") }
           .fetchOne(db) ?? 0,
         todayCount: Reminder.count()
-          .where { .raw("date(\($0.date)) = date('now')") }
+          .where { #raw("date(\($0.date)) = date('now')") }
           .fetchOne(db) ?? 0
       )
     }

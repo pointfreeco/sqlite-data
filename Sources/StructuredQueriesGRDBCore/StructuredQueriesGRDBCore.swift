@@ -6,70 +6,111 @@ extension StructuredQueriesCore.Statement {
   // TODO: Support try Record.find(reminder.listID)?
 
   public func execute(_ db: Database) throws {
-    let query = queryFragment
+    let query = self.query
     guard !query.isEmpty else { return }
     try db.execute(sql: query.string, arguments: query.arguments)
   }
 
-  public func fetchAll<each Value: QueryDecodable>(
+  public func fetchAll<each Value: QueryRepresentable>(
     _ db: Database
-  ) throws -> [(repeat each Value)]
-  where QueryOutput == [(repeat each Value)] {
-    let query = queryFragment
+  ) throws -> [(repeat (each Value).QueryOutput)]
+  where QueryValue == (repeat each Value) {
+    let query = self.query
     guard !query.isEmpty else { return [] }
     let cursor = try Row.fetchCursor(db, sql: query.string, arguments: query.arguments)
-    var results: [(repeat each Value)] = []
+    var results: [(repeat (each Value).QueryOutput)] = []
     let decoder = GRDBQueryDecoder()
     while let row = try cursor.next() {
       try decoder.withRow(row) {
-        try results.append((repeat (each Value)(decoder: decoder)))
+        try results.append((repeat (each Value)(decoder: decoder).queryOutput))
       }
     }
     return results
   }
 
-  public func fetchAll<Value: QueryDecodable>(
+  public func fetchAll(
     _ db: Database
-  ) throws -> [Value]
-  where QueryOutput == [Value] {
-    let query = queryFragment
+  ) throws -> [QueryValue.QueryOutput]
+  where QueryValue: QueryRepresentable {
+    let query = self.query
     guard !query.isEmpty else { return [] }
     let cursor = try Row.fetchCursor(db, sql: query.string, arguments: query.arguments)
-    var results: [Value] = []
+    var results: [QueryValue.QueryOutput] = []
     let decoder = GRDBQueryDecoder()
     while let row = try cursor.next() {
       try decoder.withRow(row) {
-        try results.append(Value(decoder: decoder))
+        try results.append(QueryValue(decoder: decoder).queryOutput)
       }
     }
     return results
   }
 
-  public func fetchOne<each Value: QueryDecodable>(
+  public func fetchOne<each Value: QueryRepresentable>(
     _ db: Database
-  ) throws -> (repeat each Value)?
-  where QueryOutput == [(repeat each Value)] {
-    let query = queryFragment
+  ) throws -> (repeat (each Value).QueryOutput)?
+  where QueryValue == (repeat each Value) {
+    let query = self.query
     guard !query.isEmpty else { return nil }
     let cursor = try Row.fetchCursor(db, sql: query.string, arguments: query.arguments)
     guard let row = try cursor.next() else { return nil }
     let decoder = GRDBQueryDecoder()
     return try decoder.withRow(row) {
-      try (repeat (each Value)(decoder: decoder))
+      try (repeat (each Value)(decoder: decoder).queryOutput)
     }
   }
 
-  public func fetchOne<Value: QueryDecodable>(
+  public func fetchOne(
     _ db: Database
-  ) throws -> Value?
-  where QueryOutput == [Value] {
-    let query = queryFragment
+  ) throws -> QueryValue.QueryOutput?
+  where QueryValue: QueryRepresentable {
+    let query = self.query
     guard !query.isEmpty else { return nil }
     let cursor = try Row.fetchCursor(db, sql: query.string, arguments: query.arguments)
     guard let row = try cursor.next() else { return nil }
     let decoder = GRDBQueryDecoder()
     return try decoder.withRow(row) {
-      try Value(decoder: decoder)
+      try QueryValue(decoder: decoder).queryOutput
+    }
+  }
+}
+
+extension SelectStatement where QueryValue == () {
+  public func fetchAll<each J: StructuredQueriesCore.Table>(
+    _ db: Database
+  ) throws -> [(From.QueryOutput, repeat (each J).QueryOutput)]
+  where Joins == (repeat each J) {
+    let query = self.query
+    guard !query.isEmpty else { return [] }
+    let cursor = try Row.fetchCursor(db, sql: query.string, arguments: query.arguments)
+    var results: [(From.QueryOutput, repeat (each J).QueryOutput)] = []
+    let decoder = GRDBQueryDecoder()
+    while let row = try cursor.next() {
+      try decoder.withRow(row) {
+        try results.append(
+          (
+            From(decoder: decoder).queryOutput,
+            repeat (each J)(decoder: decoder).queryOutput
+          )
+        )
+      }
+    }
+    return results
+  }
+
+  public func fetchOne<each J: StructuredQueriesCore.Table>(
+    _ db: Database
+  ) throws -> (From.QueryOutput, repeat (each J).QueryOutput)?
+  where Joins == (repeat each J) {
+    let query = self.query
+    guard !query.isEmpty else { return nil }
+    let cursor = try Row.fetchCursor(db, sql: query.string, arguments: query.arguments)
+    guard let row = try cursor.next() else { return nil }
+    let decoder = GRDBQueryDecoder()
+    return try decoder.withRow(row) {
+      try (
+        From(decoder: decoder).queryOutput,
+        repeat (each J)(decoder: decoder).queryOutput
+      )
     }
   }
 }
