@@ -66,10 +66,13 @@ final class SyncUpFormModel: Identifiable {
     }
     withErrorReporting {
       try database.write { db in
-        let updatedSyncUp = try SyncUp.upsert(syncUp).returning(\.self).fetchOne(db)!
-        try Attendee.where { $0.syncUpID == syncUp.id }.delete().execute(db)
+        try SyncUp.upsert(syncUp).execute(db)
+        guard let syncUpID = syncUp.id
+        else { return }
+
+        try Attendee.where { $0.syncUpID == syncUpID }.delete().execute(db)
         for attendee in attendees {
-          try Attendee.insert(Attendee.Draft(name: attendee.name, syncUpID: updatedSyncUp.id))
+          try Attendee.insert(Attendee.Draft(name: attendee.name, syncUpID: syncUpID))
             .execute(db)
         }
       }
