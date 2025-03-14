@@ -42,7 +42,8 @@ final class SyncUpDetailModel: HashableObject {
   func deleteMeetings(atOffsets indices: IndexSet) {
     withErrorReporting {
       try database.write { db in
-        _ = try Meeting.deleteAll(db, keys: indices.map { details.meetings[$0].id })
+        let ids = indices.map { details.meetings[$0].id }
+        try Meeting.where { ids.contains($0.id) }.delete().execute(db)
       }
     }
   }
@@ -58,7 +59,7 @@ final class SyncUpDetailModel: HashableObject {
       try? await clock.sleep(for: .seconds(0.4))
       await withErrorReporting {
         try await database.write { [syncUp = details.syncUp] db in
-          _ = try syncUp.delete(db)
+          try SyncUp.delete(syncUp).execute(db)
         }
       }
 
@@ -76,7 +77,7 @@ final class SyncUpDetailModel: HashableObject {
   func editButtonTapped() {
     destination = .edit(
       withDependencies(from: self) {
-        SyncUpFormModel(syncUp: details.syncUp, attendees: details.attendees)
+        SyncUpFormModel(syncUp: SyncUp.Draft(details.syncUp), attendees: details.attendees)
       }
     )
   }
@@ -106,14 +107,20 @@ final class SyncUpDetailModel: HashableObject {
 
     let syncUp: SyncUp
 
+    struct SyncUpNotFound: Error {}
+
     func fetch(_ db: Database) throws -> Value {
-      try Value(
-        attendees: Attendee.filter(Column("syncUpID") == syncUp.id).fetchAll(db),
+      guard let syncUp = try SyncUp.where({ $0.id == syncUp.id }).fetchOne(db)
+      else {
+        throw SyncUpNotFound()
+      }
+      return try Value(
+        attendees: Attendee.where { $0.syncUpID == syncUp.id }.fetchAll(db),
         meetings: Meeting
-          .filter(Column("syncUpID") == syncUp.id)
-          .order(Column("date").desc)
+          .where { $0.syncUpID == syncUp.id }
+          .order { $0.date.desc() }
           .fetchAll(db),
-        syncUp: SyncUp.fetchOne(db, key: syncUp.id) ?? SyncUp()
+        syncUp: syncUp
       )
     }
   }
@@ -289,11 +296,11 @@ struct MeetingView: View {
 
 #Preview {
   let _ = prepareDependencies {
-    $0.defaultDatabase = SyncUps.appDatabase(inMemory: true)
+    $0.defaultDatabase = try! SyncUps.appDatabase(inMemory: true)
   }
   @Dependency(\.defaultDatabase) var database
   let syncUp = try! database.read { db in
-    try SyncUp.fetchOne(db)!
+    try SyncUp.limit(1).fetchOne(db)!
   }
   NavigationStack {
     SyncUpDetailView(

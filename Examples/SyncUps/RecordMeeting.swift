@@ -124,8 +124,10 @@ final class RecordMeetingModel: HashableObject {
     try? await clock.sleep(for: .seconds(0.4))
     await withErrorReporting {
       try await database.write { [now, syncUp, transcript] db in
-        _ = try Meeting(date: now, syncUpID: syncUp.id!, transcript: transcript)
-          .inserted(db)
+        try Meeting.insert(
+          Meeting.Draft(date: now, syncUpID: syncUp.id, transcript: transcript)
+        )
+        .execute(db)
       }
     }
   }
@@ -376,9 +378,9 @@ struct MeetingFooterView: View {
       model: RecordMeetingModel(
         syncUp: SyncUp(id: 1, seconds: 60, theme: .bubblegum, title: "Engineering"),
         attendees: [
-          Attendee(name: "Blob", syncUpID: 1),
-          Attendee(name: "Blob Jr", syncUpID: 1),
-          Attendee(name: "Blob Sr", syncUpID: 1),
+          Attendee(id: 1, name: "Blob", syncUpID: 1),
+          Attendee(id: 2, name: "Blob Jr", syncUpID: 1),
+          Attendee(id: 3, name: "Blob Sr", syncUpID: 1),
         ]
       )
     )

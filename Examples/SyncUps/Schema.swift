@@ -1,11 +1,11 @@
 import SharingGRDB
+import StructuredQueriesGRDB
 import SwiftUI
 
-struct SyncUp: Codable, Hashable, FetchableRecord, MutablePersistableRecord {
-  static let tableName = "syncUps"
-
-  var id: Int64?
-  var seconds = 60 * 5
+@Table
+struct SyncUp: Codable, Hashable, Identifiable {
+  let id: Int
+  var seconds: Int = 60 * 5
   var theme: Theme = .bubblegum
   var title = ""
 
@@ -13,38 +13,32 @@ struct SyncUp: Codable, Hashable, FetchableRecord, MutablePersistableRecord {
     get { .seconds(seconds) }
     set { seconds = Int(newValue.components.seconds) }
   }
+}
 
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
+extension SyncUp.Draft {
+  var duration: Duration {
+    get { .seconds(seconds) }
+    set { seconds = Int(newValue.components.seconds) }
   }
 }
 
-struct Attendee: Codable, Hashable, FetchableRecord, MutablePersistableRecord {
-  static let tableName = "attendees"
-
-  var id: Int64?
+@Table
+struct Attendee: Codable, Hashable, Identifiable {
+  let id: Int
   var name = ""
-  var syncUpID: Int64
-
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
+  var syncUpID: SyncUp.ID
 }
 
-struct Meeting: Codable, Hashable, FetchableRecord, MutablePersistableRecord {
-  static let tableName = "meetings"
-
-  var id: Int64?
+@Table
+struct Meeting: Codable, Hashable, Identifiable {
+  let id: Int
+  @Column(as: Date.ISO8601Representation.self)
   var date: Date
-  var syncUpID: Int64
+  var syncUpID: SyncUp.ID
   var transcript: String
-
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
-enum Theme: String, CaseIterable, Codable, Hashable, Identifiable, DatabaseValueConvertible {
+enum Theme: String, CaseIterable, Codable, Hashable, Identifiable, QueryBindable {
   case appIndigo
   case appMagenta
   case appOrange
@@ -110,28 +104,28 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Create sync-ups table") { db in
-    try db.create(table: SyncUp.databaseTableName) { table in
+    try db.create(table: SyncUp.tableName) { table in
       table.autoIncrementedPrimaryKey("id")
       table.column("seconds", .integer).defaults(to: 5 * 60).notNull()
-      table.column("theme", .text).notNull().defaults(to: Theme.bubblegum)
+      table.column("theme", .text).notNull().defaults(to: Theme.bubblegum.rawValue)
       table.column("title", .text).notNull()
     }
   }
   migrator.registerMigration("Create attendees table") { db in
-    try db.create(table: Attendee.databaseTableName) { table in
+    try db.create(table: Attendee.tableName) { table in
       table.autoIncrementedPrimaryKey("id")
       table.column("name", .text).notNull()
       table.column("syncUpID", .integer)
-        .references(SyncUp.databaseTableName, column: "id", onDelete: .cascade)
+        .references(SyncUp.tableName, column: "id", onDelete: .cascade)
         .notNull()
     }
   }
   migrator.registerMigration("Create meetings table") { db in
-    try db.create(table: Meeting.databaseTableName) { table in
+    try db.create(table: Meeting.tableName) { table in
       table.autoIncrementedPrimaryKey("id")
       table.column("date", .datetime).notNull().unique().defaults(sql: "CURRENT_TIMESTAMP")
       table.column("syncUpID", .integer)
-        .references(SyncUp.databaseTableName, column: "id", onDelete: .cascade)
+        .references(SyncUp.tableName, column: "id", onDelete: .cascade)
         .notNull()
       table.column("transcript", .text).notNull()
     }
@@ -150,15 +144,22 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
 #if DEBUG
   extension Database {
     func insertSampleData() throws {
-      let design = try SyncUp(seconds: 60, theme: .appOrange, title: "Design")
-        .inserted(self)
+      let design = try SyncUp
+        .insert(SyncUp.Draft(seconds: 60, theme: .appOrange, title: "Design"))
+        .returning(\.self)
+        .fetchOne(self)!
+
       for name in ["Blob", "Blob Jr", "Blob Sr", "Blob Esq", "Blob III", "Blob I"] {
-        _ = try Attendee(name: name, syncUpID: design.id!).inserted(self)
+        try Attendee
+          .insert(Attendee.Draft(name: name, syncUpID: design.id))
+          .execute(self)
       }
-      _ = try Meeting(
-        date: Date().addingTimeInterval(-60 * 60 * 24 * 7),
-        syncUpID: design.id!,
-        transcript: """
+      try Meeting
+        .insert(
+          Meeting.Draft(
+            date: Date().addingTimeInterval(-60 * 60 * 24 * 7),
+            syncUpID: design.id,
+            transcript: """
           Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor \
           incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud \
           exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure \
@@ -166,19 +167,28 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
           Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt \
           mollit anim id est laborum.
           """
-      )
-      .inserted(self)
+          )
+        )
+        .execute(self)
 
-      let engineering = try SyncUp(seconds: 60 * 10, theme: .periwinkle, title: "Engineering")
-        .inserted(self)
+      let engineering = try SyncUp
+        .insert(SyncUp.Draft(seconds: 60 * 10, theme: .periwinkle, title: "Engineering"))
+        .returning(\.self)
+        .fetchOne(self)!
       for name in ["Blob", "Blob Jr"] {
-        _ = try Attendee(name: name, syncUpID: engineering.id!).inserted(self)
+        try Attendee
+          .insert(Attendee.Draft(name: name, syncUpID: engineering.id))
+          .execute(self)
       }
 
-      let product = try SyncUp(seconds: 60 * 30, theme: .poppy, title: "Product")
-        .inserted(self)
+      let product = try SyncUp
+        .insert(SyncUp.Draft(seconds: 60 * 30, theme: .poppy, title: "Product"))
+        .returning(\.self)
+        .fetchOne(self)!
       for name in ["Blob Sr", "Blob Jr"] {
-        _ = try Attendee(name: name, syncUpID: product.id!).inserted(self)
+        try Attendee
+          .insert(Attendee.Draft(name: name, syncUpID: product.id))
+          .execute(self)
       }
     }
   }

@@ -8,7 +8,7 @@ final class SyncUpFormModel: Identifiable {
   var attendees: [AttendeeDraft] = []
   var focus: Field?
   var isDismissed = false
-  var syncUp: SyncUp
+  var syncUp: SyncUp.Draft
 
   @ObservationIgnored @Dependency(\.defaultDatabase) var database
   @ObservationIgnored @Dependency(\.uuid) var uuid
@@ -24,7 +24,7 @@ final class SyncUpFormModel: Identifiable {
   }
 
   init(
-    syncUp: SyncUp,
+    syncUp: SyncUp.Draft,
     attendees: [Attendee] = [],
     focus: Field? = .title
   ) {
@@ -66,10 +66,11 @@ final class SyncUpFormModel: Identifiable {
     }
     withErrorReporting {
       try database.write { db in
-        try syncUp.save(db)
-        try Attendee.filter(Column("syncUpID") == syncUp.id!).deleteAll(db)
+        let dbSyncUp = try SyncUp.upsert(syncUp).returning(\.self).fetchOne(db)!
+        try Attendee.where { $0.syncUpID == syncUp.id }.delete().execute(db)
         for attendee in attendees {
-          _ = try Attendee(name: attendee.name, syncUpID: syncUp.id!).inserted(db)
+          try Attendee.insert(Attendee.Draft(name: attendee.name, syncUpID: dbSyncUp.id))
+            .execute(db)
         }
       }
     }
@@ -160,12 +161,14 @@ extension Duration {
   }
 }
 
-#Preview {
-  NavigationStack {
-    SyncUpFormView(
-      model: SyncUpFormModel(
-        syncUp: SyncUp()
+struct SyncUpFormPreviews: PreviewProvider {
+  static var previews: some View {
+    NavigationStack {
+      SyncUpFormView(
+        model: SyncUpFormModel(
+          syncUp: SyncUp.Draft()
+        )
       )
-    )
+    }
   }
 }
