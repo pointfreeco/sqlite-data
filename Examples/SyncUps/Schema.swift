@@ -4,21 +4,16 @@ import SwiftUI
 
 @Table
 struct SyncUp: Codable, Hashable, Identifiable {
-  let id: Int
-  var seconds: Int = 60 * 5
-  var theme: Theme = .bubblegum
-  var title = ""
-
-  var duration: Duration {
-    get { .seconds(seconds) }
-    set { seconds = Int(newValue.components.seconds) }
-  }
+  @Column("id", primaryKey: true) let id: Int
+  @Column("seconds") var seconds: Int = 60 * 5
+  @Column("theme") var theme: Theme = .bubblegum
+  @Column("title") var title = ""
 }
 
-extension SyncUp.Draft {
+extension Int {
   var duration: Duration {
-    get { .seconds(seconds) }
-    set { seconds = Int(newValue.components.seconds) }
+    get { .seconds(self) }
+    set { self = Int(newValue.components.seconds) }
   }
 }
 

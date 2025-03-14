@@ -89,11 +89,11 @@ struct SyncUpFormView: View {
         TextField("Title", text: $model.syncUp.title)
           .focused($focus, equals: .title)
         HStack {
-          Slider(value: $model.syncUp.duration.seconds, in: 5...30, step: 1) {
+          Slider(value: $model.syncUp.seconds.toDouble, in: 5...30, step: 1) {
             Text("Length")
           }
           Spacer()
-          Text(model.syncUp.duration.formatted(.units()))
+          Text(model.syncUp.seconds.duration.formatted(.units()))
         }
         ThemePicker(selection: $model.syncUp.theme)
       } header: {
@@ -134,6 +134,13 @@ struct SyncUpFormView: View {
   }
 }
 
+extension Int {
+  fileprivate var toDouble: Double {
+    get { Double(self) }
+    set { self = Int(newValue) }
+  }
+}
+
 struct ThemePicker: View {
   @Binding var selection: Theme
 
@@ -151,13 +158,6 @@ struct ThemePicker: View {
         .tag(theme)
       }
     }
-  }
-}
-
-extension Duration {
-  fileprivate var seconds: Double {
-    get { Double(components.seconds / 60) }
-    set { self = .seconds(newValue * 60) }
   }
 }
 

@@ -80,7 +80,7 @@ struct CardView: View {
       HStack {
         Label("\(attendeeCount)", systemImage: "person.3")
         Spacer()
-        Label(syncUp.duration.formatted(.units()), systemImage: "clock")
+        Label(syncUp.seconds.duration.formatted(.units()), systemImage: "clock")
           .labelStyle(.trailingIcon)
       }
       .font(.caption)

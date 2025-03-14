@@ -32,11 +32,11 @@ final class RecordMeetingModel: HashableObject {
   }
 
   var durationPerAttendee: Duration {
-    syncUp.duration / attendees.count
+    syncUp.seconds.duration / attendees.count
   }
 
   var durationRemaining: Duration {
-    syncUp.duration - .seconds(secondsElapsed)
+    syncUp.seconds.duration - .seconds(secondsElapsed)
   }
 
   func nextButtonTapped() {

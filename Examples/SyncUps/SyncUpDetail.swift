@@ -107,13 +107,9 @@ final class SyncUpDetailModel: HashableObject {
 
     let syncUp: SyncUp
 
-    struct SyncUpNotFound: Error {}
-
     func fetch(_ db: Database) throws -> Value {
       guard let syncUp = try SyncUp.where({ $0.id == syncUp.id }).fetchOne(db)
-      else {
-        throw SyncUpNotFound()
-      }
+      else { throw NotFound() }
       return try Value(
         attendees: Attendee.where { $0.syncUpID == syncUp.id }.fetchAll(db),
         meetings: Meeting
@@ -143,7 +139,7 @@ struct SyncUpDetailView: View {
         HStack {
           Label("Length", systemImage: "clock")
           Spacer()
-          Text(model.details.syncUp.duration.formatted(.units()))
+          Text(model.details.syncUp.seconds.duration.formatted(.units()))
         }
 
         HStack {
