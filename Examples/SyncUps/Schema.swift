@@ -4,17 +4,10 @@ import SwiftUI
 
 @Table
 struct SyncUp: Codable, Hashable, Identifiable {
-  @Column("id", primaryKey: true) let id: Int
-  @Column("seconds") var seconds: Int = 60 * 5
-  @Column("theme") var theme: Theme = .bubblegum
-  @Column("title") var title = ""
-}
-
-extension Int {
-  var duration: Duration {
-    get { .seconds(self) }
-    set { self = Int(newValue.components.seconds) }
-  }
+  let id: Int
+  var seconds: Int = 60 * 5
+  var theme: Theme = .bubblegum
+  var title = ""
 }
 
 @Table
@@ -73,6 +66,13 @@ enum Theme: String, CaseIterable, Codable, Hashable, Identifiable, QueryBindable
       .tan:
       rawValue.capitalized
     }
+  }
+}
+
+extension Int {
+  var duration: Duration {
+    get { .seconds(self) }
+    set { self = Int(newValue.components.seconds) }
   }
 }
 

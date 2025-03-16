@@ -126,10 +126,10 @@ struct RemindersListsView: View {
         completedCount: Reminder.where(\.isCompleted).count().fetchOne(db) ?? 0,
         flaggedCount: Reminder.where(\.isFlagged).count().fetchOne(db) ?? 0,
         scheduledCount: Reminder.count()
-          .where { #raw("date(\($0.date)) > date('now')") }
+          .where { #sql("date(\($0.date)) > date('now')") }
           .fetchOne(db) ?? 0,
         todayCount: Reminder.count()
-          .where { #raw("date(\($0.date)) = date('now')") }
+          .where { #sql("date(\($0.date)) = date('now')") }
           .fetchOne(db) ?? 0
       )
     }

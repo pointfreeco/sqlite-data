@@ -124,10 +124,10 @@ struct ReminderFormView: View {
       else { return }
       do {
         selectedTags = try await database.read { db in
-          try Tag.all()
-            .order(by: \.name)
-            .leftJoin(ReminderTag.all()) { $0.id.eq($1.tagID) }
-            .where { $1.reminderID.eq(reminderID) }
+          try Tag.order(by: \.name)
+            .leftJoin(ReminderTag.all()) {
+              $0.id.eq($1.tagID) && $1.reminderID.eq(reminderID)
+            }
             .select { tag, _ in tag }
             .fetchAll(db)
         }
@@ -160,7 +160,11 @@ struct ReminderFormView: View {
   private func saveButtonTapped() {
     withErrorReporting {
       try database.write { db in
-        let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)!
+        guard let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)
+        else {
+          reportIssue("Could not upsert reminder")
+          return 
+        }
         if reminder.id != nil {
           try ReminderTag.where { $0.reminderID == reminderID }.delete().execute(db)
         }

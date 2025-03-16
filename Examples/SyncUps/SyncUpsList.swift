@@ -11,7 +11,7 @@ final class SyncUpsListModel {
     .fetchAll(
       SyncUp
         .group(by: \.id)
-        .join(Attendee.all()) { $0.id.eq($1.syncUpID) }
+        .leftJoin(Attendee.all()) { $0.id.eq($1.syncUpID) }
         .select { Record.Columns(attendeeCount: $1.id.count(), syncUp: $0) },
       animation: .default
     )

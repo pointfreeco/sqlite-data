@@ -32,7 +32,7 @@ struct Reminder: Codable, Equatable, Identifiable {
 }
 extension Reminder.Columns {
   var isPastDue: some QueryExpression<Bool> {
-    !isCompleted && #raw("coalesce(\(date), date('now')) < date('now')")
+    !isCompleted && #sql("coalesce(\(date), date('now')) < date('now')")
   }
 }
 

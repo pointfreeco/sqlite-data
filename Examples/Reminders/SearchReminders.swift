@@ -102,7 +102,7 @@ struct SearchRemindersView: View {
           .where(\.isCompleted)
         if let monthsAgo {
           try baseQuery
-            .where { #raw("\($0.date) < date('now', '-\(monthsAgo) months") }
+            .where { #sql("\($0.date) < date('now', '-\(raw: monthsAgo) months')") }
             .delete()
             .execute(db)
         } else {

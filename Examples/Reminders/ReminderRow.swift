@@ -56,10 +56,7 @@ struct ReminderRow: View {
       Button("Delete") {
         withErrorReporting {
           try database.write { db in
-            try Reminder
-              .where { $0.id == reminder.id }
-              .delete()
-              .execute(db)
+            try Reminder.delete(reminder).execute(db)
           }
         }
       }
@@ -68,7 +65,7 @@ struct ReminderRow: View {
         withErrorReporting {
           try database.write { db in
             try Reminder
-              .where { $0.id == reminder.id }
+              .where { $0.id.eq(reminder.id) }
               .update { $0.isFlagged.toggle() }
               .execute(db)
           }
