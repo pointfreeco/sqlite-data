@@ -77,7 +77,7 @@ final class SyncUpDetailModel: HashableObject {
   func editButtonTapped() {
     destination = .edit(
       withDependencies(from: self) {
-        SyncUpFormModel(syncUp: SyncUp.Draft(details.syncUp), attendees: details.attendees)
+        SyncUpFormModel(syncUp: SyncUp.Draft(details.syncUp))
       }
     )
   }

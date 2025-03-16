@@ -25,15 +25,26 @@ final class SyncUpFormModel: Identifiable {
 
   init(
     syncUp: SyncUp.Draft,
-    attendees: [Attendee] = [],
     focus: Field? = .title
   ) {
     self.syncUp = syncUp
-    self.attendees = attendees.map { AttendeeDraft(id: uuid(), name: $0.name) }
-    if attendees.isEmpty {
-      self.attendees.append(AttendeeDraft(id: uuid()))
-    }
     self.focus = focus
+    defer {
+      if attendees.isEmpty {
+        self.attendees.append(AttendeeDraft(id: uuid()))
+      }
+    }
+    guard let syncUpID = syncUp.id
+    else { return }
+
+    withErrorReporting {
+      self.attendees = try database.read { db in
+        try Attendee.all()
+          .where { $0.syncUpID.eq(syncUpID) }
+          .fetchAll(db)
+          .map { (attendee: Attendee) in AttendeeDraft(id: uuid(), name: attendee.name) }
+      }
+    }
   }
 
   func deleteAttendees(atOffsets indices: IndexSet) {
