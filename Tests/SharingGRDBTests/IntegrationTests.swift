@@ -5,6 +5,63 @@ import Sharing
 import SharingGRDB
 import Testing
 
+@Suite(.dependency(\.defaultDatabase, try .syncUps()))
+struct IntegrationTests {
+  @Test
+  func fetchAll_SQLString() async throws {
+    @SharedReader(.fetchAll(sql: #"SELECT * FROM "syncUps" WHERE "isActive""#))
+    var syncUps: [SyncUp] = []
+    #expect(syncUps == [])
+
+    @Dependency(\.defaultDatabase) var database
+    try await database.write { db in
+      _ = try SyncUp(isActive: true, title: "Engineering")
+        .inserted(db)
+    }
+    try await Task.sleep(nanoseconds: 10_000_000)
+    #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
+    try await database.write { db in
+      _ = try SyncUp(id: 1, isActive: false, title: "Engineering")
+        .saved(db)
+    }
+    try await Task.sleep(nanoseconds: 10_000_000)
+    #expect(syncUps == [])
+    try await database.write { db in
+      _ = try SyncUp(id: 1, isActive: true, title: "Engineering")
+        .saved(db)
+    }
+    try await Task.sleep(nanoseconds: 10_000_000)
+    #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
+  }
+
+  @Test
+  func fetch_FetchKeyRequest() async throws {
+    @SharedReader(.fetch(ActiveSyncUps()))
+    var syncUps: [SyncUp] = []
+    #expect(syncUps == [])
+
+    @Dependency(\.defaultDatabase) var database
+    try await database.write { db in
+      _ = try SyncUp(isActive: true, title: "Engineering")
+        .inserted(db)
+    }
+    try await Task.sleep(nanoseconds: 10_000_000)
+    #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
+    try await database.write { db in
+      _ = try SyncUp(id: 1, isActive: false, title: "Engineering")
+        .saved(db)
+    }
+    try await Task.sleep(nanoseconds: 10_000_000)
+    #expect(syncUps == [])
+    try await database.write { db in
+      _ = try SyncUp(id: 1, isActive: true, title: "Engineering")
+        .saved(db)
+    }
+    try await Task.sleep(nanoseconds: 10_000_000)
+    #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
+  }
+}
+
 private struct SyncUp: Codable, Equatable, FetchableRecord, MutablePersistableRecord {
   var id: Int64?
   var isActive: Bool
@@ -43,63 +100,6 @@ private extension DatabaseWriter where Self == DatabaseQueue {
     }
     try migrator.migrate(database)
     return database
-  }
-}
-
-@Suite(.dependency(\.defaultDatabase, try .syncUps()))
-struct IntegrationTests {
-  @Test
-  func fetchAll_SQLString() async throws {
-    @SharedReader(.fetchAll(sql: #"SELECT * FROM "syncUps" WHERE "isActive""#))
-    var syncUps: [SyncUp] = []
-    #expect(syncUps == [])
-
-    @Dependency(\.defaultDatabase) var database
-    try await database.write { db in
-      _ = try SyncUp(isActive: true, title: "Engineering")
-        .inserted(db)
-    }
-    try await Task.sleep(for: .seconds(0.1))
-    #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
-    try await database.write { db in
-      _ = try SyncUp(id: 1, isActive: false, title: "Engineering")
-        .saved(db)
-    }
-    try await Task.sleep(for: .seconds(0.1))
-    #expect(syncUps == [])
-    try await database.write { db in
-      _ = try SyncUp(id: 1, isActive: true, title: "Engineering")
-        .saved(db)
-    }
-    try await Task.sleep(for: .seconds(0.1))
-    #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
-  }
-
-  @Test
-  func fetch_FetchKeyRequest() async throws {
-    @SharedReader(.fetch(ActiveSyncUps()))
-    var syncUps: [SyncUp] = []
-    #expect(syncUps == [])
-
-    @Dependency(\.defaultDatabase) var database
-    try await database.write { db in
-      _ = try SyncUp(isActive: true, title: "Engineering")
-        .inserted(db)
-    }
-    try await Task.sleep(for: .seconds(0.1))
-    #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
-    try await database.write { db in
-      _ = try SyncUp(id: 1, isActive: false, title: "Engineering")
-        .saved(db)
-    }
-    try await Task.sleep(for: .seconds(0.1))
-    #expect(syncUps == [])
-    try await database.write { db in
-      _ = try SyncUp(id: 1, isActive: true, title: "Engineering")
-        .saved(db)
-    }
-    try await Task.sleep(for: .seconds(0.1))
-    #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
   }
 }
 

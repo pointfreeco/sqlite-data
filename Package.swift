@@ -28,7 +28,7 @@ let package = Package(
     .package(url: "https://github.com/groue/GRDB.swift", from: "7.1.0"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.6.4"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
-    .package(url: "https://github.com/pointfreeco/swift-structured-queries", revision: "3af90e3a25b66505a83ea1eb1738bad7f7d07e0c"),
+    .package(url: "https://github.com/pointfreeco/swift-structured-queries", branch: "main"),
   ],
   targets: [
     .target(

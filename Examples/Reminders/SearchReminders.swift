@@ -4,8 +4,9 @@ import StructuredQueries
 import SwiftUI
 
 struct SearchRemindersView: View {
-  @State.SharedReader(value: 0) var completedCount: Int
-  @State.SharedReader(value: []) var reminders: [ReminderState]
+  @SharedReader(value: 0) var completedCount: Int
+  @SharedReader(value: []) var reminders: [ReminderState]
+
   let searchText: String
   @State var showCompletedInSearchResults = false
 
@@ -80,8 +81,6 @@ struct SearchRemindersView: View {
       .where { showCompletedInSearchResults || !$0.isCompleted }
       .order { ($0.isCompleted, $0.date) }
       .withTags
-      // TODO: Investigate this failure
-      // .leftJoin(RemindersList.all()) { $0.remindersListID == $3.id }
       .join(RemindersList.all()) { $0.remindersListID.eq($3.id) }
       .select {
         ReminderState.Columns(
@@ -128,7 +127,7 @@ struct SearchRemindersView: View {
 #Preview {
   @Previewable @State var searchText = "take"
   let _ = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+    $0.defaultDatabase = try Reminders.appDatabase()
   }
 
   NavigationStack {

@@ -4,20 +4,19 @@ import StructuredQueriesGRDB
 import SwiftUI
 
 struct RemindersListDetailView: View {
-  @State.SharedReader(value: []) private var reminderStates: [ReminderState]
-  @State private var isNewReminderSheetPresented = false
-  @Shared private var ordering: Ordering
-  @Shared private var showCompleted: Bool
+  @SharedReader(value: []) private var reminderStates: [ReminderState]
+  @AppStorage private var ordering: Ordering
+  @AppStorage private var showCompleted: Bool
   private let remindersList: RemindersList
+
+  @State var isNewReminderSheetPresented = false
 
   @Dependency(\.defaultDatabase) private var database
 
   init(remindersList: RemindersList) {
     self.remindersList = remindersList
-    _ordering = Shared(wrappedValue: .dueDate, .appStorage("ordering_list_\(remindersList.id)"))
-    _showCompleted = Shared(
-      wrappedValue: false, .appStorage("show_completed_list_\(remindersList.id)")
-    )
+    _ordering = AppStorage(wrappedValue: .dueDate, "ordering_list_\(remindersList.id)")
+    _showCompleted = AppStorage(wrappedValue: false, "show_completed_list_\(remindersList.id)")
   }
 
   var body: some View {
@@ -36,7 +35,7 @@ struct RemindersListDetailView: View {
         try await updateQuery()
       }
     }
-    .navigationTitle(Text(remindersList.name))
+    .navigationTitle(remindersList.name)
     .navigationBarTitleDisplayMode(.large)
     .sheet(isPresented: $isNewReminderSheetPresented) {
       NavigationStack {
@@ -64,7 +63,7 @@ struct RemindersListDetailView: View {
           Menu {
             ForEach(Ordering.allCases, id: \.self) { ordering in
               Button {
-                $ordering.withLock { $0 = ordering }
+                self.ordering = ordering
               } label: {
                 Text(ordering.rawValue)
                 ordering.icon
@@ -76,7 +75,7 @@ struct RemindersListDetailView: View {
             Image(systemName: "arrow.up.arrow.down")
           }
           Button {
-            $showCompleted.withLock { $0.toggle() }
+            showCompleted.toggle()
           } label: {
             Text(showCompleted ? "Hide Completed" : "Show Completed")
             Image(systemName: showCompleted ? "eye.slash.fill" : "eye")
@@ -152,7 +151,7 @@ extension Reminder {
 struct RemindersListDetailPreview: PreviewProvider {
   static var previews: some View {
     let remindersList = try! prepareDependencies {
-      $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+      $0.defaultDatabase = try Reminders.appDatabase()
       return try $0.defaultDatabase.read { db in
         try RemindersList.all().fetchOne(db)!
       }

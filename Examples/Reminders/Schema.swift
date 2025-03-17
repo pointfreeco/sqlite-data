@@ -25,7 +25,7 @@ struct Reminder: Codable, Equatable, Identifiable {
   static func searching(_ text: String) -> Where<Reminder> {
     Self.where {
       $0.title.collate(.nocase).contains(text)
-      || $0.notes.collate(.nocase).contains(text)
+        || $0.notes.collate(.nocase).contains(text)
     }
   }
   static let incomplete = Self.where { !$0.isCompleted }
@@ -48,7 +48,7 @@ struct ReminderTag: Codable {
   var tagID: Int64
 }
 
-func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
+func appDatabase() throws -> any DatabaseWriter {
   let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
@@ -59,12 +59,13 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
       }
     #endif
   }
-  if inMemory {
-    database = try DatabaseQueue(configuration: configuration)
-  } else {
+  @Dependency(\.context) var context
+  if context == .live {
     let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
     print("open", path)
     database = try DatabasePool(path: path, configuration: configuration)
+  } else {
+    database = try DatabaseQueue(configuration: configuration)
   }
   var migrator = DatabaseMigrator()
   #if DEBUG
@@ -136,14 +137,6 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
     }
 
     func createDebugReminders() throws {
-      // TODO: Support this?
-//      _ = try Reminder.Draft(
-//        date: Date(),
-//        notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
-//        remindersListID: 1,
-//        title: "Groceries"
-//      )
-//      .inserted(self)
       try Reminder.insert([
         Reminder.Draft(
           date: Date(),
@@ -218,14 +211,25 @@ func appDatabase(inMemory: Bool = false) throws -> any DatabaseWriter {
     }
 
     func createDebugTags() throws {
-      try Tag.insert(\.name) { "car"; "kids"; "someday"; "optional" }.execute(self)
+      try Tag.insert(\.name) {
+        "car"
+        "kids"
+        "someday"
+        "optional"
+        "social"
+        "night"
+        "adulting"
+      }
+      .execute(self)
       try ReminderTag.insert {
         ($0.reminderID, $0.tagID)
       } values: {
         (1, 3)
         (1, 4)
+        (1, 7)
         (2, 3)
         (2, 4)
+        (3, 7)
         (4, 1)
         (4, 2)
       }

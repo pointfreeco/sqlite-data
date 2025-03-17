@@ -5,9 +5,9 @@ Learn about the various tools for fetching data from a SQLite database.
 ## Overview
 
 All data fetching happens by providing
-[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:scheduler:)>),
-[`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:scheduler:)>), or
- [`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:scheduler:)-8m3f7>), to the `@SharedReader`
+[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>),
+[`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)>), or
+ [`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)-3qcpd>), to the `@SharedReader`
 property wrapper. The primary differences between these choices is whether you want to specify your
 query as a raw SQL string, or as a query built with GRDB's query building tools.
 
@@ -20,7 +20,7 @@ query as a raw SQL string, or as a query built with GRDB's query building tools.
 For simple queries it can often be very convenient to specify how you want to fetch data from SQLite
 as a raw SQL query string. For example, if you simply want to fetch all records from a table, you
 can do so using the
-[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:scheduler:)>) key:
+[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>) key:
 
 ```swift
 @SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
@@ -35,7 +35,7 @@ var items: [Item]
 
 Or, if you want to only compute an aggregate of the data in a table, such as the count of the rows,
 you can do so using the 
-[`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:scheduler:)>) key:
+[`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)>) key:
 
 ```swift
 @SharedReader(.fetchOne(sql: "SELECT count(*) FROM items")) 
@@ -142,7 +142,7 @@ struct Items: FetchKeyRequest {
 ```
  
 With this conformance defined one can use 
-[`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:scheduler:)-8m3f7>) key to execute the
+[`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)-3qcpd>) key to execute the
 query specified by the `Items` type:
 
 ```swift

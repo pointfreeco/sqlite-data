@@ -13,8 +13,7 @@ import StructuredQueriesGRDBCore
 extension SharedReaderKey {
   public static func fetchAll<S: SelectStatement, each J: StructuredQueriesCore.Table>(
     _ statement: S,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+    database: (any DatabaseReader)? = nil
   ) -> Self
   where
     S.QueryValue == (),
@@ -22,16 +21,78 @@ extension SharedReaderKey {
     Self == FetchKey<[(S.From.QueryOutput, repeat (each J).QueryOutput)]>.Default
   {
     fetch(
-      FetchAllStatementRequest(statement: statement.selectAll()),
+      FetchAllStatementRequest(statement: statement.selectStar()),
+      database: database,
+    )
+  }
+
+  public static func fetchAll<
+    S: SelectStatement,
+    V1: QueryRepresentable,
+    each V2: QueryRepresentable
+  >(
+    _ statement: S,
+    database: (any DatabaseReader)? = nil
+  ) -> Self
+  where
+    S.QueryValue == (V1, repeat each V2),
+    Self == FetchKey<[(V1.QueryOutput, repeat (each V2).QueryOutput)]>.Default
+  {
+    fetch(FetchAllStatementRequest(statement: statement), database: database)
+  }
+
+  public static func fetchAll<S: SelectStatement>(
+    _ statement: S,
+    database: (any DatabaseReader)? = nil
+  ) -> Self
+  where S.QueryValue: QueryRepresentable, Self == FetchKey<[S.QueryValue.QueryOutput]>.Default {
+    fetch(FetchAllStatementRequest(statement: statement), database: database)
+  }
+
+  public static func fetchOne<each Value: QueryRepresentable>(
+    _ statement: some StructuredQueriesCore.Statement<(repeat each Value)>,
+    database: (any DatabaseReader)? = nil
+  ) -> Self
+  where Self == FetchKey<(repeat (each Value).QueryOutput)> {
+    fetch(FetchOneStatementRequest(statement: statement), database: database)
+  }
+
+  public static func fetchOne<Value: QueryRepresentable>(
+    _ statement: some StructuredQueriesCore.Statement<Value>,
+    database: (any DatabaseReader)? = nil
+  ) -> Self
+  where Self == FetchKey<Value.QueryOutput> {
+    fetch(FetchOneStatementRequest(statement: statement), database: database)
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SharedReaderKey {
+  public static func fetchAll<S: SelectStatement, each J: StructuredQueriesCore.Table>(
+    _ statement: S,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  ) -> Self
+  where
+    S.QueryValue == (),
+    S.Joins == (repeat each J),
+    Self == FetchKey<[(S.From.QueryOutput, repeat (each J).QueryOutput)]>.Default
+  {
+    fetch(
+      FetchAllStatementRequest(statement: statement.selectStar()),
       database: database,
       scheduler: scheduler
     )
   }
 
-  public static func fetchAll<S: SelectStatement, V1: QueryRepresentable, each V2: QueryRepresentable>(
+  public static func fetchAll<
+    S: SelectStatement,
+    V1: QueryRepresentable,
+    each V2: QueryRepresentable
+  >(
     _ statement: S,
     database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+    scheduler: some ValueObservationScheduler & Hashable
   ) -> Self
   where
     S.QueryValue == (V1, repeat each V2),
@@ -43,7 +104,7 @@ extension SharedReaderKey {
   public static func fetchAll<S: SelectStatement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+    scheduler: some ValueObservationScheduler & Hashable
   ) -> Self
   where S.QueryValue: QueryRepresentable, Self == FetchKey<[S.QueryValue.QueryOutput]>.Default {
     fetch(FetchAllStatementRequest(statement: statement), database: database, scheduler: scheduler)
@@ -52,7 +113,7 @@ extension SharedReaderKey {
   public static func fetchOne<each Value: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<(repeat each Value)>,
     database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+    scheduler: some ValueObservationScheduler & Hashable
   ) -> Self
   where Self == FetchKey<(repeat (each Value).QueryOutput)> {
     fetch(FetchOneStatementRequest(statement: statement), database: database, scheduler: scheduler)
@@ -61,13 +122,16 @@ extension SharedReaderKey {
   public static func fetchOne<Value: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<Value>,
     database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler = .async(onQueue: .main)
+    scheduler: some ValueObservationScheduler & Hashable
   ) -> Self
   where Self == FetchKey<Value.QueryOutput> {
     fetch(FetchOneStatementRequest(statement: statement), database: database, scheduler: scheduler)
   }
+}
 
-  #if canImport(SwiftUI)
+#if canImport(SwiftUI)
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SharedReaderKey {
     public static func fetchAll<each Value: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<(repeat each Value)>,
       database: (any DatabaseReader)? = nil,
@@ -75,7 +139,9 @@ extension SharedReaderKey {
     ) -> Self
     where Self == FetchKey<[(repeat (each Value).QueryOutput)]>.Default {
       fetch(
-        FetchAllStatementRequest(statement: statement), database: database, animation: animation
+        FetchAllStatementRequest(statement: statement),
+        database: database,
+        animation: animation
       )
     }
 
@@ -86,7 +152,9 @@ extension SharedReaderKey {
     ) -> Self
     where Self == FetchKey<[Value.QueryOutput]>.Default {
       fetch(
-        FetchAllStatementRequest(statement: statement), database: database, animation: animation
+        FetchAllStatementRequest(statement: statement),
+        database: database,
+        animation: animation
       )
     }
 
@@ -97,7 +165,9 @@ extension SharedReaderKey {
     ) -> Self
     where Self == FetchKey<(repeat (each Value).QueryOutput)> {
       fetch(
-        FetchOneStatementRequest(statement: statement), database: database, animation: animation
+        FetchOneStatementRequest(statement: statement),
+        database: database,
+        animation: animation
       )
     }
 
@@ -108,11 +178,13 @@ extension SharedReaderKey {
     ) -> Self
     where Self == FetchKey<Value.QueryOutput> {
       fetch(
-        FetchOneStatementRequest(statement: statement), database: database, animation: animation
+        FetchOneStatementRequest(statement: statement),
+        database: database,
+        animation: animation
       )
     }
-  #endif
-}
+  }
+#endif
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 private struct FetchAllStatementRequest<each Value: QueryRepresentable>: FetchKeyRequest {
@@ -165,18 +237,5 @@ private struct FetchOneStatementRequest<each Value: QueryRepresentable>: FetchKe
     // hasher.combine(statement)
     let statement = statement
     hasher.combine(statement)
-  }
-}
-
-// TODO: Define in Structured Queries?
-fileprivate extension SelectStatement where QueryValue == () {
-  func selectAll<
-    each J: StructuredQueriesCore.Table
-  >() -> Select<(From, repeat each J), From, (repeat each J)>
-  where Joins == (repeat each J) {
-    unsafeBitCast(
-      self,
-      to: Select<(From, repeat each J), From, (repeat each J)>.self
-    )
   }
 }

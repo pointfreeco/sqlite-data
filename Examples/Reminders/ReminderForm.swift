@@ -28,8 +28,18 @@ struct ReminderFormView: View {
   var body: some View {
     Form {
       TextField("Title", text: $reminder.title)
-      TextEditor(text: $reminder.notes)
-        .lineLimit(4)
+
+      ZStack {
+        if reminder.notes.isEmpty {
+          TextEditor(text: .constant("Notes"))
+            .foregroundStyle(.placeholder)
+            .accessibilityHidden(true, isEnabled: false)
+        }
+
+        TextEditor(text: $reminder.notes)
+      }
+      .lineLimit(4)
+      .padding([.leading, .trailing], -5)
 
       Section {
         Button {
@@ -53,7 +63,7 @@ struct ReminderFormView: View {
       }
       .popover(isPresented: $isPresentingTagsPopover) {
         NavigationStack {
-          TagsPopover(selectedTags: $selectedTags)
+          TagsView(selectedTags: $selectedTags)
         }
       }
 
@@ -194,48 +204,10 @@ extension Optional {
   }
 }
 
-struct TagsPopover: View {
-  @SharedReader(.fetchAll(Tag.order(by: \.name))) var availableTags
-
-  @Binding var selectedTags: [Tag]
-
-  @Environment(\.dismiss) var dismiss
-
-  var body: some View {
-    List {
-      let selectedTagIDs = Set(selectedTags.map(\.id))
-      ForEach(availableTags, id: \.id) { tag in
-        let tagIsSelected = selectedTagIDs.contains(tag.id)
-        Button {
-          if tagIsSelected {
-            selectedTags.removeAll(where: { $0.id == tag.id })
-          } else {
-            selectedTags.append(tag)
-          }
-        } label: {
-          HStack {
-            if tagIsSelected {
-              Image.init(systemName: "checkmark")
-            }
-            Text(tag.name)
-          }
-        }
-        .tint(tagIsSelected ? .blue : .black)
-      }
-    }
-    .toolbar {
-      ToolbarItem {
-        Button("Done") { dismiss() }
-      }
-    }
-    .navigationTitle(Text("Tags"))
-  }
-}
-
 struct ReminderFormPreview: PreviewProvider {
   static var previews: some View {
     let (remindersList, reminder) = try! prepareDependencies {
-      $0.defaultDatabase = try Reminders.appDatabase(inMemory: true)
+      $0.defaultDatabase = try Reminders.appDatabase()
       return try $0.defaultDatabase.write { db in
         let remindersList = try RemindersList.all().fetchOne(db)!
         return (

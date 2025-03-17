@@ -79,8 +79,8 @@ struct AppView: View {
 }
 
 #Preview("Happy path") {
-  let _ = prepareDependencies {
-    $0.defaultDatabase = try! SyncUps.appDatabase(inMemory: true)
+  let _ = try! prepareDependencies {
+    $0.defaultDatabase = try SyncUps.appDatabase()
   }
   AppView(model: AppModel())
 }

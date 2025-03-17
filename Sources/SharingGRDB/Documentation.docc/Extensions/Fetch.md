@@ -1,4 +1,4 @@
-# ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)-8kkig``
+# ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd``
 
 ## Overview
 
@@ -10,12 +10,17 @@
 
 ### Collections
 
-- ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)-8m3f7``
+- ``Sharing/SharedReaderKey/fetch(_:database:)-1ee8v``
 
 ### SwiftUI integration
 
 - ``Sharing/SharedReaderKey/fetch(_:database:animation:)-rgj4``
 - ``Sharing/SharedReaderKey/fetch(_:database:animation:)-j9jb``
+
+### Custom scheduling
+
+- ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)-9arcp``
+- ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)-53u9o``
 
 ### Sharing infrastructure
 
