@@ -17,6 +17,7 @@ struct RemindersListDetailView: View {
     self.remindersList = remindersList
     _ordering = AppStorage(wrappedValue: .dueDate, "ordering_list_\(remindersList.id)")
     _showCompleted = AppStorage(wrappedValue: false, "show_completed_list_\(remindersList.id)")
+    _reminderStates = SharedReader(wrappedValue: [], remindersKey)
   }
 
   var body: some View {

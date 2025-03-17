@@ -103,6 +103,7 @@ struct Database {
     let sql = query.query
     let statement = try db.makeStatement(sql: sql.string)
     try db.registerAccess(to: statement.databaseRegion)
+    try db.notifyChanges(in: statement.databaseRegion)
     for (index, binding) in zip(Int32(1)..., sql.bindings) {
       let result =
         switch binding {
