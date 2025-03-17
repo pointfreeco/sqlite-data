@@ -27,6 +27,7 @@ let package = Package(
   dependencies: [
     .package(url: "https://github.com/groue/GRDB.swift", from: "7.1.0"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.6.4"),
+    .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-structured-queries", branch: "main"),
   ],
@@ -51,6 +52,7 @@ let package = Package(
       name: "StructuredQueriesGRDBCore",
       dependencies: [
         .product(name: "GRDB", package: "GRDB.swift"),
+        .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
         .product(name: "StructuredQueriesCore", package: "swift-structured-queries"),
       ]
     ),
