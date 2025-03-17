@@ -132,6 +132,23 @@ extension SharedReaderKey {
 #if canImport(SwiftUI)
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SharedReaderKey {
+    public static func fetchAll<S: SelectStatement, each J: StructuredQueriesCore.Table>(
+      _ statement: S,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    ) -> Self
+    where
+      S.QueryValue == (),
+      S.Joins == (repeat each J),
+      Self == FetchKey<[(S.From.QueryOutput, repeat (each J).QueryOutput)]>.Default
+    {
+      fetch(
+        FetchAllStatementRequest(statement: statement.selectStar()),
+        database: database,
+        animation: animation
+      )
+    }
+
     public static func fetchAll<each Value: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<(repeat each Value)>,
       database: (any DatabaseReader)? = nil,
