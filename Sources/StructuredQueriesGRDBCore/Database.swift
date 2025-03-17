@@ -103,7 +103,6 @@ struct Database {
     let sql = query.query
     let statement = try db.makeStatement(sql: sql.string)
     try db.registerAccess(to: statement.databaseRegion)
-    try db.notifyChanges(in: statement.databaseRegion)
     for (index, binding) in zip(Int32(1)..., sql.bindings) {
       let result =
         switch binding {
@@ -120,7 +119,9 @@ struct Database {
         }
       guard result == SQLITE_OK else { throw SQLiteError(handle) }
     }
-    return try body(statement.sqliteStatement)
+    let results = try body(statement.sqliteStatement)
+    try db.notifyChanges(in: statement.databaseRegion)
+    return results
   }
 }
 
