@@ -12,7 +12,7 @@ final class SyncUpsListModel {
       SyncUp
         .group(by: \.id)
         .leftJoin(Attendee.all()) { $0.id.eq($1.syncUpID) }
-        .select { Record.Columns(attendeeCount: $1.id.count(), syncUp: $0) },
+        .select { Record.Columns(attendeeCount: $1.count(), syncUp: $0) },
       animation: .default
     )
   )

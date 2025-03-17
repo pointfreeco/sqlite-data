@@ -49,14 +49,14 @@ struct TagsView: View {
         .group(by: \.id)
         .join(ReminderTag.all()) { $0.id.eq($1.tagID)}
         .join(Reminder.all()) { $1.reminderID.eq($2.id)}
-        .having { $2.id.count().gt(0) }
-        .order { ($2.id.count().desc(), $0.name) }
+        .having { $2.count().gt(0) }
+        .order { ($2.count().desc(), $0.name) }
         .limit(3)
         .select { tags, _, _ in tags }
         .fetchAll(db)
 
       let rest = try Tag
-        .where { !$0.id.in(top.compactMap(\.id)) }
+        .where { !$0.id.in(top.map(\.id)) }
         .fetchAll(db)
 
       return Value(rest: rest, top: top)

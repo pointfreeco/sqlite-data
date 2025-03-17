@@ -10,7 +10,7 @@ struct RemindersListsView: View {
     .fetchAll(
       RemindersList.group(by: \.id)
         .join(Reminder.incomplete) { $0.id.eq($1.remindersListID) }
-        .select { ReminderListState.Columns(reminderCount: $1.id.count(), remindersList: $0) },
+        .select { ReminderListState.Columns(reminderCount: $1.count(), remindersList: $0) },
       animation: .default
     )
   )
