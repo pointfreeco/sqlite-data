@@ -9,6 +9,7 @@ import StructuredQueriesGRDBCore
   import SwiftUI
 #endif
 
+// TODO: Is it possible to loosen this availability?
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SharedReaderKey {
   public static func fetchAll<S: SelectStatement, each J: StructuredQueriesCore.Table>(
