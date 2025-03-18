@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
 import SQLite3
-import StructuredQueries
+import StructuredQueriesCore
 
 struct Database {
   private let db: GRDB.Database
@@ -21,12 +21,12 @@ struct Database {
     }
   }
 
-  public func execute(_ query: some StructuredQueries.Statement<()>) throws {
+  public func execute(_ query: some StructuredQueriesCore.Statement<()>) throws {
     _ = try execute(query) as [()]
   }
 
   public func execute<QueryValue: QueryRepresentable>(
-    _ query: some StructuredQueries.Statement<QueryValue>
+    _ query: some StructuredQueriesCore.Statement<QueryValue>
   ) throws -> [QueryValue.QueryOutput] {
     try withStatement(query) { statement in
       var results: [QueryValue.QueryOutput] = []
@@ -48,7 +48,7 @@ struct Database {
   }
 
   public func execute<each V: QueryRepresentable>(
-    _ query: some StructuredQueries.Statement<(repeat each V)>
+    _ query: some StructuredQueriesCore.Statement<(repeat each V)>
   ) throws -> [(repeat (each V).QueryOutput)] {
     try withStatement(query) { statement in
       var results: [(repeat (each V).QueryOutput)] = []
@@ -69,7 +69,7 @@ struct Database {
     }
   }
 
-  public func execute<S: SelectStatement, each J: StructuredQueries.Table>(
+  public func execute<S: SelectStatement, each J: StructuredQueriesCore.Table>(
     _ query: S
   ) throws -> [(S.From.QueryOutput, repeat (each J).QueryOutput)]
   where S.QueryValue == (), S.Joins == (repeat each J) {
@@ -98,7 +98,7 @@ struct Database {
   }
 
   private func withStatement<R>(
-    _ query: some StructuredQueries.Statement, body: (OpaquePointer) throws -> R
+    _ query: some StructuredQueriesCore.Statement, body: (OpaquePointer) throws -> R
   ) throws -> R {
     let sql = query.query
     let statement = try db.makeStatement(sql: sql.string)

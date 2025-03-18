@@ -1,5 +1,5 @@
 import SQLite3
-import StructuredQueries
+import StructuredQueriesCore
 
 final class SQLiteQueryDecoder: QueryDecoder {
   private let database: OpaquePointer?

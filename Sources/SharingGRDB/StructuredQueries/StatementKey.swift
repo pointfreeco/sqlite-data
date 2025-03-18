@@ -23,7 +23,7 @@ extension SharedReaderKey {
   {
     fetch(
       FetchAllStatementRequest(statement: statement.selectStar()),
-      database: database,
+      database: database
     )
   }
 
