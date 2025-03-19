@@ -107,7 +107,9 @@ struct Database {
       let result =
         switch binding {
         case let .blob(blob):
-          sqlite3_bind_blob(statement.sqliteStatement, index, Array(blob), -1, SQLITE_TRANSIENT)
+          sqlite3_bind_blob(
+            statement.sqliteStatement, index, Array(blob), Int32(blob.count), SQLITE_TRANSIENT
+          )
         case let .double(double):
           sqlite3_bind_double(statement.sqliteStatement, index, double)
         case let .int(int):
