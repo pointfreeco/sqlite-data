@@ -145,8 +145,8 @@ struct RemindersListDetailView: View {
 
 extension Reminder {
   static let withTags = group(by: \.id)
-    .leftJoin(ReminderTag.all()) { $0.id.eq($1.reminderID) }
-    .leftJoin(Tag.all()) { $1.tagID.eq($2.id) }
+    .join(ReminderTag.all()) { $0.id.eq($1.reminderID) }
+    .join(Tag.all()) { $1.tagID.eq($2.id) }
 }
 
 struct RemindersListDetailPreview: PreviewProvider {

@@ -30,7 +30,7 @@ struct Reminder: Codable, Equatable, Identifiable {
   }
   static let incomplete = Self.where { !$0.isCompleted }
 }
-extension Reminder.Columns {
+extension Reminder.TableColumns {
   var isPastDue: some QueryExpression<Bool> {
     !isCompleted && #sql("coalesce(\(date), date('now')) < date('now')")
   }

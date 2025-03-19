@@ -241,7 +241,7 @@ final class SQLiteQueryDecoder: QueryDecoder {
   public func decodeColumns<T: Table>(_ type: T?.Type = T?.self) throws -> T? {
     let index = currentIndex
     let result = try T?(decoder: self)
-    currentIndex = index.advanced(by: T.Columns.count)
+    currentIndex = index.advanced(by: T.TableColumns.count)
     return result
   }
 }
