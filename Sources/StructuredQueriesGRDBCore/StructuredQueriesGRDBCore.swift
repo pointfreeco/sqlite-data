@@ -7,10 +7,6 @@ import SQLite3
 extension StructuredQueriesCore.Statement {
   public func execute(_ db: GRDB.Database) throws
   where QueryValue == () {
-    guard !query.isEmpty else {
-      reportIssue("Can't fetch from empty query")
-      return
-    }
     guard let handle = db.sqliteConnection else {
       reportIssue("Can't fetch from closed database connection")
       return
@@ -22,10 +18,6 @@ extension StructuredQueriesCore.Statement {
     _ db: GRDB.Database
   ) throws -> [(repeat (each Value).QueryOutput)]
   where QueryValue == (repeat each Value) {
-    guard !query.isEmpty else {
-      reportIssue("Can't fetch from empty query")
-      return []
-    }
     guard let handle = db.sqliteConnection else {
       reportIssue("Can't fetch from closed database connection")
       return []
@@ -37,10 +29,6 @@ extension StructuredQueriesCore.Statement {
     _ db: GRDB.Database
   ) throws -> [QueryValue.QueryOutput]
   where QueryValue: QueryRepresentable {
-    guard !query.isEmpty else {
-      reportIssue("Can't fetch from empty query")
-      return []
-    }
     guard let handle = db.sqliteConnection else {
       reportIssue("Can't fetch from closed database connection")
       return []
@@ -52,10 +40,6 @@ extension StructuredQueriesCore.Statement {
     _ db: GRDB.Database
   ) throws -> (repeat (each Value).QueryOutput)?
   where QueryValue == (repeat each Value) {
-    guard !query.isEmpty else {
-      reportIssue("Can't fetch from empty query")
-      return nil
-    }
     guard let handle = db.sqliteConnection else {
       reportIssue("Can't fetch from closed database connection")
       return nil
@@ -67,10 +51,6 @@ extension StructuredQueriesCore.Statement {
     _ db: GRDB.Database
   ) throws -> QueryValue.QueryOutput?
   where QueryValue: QueryRepresentable {
-    guard !query.isEmpty else {
-      reportIssue("Can't fetch from empty query")
-      return nil
-    }
     guard let handle = db.sqliteConnection else {
       reportIssue("Can't fetch from closed database connection")
       return nil

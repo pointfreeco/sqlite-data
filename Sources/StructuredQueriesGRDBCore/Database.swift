@@ -1,5 +1,6 @@
 import Foundation
 import GRDB
+import IssueReporting
 import SQLite3
 import StructuredQueriesCore
 
@@ -28,7 +29,12 @@ struct Database {
   public func execute<QueryValue: QueryRepresentable>(
     _ query: some StructuredQueriesCore.Statement<QueryValue>
   ) throws -> [QueryValue.QueryOutput] {
-    try withStatement(query) { statement in
+    let query = query.query
+    guard !query.isEmpty else {
+      reportIssue("Can't fetch from empty query")
+      return []
+    }
+    return try withStatement(query) { statement in
       var results: [QueryValue.QueryOutput] = []
       let decoder = SQLiteQueryDecoder(database: handle, statement: statement)
       loop: while true {
@@ -50,7 +56,12 @@ struct Database {
   public func execute<each V: QueryRepresentable>(
     _ query: some StructuredQueriesCore.Statement<(repeat each V)>
   ) throws -> [(repeat (each V).QueryOutput)] {
-    try withStatement(query) { statement in
+    let query = query.query
+    guard !query.isEmpty else {
+      reportIssue("Can't fetch from empty query")
+      return []
+    }
+    return try withStatement(query) { statement in
       var results: [(repeat (each V).QueryOutput)] = []
       let decoder = SQLiteQueryDecoder(database: handle, statement: statement)
       loop: while true {
@@ -73,7 +84,12 @@ struct Database {
     _ query: S
   ) throws -> [(S.From.QueryOutput, repeat (each J).QueryOutput)]
   where S.QueryValue == (), S.Joins == (repeat each J) {
-    try withStatement(query) { statement in
+    let query = query.query
+    guard !query.isEmpty else {
+      reportIssue("Can't fetch from empty query")
+      return []
+    }
+    return try withStatement(query) { statement in
       var results: [(S.From.QueryOutput, repeat (each J).QueryOutput)] = []
       let decoder = SQLiteQueryDecoder(database: handle, statement: statement)
       loop: while true {
@@ -98,12 +114,11 @@ struct Database {
   }
 
   private func withStatement<R>(
-    _ query: some StructuredQueriesCore.Statement, body: (OpaquePointer) throws -> R
+    _ query: QueryFragment, body: (OpaquePointer) throws -> R
   ) throws -> R {
-    let sql = query.query
-    let statement = try db.makeStatement(sql: sql.string)
+    let statement = try db.makeStatement(sql: query.string)
     try db.registerAccess(to: statement.databaseRegion)
-    for (index, binding) in zip(Int32(1)..., sql.bindings) {
+    for (index, binding) in zip(Int32(1)..., query.bindings) {
       let result =
         switch binding {
         case let .blob(blob):
