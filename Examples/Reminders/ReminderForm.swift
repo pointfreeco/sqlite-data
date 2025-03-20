@@ -174,8 +174,12 @@ struct ReminderFormView: View {
           return 
         }
         if reminder.id != nil {
-          try ReminderTag.where { $0.reminderID == reminderID }.delete().execute(db)
+          try ReminderTag.where { $0.reminderID == reminderID }
+            .delete()
+            .execute(db)
         }
+        guard !selectedTags.isEmpty
+        else { return }
         try ReminderTag.insert(
           selectedTags.map { tag in
             ReminderTag(reminderID: reminderID, tagID: tag.id)
