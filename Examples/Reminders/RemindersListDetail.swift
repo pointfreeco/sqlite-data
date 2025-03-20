@@ -132,7 +132,7 @@ struct RemindersListDetailView: View {
   }
 
   @Selection
-  fileprivate struct ReminderState: Decodable, Identifiable {
+  fileprivate struct ReminderState: Identifiable {
     var id: Reminder.ID { reminder.id }
     var reminder: Reminder
     var isPastDue: Bool
@@ -145,8 +145,8 @@ struct RemindersListDetailView: View {
 
 extension Reminder {
   static let withTags = group(by: \.id)
-    .join(ReminderTag.all()) { $0.id.eq($1.reminderID) }
-    .join(Tag.all()) { $1.tagID.eq($2.id) }
+    .leftJoin(ReminderTag.all()) { $0.id.eq($1.reminderID) }
+    .leftJoin(Tag.all()) { $1.tagID.eq($2.id) }
 }
 
 struct RemindersListDetailPreview: PreviewProvider {
