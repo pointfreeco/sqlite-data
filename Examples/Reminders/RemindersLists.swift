@@ -8,15 +8,15 @@ import SwiftUI
 struct RemindersListsView: View {
   @SharedReader(
     .fetchAll(
-    RemindersList
-      .group(by: \.id)
-      .leftJoin(Reminder.all()) { $0.id.eq($1.remindersListID) }
-      .select {
-        ReminderListState.Columns(
-          reminderCount: #sql("total(NOT \($1.isCompleted))"),
-          remindersList: $0
-        )
-      },
+      RemindersList
+        .group(by: \.id)
+        .leftJoin(Reminder.all()) { $0.id.eq($1.remindersListID) }
+        .select {
+          ReminderListState.Columns(
+            reminderCount: #sql("total(NOT \($1.isCompleted))"),
+            remindersList: $0
+          )
+        },
       animation: .default
     )
   )
@@ -72,7 +72,7 @@ struct RemindersListsView: View {
           }
         }
         .buttonStyle(.plain)
-        
+
         Section {
           ForEach(remindersLists) { state in
             NavigationLink {
