@@ -100,21 +100,30 @@ func appDatabase() throws -> any DatabaseWriter {
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Create sync-ups table") { db in
-    try db.create(table: SyncUp.tableName) { table in
-      table.autoIncrementedPrimaryKey("id")
-      table.column("seconds", .integer).defaults(to: 5 * 60).notNull()
-      table.column("theme", .text).notNull().defaults(to: Theme.bubblegum.rawValue)
-      table.column("title", .text).notNull()
-    }
+    // TODO: possible to use "\(SyncUp.id)" without table qualification?
+    try #sql(
+      """
+      CREATE TABLE \(SyncUp.self) (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "seconds" INTEGER NOT NULL DEFAULT 300,
+        "theme" TEXT NOT NULL DEFAULT '\(raw: Theme.bubblegum.rawValue)',
+        "title" TEXT NOT NULL
+      )
+      """
+    )
+    .execute(db)
   }
   migrator.registerMigration("Create attendees table") { db in
-    try db.create(table: Attendee.tableName) { table in
-      table.autoIncrementedPrimaryKey("id")
-      table.column("name", .text).notNull()
-      table.column("syncUpID", .integer)
-        .references(SyncUp.tableName, column: "id", onDelete: .cascade)
-        .notNull()
-    }
+    try #sql(
+      """
+      CREATE TABLE \(Attendee.self) (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "name" TEXT NOT NULL,
+        FOREIGN KEY("syncUpID") NOT NULL REFERENCES \(SyncUp.self)("id")
+      )
+      """
+    )
+    .execute(db)
   }
   migrator.registerMigration("Create meetings table") { db in
     try db.create(table: Meeting.tableName) { table in
@@ -156,13 +165,13 @@ func appDatabase() throws -> any DatabaseWriter {
             date: Date().addingTimeInterval(-60 * 60 * 24 * 7),
             syncUpID: design.id,
             transcript: """
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor \
-          incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud \
-          exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure \
-          dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. \
-          Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt \
-          mollit anim id est laborum.
-          """
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor \
+              incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud \
+              exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure \
+              dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. \
+              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt \
+              mollit anim id est laborum.
+              """
           )
         )
         .execute(self)
