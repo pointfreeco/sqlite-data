@@ -119,21 +119,26 @@ func appDatabase() throws -> any DatabaseWriter {
       CREATE TABLE \(Attendee.self) (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
         "name" TEXT NOT NULL,
-        FOREIGN KEY("syncUpID") NOT NULL REFERENCES \(SyncUp.self)("id")
+        "syncUpID" INTEGER NOT NULL, 
+        FOREIGN KEY("syncUpID") REFERENCES \(SyncUp.self)("id") ON DELETE CASCADE
       )
       """
     )
     .execute(db)
   }
   migrator.registerMigration("Create meetings table") { db in
-    try db.create(table: Meeting.tableName) { table in
-      table.autoIncrementedPrimaryKey("id")
-      table.column("date", .datetime).notNull().unique().defaults(sql: "CURRENT_TIMESTAMP")
-      table.column("syncUpID", .integer)
-        .references(SyncUp.tableName, column: "id", onDelete: .cascade)
-        .notNull()
-      table.column("transcript", .text).notNull()
-    }
+    try #sql(
+      """
+      CREATE TABLE \(Meeting.self) (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "date" TEXT NOT NULL UNIQUE DEFAULT CURRENT_TIMESTAMP,
+        "syncUpID" INTEGER NOT NULL, 
+        "transcript" TEXT NOT NULL,
+        FOREIGN KEY("syncUpID") REFERENCES \(SyncUp.self)("id") ON DELETE CASCADE
+      )
+      """
+    )
+    .execute(db)
   }
   #if DEBUG
     migrator.registerMigration("Insert sample data") { db in
