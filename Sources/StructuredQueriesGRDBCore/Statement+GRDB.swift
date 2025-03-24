@@ -17,9 +17,9 @@ extension StructuredQueriesCore.Statement {
     try fetchCursor(db).next()
   }
 
-  public func fetchCursor(_ db: Database) throws -> QueryValueCursor<QueryValue>
+  public func fetchCursor(_ db: Database) throws -> QueryCursor<QueryValue.QueryOutput>
   where QueryValue: QueryRepresentable {
-    try QueryValueCursor(db: db, query: query)
+    try QueryValueCursor<QueryValue>(db: db, query: query)
   }
 }
 
@@ -43,9 +43,9 @@ extension StructuredQueriesCore.Statement {
 
   public func fetchCursor<each Value: QueryRepresentable>(
     _ db: Database
-  ) throws -> QueryPackCursor<repeat each Value>
+  ) throws -> QueryCursor<(repeat (each Value).QueryOutput)>
   where QueryValue == (repeat each Value) {
-    try QueryPackCursor(db: db, query: query)
+    try QueryPackCursor<repeat each Value>(db: db, query: query)
   }
 }
 

@@ -3,12 +3,10 @@ import GRDB
 import SQLite3
 import StructuredQueriesCore
 
-public final class QueryValueCursor<
-  QueryValue: QueryRepresentable
->: QueryCursor<QueryValue.QueryOutput>, DatabaseCursor {
+final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryValue.QueryOutput> {
   public typealias Element = QueryValue.QueryOutput
 
-  public func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
+  public override func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
     let element = try decoder.decodeColumns(QueryValue.self)
     decoder.next()
     return element
@@ -16,28 +14,28 @@ public final class QueryValueCursor<
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-public final class QueryPackCursor<
+final class QueryPackCursor<
   each QueryValue: QueryRepresentable
->: QueryCursor<(repeat (each QueryValue).QueryOutput)>, DatabaseCursor {
+>: QueryCursor<(repeat (each QueryValue).QueryOutput)> {
   public typealias Element = (repeat (each QueryValue).QueryOutput)
 
-  public func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
+  public override func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
     let element = try decoder.decodeColumns((repeat each QueryValue).self)
     decoder.next()
     return element
   }
 }
 
-final class QueryVoidCursor: QueryCursor<Void>, DatabaseCursor {
+final class QueryVoidCursor: QueryCursor<Void> {
   typealias Element = ()
 
-  func _element(sqliteStatement _: SQLiteStatement) throws {
+  override func _element(sqliteStatement _: SQLiteStatement) throws {
     try decoder.decodeColumns(Void.self)
     decoder.next()
   }
 }
 
-public class QueryCursor<Element> {
+public class QueryCursor<Element>: DatabaseCursor {
   public var _isDone = false
   public let _statement: GRDB.Statement
 
@@ -49,6 +47,10 @@ public class QueryCursor<Element> {
 
   deinit {
     sqlite3_reset(_statement.sqliteStatement)
+  }
+
+  public func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
+    fatalError("Abstract method should be overridden in subclass")
   }
 }
 
