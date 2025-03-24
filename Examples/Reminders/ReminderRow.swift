@@ -11,12 +11,12 @@ struct ReminderRow: View {
   @State var editReminder: Reminder?
 
   @Dependency(\.defaultDatabase) private var database
-  
+
   var body: some View {
     HStack {
       HStack(alignment: .top) {
         Button(action: completeButtonTapped) {
-          Image(systemName: reminder.isCompleted ? "circle.inset.filled": "circle")
+          Image(systemName: reminder.isCompleted ? "circle.inset.filled" : "circle")
             .foregroundStyle(.gray)
             .font(.title2)
             .padding([.trailing], 5)
@@ -105,23 +105,24 @@ struct ReminderRow: View {
 
   private var subtitleText: Text {
     let tagsText = tags.reduce(Text(reminder.date == nil ? "" : "  ")) { result, tag in
-      result + Text("#\(tag) ")
+      result
+        + Text("#\(tag) ")
         .foregroundStyle(.gray)
         .bold()
     }
     return (dueText + tagsText).font(.callout)
   }
-  
+
   private func title(for reminder: Reminder) -> some View {
-    let exclamations = String(repeating: "!", count: reminder.priority ?? 0)
-    + (reminder.priority == nil ? "" : " ")
-    return (
-      Text(exclamations)
-        .foregroundStyle(reminder.isCompleted ? .gray : Color.hex(remindersList.color))
+    let exclamations =
+      String(repeating: "!", count: reminder.priority?.rawValue ?? 0)
+      + (reminder.priority == nil ? "" : " ")
+    return
+      (Text(exclamations)
+      .foregroundStyle(reminder.isCompleted ? .gray : Color.hex(remindersList.color))
       + Text(reminder.title)
-        .foregroundStyle(reminder.isCompleted ? .gray : .primary)
-    )
-    .font(.title3)
+      .foregroundStyle(reminder.isCompleted ? .gray : .primary))
+      .font(.title3)
   }
 }
 

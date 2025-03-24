@@ -10,7 +10,7 @@ struct SyncUpFormTests {
 
   @Test func saveNew() async throws {
     prepareDependencies {
-      $0.defaultDatabase = try! SyncUps.appDatabase(inMemory: true)
+      $0.defaultDatabase = try! SyncUps.appDatabase()
       $0.uuid = .incrementing
     }
     let draft = SyncUp.Draft(title: "Morning Sync")
@@ -33,7 +33,7 @@ struct SyncUpFormTests {
 
   @Test func updateExisting() async throws {
     prepareDependencies {
-      $0.defaultDatabase = try! SyncUps.appDatabase(inMemory: true)
+      $0.defaultDatabase = try! SyncUps.appDatabase()
       $0.uuid = .incrementing
     }
     let existingSyncUp = try await database.read { db in

@@ -5,21 +5,21 @@ import SharingGRDB
 import StructuredQueriesGRDB
 
 @Table
-struct RemindersList: Codable, Hashable, Identifiable {
+struct RemindersList: Hashable, Identifiable {
   var id: Int64
   var color = 0x4a99ef
   var name = ""
 }
 
 @Table
-struct Reminder: Codable, Equatable, Identifiable {
+struct Reminder: Equatable, Identifiable {
   var id: Int64
   @Column(as: Date.ISO8601Representation?.self)
   var date: Date?
   var isCompleted = false
   var isFlagged = false
   var notes = ""
-  var priority: Int?
+  var priority: Priority?
   var remindersListID: Int64
   var title = ""
   static func searching(_ text: String) -> Where<Reminder> {
@@ -36,14 +36,20 @@ extension Reminder.TableColumns {
   }
 }
 
+enum Priority: Int, QueryBindable {
+  case low = 1
+  case medium
+  case high
+}
+
 @Table
-struct Tag: Codable {
+struct Tag {
   var id: Int64
   var name = ""
 }
 
 @Table("remindersTags")
-struct ReminderTag: Codable {
+struct ReminderTag {
   var reminderID: Int64
   var tagID: Int64
 }
@@ -189,7 +195,7 @@ func appDatabase() throws -> any DatabaseWriter {
         Reminder.Draft(
           date: Date(),
           notes: "Ask about diet",
-          priority: 3,
+          priority: .high,
           remindersListID: 1,
           title: "Doctor appointment"
         ),
@@ -207,21 +213,21 @@ func appDatabase() throws -> any DatabaseWriter {
         Reminder.Draft(
           date: Date().addingTimeInterval(60 * 60 * 24 * 2),
           isFlagged: true,
-          priority: 3,
+          priority: .high,
           remindersListID: 2,
           title: "Pick up kids from school"
         ),
         Reminder.Draft(
           date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
-          priority: 1,
+          priority: .low,
           remindersListID: 2,
           title: "Get laundry"
         ),
         Reminder.Draft(
           date: Date().addingTimeInterval(60 * 60 * 24 * 4),
           isCompleted: false,
-          priority: 3,
+          priority: .high,
           remindersListID: 2,
           title: "Take out trash"
         ),
@@ -238,7 +244,7 @@ func appDatabase() throws -> any DatabaseWriter {
         Reminder.Draft(
           date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
-          priority: 2,
+          priority: .medium,
           remindersListID: 3,
           title: "Send weekly emails"
         ),
