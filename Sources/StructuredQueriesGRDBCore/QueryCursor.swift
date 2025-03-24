@@ -39,8 +39,6 @@ public final class QueryCursor<each QueryValue: QueryRepresentable>: DatabaseCur
   private struct EmptyQuery: Error {}
 }
 
-private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-
 extension QueryBinding {
   fileprivate var databaseValue: DatabaseValue {
     switch self {
