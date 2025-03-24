@@ -253,98 +253,50 @@ extension SharedReaderKey {
 
 // MARK: -
 
-private struct FetchAllStatementValueRequest<Value: QueryRepresentable>: FetchKeyRequest {
+private struct FetchAllStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
   let statement: any StructuredQueriesCore.Statement<Value>
-
   func fetch(_ db: Database) throws -> [Value.QueryOutput] {
     try statement.fetchAll(db)
-  }
-
-  static func == (lhs: Self, rhs: Self) -> Bool {
-    // NB: A Swift 6.1 regression prevents this from compiling:
-    //     https://github.com/swiftlang/swift/issues/79623
-    // return AnyHashable(lhs.statement) == AnyHashable(rhs.statement)
-    let lhs = lhs.statement
-    let rhs = rhs.statement
-    return AnyHashable(lhs) == AnyHashable(rhs)
-  }
-
-  func hash(into hasher: inout Hasher) {
-    // NB: A Swift 6.1 regression prevents this from compiling:
-    //     https://github.com/swiftlang/swift/issues/79623
-    // hasher.combine(statement)
-    let statement = statement
-    hasher.combine(statement)
   }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private struct FetchAllStatementPackRequest<each Value: QueryRepresentable>: FetchKeyRequest {
+private struct FetchAllStatementPackRequest<each Value: QueryRepresentable>: StatementKeyRequest {
   let statement: any StructuredQueriesCore.Statement<(repeat each Value)>
-
   func fetch(_ db: Database) throws -> [(repeat (each Value).QueryOutput)] {
     try statement.fetchAll(db)
   }
-
-  static func == (lhs: Self, rhs: Self) -> Bool {
-    // NB: A Swift 6.1 regression prevents this from compiling:
-    //     https://github.com/swiftlang/swift/issues/79623
-    // return AnyHashable(lhs.statement) == AnyHashable(rhs.statement)
-    let lhs = lhs.statement
-    let rhs = rhs.statement
-    return AnyHashable(lhs) == AnyHashable(rhs)
-  }
-
-  func hash(into hasher: inout Hasher) {
-    // NB: A Swift 6.1 regression prevents this from compiling:
-    //     https://github.com/swiftlang/swift/issues/79623
-    // hasher.combine(statement)
-    let statement = statement
-    hasher.combine(statement)
-  }
 }
 
-private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: FetchKeyRequest {
+private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
   let statement: any StructuredQueriesCore.Statement<Value>
-
   func fetch(_ db: Database) throws -> Value.QueryOutput {
     guard let result = try statement.fetchOne(db)
     else { throw NotFound() }
     return result
   }
-
-  static func == (lhs: Self, rhs: Self) -> Bool {
-    // NB: A Swift 6.1 regression prevents this from compiling:
-    //     https://github.com/swiftlang/swift/issues/79623
-    // AnyHashable(lhs.statement) == AnyHashable(rhs.statement)
-    let lhs = lhs.statement
-    let rhs = rhs.statement
-    return AnyHashable(lhs) == AnyHashable(rhs)
-  }
-
-  func hash(into hasher: inout Hasher) {
-    // NB: A Swift 6.1 regression prevents this from compiling:
-    //     https://github.com/swiftlang/swift/issues/79623
-    // hasher.combine(statement)
-    let statement = statement
-    hasher.combine(statement)
-  }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private struct FetchOneStatementPackRequest<each Value: QueryRepresentable>: FetchKeyRequest {
+private struct FetchOneStatementPackRequest<each Value: QueryRepresentable>: StatementKeyRequest {
   let statement: any StructuredQueriesCore.Statement<(repeat each Value)>
-
   func fetch(_ db: Database) throws -> (repeat (each Value).QueryOutput) {
     guard let result = try statement.fetchOne(db)
     else { throw NotFound() }
     return result
   }
+}
 
+private protocol StatementKeyRequest<QueryValue>: FetchKeyRequest {
+  associatedtype QueryValue
+  var statement: any StructuredQueriesCore.Statement<QueryValue> { get }
+}
+
+extension StatementKeyRequest {
   static func == (lhs: Self, rhs: Self) -> Bool {
     // NB: A Swift 6.1 regression prevents this from compiling:
     //     https://github.com/swiftlang/swift/issues/79623
-    // AnyHashable(lhs.statement) == AnyHashable(rhs.statement)
+    // return AnyHashable(lhs.statement) == AnyHashable(rhs.statement)
     let lhs = lhs.statement
     let rhs = rhs.statement
     return AnyHashable(lhs) == AnyHashable(rhs)
