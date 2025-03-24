@@ -4,61 +4,57 @@ import IssueReporting
 import SQLite3
 @_exported import StructuredQueriesCore
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension StructuredQueriesCore.Statement {
   public func execute(_ db: GRDB.Database) throws
   where QueryValue == () {
-    guard let handle = db.sqliteConnection else {
-      reportIssue("Can't fetch from closed database connection")
-      return
-    }
-    try Database(handle, db: db).execute(self)
+    try fetchCursor(db).next()
   }
 
   public func fetchAll<each Value: QueryRepresentable>(
     _ db: GRDB.Database
   ) throws -> [(repeat (each Value).QueryOutput)]
   where QueryValue == (repeat each Value) {
-    guard let handle = db.sqliteConnection else {
-      reportIssue("Can't fetch from closed database connection")
-      return []
-    }
-    return try Database(handle, db: db).execute(self)
+    let cursor = try fetchCursor(db)
+    return try Array(cursor)
   }
 
   public func fetchAll(
     _ db: GRDB.Database
   ) throws -> [QueryValue.QueryOutput]
   where QueryValue: QueryRepresentable {
-    guard let handle = db.sqliteConnection else {
-      reportIssue("Can't fetch from closed database connection")
-      return []
-    }
-    return try Database(handle, db: db).execute(self)
+    try Array(fetchCursor(db))
   }
 
   public func fetchOne<each Value: QueryRepresentable>(
     _ db: GRDB.Database
   ) throws -> (repeat (each Value).QueryOutput)?
   where QueryValue == (repeat each Value) {
-    guard let handle = db.sqliteConnection else {
-      reportIssue("Can't fetch from closed database connection")
-      return nil
-    }
-    return try Database(handle, db: db).execute(self).first
+    let cursor = try fetchCursor(db)
+    return try cursor.next()
   }
 
   public func fetchOne(
     _ db: GRDB.Database
   ) throws -> QueryValue.QueryOutput?
   where QueryValue: QueryRepresentable {
-    guard let handle = db.sqliteConnection else {
-      reportIssue("Can't fetch from closed database connection")
-      return nil
-    }
-    return try Database(handle, db: db).execute(self).first
+    try fetchCursor(db).next()
+  }
+
+  public func fetchCursor<each Value: QueryRepresentable>(
+    _ db: GRDB.Database
+  ) throws -> QueryCursor<repeat each Value>
+  where QueryValue == (repeat each Value) {
+    try QueryCursor(db: db, query: self)
+  }
+
+  public func fetchCursor(_ db: GRDB.Database) throws -> QueryCursor<QueryValue>
+  where QueryValue: QueryRepresentable {
+    try QueryCursor(db: db, query: self)
   }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SelectStatement where QueryValue == () {
   public func fetchAll<each J: StructuredQueriesCore.Table>(
     _ db: GRDB.Database
