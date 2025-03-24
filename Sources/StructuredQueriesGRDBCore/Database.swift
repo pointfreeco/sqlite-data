@@ -36,12 +36,12 @@ struct Database {
     }
     return try withStatement(query) { statement in
       var results: [QueryValue.QueryOutput] = []
-      let decoder = SQLiteQueryDecoder(database: handle, statement: statement)
+      var decoder = SQLiteQueryDecoder(database: handle, statement: statement)
       loop: while true {
         let code = sqlite3_step(statement)
         switch code {
         case SQLITE_ROW:
-          try results.append(QueryValue(decoder: decoder).queryOutput)
+          try results.append(decoder.decodeColumns(QueryValue.self))
           decoder.next()
         case SQLITE_DONE:
           break loop
@@ -63,12 +63,12 @@ struct Database {
     }
     return try withStatement(query) { statement in
       var results: [(repeat (each V).QueryOutput)] = []
-      let decoder = SQLiteQueryDecoder(database: handle, statement: statement)
+      var decoder = SQLiteQueryDecoder(database: handle, statement: statement)
       loop: while true {
         let code = sqlite3_step(statement)
         switch code {
         case SQLITE_ROW:
-          try results.append((repeat (each V)(decoder: decoder).queryOutput))
+          try results.append(decoder.decodeColumns((repeat each V).self))
           decoder.next()
         case SQLITE_DONE:
           break loop
@@ -91,15 +91,15 @@ struct Database {
     }
     return try withStatement(query) { statement in
       var results: [(S.From.QueryOutput, repeat (each J).QueryOutput)] = []
-      let decoder = SQLiteQueryDecoder(database: handle, statement: statement)
+      var decoder = SQLiteQueryDecoder(database: handle, statement: statement)
       loop: while true {
         let code = sqlite3_step(statement)
         switch code {
         case SQLITE_ROW:
           try results.append(
             (
-              decoder.decodeColumns(S.From.self).queryOutput,
-              repeat decoder.decodeColumns((each J).self).queryOutput
+              decoder.decodeColumns(S.From.self),
+              repeat decoder.decodeColumns((each J).self)
             )
           )
           decoder.next()
