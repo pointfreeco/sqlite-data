@@ -3,40 +3,67 @@ import GRDB
 import SQLite3
 import StructuredQueriesCore
 
+public final class QueryValueCursor<
+  QueryValue: QueryRepresentable
+>: QueryCursor<QueryValue.QueryOutput>, DatabaseCursor {
+  public typealias Element = QueryValue.QueryOutput
+
+  public func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
+    let element = try decoder.decodeColumns(QueryValue.self)
+    decoder.next()
+    return element
+  }
+}
+
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-public final class QueryCursor<each QueryValue: QueryRepresentable>: DatabaseCursor {
+public final class QueryPackCursor<
+  each QueryValue: QueryRepresentable
+>: QueryCursor<(repeat (each QueryValue).QueryOutput)>, DatabaseCursor {
   public typealias Element = (repeat (each QueryValue).QueryOutput)
-
-  public var _isDone = false
-  public let _statement: GRDB.Statement
-
-  private var decoder: SQLiteQueryDecoder
-
-  init(
-    db: GRDB.Database,
-    query: some StructuredQueriesCore.Statement<(repeat each QueryValue)>
-  ) throws {
-    let query = query.query
-    guard !query.isEmpty else { throw EmptyQuery() }
-    _statement = try db.makeStatement(sql: query.string)
-    _statement.arguments = StatementArguments(query.bindings.map(\.databaseValue))
-    decoder = SQLiteQueryDecoder(
-      database: db.sqliteConnection,
-      statement: _statement.sqliteStatement
-    )
-  }
-
-  deinit {
-    sqlite3_reset(_statement.sqliteStatement)
-  }
 
   public func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
     let element = try decoder.decodeColumns((repeat each QueryValue).self)
     decoder.next()
     return element
   }
+}
 
-  private struct EmptyQuery: Error {}
+final class QueryVoidCursor: QueryCursor<Void>, DatabaseCursor {
+  typealias Element = ()
+
+  func _element(sqliteStatement _: SQLiteStatement) throws {
+    try decoder.decodeColumns(Void.self)
+    decoder.next()
+  }
+}
+
+public class QueryCursor<Element> {
+  public var _isDone = false
+  public let _statement: GRDB.Statement
+
+  fileprivate var decoder: SQLiteQueryDecoder
+
+  init(db: Database, query: QueryFragment) throws {
+    (_statement, decoder) = try db.prepare(query: query)
+  }
+
+  deinit {
+    sqlite3_reset(_statement.sqliteStatement)
+  }
+}
+
+private struct EmptyQuery: Error {}
+
+extension Database {
+  fileprivate func prepare(query: QueryFragment) throws -> (GRDB.Statement, SQLiteQueryDecoder) {
+    guard !query.isEmpty else { throw EmptyQuery() }
+    let statement = try makeStatement(sql: query.string)
+    statement.arguments = StatementArguments(query.bindings.map(\.databaseValue))
+    return (
+      statement,
+      SQLiteQueryDecoder(database: sqliteConnection, statement: statement.sqliteStatement)
+    )
+  }
 }
 
 extension QueryBinding {

@@ -2,23 +2,35 @@ import GRDB
 import SQLite3
 import StructuredQueriesCore
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension StructuredQueriesCore.Statement {
   public func execute(_ db: Database) throws where QueryValue == () {
+    try QueryVoidCursor(db: db, query: query).next()
+  }
+
+  public func fetchAll(_ db: Database) throws -> [QueryValue.QueryOutput]
+  where QueryValue: QueryRepresentable {
+    try Array(fetchCursor(db))
+  }
+
+  public func fetchOne(_ db: Database) throws -> QueryValue.QueryOutput?
+  where QueryValue: QueryRepresentable {
     try fetchCursor(db).next()
   }
 
+  public func fetchCursor(_ db: Database) throws -> QueryValueCursor<QueryValue>
+  where QueryValue: QueryRepresentable {
+    try QueryValueCursor(db: db, query: query)
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension StructuredQueriesCore.Statement {
   public func fetchAll<each Value: QueryRepresentable>(
     _ db: Database
   ) throws -> [(repeat (each Value).QueryOutput)]
   where QueryValue == (repeat each Value) {
     let cursor = try fetchCursor(db)
     return try Array(cursor)
-  }
-
-  public func fetchAll(_ db: Database) throws -> [QueryValue.QueryOutput]
-  where QueryValue: QueryRepresentable {
-    try Array(fetchCursor(db))
   }
 
   public func fetchOne<each Value: QueryRepresentable>(
@@ -29,21 +41,23 @@ extension StructuredQueriesCore.Statement {
     return try cursor.next()
   }
 
-  public func fetchOne(_ db: Database) throws -> QueryValue.QueryOutput?
-  where QueryValue: QueryRepresentable {
-    try fetchCursor(db).next()
-  }
-
   public func fetchCursor<each Value: QueryRepresentable>(
     _ db: Database
-  ) throws -> QueryCursor<repeat each Value>
+  ) throws -> QueryPackCursor<repeat each Value>
   where QueryValue == (repeat each Value) {
-    try QueryCursor(db: db, query: self)
+    try QueryPackCursor(db: db, query: query)
+  }
+}
+
+extension SelectStatement where QueryValue == (), Joins == () {
+  public func fetchAll(_ db: Database) throws -> [From.QueryOutput] {
+    let query = selectStar()
+    return try query.fetchAll(db)
   }
 
-  public func fetchCursor(_ db: Database) throws -> QueryCursor<QueryValue>
-  where QueryValue: QueryRepresentable {
-    try QueryCursor(db: db, query: self)
+  public func fetchOne(_ db: Database) throws -> From.QueryOutput? {
+    let query = selectStar()
+    return try query.fetchOne(db)
   }
 }
 
