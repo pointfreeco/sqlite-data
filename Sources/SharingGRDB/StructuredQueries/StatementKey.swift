@@ -9,6 +9,8 @@ import StructuredQueriesGRDBCore
   import SwiftUI
 #endif
 
+// MARK: Basics
+
 extension SharedReaderKey {
   public static func fetchAll<S: SelectStatement>(
     _ statement: S,
@@ -39,6 +41,8 @@ extension SharedReaderKey {
     fetch(FetchOneStatementValueRequest(statement: statement), database: database)
   }
 }
+
+// MARK: Parameter pack overloads
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SharedReaderKey {
@@ -114,6 +118,8 @@ extension SharedReaderKey {
   }
 }
 
+// MARK: Parameter pack overloads
+
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SharedReaderKey {
   public static func fetchAll<S: SelectStatement, each J: StructuredQueriesCore.Table>(
@@ -154,6 +160,8 @@ extension SharedReaderKey {
     fetch(FetchOneStatementPackRequest(statement: statement), database: database, scheduler: scheduler)
   }
 }
+
+// MARK: - Animation
 
 #if canImport(SwiftUI)
   extension SharedReaderKey {
@@ -198,6 +206,8 @@ extension SharedReaderKey {
     }
   }
 
+  // MARK: Parameter pack overloads
+
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SharedReaderKey {
     public static func fetchAll<S: SelectStatement, each J: StructuredQueriesCore.Table>(
@@ -240,6 +250,8 @@ extension SharedReaderKey {
     }
   }
 #endif
+
+// MARK: -
 
 private struct FetchAllStatementValueRequest<Value: QueryRepresentable>: FetchKeyRequest {
   let statement: any StructuredQueriesCore.Statement<Value>
