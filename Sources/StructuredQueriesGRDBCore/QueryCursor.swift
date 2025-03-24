@@ -3,6 +3,25 @@ import GRDB
 import SQLite3
 import StructuredQueriesCore
 
+public class QueryCursor<Element>: DatabaseCursor {
+  public var _isDone = false
+  public let _statement: GRDB.Statement
+
+  fileprivate var decoder: SQLiteQueryDecoder
+
+  init(db: Database, query: QueryFragment) throws {
+    (_statement, decoder) = try db.prepare(query: query)
+  }
+
+  deinit {
+    sqlite3_reset(_statement.sqliteStatement)
+  }
+
+  public func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
+    fatalError("Abstract method should be overridden in subclass")
+  }
+}
+
 final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryValue.QueryOutput> {
   public typealias Element = QueryValue.QueryOutput
 
@@ -32,25 +51,6 @@ final class QueryVoidCursor: QueryCursor<Void> {
   override func _element(sqliteStatement _: SQLiteStatement) throws {
     try decoder.decodeColumns(Void.self)
     decoder.next()
-  }
-}
-
-public class QueryCursor<Element>: DatabaseCursor {
-  public var _isDone = false
-  public let _statement: GRDB.Statement
-
-  fileprivate var decoder: SQLiteQueryDecoder
-
-  init(db: Database, query: QueryFragment) throws {
-    (_statement, decoder) = try db.prepare(query: query)
-  }
-
-  deinit {
-    sqlite3_reset(_statement.sqliteStatement)
-  }
-
-  public func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
-    fatalError("Abstract method should be overridden in subclass")
   }
 }
 

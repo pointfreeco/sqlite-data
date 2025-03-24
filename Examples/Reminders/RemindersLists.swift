@@ -109,13 +109,6 @@ struct RemindersListsView: View {
       }
       .presentationDetents([.medium])
     }
-    .sheet(isPresented: $isAddListPresented) {
-      NavigationStack {
-        RemindersListForm()
-          .navigationTitle("New list")
-      }
-      .presentationDetents([.medium])
-    }
     .searchable(text: $searchText)
   }
 
