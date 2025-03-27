@@ -60,7 +60,7 @@ extension Database {
   fileprivate func prepare(query: QueryFragment) throws -> (GRDB.Statement, SQLiteQueryDecoder) {
     guard !query.isEmpty else { throw EmptyQuery() }
     let statement = try makeStatement(sql: query.string)
-    statement.arguments = StatementArguments(query.bindings.map(\.databaseValue))
+    statement.arguments = try StatementArguments(query.bindings.map { try $0.databaseValue })
     return (
       statement,
       SQLiteQueryDecoder(database: sqliteConnection, statement: statement.sqliteStatement)
@@ -70,17 +70,21 @@ extension Database {
 
 extension QueryBinding {
   fileprivate var databaseValue: DatabaseValue {
-    switch self {
-    case let .blob(blob):
-      return Data(blob).databaseValue
-    case let .double(double):
-      return double.databaseValue
-    case let .int(int):
-      return int.databaseValue
-    case .null:
-      return .null
-    case let .text(text):
-      return text.databaseValue
+    get throws {
+      switch self {
+      case let .blob(blob):
+        return Data(blob).databaseValue
+      case let .double(double):
+        return double.databaseValue
+      case let .int(int):
+        return int.databaseValue
+      case .null:
+        return .null
+      case let .text(text):
+        return text.databaseValue
+      case let ._invalid(error):
+        throw error
+      }
     }
   }
 }
