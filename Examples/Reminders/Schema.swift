@@ -86,11 +86,11 @@ func appDatabase() throws -> any DatabaseWriter {
       table.column("date", .date)
       table.column("isCompleted", .boolean).defaults(to: false).notNull()
       table.column("isFlagged", .boolean).defaults(to: false).notNull()
-      table.column("listID", .integer)
-        .references(RemindersList.databaseTableName, column: "id", onDelete: .cascade)
-        .notNull()
       table.column("notes", .text).notNull()
       table.column("priority", .integer)
+      table.column("remindersListID", .integer)
+        .references(RemindersList.databaseTableName, column: "id", onDelete: .cascade)
+        .notNull()
       table.column("title", .text).notNull()
     }
   }
