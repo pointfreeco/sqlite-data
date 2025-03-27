@@ -148,7 +148,7 @@ creating a `DatabaseMigrator`, registering migrations with it, and then using it
 database connection:
 
 ```diff
- func appDatabase() throws -> Self {
+ func appDatabase() throws -> any DatabaseWriter {
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
    #if DEBUG
@@ -187,7 +187,7 @@ That is all it takes to create, configure and migrate a database connection. Her
 we have just written in one snippet:
 
 ```swift
-func appDatabase() throws -> Self {
+func appDatabase() throws -> any DatabaseWriter {
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
   #if DEBUG
