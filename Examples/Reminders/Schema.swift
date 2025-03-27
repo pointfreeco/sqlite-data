@@ -22,7 +22,7 @@ struct Reminder: Codable, Equatable, FetchableRecord, Identifiable, MutablePersi
   var date: Date?
   var isCompleted = false
   var isFlagged = false
-  var listID: Int64
+  var remindersListID: Int64
   var notes = ""
   var priority: Int?
   var title = ""
@@ -133,7 +133,7 @@ func appDatabase() throws -> any DatabaseWriter {
     func createDebugReminders() throws {
       _ = try Reminder(
         date: Date(),
-        listID: 1,
+        remindersListID: 1,
         notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
         title: "Groceries"
       )
@@ -141,13 +141,13 @@ func appDatabase() throws -> any DatabaseWriter {
       _ = try Reminder(
         date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
         isFlagged: true,
-        listID: 1,
+        remindersListID: 1,
         title: "Haircut"
       )
       .inserted(self)
       _ = try Reminder(
         date: Date(),
-        listID: 1,
+        remindersListID: 1,
         notes: "Ask about diet",
         priority: 3,
         title: "Doctor appointment"
@@ -156,20 +156,20 @@ func appDatabase() throws -> any DatabaseWriter {
       _ = try Reminder(
         date: Date().addingTimeInterval(-60 * 60 * 24 * 190),
         isCompleted: true,
-        listID: 1,
+        remindersListID: 1,
         title: "Take a walk"
       )
       .inserted(self)
       _ = try Reminder(
         date: Date(),
-        listID: 1,
+        remindersListID: 1,
         title: "Buy concert tickets"
       )
       .inserted(self)
       _ = try Reminder(
         date: Date().addingTimeInterval(60 * 60 * 24 * 2),
         isFlagged: true,
-        listID: 2,
+        remindersListID: 2,
         priority: 3,
         title: "Pick up kids from school"
       )
@@ -177,7 +177,7 @@ func appDatabase() throws -> any DatabaseWriter {
       _ = try Reminder(
         date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
         isCompleted: true,
-        listID: 2,
+        remindersListID: 2,
         priority: 1,
         title: "Get laundry"
       )
@@ -185,14 +185,14 @@ func appDatabase() throws -> any DatabaseWriter {
       _ = try Reminder(
         date: Date().addingTimeInterval(60 * 60 * 24 * 4),
         isCompleted: false,
-        listID: 2,
+        remindersListID: 2,
         priority: 3,
         title: "Take out trash"
       )
       .inserted(self)
       _ = try Reminder(
         date: Date().addingTimeInterval(60 * 60 * 24 * 2),
-        listID: 3,
+        remindersListID: 3,
         notes: """
           Status of tax return
           Expenses for next year
@@ -204,7 +204,7 @@ func appDatabase() throws -> any DatabaseWriter {
       _ = try Reminder(
         date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
         isCompleted: true,
-        listID: 3,
+        remindersListID: 3,
         priority: 2,
         title: "Send weekly emails"
       )

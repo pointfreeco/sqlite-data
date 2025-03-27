@@ -22,7 +22,7 @@ struct ReminderFormView: View {
     if let existingReminder {
       reminder = existingReminder
     } else if let listID = remindersList.id {
-      reminder = Reminder(listID: listID)
+      reminder = Reminder(remindersListID: listID)
     } else {
       reportIssue("'list.id' is required to be non-nil.")
       return nil
@@ -129,7 +129,7 @@ struct ReminderFormView: View {
           }
         }
         .onChange(of: remindersList) {
-          reminder.listID = remindersList.id!
+          reminder.remindersListID = remindersList.id!
         }
       }
     }
@@ -202,7 +202,7 @@ extension Optional {
       let remindersList = try RemindersList.fetchOne(db)!
       return (
         remindersList,
-        try Reminder.filter(Column("listID") == remindersList.id).fetchOne(db)!
+        try Reminder.filter(Column("remindersListID") == remindersList.id).fetchOne(db)!
       )
     }
   }

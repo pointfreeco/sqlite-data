@@ -148,7 +148,7 @@ struct RemindersListDetailView: View {
         LEFT JOIN "remindersTags" ON "reminders"."id" = "remindersTags"."reminderID"
         LEFT JOIN "tags" ON "remindersTags"."tagID" = "tags"."id"
         WHERE 
-          "reminders"."listID" = ?
+          "reminders"."remindersListID" = ?
           \(showCompleted ? "" : #"AND NOT "isCompleted""#)
         GROUP BY "reminders"."id"
         ORDER BY

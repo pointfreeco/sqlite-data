@@ -120,7 +120,7 @@ struct SearchRemindersView: View {
             group_concat("tags"."name", ',') AS "commaSeparatedTags",
             NOT "isCompleted" AND coalesce("reminders"."date", date('now')) < date('now') AS "isPastDue"
           FROM "reminders"
-          LEFT JOIN "remindersLists" ON "reminders"."listID" = "remindersLists"."id"
+          LEFT JOIN "remindersLists" ON "reminders"."remindersListID" = "remindersLists"."id"
           LEFT JOIN "remindersTags" ON "reminders"."id" = "remindersTags"."reminderID"
           LEFT JOIN "tags" ON "remindersTags"."tagID" = "tags"."id"
           WHERE 
@@ -153,7 +153,9 @@ struct SearchRemindersView: View {
           Value.Reminder(
             isPastDue: reminder.isPastDue,
             reminder: reminder.reminder,
-            remindersList: remindersLists.first(where: { $0.id == reminder.reminder.listID} )!,
+            remindersList: remindersLists.first(
+              where: { $0.id == reminder.reminder.remindersListID }
+            )!,
             commaSeparatedTags: reminder.commaSeparatedTags
           )
         }
