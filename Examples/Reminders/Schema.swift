@@ -78,76 +78,37 @@ func appDatabase() throws -> any DatabaseWriter {
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Add reminders lists table") { db in
-    try #sql(
-      """
-      CREATE TABLE "remindersLists" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-        "color" INTEGER NOT NULL DEFAULT '\(raw: 0x4a99ef)',
-        "name" TEXT NOT NULL
-      )
-      """
-    )
-    .execute(db)
+    try db.create(table: RemindersList.tableName) { table in
+      table.autoIncrementedPrimaryKey("id")
+      table.column("color", .integer).defaults(to: 0x4a99ef).notNull()
+      table.column("name", .text).notNull()
+    }
   }
   migrator.registerMigration("Add reminders table") { db in
-    try #sql(
-      """
-      CREATE TABLE "reminders" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-        "date" TEXT,
-        "isCompleted" INTEGER NOT NULL DEFAULT 0,
-        "isFlagged" INTEGER NOT NULL DEFAULT 0,
-        "remindersListID" INTEGER NOT NULL,
-        "notes" TEXT NOT NULL,
-        "priority" INTEGER,
-        "title" TEXT NOT NULL,
-
-        FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
-      )
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE INDEX "reminders_remindersListID" ON "reminders"("remindersListID")
-      """
-    )
-    .execute(db)
+    try db.create(table: Reminder.tableName) { table in
+      table.autoIncrementedPrimaryKey("id")
+      table.column("date", .date)
+      table.column("isCompleted", .boolean).defaults(to: false).notNull()
+      table.column("isFlagged", .boolean).defaults(to: false).notNull()
+      table.column("notes", .text).notNull()
+      table.column("priority", .integer)
+      table.column("remindersListID", .integer)
+        .references(RemindersList.tableName, column: "id", onDelete: .cascade)
+        .notNull()
+      table.column("title", .text).notNull()
+    }
   }
   migrator.registerMigration("Add tags table") { db in
-    try #sql(
-      """
-      CREATE TABLE "tags" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-        "name" TEXT NOT NULL COLLATE NOCASE UNIQUE
-      )
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TABLE "remindersTags" (
-        "reminderID" INTEGER NOT NULL,
-        "tagID" INTEGER NOT NULL,
-      
-        FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
-        FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
-      )
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE INDEX "remindersTags_reminderID" ON "remindersTags"("reminderID")
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE INDEX "remindersTags_tagID" ON "remindersTags"("tagID")
-      """
-    )
-    .execute(db)
+    try db.create(table: Tag.tableName) { table in
+      table.autoIncrementedPrimaryKey("id")
+      table.column("name", .text).notNull().collate(.nocase).unique()
+    }
+    try db.create(table: ReminderTag.tableName) { table in
+      table.column("reminderID", .integer).notNull()
+        .references(Reminder.tableName, column: "id", onDelete: .cascade)
+      table.column("tagID", .integer).notNull()
+        .references(Tag.tableName, column: "id", onDelete: .cascade)
+    }
   }
   #if DEBUG
     migrator.registerMigration("Add mock data") { db in
