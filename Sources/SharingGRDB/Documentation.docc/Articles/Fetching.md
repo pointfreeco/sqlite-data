@@ -4,103 +4,169 @@ Learn about the various tools for fetching data from a SQLite database.
 
 ## Overview
 
-All data fetching happens by providing
-[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>),
-[`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)>), or
- [`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)-3qcpd>), to the `@SharedReader`
-property wrapper. The primary differences between these choices is whether you want to specify your
-query as a raw SQL string, or as a query built with GRDB's query building tools.
+All data fetching happens by providing the `fetchAll`, `fetchOne`, or `fetch` key to the
+`@SharedReader` property wrapper. The primary differences between these choices is whether you want
+to build queries with [Structured Queries][structured-queries-gh], specify your query as a raw SQL
+string, or if you want to assemble your value from one or more queries using a raw database
+connection.
 
+  * [Querying with Structured Queries](#Querying-with-Structured-Queries)
   * [Querying with SQL](#Querying-with-SQL)
-  * [Querying with a SQL builder](#Querying-with-a-SQL-builder)
-  * [Multiple queries in a single transaction](#Multiple-queries-in-a-single-transaction)
+  * [Querying with custom request](#Querying-with-a-custom-request)
+
+[structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
 
 ### Querying with SQL
 
-For simple queries it can often be very convenient to specify how you want to fetch data from SQLite
-as a raw SQL query string. For example, if you simply want to fetch all records from a table, you
-can do so using the
-[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>) key:
+[Structured Queries][structured-queries-gh] is a library for building type-safe queries that safely
+and performantly decode into Swift data types. For example, if you simply want to fetch all records
+from a table, you can do so by plugging the query directly into
+[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(_:database:)>):
 
 ```swift
-@SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
+@SharedReader(.fetchAll(Item.all())
+var items
 ```
 
 And if you want to sort the results, you can do so with an ordering clause:
 
 ```swift
-@SharedReader(.fetchAll(sql: "SELECT * FROM items ORDER BY createdAt DESC"))
-var items: [Item]
+@SharedReader(.fetchAll(Item.order { $0.createdAt.desc() }))
+var items
 ```
 
 Or, if you want to only compute an aggregate of the data in a table, such as the count of the rows,
 you can do so using the 
-[`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)>) key:
+[`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(_:database:)>) key:
+
+```swift
+@SharedReader(.fetchOne(Item.count())) 
+var itemsCount = 0
+```
+
+While Structured Queries' builder is powerful, it is also stricter than SQLite, which will happily
+coerce any data into any type, and some queries are more conveniently expressed through these
+coercions. Structured Queries should never get in your way, so rather than describe to the Swift
+type system every explicit cast and coalesce, you can always embed SQL directly in a query using
+the `#sql` macro:
+
+```swift
+@SharedReader(.fetchAll(Item.where { #sql("\($0.createdAt) > date('now', '-7 days')") }))
+var items
+```
+
+The `#sql` macro will safely bind any input and even perform basic syntax validation.
+
+You can even use `#sql` to write the entire query:
+
+```swift
+@SharedReader(
+  #sql(
+    """
+    SELECT \(Item.columns) FROM \(Item.self)
+    WHERE \(Item.createdAt) > date('now', '-7 days')
+    """
+  )
+)
+var items: [Item]
+```
+
+The choice is up to you for each query or query fragment. To learn more, see the
+[Structured Queries documentation][structured-queries-docs].
+
+[structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
+[structured-queries-docs]: #TODO
+
+### Querying with raw SQL
+
+SharingGRDB also comes with a more basic set of tools that work directly with GRDB. This includes
+a [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>) key that takes a raw
+SQL string:
+
+```swift
+@SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
+```
+
+As well as a [`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)>) key:
 
 ```swift
 @SharedReader(.fetchOne(sql: "SELECT count(*) FROM items")) 
 var itemsCount = 0
 ```
 
-In each of these cases, the query is so simple that you may prefer writing the SQL yourself.
-After all, the data is ultimately stored in SQLite, and so being very familiar with how SQL works is
-only beneficial to you.
+These APIs simply feed their data directly to GRDB's equivalent `Database` APIs, which means it is
+up to you to safely bind arguments and avoid SQL injection. If you want to write SQL queries by
+hand, consider using Structured Queries' `#sql` macro, instead.
 
-However, there are some downsides to this. First, complex queries can get very noisy at the call
-site, such as if you have filtering logic:
+> Note: While GRDB comes with its own query builder, its lack of hashable identity means that it is
+> not directly compatible with `@SharedReader`. It is for this reason SharingGRDB includes bindings
+> to [Structured Queries][structured-queries-gh], a powerful SQL builder library that preserves a
+> hashable identity for its queries.
 
-```swift
-@SharedReader(
-  .fetchAll(
-    sql: """
-      SELECT * FROM items
-      WHERE NOT isInStock
-      ORDER BY createdAt DESC
-      """
-  )
-)
-var outOfStockItems: [Item]
-```
+[structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
 
-And second, and most egregious, is that a raw string is susceptible to typos and the compiler cannot
-help us write valid SQL code. For example, if we accidentally specified "`ORDER`" instead of
-"`ORDER BY`":
+### Querying with custom requests
+
+It is also possible to fetch data for a `@SharedReader` from a database connection. This can be
+useful if you want to perform several queries in a single database transaction:
+
+Each instance of `@SharedReader` in a feature executes each of their queries in a separate
+transaction. So, if we wanted to query for all in-stock items, as well as the count of all items
+(in-stock plus out-of-stock) like so:
 
 ```swift
-@SharedReader(
-  .fetchAll(
-    sql: """
-      SELECT * FROM items
-      WHERE NOT isInStock
-      ORDER createdAt DESC
-      """
-  )
-)
-var outOfStockItems: [Item]
+@SharedReader(.fetchOne(Item.count()))
+var itemsCount = 0
+
+@SharedReader(.fetchAll(Item.where(\.isInStock)))
+var inStockItems
 ```
 
-…then this will compile just fine but will be a runtime error. And further, you will often need to
-build up a complex query from various settings in your feature, and doing so will rely on messy
-string interpolation.
+…this is technically 2 queries run in 2 separate database transactions.
 
-For these reasons, and more, people turn to query builders.
+Often this can be just fine, but if you have multiple queries that tend to change at the same
+time (_e.g._, when items are created or deleted, `itemsCount` and `inStockItems` will change
+at the same time), then you can bundle these two queries into a single transaction.
 
-### Querying with a SQL builder
-
-The GRDB library comes with a set of [query building tools][query-interface] that allow one to build
-SQL statements in a safer manner. For example, something as simple as:
+To do this, one simply defines a conformance to our ``FetchKeyRequest`` protocol, and in that
+conformance one can use the builder tools to query the database:
 
 ```swift
-let query = Item.all()
+struct Items: FetchKeyRequest {
+  struct Value {
+    var inStockItems: [Item] = []
+    var itemsCount = 0
+  }
+  func fetch(_ db: Database) throws -> Value {
+    try Value(
+      inStockItems: Item.where(\.isInStock).fetchAll(db),
+      itemsCount: Item.fetchCount(db)
+    )
+  }
+}
 ```
 
-…represents the SQL statement:
+Here we have defined a ``FetchKeyRequest/Value`` type inside the conformance that represents all the
+data we want to query for in a single transaction, and then we can construct it and return it from
+the ``FetchKeyRequest/fetch(_:)`` method.
 
-```sql
-SELECT * FROM items
+With this conformance defined we can use 
+[`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)-3qcpd>) key to execute the query specified
+by the `Items` type, and we can access the `inStockItems` and `itemsCount` properties to get to the
+queried data:
+
+```swift
+@SharedReader(.fetch(Items()) var items = Items.Value()
+items.inStockItems  // [Item(/* ... */), /* ... */]
+items.itemsCount    // 100
 ```
 
-And the following:
+> Note: A default must be provided to `@SharedReader` since it is querying for a custom data type
+> instead of a collection of data.
+
+You can perform any kind of work and return any kind of data from ``FetchKeyRequest/fetch(_:)``,
+which means if you have existing code exercising GRDB APIs, they are immediately usable. For
+example, you may have some code that is using GRDB's built-in query builder:
 
 ```swift
 let query = Item.all()
@@ -108,27 +174,8 @@ let query = Item.all()
   .order(Column("createdAt").desc)
 ```
 
-…represents the SQL statement:
-
-```sql
-SELECT * FROM items
-WHERE NOT isInStock
-ORDER BY createdAt DESC
-```
-
-Some may prefer writing their SQL statements in this style rather than a raw SQL string, but we
-always recommend being fully familiar with the underlying SQL being generated by the builder.
-
-Unfortunately, one cannot use this query builder directly with the `@SharedReader` like this:
-
-```swift
-@SharedReader(.fetch(Item.all())) var items  🛑
-```
-
-This is because the query builder does not provide a unique, `Hashable` identity, which is necessary
-to be used with `@SharedReader`. To work around this, one simply defines a conformance to our
-``FetchKeyRequest`` protocol, which requires hashability, and in that conformance one can use
-the builder tools to query the database:
+Well there is no need to rewrite this code. Because `fetch` is handed a GRDB database connection,
+you are free to use it however you please:
 
 ```swift
 struct Items: FetchKeyRequest {
@@ -140,76 +187,7 @@ struct Items: FetchKeyRequest {
   }
 }
 ```
- 
-With this conformance defined one can use 
-[`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)-3qcpd>) key to execute the
-query specified by the `Items` type:
-
-```swift
-@SharedReader(.fetch(Items()) var items
-```
-
-> Note: Because of the type information available to `Items`, the type and default value can be
-> omitted from the declaration of `items`.
 
 Typically the conformances to ``FetchKeyRequest`` can even be made private and nested inside
 whatever type they are used in, such as SwiftUI view, `@Observable` model, or UIKit view controller.
 The only time it needs to be made public is if it's shared amongst many features.
-
-### Multiple queries in a single transaction
-
-Querying with ``FetchKeyRequest`` has the added benefit of being able to execute multiple queries in
-a single database transaction. Right now each instance of `@SharedReader` in a feature executes
-each of their queries in a separate transaction. So, if we wanted to query for all in stock
-items, as well as the count of all items (in stock plus out of stock) like so:
-
-```swift
-@SharedReader(.fetchOne(sql: "SELECT count(*) FROM items"))
-var itemsCount = 0
-
-@SharedReader(.fetchAll(sql: "SELECT * FROM items WHERE isInStock"))
-var inStockItems: [Item]
-```
-
-…this is technically 2 queries run in 2 separate database transactions.
-
-Often this can be just fine, but if you have multiple queries that tend to change at the same
-time (_e.g._, when items are created or deleted, `itemsCount` and `inStockItems` will change
-at the same time), then you can use ``FetchKeyRequest`` to bundle these two queries into a single
-transaction.
-
-To do this, define a ``FetchKeyRequest/Value`` type inside the conformance that represents all the
-data you want to query for, and then construct it inside the ``FetchKeyRequest/fetch(_:)``
-method:
-
-```swift
-struct Items: FetchKeyRequest {
-  struct Value {
-    var inStockItems: [Item] = []
-    var itemsCount = 0
-  }
-  func fetch(_ db: Database) throws -> Value {
-    try Value(
-      inStockItems: Item.all().filter(Column("isInStock")).fetchAll(db),
-      itemsCount: Item.fetchCount(db)
-    )
-  }
-}
-```
-
-This selects the in-stock items and the total count of items as two queries inside a single database
-transaction.
-
-Then you can use this key just as you did before, but now you can access the `inStockItems` and
-`itemsCount` properties to access the queried data:
-
-```swift
-@SharedReader(.fetch(Items())) var items = Items.Value()
-items.inStockItems  // [Item(/* ... */), /* ... */]
-items.itemsCount    // 100
-```
-
-> Note: A default must be provided to `@SharedReader` since it is querying for a custom data type
-> instead of a collection of data.
-
-[query-interface]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/queryinterface

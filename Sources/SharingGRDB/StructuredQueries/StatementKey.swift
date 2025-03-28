@@ -46,6 +46,7 @@ extension SharedReaderKey {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SharedReaderKey {
+  @_disfavoredOverload
   public static func fetchAll<S: SelectStatement, each J: StructuredQueriesCore.Table>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
@@ -58,6 +59,7 @@ extension SharedReaderKey {
     fetchAll(statement.selectStar(), database: database)
   }
 
+  @_disfavoredOverload
   public static func fetchAll<
     S: SelectStatement,
     V1: QueryRepresentable,
@@ -73,6 +75,7 @@ extension SharedReaderKey {
     fetch(FetchAllStatementPackRequest(statement: statement), database: database)
   }
 
+  @_disfavoredOverload
   public static func fetchOne<each Value: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<(repeat each Value)>,
     database: (any DatabaseReader)? = nil
@@ -122,6 +125,7 @@ extension SharedReaderKey {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SharedReaderKey {
+  @_disfavoredOverload
   public static func fetchAll<S: SelectStatement, each J: StructuredQueriesCore.Table>(
     _ statement: S,
     database: (any DatabaseReader)? = nil,
@@ -135,6 +139,7 @@ extension SharedReaderKey {
     fetchAll(statement.selectStar(), database: database, scheduler: scheduler)
   }
 
+  @_disfavoredOverload
   public static func fetchAll<
     S: SelectStatement,
     V1: QueryRepresentable,
@@ -151,6 +156,7 @@ extension SharedReaderKey {
     fetch(FetchAllStatementPackRequest(statement: statement), database: database, scheduler: scheduler)
   }
 
+  @_disfavoredOverload
   public static func fetchOne<each Value: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<(repeat each Value)>,
     database: (any DatabaseReader)? = nil,
@@ -210,6 +216,7 @@ extension SharedReaderKey {
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SharedReaderKey {
+    @_disfavoredOverload
     public static func fetchAll<S: SelectStatement, each J: StructuredQueriesCore.Table>(
       _ statement: S,
       database: (any DatabaseReader)? = nil,
@@ -223,6 +230,7 @@ extension SharedReaderKey {
       fetchAll(statement.selectStar(), database: database, animation: animation)
     }
 
+    @_disfavoredOverload
     public static func fetchAll<each Value: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<(repeat each Value)>,
       database: (any DatabaseReader)? = nil,
@@ -236,6 +244,7 @@ extension SharedReaderKey {
       )
     }
 
+    @_disfavoredOverload
     public static func fetchOne<each Value: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<(repeat each Value)>,
       database: (any DatabaseReader)? = nil,

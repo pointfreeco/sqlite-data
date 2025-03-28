@@ -397,7 +397,6 @@ private struct FetchOne<Value: DatabaseValueConvertible>: FetchKeyRequest {
   }
 }
 
-// TODO: Better name or somewhere else to nest?
 public struct NotFound: Error {
   public init() {}
 }

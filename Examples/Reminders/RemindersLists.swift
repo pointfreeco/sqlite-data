@@ -13,7 +13,7 @@ struct RemindersListsView: View {
         .leftJoin(Reminder.all()) { $0.id.eq($1.remindersListID) }
         .select {
           ReminderListState.Columns(
-            reminderCount: #sql("total(NOT \($1.isCompleted))"),
+            reminderCount: #sql("count(iif(\($1.isCompleted), NULL, 1))"),
             remindersList: $0
           )
         },

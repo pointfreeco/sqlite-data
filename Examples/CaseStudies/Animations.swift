@@ -1,5 +1,6 @@
 import Dependencies
 import SharingGRDB
+import StructuredQueriesGRDB
 import SwiftUI
 
 struct AnimationsCaseStudy: SwiftUICaseStudy {
@@ -13,8 +14,8 @@ struct AnimationsCaseStudy: SwiftUICaseStudy {
     """
   let caseStudyTitle = "Animations"
 
-  @SharedReader(.fetchAll(sql: #"SELECT * FROM "facts" ORDER BY "id" DESC"#, animation: .default))
-  private var facts: [Fact]
+  @SharedReader(.fetchAll(Fact.order { $0.id.desc() }, animation: .default))
+  private var facts
 
   @Dependency(\.defaultDatabase) var database
 
@@ -36,7 +37,12 @@ struct AnimationsCaseStudy: SwiftUICaseStudy {
             as: UTF8.self
           )
           try await database.write { db in
-            _ = try Fact(body: fact).inserted(db)
+            try Fact.insert {
+              $0.body
+            } values: {
+              fact
+            }
+            .execute(db)
           }
         }
       } catch {}
@@ -44,13 +50,10 @@ struct AnimationsCaseStudy: SwiftUICaseStudy {
   }
 }
 
-private struct Fact: Codable, FetchableRecord, Identifiable, MutablePersistableRecord {
-  static let databaseTableName = "facts"
-  var id: Int64?
+@Table
+private struct Fact: Identifiable {
+  let id: Int64
   var body: String
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
 extension DatabaseWriter where Self == DatabaseQueue {
@@ -58,7 +61,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try db.create(table: Fact.databaseTableName) { table in
+      try db.create(table: Fact.tableName) { table in
         table.autoIncrementedPrimaryKey("id")
         table.column("body", .text).notNull()
       }

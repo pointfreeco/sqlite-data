@@ -79,8 +79,8 @@ whereas you use the `@Query` macro with SwiftData:
     ```swift
     // SharingGRDB
     struct ItemsView: View {
-      @SharedReader(.fetchAll(sql: "SELECT * FROM items"))
-      var items: [Item]
+      @SharedReader(.fetchAll(Item.order(by: \.title)))
+      var items
       
       var body: some View {
         ForEach(items) { item in
@@ -94,7 +94,7 @@ whereas you use the `@Query` macro with SwiftData:
     ```swift
     // SwiftData
     struct ItemsView: View {
-      @Query
+      @Query(sort: \Item.title)
       var items: [Item]
       
       var body: some View {
@@ -131,7 +131,7 @@ its functionality from scratch:
     @Observable
     class FeatureModel {
       @ObservationIgnored
-      @SharedReader(.fetchAll(sql: "SELECT * FROM items"))
+      @SharedReader(.fetchAll(Item.order(by: \.title))
       // ...
     }
     ```
@@ -199,17 +199,17 @@ search for rows in a table:
           Text(item.name)
         }
         .searchable(text: $searchText)
-        .onChange(of: searchText) {
-          updateSearchQuery()
+        .task(id: searchText) {
+          await updateSearchQuery()
         }
       }
       
       func updateSearchQuery() {
-        $items = SharedReader(
-          wrappedValue: items, 
+        await $items.load(
           .fetchAll(
-            sql: "SELECT * FROM items WHERE title LIKE ?",
-            arguments: ["%\(searchText)%"]
+            Item.where {
+              $0.title.contains(searchText)
+            }
           )
         )
       }
@@ -298,8 +298,9 @@ Then, to create a new row in a table you use the `write` and `insert` methods fr
     // SharingGRDB
     @Dependency(\.defaultDatabase) var database
     
-    var newItem = Item(/* ... */)
     try database.write { db in
+      let newItem = Item(/* ... */)
+      try Item.insert(newItem).execute(db)
       try newItem.insert(db)
     }
     ```
@@ -326,7 +327,7 @@ To update an existing row you can use the `write` and `update` methods from GRDB
     
     existingItem.title = "Computer"
     try database.write { db in
-      try existingItem.update(db)
+      try Item.update(existingItem).execute(db)
     }
     ```
   }
@@ -350,7 +351,7 @@ And to delete an existing row, you can use the `write` and `delete` methods from
     @Dependency(\.defaultDatabase) var database
     
     try database.write { db in
-      try existingItem.delete(db)
+      try Item.deleted(existingItem).execute(db)
     }
     ```
   }
@@ -407,46 +408,23 @@ fetch all of the teams with their corresponding sport, you can simply perform a 
 joins the two tables together:
 
 ```swift
-struct SportWithTeamCount: Decodable, FetchableRecord {
+@Selection
+struct SportWithTeamCount {
   let sport: Sport
   let teamCount: Int
 }
 
-let sportsWithTeamCounts = try sportsWithTeamCounts.fetchAll(
-  db,
-  Sport.annotated(
-    with: Sport.hasMany(Team.self).count
-  )
+@SharedReader(
+  .fetchAll(
+    Sport
+      .group(by: \.id)
+      .join(Team.all()) { $0.id.eq($1.sportID) }
+      .select {
+        SportWithTeamCount.Columns(sport: $0, teamCount: $1.count())
+      }
+   )
 )
-```
-
-This fetches all of the sports with the number of teams in each sport, all in a single query. And
-most importantly, it does not load all of the team data into memory just to compute their count.
-
-One can package this query up into a dedicated ``FetchKeyRequest`` like so:
-
-```swift
-struct SportsWithTeamCounts: FetchKeyRequest {
-  struct Record {
-    let sport: Sport
-    let teamCount: Int
-  }
-  func fetch(_ db: Database) throws -> [Record] {
-    try sportsWithTeamCounts.fetchAll(
-      db,
-      Sport.annotated(
-        with: Sport.hasMany(Team.self).count
-      )
-    )
-  }
-}
-```
-
-And then use this with `@SharedReader` in order to model state that is a collection of all sports
-along with their corresponding team count:
-
-```swift
-@SharedReader(.fetch(SportsWithTeamCounts())) var sportsWithTeamCounts
+var sportsWithTeamCounts
 ```
 
 If either of the "sports" or "teams" tables change, this query will be executed again and the
@@ -473,14 +451,15 @@ Lightweight migrations in SwiftData work for simple situations, such as adding a
   @Column {
     ```swift
     // SharingGRDB
+    @Table
     struct Item {
-      var id: Int64
+      let id: Int
       var title = ""
       var isInStock = true
     }
     
     migrator.registerMigration("Create 'items' table") { db in
-      db.createTable("items") { table in
+      db.createTable(Item.tableName) { table in
         table.autoIncrementedPrimaryKey("id")
         table.column("title", .text).notNull()
         table.column("isInStock", .boolean).notNull().defaults(to: true)
@@ -509,16 +488,16 @@ adding a `description` field to the `Item` type:
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    @Table
     struct Item {
-      var id: Int64
+      let id: Int
       var title = ""
       var description = ""
       var isInStock = true
     }
     
     migrator.registerMigration("Add 'description' column to 'items'") { db in
-      db.alterTable("items") { table in
+      db.alterTable(Item.tableName) { table in
         table.add(column: "description", .text)
       }
     }
@@ -585,14 +564,15 @@ structure of your data types. The overall steps to follow are as such:
     // SharingGRDB
     migrator.registerMigration("Make 'title' unique") { db in
       // 1️⃣ Delete all items that have duplicate title, keeping the first created one:
-      try db.execute("""
-        DELETE FROM "items"
-        WHERE rowid NOT IN (
-          SELECT min(rowid)
-          FROM "items"
-          GROUP BY "items"."title"
-        )
-        """)
+      try Item
+        .where {
+          !$0.id.in(
+            Item
+              .select { $0.id.min() }
+              .group(by: \.title)
+          )
+        }
+        .execute()
       // 2️⃣ Create unique index
       try db.create(indexOn: "items", columns: ["title"], options: .unique)
     }

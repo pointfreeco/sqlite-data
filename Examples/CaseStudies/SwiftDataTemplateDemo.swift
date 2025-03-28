@@ -1,4 +1,5 @@
 import SharingGRDB
+import StructuredQueriesGRDB
 import SwiftUI
 
 struct SwiftDataTemplateView: SwiftUICaseStudy {
@@ -9,12 +10,12 @@ struct SwiftDataTemplateView: SwiftUICaseStudy {
   let caseStudyTitle = "SwiftData Template"
 
   @Dependency(\.defaultDatabase) private var database
-  @SharedReader(.fetch(Items(), animation: .default)) private var items
+  @SharedReader(.fetchAll(Item.all(), animation: .default)) private var items
 
   var body: some View {
     NavigationStack {
       List {
-        ForEach(items, id: \.id) { item in
+        ForEach(items) { item in
           NavigationLink {
             Text(
               "Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))"
@@ -41,7 +42,7 @@ struct SwiftDataTemplateView: SwiftUICaseStudy {
   private func addItem() {
     withErrorReporting {
       try database.write { db in
-        _ = try Item(timestamp: Date()).inserted(db)
+        try Item.insert().execute(db)
       }
     }
   }
@@ -49,20 +50,16 @@ struct SwiftDataTemplateView: SwiftUICaseStudy {
   private func deleteItems(offsets: IndexSet) {
     withErrorReporting {
       try database.write { db in
-        _ = try Item.deleteAll(db, keys: offsets.map { items[$0].id })
+        try Item.where { $0.id.in(offsets.map { items[$0].id }) }.delete().execute(db)
       }
-    }
-  }
-
-  private struct Items: FetchKeyRequest {
-    func fetch(_ db: Database) throws -> [Item] {
-      try Item.order(Column("timestamp").desc).fetchAll(db)
     }
   }
 }
 
-private struct Item: Codable, Hashable, FetchableRecord, MutablePersistableRecord {
-  var id: Int64?
+@Table
+private struct Item: Identifiable {
+  let id: Int
+  @Column(as: Date.ISO8601Representation.self)
   var timestamp: Date
 }
 
@@ -71,9 +68,9 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create items table") { db in
-      try db.create(table: Item.databaseTableName) { table in
+      try db.create(table: Item.tableName) { table in
         table.autoIncrementedPrimaryKey("id")
-        table.column("timestamp", .datetime).notNull()
+        table.column("timestamp", .datetime).notNull().defaults(sql: "CURRENT_TIMESTAMP")
       }
     }
     try! migrator.migrate(databaseQueue)

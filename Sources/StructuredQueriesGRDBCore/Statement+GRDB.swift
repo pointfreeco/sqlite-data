@@ -50,6 +50,13 @@ extension StructuredQueriesCore.Statement {
 }
 
 extension SelectStatement where QueryValue == (), Joins == () {
+  public func fetchCount(_ db: Database) throws -> Int {
+    let query = all().count()
+    return try query.fetchOne(db) ?? 0
+  }
+}
+
+extension SelectStatement where QueryValue == (), Joins == () {
   public func fetchAll(_ db: Database) throws -> [From.QueryOutput] {
     let query = selectStar()
     return try query.fetchAll(db)

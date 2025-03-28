@@ -1,5 +1,6 @@
 import Dependencies
 import SharingGRDB
+import StructuredQueriesGRDB
 import SwiftUI
 
 struct ObservableModelDemo: SwiftUICaseStudy {
@@ -47,10 +48,10 @@ struct ObservableModelDemo: SwiftUICaseStudy {
 @MainActor
 private class Model {
   @ObservationIgnored
-  @SharedReader(.fetchAll(sql: #"SELECT * FROM "facts" ORDER BY "id" DESC"#, animation: .default))
-  var facts: [Fact]
+  @SharedReader(.fetchAll(Fact.order { $0.id.desc() }, animation: .default))
+  var facts
   @ObservationIgnored
-  @SharedReader(.fetchOne(sql: #"SELECT count(*) FROM "facts""#, animation: .default))
+  @SharedReader(.fetchOne(Fact.count(), animation: .default))
   var factsCount = 0
   var number = 0
 
@@ -66,27 +67,34 @@ private class Model {
         as: UTF8.self
       )
       try await database.write { db in
-        _ = try Fact(body: fact).inserted(db)
+        try Fact.insert {
+          $0.body
+        } values: {
+          fact
+        }
+        .execute(db)
       }
     }
   }
 
   func deleteFact(indices: IndexSet) {
-    _ = withErrorReporting {
+    withErrorReporting {
       try database.write { db in
-        try Fact.deleteAll(db, ids: indices.compactMap { facts[$0].id })
+        try database.write { db in
+          try Fact
+            .where{ $0.id.in(indices.compactMap { facts[$0].id }) }
+            .delete()
+            .execute(db)
+        }
       }
     }
   }
 }
 
-private struct Fact: Codable, FetchableRecord, Identifiable, MutablePersistableRecord {
-  static let databaseTableName = "facts"
-  var id: Int64?
+@Table
+private struct Fact: Identifiable {
+  let id: Int
   var body: String
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
 extension DatabaseWriter where Self == DatabaseQueue {
@@ -94,7 +102,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try db.create(table: Fact.databaseTableName) { table in
+      try db.create(table: Fact.tableName) { table in
         table.autoIncrementedPrimaryKey("id")
         table.column("body", .text).notNull()
       }

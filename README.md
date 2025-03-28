@@ -40,19 +40,15 @@ back to the iOS 13 generation of targets.
 <td width=415>
       
 ```swift
-@SharedReader(
-  .fetchAll(
-    sql: "SELECT * FROM items"
-  )
-)
-var items: [Item]
+@SharedReader(.fetchAll(Item.order(by: \.title)))
+var items
 ```
 
 </td>
 <td width=415>
 
 ```swift
-@Query
+@Query(sort: \Item.title)
 var items: [Item]
 ```
 

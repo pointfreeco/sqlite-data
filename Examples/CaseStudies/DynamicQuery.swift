@@ -1,5 +1,6 @@
 import Dependencies
 import SharingGRDB
+import StructuredQueriesGRDB
 import SwiftUI
 
 struct DynamicQueryDemo: SwiftUICaseStudy {
@@ -41,7 +42,10 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
         .onDelete { indexSet in
           withErrorReporting {
             try database.write { db in
-              _ = try Fact.deleteAll(db, ids: indexSet.compactMap { facts.facts[$0].id })
+              try Fact
+                .where{ $0.id.in(indexSet.compactMap { facts.facts[$0].id }) }
+                .delete()
+                .execute(db)
             }
           }
         }
@@ -65,7 +69,12 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
             as: UTF8.self
           )
           try await database.write { db in
-            _ = try Fact(body: fact).inserted(db)
+            try Fact.insert {
+              $0.body
+            } values: {
+              fact
+            }
+            .execute(db)
           }
         }
       } catch {}
@@ -80,24 +89,22 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
       var totalCount = 0
     }
     func fetch(_ db: Database) throws -> Value {
-      let query = Fact.order(Column("id").desc).filter(Column("body").like("%\(query)%"))
+      let search = Fact
+        .where { $0.body.contains(query) }
+        .order { $0.id.desc() }
       return try Value(
-        facts: query.fetchAll(db),
-        searchCount: query.fetchCount(db),
-        totalCount: Fact.fetchCount(db)
+        facts: search.fetchAll(db),
+        searchCount: search.fetchCount(db),
+        totalCount: Fact.all().fetchCount(db)
       )
     }
   }
-
 }
 
-private struct Fact: Codable, FetchableRecord, Identifiable, MutablePersistableRecord {
-  static let databaseTableName = "facts"
-  var id: Int64?
+@Table
+private struct Fact: Identifiable {
+  let id: Int
   var body: String
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
 extension DatabaseWriter where Self == DatabaseQueue {
@@ -105,7 +112,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try db.create(table: Fact.databaseTableName) { table in
+      try db.create(table: Fact.tableName) { table in
         table.autoIncrementedPrimaryKey("id")
         table.column("body", .text).notNull()
       }

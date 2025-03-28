@@ -5,10 +5,10 @@ import PackageDescription
 let package = Package(
   name: "sharing-grdb",
   platforms: [
-    .iOS(.v16),
-    .macOS(.v13),
-    .tvOS(.v16),
-    .watchOS(.v10),
+    .iOS(.v13),
+    .macOS(.v10_15),
+    .tvOS(.v13),
+    .watchOS(.v7),
   ],
   products: [
     .library(

@@ -9,10 +9,8 @@ back to the iOS 13 generation of targets.
   @Column {
     ```swift
     // SharingGRDB
-    @SharedReader(
-      .fetchAll(sql: "SELECT * FROM items")
-    )
-    var items: [Item]
+    @SharedReader(.fetch(Item.all())
+    var items
     ```
   }
   @Column {
@@ -83,8 +81,8 @@ This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies
  [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:animation:)>):
 
 ```swift
-@SharedReader(.fetchAll(sql: "SELECT * FROM items"))
-var items: [Item]
+@SharedReader(.fetch(Item.all()))
+var items
 ```
 
 And you can access this database throughout your application in a way similar to how one accesses
@@ -96,9 +94,9 @@ a model context, via a property wrapper:
     // SharingGRDB
     @Dependency(\.defaultDatabase) var database
     
-    var newItem = Item(/* ... */)
     try database.write { db in
-      try newItem.insert(db)
+      let newItem = Item(/* ... */)
+      try Item.insert(newItem).execute(db)
     }
     ```
   }

@@ -1,4 +1,5 @@
 import Dependencies
+import StructuredQueriesGRDB
 import SharingGRDB
 import SwiftUI
 
@@ -46,7 +47,7 @@ struct TransactionDemo: SwiftUICaseStudy {
             as: UTF8.self
           )
           try await database.write { db in
-            _ = try Fact(body: fact).inserted(db)
+            try Fact.insert { $0.body } values: { fact }.execute(db)
           }
         }
       } catch {}
@@ -60,21 +61,19 @@ struct TransactionDemo: SwiftUICaseStudy {
     }
     func fetch(_ db: Database) throws -> Value {
       try Value(
-        facts: Fact.order(Column("id").desc).fetchAll(db),
-        count: Fact.fetchCount(db)
+        facts: Fact.order { $0.id.desc() }.fetchAll(db),
+        count: Fact.all().fetchCount(db)
       )
     }
   }
 
 }
 
-private struct Fact: Codable, FetchableRecord, Identifiable, MutablePersistableRecord {
+@Table
+private struct Fact: Identifiable {
   static let databaseTableName = "facts"
-  var id: Int64?
+  let id: Int64
   var body: String
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
 extension DatabaseWriter where Self == DatabaseQueue {
@@ -82,7 +81,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try db.create(table: Fact.databaseTableName) { table in
+      try db.create(table: Fact.tableName) { table in
         table.autoIncrementedPrimaryKey("id")
         table.column("body", .text).notNull()
       }
