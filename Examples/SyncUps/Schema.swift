@@ -100,31 +100,40 @@ func appDatabase() throws -> any DatabaseWriter {
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Create sync-ups table") { db in
-    try db.create(table: SyncUp.tableName) { table in
-      table.autoIncrementedPrimaryKey("id")
-      table.column("seconds", .integer).defaults(to: 5 * 60).notNull()
-      table.column("theme", .text).notNull().defaults(to: Theme.bubblegum.rawValue)
-      table.column("title", .text).notNull()
-    }
+    try #sql("""
+      CREATE TABLE "syncUps" (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "seconds" INTEGER NOT NULL DEFAULT 300,
+        "theme" TEXT NOT NULL DEFAULT \(raw: Theme.bubblegum.rawValue),
+        "title" TEXT NOT NULL
+      )
+      """)
+    .execute(db)
   }
   migrator.registerMigration("Create attendees table") { db in
-    try db.create(table: Attendee.tableName) { table in
-      table.autoIncrementedPrimaryKey("id")
-      table.column("name", .text).notNull()
-      table.column("syncUpID", .integer)
-        .references(SyncUp.tableName, column: "id", onDelete: .cascade)
-        .notNull()
-    }
+    try #sql("""
+      CREATE TABLE "attendees" (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "name" TEXT NOT NULL,
+        "syncUpID" INTEGER NOT NULL,
+        
+        FOREIGN KEY("syncUpID") REFERENCES "syncUps"("id") ON DELETE CASCADE
+      )
+      """)
+    .execute(db)
   }
   migrator.registerMigration("Create meetings table") { db in
-    try db.create(table: Meeting.tableName) { table in
-      table.autoIncrementedPrimaryKey("id")
-      table.column("date", .datetime).notNull().unique().defaults(sql: "CURRENT_TIMESTAMP")
-      table.column("syncUpID", .integer)
-        .references(SyncUp.tableName, column: "id", onDelete: .cascade)
-        .notNull()
-      table.column("transcript", .text).notNull()
-    }
+    try #sql("""
+      CREATE TABLE "meetings" (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "date" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP UNIQUE,
+        "syncUpID" INTEGER NOT NULL,
+        "transcript" TEXT NOT NULL,
+      
+        FOREIGN KEY("syncUpID") REFERENCES "syncUps"("id") ON DELETE CASCADE
+      )
+      """)
+    .execute(db)
   }
   #if DEBUG
     migrator.registerMigration("Insert sample data") { db in
