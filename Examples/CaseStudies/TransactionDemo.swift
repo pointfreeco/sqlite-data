@@ -66,7 +66,6 @@ struct TransactionDemo: SwiftUICaseStudy {
       )
     }
   }
-
 }
 
 @Table

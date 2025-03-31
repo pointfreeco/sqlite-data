@@ -1,24 +1,29 @@
 import SQLite3
 import StructuredQueriesCore
 
+@usableFromInline
 struct SQLiteQueryDecoder: QueryDecoder {
-  private let database: OpaquePointer?
-  private let statement: OpaquePointer
-  private var currentIndex: Int32 = 0
+  @usableFromInline
+  let database: OpaquePointer?
 
+  @usableFromInline
+  let statement: OpaquePointer
+
+  @usableFromInline
+  var currentIndex: Int32 = 0
+
+  @usableFromInline
   init(database: OpaquePointer?, statement: OpaquePointer) {
     self.database = database
     self.statement = statement
   }
 
   @inlinable
-  @inline(__always)
   mutating func next() {
     currentIndex = 0
   }
 
   @inlinable
-  @inline(__always)
   mutating func decode(_ columnType: [UInt8].Type) throws -> [UInt8]? {
     defer { currentIndex += 1 }
     guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
@@ -31,7 +36,6 @@ struct SQLiteQueryDecoder: QueryDecoder {
   }
 
   @inlinable
-  @inline(__always)
   mutating func decode(_ columnType: Double.Type) throws -> Double? {
     defer { currentIndex += 1 }
     guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
@@ -39,7 +43,6 @@ struct SQLiteQueryDecoder: QueryDecoder {
   }
 
   @inlinable
-  @inline(__always)
   mutating func decode(_ columnType: Int64.Type) throws -> Int64? {
     defer { currentIndex += 1 }
     guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
@@ -47,7 +50,6 @@ struct SQLiteQueryDecoder: QueryDecoder {
   }
 
   @inlinable
-  @inline(__always)
   mutating func decode(_ columnType: String.Type) throws -> String? {
     defer { currentIndex += 1 }
     guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
@@ -55,13 +57,11 @@ struct SQLiteQueryDecoder: QueryDecoder {
   }
 
   @inlinable
-  @inline(__always)
   mutating func decode(_ columnType: Bool.Type) throws -> Bool? {
     try decode(Int64.self).map { $0 != 0 }
   }
 
   @inlinable
-  @inline(__always)
   mutating func decode(_ columnType: Int.Type) throws -> Int? {
     try decode(Int64.self).map(Int.init)
   }

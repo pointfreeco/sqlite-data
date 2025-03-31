@@ -16,12 +16,14 @@ connection.
 
 [structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
 
-### Querying with SQL
+### Querying with Structured Queries
 
 [Structured Queries][structured-queries-gh] is a library for building type-safe queries that safely
 and performantly decode into Swift data types. For example, if you simply want to fetch all records
 from a table, you can do so by plugging the query directly into
 [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(_:database:)>):
+
+@Comment { TODO: Add '@Table' definition? }
 
 ```swift
 @SharedReader(.fetchAll(Item.all())
@@ -78,6 +80,11 @@ The choice is up to you for each query or query fragment. To learn more, see the
 [structured-queries-docs]: #TODO
 
 ### Querying with raw SQL
+
+@Comment {
+  TODO: Call out why these tools exist (to allow one to avoid the Swift Syntax cost of building a
+  macro)
+}
 
 SharingGRDB also comes with a more basic set of tools that work directly with GRDB. This includes
 a [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>) key that takes a raw

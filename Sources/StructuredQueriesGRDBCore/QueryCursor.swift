@@ -7,8 +7,10 @@ public class QueryCursor<Element>: DatabaseCursor {
   public var _isDone = false
   public let _statement: GRDB.Statement
 
-  fileprivate var decoder: SQLiteQueryDecoder
+  @usableFromInline
+  var decoder: SQLiteQueryDecoder
 
+  @usableFromInline
   init(db: Database, query: QueryFragment) throws {
     (_statement, decoder) = try db.prepare(query: query)
   }
@@ -22,9 +24,11 @@ public class QueryCursor<Element>: DatabaseCursor {
   }
 }
 
+@usableFromInline
 final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryValue.QueryOutput> {
   public typealias Element = QueryValue.QueryOutput
 
+  @inlinable
   public override func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
     let element = try decoder.decodeColumns(QueryValue.self)
     decoder.next()
@@ -33,11 +37,13 @@ final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryV
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+@usableFromInline
 final class QueryPackCursor<
   each QueryValue: QueryRepresentable
 >: QueryCursor<(repeat (each QueryValue).QueryOutput)> {
   public typealias Element = (repeat (each QueryValue).QueryOutput)
 
+  @inlinable
   public override func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
     let element = try decoder.decodeColumns((repeat each QueryValue).self)
     decoder.next()
@@ -45,19 +51,26 @@ final class QueryPackCursor<
   }
 }
 
+@usableFromInline
 final class QueryVoidCursor: QueryCursor<Void> {
   typealias Element = ()
 
+  @inlinable
   override func _element(sqliteStatement _: SQLiteStatement) throws {
     try decoder.decodeColumns(Void.self)
     decoder.next()
   }
 }
 
-private struct EmptyQuery: Error {}
+@usableFromInline
+struct EmptyQuery: Error {
+  @usableFromInline
+  init() {}
+}
 
 extension Database {
-  fileprivate func prepare(query: QueryFragment) throws -> (GRDB.Statement, SQLiteQueryDecoder) {
+  @inlinable
+  func prepare(query: QueryFragment) throws -> (GRDB.Statement, SQLiteQueryDecoder) {
     guard !query.isEmpty else { throw EmptyQuery() }
     let statement = try makeStatement(sql: query.string)
     statement.arguments = try StatementArguments(query.bindings.map { try $0.databaseValue })
@@ -69,7 +82,8 @@ extension Database {
 }
 
 extension QueryBinding {
-  fileprivate var databaseValue: DatabaseValue {
+  @inlinable
+  var databaseValue: DatabaseValue {
     get throws {
       switch self {
       case let .blob(blob):
