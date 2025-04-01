@@ -133,8 +133,8 @@ struct ReminderRowPreview: PreviewProvider {
     let _ = try! prepareDependencies {
       $0.defaultDatabase = try Reminders.appDatabase()
       try $0.defaultDatabase.read { db in
-        reminder = try Reminder.all().fetchOne(db)
-        reminderList = try RemindersList.all().fetchOne(db)!
+        reminder = try Reminder.all.fetchOne(db)
+        reminderList = try RemindersList.all.fetchOne(db)!
       }
     }
 

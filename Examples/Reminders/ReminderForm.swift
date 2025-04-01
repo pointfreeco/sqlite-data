@@ -135,7 +135,7 @@ struct ReminderFormView: View {
       do {
         selectedTags = try await database.read { db in
           try Tag.order(by: \.name)
-            .join(ReminderTag.all()) { $0.id.eq($1.tagID) && $1.reminderID.eq(reminderID) }
+            .join(ReminderTag.all) { $0.id.eq($1.tagID) && $1.reminderID.eq(reminderID) }
             .select { tag, _ in tag }
             .fetchAll(db)
         }
@@ -211,7 +211,7 @@ struct ReminderFormPreview: PreviewProvider {
     let (remindersList, reminder) = try! prepareDependencies {
       $0.defaultDatabase = try Reminders.appDatabase()
       return try $0.defaultDatabase.write { db in
-        let remindersList = try RemindersList.all().fetchOne(db)!
+        let remindersList = try RemindersList.all.fetchOne(db)!
         return (
           remindersList,
           try Reminder.where { $0.remindersListID == remindersList.id }.fetchOne(db)!

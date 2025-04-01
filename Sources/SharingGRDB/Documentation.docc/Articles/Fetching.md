@@ -26,7 +26,7 @@ from a table, you can do so by plugging the query directly into
 @Comment { TODO: Add '@Table' definition? }
 
 ```swift
-@SharedReader(.fetchAll(Item.all())
+@SharedReader(.fetchAll(Item.all)
 var items
 ```
 
@@ -176,7 +176,7 @@ which means if you have existing code exercising GRDB APIs, they are immediately
 example, you may have some code that is using GRDB's built-in query builder:
 
 ```swift
-let query = Item.all()
+let query = Item.all
   .filter(!Column("isInStock"))
   .order(Column("createdAt").desc)
 ```
@@ -187,7 +187,7 @@ you are free to use it however you please:
 ```swift
 struct Items: FetchKeyRequest {
   func fetch(_ db: Database) throws -> [Item] {
-    try Item.all()
+    try Item.all
       .filter(!Column("isInStock"))
       .order(Column("createdAt").desc)
       .fetch(db)

@@ -145,8 +145,8 @@ struct RemindersListDetailView: View {
 
 extension Reminder {
   static let withTags = group(by: \.id)
-    .leftJoin(ReminderTag.all()) { $0.id.eq($1.reminderID) }
-    .leftJoin(Tag.all()) { $1.tagID.eq($2.id) }
+    .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
+    .leftJoin(Tag.all) { $1.tagID.eq($2.id) }
 }
 
 struct RemindersListDetailPreview: PreviewProvider {
@@ -154,7 +154,7 @@ struct RemindersListDetailPreview: PreviewProvider {
     let remindersList = try! prepareDependencies {
       $0.defaultDatabase = try Reminders.appDatabase()
       return try $0.defaultDatabase.read { db in
-        try RemindersList.all().fetchOne(db)!
+        try RemindersList.all.fetchOne(db)!
       }
     }
     NavigationStack {

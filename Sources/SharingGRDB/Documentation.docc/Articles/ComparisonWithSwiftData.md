@@ -418,7 +418,7 @@ struct SportWithTeamCount {
   .fetchAll(
     Sport
       .group(by: \.id)
-      .join(Team.all()) { $0.id.eq($1.sportID) }
+      .join(Team.all { $0.id.eq($1.sportID) }
       .select {
         SportWithTeamCount.Columns(sport: $0, teamCount: $1.count())
       }
