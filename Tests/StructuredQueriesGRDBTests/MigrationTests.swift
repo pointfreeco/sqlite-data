@@ -4,15 +4,17 @@ import StructuredQueriesGRDB
 import Testing
 
 @Suite struct MigrationTests {
+  @available(iOS 15, *)
   @Test func dates() throws {
     let database = try DatabaseQueue()
-    var migrator = DatabaseMigrator()
-    migrator.registerMigration("Create schema") { db in
-      try db.create(table: "models") { t in
-        t.column("date", .datetime).notNull()
-      }
+    try database.write { db in
+      try #sql("""
+        CREATE TABLE "models" (
+          "date" TEXT NOT NULL
+        )
+        """)
+      .execute(db)
     }
-    try migrator.migrate(database)
 
     let timestamp = 123.456
     try database.write { db in
@@ -30,7 +32,8 @@ import Testing
   }
 }
 
+@available(iOS 15, *)
 @Table private struct Model {
-  @Column(as: .iso8601)
+  @Column(as: Date.ISO8601Representation.self)
   var date: Date
 }
