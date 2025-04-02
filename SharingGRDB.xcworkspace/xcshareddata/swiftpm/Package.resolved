@@ -1,5 +1,5 @@
 {
-  "originHash" : "64f6ac7f25940871c359a06f3e0d1c66e046838347b60b510af61a72761609a3",
+  "originHash" : "141d3aed2910d045d6dc4900a02d3b45ca6b03d07df4afef17680976fc0c5a57",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -128,12 +128,21 @@
       }
     },
     {
+      "identity" : "swift-snapshot-testing",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-snapshot-testing",
+      "state" : {
+        "revision" : "1be8144023c367c5de701a6313ed29a3a10bf59b",
+        "version" : "1.18.3"
+      }
+    },
+    {
       "identity" : "swift-structured-queries",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
-        "branch" : "unscoped",
-        "revision" : "22161de41d23b0ca5bb8fb4579b021b3e29568d9"
+        "branch" : "main",
+        "revision" : "7999fe596aa661f8aec59e5b0f3e5601026831f9"
       }
     },
     {

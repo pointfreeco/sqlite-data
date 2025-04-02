@@ -24,7 +24,7 @@ import Testing
       let grdbDate = try Date.fetchOne(db, sql: "SELECT * FROM models")
       try #expect(abs(#require(grdbDate).timeIntervalSince1970 - timestamp) < 0.001)
 
-      let date = try #require(try Model.all().fetchOne(db)).date
+      let date = try #require(try Model.all.fetchOne(db)).date
       try #expect(abs(#require(date).timeIntervalSince1970 - timestamp) < 0.001)
     }
   }
