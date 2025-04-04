@@ -59,7 +59,7 @@ extension StructuredQueriesCore.Statement {
 extension SelectStatement where QueryValue == (), Joins == () {
   @inlinable
   public func fetchCount(_ db: Database) throws -> Int {
-    let query = all().count()
+    let query = all.count()
     return try query.fetchOne(db) ?? 0
   }
 }
@@ -67,14 +67,20 @@ extension SelectStatement where QueryValue == (), Joins == () {
 extension SelectStatement where QueryValue == (), Joins == () {
   @inlinable
   public func fetchAll(_ db: Database) throws -> [From.QueryOutput] {
-    let query = all().select(\.self)
+    let query = all.select(\.self)
     return try query.fetchAll(db)
   }
 
   @inlinable
   public func fetchOne(_ db: Database) throws -> From.QueryOutput? {
-    let query = all().select(\.self)
+    let query = all.select(\.self)
     return try query.fetchOne(db)
+  }
+
+  @inlinable
+  public func fetchCursor(_ db: Database) throws -> QueryCursor<From.QueryOutput> {
+    let query = selectStar()
+    return try query.fetchCursor(db)
   }
 }
 
@@ -94,5 +100,13 @@ extension SelectStatement where QueryValue == () {
   ) throws -> (From.QueryOutput, repeat (each J).QueryOutput)?
   where Joins == (repeat each J) {
     try selectStar().fetchOne(db)
+  }
+
+  @inlinable
+  public func fetchCursor<each J: StructuredQueriesCore.Table>(
+    _ db: Database
+  ) throws -> QueryCursor<(From.QueryOutput, repeat (each J).QueryOutput)>
+  where Joins == (repeat each J) {
+    try selectStar().fetchCursor(db)
   }
 }
