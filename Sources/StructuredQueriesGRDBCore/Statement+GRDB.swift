@@ -67,20 +67,17 @@ extension SelectStatement where QueryValue == (), Joins == () {
 extension SelectStatement where QueryValue == (), Joins == () {
   @inlinable
   public func fetchAll(_ db: Database) throws -> [From.QueryOutput] {
-    let query = asSelect().select(\.self)
-    return try query.fetchAll(db)
+    try Array(fetchCursor(db))
   }
 
   @inlinable
   public func fetchOne(_ db: Database) throws -> From.QueryOutput? {
-    let query = asSelect().select(\.self)
-    return try query.fetchOne(db)
+    try fetchCursor(db).next()
   }
 
   @inlinable
   public func fetchCursor(_ db: Database) throws -> QueryCursor<From.QueryOutput> {
-    let query = selectStar()
-    return try query.fetchCursor(db)
+    try QueryValueCursor<From>(db: db, query: query)
   }
 }
 
