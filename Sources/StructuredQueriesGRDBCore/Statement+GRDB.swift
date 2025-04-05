@@ -88,7 +88,7 @@ extension SelectStatement where QueryValue == () {
     _ db: Database
   ) throws -> [(From.QueryOutput, repeat (each J).QueryOutput)]
   where Joins == (repeat each J) {
-    try selectStar().fetchAll(db)
+    try Array(fetchCursor(db))
   }
 
   @inlinable
@@ -96,7 +96,7 @@ extension SelectStatement where QueryValue == () {
     _ db: Database
   ) throws -> (From.QueryOutput, repeat (each J).QueryOutput)?
   where Joins == (repeat each J) {
-    try selectStar().fetchOne(db)
+    try fetchCursor(db).next()
   }
 
   @inlinable
@@ -104,6 +104,6 @@ extension SelectStatement where QueryValue == () {
     _ db: Database
   ) throws -> QueryCursor<(From.QueryOutput, repeat (each J).QueryOutput)>
   where Joins == (repeat each J) {
-    try selectStar().fetchCursor(db)
+    try QueryPackCursor<From, repeat each J>(db: db, query: query)
   }
 }
