@@ -11,7 +11,10 @@ extension StructuredQueriesCore.Statement {
   @inlinable
   public func fetchAll(_ db: Database) throws -> [QueryValue.QueryOutput]
   where QueryValue: QueryRepresentable {
-    try Array(fetchCursor(db))
+    let cursor = try QueryValueCursor<QueryValue>(db: db, query: query)
+    var output: [QueryValue.QueryOutput] = []
+    try cursor.forEach { output.append($0) }
+    return output
   }
 
   @inlinable
@@ -67,7 +70,10 @@ extension SelectStatement where QueryValue == (), Joins == () {
 extension SelectStatement where QueryValue == (), Joins == () {
   @inlinable
   public func fetchAll(_ db: Database) throws -> [From.QueryOutput] {
-    try Array(fetchCursor(db))
+    let cursor = try QueryValueCursor<From>(db: db, query: query)
+    var output: [From.QueryOutput] = []
+    try cursor.forEach { output.append($0) }
+    return output
   }
 
   @inlinable

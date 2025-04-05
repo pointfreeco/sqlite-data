@@ -30,7 +30,7 @@ final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryV
 
   @inlinable
   public override func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
-    let element = try decoder.decodeColumns(QueryValue.self)
+    let element = try QueryValue(decoder: &decoder).queryOutput
     decoder.next()
     return element
   }
