@@ -39,7 +39,7 @@ final class SyncUpFormModel: Identifiable {
 
     withErrorReporting {
       self.attendees = try database.read { db in
-        try Attendee.all()
+        try Attendee.all
           .where { $0.syncUpID.eq(syncUpID) }
           .fetchAll(db)
           .map { (attendee: Attendee) in AttendeeDraft(id: uuid(), name: attendee.name) }

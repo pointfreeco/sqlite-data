@@ -17,8 +17,8 @@ extension SharedReaderKey {
   /// ```swift
   /// struct Items: FetchKeyRequest {
   ///   func fetch(_ db: Database) throws -> [Item] {
-  ///     try Item.all()
-  ///       .order(Column("timestamp").desc)
+  ///     try Item.all
+  ///       .order { $0.timestamp.desc() }
   ///       .fetchAll(db)
   ///   }
   /// }

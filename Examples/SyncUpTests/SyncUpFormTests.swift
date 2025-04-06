@@ -37,7 +37,7 @@ struct SyncUpFormTests {
       $0.uuid = .incrementing
     }
     let existingSyncUp = try await database.read { db in
-      try #require(try SyncUp.all().fetchOne(db))
+      try #require(try SyncUp.all.fetchOne(db))
     }
     let draft = SyncUp.Draft(existingSyncUp)
     let model = SyncUpFormModel(syncUp: draft)

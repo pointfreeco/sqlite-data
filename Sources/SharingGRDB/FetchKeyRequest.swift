@@ -7,9 +7,9 @@ import GRDB
 /// ```swift
 /// struct Players: FetchKeyRequest {
 ///   func fetch(_ db: Database) throws -> [Player] {
-///     try Player.all()
-///       .filter(Column("isInjured") == false)
-///       .order(Column("name"))
+///     try Player
+///       .where { !$0.isInjured }
+///       .order(by: \.name)
 ///       .limit(10)
 ///       .fetchAll(db)
 ///   }

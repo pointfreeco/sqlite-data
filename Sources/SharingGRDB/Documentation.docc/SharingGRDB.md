@@ -9,7 +9,7 @@ back to the iOS 13 generation of targets.
   @Column {
     ```swift
     // SharingGRDB
-    @SharedReader(.fetch(Item.all())
+    @SharedReader(.fetch(Item.all))
     var items
     ```
   }
@@ -81,7 +81,7 @@ This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies
  [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:animation:)>):
 
 ```swift
-@SharedReader(.fetch(Item.all()))
+@SharedReader(.fetch(Item.all))
 var items
 ```
 

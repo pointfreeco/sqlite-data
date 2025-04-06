@@ -10,7 +10,7 @@ struct SwiftDataTemplateView: SwiftUICaseStudy {
   let caseStudyTitle = "SwiftData Template"
 
   @Dependency(\.defaultDatabase) private var database
-  @SharedReader(.fetchAll(Item.all(), animation: .default)) private var items
+  @SharedReader(.fetchAll(Item.all, animation: .default)) private var items
 
   var body: some View {
     NavigationStack {

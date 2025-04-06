@@ -45,6 +45,7 @@ let package = Package(
       dependencies: [
         "SharingGRDB",
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
+        .product(name: "StructuredQueries", package: "swift-structured-queries"),
       ]
     ),
 
@@ -68,6 +69,7 @@ let package = Package(
       dependencies: [
         "StructuredQueriesGRDB",
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
+        .product(name: "StructuredQueries", package: "swift-structured-queries"),
       ]
     )
   ],

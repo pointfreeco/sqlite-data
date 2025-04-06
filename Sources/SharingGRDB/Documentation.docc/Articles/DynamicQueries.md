@@ -17,7 +17,7 @@ Take the following example:
 
 ```swift
 struct ContentView: View {
-  @SharedReader(.fetchAll(Item.all()) var items
+  @SharedReader(.fetchAll(Item.all) var items
   @State var filterDate: Date?
   @State var order: SortOrder = .reverse
 
