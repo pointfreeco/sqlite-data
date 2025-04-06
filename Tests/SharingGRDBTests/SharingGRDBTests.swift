@@ -2,6 +2,7 @@ import Dependencies
 import GRDB
 import Sharing
 import SharingGRDB
+import StructuredQueries
 import Testing
 
 @Suite struct GRDBSharingTests {
@@ -83,16 +84,16 @@ import Testing
   }
 }
 
-fileprivate struct Fetch1: FetchKeyRequest {
+private struct Fetch1: FetchKeyRequest {
   func fetch(_ db: Database) throws {
   }
 }
-fileprivate struct Fetch2: FetchKeyRequest {
+private struct Fetch2: FetchKeyRequest {
   func fetch(_ db: Database) throws {
   }
 }
 
-fileprivate struct Record: Codable, Equatable, FetchableRecord, MutablePersistableRecord {
+private struct Record: Codable, Equatable, FetchableRecord, MutablePersistableRecord {
   static let databaseTableName = "records"
   let id: Int
 }
@@ -102,9 +103,12 @@ extension DatabaseWriter where Self == DatabaseQueue {
       let database = try DatabaseQueue(named: "db")
       var migrator = DatabaseMigrator()
       migrator.registerMigration("Up") { db in
-        try db.create(table: "records") { table in
-          table.column("id", .integer).primaryKey(autoincrement: true)
-        }
+        try #sql(
+          """
+          CREATE TABLE "records" ("id" INTEGER PRIMARY KEY AUTOINCREMENT)
+          """
+        )
+        .execute(db)
         for index in 1...3 {
           _ = try Record(id: index).inserted(db)
         }
