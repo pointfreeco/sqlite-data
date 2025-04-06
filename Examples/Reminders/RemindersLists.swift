@@ -53,14 +53,14 @@ struct RemindersListsView: View {
   )
   private var stats = Stats()
 
+  @State var searchModel = SearchRemindersModel()
   @State private var isAddListPresented = false
-  @State private var searchText = ""
 
   @Dependency(\.defaultDatabase) private var database
 
   var body: some View {
     List {
-      if searchText.isEmpty {
+      if searchModel.searchText.isEmpty {
         Section {
           Grid(horizontalSpacing: 16, verticalSpacing: 16) {
             GridRow {
@@ -121,11 +121,11 @@ struct RemindersListsView: View {
             .foregroundStyle(.black)
         }
       } else {
-        SearchRemindersView(searchText: searchText)
+        SearchRemindersView(model: searchModel)
       }
     }
     // NB: This explicit view identity works around a bug with 'List' view state not getting reset.
-    .id(searchText)
+    //.id(searchModel.searchText)
     .listStyle(.plain)
     .toolbar {
       Button("Add list") {
@@ -139,7 +139,7 @@ struct RemindersListsView: View {
       }
       .presentationDetents([.medium])
     }
-    .searchable(text: $searchText)
+    .searchable(text: $searchModel.searchText)
   }
 }
 

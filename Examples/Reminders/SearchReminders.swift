@@ -3,65 +3,29 @@ import SharingGRDB
 import StructuredQueries
 import SwiftUI
 
-struct SearchRemindersView: View {
+@MainActor
+@Observable
+class SearchRemindersModel {
+  @ObservationIgnored
   @SharedReader(value: 0) var completedCount: Int
+  @ObservationIgnored
   @SharedReader(value: []) var reminders: [ReminderState]
 
-  let searchText: String
-  @State var showCompletedInSearchResults = false
+  var searchText: String
+  var showCompletedInSearchResults: Bool
 
+  @ObservationIgnored
   @Dependency(\.defaultDatabase) private var database
 
-  init(searchText: String) {
+  init(
+    searchText: String = "",
+    showCompletedInSearchResults: Bool = false,
+  ) {
     self.searchText = searchText
+    self.showCompletedInSearchResults = showCompletedInSearchResults
   }
 
-  var body: some View {
-    HStack {
-      Text("\(completedCount) Completed")
-        .monospacedDigit()
-        .contentTransition(.numericText())
-      if completedCount > 0 {
-        Text("•")
-        Menu {
-          Text("Clear Completed Reminders")
-          Button("Older Than 1 Month") { deleteCompletedReminders(monthsAgo: 1) }
-          Button("Older Than 6 Months") { deleteCompletedReminders(monthsAgo: 6) }
-          Button("Older Than 1 year") { deleteCompletedReminders(monthsAgo: 12) }
-          Button("All Completed") { deleteCompletedReminders() }
-        } label: {
-          Text("Clear")
-        }
-        Spacer()
-        if showCompletedInSearchResults {
-          Button("Hide") {
-            showCompletedInSearchResults = false
-          }
-        } else {
-          Button("Show") {
-            showCompletedInSearchResults = true
-          }
-        }
-      }
-    }
-    .buttonStyle(.borderless)
-    .task(id: [searchText, showCompletedInSearchResults] as [AnyHashable]) {
-      await withErrorReporting {
-        try await updateSearchQuery()
-      }
-    }
-
-    ForEach(reminders) { reminder in
-      ReminderRow(
-        isPastDue: reminder.isPastDue,
-        reminder: reminder.reminder,
-        remindersList: reminder.remindersList,
-        tags: reminder.tags
-      )
-    }
-  }
-
-  private func updateSearchQuery() async throws {
+  func updateSearchQuery() async throws {
     if searchText.isEmpty {
       showCompletedInSearchResults = false
     }
@@ -93,7 +57,7 @@ struct SearchRemindersView: View {
     return .fetchAll(query, animation: .default)
   }
 
-  private func deleteCompletedReminders(monthsAgo: Int? = nil) {
+  func deleteButtonTapped(monthsAgo: Int? = nil) {
     withErrorReporting {
       try database.write { db in
         let baseQuery = Reminder
@@ -124,6 +88,55 @@ struct SearchRemindersView: View {
   }
 }
 
+struct SearchRemindersView: View {
+  let model: SearchRemindersModel
+
+  var body: some View {
+    HStack {
+      Text("\(model.completedCount) Completed")
+        .monospacedDigit()
+        .contentTransition(.numericText())
+      if model.completedCount > 0 {
+        Text("•")
+        Menu {
+          Text("Clear Completed Reminders")
+          Button("Older Than 1 Month") { model.deleteButtonTapped(monthsAgo: 1) }
+          Button("Older Than 6 Months") { model.deleteButtonTapped(monthsAgo: 6) }
+          Button("Older Than 1 year") { model.deleteButtonTapped(monthsAgo: 12) }
+          Button("All Completed") { model.deleteButtonTapped() }
+        } label: {
+          Text("Clear")
+        }
+        Spacer()
+        if model.showCompletedInSearchResults {
+          Button("Hide") {
+            model.showCompletedInSearchResults = false
+          }
+        } else {
+          Button("Show") {
+            model.showCompletedInSearchResults = true
+          }
+        }
+      }
+    }
+    .buttonStyle(.borderless)
+    .task(id: [model.searchText, model.showCompletedInSearchResults] as [AnyHashable]) {
+      await withErrorReporting {
+        try await model.updateSearchQuery()
+      }
+    }
+
+    ForEach(model.reminders) { reminder in
+      ReminderRow(
+        isPastDue: reminder.isPastDue,
+        reminder: reminder.reminder,
+        remindersList: reminder.remindersList,
+        tags: reminder.tags
+      )
+    }
+  }
+}
+
 #Preview {
   @Previewable @State var searchText = "take"
   let _ = try! prepareDependencies {
@@ -133,7 +146,7 @@ struct SearchRemindersView: View {
   NavigationStack {
     List {
       if !searchText.isEmpty {
-        SearchRemindersView(searchText: searchText)
+        SearchRemindersView(model: SearchRemindersModel())
       } else {
         Text(#"Tap "Search"..."#)
       }
