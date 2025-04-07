@@ -236,7 +236,7 @@ Sharing. Check out [this](./Examples) directory to see them all, including:
 The documentation for releases and `main` are available here:
 
 * [`main`](https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/)
-* [0.1.0](https://swiftpackageindex.com/pointfreeco/sharing-grdb/0.1.0/documentation/sharinggrdb/)
+* [0.1.1](https://swiftpackageindex.com/pointfreeco/sharing-grdb/0.1.1/documentation/sharinggrdb/)
 
 ## Installation
 
