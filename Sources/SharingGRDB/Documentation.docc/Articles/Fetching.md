@@ -81,14 +81,12 @@ The choice is up to you for each query or query fragment. To learn more, see the
 
 ### Querying with raw SQL
 
-@Comment {
-  TODO: Call out why these tools exist (to allow one to avoid the Swift Syntax cost of building a
-  macro)
-}
+SharingGRDB also comes with a more basic set of tools that work directly with GRDB. The primary reason you 
+may want to use these tools and not the StructuredQueries tools is that they do not require a macro to use,
+and so do not incur the cost of compiling SwiftSyntax.
 
-SharingGRDB also comes with a more basic set of tools that work directly with GRDB. This includes
-a [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>) key that takes a raw
-SQL string:
+There is a version of [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>) key that 
+takes a raw SQL string:
 
 ```swift
 @SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
@@ -104,11 +102,6 @@ var itemsCount = 0
 These APIs simply feed their data directly to GRDB's equivalent `Database` APIs, which means it is
 up to you to safely bind arguments and avoid SQL injection. If you want to write SQL queries by
 hand, consider using Structured Queries' `#sql` macro, instead.
-
-> Note: While GRDB comes with its own query builder, its lack of hashable identity means that it is
-> not directly compatible with `@SharedReader`. It is for this reason SharingGRDB includes bindings
-> to [Structured Queries][structured-queries-gh], a powerful SQL builder library that preserves a
-> hashable identity for its queries.
 
 [structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
 
@@ -170,30 +163,6 @@ items.itemsCount    // 100
 
 > Note: A default must be provided to `@SharedReader` since it is querying for a custom data type
 > instead of a collection of data.
-
-You can perform any kind of work and return any kind of data from ``FetchKeyRequest/fetch(_:)``,
-which means if you have existing code exercising GRDB APIs, they are immediately usable. For
-example, you may have some code that is using GRDB's built-in query builder:
-
-```swift
-let query = Item.all
-  .filter(!Column("isInStock"))
-  .order(Column("createdAt").desc)
-```
-
-Well there is no need to rewrite this code. Because `fetch` is handed a GRDB database connection,
-you are free to use it however you please:
-
-```swift
-struct Items: FetchKeyRequest {
-  func fetch(_ db: Database) throws -> [Item] {
-    try Item.all
-      .filter(!Column("isInStock"))
-      .order(Column("createdAt").desc)
-      .fetch(db)
-  }
-}
-```
 
 Typically the conformances to ``FetchKeyRequest`` can even be made private and nested inside
 whatever type they are used in, such as SwiftUI view, `@Observable` model, or UIKit view controller.

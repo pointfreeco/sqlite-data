@@ -109,8 +109,8 @@ whereas you use the `@Query` macro with SwiftData:
 
 The `@SharedReader` property wrapper takes a variety of options, detailed more in <doc:Fetching>,
 and allows you to write raw SQL queries for fetching and aggregating data from your database. It 
-is also possibly to construct SQL queries using GRDB's query builder syntax. See
-[`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)-3qcpd>) for more information.
+is also possibly to construct SQL queries using SharingGRDB's query builder syntax. See
+ [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(_:database:)>) for more information.
 
 ### Fetching data for an @Observable model
 
@@ -192,7 +192,7 @@ search for rows in a table:
     // SharingGRDB
     struct ItemsView: View {
       @State var searchText = ""
-      @SharedReader var items: [Item]
+      @SharedReader(value: []) var items: [Item]
       
       var body: some View {
         ForEach(items) { item in
@@ -290,7 +290,7 @@ For example, to get access to the ``Dependencies/DependencyValues/defaultDatabas
   }
 }
 
-Then, to create a new row in a table you use the `write` and `insert` methods from GRDB:
+Then, to create a new row in a table you use the `write` and `insert` methods from SharingGRDB:
 
 @Row {
   @Column {
@@ -299,9 +299,8 @@ Then, to create a new row in a table you use the `write` and `insert` methods fr
     @Dependency(\.defaultDatabase) var database
     
     try database.write { db in
-      let newItem = Item(/* ... */)
-      try Item.insert(newItem).execute(db)
-      try newItem.insert(db)
+      try Item.insert(Item(/* ... */))
+        .execute(db)
     }
     ```
   }
@@ -317,7 +316,7 @@ Then, to create a new row in a table you use the `write` and `insert` methods fr
   }
 }
 
-To update an existing row you can use the `write` and `update` methods from GRDB:
+To update an existing row you can use the `write` and `update` methods from SharingGRDB:
 
 @Row {
   @Column {
@@ -342,7 +341,7 @@ To update an existing row you can use the `write` and `update` methods from GRDB
   }
 }
 
-And to delete an existing row, you can use the `write` and `delete` methods from GRDB:
+And to delete an existing row, you can use the `write` and `delete` methods from SharingGRDB:
 
 @Row {
   @Column {
@@ -351,7 +350,7 @@ And to delete an existing row, you can use the `write` and `delete` methods from
     @Dependency(\.defaultDatabase) var database
     
     try database.write { db in
-      try Item.deleted(existingItem).execute(db)
+      try Item.delete(existingItem).execute(db)
     }
     ```
   }
@@ -368,8 +367,8 @@ And to delete an existing row, you can use the `write` and `delete` methods from
 
 ### Associations
 
-The biggest difference between SwiftData and GRDB is that SwiftData provides tools for an
-Object Relational Mapping (ORM), whereas GRDB is largely just a nice API for interacting with SQLite
+The biggest difference between SwiftData and SharingGRDB is that SwiftData provides tools for an
+Object Relational Mapping (ORM), whereas SharingGRDB is largely just a nice API for interacting with SQLite
 directly.
 
 For example, SwiftData allows you to model a `Sport` type that belongs to many `Team`s like
@@ -418,7 +417,7 @@ struct SportWithTeamCount {
   .fetchAll(
     Sport
       .group(by: \.id)
-      .join(Team.all { $0.id.eq($1.sportID) }
+      .join(Team.all) { $0.id.eq($1.sportID) }
       .select {
         SportWithTeamCount.Columns(sport: $0, teamCount: $1.count())
       }

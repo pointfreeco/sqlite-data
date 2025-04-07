@@ -76,7 +76,7 @@ extension Database {
     statement.arguments = try StatementArguments(query.bindings.map { try $0.databaseValue })
     return (
       statement,
-      SQLiteQueryDecoder(database: sqliteConnection, statement: statement.sqliteStatement)
+      SQLiteQueryDecoder(statement: statement.sqliteStatement)
     )
   }
 }

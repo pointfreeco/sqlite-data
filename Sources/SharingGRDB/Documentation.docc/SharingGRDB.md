@@ -9,7 +9,7 @@ back to the iOS 13 generation of targets.
   @Column {
     ```swift
     // SharingGRDB
-    @SharedReader(.fetch(Item.all))
+    @SharedReader(.fetchAll(Item.all))
     var items
     ```
   }
@@ -27,8 +27,7 @@ observed by SwiftUI so that views are recomputed when the external data changes,
 powered directly by SQLite using [Sharing](#What-is-Sharing) and [GRDB](#What-is-GRDB), and is
 usable from UIKit, `@Observable` models, and more.
 
-> Note: It is not required to write queries as a raw SQL string, and a query builder can be used 
-> instead. For more information on SharingGRDB's querying capabilities, see <doc:Fetching>.
+> Note: For more information on SharingGRDB's querying capabilities, see <doc:Fetching>.
 
 ## Quick start
 
@@ -78,10 +77,10 @@ in SwiftData:
 > Note: For more information on preparing a SQLite database, see <doc:PreparingDatabase>.
 
 This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies, like 
- [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:animation:)>):
+[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(_:database:)):
 
 ```swift
-@SharedReader(.fetch(Item.all))
+@SharedReader(.fetchAll(Item.all))
 var items
 ```
 
@@ -95,8 +94,8 @@ a model context, via a property wrapper:
     @Dependency(\.defaultDatabase) var database
     
     try database.write { db in
-      let newItem = Item(/* ... */)
-      try Item.insert(newItem).execute(db)
+      try Item.insert(Item(/* ... */))
+        .execute(db)
     }
     ```
   }

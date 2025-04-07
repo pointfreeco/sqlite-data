@@ -61,9 +61,7 @@ observed by SwiftUI so that views are recomputed when the external data changes,
 powered directly by SQLite using [Sharing][sharing-gh] and [GRDB][grdb], and is
 usable from UIKit, `@Observable` models, and more.
 
-> Note: It is not required to write queries as a raw SQL string, and a query builder can be used 
-> instead. For more information on SharingGRDB's querying capabilities, see 
-[Fetching model data][fetching-article].
+For more information on SharingGRDB's querying capabilities, see [Fetching model data][fetching-article].
 
 ## Quick start
 
@@ -127,7 +125,7 @@ This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies
  [`fetchAll`][fetchall-docs]:
 
 ```swift
-@SharedReader(.fetchAll(sql: "SELECT * FROM items"))
+@SharedReader(.fetchAll(Item.all))
 var items: [Item]
 ```
 
@@ -146,9 +144,10 @@ a model context, via a property wrapper:
 @Dependency(\.defaultDatabase) 
 var database
     
-var newItem = Item(/* ... */)
+var newItem = 
 try database.write { db in
-  try newItem.insert(db)
+  try Item.insert(Item(/* ... */))
+    .execute(db))
 }
 ```
 

@@ -16,7 +16,7 @@ choose one of the various ways for [querying your database](<doc:Fetching>):
 
 ```swift
 struct ItemsView: View {
-  @SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
+  @SharedReader(.fetchAll(Item.all)) var items
   var body: some View {
     ForEach(items) { item in
       Text(item.name)
@@ -38,7 +38,7 @@ when the database changes and cause any SwiftUI view using it to re-render:
 @Observable
 class ItemsModel {
   @ObservationIgnored
-  @SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
+  @SharedReader(.fetchAll(Item.all)) var items
 }
 struct ItemsView: View {
   var body: some View {
@@ -61,7 +61,7 @@ then you can do roughly the following:
 
 ```swift
 class ItemsViewController: UICollectionViewController {
-  @SharedReader(.fetchAll("SELECT * FROM items")) var items: [Item]
+  @SharedReader(.fetchAll(Item.all)) var items
   
   override func viewDidLoad() {
     // Set up data source and cell registration...
