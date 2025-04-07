@@ -25,7 +25,7 @@ extension SharedReaderKey {
     return fetchAll(statement, database: database)
   }
 
-  public static func fetchAll<S: SelectStatement>(
+  public static func fetchAll<S: StructuredQueriesCore.Statement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
   ) -> Self
@@ -61,7 +61,7 @@ extension SharedReaderKey {
 
   @_disfavoredOverload
   public static func fetchAll<
-    S: SelectStatement,
+    S: StructuredQueriesCore.Statement,
     V1: QueryRepresentable,
     each V2: QueryRepresentable
   >(
@@ -102,7 +102,7 @@ extension SharedReaderKey {
     return fetchAll(statement, database: database, scheduler: scheduler)
   }
 
-  public static func fetchAll<S: SelectStatement>(
+  public static func fetchAll<S: StructuredQueriesCore.Statement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
@@ -141,7 +141,7 @@ extension SharedReaderKey {
 
   @_disfavoredOverload
   public static func fetchAll<
-    S: SelectStatement,
+    S: StructuredQueriesCore.Statement,
     V1: QueryRepresentable,
     each V2: QueryRepresentable
   >(
