@@ -5,7 +5,7 @@ import SwiftUI
 
 struct SearchRemindersView: View {
   @SharedReader(value: 0) var completedCount: Int
-  @SharedReader(value: []) var reminders: [ReminderState]
+  @State.SharedReader(value: []) var reminders: [ReminderState]
 
   let searchText: String
   @State var showCompletedInSearchResults = false
