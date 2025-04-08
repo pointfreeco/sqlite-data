@@ -7,16 +7,60 @@ struct RemindersListDetailView: View {
   @SharedReader(value: []) private var reminderStates: [ReminderState]
   @AppStorage private var ordering: Ordering
   @AppStorage private var showCompleted: Bool
-  private let remindersList: RemindersList
 
   @State var isNewReminderSheetPresented = false
 
   @Dependency(\.defaultDatabase) private var database
 
-  init(remindersList: RemindersList) {
-    self.remindersList = remindersList
-    _ordering = AppStorage(wrappedValue: .dueDate, "ordering_list_\(remindersList.id)")
-    _showCompleted = AppStorage(wrappedValue: false, "show_completed_list_\(remindersList.id)")
+  let detailType: DetailType
+  enum DetailType: Hashable {
+    case all
+    case completed
+    case flagged
+    case list(RemindersList)
+    case scheduled
+    case today
+    var tag: String {
+      switch self {
+      case .all:
+        "all"
+      case .completed:
+        "completed"
+      case .flagged:
+        "flagged"
+      case .list(let list):
+        "list_\(list.id)"
+      case .scheduled:
+        "scheduled"
+      case .today:
+        "today"
+      }
+    }
+    var navigationTitle: String {
+      switch self {
+      case .all:
+        "All"
+      case .completed:
+        "Completed"
+      case .flagged:
+        "Flagged"
+      case .list(let list):
+        list.name
+      case .scheduled:
+        "Scheduled"
+      case .today:
+        "Today"
+      }
+    }
+  }
+
+  init(detailType: DetailType) {
+    self.detailType = detailType
+    _ordering = AppStorage(wrappedValue: .dueDate, "ordering_list_\(detailType.tag)")
+    _showCompleted = AppStorage(
+      wrappedValue: detailType != .completed,
+      "show_completed_list_\(detailType.tag)"
+    )
     _reminderStates = SharedReader(wrappedValue: [], remindersKey)
   }
 
@@ -26,7 +70,7 @@ struct RemindersListDetailView: View {
         ReminderRow(
           isPastDue: reminderState.isPastDue,
           reminder: reminderState.reminder,
-          remindersList: remindersList,
+          remindersList: reminderState.remindersList,
           tags: reminderState.tags
         )
       }
@@ -36,13 +80,14 @@ struct RemindersListDetailView: View {
         try await updateQuery()
       }
     }
-    .navigationTitle(remindersList.name)
+    .navigationTitle(detailType.navigationTitle)
     .navigationBarTitleDisplayMode(.large)
-    .sheet(isPresented: $isNewReminderSheetPresented) {
-      NavigationStack {
-        ReminderFormView(remindersList: remindersList)
-      }
-    }
+    // TODO: hide "Add reminder" button for certain detail types
+//    .sheet(isPresented: $isNewReminderSheetPresented) {
+//      NavigationStack {
+//        ReminderFormView(remindersList: remindersList)
+//      }
+//    }
     .toolbar {
       ToolbarItem(placement: .bottomBar) {
         HStack {
@@ -108,7 +153,21 @@ struct RemindersListDetailView: View {
   fileprivate var remindersKey: some SharedReaderKey<[ReminderState]> {
     .fetchAll(
       Reminder
-        .where { $0.remindersListID == remindersList.id && (showCompleted || !$0.isCompleted) }
+        .where {
+          if !showCompleted {
+            !$0.isCompleted
+          }
+        }
+        .where {
+          switch detailType {
+          case .all: !$0.isCompleted
+          case .completed: $0.isCompleted
+          case .flagged: $0.isFlagged
+          case .list(let list): $0.remindersListID.eq(list.id)
+          case .scheduled: $0.isScheduled
+          case .today: $0.isToday
+          }
+        }
         .order {
           switch ordering {
           case .dueDate:
@@ -120,9 +179,11 @@ struct RemindersListDetailView: View {
           }
         }
         .withTags
+        .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
         .select {
           ReminderState.Columns(
             reminder: $0,
+            remindersList: $3,
             isPastDue: $0.isPastDue,
             commaSeparatedTags: $2.name.groupConcat()
           )
@@ -134,9 +195,10 @@ struct RemindersListDetailView: View {
   @Selection
   fileprivate struct ReminderState: Identifiable {
     var id: Reminder.ID { reminder.id }
-    var reminder: Reminder
-    var isPastDue: Bool
-    var commaSeparatedTags: String?
+    let reminder: Reminder
+    let remindersList: RemindersList
+    let isPastDue: Bool
+    let commaSeparatedTags: String?
     var tags: [String] {
       (commaSeparatedTags ?? "").split(separator: ",").map(String.init)
     }
@@ -158,7 +220,7 @@ struct RemindersListDetailPreview: PreviewProvider {
       }
     }
     NavigationStack {
-      RemindersListDetailView(remindersList: remindersList)
+      RemindersListDetailView(detailType: .list(remindersList))
     }
   }
 }

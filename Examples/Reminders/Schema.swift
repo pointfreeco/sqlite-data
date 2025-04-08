@@ -6,21 +6,21 @@ import StructuredQueriesGRDB
 
 @Table
 struct RemindersList: Hashable, Identifiable {
-  var id: Int64
+  var id: Int
   var color = 0x4a99ef
   var name = ""
 }
 
 @Table
 struct Reminder: Equatable, Identifiable {
-  var id: Int64
+  var id: Int
   @Column(as: Date.ISO8601Representation?.self)
   var date: Date?
   var isCompleted = false
   var isFlagged = false
   var notes = ""
   var priority: Priority?
-  var remindersListID: Int64
+  var remindersListID: Int
   var title = ""
   static func searching(_ text: String) -> Where<Reminder> {
     Self.where {
@@ -32,7 +32,13 @@ struct Reminder: Equatable, Identifiable {
 }
 extension Reminder.TableColumns {
   var isPastDue: some QueryExpression<Bool> {
-    !isCompleted && #sql("coalesce(\(date), date('now')) < date('now')")
+    !isCompleted && #sql("date(\(date)) < date('now')")
+  }
+  var isToday: some QueryExpression<Bool> {
+    !isCompleted && #sql("date(\(date)) = date('now')")
+  }
+  var isScheduled: some QueryExpression<Bool> {
+    !isCompleted && #sql("date(\(date)) > date('now')")
   }
 }
 
@@ -44,14 +50,14 @@ enum Priority: Int, QueryBindable {
 
 @Table
 struct Tag {
-  var id: Int64
+  var id: Int
   var name = ""
 }
 
 @Table("remindersTags")
 struct ReminderTag {
-  var reminderID: Int64
-  var tagID: Int64
+  var reminderID: Int
+  var tagID: Int
 }
 
 func appDatabase() throws -> any DatabaseWriter {

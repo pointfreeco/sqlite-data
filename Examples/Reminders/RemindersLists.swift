@@ -42,11 +42,11 @@ struct RemindersListsView: View {
     .fetchOne(
       Reminder.select {
         Stats.Columns(
-          allCount: $0.count(),
+          allCount: $0.count(filter: !$0.isCompleted),
           completedCount: $0.count(filter: $0.isCompleted),
           flaggedCount: $0.count(filter: $0.isFlagged),
-          scheduledCount: $0.count(filter: #sql("date(\($0.date)) > date('now')")),
-          todayCount: $0.count(filter: #sql("date(\($0.date)) = date('now')"))
+          scheduledCount: $0.count(filter: $0.isScheduled),
+          todayCount: $0.count(filter: $0.isToday)
         )
       }
     )
@@ -55,6 +55,7 @@ struct RemindersListsView: View {
 
   @State private var isAddListPresented = false
   @State private var searchText = ""
+  @State var remindersDetailType: RemindersListDetailView.DetailType?
 
   @Dependency(\.defaultDatabase) private var database
 
@@ -69,13 +70,17 @@ struct RemindersListsView: View {
                 count: stats.todayCount,
                 iconName: "calendar.circle.fill",
                 title: "Today"
-              ) {}
+              ) {
+                remindersDetailType = .today
+              }
               ReminderGridCell(
                 color: .red,
                 count: stats.scheduledCount,
                 iconName: "calendar.circle.fill",
                 title: "Scheduled"
-              ) {}
+              ) {
+                remindersDetailType = .scheduled
+              }
             }
             GridRow {
               ReminderGridCell(
@@ -83,13 +88,17 @@ struct RemindersListsView: View {
                 count: stats.allCount,
                 iconName: "tray.circle.fill",
                 title: "All"
-              ) {}
+              ) {
+                remindersDetailType = .all
+              }
               ReminderGridCell(
                 color: .orange,
                 count: stats.flaggedCount,
                 iconName: "flag.circle.fill",
                 title: "Flagged"
-              ) {}
+              ) {
+                remindersDetailType = .flagged
+              }
             }
             GridRow {
               ReminderGridCell(
@@ -97,7 +106,9 @@ struct RemindersListsView: View {
                 count: stats.completedCount,
                 iconName: "checkmark.circle.fill",
                 title: "Completed"
-              ) {}
+              ) {
+                remindersDetailType = .completed
+              }
             }
           }
         }
@@ -106,7 +117,7 @@ struct RemindersListsView: View {
         Section {
           ForEach(remindersLists) { state in
             NavigationLink {
-              RemindersListDetailView(remindersList: state.remindersList)
+              RemindersListDetailView(detailType: .list(state.remindersList))
             } label: {
               RemindersListRow(
                 reminderCount: state.reminderCount,
@@ -140,6 +151,9 @@ struct RemindersListsView: View {
       .presentationDetents([.medium])
     }
     .searchable(text: $searchText)
+    .navigationDestination(item: $remindersDetailType) { detailType in
+      RemindersListDetailView(detailType: detailType)
+    }
   }
 }
 
