@@ -84,17 +84,20 @@ func appDatabase() throws -> any DatabaseWriter {
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Add reminders lists table") { db in
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "remindersLists" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
         "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99ef),
         "name" TEXT NOT NULL
       )
-      """)
-      .execute(db)
+      """
+    )
+    .execute(db)
   }
   migrator.registerMigration("Add reminders table") { db in
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "reminders" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
         "date" TEXT,
@@ -107,18 +110,22 @@ func appDatabase() throws -> any DatabaseWriter {
       
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
       )
-      """)
+      """
+    )
     .execute(db)
   }
   migrator.registerMigration("Add tags table") { db in
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "tags" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
         "name" TEXT NOT NULL COLLATE NOCASE UNIQUE
       )
-      """)
-      .execute(db)
-    try #sql("""
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
       CREATE TABLE "remindersTags" (
         "reminderID" INTEGER NOT NULL,
         "tagID" INTEGER NOT NULL,
@@ -126,7 +133,8 @@ func appDatabase() throws -> any DatabaseWriter {
         FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
         FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
       )
-      """)
+      """
+    )
     .execute(db)
   }
   #if DEBUG

@@ -100,18 +100,21 @@ func appDatabase() throws -> any DatabaseWriter {
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Create sync-ups table") { db in
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "syncUps" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
         "seconds" INTEGER NOT NULL DEFAULT 300,
         "theme" TEXT NOT NULL DEFAULT \(raw: Theme.bubblegum.rawValue),
         "title" TEXT NOT NULL
       )
-      """)
+      """
+    )
     .execute(db)
   }
   migrator.registerMigration("Create attendees table") { db in
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "attendees" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
         "name" TEXT NOT NULL,
@@ -119,11 +122,13 @@ func appDatabase() throws -> any DatabaseWriter {
         
         FOREIGN KEY("syncUpID") REFERENCES "syncUps"("id") ON DELETE CASCADE
       )
-      """)
+      """
+    )
     .execute(db)
   }
   migrator.registerMigration("Create meetings table") { db in
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "meetings" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
         "date" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP UNIQUE,
@@ -132,7 +137,8 @@ func appDatabase() throws -> any DatabaseWriter {
       
         FOREIGN KEY("syncUpID") REFERENCES "syncUps"("id") ON DELETE CASCADE
       )
-      """)
+      """
+    )
     .execute(db)
   }
   #if DEBUG

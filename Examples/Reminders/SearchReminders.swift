@@ -97,17 +97,16 @@ struct SearchRemindersView: View {
   private func deleteCompletedReminders(monthsAgo: Int? = nil) {
     withErrorReporting {
       try database.write { db in
-        let baseQuery = Reminder
+        try Reminder
           .searching(searchText)
           .where(\.isCompleted)
-        if let monthsAgo {
-          try baseQuery
-            .where { #sql("\($0.date) < date('now', '-\(raw: monthsAgo) months')") }
-            .delete()
-            .execute(db)
-        } else {
-          try baseQuery.delete().execute(db)
-        }
+          .where {
+            if let monthsAgo {
+              #sql("\($0.date) < date('now', '-\(raw: monthsAgo) months')")
+            }
+          }
+          .delete()
+          .execute(db)
       }
     }
   }
