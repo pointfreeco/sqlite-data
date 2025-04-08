@@ -3,6 +3,9 @@ import GRDB
 import SQLite3
 import StructuredQueriesCore
 
+/// A cursor of a structured query.
+///
+/// Iterates over and decodes all of the rows of a structured query.
 public class QueryCursor<Element>: DatabaseCursor {
   public var _isDone = false
   public let _statement: GRDB.Statement
@@ -96,7 +99,7 @@ extension QueryBinding {
         return .null
       case let .text(text):
         return text.databaseValue
-      case let ._invalid(error):
+      case let .invalid(error):
         throw error
       }
     }

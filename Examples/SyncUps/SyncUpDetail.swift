@@ -112,7 +112,8 @@ final class SyncUpDetailModel: HashableObject {
       else { throw NotFound() }
       return try Value(
         attendees: Attendee.where { $0.syncUpID == syncUp.id }.fetchAll(db),
-        meetings: Meeting
+        meetings:
+          Meeting
           .where { $0.syncUpID == syncUp.id }
           .order { $0.date.desc() }
           .fetchAll(db),
@@ -158,7 +159,9 @@ struct SyncUpDetailView: View {
       if !model.details.meetings.isEmpty {
         Section {
           ForEach(model.details.meetings, id: \.id) { meeting in
-            NavigationLink(value: AppModel.Path.meeting(meeting, attendees: model.details.attendees)) {
+            NavigationLink(
+              value: AppModel.Path.meeting(meeting, attendees: model.details.attendees)
+            ) {
               HStack {
                 Image(systemName: "calendar")
                 Text(meeting.date, style: .date)

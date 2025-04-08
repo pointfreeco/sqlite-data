@@ -9,7 +9,7 @@ struct RemindersApp: App {
       $0.defaultDatabase = try Reminders.appDatabase()
     }
   }
-  
+
   var body: some Scene {
     WindowGroup {
       NavigationStack {

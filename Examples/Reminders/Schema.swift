@@ -107,7 +107,7 @@ func appDatabase() throws -> any DatabaseWriter {
         "priority" INTEGER,
         "remindersListID" INTEGER NOT NULL,
         "title" TEXT NOT NULL,
-      
+
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
       )
       """
@@ -129,7 +129,7 @@ func appDatabase() throws -> any DatabaseWriter {
       CREATE TABLE "remindersTags" (
         "reminderID" INTEGER NOT NULL,
         "tagID" INTEGER NOT NULL,
-      
+
         FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
         FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
       )

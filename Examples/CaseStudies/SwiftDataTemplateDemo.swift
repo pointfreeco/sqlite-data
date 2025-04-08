@@ -68,12 +68,14 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create items table") { db in
-      try #sql("""
+      try #sql(
+        """
         CREATE TABLE "items" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "timestamp" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
-        """)
+        """
+      )
       .execute(db)
     }
     try! migrator.migrate(databaseQueue)

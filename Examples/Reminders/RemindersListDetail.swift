@@ -83,11 +83,11 @@ struct RemindersListDetailView: View {
     .navigationTitle(detailType.navigationTitle)
     .navigationBarTitleDisplayMode(.large)
     // TODO: hide "Add reminder" button for certain detail types
-//    .sheet(isPresented: $isNewReminderSheetPresented) {
-//      NavigationStack {
-//        ReminderFormView(remindersList: remindersList)
-//      }
-//    }
+    //    .sheet(isPresented: $isNewReminderSheetPresented) {
+    //      NavigationStack {
+    //        ReminderFormView(remindersList: remindersList)
+    //      }
+    //    }
     .toolbar {
       ToolbarItem(placement: .bottomBar) {
         HStack {

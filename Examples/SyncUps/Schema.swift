@@ -134,7 +134,7 @@ func appDatabase() throws -> any DatabaseWriter {
         "date" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP UNIQUE,
         "syncUpID" INTEGER NOT NULL,
         "transcript" TEXT NOT NULL,
-      
+
         FOREIGN KEY("syncUpID") REFERENCES "syncUps"("id") ON DELETE CASCADE
       )
       """

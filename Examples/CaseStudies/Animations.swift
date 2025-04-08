@@ -8,7 +8,7 @@ struct AnimationsCaseStudy: SwiftUICaseStudy {
     This demonstrates how to animate fetching data from the database, or when data changes in \
     the database. Simply provide the `animation` argument to `fetchAll` (or the other querying \
     tools, such as `fetch` and `fetchOne`). 
-    
+
     This is analogous to how animations work in SwiftData in which one provides an `animation` \
     argument to the `@Query` macro.
     """
@@ -61,12 +61,14 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try #sql("""
+      try #sql(
+        """
         CREATE TABLE "facts" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "body" TEXT NOT NULL
         )
-        """)
+        """
+      )
       .execute(db)
     }
     try! migrator.migrate(databaseQueue)

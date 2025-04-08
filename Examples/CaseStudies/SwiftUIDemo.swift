@@ -8,7 +8,7 @@ struct SwiftUIDemo: SwiftUICaseStudy {
     This demonstrates how to use the `fetchAll` and `fetchOne` queries directly in a SwiftUI view. \
     The tools listen for changes in the database so that when the table changes it automatically \
     updates state and re-renders the view.
-    
+
     You can also delete rows by swiping on a row and tapping the "Delete" button.
     """
   let caseStudyTitle = "SwiftUI Views"
@@ -46,7 +46,12 @@ struct SwiftUIDemo: SwiftUICaseStudy {
             as: UTF8.self
           )
           try await database.write { db in
-            try Fact.insert { $0.body } values: { fact }.execute(db)
+            try Fact.insert {
+              $0.body
+            } values: {
+              fact
+            }
+            .execute(db)
           }
         }
       } catch {}
@@ -65,12 +70,14 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try #sql("""
+      try #sql(
+        """
         CREATE TABLE "facts" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "body" TEXT NOT NULL
         )
-        """)
+        """
+      )
       .execute(db)
     }
     try! migrator.migrate(databaseQueue)

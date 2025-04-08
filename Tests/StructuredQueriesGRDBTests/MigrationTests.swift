@@ -8,11 +8,13 @@ import Testing
   @Test func dates() throws {
     let database = try DatabaseQueue()
     try database.write { db in
-      try #sql("""
+      try #sql(
+        """
         CREATE TABLE "models" (
           "date" TEXT NOT NULL
         )
-        """)
+        """
+      )
       .execute(db)
     }
 

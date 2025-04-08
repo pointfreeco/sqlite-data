@@ -76,28 +76,32 @@ private struct Attendee: Equatable {
   var syncUpID: SyncUp.ID
 }
 
-private extension DatabaseWriter where Self == DatabaseQueue {
-  static func syncUps() throws -> Self {
+extension DatabaseWriter where Self == DatabaseQueue {
+  fileprivate static func syncUps() throws -> Self {
     let database = try DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create schema") { db in
-      try #sql("""
+      try #sql(
+        """
         CREATE TABLE "syncUps" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "isActive" INTEGER NOT NULL,
           "title" TEXT NOT NULL
         )
-        """)
+        """
+      )
       .execute(db)
-      try #sql("""
+      try #sql(
+        """
         CREATE TABLE "attendees" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "syncUpID" INTEGER NOT NULL,
           "name" TEXT NOT NULL,
-        
+
           FOREIGN KEY("syncUpID") REFERENCES "syncUps"("id")
         )
-        """)
+        """
+      )
       .execute(db)
     }
     try migrator.migrate(database)

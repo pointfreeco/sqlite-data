@@ -7,7 +7,8 @@ import SwiftUINavigation
 @Observable
 final class SyncUpsListModel {
   var addSyncUp: SyncUpFormModel?
-  @ObservationIgnored @SharedReader(
+  @ObservationIgnored
+  @SharedReader(
     .fetchAll(
       SyncUp
         .group(by: \.id)

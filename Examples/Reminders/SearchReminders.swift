@@ -77,7 +77,8 @@ struct SearchRemindersView: View {
   }
 
   private var searchKey: some SharedReaderKey<[ReminderState]> {
-    let query = Reminder
+    let query =
+      Reminder
       .searching(searchText)
       .where { showCompletedInSearchResults || !$0.isCompleted }
       .order { ($0.isCompleted, $0.date) }

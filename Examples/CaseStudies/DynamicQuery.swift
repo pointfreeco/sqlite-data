@@ -9,7 +9,7 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
     a fact about a number is loaded from the network and saved to a database. You can search the \
     facts for text, and the list will stay in sync so that if a new fact is added to the database \
     that satisfies the search term, it will immediately appear.
-    
+
     To accomplish this one can invoke the `load` method defined on the `@SharedReader` projected \
     value in order to set a new query with dynamic parameters.
     """
@@ -43,7 +43,7 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
           withErrorReporting {
             try database.write { db in
               try Fact
-                .where{ $0.id.in(indexSet.compactMap { facts.facts[$0].id }) }
+                .where { $0.id.in(indexSet.compactMap { facts.facts[$0].id }) }
                 .delete()
                 .execute(db)
             }
@@ -89,7 +89,8 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
       var totalCount = 0
     }
     func fetch(_ db: Database) throws -> Value {
-      let search = Fact
+      let search =
+        Fact
         .where { $0.body.contains(query) }
         .order { $0.id.desc() }
       return try Value(
@@ -112,12 +113,14 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try #sql("""
+      try #sql(
+        """
         CREATE TABLE "facts" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "body" TEXT NOT NULL
         )
-        """)
+        """
+      )
       .execute(db)
     }
     try! migrator.migrate(databaseQueue)

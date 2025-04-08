@@ -171,7 +171,7 @@ struct ReminderFormView: View {
         guard let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)
         else {
           reportIssue("Could not upsert reminder")
-          return 
+          return
         }
         if reminder.id != nil {
           try ReminderTag.where { $0.reminderID == reminderID }

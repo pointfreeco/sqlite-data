@@ -8,7 +8,7 @@ struct ObservableModelDemo: SwiftUICaseStudy {
     This demonstrates how to use the `fetchAll` and `fetchOne` tools in an @Observable model. \
     In SwiftUI, the `@Query` macro only works when installed directly in a SwiftUI view, and \
     cannot be used outside of views.
-    
+
     The tools provided with this library work basically anywhere, including in `@Observable` \
     models and UIKit view controllers.
     """
@@ -82,7 +82,7 @@ private class Model {
       try database.write { db in
         try database.write { db in
           try Fact
-            .where{ $0.id.in(indices.compactMap { facts[$0].id }) }
+            .where { $0.id.in(indices.compactMap { facts[$0].id }) }
             .delete()
             .execute(db)
         }
@@ -102,12 +102,14 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try #sql("""
+      try #sql(
+        """
         CREATE TABLE "facts" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "body" TEXT NOT NULL
         )
-        """)
+        """
+      )
       .execute(db)
     }
     try! migrator.migrate(databaseQueue)

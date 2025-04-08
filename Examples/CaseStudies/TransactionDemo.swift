@@ -1,6 +1,6 @@
 import Dependencies
-import StructuredQueriesGRDB
 import SharingGRDB
+import StructuredQueriesGRDB
 import SwiftUI
 
 struct TransactionDemo: SwiftUICaseStudy {
@@ -9,7 +9,7 @@ struct TransactionDemo: SwiftUICaseStudy {
     database transaction. If you need to fetch multiple pieces of data from the database that \
     all tend to change together, then performing those queries in a single transaction can be \
     more performant.
-    
+
     For example, if you need to fetch rows from a table as well as a count of the rows in the \
     table, then those two pieces of data will tend to change at the same time (though not always). \
     So, it can be better to perform the select and count as two different queries in the same \
@@ -47,7 +47,12 @@ struct TransactionDemo: SwiftUICaseStudy {
             as: UTF8.self
           )
           try await database.write { db in
-            try Fact.insert { $0.body } values: { fact }.execute(db)
+            try Fact.insert {
+              $0.body
+            } values: {
+              fact
+            }
+            .execute(db)
           }
         }
       } catch {}
@@ -80,12 +85,14 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try #sql("""
+      try #sql(
+        """
         CREATE TABLE "facts" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "body" TEXT NOT NULL
         )
-        """)
+        """
+      )
       .execute(db)
     }
     try! migrator.migrate(databaseQueue)
