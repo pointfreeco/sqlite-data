@@ -6,13 +6,13 @@ A lightweight replacement for SwiftData and `@Query`.
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
 
-* [Learn more](#Learn-more)
-* [Overview](#Overview)
-* [Demos](#Demos)
-* [Documentation](#Documentation)
-* [Installation](#Installation)
-* [Community](#Community)
-* [License](#License)
+  * [Learn more](#Learn-more)
+  * [Overview](#Overview)
+  * [Demos](#Demos)
+  * [Documentation](#Documentation)
+  * [Installation](#Installation)
+  * [Community](#Community)
+  * [License](#License)
 
 ## Learn more
 
@@ -119,10 +119,10 @@ struct MyApp: App {
 </table>
 
 > Note: For more information on preparing a SQLite database, see 
-[Preparing a SQLite database][preparing-db-article].
+> [Preparing a SQLite database][preparing-db-article].
 
 This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies, like 
- [`fetchAll`][fetchall-docs]:
+[`fetchAll`][fetchall-docs]:
 
 ```swift
 @SharedReader(.fetchAll(Item.all))
@@ -173,11 +173,11 @@ try modelContext.save()
 This is all you need to know to get started with SharingGRDB, but there's much more to learn. Read
 the [articles][articles] below to learn how to best utilize this library:
 
-* [Fetching model data][fetching-article]
-* [Observing changes to model data][observing-article]
-* [Preparing a SQLite database][preparing-db-article]
-* [Dynamic queries][dynamic-queries-article]
-* [Comparison with SwiftData][comparison-swiftdata-article]
+  * [Fetching model data][fetching-article]
+  * [Observing changes to model data][observing-article]
+  * [Preparing a SQLite database][preparing-db-article]
+  * [Dynamic queries][dynamic-queries-article]
+  * [Comparison with SwiftData][comparison-swiftdata-article]
 
 [observing-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/observing
 [dynamic-queries-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/dynamicqueries
@@ -230,8 +230,8 @@ Sharing. Check out [this](./Examples) directory to see them all, including:
 
 The documentation for releases and `main` are available here:
 
-* [`main`](https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/)
-* [0.1.0](https://swiftpackageindex.com/pointfreeco/sharing-grdb/0.1.0/documentation/sharinggrdb/)
+  * [`main`](https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/)
+  * [0.1.0](https://swiftpackageindex.com/pointfreeco/sharing-grdb/0.1.0/documentation/sharinggrdb/)
 
 ## Installation
 

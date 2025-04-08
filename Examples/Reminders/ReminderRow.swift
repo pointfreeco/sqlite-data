@@ -87,7 +87,7 @@ struct ReminderRow: View {
     withErrorReporting {
       try database.write { db in
         try Reminder
-          .where { $0.id == reminder.id }
+          .where { $0.id.eq(reminder.id) }
           .update { $0.isCompleted.toggle() }
           .execute(db)
       }
