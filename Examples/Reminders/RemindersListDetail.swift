@@ -1,3 +1,4 @@
+import CasePaths
 import Sharing
 import SharingGRDB
 import StructuredQueriesGRDB
@@ -8,51 +9,10 @@ struct RemindersListDetailView: View {
   @AppStorage private var ordering: Ordering
   @AppStorage private var showCompleted: Bool
 
+  let detailType: DetailType
   @State var isNewReminderSheetPresented = false
 
   @Dependency(\.defaultDatabase) private var database
-
-  let detailType: DetailType
-  enum DetailType: Hashable {
-    case all
-    case completed
-    case flagged
-    case list(RemindersList)
-    case scheduled
-    case today
-    var tag: String {
-      switch self {
-      case .all:
-        "all"
-      case .completed:
-        "completed"
-      case .flagged:
-        "flagged"
-      case .list(let list):
-        "list_\(list.id)"
-      case .scheduled:
-        "scheduled"
-      case .today:
-        "today"
-      }
-    }
-    var navigationTitle: String {
-      switch self {
-      case .all:
-        "All"
-      case .completed:
-        "Completed"
-      case .flagged:
-        "Flagged"
-      case .list(let list):
-        list.name
-      case .scheduled:
-        "Scheduled"
-      case .today:
-        "Today"
-      }
-    }
-  }
 
   init(detailType: DetailType) {
     self.detailType = detailType
@@ -82,26 +42,29 @@ struct RemindersListDetailView: View {
     }
     .navigationTitle(detailType.navigationTitle)
     .navigationBarTitleDisplayMode(.large)
-    // TODO: hide "Add reminder" button for certain detail types
-    //    .sheet(isPresented: $isNewReminderSheetPresented) {
-    //      NavigationStack {
-    //        ReminderFormView(remindersList: remindersList)
-    //      }
-    //    }
+    .sheet(isPresented: $isNewReminderSheetPresented) {
+      if let remindersList = detailType.list {
+        NavigationStack {
+          ReminderFormView(remindersList: remindersList)
+        }
+      }
+    }
     .toolbar {
-      ToolbarItem(placement: .bottomBar) {
-        HStack {
-          Button {
-            isNewReminderSheetPresented = true
-          } label: {
-            HStack {
-              Image(systemName: "plus.circle.fill")
-              Text("New reminder")
+      if detailType.is(\.list) {
+        ToolbarItem(placement: .bottomBar) {
+          HStack {
+            Button {
+              isNewReminderSheetPresented = true
+            } label: {
+              HStack {
+                Image(systemName: "plus.circle.fill")
+                Text("New reminder")
+              }
+              .bold()
+              .font(.title3)
             }
-            .bold()
-            .font(.title3)
+            Spacer()
           }
-          Spacer()
         }
       }
       ToolbarItem(placement: .primaryAction) {
@@ -146,6 +109,49 @@ struct RemindersListDetailView: View {
     }
   }
 
+  @CasePathable
+  @dynamicMemberLookup
+  enum DetailType: Hashable {
+    case all
+    case completed
+    case flagged
+    case list(RemindersList)
+    case scheduled
+    case today
+    var tag: String {
+      switch self {
+      case .all:
+        "all"
+      case .completed:
+        "completed"
+      case .flagged:
+        "flagged"
+      case .list(let list):
+        "list_\(list.id)"
+      case .scheduled:
+        "scheduled"
+      case .today:
+        "today"
+      }
+    }
+    var navigationTitle: String {
+      switch self {
+      case .all:
+        "All"
+      case .completed:
+        "Completed"
+      case .flagged:
+        "Flagged"
+      case .list(let list):
+        list.name
+      case .scheduled:
+        "Scheduled"
+      case .today:
+        "Today"
+      }
+    }
+  }
+
   private func updateQuery() async throws {
     try await $reminderStates.load(remindersKey)
   }
@@ -168,14 +174,15 @@ struct RemindersListDetailView: View {
           case .today: $0.isToday
           }
         }
+        .order { $0.isCompleted }
         .order {
           switch ordering {
           case .dueDate:
-            ($0.isCompleted, $0.date)
+            $0.date
           case .priority:
-            ($0.isCompleted, $0.priority.desc(), $0.isFlagged.desc())
+            ($0.priority.desc(), $0.isFlagged.desc())
           case .title:
-            ($0.isCompleted, $0.title)
+            $0.title
           }
         }
         .withTags

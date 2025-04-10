@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
 		CAD001872D874F1F00FA977A /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CAD001862D874F1F00FA977A /* DependenciesTestSupport */; };
 		CAE6C64D2D69017D00CE1C90 /* StructuredQueriesGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CAE6C64C2D69017D00CE1C90 /* StructuredQueriesGRDB */; };
@@ -140,6 +141,7 @@
 			files = (
 				CAFDD64A2D5E823A00EE099E /* SharingGRDB in Frameworks */,
 				CAE6C64D2D69017D00CE1C90 /* StructuredQueriesGRDB in Frameworks */,
+				CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -285,6 +287,7 @@
 			packageProductDependencies = (
 				CAFDD6492D5E823A00EE099E /* SharingGRDB */,
 				CAE6C64C2D69017D00CE1C90 /* StructuredQueriesGRDB */,
+				CA14DBC82DA884C400E36852 /* CasePaths */,
 			);
 			productName = Reminders;
 			productReference = CAF836D82D4735AB0047AEB5 /* Reminders.app */;
@@ -910,6 +913,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		CA14DBC82DA884C400E36852 /* CasePaths */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
+			productName = CasePaths;
+		};
 		CA2908C82D4AF70E003F165F /* UIKitNavigation */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
