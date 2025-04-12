@@ -76,6 +76,7 @@ struct ReminderFormView: View {
             Text("Date")
           }
         }
+        // TODO: Try `Binding.init?` initializer
         if let date = reminder.date {
           DatePicker(
             "",

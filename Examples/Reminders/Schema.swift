@@ -156,69 +156,69 @@ func appDatabase() throws -> any DatabaseWriter {
     }
 
     func createDebugRemindersLists() throws {
+      try RemindersList.delete().execute(self)
       try RemindersList.insert {
-        ($0.color, $0.name)
-      } values: {
-        (color: 0x4a99ef, name: "Personal")
-        (color: 0xed8935, name: "Family")
-        (color: 0xb25dd3, name: "Business")
+        RemindersList.Draft(color: 0x4a99ef, name: "Personal")
+        RemindersList.Draft(color: 0xed8935, name: "Family")
+        RemindersList.Draft(color: 0xb25dd3, name: "Business")
       }
       .execute(self)
     }
 
     func createDebugReminders() throws {
-      try Reminder.insert([
+      try Reminder.delete().execute(self)
+      try Reminder.insert {
         Reminder.Draft(
           date: Date(),
           notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
           remindersListID: 1,
           title: "Groceries"
-        ),
+        )
         Reminder.Draft(
           date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isFlagged: true,
           remindersListID: 1,
           title: "Haircut"
-        ),
+        )
         Reminder.Draft(
           date: Date(),
           notes: "Ask about diet",
           priority: .high,
           remindersListID: 1,
           title: "Doctor appointment"
-        ),
+        )
         Reminder.Draft(
           date: Date().addingTimeInterval(-60 * 60 * 24 * 190),
           isCompleted: true,
           remindersListID: 1,
           title: "Take a walk"
-        ),
+        )
         Reminder.Draft(
           date: Date(),
           remindersListID: 1,
           title: "Buy concert tickets"
-        ),
+        )
         Reminder.Draft(
           date: Date().addingTimeInterval(60 * 60 * 24 * 2),
           isFlagged: true,
           priority: .high,
           remindersListID: 2,
           title: "Pick up kids from school"
-        ),
+        )
         Reminder.Draft(
           date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .low,
           remindersListID: 2,
           title: "Get laundry"
-        ),
+        )
         Reminder.Draft(
           date: Date().addingTimeInterval(60 * 60 * 24 * 4),
           isCompleted: false,
           priority: .high,
           remindersListID: 2,
           title: "Take out trash"
-        ),
+        )
         Reminder.Draft(
           date: Date().addingTimeInterval(60 * 60 * 24 * 2),
           notes: """
@@ -228,19 +228,21 @@ func appDatabase() throws -> any DatabaseWriter {
             """,
           remindersListID: 3,
           title: "Call accountant"
-        ),
+        )
         Reminder.Draft(
           date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .medium,
           remindersListID: 3,
           title: "Send weekly emails"
-        ),
-      ])
+        )
+      }
       .execute(self)
     }
 
     func createDebugTags() throws {
+      try ReminderTag.delete().execute(self)
+      try Tag.delete().execute(self)
       try Tag.insert(\.name) {
         "car"
         "kids"

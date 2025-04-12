@@ -30,6 +30,8 @@ struct RemindersListsView: View {
         .select {
           ReminderListState.Columns(
             reminderCount: #sql("count(iif(\($1.isCompleted), NULL, \($1.id)))"),
+//            reminderCount: $1.count(filter: !($1.isCompleted ?? false)),
+//            reminderCount: $1.count(filter: !$1.isCompleted.ifnull(false)),
             remindersList: $0
           )
         },
