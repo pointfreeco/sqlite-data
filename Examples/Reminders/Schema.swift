@@ -15,7 +15,7 @@ struct RemindersList: Hashable, Identifiable {
 struct Reminder: Equatable, Identifiable {
   var id: Int
   @Column(as: Date.ISO8601Representation?.self)
-  var date: Date?
+  var dueDate: Date?
   var isCompleted = false
   var isFlagged = false
   var notes = ""
@@ -32,13 +32,13 @@ struct Reminder: Equatable, Identifiable {
 }
 extension Reminder.TableColumns {
   var isPastDue: some QueryExpression<Bool> {
-    !isCompleted && #sql("date(\(date)) < date('now')")
+    !isCompleted && #sql("coalesce(date(\(dueDate)) < date('now'), 0)")
   }
   var isToday: some QueryExpression<Bool> {
-    !isCompleted && #sql("date(\(date)) = date('now')")
+    !isCompleted && #sql("coalesce(date(\(dueDate)) = date('now'), 0)")
   }
   var isScheduled: some QueryExpression<Bool> {
-    !isCompleted && #sql("date(\(date)) > date('now')")
+    !isCompleted && dueDate.isNot(nil)
   }
 }
 
@@ -90,7 +90,7 @@ func appDatabase() throws -> any DatabaseWriter {
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
         "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99ef),
         "name" TEXT NOT NULL
-      )
+      ) STRICT
       """
     )
     .execute(db)
@@ -100,7 +100,7 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "reminders" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-        "date" TEXT,
+        "dueDate" TEXT,
         "isCompleted" INTEGER NOT NULL DEFAULT 0,
         "isFlagged" INTEGER NOT NULL DEFAULT 0,
         "notes" TEXT,
@@ -109,7 +109,7 @@ func appDatabase() throws -> any DatabaseWriter {
         "title" TEXT NOT NULL,
 
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
-      )
+      ) STRICT
       """
     )
     .execute(db)
@@ -120,7 +120,7 @@ func appDatabase() throws -> any DatabaseWriter {
       CREATE TABLE "tags" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
         "name" TEXT NOT NULL COLLATE NOCASE UNIQUE
-      )
+      ) STRICT
       """
     )
     .execute(db)
@@ -132,7 +132,7 @@ func appDatabase() throws -> any DatabaseWriter {
 
         FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
         FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
-      )
+      ) STRICT
       """
     )
     .execute(db)
@@ -169,58 +169,57 @@ func appDatabase() throws -> any DatabaseWriter {
       try Reminder.delete().execute(self)
       try Reminder.insert {
         Reminder.Draft(
-          date: Date(),
           notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
           remindersListID: 1,
           title: "Groceries"
         )
         Reminder.Draft(
-          date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isFlagged: true,
           remindersListID: 1,
           title: "Haircut"
         )
         Reminder.Draft(
-          date: Date(),
+          dueDate: Date(),
           notes: "Ask about diet",
           priority: .high,
           remindersListID: 1,
           title: "Doctor appointment"
         )
         Reminder.Draft(
-          date: Date().addingTimeInterval(-60 * 60 * 24 * 190),
+          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 190),
           isCompleted: true,
           remindersListID: 1,
           title: "Take a walk"
         )
         Reminder.Draft(
-          date: Date(),
+          dueDate: Date(),
           remindersListID: 1,
           title: "Buy concert tickets"
         )
         Reminder.Draft(
-          date: Date().addingTimeInterval(60 * 60 * 24 * 2),
+          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           isFlagged: true,
           priority: .high,
           remindersListID: 2,
           title: "Pick up kids from school"
         )
         Reminder.Draft(
-          date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .low,
           remindersListID: 2,
           title: "Get laundry"
         )
         Reminder.Draft(
-          date: Date().addingTimeInterval(60 * 60 * 24 * 4),
+          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 4),
           isCompleted: false,
           priority: .high,
           remindersListID: 2,
           title: "Take out trash"
         )
         Reminder.Draft(
-          date: Date().addingTimeInterval(60 * 60 * 24 * 2),
+          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           notes: """
             Status of tax return
             Expenses for next year
@@ -230,7 +229,7 @@ func appDatabase() throws -> any DatabaseWriter {
           title: "Call accountant"
         )
         Reminder.Draft(
-          date: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .medium,
           remindersListID: 3,

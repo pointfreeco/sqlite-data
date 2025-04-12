@@ -77,10 +77,10 @@ struct ReminderFormView: View {
           }
         }
         // TODO: Try `Binding.init?` initializer
-        if let date = reminder.date {
+        if let dueDate = reminder.dueDate {
           DatePicker(
             "",
-            selection: $reminder.date[coalesce: date],
+            selection: $reminder.dueDate[coalesce: dueDate],
             displayedComponents: [.date, .hourAndMinute]
           )
           .padding([.top, .bottom], 2)
@@ -195,8 +195,8 @@ struct ReminderFormView: View {
 
 extension Reminder.Draft {
   fileprivate var isDateSet: Bool {
-    get { date != nil }
-    set { date = newValue ? Date() : nil }
+    get { dueDate != nil }
+    set { dueDate = newValue ? Date() : nil }
   }
 }
 

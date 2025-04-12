@@ -95,7 +95,7 @@ struct ReminderRow: View {
   }
 
   private var dueText: Text {
-    if let date = reminder.date {
+    if let date = reminder.dueDate {
       Text(date.formatted(date: .numeric, time: .shortened))
         .foregroundStyle(isPastDue ? .red : .gray)
     } else {
@@ -104,7 +104,7 @@ struct ReminderRow: View {
   }
 
   private var subtitleText: Text {
-    let tagsText = tags.reduce(Text(reminder.date == nil ? "" : "  ")) { result, tag in
+    let tagsText = tags.reduce(Text(reminder.dueDate == nil ? "" : "  ")) { result, tag in
       result
         + Text("#\(tag) ")
         .foregroundStyle(.gray)
