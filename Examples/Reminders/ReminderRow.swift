@@ -3,6 +3,7 @@ import SharingGRDB
 import SwiftUI
 
 struct ReminderRow: View {
+  let color: Color
   let isPastDue: Bool
   let notes: String
   let reminder: Reminder
@@ -45,19 +46,19 @@ struct ReminderRow: View {
           } label: {
             Image(systemName: "info.circle")
           }
+          .tint(color)
         }
       }
     }
     .buttonStyle(.borderless)
     .swipeActions {
-      Button("Delete") {
+      Button("Delete", role: .destructive) {
         withErrorReporting {
           try database.write { db in
             try Reminder.delete(reminder).execute(db)
           }
         }
       }
-      .tint(.red)
       Button(reminder.isFlagged ? "Unflag" : "Flag") {
         withErrorReporting {
           try database.write { db in
@@ -126,22 +127,23 @@ struct ReminderRow: View {
 struct ReminderRowPreview: PreviewProvider {
   static var previews: some View {
     var reminder: Reminder!
-    var reminderList: RemindersList!
+    var remindersList: RemindersList!
     let _ = try! prepareDependencies {
       $0.defaultDatabase = try Reminders.appDatabase()
       try $0.defaultDatabase.read { db in
         reminder = try Reminder.all.fetchOne(db)
-        reminderList = try RemindersList.all.fetchOne(db)!
+        remindersList = try RemindersList.all.fetchOne(db)!
       }
     }
 
     NavigationStack {
       List {
         ReminderRow(
+          color: remindersList.color,
           isPastDue: false,
           notes: reminder.notes.replacingOccurrences(of: "\n", with: " "),
           reminder: reminder,
-          remindersList: reminderList,
+          remindersList: remindersList,
           tags: ["point-free", "adulting"]
         )
       }

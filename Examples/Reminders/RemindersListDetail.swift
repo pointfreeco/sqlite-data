@@ -11,6 +11,8 @@ struct RemindersListDetailView: View {
 
   let detailType: DetailType
   @State var isNewReminderSheetPresented = false
+  @State var isNavigationTitleVisible = false
+  @State var navigationTitleHeight: CGFloat = 36
 
   @Dependency(\.defaultDatabase) private var database
 
@@ -26,8 +28,18 @@ struct RemindersListDetailView: View {
 
   var body: some View {
     List {
+      VStack(alignment: .leading) {
+        GeometryReader { proxy in
+          Text(detailType.navigationTitle)
+            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+            .foregroundStyle(detailType.color)
+            .onAppear { navigationTitleHeight = proxy.size.height }
+        }
+      }
+      .listRowSeparator(.hidden)
       ForEach(reminderStates) { reminderState in
         ReminderRow(
+          color: detailType.color,
           isPastDue: reminderState.isPastDue,
           notes: reminderState.notes,
           reminder: reminderState.reminder,
@@ -36,13 +48,12 @@ struct RemindersListDetailView: View {
         )
       }
     }
-    .task(id: [ordering, showCompleted] as [AnyHashable]) {
-      await withErrorReporting {
-        try await updateQuery()
-      }
+    .onScrollGeometryChange(for: Bool.self) { geometry in
+      geometry.contentOffset.y + geometry.contentInsets.top > navigationTitleHeight
+    } action: {
+      isNavigationTitleVisible = $1
     }
-    .navigationTitle(detailType.navigationTitle)
-    .navigationBarTitleDisplayMode(.large)
+    .listStyle(.plain)
     .sheet(isPresented: $isNewReminderSheetPresented) {
       if let remindersList = detailType.list {
         NavigationStack {
@@ -50,6 +61,20 @@ struct RemindersListDetailView: View {
         }
       }
     }
+    .task(id: [ordering, showCompleted] as [AnyHashable]) {
+      await withErrorReporting {
+        try await updateQuery()
+      }
+    }
+    .toolbar {
+      ToolbarItem(placement: .principal) {
+        Text(detailType.navigationTitle)
+          .font(.headline)
+          .opacity(isNavigationTitleVisible ? 1 : 0)
+          .animation(.default.speed(2), value: isNavigationTitleVisible)
+      }
+    }
+    .toolbarTitleDisplayMode(.inline)
     .toolbar {
       if detailType.is(\.list) {
         ToolbarItem(placement: .bottomBar) {
@@ -66,30 +91,34 @@ struct RemindersListDetailView: View {
             }
             Spacer()
           }
+          .tint(detailType.color)
         }
       }
       ToolbarItem(placement: .primaryAction) {
         Menu {
-          Menu {
-            ForEach(Ordering.allCases, id: \.self) { ordering in
-              Button {
-                self.ordering = ordering
-              } label: {
-                Text(ordering.rawValue)
-                ordering.icon
+          Group {
+            Menu {
+              ForEach(Ordering.allCases, id: \.self) { ordering in
+                Button {
+                  self.ordering = ordering
+                } label: {
+                  Text(ordering.rawValue)
+                  ordering.icon
+                }
               }
+            } label: {
+              Text("Sort By")
+              Text(ordering.rawValue)
+              Image(systemName: "arrow.up.arrow.down")
             }
-          } label: {
-            Text("Sort By")
-            Text(ordering.rawValue)
-            Image(systemName: "arrow.up.arrow.down")
+            Button {
+              showCompleted.toggle()
+            } label: {
+              Text(showCompleted ? "Hide Completed" : "Show Completed")
+              Image(systemName: showCompleted ? "eye.slash.fill" : "eye")
+            }
           }
-          Button {
-            showCompleted.toggle()
-          } label: {
-            Text(showCompleted ? "Hide Completed" : "Show Completed")
-            Image(systemName: showCompleted ? "eye.slash.fill" : "eye")
-          }
+          .tint(detailType.color)
         } label: {
           Image(systemName: "ellipsis.circle")
         }
@@ -149,6 +178,22 @@ struct RemindersListDetailView: View {
         "Scheduled"
       case .today:
         "Today"
+      }
+    }
+    var color: Color {
+      switch self {
+      case .all:
+        .black
+      case .completed:
+        .gray
+      case .flagged:
+        .orange
+      case .list(let list):
+        list.color
+      case .scheduled:
+        .red
+      case .today:
+        .blue
       }
     }
   }

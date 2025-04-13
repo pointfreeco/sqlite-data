@@ -47,6 +47,7 @@ struct SearchRemindersView: View {
 
     ForEach(reminders) { reminder in
       ReminderRow(
+        color: reminder.remindersList.color,
         isPastDue: reminder.isPastDue,
         notes: reminder.notes,
         reminder: reminder.reminder,
