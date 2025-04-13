@@ -97,11 +97,11 @@ struct ReminderFormView: View {
           }
         }
         Picker(selection: $reminder.priority) {
-          Text("None").tag(Int?.none)
+          Text("None").tag(Priority?.none)
           Divider()
-          Text("High").tag(3)
-          Text("Medium").tag(2)
-          Text("Low").tag(1)
+          Text("High").tag(Priority.high)
+          Text("Medium").tag(Priority.medium)
+          Text("Low").tag(Priority.low)
         } label: {
           HStack {
             Image(systemName: "exclamationmark.circle.fill")
@@ -121,7 +121,7 @@ struct ReminderFormView: View {
           HStack {
             Image(systemName: "list.bullet.circle.fill")
               .font(.title)
-              .foregroundStyle(Color.hex(remindersList.color))
+              .foregroundStyle(remindersList.color)
             Text("List")
           }
         }
@@ -135,9 +135,9 @@ struct ReminderFormView: View {
       else { return }
       do {
         selectedTags = try await database.read { db in
-          try Tag.order(by: \.name)
+          try Tag.select(\.self)
+            .order(by: \.name)
             .join(ReminderTag.all) { $0.id.eq($1.tagID) && $1.reminderID.eq(reminderID) }
-            .select { tag, _ in tag }
             .fetchAll(db)
         }
       } catch {

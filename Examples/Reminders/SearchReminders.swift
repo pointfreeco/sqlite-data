@@ -33,14 +33,8 @@ struct SearchRemindersView: View {
           Text("Clear")
         }
         Spacer()
-        if showCompletedInSearchResults {
-          Button("Hide") {
-            showCompletedInSearchResults = false
-          }
-        } else {
-          Button("Show") {
-            showCompletedInSearchResults = true
-          }
+        Button(showCompletedInSearchResults ? "Hide" : "Show") {
+          showCompletedInSearchResults.toggle()
         }
       }
     }
@@ -54,6 +48,7 @@ struct SearchRemindersView: View {
     ForEach(reminders) { reminder in
       ReminderRow(
         isPastDue: reminder.isPastDue,
+        notes: reminder.notes,
         reminder: reminder.reminder,
         remindersList: reminder.remindersList,
         tags: reminder.tags
@@ -86,10 +81,11 @@ struct SearchRemindersView: View {
       .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
       .select {
         ReminderState.Columns(
-          commaSeparatedTags: $2.name.groupConcat(),
           isPastDue: $0.isPastDue,
+          notes: $0.notes.replace("\n", " "),
           reminder: $0,
-          remindersList: $3
+          remindersList: $3,
+          tags: #sql("\($2.name)").jsonGroupArray(filter: $2.name.isNot(nil))
         )
       }
     return .fetchAll(query, animation: .default)
@@ -115,13 +111,12 @@ struct SearchRemindersView: View {
   @Selection
   struct ReminderState: Identifiable {
     var id: Reminder.ID { reminder.id }
-    let commaSeparatedTags: String?
-    var isPastDue: Bool
+    let isPastDue: Bool
+    let notes: String
     let reminder: Reminders.Reminder
     let remindersList: RemindersList
-    var tags: [String] {
-      (commaSeparatedTags ?? "").split(separator: ",").map(String.init)
-    }
+    @Column(as: JSONRepresentation<[String]>.self)
+    let tags: [String]
   }
 }
 

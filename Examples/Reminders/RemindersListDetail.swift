@@ -29,6 +29,7 @@ struct RemindersListDetailView: View {
       ForEach(reminderStates) { reminderState in
         ReminderRow(
           isPastDue: reminderState.isPastDue,
+          notes: reminderState.notes,
           reminder: reminderState.reminder,
           remindersList: reminderState.remindersList,
           tags: reminderState.tags
@@ -189,7 +190,8 @@ struct RemindersListDetailView: View {
             reminder: $0,
             remindersList: $3,
             isPastDue: $0.isPastDue,
-            commaSeparatedTags: $2.name.groupConcat()
+            notes: $0.notes.replace("\n", " "),
+            tags: #sql("\($2.name)").jsonGroupArray(filter: $2.name.isNot(nil))
           )
         },
       animation: .default
@@ -202,17 +204,10 @@ struct RemindersListDetailView: View {
     let reminder: Reminder
     let remindersList: RemindersList
     let isPastDue: Bool
-    let commaSeparatedTags: String?
-    var tags: [String] {
-      (commaSeparatedTags ?? "").split(separator: ",").map(String.init)
-    }
+    let notes: String
+    @Column(as: JSONRepresentation<[String]>.self)
+    let tags: [String]
   }
-}
-
-extension Reminder {
-  static let withTags = group(by: \.id)
-    .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
-    .leftJoin(Tag.all) { $1.tagID.eq($2.id) }
 }
 
 struct RemindersListDetailPreview: PreviewProvider {

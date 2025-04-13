@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ReminderRow: View {
   let isPastDue: Bool
+  let notes: String
   let reminder: Reminder
   let remindersList: RemindersList
   let tags: [String]
@@ -24,10 +25,6 @@ struct ReminderRow: View {
         VStack(alignment: .leading) {
           title(for: reminder)
 
-          let notes = reminder.notes
-            .split(separator: "\n", omittingEmptySubsequences: true)
-            .prefix(3)
-            .joined(separator: " ")
           if !notes.isEmpty {
             Text(notes)
               .lineLimit(2)
@@ -119,7 +116,7 @@ struct ReminderRow: View {
       + (reminder.priority == nil ? "" : " ")
     return
       (Text(exclamations)
-      .foregroundStyle(reminder.isCompleted ? .gray : Color.hex(remindersList.color))
+      .foregroundStyle(reminder.isCompleted ? .gray : remindersList.color)
       + Text(reminder.title)
       .foregroundStyle(reminder.isCompleted ? .gray : .primary))
       .font(.title3)
@@ -142,6 +139,7 @@ struct ReminderRowPreview: PreviewProvider {
       List {
         ReminderRow(
           isPastDue: false,
+          notes: reminder.notes.replacingOccurrences(of: "\n", with: " "),
           reminder: reminder,
           remindersList: reminderList,
           tags: ["point-free", "adulting"]

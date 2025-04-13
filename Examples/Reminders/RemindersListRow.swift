@@ -14,7 +14,7 @@ struct RemindersListRow: View {
     HStack {
       Image(systemName: "list.bullet.circle.fill")
         .font(.title)
-        .foregroundStyle(Color.hex(remindersList.color))
+        .foregroundStyle(remindersList.color)
       Text(remindersList.name)
       Spacer()
       Text("\(reminderCount)")

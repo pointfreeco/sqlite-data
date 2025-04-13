@@ -23,7 +23,7 @@ struct RemindersListForm: View {
   var body: some View {
     Form {
       TextField("Name", text: $remindersList.name)
-      ColorPicker("Color", selection: $remindersList.color.cgColor)
+      ColorPicker("Color", selection: $remindersList.color)
     }
     .toolbar {
       ToolbarItem {
@@ -61,19 +61,20 @@ extension Int {
   fileprivate var cgColor: CGColor {
     get {
       CGColor(
-        red: Double((self >> 16) & 0xFF) / 255.0,
-        green: Double((self >> 8) & 0xFF) / 255.0,
-        blue: Double(self & 0xFF) / 255.0,
-        alpha: 1
+        red: Double((self >> 24) & 0xFF) / 255.0,
+        green: Double((self >> 16) & 0xFF) / 255.0,
+        blue: Double((self >> 8) & 0xFF) / 255.0,
+        alpha: Double(self & 0xFF) / 255.0
       )
     }
     set {
       guard let components = newValue.components
       else { return }
       self =
-        (Int(components[0] * 255) << 16)
-        | (Int(components[1] * 255) << 8)
-        | Int(components[2] * 255)
+        (Int(components[0] * 255) << 24)
+        | (Int(components[1] * 255) << 16)
+        | (Int(components[2] * 255) << 8)
+        | Int(components[3] * 255)
     }
   }
 }

@@ -3,11 +3,13 @@ import GRDB
 import IssueReporting
 import SharingGRDB
 import StructuredQueriesGRDB
+import SwiftUI
 
 @Table
 struct RemindersList: Hashable, Identifiable {
   var id: Int
-  var color = 0x4a99ef
+  @Column(as: Color.HexRepresentation.self)
+  var color: Color = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
   var name = ""
 }
 
@@ -22,13 +24,16 @@ struct Reminder: Equatable, Identifiable {
   var priority: Priority?
   var remindersListID: Int
   var title = ""
+  static let incomplete = Self.where { !$0.isCompleted }
   static func searching(_ text: String) -> Where<Reminder> {
     Self.where {
       $0.title.collate(.nocase).contains(text)
-        || $0.notes.collate(.nocase).contains(text)
+      || $0.notes.collate(.nocase).contains(text)
     }
   }
-  static let incomplete = Self.where { !$0.isCompleted }
+  static let withTags = group(by: \.id)
+    .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
+    .leftJoin(Tag.all) { $1.tagID.eq($2.id) }
 }
 extension Reminder.TableColumns {
   var isPastDue: some QueryExpression<Bool> {
@@ -88,7 +93,7 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "remindersLists" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-        "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99ef),
+        "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99ef00),
         "name" TEXT NOT NULL
       ) STRICT
       """
@@ -158,9 +163,18 @@ func appDatabase() throws -> any DatabaseWriter {
     func createDebugRemindersLists() throws {
       try RemindersList.delete().execute(self)
       try RemindersList.insert {
-        RemindersList.Draft(color: 0x4a99ef, name: "Personal")
-        RemindersList.Draft(color: 0xed8935, name: "Family")
-        RemindersList.Draft(color: 0xb25dd3, name: "Business")
+        RemindersList.Draft(
+          color: Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255),
+          name: "Personal"
+        )
+        RemindersList.Draft(
+          color: Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255),
+          name: "Family"
+        )
+        RemindersList.Draft(
+          color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
+          name: "Business"
+        )
       }
       .execute(self)
     }
