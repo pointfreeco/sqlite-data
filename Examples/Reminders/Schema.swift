@@ -9,7 +9,7 @@ import SwiftUI
 struct RemindersList: Hashable, Identifiable {
   var id: Int
   @Column(as: Color.HexRepresentation.self)
-  var color: Color = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
+  var color = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
   var name = ""
 }
 

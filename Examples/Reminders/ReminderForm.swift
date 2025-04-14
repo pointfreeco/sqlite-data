@@ -52,11 +52,13 @@ struct ReminderFormView: View {
             Text("Tags")
               .foregroundStyle(.black)
             Spacer()
-            tagsDetail
-              .lineLimit(1)
-              .truncationMode(.tail)
-              .font(.callout)
-              .foregroundStyle(.gray)
+            if let tagsDetail {
+              tagsDetail
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .font(.callout)
+                .foregroundStyle(.gray)
+            }
             Image(systemName: "chevron.right")
           }
         }
@@ -160,9 +162,10 @@ struct ReminderFormView: View {
     }
   }
 
-  private var tagsDetail: Text {
-    selectedTags.reduce(Text("")) { result, tag in
-      result + Text("#\(tag.name) ")
+  private var tagsDetail: Text? {
+    guard let tag = selectedTags.first else { return nil }
+    return selectedTags.dropFirst().reduce(Text("#\(tag)")) { result, tag in
+      result + Text(" #\(tag.name) ")
     }
   }
 
