@@ -61,10 +61,11 @@ struct SearchRemindersView: View {
     if searchText.isEmpty {
       showCompletedInSearchResults = false
     }
+    let query = Reminder.where(\.isCompleted)
     try await $completedCount.load(
       .fetchOne(
-        Reminder.searching(searchText)
-          .where(\.isCompleted)
+        query
+          .join(ReminderText.where { $0.match("\(searchText)*") }) { $0.id.eq($1.reminderID) }
           .count(),
         animation: .default
       )
@@ -75,7 +76,6 @@ struct SearchRemindersView: View {
   private var searchKey: some SharedReaderKey<[ReminderState]> {
     let query =
       Reminder
-      .searching(searchText)
       .where { showCompletedInSearchResults || !$0.isCompleted }
       .order { ($0.isCompleted, $0.dueDate) }
       .withTags
@@ -89,6 +89,7 @@ struct SearchRemindersView: View {
           tags: #sql("\($2.name)").jsonGroupArray(filter: $2.name.isNot(nil))
         )
       }
+      .join(ReminderText.where { $0.match("\(searchText)*") }) { $0.id.eq($1.reminderID) }
     return .fetchAll(query, animation: .default)
   }
 
@@ -96,12 +97,14 @@ struct SearchRemindersView: View {
     withErrorReporting {
       try database.write { db in
         try Reminder
-          .searching(searchText)
           .where(\.isCompleted)
           .where {
             if let monthsAgo {
               #sql("\($0.dueDate) < date('now', '-\(raw: monthsAgo) months')")
             }
+          }
+          .where {
+            $0.id.in(ReminderText.where { $0.match("\(searchText)*") }.select(\.reminderID))
           }
           .delete()
           .execute(db)

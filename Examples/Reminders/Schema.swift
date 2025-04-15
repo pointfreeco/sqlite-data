@@ -25,16 +25,11 @@ struct Reminder: Equatable, Identifiable {
   var remindersListID: Int
   var title = ""
   static let incomplete = Self.where { !$0.isCompleted }
-  static func searching(_ text: String) -> Where<Reminder> {
-    Self.where {
-      $0.title.collate(.nocase).contains(text)
-      || $0.notes.collate(.nocase).contains(text)
-    }
-  }
   static let withTags = group(by: \.id)
     .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
     .leftJoin(Tag.all) { $1.tagID.eq($2.id) }
 }
+
 extension Reminder.TableColumns {
   var isPastDue: some QueryExpression<Bool> {
     !isCompleted && #sql("coalesce(date(\(dueDate)) < date('now'), 0)")
@@ -63,6 +58,55 @@ struct Tag {
 struct ReminderTag {
   var reminderID: Int
   var tagID: Int
+}
+
+protocol VirtualTable {}
+
+extension StructuredQueries.TableDefinition where QueryValue: VirtualTable {
+  var rank: some QueryExpression<Double> {
+    SQLQueryExpression(
+      """
+      \(QueryValue.self)."rank"
+      """
+    )
+  }
+
+  func match(_ pattern: some QueryExpression<String>) -> some QueryExpression<Bool> {
+    SQLQueryExpression(
+      """
+      (\(QueryValue.self) MATCH \(pattern))
+      """
+    )
+  }
+
+  func highlight<Value>(
+    _ column: KeyPath<Self, StructuredQueries.TableColumn<QueryValue, Value>>,
+    _ open: String,
+    _ close: String
+  ) -> some QueryExpression<String> {
+    let column = self[keyPath: column]
+    let offset = Self.allColumns.firstIndex { $0.name == column.name }!
+    return SQLQueryExpression(
+      """
+      highlight(\
+      \(QueryValue.self), \
+      \(raw: offset),
+      \(quote: open, delimiter: .text), \
+      \(quote: close, delimiter: .text)\
+      )
+      """
+    )
+  }
+}
+
+@Table
+struct ReminderText: VirtualTable {
+  @Column(primaryKey: true)
+  let reminderID: Int
+  let reminderNotes: String
+  let reminderTags: String
+  let reminderTitle: String
+  let remindersListName: String
 }
 
 func appDatabase() throws -> any DatabaseWriter {
@@ -138,6 +182,105 @@ func appDatabase() throws -> any DatabaseWriter {
         FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
         FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
       ) STRICT
+      """
+    )
+    .execute(db)
+  }
+  migrator.registerMigration("Add reminders FTS") { db in
+    try #sql(
+      """
+      CREATE VIRTUAL TABLE "reminderTexts" USING fts5(
+        "reminderID",
+        "reminderNotes",
+        "reminderTags",
+        "reminderTitle",
+        "remindersListID",
+        "remindersListName",
+        tokenize = 'trigram'
+      )
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TRIGGER "remindersInserts" AFTER INSERT ON "reminders" BEGIN
+        INSERT INTO "reminderTexts"
+          (
+            "reminderID",
+            "reminderNotes",
+            "reminderTags",
+            "reminderTitle",
+            "remindersListID",
+            "remindersListName"
+          )
+        SELECT 
+          "reminders"."id",
+          "reminders"."notes",
+          '',
+          "reminders"."title",
+          "remindersLists"."id",
+          "remindersLists"."name"
+        FROM "reminders"
+        JOIN "remindersLists" ON "reminders"."remindersListID" = "remindersLists"."id"
+        WHERE "reminders"."id" = "new"."id";
+      END
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TRIGGER "remindersUpdates" AFTER UPDATE OF "notes", "title" ON "reminders" BEGIN
+        UPDATE "reminderTexts" SET
+          "reminderID" = "new"."id",
+          "reminderNotes" = "new"."notes",
+          "reminderTitle" = "new"."title"
+        WHERE "reminderTexts"."reminderID" = "old"."id";
+      END
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TRIGGER "remindersDeletes" AFTER DELETE ON "reminders" BEGIN
+        DELETE FROM "reminderTexts" WHERE "reminderID" = "old"."id";
+      END
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TRIGGER "remindersListsUpdates" AFTER UPDATE OF "name" ON "remindersLists" BEGIN
+        UPDATE "reminderTexts" SET
+          "remindersListID" = "new"."id",
+          "remindersListName" = "new"."name"
+        WHERE "reminderTexts"."remindersListID" = "old"."id";
+      END
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TRIGGER "remindersTagsInserts" AFTER INSERT ON "remindersTags" BEGIN
+        UPDATE "reminderTexts" SET "reminderTags" = (
+          SELECT group_concat("tags"."name", ' ') FROM "tags"
+          JOIN "remindersTags" ON "tags"."id" = "remindersTags"."tagID"
+          WHERE "remindersTags"."reminderID" = "reminderTexts"."reminderID"
+        )
+        WHERE "reminderTexts"."reminderID" = "new"."reminderID";
+      END
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TRIGGER "remindersTagsDeletes" AFTER DELETE ON "remindersTags" BEGIN
+        UPDATE "reminderTexts" SET "reminderTags" = (
+          SELECT group_concat("tags"."name", ' ') FROM "tags"
+          JOIN "remindersTags" ON "tags"."id" = "remindersTags"."tagID"
+          WHERE "remindersTags"."reminderID" = "reminderTexts"."reminderID"
+        )
+        WHERE "reminderTexts"."reminderID" = "old"."reminderID";
+      END
       """
     )
     .execute(db)
