@@ -83,10 +83,10 @@ struct SearchRemindersView: View {
       .select {
         ReminderState.Columns(
           isPastDue: $0.isPastDue,
-          notes: $0.notes.replace("\n", " "),
+          notes: $0.inlineNotes,
           reminder: $0,
           remindersList: $3,
-          tags: #sql("\($2.name)").jsonGroupArray(filter: $2.name.isNot(nil))
+          tags: $2.jsonNames
         )
       }
     return .fetchAll(query, animation: .default)

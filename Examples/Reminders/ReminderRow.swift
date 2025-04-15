@@ -103,12 +103,14 @@ struct ReminderRow: View {
 
   private var subtitleText: Text {
     let tagsText = tags.reduce(Text(reminder.dueDate == nil ? "" : "  ")) { result, tag in
-      result
-        + Text("#\(tag) ")
-        .foregroundStyle(.gray)
-        .bold()
+      result + Text("#\(tag) ")
     }
-    return (dueText + tagsText).font(.callout)
+    return
+      (dueText
+      + tagsText
+      .foregroundStyle(.gray)
+      .bold())
+      .font(.callout)
   }
 
   private func title(for reminder: Reminder) -> some View {

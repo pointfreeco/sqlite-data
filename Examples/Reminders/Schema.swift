@@ -45,6 +45,9 @@ extension Reminder.TableColumns {
   var isScheduled: some QueryExpression<Bool> {
     !isCompleted && dueDate.isNot(nil)
   }
+  var inlineNotes: some QueryExpression<String> {
+    notes.replace("\n", " ")
+  }
 }
 
 enum Priority: Int, QueryBindable {
@@ -57,6 +60,12 @@ enum Priority: Int, QueryBindable {
 struct Tag {
   var id: Int
   var name = ""
+}
+
+extension Tag?.TableColumns {
+  var jsonNames: some QueryExpression<JSONRepresentation<[String]>> {
+    #sql("\(self.name)").jsonGroupArray(filter: self.name.isNot(nil))
+  }
 }
 
 @Table("remindersTags")

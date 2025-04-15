@@ -235,8 +235,8 @@ struct RemindersListDetailView: View {
             reminder: $0,
             remindersList: $3,
             isPastDue: $0.isPastDue,
-            notes: $0.notes.replace("\n", " "),
-            tags: #sql("\($2.name)").jsonGroupArray(filter: $2.name.isNot(nil))
+            notes: $0.inlineNotes,
+            tags: $2.jsonNames
           )
         },
       animation: .default
