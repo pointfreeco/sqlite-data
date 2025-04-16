@@ -78,7 +78,6 @@ struct ReminderFormView: View {
             Text("Date")
           }
         }
-        // TODO: Try `Binding.init?` initializer
         if let dueDate = reminder.dueDate {
           DatePicker(
             "",
@@ -164,7 +163,7 @@ struct ReminderFormView: View {
 
   private var tagsDetail: Text? {
     guard let tag = selectedTags.first else { return nil }
-    return selectedTags.dropFirst().reduce(Text("#\(tag)")) { result, tag in
+    return selectedTags.dropFirst().reduce(Text("#\(tag.name)")) { result, tag in
       result + Text(" #\(tag.name) ")
     }
   }
