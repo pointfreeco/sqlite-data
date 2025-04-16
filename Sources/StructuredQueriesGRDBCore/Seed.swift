@@ -3,6 +3,7 @@ import GRDB
 import StructuredQueriesCore
 
 extension Database {
+  // TODO: docs
   public func seed(
     @InsertValuesBuilder<any StructuredQueriesCore.Table>
     _ build: () -> [any StructuredQueriesCore.Table]
