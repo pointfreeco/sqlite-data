@@ -8,20 +8,28 @@ extension Database {
     @InsertValuesBuilder<any StructuredQueriesCore.Table>
     _ build: () -> [any StructuredQueriesCore.Table]
   ) throws {
-    func open<T: StructuredQueriesCore.Table>(_ seed: T) throws {
-      if let seed = seed as? any TableDraft {
-        func open<Draft: TableDraft>(_ seed: Draft) throws {
-          try Draft.PrimaryTable.insert(seed)
-            .execute(self)
-        }
-        try open(seed)
-      } else {
-        try T.insert(seed).execute(self)
-      }
-    }
+    var seeds = build()
+    while !seeds.isEmpty {
+      guard let first = seeds.first else { break }
+      let firstType = type(of: first)
 
-    for seed in build() {
-      try open(seed)
+      if let firstType = firstType as? any TableDraft.Type {
+        func insertBatch<T: TableDraft>(_: T.Type) throws {
+          let batch = Array(seeds.lazy.prefix { $0 is T }.compactMap { $0 as? T })
+          defer { seeds.removeFirst(batch.count) }
+          try T.PrimaryTable.insert(batch).execute(self)
+        }
+
+        try insertBatch(firstType)
+      } else {
+        func insertBatch<T: StructuredQueriesCore.Table>(_: T.Type) throws {
+          let batch = Array(seeds.lazy.prefix { $0 is T }.compactMap { $0 as? T })
+          defer { seeds.removeFirst(batch.count) }
+          try T.insert(batch).execute(self)
+        }
+
+        try insertBatch(firstType)
+      }
     }
   }
 }
