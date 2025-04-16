@@ -30,6 +30,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-structured-queries", branch: "main"),
+//    .package(path: "../swift-structured-queries")
   ],
   targets: [
     .target(
@@ -53,6 +54,7 @@ let package = Package(
       name: "StructuredQueriesGRDBCore",
       dependencies: [
         .product(name: "GRDB", package: "GRDB.swift"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
         .product(name: "StructuredQueriesCore", package: "swift-structured-queries"),
       ]
@@ -71,10 +73,24 @@ let package = Package(
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
       ]
-    ),
+    )
   ],
   swiftLanguageModes: [.v6]
 )
+
+let swiftSettings: [SwiftSetting] = [
+  .enableUpcomingFeature("MemberImportVisibility"),
+  // .unsafeFlags([
+  //   "-Xfrontend",
+  //   "-warn-long-function-bodies=50",
+  //   "-Xfrontend",
+  //   "-warn-long-expression-type-checking=50",
+  // ])
+]
+
+for index in package.targets.indices {
+  package.targets[index].swiftSettings = swiftSettings
+}
 
 #if !os(Windows)
   // Add the documentation compiler plugin if possible

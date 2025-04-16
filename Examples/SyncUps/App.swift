@@ -1,4 +1,5 @@
 import CasePaths
+import Dependencies
 import SharingGRDB
 import SwiftUI
 
@@ -12,8 +13,6 @@ class AppModel {
     didSet { bind() }
   }
 
-  @ObservationIgnored
-  @Dependency(\.continuousClock) var clock
   @ObservationIgnored
   @Dependency(\.date.now) var now
   @ObservationIgnored

@@ -2,6 +2,7 @@ import Dependencies
 import Dispatch
 import GRDB
 import Sharing
+import StructuredQueriesGRDBCore
 
 #if canImport(Combine)
   @preconcurrency import Combine

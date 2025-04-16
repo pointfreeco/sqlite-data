@@ -141,9 +141,12 @@ func appDatabase() throws -> any DatabaseWriter {
     )
     .execute(db)
   }
-  #if DEBUG
-    migrator.registerMigration("Insert sample data") { db in
-      try db.insertSampleData()
+
+  #if DEBUG && targetEnvironment(simulator)
+    if context != .test {
+      migrator.registerMigration("Seed sample data") { db in
+        try db.seedSampleData()
+      }
     }
   #endif
 
@@ -152,55 +155,35 @@ func appDatabase() throws -> any DatabaseWriter {
   return database
 }
 
-#if DEBUG
-  extension Database {
-    func insertSampleData() throws {
-      let design = try SyncUp
-        .insert(SyncUp.Draft(seconds: 60, theme: .appOrange, title: "Design"))
-        .returning(\.self)
-        .fetchOne(self)!
+extension Database {
+  fileprivate func seedSampleData() throws {
+    try seed {
+      SyncUp(id: 1, seconds: 60, theme: .appOrange, title: "Design")
+      SyncUp(id: 2, seconds: 60 * 10, theme: .periwinkle, title: "Engineering")
+      SyncUp(id: 3, seconds: 60 * 30, theme: .poppy, title: "Product")
 
       for name in ["Blob", "Blob Jr", "Blob Sr", "Blob Esq", "Blob III", "Blob I"] {
-        try Attendee
-          .insert(Attendee.Draft(name: name, syncUpID: design.id))
-          .execute(self)
+        Attendee.Draft(name: name, syncUpID: 1)
       }
-      try Meeting
-        .insert(
-          Meeting.Draft(
-            date: Date().addingTimeInterval(-60 * 60 * 24 * 7),
-            syncUpID: design.id,
-            transcript: """
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor \
-              incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud \
-              exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute \
-              irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla \
-              pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia \
-              deserunt mollit anim id est laborum.
-              """
-          )
-        )
-        .execute(self)
-
-      let engineering = try SyncUp
-        .insert(SyncUp.Draft(seconds: 60 * 10, theme: .periwinkle, title: "Engineering"))
-        .returning(\.self)
-        .fetchOne(self)!
       for name in ["Blob", "Blob Jr"] {
-        try Attendee
-          .insert(Attendee.Draft(name: name, syncUpID: engineering.id))
-          .execute(self)
+        Attendee.Draft(name: name, syncUpID: 2)
+      }
+      for name in ["Blob Sr", "Blob Jr"] {
+        Attendee.Draft(name: name, syncUpID: 3)
       }
 
-      let product = try SyncUp
-        .insert(SyncUp.Draft(seconds: 60 * 30, theme: .poppy, title: "Product"))
-        .returning(\.self)
-        .fetchOne(self)!
-      for name in ["Blob Sr", "Blob Jr"] {
-        try Attendee
-          .insert(Attendee.Draft(name: name, syncUpID: product.id))
-          .execute(self)
-      }
+      Meeting.Draft(
+        date: Date().addingTimeInterval(-60 * 60 * 24 * 7),
+        syncUpID: 1,
+        transcript: """
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor \
+          incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud \
+          exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute \
+          irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla \
+          pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia \
+          deserunt mollit anim id est laborum.
+          """
+      )
     }
   }
-#endif
+}

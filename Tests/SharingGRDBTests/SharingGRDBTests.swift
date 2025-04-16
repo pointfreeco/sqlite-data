@@ -1,8 +1,10 @@
 import Dependencies
+import DependenciesTestSupport
 import GRDB
 import Sharing
 import SharingGRDB
 import StructuredQueries
+import SwiftUI
 import Testing
 
 @Suite struct GRDBSharingTests {
