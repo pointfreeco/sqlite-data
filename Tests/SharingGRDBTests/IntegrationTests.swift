@@ -5,7 +5,7 @@ import Sharing
 import SharingGRDB
 import Testing
 
-@Suite(.dependency(\.defaultDatabase, try .syncUps()))
+@MainActor @Suite(.dependency(\.defaultDatabase, try .syncUps()))
 struct IntegrationTests {
   @Test
   func fetchAll_SQLString() async throws {
