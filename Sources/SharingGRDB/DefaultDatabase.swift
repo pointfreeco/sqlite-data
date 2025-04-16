@@ -81,7 +81,9 @@ extension DependencyValues {
             """
         }
       }
-      reportIssue(message)
+      if shouldReportUnimplemented {
+        reportIssue(message)
+      }
       var configuration = Configuration()
       #if DEBUG
         configuration.label = .defaultDatabaseLabel

@@ -4,15 +4,14 @@ import Testing
 
 @testable import SyncUps
 
-@Suite
+@Suite(.dependencies {
+  $0.defaultDatabase = try! SyncUps.appDatabase()
+  $0.uuid = .incrementing
+})
 struct SyncUpFormTests {
   @Dependency(\.defaultDatabase) var database
 
   @Test func saveNew() async throws {
-    prepareDependencies {
-      $0.defaultDatabase = try! SyncUps.appDatabase()
-      $0.uuid = .incrementing
-    }
     let draft = SyncUp.Draft(title: "Morning Sync")
     let model = SyncUpFormModel(syncUp: draft)
     model.addAttendeeButtonTapped()
@@ -32,10 +31,6 @@ struct SyncUpFormTests {
   }
 
   @Test func updateExisting() async throws {
-    prepareDependencies {
-      $0.defaultDatabase = try! SyncUps.appDatabase()
-      $0.uuid = .incrementing
-    }
     let existingSyncUp = try await database.read { db in
       try #require(try SyncUp.all.fetchOne(db))
     }
