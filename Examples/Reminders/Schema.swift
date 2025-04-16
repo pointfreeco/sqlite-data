@@ -151,9 +151,11 @@ func appDatabase() throws -> any DatabaseWriter {
     )
     .execute(db)
   }
-  #if DEBUG
-    migrator.registerMigration("Add mock data") { db in
-      try db.createMockData()
+  #if DEBUG && targetEnvironment(simulator)
+    if context != .test {
+      migrator.registerMigration("Seed sample data") { db in
+        try db.seedSampleData()
+      }
     }
   #endif
   try migrator.migrate(database)
@@ -163,85 +165,83 @@ func appDatabase() throws -> any DatabaseWriter {
 
 #if DEBUG
   extension Database {
-    func createMockData() throws {
-      try createDebugRemindersLists()
-      try createDebugReminders()
-      try createDebugTags()
-    }
-
-    func createDebugRemindersLists() throws {
-      try RemindersList.delete().execute(self)
-      try RemindersList.insert {
-        RemindersList.Draft(
+    func seedSampleData() throws {
+      try seed {
+        RemindersList(
+          id: 1,
           color: Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255),
           name: "Personal"
         )
-        RemindersList.Draft(
+        RemindersList(
+          id: 2,
           color: Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255),
           name: "Family"
         )
-        RemindersList.Draft(
+        RemindersList(
+          id: 3,
           color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
           name: "Business"
         )
-      }
-      .execute(self)
-    }
-
-    func createDebugReminders() throws {
-      try Reminder.delete().execute(self)
-      try Reminder.insert {
-        Reminder.Draft(
+        Reminder(
+          id: 1,
           notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
           remindersListID: 1,
           title: "Groceries"
         )
-        Reminder.Draft(
+        Reminder(
+          id: 2,
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isFlagged: true,
           remindersListID: 1,
           title: "Haircut"
         )
-        Reminder.Draft(
+        Reminder(
+          id: 3,
           dueDate: Date(),
           notes: "Ask about diet",
           priority: .high,
           remindersListID: 1,
           title: "Doctor appointment"
         )
-        Reminder.Draft(
+        Reminder(
+          id: 4,
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 190),
           isCompleted: true,
           remindersListID: 1,
           title: "Take a walk"
         )
-        Reminder.Draft(
+        Reminder(
+          id: 5,
           dueDate: Date(),
           remindersListID: 1,
           title: "Buy concert tickets"
         )
-        Reminder.Draft(
+        Reminder(
+          id: 6,
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           isFlagged: true,
           priority: .high,
           remindersListID: 2,
           title: "Pick up kids from school"
         )
-        Reminder.Draft(
+        Reminder(
+          id: 7,
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .low,
           remindersListID: 2,
           title: "Get laundry"
         )
-        Reminder.Draft(
+        Reminder(
+          id: 8,
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 4),
           isCompleted: false,
           priority: .high,
           remindersListID: 2,
           title: "Take out trash"
         )
-        Reminder.Draft(
+        Reminder(
+          id: 9,
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           notes: """
             Status of tax return
@@ -251,43 +251,30 @@ func appDatabase() throws -> any DatabaseWriter {
           remindersListID: 3,
           title: "Call accountant"
         )
-        Reminder.Draft(
+        Reminder(
+          id: 10,
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .medium,
           remindersListID: 3,
           title: "Send weekly emails"
         )
+        Tag(id: 1, name: "car")
+        Tag(id: 2, name: "kids")
+        Tag(id: 3, name: "someday")
+        Tag(id: 4, name: "optional")
+        Tag(id: 5, name: "social")
+        Tag(id: 6, name: "night")
+        Tag(id: 7, name: "adulting")
+        ReminderTag(reminderID: 1, tagID: 3)
+        ReminderTag(reminderID: 1, tagID: 4)
+        ReminderTag(reminderID: 1, tagID: 7)
+        ReminderTag(reminderID: 2, tagID: 3)
+        ReminderTag(reminderID: 2, tagID: 4)
+        ReminderTag(reminderID: 3, tagID: 7)
+        ReminderTag(reminderID: 4, tagID: 1)
+        ReminderTag(reminderID: 4, tagID: 2)
       }
-      .execute(self)
-    }
-
-    func createDebugTags() throws {
-      try ReminderTag.delete().execute(self)
-      try Tag.delete().execute(self)
-      try Tag.insert(\.name) {
-        "car"
-        "kids"
-        "someday"
-        "optional"
-        "social"
-        "night"
-        "adulting"
-      }
-      .execute(self)
-      try ReminderTag.insert {
-        ($0.reminderID, $0.tagID)
-      } values: {
-        (1, 3)
-        (1, 4)
-        (1, 7)
-        (2, 3)
-        (2, 4)
-        (3, 7)
-        (4, 1)
-        (4, 2)
-      }
-      .execute(self)
     }
   }
 #endif
