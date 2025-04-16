@@ -110,15 +110,15 @@ extension DatabaseWriter where Self == DatabaseQueue {
     }
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Up") { db in
-        try #sql(
-          """
-          CREATE TABLE "records" ("id" INTEGER PRIMARY KEY AUTOINCREMENT)
-          """
-        )
-        .execute(db)
-        for index in 1...3 {
-          _ = try Record(id: index).inserted(db)
-        }
+      try #sql(
+        """
+        CREATE TABLE "records" ("id" INTEGER PRIMARY KEY AUTOINCREMENT)
+        """
+      )
+      .execute(db)
+      for index in 1...3 {
+        _ = try Record(id: index).inserted(db)
+      }
     }
     try migrator.migrate(database)
     return database
