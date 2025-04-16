@@ -28,7 +28,7 @@ struct Reminder: Equatable, Identifiable {
   static func searching(_ text: String) -> Where<Reminder> {
     Self.where {
       $0.title.collate(.nocase).contains(text)
-      || $0.notes.collate(.nocase).contains(text)
+        || $0.notes.collate(.nocase).contains(text)
     }
   }
   static let withTags = group(by: \.id)
@@ -102,7 +102,7 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "remindersLists" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-        "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99ef00),
+        "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99_ef00),
         "name" TEXT NOT NULL
       ) STRICT
       """

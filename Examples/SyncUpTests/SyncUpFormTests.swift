@@ -4,10 +4,12 @@ import Testing
 
 @testable import SyncUps
 
-@Suite(.dependencies {
-  $0.defaultDatabase = try! SyncUps.appDatabase()
-  $0.uuid = .incrementing
-})
+@Suite(
+  .dependencies {
+    $0.defaultDatabase = try! SyncUps.appDatabase()
+    $0.uuid = .incrementing
+  }
+)
 struct SyncUpFormTests {
   @Dependency(\.defaultDatabase) var database
 
