@@ -48,21 +48,8 @@ extension DependencyValues {
     static var testValue: any DatabaseWriter {
       var message: String {
         @Dependency(\.context) var context
-        if context == .preview {
-          return """
-            A blank, in-memory database is being used. To set the database that is used by \
-            'SharingGRDB', use the 'prepareDependencies' tool as early as possible in the lifetime \
-            of your preview:
-
-                #Preview {
-                  let _ = prepareDependencies {
-                    $0.defaultDatabase = try! DatabaseQueue(/* ... */)
-                  }
-
-                  // ...
-                }
-            """
-        } else {
+        switch context {
+        case .live:
           return """
             A blank, in-memory database is being used. To set the database that is used by \
             'SharingGRDB', use the 'prepareDependencies' tool as early as possible in the lifetime \
@@ -80,6 +67,30 @@ extension DependencyValues {
                   // ...
                 }
             """
+
+        case .preview:
+          return #"""
+            A blank, in-memory database is being used. To set the database that is used by \
+            'SharingGRDB' in a preview, use a tool like the 'dependency' trait:
+
+                #Preview(
+                  trait: .dependency(\.defaultDatabase, try DatabaseQueue(/* ... */)
+                ) {
+                  // ...
+                }
+            """#
+
+        case .test:
+          return #"""
+            A blank, in-memory database is being used. To set the database that is used by \
+            'SharingGRDB' in a test, use a tool like the 'dependency' trait:
+
+                @Suite(.dependency(\.defaultDatabase, try DatabaseQueue(/* ... */)
+                struct MyTests {
+                  // ...
+                }
+            """#
+
         }
       }
       if shouldReportUnimplemented {
