@@ -15,7 +15,7 @@ struct RemindersListRow: View {
       Image(systemName: "list.bullet.circle.fill")
         .font(.title)
         .foregroundStyle(remindersList.color)
-      Text(remindersList.name)
+      Text(remindersList.title)
       Spacer()
       Text("\(reminderCount)")
     }
@@ -54,7 +54,7 @@ struct RemindersListRow: View {
         reminderCount: 10,
         remindersList: RemindersList(
           id: 1,
-          name: "Personal"
+          title: "Personal"
         )
       )
     }

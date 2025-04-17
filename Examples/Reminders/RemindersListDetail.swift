@@ -173,7 +173,7 @@ struct RemindersListDetailView: View {
       case .flagged:
         "Flagged"
       case .list(let list):
-        list.name
+        list.title
       case .scheduled:
         "Scheduled"
       case .today:

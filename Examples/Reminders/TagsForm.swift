@@ -51,7 +51,7 @@ struct TagsView: View {
         .join(ReminderTag.all) { $0.id.eq($1.tagID) }
         .join(Reminder.all) { $1.reminderID.eq($2.id) }
         .having { $2.count().gt(0) }
-        .order { ($2.count().desc(), $0.name) }
+        .order { ($2.count().desc(), $0.title) }
         .limit(3)
         .select { tags, _, _ in tags }
         .fetchAll(db)
@@ -87,7 +87,7 @@ private struct TagView: View {
         if isSelected {
           Image.init(systemName: "checkmark")
         }
-        Text(tag.name)
+        Text(tag.title)
       }
     }
     .tint(isSelected ? .blue : .black)

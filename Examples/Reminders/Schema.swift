@@ -10,7 +10,7 @@ struct RemindersList: Hashable, Identifiable {
   var id: Int
   @Column(as: Color.HexRepresentation.self)
   var color = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
-  var name = ""
+  var title = ""
 }
 
 @Table
@@ -59,12 +59,12 @@ enum Priority: Int, QueryBindable {
 @Table
 struct Tag {
   var id: Int
-  var name = ""
+  var title = ""
 }
 
 extension Tag?.TableColumns {
   var jsonNames: some QueryExpression<JSONRepresentation<[String]>> {
-    #sql("\(self.name)").jsonGroupArray(filter: self.name.isNot(nil))
+    #sql("\(self.title)").jsonGroupArray(filter: self.title.isNot(nil))
   }
 }
 
@@ -103,7 +103,7 @@ func appDatabase() throws -> any DatabaseWriter {
       CREATE TABLE "remindersLists" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
         "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99_ef00),
-        "name" TEXT NOT NULL
+        "title" TEXT NOT NULL
       ) STRICT
       """
     )
@@ -133,7 +133,7 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "tags" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-        "name" TEXT NOT NULL COLLATE NOCASE UNIQUE
+        "title" TEXT NOT NULL COLLATE NOCASE UNIQUE
       ) STRICT
       """
     )
@@ -170,17 +170,17 @@ func appDatabase() throws -> any DatabaseWriter {
         RemindersList(
           id: 1,
           color: Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255),
-          name: "Personal"
+          title: "Personal"
         )
         RemindersList(
           id: 2,
           color: Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255),
-          name: "Family"
+          title: "Family"
         )
         RemindersList(
           id: 3,
           color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
-          name: "Business"
+          title: "Business"
         )
         Reminder(
           id: 1,
@@ -259,13 +259,13 @@ func appDatabase() throws -> any DatabaseWriter {
           remindersListID: 3,
           title: "Send weekly emails"
         )
-        Tag(id: 1, name: "car")
-        Tag(id: 2, name: "kids")
-        Tag(id: 3, name: "someday")
-        Tag(id: 4, name: "optional")
-        Tag(id: 5, name: "social")
-        Tag(id: 6, name: "night")
-        Tag(id: 7, name: "adulting")
+        Tag(id: 1, title: "car")
+        Tag(id: 2, title: "kids")
+        Tag(id: 3, title: "someday")
+        Tag(id: 4, title: "optional")
+        Tag(id: 5, title: "social")
+        Tag(id: 6, title: "night")
+        Tag(id: 7, title: "adulting")
         ReminderTag(reminderID: 1, tagID: 3)
         ReminderTag(reminderID: 1, tagID: 4)
         ReminderTag(reminderID: 1, tagID: 7)

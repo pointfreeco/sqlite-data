@@ -6,7 +6,7 @@ import StructuredQueriesGRDB
 import SwiftUI
 
 struct ReminderFormView: View {
-  @SharedReader(.fetchAll(RemindersList.order(by: \.name))) var remindersLists
+  @SharedReader(.fetchAll(RemindersList.order(by: \.title))) var remindersLists
 
   @State var isPresentingTagsPopover = false
   @State var remindersList: RemindersList
@@ -114,7 +114,7 @@ struct ReminderFormView: View {
 
         Picker(selection: $remindersList) {
           ForEach(remindersLists) { remindersList in
-            Text(remindersList.name)
+            Text(remindersList.title)
               .tag(remindersList)
               .buttonStyle(.plain)
           }
@@ -137,7 +137,7 @@ struct ReminderFormView: View {
       do {
         selectedTags = try await database.read { db in
           try Tag.select(\.self)
-            .order(by: \.name)
+            .order(by: \.title)
             .join(ReminderTag.all) { $0.id.eq($1.tagID) }
             .where { $1.reminderID.eq(reminderID) }
             .fetchAll(db)
@@ -147,7 +147,7 @@ struct ReminderFormView: View {
         reportIssue(error)
       }
     }
-    .navigationTitle(remindersList.name)
+    .navigationTitle(remindersList.title)
     .toolbar {
       ToolbarItem {
         Button(action: saveButtonTapped) {
@@ -164,8 +164,8 @@ struct ReminderFormView: View {
 
   private var tagsDetail: Text? {
     guard let tag = selectedTags.first else { return nil }
-    return selectedTags.dropFirst().reduce(Text("#\(tag.name)")) { result, tag in
-      result + Text(" #\(tag.name) ")
+    return selectedTags.dropFirst().reduce(Text("#\(tag.title)")) { result, tag in
+      result + Text(" #\(tag.title) ")
     }
   }
 

@@ -15,7 +15,7 @@ struct RemindersListForm: View {
 
   var body: some View {
     Form {
-      TextField("Name", text: $remindersList.name)
+      TextField("Name", text: $remindersList.title)
       ColorPicker("Color", selection: $remindersList.color)
     }
     .toolbar {
