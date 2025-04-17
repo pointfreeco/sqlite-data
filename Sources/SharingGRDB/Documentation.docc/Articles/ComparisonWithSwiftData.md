@@ -458,14 +458,16 @@ Lightweight migrations in SwiftData work for simple situations, such as adding a
     }
     
     migrator.registerMigration("Create 'items' table") { db in
-      try #sql("""
+      try #sql(
+        """
         CREATE TABLE "items" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "title" TEXT NOT NULL,
           "isInStock" INTEGER NOT NULL DEFAULT 1
         )
-        """)
-        .execute(db)
+        """
+      )
+      .execute(db)
     }
     ```
   }
@@ -499,10 +501,12 @@ adding a `description` field to the `Item` type:
     }
     
     migrator.registerMigration("Add 'description' column to 'items'") { db in
-      try #sql("""
+      try #sql(
+        """
         ALTER TABLE "items" ADD COLUMN "description" TEXT
-        """)
-        .execute(db)
+        """
+      )
+      .execute(db)
     }
     ```
   }
@@ -575,10 +579,12 @@ structure of your data types. The overall steps to follow are as such:
         }
         .execute()
       // 2️⃣ Create unique index
-      try #sql("""
+      try #sql(
+        """
         CREATE UNIQUE INDEX "items_title" ON "items" ("title") 
-        """)
-        .execute(db)
+        """
+      )
+      .execute(db)
     }
     ```
   }
