@@ -1,6 +1,6 @@
 # ``StructuredQueriesGRDB``
 
-A library interfacing Structured Queries with GRDB.
+A library interfacing StructuredQueries with GRDB.
 
 ## Overview
 

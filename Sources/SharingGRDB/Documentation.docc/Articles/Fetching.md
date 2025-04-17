@@ -6,19 +6,19 @@ Learn about the various tools for fetching data from a SQLite database.
 
 All data fetching happens by providing the `fetchAll`, `fetchOne`, or `fetch` key to the
 `@SharedReader` property wrapper. The primary differences between these choices is whether you want
-to build queries with [Structured Queries][structured-queries-gh], specify your query as a raw SQL
+to build queries with [StructuredQueries][structured-queries-gh], specify your query as a raw SQL
 string, or if you want to assemble your value from one or more queries using a raw database
 connection.
 
-  * [Querying with Structured Queries](#Querying-with-Structured-Queries)
+  * [Querying with StructuredQueries](#Querying-with-Structured-Queries)
   * [Querying with SQL](#Querying-with-SQL)
   * [Querying with custom request](#Querying-with-a-custom-request)
 
 [structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
 
-### Querying with Structured Queries
+### Querying with StructuredQueries
 
-[Structured Queries][structured-queries-gh] is a library for building type-safe queries that safely
+[StructuredQueries][structured-queries-gh] is a library for building type-safe queries that safely
 and performantly decode into Swift data types. For example, if you simply want to fetch all records
 from a table, you can do so by plugging the query directly into
 [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(_:database:)>):
@@ -46,9 +46,9 @@ you can do so using the
 var itemsCount = 0
 ```
 
-While Structured Queries' builder is powerful, it is also stricter than SQLite, which will happily
+While StructuredQueries' builder is powerful, it is also stricter than SQLite, which will happily
 coerce any data into any type, and some queries are more conveniently expressed through these
-coercions. Structured Queries should never get in your way, so rather than describe to the Swift
+coercions. StructuredQueries should never get in your way, so rather than describe to the Swift
 type system every explicit cast and coalesce, you can always embed SQL directly in a query using
 the `#sql` macro:
 
@@ -74,7 +74,7 @@ var items: [Item]
 ```
 
 The choice is up to you for each query or query fragment. To learn more, see the
-[Structured Queries documentation][structured-queries-docs].
+[StructuredQueries documentation][structured-queries-docs].
 
 [structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
 [structured-queries-docs]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/
@@ -101,7 +101,7 @@ var itemsCount = 0
 
 These APIs simply feed their data directly to GRDB's equivalent `Database` APIs, which means it is
 up to you to safely bind arguments and avoid SQL injection. If you want to write SQL queries by
-hand, consider using Structured Queries' `#sql` macro, instead.
+hand, consider using StructuredQueries' `#sql` macro, instead.
 
 [structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
 

@@ -14,7 +14,7 @@ import StructuredQueriesGRDBCore
 extension SharedReaderKey {
   /// A key that can query for a collection of data in a SQLite database.
   ///
-  /// This key takes a query built using the Structured Queries library.
+  /// This key takes a query built using the StructuredQueries library.
   ///
   /// ```swift
   /// @SharedReader(.fetchAll(Item.order(by: \.name))) var items
@@ -40,7 +40,7 @@ extension SharedReaderKey {
 
   /// A key that can query for a collection of data in a SQLite database.
   ///
-  /// This key takes a query built using the Structured Queries library.
+  /// This key takes a query built using the StructuredQueries library.
   ///
   /// ```swift
   /// @SharedReader(.fetchAll(Item.order(by: \.name))) var items
@@ -61,7 +61,7 @@ extension SharedReaderKey {
 
   /// A key that can query for a value in a SQLite database.
   ///
-  /// This key takes a query built using the Structured Queries library.
+  /// This key takes a query built using the StructuredQueries library.
   ///
   /// ```swift
   /// @SharedReader(.fetchOne(Item.count())) var itemCount = 0
@@ -87,7 +87,7 @@ extension SharedReaderKey {
 extension SharedReaderKey {
   /// A key that can query for a collection of data in a SQLite database.
   ///
-  /// This key takes a query built using the Structured Queries library.
+  /// This key takes a query built using the StructuredQueries library.
   ///
   /// ```swift
   /// @SharedReader(.fetchAll(Item.order(by: \.name))) var items
@@ -114,7 +114,7 @@ extension SharedReaderKey {
 
   /// A key that can query for a collection of data in a SQLite database.
   ///
-  /// This key takes a query built using the Structured Queries library.
+  /// This key takes a query built using the StructuredQueries library.
   ///
   /// ```swift
   /// @SharedReader(.fetchAll(Item.order(by: \.name))) var items
@@ -144,7 +144,7 @@ extension SharedReaderKey {
 
   /// A key that can query for a value in a SQLite database.
   ///
-  /// This key takes a query built using the Structured Queries library.
+  /// This key takes a query built using the StructuredQueries library.
   ///
   /// ```swift
   /// @SharedReader(.fetchOne(Item.count())) var itemCount = 0

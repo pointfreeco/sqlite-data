@@ -1,11 +1,11 @@
 # ``StructuredQueriesGRDBCore``
 
-The core functionality of interfacing Structured Queries with GRDB. This module is automatically
+The core functionality of interfacing StructuredQueries with GRDB. This module is automatically
 imported when you `import StructuredQueriesGRDB`.
 
 ## Overview
 
-This library can be used to directly execute queries built using the [Structured Queries][sq-gh]
+This library can be used to directly execute queries built using the [StructuredQueries][sq-gh]
 library and a [GRDB][grdb-gh] database.
 
 While the `SharingGRDB` module provides tools to observe queries using the `@SharedReader` property
@@ -45,7 +45,7 @@ let averageScore = try Player
 // SELECT avg("players"."score") FROM "players"
 ```
 
-For more information on how to build queries, see the [Structured Queries documentation][sq-spi].
+For more information on how to build queries, see the [StructuredQueries documentation][sq-spi].
 
 [sq-gh]: https://github.com/pointfreeco/swift-structured-queries
 [sq-spi]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueries
