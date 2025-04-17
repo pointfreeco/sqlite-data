@@ -72,7 +72,7 @@ struct TransactionDemo: SwiftUICaseStudy {
 @Table
 private struct Fact: Identifiable {
   static let databaseTableName = "facts"
-  let id: Int64
+  let id: Int
   var body: String
 }
 
