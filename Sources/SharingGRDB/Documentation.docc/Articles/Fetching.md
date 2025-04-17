@@ -19,11 +19,26 @@ connection.
 ### Querying with StructuredQueries
 
 [StructuredQueries][structured-queries-gh] is a library for building type-safe queries that safely
-and performantly decode into Swift data types. For example, if you simply want to fetch all records
-from a table, you can do so by plugging the query directly into
-[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(_:database:)>):
+and performantly decode into Swift data types. To get access to these tools you must apply
+the `@Table` macro to your data type that represents the table:
 
-@Comment { TODO: Add '@Table' definition? }
+```swift
+@Table
+struct Item {
+  let id: Int 
+  var title = ""
+  @Column(as: Date.ISO8601Representation.self)
+  var createdAt: Date
+}
+```
+
+> Note: The `@Column` macro determines how to store the date in SQLite, which does not have a native
+> date data type. The `Date.ISO8601Representation` strategy stores dates as text formatted with the
+> ISO-8601 standard.
+
+Then you can use the various query builder APIs on `Item` to fetch items from the database. For 
+example, to fetch all records from the table you can use  
+[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(_:database:)>):
 
 ```swift
 @SharedReader(.fetchAll(Item.all)
@@ -33,7 +48,7 @@ var items
 And if you want to sort the results, you can do so with an ordering clause:
 
 ```swift
-@SharedReader(.fetchAll(Item.order { $0.createdAt.desc() }))
+@SharedReader(.fetchAll(Item.order(by: \.title))
 var items
 ```
 
@@ -53,7 +68,11 @@ type system every explicit cast and coalesce, you can always embed SQL directly 
 the `#sql` macro:
 
 ```swift
-@SharedReader(.fetchAll(Item.where { #sql("\($0.createdAt) > date('now', '-7 days')") }))
+@SharedReader(
+  .fetchAll(
+    Item.where { #sql("\($0.createdAt) > date('now', '-7 days')") }
+  )
+)
 var items
 ```
 
@@ -79,38 +98,12 @@ The choice is up to you for each query or query fragment. To learn more, see the
 [structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
 [structured-queries-docs]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/
 
-### Querying with raw SQL
-
-SharingGRDB also comes with a more basic set of tools that work directly with GRDB. The primary reason you 
-may want to use these tools and not the StructuredQueries tools is that they do not require a macro to use,
-and so do not incur the cost of compiling SwiftSyntax.
-
-There is a version of [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>) key that 
-takes a raw SQL string:
-
-```swift
-@SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
-```
-
-As well as a [`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)>) key:
-
-```swift
-@SharedReader(.fetchOne(sql: "SELECT count(*) FROM items")) 
-var itemsCount = 0
-```
-
-These APIs simply feed their data directly to GRDB's equivalent `Database` APIs, which means it is
-up to you to safely bind arguments and avoid SQL injection. If you want to write SQL queries by
-hand, consider using StructuredQueries' `#sql` macro, instead.
-
-[structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
-
 ### Querying with custom requests
 
-It is also possible to fetch data for a `@SharedReader` from a database connection. This can be
-useful if you want to perform several queries in a single database transaction:
+It is also possible to execute multiple database queries to fetch data for your `@SharedReader`. 
+This can be useful for performing several queries in a single database transaction:
 
-Each instance of `@SharedReader` in a feature executes each of their queries in a separate
+Each instance of `@SharedReader` in a feature executes their queries in a separate
 transaction. So, if we wanted to query for all in-stock items, as well as the count of all items
 (in-stock plus out-of-stock) like so:
 
@@ -167,3 +160,30 @@ items.itemsCount    // 100
 Typically the conformances to ``FetchKeyRequest`` can even be made private and nested inside
 whatever type they are used in, such as SwiftUI view, `@Observable` model, or UIKit view controller.
 The only time it needs to be made public is if it's shared amongst many features.
+
+### Querying with raw SQL
+
+SharingGRDB also comes with a more basic set of tools that work directly with GRDB. The primary 
+reason you may want to use these tools and not the StructuredQueries tools is that they do not 
+require a macro to use (such as `@Table` and `#sql`), and so do not incur the cost of compiling 
+SwiftSyntax.
+
+There is a version of [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>) 
+key that  takes a raw SQL string:
+
+```swift
+@SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
+```
+
+As well as a [`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)>) key:
+
+```swift
+@SharedReader(.fetchOne(sql: "SELECT count(*) FROM items")) 
+var itemsCount = 0
+```
+
+These APIs simply feed their data directly to GRDB's equivalent `Database` APIs, which means it is
+up to you to safely bind arguments and avoid SQL injection. If you want to write SQL queries by
+hand, consider using StructuredQueries' `#sql` macro, instead.
+
+[structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries

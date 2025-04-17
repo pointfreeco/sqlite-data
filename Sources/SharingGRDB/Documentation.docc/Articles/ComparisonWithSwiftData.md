@@ -21,6 +21,57 @@ associations, and more.
     * [Manual migrations](#Manual-migrations)
   * [Supported Apple platforms](#Supported-Apple-platforms)
 
+### Designing your schema
+
+Both SharingGRDB and SwiftData come with tools to expose your data types' fields to the compiler
+so that type-safe and schema-safe queries can be written. SharingGRDB uses another library of ours
+to provide these tools, called [StructuredQueries][sq-gh], and its `@Table` macro works similarly
+to SwiftData's `@Model` macro:
+
+[sq-gh]: http://github.com/pointfreeco/swift-structured-queries
+
+@Row {
+  @Column {
+    ```swift
+    // SharingGRDB
+    @Table
+    struct Item {
+      let id: Int
+      var title = ""
+      var isInStock = true 
+      var notes = ""
+    }
+    ```
+  }
+  @Column {
+    ```swift
+    // SwiftData
+    @Model
+    class Item {
+      var title: String
+      var isInStock: Bool
+      var notes: String
+      init(
+        title: String = "", 
+        isInStock: Bool = true, 
+        notes: String = ""
+      ) {
+        self.title = title
+        self.isInStock = isInStock
+        self.notes = notes
+      }
+    }
+    ```
+  }
+}
+
+Some key differences:
+
+* The `@Table` macro works with struct data types, whereas `@Model` only works with classes.
+* Because the `@Model` version of `Item` is a class it is necessary to provide an initializer.
+* The `@Model` version of `Item` does not need an `id` field because SwiftData provides a 
+`persistentIdentifier` to each model.
+
 ### Setting up external storage
 
 Both SharingGRDB and SwiftData require some work to be done at the entry point of the app in order
@@ -108,9 +159,8 @@ whereas you use the `@Query` macro with SwiftData:
 }
 
 The `@SharedReader` property wrapper takes a variety of options, detailed more in <doc:Fetching>,
-and allows you to write raw SQL queries for fetching and aggregating data from your database. It 
-is also possibly to construct SQL queries using SharingGRDB's query builder syntax. See
- [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(_:database:)>) for more information.
+and allows you to write queries using a type-safe and schema-safe builder syntax, or you can write
+safe SQL strings that are schema-safe and protect you from SQL injection.
 
 ### Fetching data for an @Observable model
 
@@ -398,13 +448,14 @@ for sport in sports {
 This is powerful, but it can also lead to a number of problems in apps. First, the only way for this
 mechanism to work is for `Team` and `Sport` to be classes, and the `@Model` macro enforces that.
 Second, because the SQLite execution is so abstracted from us, it makes it easy to execute many,
-_many_ queries, leading to inefficient code. In this case, we are executing a whole new SQL query
-for each sport in order to get their teams. And on top of that, we are loading every team into
-memory just to get the number of teams. We don't actually need any data from the team.
+_many_ queries, leading to inefficient code. In this case, we are first executing a query to
+get all sports, and then executing a query for each sport to get the number of teams in each
+sport. And on top of that, we are loading every team into memory just to compute the number of 
+teams.  We don't actually need any data from the team, only their aggregate count.
 
-GRDB does not provide these kinds of tools, and for good reason. Instead, if you know you want to
-fetch all of the teams with their corresponding sport, you can simply perform a single query that
-joins the two tables together:
+SharingGRDB does not provide these kinds of tools, and for good reason. Instead, if you know you 
+want to fetch all of the teams with their corresponding sport, you can simply perform a single 
+query that joins the two tables together:
 
 ```swift
 @Selection
@@ -417,7 +468,7 @@ struct SportWithTeamCount {
   .fetchAll(
     Sport
       .group(by: \.id)
-      .join(Team.all) { $0.id.eq($1.sportID) }
+      .leftJoin(Team.all) { $0.id.eq($1.sportID) }
       .select {
         SportWithTeamCount.Columns(sport: $0, teamCount: $1.count())
       }
@@ -428,6 +479,10 @@ var sportsWithTeamCounts
 
 If either of the "sports" or "teams" tables change, this query will be executed again and the
 state will update to the freshest values.
+
+This style of handling associations does require you to be knowledgable in SQL to yield it 
+correctly, but that is a benefit! SQL (and SQLite) are some of the most proven pieces of 
+technologies in the history of computers, and knowing how to wield their powers is a huge benefit.
 
 ### Migrations
 
@@ -503,7 +558,8 @@ adding a `description` field to the `Item` type:
     migrator.registerMigration("Add 'description' column to 'items'") { db in
       try #sql(
         """
-        ALTER TABLE "items" ADD COLUMN "description" TEXT
+        ALTER TABLE "items" 
+        ADD COLUMN "description" TEXT
         """
       )
       .execute(db)
@@ -574,14 +630,17 @@ structure of your data types. The overall steps to follow are as such:
       try Item
         .where {
           !$0.id.in(
-            Item.select { $0.id.min() }.group(by: \.title)
+            Item
+              .select { $0.id.min() }
+              .group(by: \.title)
           )
         }
         .execute()
       // 2️⃣ Create unique index
       try #sql(
         """
-        CREATE UNIQUE INDEX "items_title" ON "items" ("title") 
+        CREATE UNIQUE INDEX 
+        "items_title" ON "items" ("title") 
         """
       )
       .execute(db)

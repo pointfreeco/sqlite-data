@@ -401,3 +401,18 @@ private struct FetchOne<Value: DatabaseValueConvertible>: FetchKeyRequest {
 public struct NotFound: Error {
   public init() {}
 }
+
+
+import SwiftData
+@available(iOS 17, *)
+@Model
+class Reminder {
+  var title = ""
+  var isCompleted = false
+  var notes = ""
+  init(title: String = "", isCompleted: Bool = false, notes: String = "") {
+    self.title = title
+    self.isCompleted = isCompleted
+    self.notes = notes
+  }
+}
