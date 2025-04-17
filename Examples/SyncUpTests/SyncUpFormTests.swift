@@ -1,7 +1,7 @@
 import Dependencies
 import DependenciesTestSupport
-import GRDB
 import Foundation
+import GRDB
 import StructuredQueries
 import Testing
 

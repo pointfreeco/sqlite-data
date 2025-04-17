@@ -24,7 +24,7 @@ struct RemindersListForm: View {
           withErrorReporting {
             try database.write { db in
               try RemindersList.upsert(remindersList)
-              .execute(db)
+                .execute(db)
             }
           }
           dismiss()

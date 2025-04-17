@@ -3,4 +3,6 @@ builder:
   configs:
   - documentation_targets:
     - SharingGRDB
+    - StructuredQueriesGRDB
+    - StructuredQueriesGRDBCore
     swift_version: 6.0

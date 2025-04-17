@@ -43,10 +43,10 @@ extension Database {
   /// //   (NULL, 'Blob', 2),
   /// //   (NULL, 'Blob Jr', 2),
   /// //   (NULL, 'Blob Sr', 3),
-  /// //   (NULL, 'Blob Jr', 3)
+  /// //   (NULL, 'Blob Jr', 3);
   /// ```
   ///
-  /// Insertions are performed in order and batched per table.
+  /// Insertions are performed in order and in batches of consecutive records of the same table.
   ///
   /// - Parameter build: A result builder closure that inserts every built row.
   public func seed(

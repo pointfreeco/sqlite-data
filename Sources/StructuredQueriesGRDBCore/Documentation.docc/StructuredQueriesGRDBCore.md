@@ -64,3 +64,7 @@ For more information on how to build queries, see the [Structured Queries docume
 ### Iterating over rows
 
 - ``QueryCursor``
+
+### Seeding data
+
+- ``GRDB/Database/seed(_:)``
