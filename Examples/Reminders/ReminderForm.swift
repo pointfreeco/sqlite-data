@@ -171,18 +171,10 @@ struct ReminderFormView: View {
   private func saveButtonTapped() {
     withErrorReporting {
       try database.write { db in
-        guard let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)
-        else {
-          reportIssue("Could not upsert reminder")
-          return
-        }
-        if reminder.id != nil {
-          try ReminderTag.where { $0.reminderID == reminderID }
-            .delete()
-            .execute(db)
-        }
-        guard !selectedTags.isEmpty
-        else { return }
+        let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)!
+        try ReminderTag.where { $0.reminderID.eq(reminderID) }
+          .delete()
+          .execute(db)
         try ReminderTag.insert(
           selectedTags.map { tag in
             ReminderTag(reminderID: reminderID, tagID: tag.id)
