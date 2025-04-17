@@ -37,12 +37,8 @@ struct AnimationsCaseStudy: SwiftUICaseStudy {
             as: UTF8.self
           )
           try await database.write { db in
-            try Fact.insert {
-              $0.body
-            } values: {
-              fact
-            }
-            .execute(db)
+            try Fact.insert(Fact.Draft(body: fact))
+              .execute(db)
           }
         }
       } catch {}
@@ -52,7 +48,7 @@ struct AnimationsCaseStudy: SwiftUICaseStudy {
 
 @Table
 private struct Fact: Identifiable {
-  let id: Int64
+  let id: Int
   var body: String
 }
 

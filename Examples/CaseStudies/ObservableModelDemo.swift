@@ -67,12 +67,8 @@ private class Model {
         as: UTF8.self
       )
       try await database.write { db in
-        try Fact.insert {
-          $0.body
-        } values: {
-          fact
-        }
-        .execute(db)
+        try Fact.insert(Fact.Draft(body: fact))
+          .execute(db)
       }
     }
   }
@@ -80,12 +76,11 @@ private class Model {
   func deleteFact(indices: IndexSet) {
     withErrorReporting {
       try database.write { db in
-        try database.write { db in
-          try Fact
-            .where { $0.id.in(indices.compactMap { facts[$0].id }) }
-            .delete()
-            .execute(db)
-        }
+        let ids = indices.map { facts[$0].id }
+        try Fact
+          .where { $0.id.in(ids) }
+          .delete()
+          .execute(db)
       }
     }
   }

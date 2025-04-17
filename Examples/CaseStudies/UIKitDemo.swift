@@ -97,12 +97,8 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
         if let fact {
           await withErrorReporting {
             try await database.write { db in
-              try Fact.insert {
-                $0.body
-              } values: {
-                fact
-              }
-              .execute(db)
+              try Fact.insert(Fact.Draft(body: fact))
+                .execute(db)
             }
           }
         }

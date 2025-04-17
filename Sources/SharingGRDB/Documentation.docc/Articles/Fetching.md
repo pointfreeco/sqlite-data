@@ -77,7 +77,7 @@ The choice is up to you for each query or query fragment. To learn more, see the
 [Structured Queries documentation][structured-queries-docs].
 
 [structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
-[structured-queries-docs]: #TODO
+[structured-queries-docs]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/
 
 ### Querying with raw SQL
 

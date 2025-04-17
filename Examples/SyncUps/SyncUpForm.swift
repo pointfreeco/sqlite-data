@@ -77,16 +77,11 @@ final class SyncUpFormModel: Identifiable {
     }
     withErrorReporting {
       try database.write { db in
-        guard let syncUpID = try SyncUp.upsert(syncUp).returning(\.id).fetchOne(db)
-        else {
-          reportIssue("Could not upsert sync-up.")
-          return
-        }
+        let syncUpID = try SyncUp.upsert(syncUp).returning(\.id).fetchOne(db)!
         try Attendee.where { $0.syncUpID == syncUpID }.delete().execute(db)
-        for attendee in attendees {
-          try Attendee.insert(Attendee.Draft(name: attendee.name, syncUpID: syncUpID))
-            .execute(db)
-        }
+        try Attendee
+          .insert(attendees.map { Attendee.Draft(name: $0.name, syncUpID: syncUpID) })
+          .execute(db)
       }
     }
     isDismissed = true
