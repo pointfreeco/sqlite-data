@@ -23,9 +23,7 @@ struct RemindersListRow: View {
       Button {
         withErrorReporting {
           try database.write { db in
-            try RemindersList
-              .where { $0.id == remindersList.id }
-              .delete()
+            try RemindersList.delete(remindersList)
               .execute(db)
           }
         }
@@ -41,7 +39,7 @@ struct RemindersListRow: View {
     }
     .sheet(item: $editList) { list in
       NavigationStack {
-        RemindersListForm(existingList: list)
+        RemindersListForm(existingList: RemindersList.Draft(list))
           .navigationTitle("Edit list")
       }
       .presentationDetents([.medium])
