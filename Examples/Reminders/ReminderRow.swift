@@ -8,6 +8,7 @@ struct ReminderRow: View {
   let notes: String
   let reminder: Reminder
   let remindersList: RemindersList
+  let showCompleted: Bool
   let tags: [String]
 
   @State var editReminder: Reminder?
@@ -21,6 +22,7 @@ struct ReminderRow: View {
     notes: String,
     reminder: Reminder,
     remindersList: RemindersList,
+    showCompleted: Bool,
     tags: [String],
     editReminder: Reminder? = nil
   ) {
@@ -29,6 +31,7 @@ struct ReminderRow: View {
     self.notes = notes
     self.reminder = reminder
     self.remindersList = remindersList
+    self.showCompleted = showCompleted
     self.tags = tags
     self.editReminder = editReminder
     self.isCompleted = reminder.isCompleted
@@ -100,6 +103,7 @@ struct ReminderRow: View {
       }
     }
     .task(id: isCompleted) {
+      guard !showCompleted else { return }
       guard
         isCompleted,
         isCompleted != reminder.isCompleted
@@ -112,19 +116,21 @@ struct ReminderRow: View {
   }
 
   private func completeButtonTapped() {
-    self.isCompleted.toggle()
-    if !self.isCompleted {
+    if showCompleted {
       toggleCompletion()
+    } else {
+      isCompleted.toggle()
     }
   }
 
   private func toggleCompletion() {
     withErrorReporting {
       try database.write { db in
-        try Reminder
+        isCompleted = try Reminder
           .find(reminder.id)
           .update { $0.isCompleted.toggle() }
-          .execute(db)
+          .returning(\.isCompleted)
+          .fetchOne(db) ?? isCompleted
       }
     }
   }
@@ -183,6 +189,7 @@ struct ReminderRowPreview: PreviewProvider {
           notes: reminder.notes.replacingOccurrences(of: "\n", with: " "),
           reminder: reminder,
           remindersList: remindersList,
+          showCompleted: true,
           tags: ["point-free", "adulting"]
         )
       }

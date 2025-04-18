@@ -52,6 +52,7 @@ struct SearchRemindersView: View {
         notes: reminder.notes,
         reminder: reminder.reminder,
         remindersList: reminder.remindersList,
+        showCompleted: showCompletedInSearchResults,
         tags: reminder.tags
       )
     }

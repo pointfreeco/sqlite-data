@@ -44,6 +44,7 @@ struct RemindersListDetailView: View {
           notes: reminderState.notes,
           reminder: reminderState.reminder,
           remindersList: reminderState.remindersList,
+          showCompleted: showCompleted,
           tags: reminderState.tags
         )
       }
