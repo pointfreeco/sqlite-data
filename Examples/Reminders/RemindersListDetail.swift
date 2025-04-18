@@ -1,7 +1,6 @@
 import CasePaths
 import Sharing
 import SharingGRDB
-import StructuredQueriesGRDB
 import SwiftUI
 
 struct RemindersListDetailView: View {

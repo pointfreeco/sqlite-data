@@ -1,5 +1,4 @@
 import SharingGRDB
-import StructuredQueriesGRDB
 import SwiftUI
 
 @Table

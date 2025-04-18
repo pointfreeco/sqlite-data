@@ -2,7 +2,6 @@ import Foundation
 import GRDB
 import IssueReporting
 import SharingGRDB
-import StructuredQueriesGRDB
 import SwiftUI
 
 @Table

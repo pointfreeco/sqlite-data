@@ -2,7 +2,6 @@ import Dependencies
 import GRDB
 import IssueReporting
 import SharingGRDB
-import StructuredQueriesGRDB
 import SwiftUI
 
 struct ReminderFormView: View {

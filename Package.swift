@@ -16,6 +16,10 @@ let package = Package(
       targets: ["SharingGRDB"]
     ),
     .library(
+      name: "SharingGRDBCore",
+      targets: ["SharingGRDBCore"]
+    ),
+    .library(
       name: "StructuredQueriesGRDB",
       targets: ["StructuredQueriesGRDB"]
     ),
@@ -35,6 +39,13 @@ let package = Package(
     .target(
       name: "SharingGRDB",
       dependencies: [
+        "SharingGRDBCore",
+        "StructuredQueriesGRDB",
+      ]
+    ),
+    .target(
+      name: "SharingGRDBCore",
+      dependencies: [
         "StructuredQueriesGRDBCore",
         .product(name: "GRDB", package: "GRDB.swift"),
         .product(name: "Sharing", package: "swift-sharing"),
@@ -48,7 +59,6 @@ let package = Package(
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
       ]
     ),
-
     .target(
       name: "StructuredQueriesGRDBCore",
       dependencies: [

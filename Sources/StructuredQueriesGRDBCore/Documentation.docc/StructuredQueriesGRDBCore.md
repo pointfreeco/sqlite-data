@@ -1,7 +1,7 @@
 # ``StructuredQueriesGRDBCore``
 
 The core functionality of interfacing StructuredQueries with GRDB. This module is automatically
-imported when you `import StructuredQueriesGRDB`.
+imported when you `import SharingGRDB` or `StructuredQueriesGRDB`.
 
 ## Overview
 
