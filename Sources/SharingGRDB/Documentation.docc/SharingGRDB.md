@@ -167,7 +167,7 @@ Orders.fetchAll                          setup    rampup   duration
 ## SQLite knowledge required
 
 SQLite is one of the 
- [most established and widely distributed](https://www.sqlite.org/mostdeployed.html) pieces of 
+[most established and widely distributed](https://www.sqlite.org/mostdeployed.html) pieces of
 software in the history of software. Knowledge of SQLite is a great skill for any app developer to
 have, and this library does not want to conceal it from you. So, we feel that to best wield this
 library you should be familiar with the basics of SQLite, including schema design and normalization,
