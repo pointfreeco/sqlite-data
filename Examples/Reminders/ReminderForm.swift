@@ -173,7 +173,8 @@ struct ReminderFormView: View {
     withErrorReporting {
       try database.write { db in
         let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)!
-        try ReminderTag.where { $0.reminderID.eq(reminderID) }
+        try ReminderTag
+          .where { $0.reminderID.eq(reminderID) }
           .delete()
           .execute(db)
         try ReminderTag.insert(

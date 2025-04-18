@@ -10,6 +10,7 @@ SwiftUI views (including UIKit, `@Observable` models, _etc._). This article desc
 approaches compare in a variety of situations, such as setting up the data store, fetching data,
 associations, and more.
 
+  * [Designing your schema](#Designing-your-schema)
   * [Setting up external storage](#Setting-up-external-storage)
   * [Fetching data for a view](#Fetching-data-for-a-view)
   * [Fetching data for an @Observable model](#Fetching-data-for-an-Observable-model)

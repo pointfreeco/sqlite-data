@@ -235,7 +235,7 @@ struct RemindersListDetailView: View {
             reminder: $0,
             remindersList: $3,
             isPastDue: $0.isPastDue,
-            notes: $0.inlineNotes,
+            notes: $0.inlineNotes.substr(0, 200),
             tags: $2.jsonNames
           )
         },

@@ -11,14 +11,34 @@ struct ReminderRow: View {
   let tags: [String]
 
   @State var editReminder: Reminder?
+  @State var isCompleted: Bool
 
   @Dependency(\.defaultDatabase) private var database
+
+  init(
+    color: Color,
+    isPastDue: Bool,
+    notes: String,
+    reminder: Reminder,
+    remindersList: RemindersList,
+    tags: [String],
+    editReminder: Reminder? = nil
+  ) {
+    self.color = color
+    self.isPastDue = isPastDue
+    self.notes = notes
+    self.reminder = reminder
+    self.remindersList = remindersList
+    self.tags = tags
+    self.editReminder = editReminder
+    self.isCompleted = reminder.isCompleted
+  }
 
   var body: some View {
     HStack {
       HStack(alignment: .top) {
         Button(action: completeButtonTapped) {
-          Image(systemName: reminder.isCompleted ? "circle.inset.filled" : "circle")
+          Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
             .foregroundStyle(.gray)
             .font(.title2)
             .padding([.trailing], 5)
@@ -35,7 +55,7 @@ struct ReminderRow: View {
         }
       }
       Spacer()
-      if !reminder.isCompleted {
+      if !isCompleted {
         HStack {
           if reminder.isFlagged {
             Image(systemName: "flag.fill")
@@ -79,9 +99,26 @@ struct ReminderRow: View {
         ReminderFormView(existingReminder: reminder, remindersList: remindersList)
       }
     }
+    .task(id: isCompleted) {
+      guard
+        isCompleted,
+        isCompleted != reminder.isCompleted
+      else { return }
+      do {
+        try await Task.sleep(for: .seconds(2))
+        toggleCompletion()
+      } catch {}
+    }
   }
 
   private func completeButtonTapped() {
+    self.isCompleted.toggle()
+    if !self.isCompleted {
+      toggleCompletion()
+    }
+  }
+
+  private func toggleCompletion() {
     withErrorReporting {
       try database.write { db in
         try Reminder
@@ -119,9 +156,9 @@ struct ReminderRow: View {
       + (reminder.priority == nil ? "" : " ")
     return
       (Text(exclamations)
-      .foregroundStyle(reminder.isCompleted ? .gray : remindersList.color)
+      .foregroundStyle(isCompleted ? .gray : remindersList.color)
       + Text(reminder.title)
-      .foregroundStyle(reminder.isCompleted ? .gray : .primary))
+      .foregroundStyle(isCompleted ? .gray : .primary))
       .font(.title3)
   }
 }
