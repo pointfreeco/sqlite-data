@@ -3,7 +3,7 @@ import StructuredQueriesGRDB
 import SwiftUI
 
 @Table
-struct SyncUp: Codable, Hashable, Identifiable {
+struct SyncUp: Hashable, Identifiable {
   let id: Int
   var seconds: Int = 60 * 5
   var theme: Theme = .bubblegum
@@ -11,14 +11,14 @@ struct SyncUp: Codable, Hashable, Identifiable {
 }
 
 @Table
-struct Attendee: Codable, Hashable, Identifiable {
+struct Attendee: Hashable, Identifiable {
   let id: Int
   var name = ""
   var syncUpID: SyncUp.ID
 }
 
 @Table
-struct Meeting: Codable, Hashable, Identifiable {
+struct Meeting: Hashable, Identifiable {
   let id: Int
   @Column(as: Date.ISO8601Representation.self)
   var date: Date
@@ -26,7 +26,7 @@ struct Meeting: Codable, Hashable, Identifiable {
   var transcript: String
 }
 
-enum Theme: String, CaseIterable, Codable, Hashable, Identifiable, QueryBindable {
+enum Theme: String, CaseIterable, Hashable, Identifiable, QueryBindable {
   case appIndigo
   case appMagenta
   case appOrange
