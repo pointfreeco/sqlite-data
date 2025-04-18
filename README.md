@@ -93,10 +93,6 @@ but SharingGRDB is powered directly by SQLite using [Sharing][sharing-gh],
 For more information on SharingGRDB's querying capabilities, see
 [Fetching model data][fetching-article].
 
-[sharing-gh]: http://github.com/pointfreeco/swift-sharing
-[structured-queries-gh] http://github.com/pointfreeco/swift-structured-queries
-[grdb]: http://github.com/groue/GRDB.swift
-
 ## Quick start
 
 Before SharingGRDB's property wrappers can fetch data from SQLite, you need to provide–at
@@ -260,9 +256,9 @@ for data and keep your views up-to-date when data in the database changes. You c
 along with all of the power that SQL has to offer.
 
 [query-interface]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/queryinterface
-[sharing-gh]: http://github.com/pointfreeco/swift-sharing
-[structured-queries-gh] http://github.com/pointfreeco/swift-structured-queries
-[grdb]: http://github.com/groue/GRDB.swift
+[sharing-gh]: https://github.com/pointfreeco/swift-sharing
+[structured-queries-gh] https://github.com/pointfreeco/swift-structured-queries
+[grdb]: https://github.com/groue/GRDB.swift
 [swift-nav-gh]: https://github.com/pointfreeco/swift-navigation
 [observe-docs]: https://swiftpackageindex.com/pointfreeco/swift-navigation/main/documentation/swiftnavigation/objectivec/nsobject/observe(_:)-94oxy
 
