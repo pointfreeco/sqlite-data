@@ -225,7 +225,7 @@ SharingGRDB leverages high-performance decoding from [StructuredQueries][structu
 turn fetched data into your Swift domain types, and has a performance profile similar to invoking
 SQLite's C APIs directly.
 
-See the following benchmarks from
+See the following benchmarks against
 [Lighter's performance test suite](https://github.com/Lighter-swift/PerformanceTestSuite) for a
 taste of how it compares:
 
