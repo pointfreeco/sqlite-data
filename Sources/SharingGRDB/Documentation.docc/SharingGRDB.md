@@ -158,10 +158,10 @@ Orders.fetchAll                          setup    rampup   duration
   SQLite (Enlighter-generated)           0        0.144    7.183
   Lighter (1.4.10)                       0        0.164    8.059
   SharingGRDB (0.2.0)                    0        0.172    8.511
-  GRDB (7.4.0, manual decoding)          0        0.376    18.819
+  GRDB (7.4.1, manual decoding)          0        0.376    18.819
   SQLite.swift (0.15.3, manual decoding) 0        0.564    27.994
   SQLite.swift (0.15.3, Codable)         0        0.863    43.261
-  GRDB (7.4.0, Codable)                  0.002    1.07     53.326
+  GRDB (7.4.1, Codable)                  0.002    1.07     53.326
 ```
 
 ## SQLite knowledge required
