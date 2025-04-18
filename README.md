@@ -1,12 +1,16 @@
 # SharingGRDB
 
-A fast, lightweight replacement for SwiftData, powered by SQL.
+A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL.
 
 [![CI](https://github.com/pointfreeco/sharing-grdb/workflows/CI/badge.svg)](https://github.com/pointfreeco/sharing-grdb/actions?query=workflow%3ACI)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
 
   * [Learn more](#Learn-more)
+  * [Overview](#Overview)
+  * [Quick start](#Quick-start)
+  * [Performance](#Performance)
+  * [SQLite knowledge required](#SQLite-knowledge-required)
   * [Overview](#Overview)
   * [Demos](#Demos)
   * [Documentation](#Documentation)
