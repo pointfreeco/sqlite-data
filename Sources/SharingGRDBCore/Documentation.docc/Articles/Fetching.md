@@ -144,8 +144,8 @@ data we want to query for in a single transaction, and then we can construct it 
 the ``FetchKeyRequest/fetch(_:)`` method.
 
 With this conformance defined we can use 
-[`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)-3qcpd>) key to execute the query specified
-by the `Items` type, and we can access the `inStockItems` and `itemsCount` properties to get to the
+[`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)>) key to execute the query specified by
+the `Items` type, and we can access the `inStockItems` and `itemsCount` properties to get to the
 queried data:
 
 ```swift

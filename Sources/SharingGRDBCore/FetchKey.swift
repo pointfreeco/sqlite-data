@@ -37,13 +37,13 @@ extension SharedReaderKey {
   /// ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)``, instead.
   ///
   /// To animate or observe changes with a custom scheduler, see
-  /// ``Sharing/SharedReaderKey/fetch(_:database:animation:)-rgj4`` or
-  /// ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)-9arcp``.
+  /// ``Sharing/SharedReaderKey/fetch(_:database:animation:)`` or
+  /// ``Sharing/SharedReaderKey/fetch(_:database:scheduler:)``.
   ///
   /// - Parameters:
   ///   - request: A request describing the data to fetch.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use
+  ///     `@Dependency(\.defaultDatabase)``.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   public static func fetch<Value>(
     _ request: some FetchKeyRequest<Value>,
@@ -55,20 +55,18 @@ extension SharedReaderKey {
 
   /// A key that can query for a collection of data in a SQLite database.
   ///
-  /// A version of ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` that allows you to omit the
-  /// type and default from the `@SharedReader` property wrapper:
+  /// A version of `fetch` that allows you to omit the type and default from the `@SharedReader`
+  /// property wrapper:
   ///
   /// ```diff
   /// -@SharedReader(.fetch(Items()) var items: [Item] = []
   /// +@SharedReader(.fetch(Items()) var items
   /// ```
   ///
-  /// See ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` for more info on how to use this API.
-  ///
   /// - Parameters:
   ///   - request: A request describing the data to fetch.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use
+  ///     `@Dependency(\.defaultDatabase)``.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   public static func fetch<Records: RangeReplaceableCollection>(
     _ request: some FetchKeyRequest<Records>,
@@ -87,13 +85,13 @@ extension SharedReaderKey {
   /// @SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
   /// ```
   ///
-  /// For more complex querying needs, see ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd``.
+  /// For more complex querying needs, see ``Sharing/SharedReaderKey/fetch(_:database:)``.
   ///
   /// - Parameters:
   ///   - sql: A raw SQL string describing the data to fetch.
   ///   - arguments: Arguments to bind to the SQL statement.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use
+  ///     `@Dependency(\.defaultDatabase)``.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   public static func fetchAll<Record: FetchableRecord>(
     sql: String,
@@ -116,13 +114,13 @@ extension SharedReaderKey {
   /// @SharedReader(.fetchOne(sql: "SELECT count(*) FROM items")) var itemsCount = 0
   /// ```
   ///
-  /// For more complex querying needs, see ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd``.
+  /// For more complex querying needs, see ``Sharing/SharedReaderKey/fetch(_:database:)``.
   ///
   /// - Parameters:
   ///   - sql: A raw SQL string describing the data to fetch.
   ///   - arguments: Arguments to bind to the SQL statement.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use
+  ///     `@Dependency(\.defaultDatabase)``.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   public static func fetchOne<Value: DatabaseValueConvertible>(
     sql: String,
@@ -137,14 +135,14 @@ extension SharedReaderKey {
 extension SharedReaderKey {
   /// A key that can query for data in a SQLite database.
   ///
-  /// A version of ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` that can be configured
-  /// with a scheduler. See ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` for more info on
-  /// how to use this API.
+  /// A version of ``Sharing/SharedReaderKey/fetch(_:database:)`` that can be configured with a
+  /// scheduler. See ``Sharing/SharedReaderKey/fetch(_:database:)`` for more info on how to use this
+  /// API.
   ///
   /// - Parameters:
   ///   - request: A request describing the data to fetch.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use
+  ///     `@Dependency(\.defaultDatabase)``.
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -159,14 +157,14 @@ extension SharedReaderKey {
 
   /// A key that can query for a collection of data in a SQLite database.
   ///
-  /// A version of ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` that can be configured
-  /// with a scheduler. See ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` for more info on
-  /// how to use this API.
+  /// A version of ``Sharing/SharedReaderKey/fetch(_:database:)`` that can be configured with a
+  /// scheduler. See ``Sharing/SharedReaderKey/fetch(_:database:)`` for more info on how to use this
+  /// API.
   ///
   /// - Parameters:
   ///   - request: A request describing the data to fetch.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use
+  ///     `@Dependency(\.defaultDatabase)``.
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -188,8 +186,8 @@ extension SharedReaderKey {
   /// - Parameters:
   ///   - sql: A raw SQL string describing the data to fetch.
   ///   - arguments: Arguments to bind to the SQL statement.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use
+  ///     `@Dependency(\.defaultDatabase)``.
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -215,8 +213,8 @@ extension SharedReaderKey {
   /// - Parameters:
   ///   - sql: A raw SQL string describing the data to fetch.
   ///   - arguments: Arguments to bind to the SQL statement.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use
+  ///     `@Dependency(\.defaultDatabase)``.
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -236,8 +234,7 @@ extension SharedReaderKey {
 /// You typically do not refer to this type directly, and will use
 /// [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>),
 /// [`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)>), and
-/// [`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)-3qcpd>) to create instances,
-/// instead.
+/// [`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)>) to create instances, instead.
 public struct FetchKey<Value: Sendable>: SharedReaderKey {
   let database: any DatabaseReader
   let request: any FetchKeyRequest<Value>

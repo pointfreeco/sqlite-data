@@ -22,8 +22,8 @@ extension SharedReaderKey {
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   public static func fetchAll<S: SelectStatement>(
     _ statement: S,
@@ -48,8 +48,8 @@ extension SharedReaderKey {
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   public static func fetchAll<S: StructuredQueriesCore.Statement>(
     _ statement: S,
@@ -69,8 +69,8 @@ extension SharedReaderKey {
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   public static func fetchOne<Value: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<Value>,
@@ -95,11 +95,10 @@ extension SharedReaderKey {
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   @_disfavoredOverload
-  @_documentation(visibility: private)
   public static func fetchAll<S: SelectStatement, each J: StructuredQueriesCore.Table>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
@@ -122,11 +121,10 @@ extension SharedReaderKey {
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   @_disfavoredOverload
-  @_documentation(visibility: private)
   public static func fetchAll<
     S: StructuredQueriesCore.Statement,
     V1: QueryRepresentable,
@@ -152,11 +150,10 @@ extension SharedReaderKey {
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   @_disfavoredOverload
-  @_documentation(visibility: private)
   public static func fetchOne<each Value: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<(repeat each Value)>,
     database: (any DatabaseReader)? = nil
@@ -171,13 +168,12 @@ extension SharedReaderKey {
 extension SharedReaderKey {
   /// A key that can query for a collection of data in a SQLite database.
   ///
-  /// A version of ``Sharing/SharedReaderKey/fetchAll(_:database:)`` that can be configured with a
-  /// scheduler.
+  /// A version of `fetchAll` that can be configured with a scheduler.
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -197,13 +193,12 @@ extension SharedReaderKey {
 
   /// A key that can query for a collection of data in a SQLite database.
   ///
-  /// A version of ``Sharing/SharedReaderKey/fetchAll(_:database:)`` that can be configured with a
-  /// scheduler.
+  /// A version of `fetchAll` that can be configured with a scheduler.
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -220,13 +215,12 @@ extension SharedReaderKey {
 
   /// A key that can query for a value in a SQLite database.
   ///
-  /// A version of ``Sharing/SharedReaderKey/fetchOne(_:database:)`` that can be configured with a
-  /// scheduler.
+  /// A version of `fetchOne` that can be configured with a scheduler.
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -248,13 +242,12 @@ extension SharedReaderKey {
 extension SharedReaderKey {
   /// A key that can query for a collection of data in a SQLite database.
   ///
-  /// A version of ``Sharing/SharedReaderKey/fetchAll(_:database:)`` that can be configured with a
-  /// scheduler.
+  /// A version of `fetchAll` that can be configured with a scheduler.
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -275,13 +268,12 @@ extension SharedReaderKey {
 
   /// A key that can query for a collection of data in a SQLite database.
   ///
-  /// A version of ``Sharing/SharedReaderKey/fetchAll(_:database:)`` that can be configured with a
-  /// scheduler.
+  /// A version of `fetchAll` that can be configured with a scheduler.
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -307,13 +299,12 @@ extension SharedReaderKey {
 
   /// A key that can query for a value in a SQLite database.
   ///
-  /// A version of ``Sharing/SharedReaderKey/fetchOne(_:database:)`` that can be configured with a
-  /// scheduler.
+  /// A version of `fetchOne` that can be configured with a scheduler.
   ///
   /// - Parameters:
   ///   - statement: A structured query describing the data to be fetched.
-  ///   - database: The database to read from. A value of `nil` will use the
-  ///     ``Dependencies/DependencyValues/defaultDatabase``.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -337,13 +328,12 @@ extension SharedReaderKey {
   extension SharedReaderKey {
     /// A key that can query for a collection of data in a SQLite database.
     ///
-    /// A version of ``Sharing/SharedReaderKey/fetchAll(_:database:)`` that can be configured with a
-    /// SwiftUI animation.
+    /// A version of `fetchAll` that can be configured with a SwiftUI animation.
     ///
     /// - Parameters:
     ///   - statement: A structured query describing the data to be fetched.
-    ///   - database: The database to read from. A value of `nil` will use the
-    ///     ``Dependencies/DependencyValues/defaultDatabase``.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -363,13 +353,12 @@ extension SharedReaderKey {
 
     /// A key that can query for a collection of data in a SQLite database.
     ///
-    /// A version of ``Sharing/SharedReaderKey/fetchAll(_:database:)`` that can be configured with a
-    /// SwiftUI animation.
+    /// A version of `fetchAll` that can be configured with a SwiftUI animation.
     ///
     /// - Parameters:
     ///   - statement: A structured query describing the data to be fetched.
-    ///   - database: The database to read from. A value of `nil` will use the
-    ///     ``Dependencies/DependencyValues/defaultDatabase``.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -388,13 +377,12 @@ extension SharedReaderKey {
 
     /// A key that can query for a collection of value in a SQLite database.
     ///
-    /// A version of ``Sharing/SharedReaderKey/fetchOne(_:database:)`` that can be configured with a
-    /// SwiftUI animation.
+    /// A version of `fetchOne` that can be configured with a SwiftUI animation.
     ///
     /// - Parameters:
     ///   - statement: A structured query describing the data to be fetched.
-    ///   - database: The database to read from. A value of `nil` will use the
-    ///     ``Dependencies/DependencyValues/defaultDatabase``.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -423,8 +411,8 @@ extension SharedReaderKey {
     ///
     /// - Parameters:
     ///   - statement: A structured query describing the data to be fetched.
-    ///   - database: The database to read from. A value of `nil` will use the
-    ///     ``Dependencies/DependencyValues/defaultDatabase``.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -450,8 +438,8 @@ extension SharedReaderKey {
     ///
     /// - Parameters:
     ///   - statement: A structured query describing the data to be fetched.
-    ///   - database: The database to read from. A value of `nil` will use the
-    ///     ``Dependencies/DependencyValues/defaultDatabase``.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -477,8 +465,7 @@ extension SharedReaderKey {
     ///
     /// - Parameters:
     ///   - statement: A structured query describing the data to be fetched.
-    ///   - database: The database to read from. A value of `nil` will use the
-    ///     ``Dependencies/DependencyValues/defaultDatabase``.
+    ///   - database: The database to read from. A value of `nil` will use the default database.
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.

@@ -5,8 +5,8 @@ when you `import SharingGRDB`.
 
 ## Overview
 
-SharingGRDB is [fast](#Performance), lightweight replacement for SwiftData that deploys all the way
-back to the iOS 13 generation of targets.
+SharingGRDB is a [fast](#Performance), lightweight replacement for SwiftData that deploys all the
+way back to the iOS 13 generation of targets.
 
 @Row {
   @Column {
@@ -236,6 +236,15 @@ with SQLite to take full advantage of GRDB and SharingGRDB.
 
 ### Fetch strategies
 
+- ``Sharing/SharedReaderKey/fetchAll(_:database:)``
+- ``Sharing/SharedReaderKey/fetchOne(_:database:)``
+- ``Sharing/SharedReaderKey/fetch(_:database:)``
+
+### Raw SQL strategies
+
 - ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)``
 - ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)``
-- ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd``
+
+### Custom requests
+
+- ``FetchKeyRequest``

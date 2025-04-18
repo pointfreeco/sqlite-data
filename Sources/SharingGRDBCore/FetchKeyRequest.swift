@@ -27,8 +27,8 @@ import GRDB
 /// ```
 ///
 /// And then can be used with a `@SharedReader` and
-/// ``Sharing/SharedReaderKey/fetch(_:database:animation:)-rgj4`` to popular state in a SwiftUI
-/// view, `@Observable` model, UIKit view controller, and more:
+/// ``Sharing/SharedReaderKey/fetch(_:database:animation:)`` to popular state in a SwiftUI view,
+/// `@Observable` model, UIKit view controller, and more:
 ///
 /// ```swift
 /// struct PlayersView: View {

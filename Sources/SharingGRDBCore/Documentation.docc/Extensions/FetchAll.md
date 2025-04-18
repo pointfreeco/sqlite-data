@@ -1,4 +1,4 @@
-# ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)``
+# ``Sharing/SharedReaderKey/fetchAll(_:database:)``
 
 ## Overview
 
@@ -6,8 +6,8 @@
 
 ### SwiftUI integration
 
-- ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:animation:)``
+- ``Sharing/SharedReaderKey/fetchAll(_:database:animation:)``
 
 ### Custom scheduling
 
-- ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:scheduler:)``
+- ``Sharing/SharedReaderKey/fetchAll(_:database:scheduler:)``

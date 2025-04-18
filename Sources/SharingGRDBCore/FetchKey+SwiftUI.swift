@@ -6,9 +6,7 @@
   extension SharedReaderKey {
     /// A key that can query for data in a SQLite database.
     ///
-    /// A version of ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` that can be configured
-    /// with a SwiftUI animation. See ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` for more
-    /// info on how to use this API.
+    /// A version of `fetch` that can be configured with a SwiftUI animation.
     ///
     /// - Parameters:
     ///   - request: A request describing the data to fetch.
@@ -27,9 +25,7 @@
 
     /// A key that can query for a collection of data in a SQLite database.
     ///
-    /// A version of ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` that can be configured
-    /// with a SwiftUI animation. See ``Sharing/SharedReaderKey/fetch(_:database:)-3qcpd`` for more
-    /// info on how to use this API.
+    /// A version of `fetch` that can be configured with a SwiftUI animation.
     ///
     /// - Parameters:
     ///   - request: A request describing the data to fetch.
@@ -48,10 +44,7 @@
 
     /// A key that can query for a collection of data in a SQLite database.
     ///
-    /// A version of ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)`` that can be
-    /// configured with a SwiftUI animation. See
-    /// ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)`` for more information on how to
-    /// use this API.
+    /// A version of `fetchAll` that can be configured with a SwiftUI animation.
     ///
     /// - Parameters:
     ///   - sql: A raw SQL string describing the data to fetch.
@@ -77,10 +70,7 @@
 
     /// A key that can query for a value in a SQLite database.
     ///
-    /// A version of ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)`` that can be
-    /// configured with a SwiftUI animation. See
-    /// ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)`` for more information on how to
-    /// use this API.
+    /// A version of `fetchOne` that can be configured with a SwiftUI animation.
     ///
     /// - Parameters:
     ///   - sql: A raw SQL string describing the data to fetch.

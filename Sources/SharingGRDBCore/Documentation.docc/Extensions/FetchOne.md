@@ -1,4 +1,4 @@
-# ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)``
+# ``Sharing/SharedReaderKey/fetchOne(_:database:)``
 
 ## Overview
 
@@ -6,8 +6,8 @@
 
 ### SwiftUI integration
 
-- ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:animation:)``
+- ``Sharing/SharedReaderKey/fetchOne(_:database:animation:)``
 
 ### Custom scheduling
 
-- ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:scheduler:)``
+- ``Sharing/SharedReaderKey/fetchOne(_:database:scheduler:)``

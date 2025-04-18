@@ -77,8 +77,8 @@ Some key differences:
 
 Both SharingGRDB and SwiftData require some work to be done at the entry point of the app in order
 to set up the external storage system that will be used throughout the app. In SharingGRDB we use
-the `prepareDependencies` function to set up the ``Dependencies/DependencyValues/defaultDatabase``
-used, and in SwiftUI you construct a `ModelContainer` and propagate it through the environment:
+the `prepareDependencies` function to set up the default database used, and in SwiftUI you construct
+a `ModelContainer` and propagate it through the environment:
 
 @Row {
   @Column {
@@ -318,13 +318,11 @@ See <doc:DynamicQueries> for more information on how to execute dynamic queries 
 
 ### Creating, update and delete data
 
-To create, update and delete data from the database you must use the 
-``Dependencies/DependencyValues/defaultDatabase`` dependency. This is similar to what one does
-with SwiftData too, where all changes to the database go through the `ModelContext` and is not
-done through the `@Query` macro at all.
+To create, update and delete data from the database you must use the `defaultDatabase` dependency.
+This is similar to what one does with SwiftData too, where all changes to the database go through
+the `ModelContext` and is not done through the `@Query` macro at all.
 
-For example, to get access to the ``Dependencies/DependencyValues/defaultDatabase``, you use the 
-`@Dependency` property wrapper:
+For example, to get access to `defaultDatabase`, you use the `@Dependency` property wrapper:
 
 @Row {
   @Column {

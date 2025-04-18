@@ -6,4 +6,4 @@ builder:
     - SharingGRDBCore
     - StructuredQueriesGRDB
     - StructuredQueriesGRDBCore
-    swift_version: 6.0
+    custom_documentation_parameters: [--enable-experimental-overloaded-symbol-presentation]
