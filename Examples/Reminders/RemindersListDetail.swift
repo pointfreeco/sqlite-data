@@ -18,10 +18,10 @@ struct RemindersListDetailView: View {
 
   init(detailType: DetailType) {
     self.detailType = detailType
-    _ordering = AppStorage(wrappedValue: .dueDate, "ordering_list_\(detailType.tag)")
+    _ordering = AppStorage(wrappedValue: .dueDate, "ordering_list_\(detailType.id)")
     _showCompleted = AppStorage(
       wrappedValue: detailType == .completed,
-      "show_completed_list_\(detailType.tag)"
+      "show_completed_list_\(detailType.id)"
     )
     _reminderStates = SharedReader(wrappedValue: [], remindersKey)
   }
@@ -150,54 +150,6 @@ struct RemindersListDetailView: View {
     case list(RemindersList)
     case scheduled
     case today
-    var tag: String {
-      switch self {
-      case .all:
-        "all"
-      case .completed:
-        "completed"
-      case .flagged:
-        "flagged"
-      case .list(let list):
-        "list_\(list.id)"
-      case .scheduled:
-        "scheduled"
-      case .today:
-        "today"
-      }
-    }
-    var navigationTitle: String {
-      switch self {
-      case .all:
-        "All"
-      case .completed:
-        "Completed"
-      case .flagged:
-        "Flagged"
-      case .list(let list):
-        list.title
-      case .scheduled:
-        "Scheduled"
-      case .today:
-        "Today"
-      }
-    }
-    var color: Color {
-      switch self {
-      case .all:
-        .black
-      case .completed:
-        .gray
-      case .flagged:
-        .orange
-      case .list(let list):
-        list.color
-      case .scheduled:
-        .red
-      case .today:
-        .blue
-      }
-    }
   }
 
   private func updateQuery() async throws {
@@ -254,6 +206,39 @@ struct RemindersListDetailView: View {
     let notes: String
     @Column(as: JSONRepresentation<[String]>.self)
     let tags: [String]
+  }
+}
+
+extension RemindersListDetailView.DetailType {
+  fileprivate var id: String {
+    switch self {
+    case .all: "all"
+    case .completed: "completed"
+    case .flagged: "flagged"
+    case .list(let list): "list_\(list.id)"
+    case .scheduled: "scheduled"
+    case .today: "today"
+    }
+  }
+  fileprivate var navigationTitle: String {
+    switch self {
+    case .all: "All"
+    case .completed: "Completed"
+    case .flagged: "Flagged"
+    case .list(let list): list.title
+    case .scheduled: "Scheduled"
+    case .today: "Today"
+    }
+  }
+  fileprivate var color: Color {
+    switch self {
+    case .all: .black
+    case .completed: .gray
+    case .flagged: .orange
+    case .list(let list): list.color
+    case .scheduled: .red
+    case .today: .blue
+    }
   }
 }
 
