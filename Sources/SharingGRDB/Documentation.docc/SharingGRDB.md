@@ -46,9 +46,9 @@ back to the iOS 13 generation of targets.
   }
 }
 
-Both of the above examples fetch items from an external data store, and both are automatically
-observed by SwiftUI so that views are recomputed when the external data changes, but SharingGRDB is
-powered directly by SQLite using [Sharing](#What-is-Sharing),
+Both of the above examples fetch items from an external data store using Swift data types, and both
+are automatically observed by SwiftUI so that views are recomputed when the external data changes,
+but SharingGRDB is powered directly by SQLite using [Sharing](#What-is-Sharing),
 [StructuredQueries](#What-is-StructuredQueries), and [GRDB](#What-is-GRDB), and is usable from
 anywhere, including UIKit, `@Observable` models, and more.
 
