@@ -252,7 +252,7 @@ SQL queries, including joins and aggregates, and performance, including indices.
 With some basic knowledge you can apply this library to your database schema in order to query
 for data and keep your views up-to-date when data in the database changes, and you can use
 [StructuredQueries][structured-queries-gh] to build queries, either using its type-safe,
-discoverable query builder, or using its `#sql` macro for writing safe SQL strings.
+discoverable query building APIs, or using its `#sql` macro for writing safe SQL strings.
 
 [query-interface]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/queryinterface
 [sharing-gh]: https://github.com/pointfreeco/swift-sharing
