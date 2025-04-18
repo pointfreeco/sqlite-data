@@ -82,13 +82,11 @@ class Item {
 
 Both of the above examples fetch items from an external data store using Swift data types, and both
 are automatically observed by SwiftUI so that views are recomputed when the external data changes,
-but SharingGRDB is powered directly by SQLite using [Sharing][sharing-gh],
-[StructuredQueries][structured-queries-gh], and [GRDB][grdb], and is usable from UIKit,
-`@Observable` models, and more.
-
-> [!TIP]
-> `@SharedReader` comes from the [Sharing][sharing-gh] library, while the `@Table` macro comes from
-> [StructuredQueries][structured-queries-gh].
+but SharingGRDB is powered directly by SQLite using
+[Sharing](https://github.com/pointfreeco/swift-sharing),
+[StructuredQueries](https://github.com/pointfreeco/swift-structured-queries), and
+[GRDB](https://github.com/groue/GRDB.swift), and is usable from UIKit, `@Observable` models, and
+more.
 
 For more information on SharingGRDB's querying capabilities, see
 [Fetching model data][fetching-article].
