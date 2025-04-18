@@ -20,7 +20,7 @@ struct RemindersListDetailView: View {
     self.detailType = detailType
     _ordering = AppStorage(wrappedValue: .dueDate, "ordering_list_\(detailType.tag)")
     _showCompleted = AppStorage(
-      wrappedValue: detailType != .completed,
+      wrappedValue: detailType == .completed,
       "show_completed_list_\(detailType.tag)"
     )
     _reminderStates = SharedReader(wrappedValue: [], remindersKey)

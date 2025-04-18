@@ -50,7 +50,7 @@ struct ReminderFormView: View {
               .font(.title)
               .foregroundStyle(.gray)
             Text("Tags")
-              .foregroundStyle(.black)
+              .foregroundStyle(Color(.label))
             Spacer()
             if let tagsDetail {
               tagsDetail

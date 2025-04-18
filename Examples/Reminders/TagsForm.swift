@@ -91,7 +91,7 @@ private struct TagView: View {
         Text(tag.title)
       }
     }
-    .tint(isSelected ? .blue : .black)
+    .tint(isSelected ? .accentColor : .primary)
   }
 }
 
