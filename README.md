@@ -93,6 +93,10 @@ but SharingGRDB is powered directly by SQLite using [Sharing][sharing-gh],
 For more information on SharingGRDB's querying capabilities, see
 [Fetching model data][fetching-article].
 
+[sharing-gh]: http://github.com/pointfreeco/swift-sharing
+[structured-queries-gh] http://github.com/pointfreeco/swift-structured-queries
+[grdb]: http://github.com/groue/GRDB.swift
+
 ## Quick start
 
 Before SharingGRDB's property wrappers can fetch data from SQLite, you need to provide–at
