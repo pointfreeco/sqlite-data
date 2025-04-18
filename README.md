@@ -302,11 +302,17 @@ dependencies: [
 ]
 ```
 
-And then adding the product to any target that needs access to the library:
+And then adding the following products to any target that needs access to the library:
 
 ```swift
 .product(name: "SharingGRDB", package: "sharing-grdb"),
+.product(name: "StructuredQueriesGRDB", package: "sharing-grdb"),
 ```
+
+> [!NOTE]
+> The `SharingGRDB` module contains code for using `@SharedReader`, which is equivalent to
+> SwiftData's `@Query`, while `StructuredQueriesGRDB` contains code for using `@Table`, which is
+> equivalent to SwiftData's `@Model`.
 
 ## Community
 
