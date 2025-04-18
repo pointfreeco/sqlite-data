@@ -480,7 +480,7 @@ var sportsWithTeamCounts
 If either of the "sports" or "teams" tables change, this query will be executed again and the
 state will update to the freshest values.
 
-This style of handling associations does require you to be knowledgable in SQL to yield it 
+This style of handling associations does require you to be knowledgable in SQL to wield it
 correctly, but that is a benefit! SQL (and SQLite) are some of the most proven pieces of 
 technologies in the history of computers, and knowing how to wield their powers is a huge benefit.
 
