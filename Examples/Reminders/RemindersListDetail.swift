@@ -59,6 +59,7 @@ struct RemindersListDetailView: View {
       if let remindersList = detailType.list {
         NavigationStack {
           ReminderFormView(remindersList: remindersList)
+            .navigationTitle("New Reminder")
         }
       }
     }

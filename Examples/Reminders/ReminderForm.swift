@@ -131,6 +131,7 @@ struct ReminderFormView: View {
         }
       }
     }
+    .padding(.top, -28)
     .task {
       guard let reminderID = reminder.id
       else { return }
@@ -147,7 +148,7 @@ struct ReminderFormView: View {
         reportIssue(error)
       }
     }
-    .navigationTitle(remindersList.title)
+    .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItem {
         Button(action: saveButtonTapped) {
@@ -217,6 +218,7 @@ struct ReminderFormPreview: PreviewProvider {
     }
     NavigationStack {
       ReminderFormView(existingReminder: reminder, remindersList: remindersList)
+        .navigationTitle("Detail")
     }
   }
 }

@@ -100,6 +100,7 @@ struct ReminderRow: View {
     .sheet(item: $editReminder) { reminder in
       NavigationStack {
         ReminderFormView(existingReminder: reminder, remindersList: remindersList)
+          .navigationTitle("Details")
       }
     }
     .task(id: isCompleted) {

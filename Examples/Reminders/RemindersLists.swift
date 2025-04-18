@@ -183,6 +183,7 @@ struct RemindersListsView: View {
         if let remindersList = remindersLists.first?.remindersList {
           NavigationStack {
             ReminderFormView(remindersList: remindersList)
+              .navigationTitle("New Reminder")
           }
         }
       }
