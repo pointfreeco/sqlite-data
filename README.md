@@ -86,11 +86,9 @@ class Item {
 
 Both of the above examples fetch items from an external data store using Swift data types, and both
 are automatically observed by SwiftUI so that views are recomputed when the external data changes,
-but SharingGRDB is powered directly by SQLite using
-[Sharing](https://github.com/pointfreeco/swift-sharing),
-[StructuredQueries](https://github.com/pointfreeco/swift-structured-queries), and
-[GRDB](https://github.com/groue/GRDB.swift), and is usable from UIKit, `@Observable` models, and
-more.
+but SharingGRDB is powered directly by SQLite using [Sharing][sharing-gh],
+[StructuredQueries][structured-queries-gh], and [GRDB][grdb], and is usable from UIKit,
+`@Observable` models, and more.
 
 For more information on SharingGRDB's querying capabilities, see
 [Fetching model data][fetching-article].
@@ -177,9 +175,9 @@ a model context, via a property wrapper:
 @Dependency(\.defaultDatabase) 
 var database
     
-var newItem = 
+let newItem = Item(/* ... */)
 try database.write { db in
-  try Item.insert(Item(/* ... */))
+  try Item.insert(newItem)
     .execute(db))
 }
 ```
@@ -223,10 +221,9 @@ the [articles][articles] below to learn how to best utilize this library:
 
 ## Performance
 
-SharingGRDB leverages high-performance decoding from
-[StructuredQueries](https://github.com/pointfreeco/swift-structured-queries) to turn fetched data
-into your Swift domain types, and has a performance profile similar to invoking SQLite's C APIs
-directly.
+SharingGRDB leverages high-performance decoding from [StructuredQueries][structured-queries-gh] to
+turn fetched data into your Swift domain types, and has a performance profile similar to invoking
+SQLite's C APIs directly.
 
 See the following benchmarks from
 [Lighter's performance test suite](https://github.com/Lighter-swift/PerformanceTestSuite) for a
@@ -259,7 +256,7 @@ along with all of the power that SQL has to offer.
 
 [query-interface]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/queryinterface
 [sharing-gh]: https://github.com/pointfreeco/swift-sharing
-[structured-queries-gh] https://github.com/pointfreeco/swift-structured-queries
+[structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
 [grdb]: https://github.com/groue/GRDB.swift
 [swift-nav-gh]: https://github.com/pointfreeco/swift-navigation
 [observe-docs]: https://swiftpackageindex.com/pointfreeco/swift-navigation/main/documentation/swiftnavigation/objectivec/nsobject/observe(_:)-94oxy
