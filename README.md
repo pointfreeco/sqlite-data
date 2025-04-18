@@ -87,9 +87,8 @@ but SharingGRDB is powered directly by SQLite using [Sharing][sharing-gh],
 `@Observable` models, and more.
 
 > [!TIP]
-> The `@Table` macro comes from
-> [StructuredQueries](https://github.com/pointfreeco/swift-structured-queries), a general purpose
-> library for building and decoding SQL.
+> `@SharedReader` comes from the [Sharing][sharing-gh] library, while the `@Table` macro comes from
+> [StructuredQueries][structured-queries-gh].
 
 For more information on SharingGRDB's querying capabilities, see
 [Fetching model data][fetching-article].
