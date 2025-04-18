@@ -39,10 +39,10 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
         ForEach(facts.facts) { fact in
           Text(fact.body)
         }
-        .onDelete { indexSet in
+        .onDelete { indices in
           withErrorReporting {
             try database.write { db in
-              let ids = indexSet.map { facts.facts[$0].id }
+              let ids = indices.map { facts.facts[$0].id }
               try Fact
                 .where { $0.id.in(ids) }
                 .delete()

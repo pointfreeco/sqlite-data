@@ -16,7 +16,6 @@ struct RemindersListsView: View {
   @Selection
   fileprivate struct Stats {
     var allCount = 0
-    var completedCount = 0
     var flaggedCount = 0
     var scheduledCount = 0
     var todayCount = 0
@@ -43,7 +42,6 @@ struct RemindersListsView: View {
       Reminder.select {
         Stats.Columns(
           allCount: $0.count(filter: !$0.isCompleted),
-          completedCount: $0.count(filter: $0.isCompleted),
           flaggedCount: $0.count(filter: $0.isFlagged),
           scheduledCount: $0.count(filter: $0.isScheduled),
           todayCount: $0.count(filter: $0.isToday)
@@ -53,9 +51,16 @@ struct RemindersListsView: View {
   )
   private var stats = Stats()
 
-  @State private var isAddListPresented = false
+  enum Destination: Int, Identifiable {
+    case addList
+    case newReminder
+
+    var id: Int { rawValue }
+  }
+
+  @State private var destination: Destination?
+  @State private var remindersDetailType: RemindersListDetailView.DetailType?
   @State private var searchText = ""
-  @State var remindersDetailType: RemindersListDetailView.DetailType?
 
   @Dependency(\.defaultDatabase) private var database
 
@@ -63,7 +68,7 @@ struct RemindersListsView: View {
     List {
       if searchText.isEmpty {
         Section {
-          Grid(horizontalSpacing: 16, verticalSpacing: 16) {
+          Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 16) {
             GridRow {
               ReminderGridCell(
                 color: .blue,
@@ -103,7 +108,7 @@ struct RemindersListsView: View {
             GridRow {
               ReminderGridCell(
                 color: .gray,
-                count: stats.completedCount,
+                count: nil,
                 iconName: "checkmark.circle.fill",
                 title: "Completed"
               ) {
@@ -111,8 +116,10 @@ struct RemindersListsView: View {
               }
             }
           }
+          .buttonStyle(.plain)
+          .listRowBackground(Color.clear)
+          .padding([.leading, .trailing], -20)
         }
-        .buttonStyle(.plain)
 
         Section {
           ForEach(remindersLists) { state in
@@ -126,29 +133,59 @@ struct RemindersListsView: View {
             }
           }
         } header: {
-          Text("My lists")
-            .font(.largeTitle)
-            .bold()
-            .foregroundStyle(.black)
+          Text("My Lists")
+            .font(.system(.title2, design: .rounded, weight: .bold))
+            .foregroundStyle(Color(.label))
+            .textCase(nil)
+            .padding(.top, -16)
+            .padding([.leading, .trailing], 4)
         }
+        .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
       } else {
         SearchRemindersView(searchText: searchText)
       }
     }
     // NB: This explicit view identity works around a bug with 'List' view state not getting reset.
     .id(searchText)
-    .listStyle(.plain)
+    .listStyle(.insetGrouped)
     .toolbar {
-      Button("Add list") {
-        isAddListPresented = true
+      ToolbarItem(placement: .bottomBar) {
+        HStack {
+          Button {
+            destination = .newReminder
+          } label: {
+            HStack {
+              Image(systemName: "plus.circle.fill")
+              Text("New Reminder")
+            }
+            .bold()
+            .font(.title3)
+          }
+          Spacer()
+          Button {
+            destination = .addList
+          } label: {
+            Text("Add List")
+              .font(.title3)
+          }
+        }
       }
     }
-    .sheet(isPresented: $isAddListPresented) {
-      NavigationStack {
-        RemindersListForm()
-          .navigationTitle("New list")
+    .sheet(item: $destination) { destination in
+      switch destination {
+      case .addList:
+        NavigationStack {
+          RemindersListForm()
+            .navigationTitle("New List")
+        }
+        .presentationDetents([.medium])
+      case .newReminder:
+        if let remindersList = remindersLists.first?.remindersList {
+          NavigationStack {
+            ReminderFormView(remindersList: remindersList)
+          }
+        }
       }
-      .presentationDetents([.medium])
     }
     .searchable(text: $searchText)
     .navigationDestination(item: $remindersDetailType) { detailType in
@@ -159,30 +196,39 @@ struct RemindersListsView: View {
 
 private struct ReminderGridCell: View {
   let color: Color
-  let count: Int
+  let count: Int?
   let iconName: String
   let title: String
   let action: () -> Void
 
   var body: some View {
     Button(action: action) {
-      HStack(alignment: .top) {
-        VStack(alignment: .leading) {
+      HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 8) {
           Image(systemName: iconName)
             .font(.largeTitle)
             .bold()
             .foregroundStyle(color)
+            .background(
+              Color.white.clipShape(Circle()).padding(4)
+            )
           Text(title)
+            .font(.headline)
+            .foregroundStyle(.gray)
             .bold()
+            .padding(.leading, 4)
         }
         Spacer()
-        Text("\(count)")
-          .font(.largeTitle)
-          .fontDesign(.rounded)
-          .bold()
+        if let count {
+          Text("\(count)")
+            .font(.largeTitle)
+            .fontDesign(.rounded)
+            .bold()
+            .foregroundStyle(Color(.label))
+        }
       }
-      .padding()
-      .background(.black.opacity(0.05))
+      .padding(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+      .background(Color(.secondarySystemGroupedBackground))
       .cornerRadius(10)
     }
   }

@@ -13,11 +13,15 @@ struct RemindersListRow: View {
   var body: some View {
     HStack {
       Image(systemName: "list.bullet.circle.fill")
-        .font(.title)
+        .font(.largeTitle)
         .foregroundStyle(remindersList.color)
+        .background(
+          Color.white.clipShape(Circle()).padding(4)
+        )
       Text(remindersList.title)
       Spacer()
       Text("\(reminderCount)")
+        .foregroundStyle(.gray)
     }
     .swipeActions {
       Button {

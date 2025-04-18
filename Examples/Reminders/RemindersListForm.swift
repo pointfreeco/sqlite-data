@@ -15,9 +15,21 @@ struct RemindersListForm: View {
 
   var body: some View {
     Form {
-      TextField("Name", text: $remindersList.title)
+      Section {
+        VStack {
+          TextField("List Name", text: $remindersList.title)
+            .font(.system(.title2, design: .rounded, weight: .bold))
+            .foregroundStyle(remindersList.color)
+            .multilineTextAlignment(.center)
+            .padding()
+            .textFieldStyle(.plain)
+        }
+        .background(Color(.secondarySystemBackground))
+        .clipShape(.buttonBorder)
+      }
       ColorPicker("Color", selection: $remindersList.color)
     }
+    .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItem {
         Button("Save") {
@@ -45,5 +57,6 @@ struct RemindersListForm: View {
   }
   NavigationStack {
     RemindersListForm()
+      .navigationTitle("New List")
   }
 }

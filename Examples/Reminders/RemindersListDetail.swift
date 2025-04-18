@@ -84,7 +84,7 @@ struct RemindersListDetailView: View {
             } label: {
               HStack {
                 Image(systemName: "plus.circle.fill")
-                Text("New reminder")
+                Text("New Reminder")
               }
               .bold()
               .font(.title3)
