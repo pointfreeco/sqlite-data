@@ -40,7 +40,7 @@ way back to the iOS 13 generation of targets.
 <td width=415>
       
 ```swift
-@SharedReader(.fetchAll(Item.order(by: \.title)))
+@SharedReader(.fetchAll(Item.all))
 var items
 
 @Table
@@ -56,7 +56,7 @@ struct Item {
 <td width=415>
 
 ```swift
-@Query(sort: \Item.title)
+@Query
 var items: [Item]
 
 @Model
