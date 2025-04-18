@@ -220,9 +220,9 @@ the [articles][articles] below to learn how to best utilize this library:
 ## Performance
 
 SharingGRDB leverages high-performance decoding from
-[StructuredQueries][StructuredQueries](https://github.com/pointfreeco/swift-structured-queries) to
-turn fetched data into your Swift domain types, and has a performance profile similar to invoking
-SQLite's C APIs directly.
+[StructuredQueries](https://github.com/pointfreeco/swift-structured-queries) to turn fetched data
+into your Swift domain types, and has a performance profile similar to invoking SQLite's C APIs
+directly.
 
 See the following benchmarks from
 [Lighter's performance test suite](https://github.com/Lighter-swift/PerformanceTestSuite) for a
