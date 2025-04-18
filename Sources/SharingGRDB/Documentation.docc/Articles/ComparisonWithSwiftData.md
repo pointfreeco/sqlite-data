@@ -68,10 +68,10 @@ to SwiftData's `@Model` macro:
 
 Some key differences:
 
-* The `@Table` macro works with struct data types, whereas `@Model` only works with classes.
-* Because the `@Model` version of `Item` is a class it is necessary to provide an initializer.
-* The `@Model` version of `Item` does not need an `id` field because SwiftData provides a 
-`persistentIdentifier` to each model.
+  * The `@Table` macro works with struct data types, whereas `@Model` only works with classes.
+  * Because the `@Model` version of `Item` is a class it is necessary to provide an initializer.
+  * The `@Model` version of `Item` does not need an `id` field because SwiftData provides a
+    `persistentIdentifier` to each model.
 
 ### Setting up external storage
 

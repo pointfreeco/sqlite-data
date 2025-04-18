@@ -39,7 +39,7 @@ struct ReminderRow: View {
 
   var body: some View {
     HStack {
-      HStack(alignment: .top) {
+      HStack(alignment: .firstTextBaseline) {
         Button(action: completeButtonTapped) {
           Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
             .foregroundStyle(.gray)
@@ -51,8 +51,9 @@ struct ReminderRow: View {
 
           if !notes.isEmpty {
             Text(notes)
-              .lineLimit(2)
+              .font(.subheadline)
               .foregroundStyle(.gray)
+              .lineLimit(2)
           }
           subtitleText
         }
@@ -158,15 +159,15 @@ struct ReminderRow: View {
   }
 
   private func title(for reminder: Reminder) -> some View {
-    let exclamations =
-      String(repeating: "!", count: reminder.priority?.rawValue ?? 0)
-      + (reminder.priority == nil ? "" : " ")
-    return
-      (Text(exclamations)
-      .foregroundStyle(isCompleted ? .gray : remindersList.color)
-      + Text(reminder.title)
-      .foregroundStyle(isCompleted ? .gray : .primary))
-      .font(.title3)
+    return HStack(alignment: .firstTextBaseline) {
+      if let priority = reminder.priority {
+        Text(String(repeating: "!", count: priority.rawValue))
+          .foregroundStyle(isCompleted ? .gray : remindersList.color)
+      }
+      Text(reminder.title)
+        .foregroundStyle(isCompleted ? .gray : .primary)
+    }
+    .font(.title3)
   }
 }
 

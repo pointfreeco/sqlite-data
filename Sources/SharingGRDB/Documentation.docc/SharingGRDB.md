@@ -11,6 +11,14 @@ back to the iOS 13 generation of targets.
     // SharingGRDB
     @SharedReader(.fetchAll(Item.all))
     var items
+
+    @Table
+    struct Item {
+      let id: Int
+      var title = ""
+      var isInStock = true
+      var notes = ""
+    }
     ```
   }
   @Column {
@@ -18,14 +26,31 @@ back to the iOS 13 generation of targets.
     // SwiftData
     @Query
     var items: [Item]
+
+    @Model
+    class Item {
+      var title: String
+      var isInStock: Bool
+      var notes: String
+      init(
+        title: String = "",
+        isInStock: Bool = true,
+        notes: String = ""
+      ) {
+        self.title = title
+        self.isInStock = isInStock
+        self.notes = notes
+      }
+    }
     ```
   }
 }
 
 Both of the above examples fetch items from an external data store, and both are automatically
 observed by SwiftUI so that views are recomputed when the external data changes, but SharingGRDB is
-powered directly by SQLite using [Sharing](#What-is-Sharing) and [GRDB](#What-is-GRDB), and is
-usable from UIKit, `@Observable` models, and more.
+powered directly by SQLite using [Sharing](#What-is-Sharing),
+[StructuredQueries](#What-is-StructuredQueries), and [GRDB](#What-is-GRDB), and is usable from
+anywhere, including UIKit, `@Observable` models, and more.
 
 > Note: For more information on SharingGRDB's querying capabilities, see <doc:Fetching>.
 
@@ -117,6 +142,28 @@ a model context, via a property wrapper:
 This is all you need to know to get started with SharingGRDB, but there's much more to learn. Read
 the [articles](#Essentials) below to learn how to best utilize this library.
 
+## Performance
+
+SharingGRDB leverages high-performance decoding from
+[StructuredQueries](https://github.com/pointfreeco/swift-structured-queries) to turn fetched data
+into your Swift domain types, and has a performance profile similar to invoking SQLite's C APIs
+directly.
+
+See the following benchmarks from
+[Lighter's performance test suite](https://github.com/Lighter-swift/PerformanceTestSuite) for a
+taste of how it compares:
+
+```
+Orders.fetchAll                          setup    rampup   duration
+  SQLite (Enlighter-generated)           0        0.144    7.183
+  Lighter (1.4.10)                       0        0.164    8.059
+  SharingGRDB (0.2.0)                    0        0.172    8.511
+  GRDB (7.4.0, manual decoding)          0        0.376    18.819
+  SQLite.swift (0.15.3, manual decoding) 0        0.564    27.994
+  SQLite.swift (0.15.3, Codable)         0        0.863    43.261
+  GRDB (7.4.0, Codable)                  0.002    1.07     53.326
+```
+
 ## SQLite knowledge required
 
 SQLite is one of the 
@@ -144,7 +191,18 @@ This is all you need to know about Sharing to hit the ground running with Sharin
 scratches the surface of what the library makes possible. It can also act as a replacement to
 SwiftUI's `@AppStorage` that works with UIKit and `@Observable` models, and can be integrated
 with custom persistence strategies. To learn more, check out
-[the documentation](https://swiftpackageindex.com/pointfreeco/swift-sharing/main/documentation/sharing/).
+[the documentation](https://swiftpackageindex.com/pointfreeco/swift-sharing/~/documentation/sharing/).
+
+## What is StructuredQueries?
+
+[StructuredQueries](https://github.com/pointfreeco/swift-structured-queries) is a library for
+building SQL in a safe, expressive, and composable manner, and decoding results with high
+performance. Learn more about designing schemas and building queries with the library by seeing its
+[documentation](https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore/).
+
+SharingGRDB contains an official StructuredQueries driver that connects it to SQLite _via_ GRDB,
+though its query builder and decoder are general purpose tools that can interface with other
+databases (MySQL, Postgres, _etc._) and database libraries.
 
 ## What is GRDB?
 

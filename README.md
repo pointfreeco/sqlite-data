@@ -1,6 +1,6 @@
 # SharingGRDB
 
-A lightweight replacement for SwiftData and `@Query`.
+A fast, lightweight replacement for SwiftData, powered by SQL.
 
 [![CI](https://github.com/pointfreeco/sharing-grdb/workflows/CI/badge.svg)](https://github.com/pointfreeco/sharing-grdb/actions?query=workflow%3ACI)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
@@ -28,8 +28,8 @@ library, [subscribe today](https://www.pointfree.co/pricing).
 
 ## Overview
 
-SharingGRDB is lightweight replacement for SwiftData and the `@Query` macro that deploys all the way
-back to the iOS 13 generation of targets.
+SharingGRDB is a [fast](#performance), lightweight replacement for SwiftData that deploys all the
+way back to the iOS 13 generation of targets.
 
 <table>
 <tr>
@@ -42,6 +42,14 @@ back to the iOS 13 generation of targets.
 ```swift
 @SharedReader(.fetchAll(Item.order(by: \.title)))
 var items
+
+@Table
+struct Item {
+  let id: Int
+  var title = ""
+  var isInStock = true
+  var notes = ""
+}
 ```
 
 </td>
@@ -50,6 +58,22 @@ var items
 ```swift
 @Query(sort: \Item.title)
 var items: [Item]
+
+@Model
+class Item {
+  var title: String
+  var isInStock: Bool
+  var notes: String
+  init(
+    title: String = "",
+    isInStock: Bool = true,
+    notes: String = ""
+  ) {
+    self.title = title
+    self.isInStock = isInStock
+    self.notes = notes
+  }
+}
 ```
 
 </td>
@@ -61,7 +85,13 @@ observed by SwiftUI so that views are recomputed when the external data changes,
 powered directly by SQLite using [Sharing][sharing-gh] and [GRDB][grdb], and is
 usable from UIKit, `@Observable` models, and more.
 
-For more information on SharingGRDB's querying capabilities, see [Fetching model data][fetching-article].
+> [!TIP]
+> The `@Table` macro comes from
+> [StructuredQueries](https://github.com/pointfreeco/swift-structured-queries), a general purpose
+> library for building and decoding SQL.
+
+For more information on SharingGRDB's querying capabilities, see
+[Fetching model data][fetching-article].
 
 ## Quick start
 
@@ -118,7 +148,8 @@ struct MyApp: App {
 </tr>
 </table>
 
-> Note: For more information on preparing a SQLite database, see 
+> [!NOTE]
+> For more information on preparing a SQLite database, see
 > [Preparing a SQLite database][preparing-db-article].
 
 This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies, like 
@@ -167,7 +198,8 @@ try modelContext.save()
 </tr>
 </table>
 
-> Note: For more information on how SharingGRDB compares to SwiftData, see
+> [!NOTE]
+> For more information on how SharingGRDB compares to SwiftData, see
 > [Comparison with SwiftData][comparison-swiftdata-article].
 
 This is all you need to know to get started with SharingGRDB, but there's much more to learn. Read
@@ -186,6 +218,28 @@ the [articles][articles] below to learn how to best utilize this library:
 [fetching-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/fetching
 [preparing-db-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/preparingdatabase 
  [fetchall-docs]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/sharing/sharedreaderkey/fetchall(sql:arguments:database:animation:)
+
+## Performance
+
+SharingGRDB leverages high-performance decoding from
+[StructuredQueries][StructuredQueries](https://github.com/pointfreeco/swift-structured-queries) to
+turn fetched data into your Swift domain types, and has a performance profile similar to invoking
+SQLite's C APIs directly.
+
+See the following benchmarks from
+[Lighter's performance test suite](https://github.com/Lighter-swift/PerformanceTestSuite) for a
+taste of how it compares:
+
+```
+Orders.fetchAll                          setup    rampup   duration
+  SQLite (Enlighter-generated)           0        0.144    7.183
+  Lighter (1.4.10)                       0        0.164    8.059
+  SharingGRDB (0.2.0)                    0        0.172    8.511
+  GRDB (7.4.0, manual decoding)          0        0.376    18.819
+  SQLite.swift (0.15.3, manual decoding) 0        0.564    27.994
+  SQLite.swift (0.15.3, Codable)         0        0.863    43.261
+  GRDB (7.4.0, Codable)                  0.002    1.07     53.326
+```
 
 ## SQLite knowledge required
 
