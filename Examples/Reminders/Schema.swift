@@ -64,7 +64,6 @@ struct Tag: Hashable, Identifiable {
   static let withReminders = group(by: \.id)
     .leftJoin(ReminderTag.all) { $0.id.eq($1.tagID) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
-    .select { tags, _, _ in tags }
 }
 
 extension Tag?.TableColumns {

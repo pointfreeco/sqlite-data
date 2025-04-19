@@ -42,7 +42,8 @@ struct RemindersListsView: View {
       Tag
         .order(by: \.title)
         .withReminders
-        .having { $2.count().gt(0) },
+        .having { $2.count().gt(0) }
+        .select { tag, _, _ in tag },
       animation: .default
     )
   )

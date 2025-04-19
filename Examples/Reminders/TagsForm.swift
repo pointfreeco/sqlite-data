@@ -50,6 +50,7 @@ struct TagsView: View {
         .withReminders
         .having { $2.count().gt(0) }
         .order { ($2.count().desc(), $0.title) }
+        .select { tag, _, _ in tag }
         .limit(3)
         .fetchAll(db)
 
