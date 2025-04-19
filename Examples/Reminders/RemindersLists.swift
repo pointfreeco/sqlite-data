@@ -38,6 +38,17 @@ struct RemindersListsView: View {
   private var remindersLists
 
   @SharedReader(
+    .fetchAll(
+      Tag
+        .order(by: \.title)
+        .withReminders
+        .having { $2.count().gt(0) },
+      animation: .default
+    )
+  )
+  private var tags
+
+  @SharedReader(
     .fetchOne(
       Reminder.select {
         Stats.Columns(
@@ -134,6 +145,25 @@ struct RemindersListsView: View {
           }
         } header: {
           Text("My Lists")
+            .font(.system(.title2, design: .rounded, weight: .bold))
+            .foregroundStyle(Color(.label))
+            .textCase(nil)
+            .padding(.top, -16)
+            .padding([.leading, .trailing], 4)
+        }
+        .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+
+        Section {
+          ForEach(tags) { tag in
+            NavigationLink {
+              RemindersListDetailView(detailType: .tags([tag]))
+            } label: {
+              TagRow(tag: tag)
+            }
+          }
+
+        } header: {
+          Text("Tags")
             .font(.system(.title2, design: .rounded, weight: .bold))
             .foregroundStyle(Color(.label))
             .textCase(nil)

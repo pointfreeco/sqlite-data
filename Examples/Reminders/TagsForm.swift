@@ -47,13 +47,10 @@ struct TagsView: View {
     func fetch(_ db: Database) throws -> Value {
       let top =
         try Tag
-        .group(by: \.id)
-        .join(ReminderTag.all) { $0.id.eq($1.tagID) }
-        .join(Reminder.all) { $1.reminderID.eq($2.id) }
+        .withReminders
         .having { $2.count().gt(0) }
         .order { ($2.count().desc(), $0.title) }
         .limit(3)
-        .select { tags, _, _ in tags }
         .fetchAll(db)
 
       let rest =

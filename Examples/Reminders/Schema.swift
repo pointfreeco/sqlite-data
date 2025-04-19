@@ -34,6 +34,7 @@ struct Reminder: Equatable, Identifiable {
     .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
     .leftJoin(Tag.all) { $1.tagID.eq($2.id) }
 }
+
 extension Reminder.TableColumns {
   var isPastDue: some QueryExpression<Bool> {
     !isCompleted && #sql("coalesce(date(\(dueDate)) < date('now'), 0)")
@@ -56,9 +57,14 @@ enum Priority: Int, QueryBindable {
 }
 
 @Table
-struct Tag {
+struct Tag: Hashable, Identifiable {
   var id: Int
   var title = ""
+
+  static let withReminders = group(by: \.id)
+    .leftJoin(ReminderTag.all) { $0.id.eq($1.tagID) }
+    .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
+    .select { tags, _, _ in tags }
 }
 
 extension Tag?.TableColumns {
@@ -68,9 +74,10 @@ extension Tag?.TableColumns {
 }
 
 @Table("remindersTags")
-struct ReminderTag {
-  var reminderID: Int
-  var tagID: Int
+struct ReminderTag: Hashable, Identifiable {
+  var reminderID: Reminder.ID
+  var tagID: Tag.ID
+  var id: Self { self }
 }
 
 func appDatabase() throws -> any DatabaseWriter {

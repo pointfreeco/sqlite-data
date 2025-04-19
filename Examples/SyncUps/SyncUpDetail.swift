@@ -114,7 +114,7 @@ final class SyncUpDetailModel: HashableObject {
         attendees: Attendee.where { $0.syncUpID == syncUp.id }.fetchAll(db),
         meetings:
           Meeting
-          .where { $0.syncUpID == syncUp.id }
+          .where { $0.syncUpID.eq(syncUp.id) }
           .order { $0.date.desc() }
           .fetchAll(db),
         syncUp: syncUp

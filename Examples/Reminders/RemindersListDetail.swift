@@ -148,6 +148,7 @@ struct RemindersListDetailView: View {
     case flagged
     case list(RemindersList)
     case scheduled
+    case tags([Tag])
     case today
   }
 
@@ -163,16 +164,6 @@ struct RemindersListDetailView: View {
             !$0.isCompleted
           }
         }
-        .where {
-          switch detailType {
-          case .all: !$0.isCompleted
-          case .completed: $0.isCompleted
-          case .flagged: $0.isFlagged
-          case .list(let list): $0.remindersListID.eq(list.id)
-          case .scheduled: $0.isScheduled
-          case .today: $0.isToday
-          }
-        }
         .order { $0.isCompleted }
         .order {
           switch ordering {
@@ -182,6 +173,17 @@ struct RemindersListDetailView: View {
           }
         }
         .withTags
+        .where { reminder, _, tag in
+          switch detailType {
+          case .all: !reminder.isCompleted
+          case .completed: reminder.isCompleted
+          case .flagged: reminder.isFlagged
+          case .list(let list): reminder.remindersListID.eq(list.id)
+          case .scheduled: reminder.isScheduled
+          case .tags(let tags): tag.id.ifnull(0).in(tags.map(\.id))
+          case .today: reminder.isToday
+          }
+        }
         .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
         .select {
           ReminderState.Columns(
@@ -216,6 +218,7 @@ extension RemindersListDetailView.DetailType {
     case .flagged: "flagged"
     case .list(let list): "list_\(list.id)"
     case .scheduled: "scheduled"
+    case .tags: "tags"
     case .today: "today"
     }
   }
@@ -226,6 +229,12 @@ extension RemindersListDetailView.DetailType {
     case .flagged: "Flagged"
     case .list(let list): list.title
     case .scheduled: "Scheduled"
+    case .tags(let tags):
+      switch tags.count {
+      case 0: "Tags"
+      case 1: "#\(tags[0].title)"
+      default: "\(tags.count) tags"
+      }
     case .today: "Today"
     }
   }
@@ -236,6 +245,7 @@ extension RemindersListDetailView.DetailType {
     case .flagged: .orange
     case .list(let list): list.color
     case .scheduled: .red
+    case .tags: .blue
     case .today: .blue
     }
   }
@@ -243,14 +253,25 @@ extension RemindersListDetailView.DetailType {
 
 struct RemindersListDetailPreview: PreviewProvider {
   static var previews: some View {
-    let remindersList = try! prepareDependencies {
+    let (remindersList, tag) = try! prepareDependencies {
       $0.defaultDatabase = try Reminders.appDatabase()
       return try $0.defaultDatabase.read { db in
-        try RemindersList.all.fetchOne(db)!
+        (
+          try RemindersList.all.fetchOne(db)!,
+          try Tag.all.fetchOne(db)!
+        )
       }
     }
-    NavigationStack {
-      RemindersListDetailView(detailType: .list(remindersList))
+    let detailTypes: [RemindersListDetailView.DetailType] = [
+      .all,
+      .list(remindersList),
+      .tags([tag]),
+    ]
+    ForEach(detailTypes, id: \.self) { detailType in
+      NavigationStack {
+        RemindersListDetailView(detailType: detailType)
+      }
+      .previewDisplayName(detailType.navigationTitle)
     }
   }
 }
