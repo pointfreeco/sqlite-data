@@ -157,45 +157,44 @@ struct RemindersListDetailView: View {
   }
 
   fileprivate var remindersKey: some SharedReaderKey<[ReminderState]> {
-    .fetchAll(
+    let query =
       Reminder
-        .where {
-          if !showCompleted {
-            !$0.isCompleted
-          }
+      .where {
+        if !showCompleted {
+          !$0.isCompleted
         }
-        .order { $0.isCompleted }
-        .order {
-          switch ordering {
-          case .dueDate: $0.dueDate
-          case .priority: ($0.priority.desc(), $0.isFlagged.desc())
-          case .title: $0.title
-          }
+      }
+      .order { $0.isCompleted }
+      .order {
+        switch ordering {
+        case .dueDate: $0.dueDate
+        case .priority: ($0.priority.desc(), $0.isFlagged.desc())
+        case .title: $0.title
         }
-        .withTags
-        .where { reminder, _, tag in
-          switch detailType {
-          case .all: !reminder.isCompleted
-          case .completed: reminder.isCompleted
-          case .flagged: reminder.isFlagged
-          case .list(let list): reminder.remindersListID.eq(list.id)
-          case .scheduled: reminder.isScheduled
-          case .tags(let tags): tag.id.ifnull(0).in(tags.map(\.id))
-          case .today: reminder.isToday
-          }
+      }
+      .withTags
+      .where { reminder, _, tag in
+        switch detailType {
+        case .all: !reminder.isCompleted
+        case .completed: reminder.isCompleted
+        case .flagged: reminder.isFlagged
+        case .list(let list): reminder.remindersListID.eq(list.id)
+        case .scheduled: reminder.isScheduled
+        case .tags(let tags): tag.id.ifnull(0).in(tags.map(\.id))
+        case .today: reminder.isToday
         }
-        .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
-        .select {
-          ReminderState.Columns(
-            reminder: $0,
-            remindersList: $3,
-            isPastDue: $0.isPastDue,
-            notes: $0.inlineNotes.substr(0, 200),
-            tags: $2.jsonNames
-          )
-        },
-      animation: .default
-    )
+      }
+      .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
+      .select {
+        ReminderState.Columns(
+          reminder: $0,
+          remindersList: $3,
+          isPastDue: $0.isPastDue,
+          notes: $0.inlineNotes.substr(0, 200),
+          tags: $2.jsonNames
+        )
+      }
+    return .fetchAll(query, animation: .default)
   }
 
   @Selection

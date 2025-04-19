@@ -161,7 +161,6 @@ struct RemindersListsView: View {
               TagRow(tag: tag)
             }
           }
-
         } header: {
           Text("Tags")
             .font(.system(.title2, design: .rounded, weight: .bold))
