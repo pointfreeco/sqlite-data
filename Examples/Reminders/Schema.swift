@@ -23,11 +23,14 @@ struct Reminder: Equatable, Identifiable {
   var priority: Priority?
   var remindersListID: Int
   var title = ""
+}
+
+extension Reminder {
   static let incomplete = Self.where { !$0.isCompleted }
   static func searching(_ text: String) -> Where<Reminder> {
     Self.where {
       $0.title.collate(.nocase).contains(text)
-        || $0.notes.collate(.nocase).contains(text)
+      || $0.notes.collate(.nocase).contains(text)
     }
   }
   static let withTags = group(by: \.id)
@@ -60,7 +63,9 @@ enum Priority: Int, QueryBindable {
 struct Tag: Hashable, Identifiable {
   var id: Int
   var title = ""
+}
 
+extension Tag {
   static let withReminders = group(by: \.id)
     .leftJoin(ReminderTag.all) { $0.id.eq($1.tagID) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }

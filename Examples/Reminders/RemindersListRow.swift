@@ -2,7 +2,7 @@ import SharingGRDB
 import SwiftUI
 
 struct RemindersListRow: View {
-  let reminderCount: Int
+  let remindersCount: Int
   let remindersList: RemindersList
 
   @State var editList: RemindersList?
@@ -19,7 +19,7 @@ struct RemindersListRow: View {
         )
       Text(remindersList.title)
       Spacer()
-      Text("\(reminderCount)")
+      Text("\(remindersCount)")
         .foregroundStyle(.gray)
     }
     .swipeActions {
@@ -54,7 +54,7 @@ struct RemindersListRow: View {
   NavigationStack {
     List {
       RemindersListRow(
-        reminderCount: 10,
+        remindersCount: 10,
         remindersList: RemindersList(
           id: 1,
           title: "Personal"

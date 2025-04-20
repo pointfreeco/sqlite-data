@@ -6,30 +6,14 @@ import StructuredQueries
 import SwiftUI
 
 struct RemindersListsView: View {
-  @Selection
-  fileprivate struct ReminderListState: Identifiable {
-    var id: RemindersList.ID { remindersList.id }
-    var reminderCount: Int
-    var remindersList: RemindersList
-  }
-
-  @Selection
-  fileprivate struct Stats {
-    var allCount = 0
-    var flaggedCount = 0
-    var scheduledCount = 0
-    var todayCount = 0
-  }
-
   @SharedReader(
     .fetchAll(
       RemindersList
         .group(by: \.id)
-        .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) }
-        .where { $1.isCompleted.ifnull(false) }
+        .leftJoin(Reminder.incomplete) { $0.id.eq($1.remindersListID) }
         .select {
           ReminderListState.Columns(
-            reminderCount: $1.id.count(),
+            remindersCount: $1.id.count(),
             remindersList: $0
           )
         },
@@ -64,18 +48,33 @@ struct RemindersListsView: View {
   )
   private var stats = Stats()
 
+  @State private var destination: Destination?
+  @State private var remindersDetailType: RemindersListDetailView.DetailType?
+  @State private var searchText = ""
+
+  @Dependency(\.defaultDatabase) private var database
+
+  @Selection
+  fileprivate struct ReminderListState: Identifiable {
+    var id: RemindersList.ID { remindersList.id }
+    var remindersCount: Int
+    var remindersList: RemindersList
+  }
+
+  @Selection
+  fileprivate struct Stats {
+    var allCount = 0
+    var flaggedCount = 0
+    var scheduledCount = 0
+    var todayCount = 0
+  }
+
   enum Destination: Int, Identifiable {
     case addList
     case newReminder
 
     var id: Int { rawValue }
   }
-
-  @State private var destination: Destination?
-  @State private var remindersDetailType: RemindersListDetailView.DetailType?
-  @State private var searchText = ""
-
-  @Dependency(\.defaultDatabase) private var database
 
   var body: some View {
     List {
@@ -140,7 +139,7 @@ struct RemindersListsView: View {
               RemindersListDetailView(detailType: .list(state.remindersList))
             } label: {
               RemindersListRow(
-                reminderCount: state.reminderCount,
+                remindersCount: state.remindersCount,
                 remindersList: state.remindersList
               )
             }
