@@ -87,9 +87,8 @@ class Item {
 
 Both of the above examples fetch items from an external data store using Swift data types, and both
 are automatically observed by SwiftUI so that views are recomputed when the external data changes,
-but SharingGRDB is powered directly by SQLite using [Sharing][sharing-gh],
-[StructuredQueries][structured-queries-gh], and [GRDB][grdb], and is usable from UIKit,
-`@Observable` models, and more.
+but SharingGRDB is powered directly by SQLite using [Sharing][], [StructuredQueries][], and
+[GRDB][], and is usable from UIKit, `@Observable` models, and more.
 
 For more information on SharingGRDB's querying capabilities, see
 [Fetching model data][fetching-article].
@@ -222,9 +221,8 @@ the [articles][articles] below to learn how to best utilize this library:
 
 ## Performance
 
-SharingGRDB leverages high-performance decoding from [StructuredQueries][structured-queries-gh] to
-turn fetched data into your Swift domain types, and has a performance profile similar to invoking
-SQLite's C APIs directly.
+SharingGRDB leverages high-performance decoding from [StructuredQueries][] to turn fetched data into
+your Swift domain types, and has a performance profile similar to invoking SQLite's C APIs directly.
 
 See the following benchmarks against
 [Lighter's performance test suite](https://github.com/Lighter-swift/PerformanceTestSuite) for a
@@ -252,33 +250,32 @@ SQL queries, including joins and aggregates, and performance, including indices.
 
 With some basic knowledge you can apply this library to your database schema in order to query
 for data and keep your views up-to-date when data in the database changes, and you can use
-[StructuredQueries][structured-queries-gh] to build queries, either using its type-safe,
-discoverable query building APIs, or using its `#sql` macro for writing safe SQL strings.
+[StructuredQueries][] to build queries, either using its type-safe, discoverable
+[query building APIs][], or using its `#sql` macro for writing [safe SQL strings][].
 
-[query-interface]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/queryinterface
-[sharing-gh]: https://github.com/pointfreeco/swift-sharing
-[structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
-[grdb]: https://github.com/groue/GRDB.swift
-[swift-nav-gh]: https://github.com/pointfreeco/swift-navigation
-[observe-docs]: https://swiftpackageindex.com/pointfreeco/swift-navigation/main/documentation/swiftnavigation/objectivec/nsobject/observe(_:)-94oxy
+[Sharing]: https://github.com/pointfreeco/swift-sharing
+[StructuredQueries]: https://github.com/pointfreeco/swift-structured-queries
+[GRDB]: https://github.com/groue/GRDB.swift
+[query building APIs]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore
+[safe SQL strings]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore/safesqlstrings
 
 ## Demos
 
 This repo comes with _lots_ of examples to demonstrate how to solve common and complex problems with
 Sharing. Check out [this](./Examples) directory to see them all, including:
 
-  * [Case Studies](./Examples/CaseStudies):
-    A number of case studies demonstrating the built-in features of the library.
+  * [Case Studies](./Examples/CaseStudies): A number of case studies demonstrating the built-in
+    features of the library.
 
-  * [SyncUps](./Examples/SyncUps): We also rebuilt Apple's [Scrumdinger][scrumdinger] demo
-    application using modern, best practices for SwiftUI development, including using this library
-    to query and persist state using SQLite.
+  * [SyncUps](./Examples/SyncUps): We also rebuilt Apple's [Scrumdinger][] demo application using
+    modern, best practices for SwiftUI development, including using this library to query and
+    persist state using SQLite.
     
   * [Reminders](./Examples/Reminders): A rebuild of Apple's [Reminders][reminders-app-store] app
     that uses a SQLite database to model the reminders, lists and tags. It features many advanced
     queries, such as searching, and stats aggregation.
 
-[scrumdinger]: https://developer.apple.com/tutorials/app-dev-training/getting-started-with-scrumdinger
+[Scrumdinger]: https://developer.apple.com/tutorials/app-dev-training/getting-started-with-scrumdinger
 [reminders-app-store]: https://apps.apple.com/us/app/reminders/id1108187841
 
 ## Documentation
