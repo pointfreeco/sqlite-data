@@ -3,7 +3,7 @@ import SharingGRDB
 import SwiftUI
 
 struct ReminderFormView: View {
-  @SharedReader(.fetchAll(RemindersList.order(by: \.title))) var remindersLists
+  @FetchAll(RemindersList.order(by: \.title)) var remindersLists
 
   @State var isPresentingTagsPopover = false
   @State var remindersList: RemindersList

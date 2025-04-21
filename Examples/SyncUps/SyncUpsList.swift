@@ -7,14 +7,12 @@ import SwiftUINavigation
 final class SyncUpsListModel {
   var addSyncUp: SyncUpFormModel?
   @ObservationIgnored
-  @SharedReader(
-    .fetchAll(
-      SyncUp
-        .group(by: \.id)
-        .leftJoin(Attendee.all) { $0.id.eq($1.syncUpID) }
-        .select { Record.Columns(attendeeCount: $1.count(), syncUp: $0) },
-      animation: .default
-    )
+  @FetchAll(
+    SyncUp
+      .group(by: \.id)
+      .leftJoin(Attendee.all) { $0.id.eq($1.syncUpID) }
+      .select { Record.Columns(attendeeCount: $1.count(), syncUp: $0) },
+    animation: .default
   )
   var syncUps: [Record]
   @ObservationIgnored @Dependency(\.uuid) var uuid

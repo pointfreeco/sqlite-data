@@ -3,7 +3,7 @@ import SharingGRDB
 import SwiftUI
 
 struct SearchRemindersView: View {
-  @SharedReader(value: 0) var completedCount: Int
+  @FetchOne var completedCount: Int = 0
   @State.SharedReader(value: []) var reminders: [ReminderState]
 
   let searchText: String
@@ -62,12 +62,10 @@ struct SearchRemindersView: View {
       showCompletedInSearchResults = false
     }
     try await $completedCount.load(
-      .fetchOne(
-        Reminder.searching(searchText)
-          .where(\.isCompleted)
-          .count(),
-        animation: .default
-      )
+      Reminder.searching(searchText)
+        .where(\.isCompleted)
+        .count(),
+      animation: .default
     )
     try await $reminders.load(searchKey)
   }

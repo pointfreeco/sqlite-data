@@ -7,7 +7,7 @@ import SwiftUINavigation
 final class SyncUpDetailModel: HashableObject {
   var destination: Destination?
   var isDismissed = false
-  @ObservationIgnored @SharedReader var details: Details.Value
+  @ObservationIgnored @Fetch var details: Details.Value
 
   var onMeetingStarted: (SyncUp, [Attendee]) -> Void = unimplemented("onMeetingStarted")
 
@@ -33,9 +33,9 @@ final class SyncUpDetailModel: HashableObject {
     syncUp: SyncUp
   ) {
     self.destination = destination
-    _details = SharedReader(
+    _details = Fetch(
       wrappedValue: Details.Value(syncUp: syncUp),
-      .fetch(Details(syncUp: syncUp), animation: .default)
+      Details(syncUp: syncUp), animation: .default
     )
   }
 

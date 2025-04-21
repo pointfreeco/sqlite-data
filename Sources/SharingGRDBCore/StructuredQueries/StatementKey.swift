@@ -30,9 +30,9 @@ extension SharedReaderKey {
     database: (any DatabaseReader)? = nil
   ) -> Self
   where
-    S.QueryValue == (),
-    S.Joins == (),
-    Self == FetchKey<[S.From.QueryOutput]>.Default
+  S.QueryValue == (),
+  S.Joins == (),
+  Self == FetchKey<[S.From.QueryOutput]>.Default
   {
     let statement = statement.selectStar()
     return fetchAll(statement, database: database)
@@ -73,9 +73,9 @@ extension SharedReaderKey {
     database: (any DatabaseReader)? = nil
   ) -> Self
   where
-    S.QueryValue == (),
-    S.Joins == (),
-    Self == FetchKey<S.From.QueryOutput>
+  S.QueryValue == (),
+  S.Joins == (),
+  Self == FetchKey<S.From.QueryOutput>
   {
     let statement = statement.selectStar()
     return fetchOne(statement, database: database)

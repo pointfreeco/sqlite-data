@@ -100,7 +100,7 @@ extension SharedReaderKey {
   ) -> Self
   where Self == FetchKey<[Record]>.Default {
     Self[
-      .fetch(FetchAll(sql: sql, arguments: arguments), database: database),
+      .fetch(FetchAllRequest(sql: sql, arguments: arguments), database: database),
       default: []
     ]
   }
@@ -128,7 +128,7 @@ extension SharedReaderKey {
     database: (any DatabaseReader)? = nil
   ) -> Self
   where Self == FetchKey<Value> {
-    .fetch(FetchOne(sql: sql, arguments: arguments), database: database)
+    .fetch(FetchOneRequest(sql: sql, arguments: arguments), database: database)
   }
 }
 
@@ -199,7 +199,7 @@ extension SharedReaderKey {
   ) -> Self
   where Self == FetchKey<[Record]>.Default {
     Self[
-      .fetch(FetchAll(sql: sql, arguments: arguments), database: database, scheduler: scheduler),
+      .fetch(FetchAllRequest(sql: sql, arguments: arguments), database: database, scheduler: scheduler),
       default: []
     ]
   }
@@ -225,7 +225,7 @@ extension SharedReaderKey {
     scheduler: some ValueObservationScheduler & Hashable
   ) -> Self
   where Self == FetchKey<Value> {
-    .fetch(FetchOne(sql: sql, arguments: arguments), database: database, scheduler: scheduler)
+    .fetch(FetchOneRequest(sql: sql, arguments: arguments), database: database, scheduler: scheduler)
   }
 }
 
@@ -377,7 +377,7 @@ public struct FetchKeyID: Hashable {
   }
 }
 
-private struct FetchAll<Element: FetchableRecord>: FetchKeyRequest {
+private struct FetchAllRequest<Element: FetchableRecord>: FetchKeyRequest {
   var sql: String
   var arguments: StatementArguments = StatementArguments()
   func fetch(_ db: Database) throws -> [Element] {
@@ -385,7 +385,7 @@ private struct FetchAll<Element: FetchableRecord>: FetchKeyRequest {
   }
 }
 
-private struct FetchOne<Value: DatabaseValueConvertible>: FetchKeyRequest {
+private struct FetchOneRequest<Value: DatabaseValueConvertible>: FetchKeyRequest {
   var sql: String
   var arguments: StatementArguments = StatementArguments()
   func fetch(_ db: Database) throws -> Value {
