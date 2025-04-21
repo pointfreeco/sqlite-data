@@ -1,4 +1,4 @@
-import StructuredQueriesCore
+import SharingGRDB
 import SwiftUI
 
 extension Color {

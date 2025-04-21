@@ -1,5 +1,4 @@
 import Foundation
-import GRDB
 import IssueReporting
 import SharingGRDB
 import SwiftUI

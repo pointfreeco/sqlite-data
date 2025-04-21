@@ -1,5 +1,4 @@
 import SharingGRDB
-import StructuredQueries
 import SwiftUI
 import SwiftUINavigation
 

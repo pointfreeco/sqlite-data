@@ -1,5 +1,4 @@
-import Dependencies
-import GRDB
+import SharingGRDB
 import SwiftUI
 
 @main

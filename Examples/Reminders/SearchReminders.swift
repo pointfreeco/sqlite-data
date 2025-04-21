@@ -1,6 +1,5 @@
 import IssueReporting
 import SharingGRDB
-import StructuredQueries
 import SwiftUI
 
 struct SearchRemindersView: View {

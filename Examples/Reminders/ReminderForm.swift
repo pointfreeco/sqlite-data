@@ -1,5 +1,3 @@
-import Dependencies
-import GRDB
 import IssueReporting
 import SharingGRDB
 import SwiftUI
