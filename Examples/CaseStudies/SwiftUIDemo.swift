@@ -11,9 +11,9 @@ struct SwiftUIDemo: SwiftUICaseStudy {
     """
   let caseStudyTitle = "SwiftUI Views"
 
-  @SharedReader(.fetchAll(Fact.order { $0.id.desc() }, animation: .default))
+  @FetchAll(Fact.order { $0.id.desc() }, animation: .default)
   private var facts
-  @SharedReader(.fetchOne(Fact.count(), animation: .default))
+  @FetchOne(Fact.count(), animation: .default)
   var factsCount = 0
 
   @Dependency(\.defaultDatabase) var database

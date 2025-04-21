@@ -12,7 +12,7 @@ struct AnimationsCaseStudy: SwiftUICaseStudy {
     """
   let caseStudyTitle = "Animations"
 
-  @SharedReader(.fetchAll(Fact.order { $0.id.desc() }, animation: .default))
+  @FetchAll(Fact.order { $0.id.desc() }, animation: .default)
   private var facts
 
   @Dependency(\.defaultDatabase) var database

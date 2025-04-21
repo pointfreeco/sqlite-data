@@ -46,8 +46,13 @@ public struct FetchOne<Value>: Sendable {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
+    let statement = statement.selectStar().asSelect()
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database
+      )
     )
   }
 
@@ -65,8 +70,13 @@ public struct FetchOne<Value>: Sendable {
     S.Joins == (repeat each J),
     repeat (each J).QueryOutput: Sendable
   {
+    let statement = statement.selectStar().asSelect()
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database
+      )
     )
   }
 
@@ -80,7 +90,11 @@ public struct FetchOne<Value>: Sendable {
     V.QueryOutput: Sendable
   {
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database
+      )
     )
   }
 
@@ -97,7 +111,11 @@ public struct FetchOne<Value>: Sendable {
     repeat (each V2).QueryOutput: Sendable
   {
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database
+      )
     )
   }
 
@@ -106,12 +124,18 @@ public struct FetchOne<Value>: Sendable {
     database: (any DatabaseReader)? = nil
   ) async throws
   where
-    Value == [S.From.QueryOutput],
+    Value == S.From.QueryOutput,
     S.QueryValue == (),
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    try await _sharedReader.load(.fetchAll(statement, database: database))
+    let statement = statement.selectStar().asSelect()
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database
+      )
+    )
   }
 
   @_disfavoredOverload
@@ -121,13 +145,19 @@ public struct FetchOne<Value>: Sendable {
     database: (any DatabaseReader)? = nil
   ) async throws
   where
-    Value == [(S.From.QueryOutput, repeat (each J).QueryOutput)],
+    Value == (S.From.QueryOutput, repeat (each J).QueryOutput),
     S.QueryValue == (),
     S.From.QueryOutput: Sendable,
     S.Joins == (repeat each J),
     repeat (each J).QueryOutput: Sendable
   {
-    try await _sharedReader.load(.fetchAll(statement, database: database))
+    let statement = statement.selectStar().asSelect()
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database
+      )
+    )
   }
 
   public func load<V: QueryRepresentable>(
@@ -135,10 +165,15 @@ public struct FetchOne<Value>: Sendable {
     database: (any DatabaseReader)? = nil
   ) async throws
   where
-    Value == [V.QueryOutput],
+    Value == V.QueryOutput,
     V.QueryOutput: Sendable
   {
-    try await _sharedReader.load(.fetchAll(statement, database: database))
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database
+      )
+    )
   }
 
   @_disfavoredOverload
@@ -148,11 +183,16 @@ public struct FetchOne<Value>: Sendable {
     database: (any DatabaseReader)? = nil
   ) async throws
   where
-    Value == [(V1.QueryOutput, repeat (each V2).QueryOutput)],
+    Value == (V1.QueryOutput, repeat (each V2).QueryOutput),
     V1.QueryOutput: Sendable,
     repeat (each V2).QueryOutput: Sendable
   {
-    try await _sharedReader.load(.fetchAll(statement, database: database))
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database
+      )
+    )
   }
 }
 
@@ -169,8 +209,14 @@ extension FetchOne {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
+    let statement = statement.selectStar().asSelect()
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database, scheduler: scheduler)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
     )
   }
 
@@ -189,8 +235,14 @@ extension FetchOne {
     S.Joins == (repeat each J),
     repeat (each J).QueryOutput: Sendable
   {
+    let statement = statement.selectStar().asSelect()
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database, scheduler: scheduler)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
     )
   }
 
@@ -205,7 +257,12 @@ extension FetchOne {
     V.QueryOutput: Sendable
   {
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database, scheduler: scheduler)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
     )
   }
 
@@ -223,7 +280,12 @@ extension FetchOne {
     repeat (each V2).QueryOutput: Sendable
   {
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database, scheduler: scheduler)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
     )
   }
 
@@ -238,7 +300,14 @@ extension FetchOne {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    try await _sharedReader.load(.fetchOne(statement, database: database, scheduler: scheduler))
+    let statement = statement.selectStar().asSelect()
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
+    )
   }
 
   @_disfavoredOverload
@@ -255,7 +324,14 @@ extension FetchOne {
     S.Joins == (repeat each J),
     repeat (each J).QueryOutput: Sendable
   {
-    try await _sharedReader.load(.fetchOne(statement, database: database, scheduler: scheduler))
+    let statement = statement.selectStar().asSelect()
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
+    )
   }
 
   public func load<V: QueryRepresentable>(
@@ -267,7 +343,13 @@ extension FetchOne {
     Value == V.QueryOutput,
     V.QueryOutput: Sendable
   {
-    try await _sharedReader.load(.fetchOne(statement, database: database, scheduler: scheduler))
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
+    )
   }
 
   @_disfavoredOverload
@@ -282,7 +364,13 @@ extension FetchOne {
     V1.QueryOutput: Sendable,
     repeat (each V2).QueryOutput: Sendable
   {
-    try await _sharedReader.load(.fetchOne(statement, database: database, scheduler: scheduler))
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
+    )
   }
 }
 
@@ -300,8 +388,14 @@ extension FetchOne {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
+    let statement = statement.selectStar().asSelect()
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database, animation: animation)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database,
+        animation: animation
+      )
     )
   }
 
@@ -320,8 +414,14 @@ extension FetchOne {
     S.Joins == (repeat each J),
     repeat (each J).QueryOutput: Sendable
   {
+    let statement = statement.selectStar().asSelect()
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database, animation: animation)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database,
+        animation: animation
+      )
     )
   }
 
@@ -336,7 +436,12 @@ extension FetchOne {
     V.QueryOutput: Sendable
   {
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database, animation: animation)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database,
+        animation: animation
+      )
     )
   }
 
@@ -354,7 +459,12 @@ extension FetchOne {
     repeat (each V2).QueryOutput: Sendable
   {
     _sharedReader = SharedReader(
-      wrappedValue: wrappedValue, .fetchOne(statement, database: database, animation: animation)
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database,
+        animation: animation
+      )
     )
   }
 
@@ -369,7 +479,14 @@ extension FetchOne {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    try await _sharedReader.load(.fetchOne(statement, database: database, animation: animation))
+    let statement = statement.selectStar().asSelect()
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database,
+        animation: animation
+      )
+    )
   }
 
   @_disfavoredOverload
@@ -386,7 +503,14 @@ extension FetchOne {
     S.Joins == (repeat each J),
     repeat (each J).QueryOutput: Sendable
   {
-    try await _sharedReader.load(.fetchOne(statement, database: database, animation: animation))
+    let statement = statement.selectStar().asSelect()
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database,
+        animation: animation
+      )
+    )
   }
 
   public func load<V: QueryRepresentable>(
@@ -398,7 +522,13 @@ extension FetchOne {
     Value == V.QueryOutput,
     V.QueryOutput: Sendable
   {
-    try await _sharedReader.load(.fetchOne(statement, database: database, animation: animation))
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database,
+        animation: animation
+      )
+    )
   }
 
   @_disfavoredOverload
@@ -413,7 +543,32 @@ extension FetchOne {
     V1.QueryOutput: Sendable,
     repeat (each V2).QueryOutput: Sendable
   {
-    try await _sharedReader.load(.fetchOne(statement, database: database, animation: animation))
+    try await _sharedReader.load(
+      .fetch(
+        FetchOneStatementPackRequest(statement: statement),
+        database: database,
+        animation: animation
+      )
+    )
   }
 }
 #endif
+
+private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
+  let statement: any StructuredQueriesCore.Statement<Value>
+  func fetch(_ db: Database) throws -> Value.QueryOutput {
+    guard let result = try statement.fetchOne(db)
+    else { throw NotFound() }
+    return result
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+private struct FetchOneStatementPackRequest<each Value: QueryRepresentable>: StatementKeyRequest {
+  let statement: any StructuredQueriesCore.Statement<(repeat each Value)>
+  func fetch(_ db: Database) throws -> (repeat (each Value).QueryOutput) {
+    guard let result = try statement.fetchOne(db)
+    else { throw NotFound() }
+    return result
+  }
+}
