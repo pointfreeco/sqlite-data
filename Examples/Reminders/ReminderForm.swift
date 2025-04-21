@@ -138,6 +138,7 @@ struct ReminderFormView: View {
             .order(by: \.title)
             .join(ReminderTag.all) { $0.id.eq($1.tagID) }
             .where { $1.reminderID.eq(reminderID) }
+            .select { tag, _ in tag }
             .fetchAll(db)
         }
       } catch {
