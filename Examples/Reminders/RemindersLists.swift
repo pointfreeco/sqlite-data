@@ -10,12 +10,9 @@ struct RemindersListsView: View {
     .fetchAll(
       RemindersList
         .group(by: \.id)
-        .leftJoin(Reminder.incomplete) { $0.id.eq($1.remindersListID) }
+        .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted }
         .select {
-          ReminderListState.Columns(
-            remindersCount: $1.id.count(),
-            remindersList: $0
-          )
+          ReminderListState.Columns(remindersCount: $1.id.count(), remindersList: $0)
         },
       animation: .default
     )
