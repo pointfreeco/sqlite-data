@@ -70,9 +70,9 @@ extension Tag {
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
 }
 
-extension Tag?.TableColumns {
+extension Tag.TableColumns {
   var jsonNames: some QueryExpression<JSONRepresentation<[String]>> {
-    #sql("\(self.title)").jsonGroupArray(filter: self.title.isNot(nil))
+    self.title.jsonGroupArray(filter: self.title.isNot(nil))
   }
 }
 

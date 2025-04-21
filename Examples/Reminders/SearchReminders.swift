@@ -86,7 +86,7 @@ struct SearchRemindersView: View {
           notes: $0.inlineNotes,
           reminder: $0,
           remindersList: $3,
-          tags: $2.jsonNames
+          tags: #sql("\($2.jsonNames)")
         )
       }
     return .fetchAll(query, animation: .default)

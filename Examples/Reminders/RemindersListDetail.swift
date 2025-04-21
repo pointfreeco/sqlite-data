@@ -190,7 +190,7 @@ struct RemindersListDetailView: View {
           remindersList: $3,
           isPastDue: $0.isPastDue,
           notes: $0.inlineNotes.substr(0, 200),
-          tags: $2.jsonNames
+          tags: #sql("\($2.jsonNames)")
         )
       }
     return .fetchAll(query, animation: .default)
