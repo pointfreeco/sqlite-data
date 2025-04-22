@@ -18,32 +18,50 @@
 public struct Fetch<Value: Sendable>: Sendable {
   private var sharedReader: SharedReader<Value>
 
+  /// Data associated with the underlying query.
   public var wrappedValue: Value {
     sharedReader.wrappedValue
   }
 
+  /// Returns this property wrapper.
+  ///
+  /// Useful if you want to access various property wrapper state, like ``loadError``,
+  /// ``isLoading``, and ``publisher``.
   public var projectedValue: Self {
     self
   }
 
+  /// An error encountered during the most recent attempt to load data.
   public var loadError: (any Error)? {
     sharedReader.loadError
   }
 
+  /// Whether or not data is loading from the database.
   public var isLoading: Bool {
     sharedReader.isLoading
   }
 
   #if canImport(Combine)
+    /// A publisher that emits events when the database observes changes to the query.
     public var publisher: some Publisher<Value, Never> {
       sharedReader.publisher
     }
   #endif
 
+  /// Initializes this property with an initial value.
+  ///
+  /// - Parameter wrappedValue: A default value to associate with this property.
   public init(wrappedValue: sending Value) {
     sharedReader = SharedReader(value: wrappedValue)
   }
 
+  /// Initializes this property with a request associated with the wrapped value.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - request: A request describing the data to fetch.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   public init(
     wrappedValue: Value,
     _ request: some FetchKeyRequest<Value>,
@@ -52,15 +70,30 @@ public struct Fetch<Value: Sendable>: Sendable {
     sharedReader = SharedReader(wrappedValue: wrappedValue, .fetch(request, database: database))
   }
 
-  public init(
+  /// Replaces the wrapped value with data from the given request.
+  ///
+  /// - Parameters:
+  ///   - request: A request describing the data to fetch.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public func load(
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil
-  ) where Value: RangeReplaceableCollection {
-    sharedReader = SharedReader(.fetch(request, database: database))
+  ) async throws {
+    try await sharedReader.load(.fetch(request, database: database))
   }
 }
 
 extension Fetch {
+  /// Initializes this property with a request associated with the wrapped value.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - request: A request describing the data to fetch.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
   public init(
     wrappedValue: Value,
     _ request: some FetchKeyRequest<Value>,
@@ -73,17 +106,34 @@ extension Fetch {
     )
   }
 
-  public init(
+  /// Replaces the wrapped value with data from the given request.
+  ///
+  /// - Parameters:
+  ///   - request: A request describing the data to fetch.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  public func load(
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) where Value: RangeReplaceableCollection {
-    sharedReader = SharedReader(.fetch(request, database: database, scheduler: scheduler))
+  ) async throws {
+    try await sharedReader.load(.fetch(request, database: database, scheduler: scheduler))
   }
 }
 
 #if canImport(SwiftUI)
   extension Fetch {
+    /// Initializes this property with a request associated with the wrapped value.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: A default value to associate with this property.
+    ///   - request: A request describing the data to fetch.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
     public init(
       wrappedValue: Value,
       _ request: some FetchKeyRequest<Value>,
@@ -96,12 +146,20 @@ extension Fetch {
       )
     }
 
-    public init(
+    /// Replaces the wrapped value with data from the given request.
+    ///
+    /// - Parameters:
+    ///   - request: A request describing the data to fetch.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    public func load(
       _ request: some FetchKeyRequest<Value>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) where Value: RangeReplaceableCollection {
-      sharedReader = SharedReader(.fetch(request, database: database, animation: animation))
+    ) async throws {
+      try await sharedReader.load(.fetch(request, database: database, animation: animation))
     }
   }
 #endif
