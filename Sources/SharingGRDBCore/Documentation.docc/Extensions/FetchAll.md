@@ -6,8 +6,8 @@
 
 ### Fetching data
 
-- ``init(database:)``
-- ``init(_:database:)``
+- ``init(wrappedValue:database:)``
+- ``init(wrappedValue:_:database:)``
 - ``load(_:database:)``
 
 ### Accessing state
@@ -19,8 +19,8 @@
 
 ### SwiftUI integration
 
-- ``init(database:animation:)``
-- ``init(_:database:animation:)``
+- ``init(wrappedValue:database:animation:)``
+- ``init(wrappedValue:_:database:animation:)``
 - ``load(_:database:animation:)``
 
 ### Combine integration
@@ -29,6 +29,6 @@
 
 ### Custom scheduling
 
-- ``init(database:scheduler:)``
-- ``init(_:database:scheduler:)``
+- ``init(wrappedValue:database:scheduler:)``
+- ``init(wrappedValue:_:database:scheduler:)``
 - ``load(_:database:scheduler:)``
