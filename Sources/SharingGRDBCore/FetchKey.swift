@@ -199,7 +199,9 @@ extension SharedReaderKey {
   ) -> Self
   where Self == FetchKey<[Record]>.Default {
     Self[
-      .fetch(FetchAllRequest(sql: sql, arguments: arguments), database: database, scheduler: scheduler),
+      .fetch(
+        FetchAllRequest(sql: sql, arguments: arguments), database: database, scheduler: scheduler
+      ),
       default: []
     ]
   }
@@ -225,7 +227,9 @@ extension SharedReaderKey {
     scheduler: some ValueObservationScheduler & Hashable
   ) -> Self
   where Self == FetchKey<Value> {
-    .fetch(FetchOneRequest(sql: sql, arguments: arguments), database: database, scheduler: scheduler)
+    .fetch(
+      FetchOneRequest(sql: sql, arguments: arguments), database: database, scheduler: scheduler
+    )
   }
 }
 

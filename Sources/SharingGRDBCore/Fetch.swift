@@ -1,5 +1,5 @@
 #if canImport(Combine)
-import Combine
+  import Combine
 #endif
 #if canImport(SwiftUI)
   import SwiftUI
@@ -16,7 +16,7 @@ public struct Fetch<Value: Sendable>: Sendable {
   public var projectedValue: Self {
     self
   }
-  
+
   public var loadError: (any Error)? {
     _sharedReader.loadError
   }
