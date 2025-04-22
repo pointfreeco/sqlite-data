@@ -43,7 +43,7 @@ extension SharedReaderKey {
   /// - Parameters:
   ///   - request: A request describing the data to fetch.
   ///   - database: The database to read from. A value of `nil` will use
-  ///     `@Dependency(\.defaultDatabase)``.
+  ///     `@Dependency(\.defaultDatabase)`.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   @available(iOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
   @available(macOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
@@ -70,7 +70,7 @@ extension SharedReaderKey {
   /// - Parameters:
   ///   - request: A request describing the data to fetch.
   ///   - database: The database to read from. A value of `nil` will use
-  ///     `@Dependency(\.defaultDatabase)``.
+  ///     `@Dependency(\.defaultDatabase)`.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   @available(iOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
   @available(macOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
@@ -99,7 +99,7 @@ extension SharedReaderKey {
   ///   - sql: A raw SQL string describing the data to fetch.
   ///   - arguments: Arguments to bind to the SQL statement.
   ///   - database: The database to read from. A value of `nil` will use
-  ///     `@Dependency(\.defaultDatabase)``.
+  ///     `@Dependency(\.defaultDatabase)`.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   @available(iOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
   @available(macOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
@@ -132,7 +132,7 @@ extension SharedReaderKey {
   ///   - sql: A raw SQL string describing the data to fetch.
   ///   - arguments: Arguments to bind to the SQL statement.
   ///   - database: The database to read from. A value of `nil` will use
-  ///     `@Dependency(\.defaultDatabase)``.
+  ///     `@Dependency(\.defaultDatabase)`.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
   @available(iOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
   @available(macOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
@@ -158,7 +158,7 @@ extension SharedReaderKey {
   /// - Parameters:
   ///   - request: A request describing the data to fetch.
   ///   - database: The database to read from. A value of `nil` will use
-  ///     `@Dependency(\.defaultDatabase)``.
+  ///     `@Dependency(\.defaultDatabase)`.
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -184,7 +184,7 @@ extension SharedReaderKey {
   /// - Parameters:
   ///   - request: A request describing the data to fetch.
   ///   - database: The database to read from. A value of `nil` will use
-  ///     `@Dependency(\.defaultDatabase)``.
+  ///     `@Dependency(\.defaultDatabase)`.
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -211,7 +211,7 @@ extension SharedReaderKey {
   ///   - sql: A raw SQL string describing the data to fetch.
   ///   - arguments: Arguments to bind to the SQL statement.
   ///   - database: The database to read from. A value of `nil` will use
-  ///     `@Dependency(\.defaultDatabase)``.
+  ///     `@Dependency(\.defaultDatabase)`.
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
@@ -244,7 +244,7 @@ extension SharedReaderKey {
   ///   - sql: A raw SQL string describing the data to fetch.
   ///   - arguments: Arguments to bind to the SQL statement.
   ///   - database: The database to read from. A value of `nil` will use
-  ///     `@Dependency(\.defaultDatabase)``.
+  ///     `@Dependency(\.defaultDatabase)`.
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.

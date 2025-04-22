@@ -105,7 +105,7 @@ in SwiftData:
 > Note: For more information on preparing a SQLite database, see <doc:PreparingDatabase>.
 
 This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies, like 
-[`@FetchAll`](<doc:SharingGRDBCore/FetchAll):
+[`@FetchAll`](<doc:SharingGRDBCore/FetchAll>):
 
 ```swift
 @FetchAll var items: [Item]

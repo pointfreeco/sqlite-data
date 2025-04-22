@@ -10,7 +10,7 @@ SwiftUI views (including UIKit, `@Observable` models, _etc._). This article desc
 approaches compare in a variety of situations, such as setting up the data store, fetching data,
 associations, and more.
 
-  * [Designing your schema](#Designing-your-schema)
+  * [Defining your schema](#Defining-your-schema)
   * [Setting up external storage](#Setting-up-external-storage)
   * [Fetching data for a view](#Fetching-data-for-a-view)
   * [Fetching data for an @Observable model](#Fetching-data-for-an-Observable-model)
@@ -22,7 +22,7 @@ associations, and more.
     * [Manual migrations](#Manual-migrations)
   * [Supported Apple platforms](#Supported-Apple-platforms)
 
-### Designing your schema
+### Defining your schema
 
 Both SharingGRDB and SwiftData come with tools to expose your data types' fields to the compiler
 so that type-safe and schema-safe queries can be written. SharingGRDB uses another library of ours
@@ -72,6 +72,11 @@ Some key differences:
   * Because the `@Model` version of `Item` is a class it is necessary to provide an initializer.
   * The `@Model` version of `Item` does not need an `id` field because SwiftData provides a
     `persistentIdentifier` to each model.
+
+See the [documentation][sq-defining-schema] from StructuredQueries for more information on how
+to define your schema.
+
+[sq-defining-schema]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/definingyourschema
 
 ### Setting up external storage
 
