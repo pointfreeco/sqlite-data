@@ -56,6 +56,11 @@ public struct FetchAll<Element: Sendable>: Sendable {
     sharedReader.isLoading
   }
 
+  /// Reloads data from the database.
+  public func load() async throws {
+    try await sharedReader.load()
+  }
+
   #if canImport(Combine)
     /// A publisher that emits events when the database observes changes to the query.
     public var publisher: some Publisher<[Element], Never> {
