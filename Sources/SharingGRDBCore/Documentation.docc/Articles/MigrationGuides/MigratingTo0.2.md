@@ -20,7 +20,7 @@ SwiftData and its `@Query` macro. In 0.1.0, one would perform queries as either 
 string:
 
 ```swift
-@SharedReader(.fetchAll("SELECT * FROM reminders WHERE isCompleted ORDER BY title"))
+@SharedReader(.fetchAll(sql: "SELECT * FROM reminders WHERE isCompleted ORDER BY title"))
 var completedReminders: [Reminder]
 ```
 
@@ -39,7 +39,7 @@ struct CompletedReminders: FetchKeyRequest {
 var completedReminders
 ```
 
-Each of these are cumbersome, and version 0.2.0 of SharingGRDB fixes it thanks to our newly 
+Each of these are cumbersome, and version 0.2.0 of SharingGRDB fixes things thanks to our newly 
 released [StructuredQueries][] library. You can now describe the query for your data in a type-safe
 manner, and directly inline:
 
