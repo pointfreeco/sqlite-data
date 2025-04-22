@@ -44,7 +44,7 @@ released [StructuredQueries][] library. You can now describe the query for your 
 manner, and directly inline:
 
 ```swift
-@FetchAll(Reminde.where(\.isCompleted).order(by: \.title))
+@FetchAll(Reminder.where(\.isCompleted).order(by: \.title))
 var completedReminders: [Reminder]
 ```
 
