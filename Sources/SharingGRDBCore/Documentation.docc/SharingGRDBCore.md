@@ -229,22 +229,18 @@ with SQLite to take full advantage of GRDB and SharingGRDB.
 - <doc:PreparingDatabase>
 - <doc:DynamicQueries>
 - <doc:ComparisonWithSwiftData>
+- <doc:MigrationGuides>
 
 ### Database configuration and access
 
 - ``Dependencies/DependencyValues/defaultDatabase``
 
-### Fetch strategies
+### Fetch and observing queries
 
-- ``Sharing/SharedReaderKey/fetchAll(_:database:)``
-- ``Sharing/SharedReaderKey/fetchOne(_:database:)``
-- ``Sharing/SharedReaderKey/fetch(_:database:)``
+- ``FetchAll``
+- ``FetchOne``
+- ``Fetch``
 
-### Raw SQL strategies
+### Deprecated interfaces
 
-- ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)``
-- ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)``
-
-### Custom requests
-
-- ``FetchKeyRequest``
+- <doc:Deprecations>

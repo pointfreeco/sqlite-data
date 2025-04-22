@@ -1,4 +1,4 @@
-# Migrating to 1.4
+# Migrating to 0.2
 
 Update your code to make use of powerful new querying capabilities.
 

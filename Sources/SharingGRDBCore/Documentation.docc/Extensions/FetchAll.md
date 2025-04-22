@@ -1,13 +1,34 @@
-# ``Sharing/SharedReaderKey/fetchAll(_:database:)``
+# ``SharingGRDBCore/FetchAll``
 
 ## Overview
 
 ## Topics
 
+### Fetching data
+
+- ``init(database:)``
+- ``init(_:database:)``
+- ``load(_:database:)``
+
+### Accessing state
+
+- ``wrappedValue``
+- ``projectedValue``
+- ``isLoading``
+- ``loadError``
+
 ### SwiftUI integration
 
-- ``Sharing/SharedReaderKey/fetchAll(_:database:animation:)``
+- ``init(database:animation:)``
+- ``init(_:database:animation:)``
+- ``load(_:database:animation:)``
+
+### Combine integration
+
+- ``publisher``
 
 ### Custom scheduling
 
-- ``Sharing/SharedReaderKey/fetchAll(_:database:scheduler:)``
+- ``init(database:scheduler:)``
+- ``init(_:database:scheduler:)``
+- ``load(_:database:scheduler:)``

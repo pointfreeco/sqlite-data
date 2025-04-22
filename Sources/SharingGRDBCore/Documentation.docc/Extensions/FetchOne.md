@@ -1,13 +1,35 @@
-# ``Sharing/SharedReaderKey/fetchOne(_:database:)``
+# ``SharingGRDBCore/FetchOne``
 
 ## Overview
 
 ## Topics
 
+### Fetching data
+
+- ``init(wrappedValue:database:)``
+- ``init(database:)``
+- ``init(wrappedValue:_:database:)``
+- ``load(_:database:)``
+
+### Accessing state
+
+- ``wrappedValue``
+- ``projectedValue``
+- ``isLoading``
+- ``loadError``
+
 ### SwiftUI integration
 
-- ``Sharing/SharedReaderKey/fetchOne(_:database:animation:)``
+- ``init(wrappedValue:database:animation:)``
+- ``init(wrappedValue:_:database:animation:)``
+- ``load(_:database:animation:)``
+
+### Combine integration
+
+- ``publisher``
 
 ### Custom scheduling
 
-- ``Sharing/SharedReaderKey/fetchOne(_:database:scheduler:)``
+- ``init(wrappedValue:database:scheduler:)``
+- ``init(wrappedValue:_:database:scheduler:)``
+- ``load(_:database:scheduler:)``

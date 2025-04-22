@@ -1,4 +1,4 @@
-# ``Sharing/SharedReaderKey/fetch(_:database:)``
+# ``SharingGRDBCore/Fetch``
 
 ## Overview
 
@@ -10,7 +10,7 @@
 
 ### SwiftUI integration
 
-- ``Sharing/SharedReaderKey/fetch(_:database:animation:)``
+- ``init(_:database:animation:)``
 
 ### Custom scheduling
 
