@@ -36,5 +36,7 @@
 
 ### Sharing infrastructure
 
+- ``sharedReader``
+- ``subscript(dynamicMember:)``
 - ``FetchKey``
 - ``FetchKeyID``

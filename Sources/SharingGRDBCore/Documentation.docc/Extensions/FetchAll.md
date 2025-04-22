@@ -32,3 +32,8 @@
 - ``init(wrappedValue:database:scheduler:)``
 - ``init(wrappedValue:_:database:scheduler:)``
 - ``load(_:database:scheduler:)``
+
+### Sharing infrastructure
+
+- ``sharedReader``
+- ``subscript(dynamicMember:)``

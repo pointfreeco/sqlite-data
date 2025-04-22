@@ -14,9 +14,14 @@
 /// ```
 ///
 /// See <doc:Fetching> for more information.
+@dynamicMemberLookup
 @propertyWrapper
 public struct Fetch<Value: Sendable>: Sendable {
-  private var sharedReader: SharedReader<Value>
+  /// The underlying shared reader powering the property wrapper.
+  ///
+  /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing) package,
+  /// a general solution to observing and persisting changes to external data sources.
+  public var sharedReader: SharedReader<Value>
 
   /// Data associated with the underlying query.
   public var wrappedValue: Value {
@@ -29,6 +34,14 @@ public struct Fetch<Value: Sendable>: Sendable {
   /// ``isLoading``, and ``publisher``.
   public var projectedValue: Self {
     self
+  }
+
+  /// Returns a ``sharedReader`` for the given key path.
+  ///
+  /// You do not invoke this subscript directly. Instead, Swift calls it for you when chaining into
+  /// a member of the underlying data type.
+  public subscript<Member>(dynamicMember keyPath: KeyPath<Value, Member>) -> SharedReader<Member> {
+    sharedReader[dynamicMember: keyPath]
   }
 
   /// An error encountered during the most recent attempt to load data.
@@ -123,8 +136,18 @@ extension Fetch {
   }
 }
 
+extension Fetch: Equatable where Value: Equatable {
+  public static func == (lhs: Self, rhs: Self) -> Bool {
+    lhs.sharedReader == rhs.sharedReader
+  }
+}
+
 #if canImport(SwiftUI)
-  extension Fetch {
+  extension Fetch: DynamicProperty {
+    public func update() {
+      sharedReader.update()
+    }
+
     /// Initializes this property with a request associated with the wrapped value.
     ///
     /// - Parameters:
