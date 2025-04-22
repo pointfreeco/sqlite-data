@@ -12,6 +12,8 @@
 /// ```swift
 /// @FetchAll(Item.order(by: \.name)) var items
 /// ```
+///
+/// See <doc:Fetching> for more information.
 @propertyWrapper
 public struct FetchAll<Element: Sendable>: Sendable {
   private var sharedReader: SharedReader<[Element]> = SharedReader(value: [])

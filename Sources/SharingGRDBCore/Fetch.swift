@@ -5,12 +5,21 @@
   import SwiftUI
 #endif
 
+/// A property that can query for data in a SQLite database.
+///
+/// It takes a ``FetchKeyRequest`` that describes how to fetch data from a database:
+///
+/// ```swift
+/// @Fetch(Items()) var items = Items.Value()
+/// ```
+///
+/// See <doc:Fetching> for more information.
 @propertyWrapper
 public struct Fetch<Value: Sendable>: Sendable {
-  public var _sharedReader: SharedReader<Value>
+  private var sharedReader: SharedReader<Value>
 
   public var wrappedValue: Value {
-    _sharedReader.wrappedValue
+    sharedReader.wrappedValue
   }
 
   public var projectedValue: Self {
@@ -18,21 +27,21 @@ public struct Fetch<Value: Sendable>: Sendable {
   }
 
   public var loadError: (any Error)? {
-    _sharedReader.loadError
+    sharedReader.loadError
   }
 
   public var isLoading: Bool {
-    _sharedReader.isLoading
+    sharedReader.isLoading
   }
 
   #if canImport(Combine)
     public var publisher: some Publisher<Value, Never> {
-      _sharedReader.publisher
+      sharedReader.publisher
     }
   #endif
 
   public init(wrappedValue: sending Value) {
-    _sharedReader = SharedReader(value: wrappedValue)
+    sharedReader = SharedReader(value: wrappedValue)
   }
 
   public init(
@@ -40,14 +49,14 @@ public struct Fetch<Value: Sendable>: Sendable {
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil
   ) {
-    _sharedReader = SharedReader(wrappedValue: wrappedValue, .fetch(request, database: database))
+    sharedReader = SharedReader(wrappedValue: wrappedValue, .fetch(request, database: database))
   }
 
   public init(
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil
   ) where Value: RangeReplaceableCollection {
-    _sharedReader = SharedReader(.fetch(request, database: database))
+    sharedReader = SharedReader(.fetch(request, database: database))
   }
 }
 
@@ -58,7 +67,7 @@ extension Fetch {
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) {
-    _sharedReader = SharedReader(
+    sharedReader = SharedReader(
       wrappedValue: wrappedValue,
       .fetch(request, database: database, scheduler: scheduler)
     )
@@ -69,7 +78,7 @@ extension Fetch {
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) where Value: RangeReplaceableCollection {
-    _sharedReader = SharedReader(.fetch(request, database: database, scheduler: scheduler))
+    sharedReader = SharedReader(.fetch(request, database: database, scheduler: scheduler))
   }
 }
 
@@ -81,7 +90,7 @@ extension Fetch {
       database: (any DatabaseReader)? = nil,
       animation: Animation
     ) {
-      _sharedReader = SharedReader(
+      sharedReader = SharedReader(
         wrappedValue: wrappedValue,
         .fetch(request, database: database, animation: animation)
       )
@@ -92,7 +101,7 @@ extension Fetch {
       database: (any DatabaseReader)? = nil,
       animation: Animation
     ) where Value: RangeReplaceableCollection {
-      _sharedReader = SharedReader(.fetch(request, database: database, animation: animation))
+      sharedReader = SharedReader(.fetch(request, database: database, animation: animation))
     }
   }
 #endif

@@ -12,6 +12,8 @@
 /// ```swift
 /// @FetchOne(Item.count) var itemsCount = 0
 /// ```
+///
+/// See <doc:Fetching> for more information.
 @propertyWrapper
 public struct FetchOne<Value>: Sendable {
   private var sharedReader: SharedReader<Value>
