@@ -16,7 +16,7 @@
 /// See <doc:Fetching> for more information.
 @dynamicMemberLookup
 @propertyWrapper
-public struct FetchOne<Value>: Sendable {
+public struct FetchOne<Value: Sendable>: Sendable {
   /// The underlying shared reader powering the property wrapper.
   ///
   /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing) package,
@@ -99,7 +99,6 @@ public struct FetchOne<Value>: Sendable {
   where
     Value == S.From.QueryOutput,
     S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect()
@@ -129,9 +128,7 @@ public struct FetchOne<Value>: Sendable {
   where
     Value == (S.From.QueryOutput, repeat (each J).QueryOutput),
     S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == (repeat each J),
-    repeat (each J).QueryOutput: Sendable
+    S.Joins == (repeat each J)
   {
     let statement = statement.selectStar().asSelect()
     sharedReader = SharedReader(
@@ -156,8 +153,32 @@ public struct FetchOne<Value>: Sendable {
     database: (any DatabaseReader)? = nil
   )
   where
-    Value == V.QueryOutput,
-    V.QueryOutput: Sendable
+    Value == V.QueryOutput
+  {
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database
+      )
+    )
+  }
+
+  /// Initializes this property with a query associated with the wrapped value.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public init<S: StructuredQueriesCore.Statement<Value>>(
+    wrappedValue: Value,
+    _ statement: S,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+  Value: QueryRepresentable,
+  Value == S.QueryValue.QueryOutput
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
@@ -183,9 +204,7 @@ public struct FetchOne<Value>: Sendable {
     database: (any DatabaseReader)? = nil
   )
   where
-    Value == (V1.QueryOutput, repeat (each V2).QueryOutput),
-    V1.QueryOutput: Sendable,
-    repeat (each V2).QueryOutput: Sendable
+    Value == (V1.QueryOutput, repeat (each V2).QueryOutput)
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
@@ -209,7 +228,6 @@ public struct FetchOne<Value>: Sendable {
   where
     Value == S.From.QueryOutput,
     S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect()
@@ -236,9 +254,7 @@ public struct FetchOne<Value>: Sendable {
   where
     Value == (S.From.QueryOutput, repeat (each J).QueryOutput),
     S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == (repeat each J),
-    repeat (each J).QueryOutput: Sendable
+    S.Joins == (repeat each J)
   {
     let statement = statement.selectStar().asSelect()
     try await sharedReader.load(
@@ -260,8 +276,7 @@ public struct FetchOne<Value>: Sendable {
     database: (any DatabaseReader)? = nil
   ) async throws
   where
-    Value == V.QueryOutput,
-    V.QueryOutput: Sendable
+    Value == V.QueryOutput
   {
     try await sharedReader.load(
       .fetch(
@@ -284,9 +299,7 @@ public struct FetchOne<Value>: Sendable {
     database: (any DatabaseReader)? = nil
   ) async throws
   where
-    Value == (V1.QueryOutput, repeat (each V2).QueryOutput),
-    V1.QueryOutput: Sendable,
-    repeat (each V2).QueryOutput: Sendable
+    Value == (V1.QueryOutput, repeat (each V2).QueryOutput)
   {
     try await sharedReader.load(
       .fetch(
@@ -316,7 +329,6 @@ extension FetchOne {
   where
     Value == S.From.QueryOutput,
     S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect()
@@ -350,9 +362,7 @@ extension FetchOne {
   where
     Value == (S.From.QueryOutput, repeat (each J).QueryOutput),
     S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == (repeat each J),
-    repeat (each J).QueryOutput: Sendable
+    S.Joins == (repeat each J)
   {
     let statement = statement.selectStar().asSelect()
     sharedReader = SharedReader(
@@ -381,8 +391,36 @@ extension FetchOne {
     scheduler: some ValueObservationScheduler & Hashable
   )
   where
-    Value == V.QueryOutput,
-    V.QueryOutput: Sendable
+    Value == V.QueryOutput
+  {
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
+    )
+  }
+
+  /// Initializes this property with a query associated with the wrapped value.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  public init<S: StructuredQueriesCore.Statement<Value>>(
+    wrappedValue: Value,
+    _ statement: S,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+  Value: QueryRepresentable,
+  Value == S.QueryValue.QueryOutput
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
@@ -412,9 +450,7 @@ extension FetchOne {
     scheduler: some ValueObservationScheduler & Hashable
   )
   where
-    Value == (V1.QueryOutput, repeat (each V2).QueryOutput),
-    V1.QueryOutput: Sendable,
-    repeat (each V2).QueryOutput: Sendable
+    Value == (V1.QueryOutput, repeat (each V2).QueryOutput)
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
@@ -442,7 +478,6 @@ extension FetchOne {
   where
     Value == S.From.QueryOutput,
     S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect()
@@ -473,9 +508,7 @@ extension FetchOne {
   where
     Value == (S.From.QueryOutput, repeat (each J).QueryOutput),
     S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == (repeat each J),
-    repeat (each J).QueryOutput: Sendable
+    S.Joins == (repeat each J)
   {
     let statement = statement.selectStar().asSelect()
     try await sharedReader.load(
@@ -501,8 +534,7 @@ extension FetchOne {
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws
   where
-    Value == V.QueryOutput,
-    V.QueryOutput: Sendable
+    Value == V.QueryOutput
   {
     try await sharedReader.load(
       .fetch(
@@ -529,9 +561,7 @@ extension FetchOne {
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws
   where
-    Value == (V1.QueryOutput, repeat (each V2).QueryOutput),
-    V1.QueryOutput: Sendable,
-    repeat (each V2).QueryOutput: Sendable
+    Value == (V1.QueryOutput, repeat (each V2).QueryOutput)
   {
     try await sharedReader.load(
       .fetch(
@@ -573,7 +603,6 @@ extension FetchOne: Equatable where Value: Equatable {
     where
       Value == S.From.QueryOutput,
       S.QueryValue == (),
-      S.From.QueryOutput: Sendable,
       S.Joins == ()
     {
       let statement = statement.selectStar().asSelect()
@@ -607,9 +636,7 @@ extension FetchOne: Equatable where Value: Equatable {
     where
       Value == (S.From.QueryOutput, repeat (each J).QueryOutput),
       S.QueryValue == (),
-      S.From.QueryOutput: Sendable,
-      S.Joins == (repeat each J),
-      repeat (each J).QueryOutput: Sendable
+      S.Joins == (repeat each J)
     {
       let statement = statement.selectStar().asSelect()
       sharedReader = SharedReader(
@@ -638,8 +665,36 @@ extension FetchOne: Equatable where Value: Equatable {
       animation: Animation
     )
     where
-      Value == V.QueryOutput,
-      V.QueryOutput: Sendable
+      Value == V.QueryOutput
+    {
+      sharedReader = SharedReader(
+        wrappedValue: wrappedValue,
+        .fetch(
+          FetchOneStatementValueRequest(statement: statement),
+          database: database,
+          animation: animation
+        )
+      )
+    }
+
+    /// Initializes this property with a query associated with the wrapped value.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: A default value to associate with this property.
+    ///   - statement: A query associated with the wrapped value.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    public init<S: StructuredQueriesCore.Statement<Value>>(
+      wrappedValue: Value,
+      _ statement: S,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+    Value: QueryRepresentable,
+    Value == S.QueryValue.QueryOutput
     {
       sharedReader = SharedReader(
         wrappedValue: wrappedValue,
@@ -669,9 +724,7 @@ extension FetchOne: Equatable where Value: Equatable {
       animation: Animation
     )
     where
-      Value == (V1.QueryOutput, repeat (each V2).QueryOutput),
-      V1.QueryOutput: Sendable,
-      repeat (each V2).QueryOutput: Sendable
+      Value == (V1.QueryOutput, repeat (each V2).QueryOutput)
     {
       sharedReader = SharedReader(
         wrappedValue: wrappedValue,
@@ -699,7 +752,6 @@ extension FetchOne: Equatable where Value: Equatable {
     where
       Value == S.From.QueryOutput,
       S.QueryValue == (),
-      S.From.QueryOutput: Sendable,
       S.Joins == ()
     {
       let statement = statement.selectStar().asSelect()
@@ -730,9 +782,7 @@ extension FetchOne: Equatable where Value: Equatable {
     where
       Value == (S.From.QueryOutput, repeat (each J).QueryOutput),
       S.QueryValue == (),
-      S.From.QueryOutput: Sendable,
-      S.Joins == (repeat each J),
-      repeat (each J).QueryOutput: Sendable
+      S.Joins == (repeat each J)
     {
       let statement = statement.selectStar().asSelect()
       try await sharedReader.load(
@@ -758,8 +808,7 @@ extension FetchOne: Equatable where Value: Equatable {
       animation: Animation
     ) async throws
     where
-      Value == V.QueryOutput,
-      V.QueryOutput: Sendable
+      Value == V.QueryOutput
     {
       try await sharedReader.load(
         .fetch(
@@ -786,9 +835,7 @@ extension FetchOne: Equatable where Value: Equatable {
       animation: Animation
     ) async throws
     where
-      Value == (V1.QueryOutput, repeat (each V2).QueryOutput),
-      V1.QueryOutput: Sendable,
-      repeat (each V2).QueryOutput: Sendable
+      Value == (V1.QueryOutput, repeat (each V2).QueryOutput)
     {
       try await sharedReader.load(
         .fetch(

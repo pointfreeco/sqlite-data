@@ -164,6 +164,30 @@ public struct FetchAll<Element: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
+  public init<S: StructuredQueriesCore.Statement<Element>>(
+    wrappedValue: [Element] = [],
+    _ statement: S,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+    Element: QueryRepresentable,
+    Element == S.QueryValue.QueryOutput
+  {
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchAllStatementValueRequest(statement: statement),
+        database: database
+      )
+    )
+  }
+
+  /// Initializes this property with a query associated with the wrapped value.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   @_disfavoredOverload
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public init<V1: QueryRepresentable, each V2: QueryRepresentable>(
@@ -386,6 +410,34 @@ extension FetchAll {
   where
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
+  {
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchAllStatementValueRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
+    )
+  }
+
+  /// Initializes this property with a query associated with the wrapped value.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  public init<S: StructuredQueriesCore.Statement<Element>>(
+    wrappedValue: [Element] = [],
+    _ statement: S,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+  Element: QueryRepresentable,
+  Element == S.QueryValue.QueryOutput
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
@@ -655,6 +707,34 @@ extension FetchAll: Equatable where Element: Equatable {
     where
       Element == V.QueryOutput,
       V.QueryOutput: Sendable
+    {
+      sharedReader = SharedReader(
+        wrappedValue: wrappedValue,
+        .fetch(
+          FetchAllStatementValueRequest(statement: statement),
+          database: database,
+          animation: animation
+        )
+      )
+    }
+
+    /// Initializes this property with a query associated with the wrapped value.
+    ///
+    /// - Parameters:
+    ///   - statement: A query associated with the wrapped value.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    public init<S: StructuredQueriesCore.Statement<Element>>(
+      wrappedValue: [Element] = [],
+      _ statement: S,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+    Element: QueryRepresentable,
+    Element == S.QueryValue.QueryOutput
     {
       sharedReader = SharedReader(
         wrappedValue: wrappedValue,

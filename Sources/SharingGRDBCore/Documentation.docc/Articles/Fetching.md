@@ -73,13 +73,8 @@ learn more, be sure to check out the [documentation][sq-getting-started] of Stru
 You can even execute a SQL string to populate the data in your features:
 
 ```swift
-@FetchAll(
-  #sql(
-    "SELECT * FROM reminders where isCompleted ORDER BY title DESC",
-    as: Reminder.self
-  )
-)
-var completedReminders
+@FetchAll(#sql("SELECT * FROM reminders where isCompleted ORDER BY title DESC"))
+var completedReminders: [Reminder]
 ```
 
 This uses the `#sql` macro for constructing [safe SQL strings][sq-safe-sql-strings]. You are 
@@ -94,11 +89,10 @@ description of your schema to prevent accidental typos:
     FROM \(Reminder.self)
     WHERE \(Reminder.isCompleted)
     ORDER BY \(Reminder.title) DESC
-    """,
-    as: Reminder.self
+    """
   )
 )
-var completedReminders
+var completedReminders: [Reminder]
 ```
 
 These interpolations are completely safe to do because they are statically known at compile time,
@@ -186,7 +180,7 @@ var completedRemindersCount = 0
 You can use the `#sql` macro with `@FetchOne` to execute a safe SQL string:
 
 ```swift
-@FetchOne(#sql("SELECT count(*) FROM reminders WHERE isCompleted", as: Int.self))
+@FetchOne(#sql("SELECT count(*) FROM reminders WHERE isCompleted"))
 var completedRemindersCount = 0
 ```
 
