@@ -215,16 +215,14 @@ the [articles][articles] below to learn how to best utilize this library:
   * [Dynamic queries][dynamic-queries-article]
   * [Comparison with SwiftData][comparison-swiftdata-article]
 
-[observing-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/observing
-[dynamic-queries-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/dynamicqueries
-[articles]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb#Essentials
-[comparison-swiftdata-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/comparisonwithswiftdata
-[fetching-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/fetching
-[preparing-db-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/preparingdatabase
-
-<!-- TODO: update docs link for fetchall and fetchone -->
-[fetchall-docs]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/sharing/sharedreaderkey/fetchall(sql:arguments:database:animation:)
-[fetchone-docs]: todo: find link
+[observing-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/observing
+[dynamic-queries-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/dynamicqueries
+[articles]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore#Essentials
+[comparison-swiftdata-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/comparisonwithswiftdata
+[fetching-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/fetching
+[preparing-db-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/preparingdatabase
+[fetchall-docs]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/fetchall
+[fetchone-docs]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/fetchone
 
 ## Performance
 
