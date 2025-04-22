@@ -287,8 +287,8 @@ Sharing. Check out [this](./Examples) directory to see them all, including:
 
 The documentation for releases and `main` are available here:
 
-  * [`main`](https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/)
-  * [0.x.x](https://swiftpackageindex.com/pointfreeco/sharing-grdb/~/documentation/sharinggrdb/)
+  * [`main`](https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/)
+  * [0.x.x](https://swiftpackageindex.com/pointfreeco/sharing-grdb/~/documentation/sharinggrdbcore/)
 
 ## Installation
 

@@ -48,7 +48,7 @@ let averageScore = try Player
 For more information on how to build queries, see the [StructuredQueries documentation][sq-spi].
 
 [sq-gh]: https://github.com/pointfreeco/swift-structured-queries
-[sq-spi]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueries
+[sq-spi]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore
 [grdb-gh]: https://github.com/groue/GRDB.swift
 
 ## Topics
