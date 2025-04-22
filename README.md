@@ -34,7 +34,8 @@ library, [subscribe today](https://www.pointfree.co/pricing).
 ## Overview
 
 SharingGRDB is a [fast](#performance), lightweight replacement for SwiftData that deploys all the
-way back to the iOS 13 generation of targets.
+way back to the iOS 13 generation of targets. To populate data from the database you can use
+the `@FetchAll` property wrapper, which is similar to SwiftData's `@Query` macro:
 
 <table>
 <tr>
@@ -45,8 +46,8 @@ way back to the iOS 13 generation of targets.
 <td width=415>
       
 ```swift
-@SharedReader(.fetchAll(Item.all))
-var items
+@FetchAll
+var items: [Item]
 
 @Table
 struct Item {
@@ -153,11 +154,14 @@ struct MyApp: App {
 > [Preparing a SQLite database][preparing-db-article].
 
 This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies, like 
-[`fetchAll`][fetchall-docs]:
+[`@FetchAll`][fetchall-docs] and [`@FetchOne`][fetchone-docs]:
 
 ```swift
-@SharedReader(.fetchAll(Item.all))
+@FetchAll
 var items: [Item]
+
+@FetchOne(Item.where(\.isInStock).count())
+var inStockItemsCount = 0
 ```
 
 And you can access this database throughout your application in a way similar to how one accesses
@@ -216,8 +220,11 @@ the [articles][articles] below to learn how to best utilize this library:
 [articles]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb#Essentials
 [comparison-swiftdata-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/comparisonwithswiftdata
 [fetching-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/fetching
-[preparing-db-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/preparingdatabase 
+[preparing-db-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/preparingdatabase
+
+<!-- TODO: update docs link for fetchall and fetchone -->
 [fetchall-docs]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/sharing/sharedreaderkey/fetchall(sql:arguments:database:animation:)
+[fetchone-docs]: todo: find link
 
 ## Performance
 

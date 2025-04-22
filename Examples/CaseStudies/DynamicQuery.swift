@@ -8,12 +8,12 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
     facts for text, and the list will stay in sync so that if a new fact is added to the database \
     that satisfies the search term, it will immediately appear.
 
-    To accomplish this one can invoke the `load` method defined on the `@SharedReader` projected \
-    value in order to set a new query with dynamic parameters.
+    To accomplish this one can invoke the `load` method defined on the `@Fetch` projected value in \
+    order to set a new query with dynamic parameters.
     """
   let caseStudyTitle = "Dynamic Query"
 
-  @State.SharedReader(.fetch(Facts(), animation: .default)) private var facts = Facts.Value()
+  @Fetch(Facts(), animation: .default) private var facts = Facts.Value()
   @State var query = ""
 
   @Dependency(\.defaultDatabase) var database
@@ -53,7 +53,7 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
     .searchable(text: $query)
     .task(id: query) {
       await withErrorReporting {
-        try await $facts.load(.fetch(Facts(query: query), animation: .default))
+        try await $facts.load(Facts(query: query), animation: .default)
       }
     }
     .task {

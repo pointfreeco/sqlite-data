@@ -3,7 +3,7 @@ import SharingGRDB
 import SwiftUI
 
 struct RemindersListDetailView: View {
-  @SharedReader(value: []) private var reminderStates: [ReminderState]
+  @FetchAll private var reminderStates: [ReminderState]
   @AppStorage private var ordering: Ordering
   @AppStorage private var showCompleted: Bool
 
@@ -21,7 +21,7 @@ struct RemindersListDetailView: View {
       wrappedValue: detailType == .completed,
       "show_completed_list_\(detailType.id)"
     )
-    _reminderStates = SharedReader(wrappedValue: [], remindersKey)
+    _reminderStates = FetchAll(remindersQuery, animation: .default)
   }
 
   var body: some View {
@@ -152,10 +152,10 @@ struct RemindersListDetailView: View {
   }
 
   private func updateQuery() async throws {
-    try await $reminderStates.load(remindersKey)
+    try await $reminderStates.load(remindersQuery)
   }
 
-  fileprivate var remindersKey: some SharedReaderKey<[ReminderState]> {
+  fileprivate var remindersQuery: some StructuredQueriesCore.Statement<ReminderState> {
     let query =
       Reminder
       .where {
@@ -193,7 +193,7 @@ struct RemindersListDetailView: View {
           tags: #sql("\($2.jsonNames)")
         )
       }
-    return .fetchAll(query, animation: .default)
+    return query
   }
 
   @Selection

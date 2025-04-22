@@ -46,10 +46,10 @@ struct ObservableModelDemo: SwiftUICaseStudy {
 @MainActor
 private class Model {
   @ObservationIgnored
-  @SharedReader(.fetchAll(Fact.order { $0.id.desc() }, animation: .default))
+  @FetchAll(Fact.order { $0.id.desc() }, animation: .default)
   var facts
   @ObservationIgnored
-  @SharedReader(.fetchOne(Fact.count(), animation: .default))
+  @FetchOne(Fact.count(), animation: .default)
   var factsCount = 0
   var number = 0
 

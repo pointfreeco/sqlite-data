@@ -83,7 +83,7 @@ let package = Package(
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
       ]
-    )
+    ),
   ],
   swiftLanguageModes: [.v6]
 )

@@ -2,7 +2,7 @@ import SharingGRDB
 import SwiftUI
 
 struct TagsView: View {
-  @SharedReader(.fetch(Tags())) var tags = Tags.Value()
+  @Fetch(Tags()) var tags = Tags.Value()
   @Binding var selectedTags: [Tag]
 
   @Environment(\.dismiss) var dismiss

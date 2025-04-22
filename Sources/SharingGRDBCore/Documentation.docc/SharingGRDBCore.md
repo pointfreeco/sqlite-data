@@ -12,8 +12,8 @@ way back to the iOS 13 generation of targets.
   @Column {
     ```swift
     // SharingGRDB
-    @SharedReader(.fetchAll(Item.all))
-    var items
+    @FetchAll
+    var items: [Item]
 
     @Table
     struct Item {
@@ -105,11 +105,10 @@ in SwiftData:
 > Note: For more information on preparing a SQLite database, see <doc:PreparingDatabase>.
 
 This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies, like 
-[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(_:database:)):
+[`@FetchAll`](<doc:SharingGRDBCore/FetchAll):
 
 ```swift
-@SharedReader(.fetchAll(Item.all))
-var items
+@FetchAll var items: [Item]
 ```
 
 And you can access this database throughout your application in a way similar to how one accesses
@@ -211,8 +210,8 @@ databases (MySQL, Postgres, _etc._) and database libraries.
 [GRDB](https://github.com/groue/GRDB.swift) is a popular Swift interface to SQLite with a rich
 feature set and
 [extensive documentation](https://swiftpackageindex.com/groue/GRDB.swift/documentation/grdb).
-This library leverages GRDB's' observation APIs to keep the `@SharedReader` property wrapper in
-sync with the database and update SwiftUI views.
+This library leverages GRDB's' observation APIs to keep the `@FetchAll`, `@FetchOne`, and `@Fetch`
+property wrappers in sync with the database and update SwiftUI views.
 
 If you're already familiar with SQLite, GRDB provides thin APIs that can be leveraged with raw SQL
 in short order. If you're new to SQLite, GRDB offers a great introduction to a highly portable
@@ -229,22 +228,18 @@ with SQLite to take full advantage of GRDB and SharingGRDB.
 - <doc:PreparingDatabase>
 - <doc:DynamicQueries>
 - <doc:ComparisonWithSwiftData>
+- <doc:MigrationGuides>
 
 ### Database configuration and access
 
 - ``Dependencies/DependencyValues/defaultDatabase``
 
-### Fetch strategies
+### Fetch and observing queries
 
-- ``Sharing/SharedReaderKey/fetchAll(_:database:)``
-- ``Sharing/SharedReaderKey/fetchOne(_:database:)``
-- ``Sharing/SharedReaderKey/fetch(_:database:)``
+- ``FetchAll``
+- ``FetchOne``
+- ``Fetch``
 
-### Raw SQL strategies
+### Deprecated interfaces
 
-- ``Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)``
-- ``Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)``
-
-### Custom requests
-
-- ``FetchKeyRequest``
+- <doc:Deprecations>

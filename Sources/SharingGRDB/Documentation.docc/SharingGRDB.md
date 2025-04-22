@@ -13,7 +13,7 @@ which this module automatically exports.
 > [StructuredQueries][], consider depending  on `SharingGRDBCore`, instead.
 
 See [`SharingGRDBCore`](sharinggrdbcore) for documentation on the integration with the
-`@SharedReader` property wrapper, which is equivalent to SwiftData's `@Query`.
+`@FetchAll` property wrapper, which is equivalent to SwiftData's `@Query`.
 
 See [`StructuredQueriesGRDBCore`](sharinggrdbcore) for documentation on the integration between
 [StructuredQueries][] and [GRDB][].

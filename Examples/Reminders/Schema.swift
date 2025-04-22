@@ -29,7 +29,7 @@ extension Reminder {
   static func searching(_ text: String) -> Where<Reminder> {
     Self.where {
       $0.title.collate(.nocase).contains(text)
-      || $0.notes.collate(.nocase).contains(text)
+        || $0.notes.collate(.nocase).contains(text)
     }
   }
   static let withTags = group(by: \.id)

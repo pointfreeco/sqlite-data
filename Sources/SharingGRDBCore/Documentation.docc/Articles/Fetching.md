@@ -4,136 +4,225 @@ Learn about the various tools for fetching data from a SQLite database.
 
 ## Overview
 
-All data fetching happens by providing the `fetchAll`, `fetchOne`, or `fetch` key to the
-`@SharedReader` property wrapper. The primary differences between these choices is whether you want
-to build queries with [StructuredQueries][structured-queries-gh], specify your query as a raw SQL
-string, or if you want to assemble your value from one or more queries using a raw database
-connection.
+All data fetching happens by using the `@FetchAll`, `@FetchOne` or `@Fetch` property wrappers.
+The primary difference between these choices is whether if you want to fetch a collection of
+rows, or fetch a single row (e.g. an aggegrate computation), or if you want to execute multiple
+queries in a single transaction.
 
-  * [Querying with StructuredQueries](#Querying-with-Structured-Queries)
-  * [Querying with SQL](#Querying-with-SQL)
-  * [Querying with custom request](#Querying-with-a-custom-request)
+* [@FetchAll](#FetchAll)
+* [@FetchOne](#FetchOne)
+* [@Fetch](#Fetch)
 
-[structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
+### @FetchAll
 
-### Querying with StructuredQueries
+The [`@FetchAll`](<doc:FetchAll>) property wrapper allows you to fetch a collection of results from
+your database using a SQL query. The query is created using our 
+[StructuredQueries][structured-queries-gh] library, which can build type-safe queries that safely
+and performantly decode into Swift data types.
 
-[StructuredQueries][structured-queries-gh] is a library for building type-safe queries that safely
-and performantly decode into Swift data types. To get access to these tools you must apply
-the `@Table` macro to your data type that represents the table:
+To get access to these tools you must apply the `@Table` macro to your data type that represents 
+your table:
 
 ```swift
 @Table
-struct Item {
+struct Reminder {
   let id: Int 
   var title = ""
-  @Column(as: Date.ISO8601Representation.self)
-  var createdAt: Date
+  @Column(as: Date.ISO8601Representation?.self)
+  var dueAt: Date?
+  var isCompleted = false
 }
 ```
 
 > Note: The `@Column` macro determines how to store the date in SQLite, which does not have a native
 > date data type. The `Date.ISO8601Representation` strategy stores dates as text formatted with the
-> ISO-8601 standard.
+> ISO-8601 standard. See [Defining your schema] for more info.
 
-Then you can use the various query builder APIs on `Item` to fetch items from the database. For 
-example, to fetch all records from the table you can use  
-[`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(_:database:)>):
+[Defining your schema]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/definingyourschema
+
+With that done you can already sort all records from the `Reminder` table in their default order by
+simply doing:
 
 ```swift
-@SharedReader(.fetchAll(Item.all)
-var items
+@FetchAll(Reminder.all)
+var reminders
 ```
 
-And if you want to sort the results, you can do so with an ordering clause:
+If you want to execute a more complex query, such as one that sorts the results by the reminder's 
+title, then you can use the various query building APIs on `Reminder`: 
 
 ```swift
-@SharedReader(.fetchAll(Item.order(by: \.title))
-var items
+@FetchAll(Reminder.order(by: \.title))
+var reminders
 ```
 
-Or, if you want to only compute an aggregate of the data in a table, such as the count of the rows,
-you can do so using the 
-[`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(_:database:)>) key:
+Or if you want to only select the completed reminders, sorted by their titles in a descending 
+fashion:
 
 ```swift
-@SharedReader(.fetchOne(Item.count())) 
-var itemsCount = 0
-```
-
-While StructuredQueries' builder is powerful, it is also stricter than SQLite, which will happily
-coerce any data into any type, and some queries are more conveniently expressed through these
-coercions. StructuredQueries should never get in your way, so rather than describe to the Swift
-type system every explicit cast and coalesce, you can always embed SQL directly in a query using
-the `#sql` macro:
-
-```swift
-@SharedReader(
-  .fetchAll(
-    Item.where { #sql("\($0.createdAt) > date('now', '-7 days')") }
-  )
+@FetchAll(
+  Reminder.where(\.isCompleted).order { $0.title.desc() }
 )
-var items
+var completedReminders
 ```
 
-The `#sql` macro will safely bind any input and even perform basic syntax validation.
+This is only the basics of what you can do with the query building tools of this library. To
+learn more, be sure to check out the [documentation][sq-getting-started] of StructuredQueries.
 
-You can even use `#sql` to write the entire query:
+[sq-docs]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore
+
+You can even execute a SQL string to populate the data in your features:
 
 ```swift
-@SharedReader(
-  #sql(
-    """
-    SELECT \(Item.columns) FROM \(Item.self)
-    WHERE \(Item.createdAt) > date('now', '-7 days')
-    """
-  )
+@FetchAll(
+  #sql("""
+  SELECT * FROM reminders where isCompleted ORDER BY title DESC
+  """, as: Reminder.self)
 )
-var items: [Item]
+var completedReminders
 ```
 
-The choice is up to you for each query or query fragment. To learn more, see the
-[StructuredQueries documentation][structured-queries-docs].
+This uses the `#sql` macro for constructing [safe SQL strings][sq-safe-sql-strings]. You are 
+automatically protected from SQL injection attacks, and it is even possible to use the static
+description of your schema to prevent accidental typos:
 
+```swift
+@FetchAll(
+  #sql("""
+  SELECT \(Reminder.columns) 
+  FROM \(Reminder.self) 
+  WHERE \(Reminder.isCompleted) 
+  ORDER BY \(Reminder.title) DESC
+  """, as: Reminder.self)
+)
+var completedReminders
+```
+
+These interpolations are completely safe to do because they are statically known at compile time,
+and it will minimize your risk for typos. Be sure to read the [documentation][sq-safe-sql-strings]
+of StructuredQueries to see more of what `#sql` is capable of.
+
+It is also possible to join tables together and query for multiple pieces of data at once. For
+example, suppose we have another table for lists of reminders, and each reminder belongs to
+exactly one list:
+
+```swift
+@Table
+struct Reminder {
+  let id: Int 
+  var title = ""
+  @Column(as: Date.ISO8601Representation?.self)
+  var dueAt: Date?
+  var isCompleted = false
+  var remindersListID: RemindersList.ID
+}
+@Table
+struct RemindersList: Identifiable {
+  let id: Int 
+  var title = ""
+}
+```
+
+And further suppose we have a feature that wants to load the title of every reminder, along with
+the title of its associated list. Rather than loading all columns of all rows of both tables, which
+is inefficient, we can select just the data we need. First we define a data type to hold just that
+data, and decorate it with the `@Selection` macro:
+
+```swift
+@Selection
+struct Record {
+  let reminderTitle: String
+  let remindersListTitle: String
+}
+```
+
+And then we construct a query that joins the `Reminder` table to the `RemindersList` table and 
+selects the titles from each table:
+
+```swift
+@FetchAll(
+  Reminder
+    .join(RemindersList.all) { $0.remindersListID.eq($1.id) }
+    .select {
+      Record.Columns(
+        reminderTitle: $0.title, 
+        remindersListTitle: $1.title
+      )
+    }
+)
+var records
+```
+
+This is a very efficient query that selects only the bare essentials of data that the feature
+needs to do its job. This kind of query is a lot more cumbersome to perform in SwiftData because
+you must construct a dedicated `FetchDescriptor` value and set its `propertiesToFetch`.
+
+[sq-safe-sql-strings]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore/safesqlstrings
 [structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
 [structured-queries-docs]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/
 
-### Querying with custom requests
+### @FetchOne
 
-It is also possible to execute multiple database queries to fetch data for your `@SharedReader`. 
-This can be useful for performing several queries in a single database transaction:
-
-Each instance of `@SharedReader` in a feature executes their queries in a separate
-transaction. So, if we wanted to query for all in-stock items, as well as the count of all items
-(in-stock plus out-of-stock) like so:
+The [`@FetchOne`](<doc:FetchOne>) property wrapper works similarly to `@FetchAll`, but fetches
+only a single record from the database and you must provide a default for when no record is found.
+This tool can be handy for computing aggegrate data, such as the number of reminders in the 
+database:
 
 ```swift
-@SharedReader(.fetchOne(Item.count()))
-var itemsCount = 0
+@FetchOne(Reminder.count())
+var remindersCount = 0
+```
 
-@SharedReader(.fetchAll(Item.where(\.isInStock)))
-var inStockItems
+You can perform any query you want in `@FetchOne`, including "where" clauses:
+
+```swift
+@FetchOne(Reminder.where(\.isCompleted).count())
+var completedRemindersCount = 0
+```
+
+You can use the `#sql` macro with `@FetchOne` to execute a safe SQL string:
+
+```swift
+@FetchOne(#sql("SELECT count(*) FROM reminders WHERE isCompleted", as: Int.self))
+var completedRemindersCount = 0
+```
+
+### @Fetch
+
+It is also possible to execute multiple database queries to fetch data for your features. 
+This can be useful for performing several queries in a single database transaction:
+
+Each instance of `@FetchAll` in a feature executes their queries in a separate
+transaction. So, if we wanted to query for all completed reminders, along with a total count of 
+reminders (completed and uncompleted), we could do so like this:
+
+```swift
+@FetchOne(Reminder.count())
+var remindersCount = 0
+
+@FetchAll(Reminder.where(\.isCompleted)))
+var completedReminders
 ```
 
 …this is technically 2 queries run in 2 separate database transactions.
 
 Often this can be just fine, but if you have multiple queries that tend to change at the same
-time (_e.g._, when items are created or deleted, `itemsCount` and `inStockItems` will change
-at the same time), then you can bundle these two queries into a single transaction.
+time (_e.g._, when reminders are created or deleted, `remindersCount` and `completedReminders` will
+change at the same time), then you can bundle these two queries into a single transaction.
 
 To do this, one simply defines a conformance to our ``FetchKeyRequest`` protocol, and in that
 conformance one can use the builder tools to query the database:
 
 ```swift
-struct Items: FetchKeyRequest {
+struct Reminders: FetchKeyRequest {
   struct Value {
-    var inStockItems: [Item] = []
-    var itemsCount = 0
+    var completedReminders: [Reminder] = []
+    var remindersCount = 0
   }
   func fetch(_ db: Database) throws -> Value {
     try Value(
-      inStockItems: Item.where(\.isInStock).fetchAll(db),
-      itemsCount: Item.fetchCount(db)
+      completedReminders: Reminder.where(\.isCompleted).fetchAll(db),
+      remindersCount: Reminder.fetchCount(db)
     )
   }
 }
@@ -143,47 +232,20 @@ Here we have defined a ``FetchKeyRequest/Value`` type inside the conformance tha
 data we want to query for in a single transaction, and then we can construct it and return it from
 the ``FetchKeyRequest/fetch(_:)`` method.
 
-With this conformance defined we can use 
-[`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)>) key to execute the query specified by
-the `Items` type, and we can access the `inStockItems` and `itemsCount` properties to get to the
-queried data:
+With this conformance defined we can use the 
+[`@Fetch`](<doc:Fetch>) property wrapper to execute the query specified by
+the `Reminders` type, and we can access the `completedReminders` and `remindersCount` properties 
+to get to the queried data:
 
 ```swift
-@SharedReader(.fetch(Items()) var items = Items.Value()
-items.inStockItems  // [Item(/* ... */), /* ... */]
-items.itemsCount    // 100
+@Fetch(Reminders()) var reminders = Reminders.Value()
+reminders.completedReminders  // [Reminder(/* ... */), /* ... */]
+reminders.remindersCount      // 100
 ```
 
-> Note: A default must be provided to `@SharedReader` since it is querying for a custom data type
+> Note: A default must be provided to `@Fetch` since it is querying for a custom data type
 > instead of a collection of data.
 
 Typically the conformances to ``FetchKeyRequest`` can even be made private and nested inside
 whatever type they are used in, such as SwiftUI view, `@Observable` model, or UIKit view controller.
 The only time it needs to be made public is if it's shared amongst many features.
-
-### Querying with raw SQL
-
-SharingGRDB also comes with a more basic set of tools that work directly with GRDB. The primary 
-reason you may want to use these tools and not the StructuredQueries tools is that they do not 
-require a macro to use (such as `@Table` and `#sql`), and so do not incur the cost of compiling 
-SwiftSyntax.
-
-There is a version of [`fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)>) 
-key that  takes a raw SQL string:
-
-```swift
-@SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
-```
-
-As well as a [`fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)>) key:
-
-```swift
-@SharedReader(.fetchOne(sql: "SELECT count(*) FROM items")) 
-var itemsCount = 0
-```
-
-These APIs simply feed their data directly to GRDB's equivalent `Database` APIs, which means it is
-up to you to safely bind arguments and avoid SQL injection. If you want to write SQL queries by
-hand, consider using StructuredQueries' `#sql` macro, instead.
-
-[structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries

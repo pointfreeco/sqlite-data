@@ -11,8 +11,7 @@ struct IntegrationTests {
 
   @Test
   func fetchAll_SQLString() async throws {
-    @SharedReader(.fetchAll(SyncUp.where(\.isActive)))
-    var syncUps: [SyncUp] = []
+    @FetchAll(SyncUp.where(\.isActive)) var syncUps: [SyncUp]
     #expect(syncUps == [])
 
     try await database.write { db in
@@ -37,8 +36,7 @@ struct IntegrationTests {
 
   @Test
   func fetch_FetchKeyRequest() async throws {
-    @SharedReader(.fetch(ActiveSyncUps()))
-    var syncUps: [SyncUp] = []
+    @Fetch(ActiveSyncUps()) var syncUps: [SyncUp] = []
     #expect(syncUps == [])
 
     try await database.write { db in

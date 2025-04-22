@@ -13,7 +13,7 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
     """
 
   private var dataSource: UICollectionViewDiffableDataSource<Section, Fact>!
-  @SharedReader(.fetchAll(Fact.order { $0.id.desc() }, animation: .default))
+  @FetchAll(Fact.order { $0.id.desc() }, animation: .default)
   private var facts
   private var viewDidLoadTask: Task<Void, Error>?
 

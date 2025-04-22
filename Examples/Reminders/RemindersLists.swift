@@ -1,47 +1,37 @@
-import Dependencies
-import GRDB
-import Sharing
 import SharingGRDB
-import StructuredQueries
 import SwiftUI
 
 struct RemindersListsView: View {
-  @SharedReader(
-    .fetchAll(
-      RemindersList
-        .group(by: \.id)
-        .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted }
-        .select {
-          ReminderListState.Columns(remindersCount: $1.id.count(), remindersList: $0)
-        },
-      animation: .default
-    )
+  @FetchAll(
+    RemindersList
+      .group(by: \.id)
+      .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted }
+      .select {
+        ReminderListState.Columns(remindersCount: $1.id.count(), remindersList: $0)
+      },
+    animation: .default
   )
   private var remindersLists
 
-  @SharedReader(
-    .fetchAll(
-      Tag
-        .order(by: \.title)
-        .withReminders
-        .having { $2.count().gt(0) }
-        .select { tag, _, _ in tag },
-      animation: .default
-    )
+  @FetchAll(
+    Tag
+      .order(by: \.title)
+      .withReminders
+      .having { $2.count().gt(0) }
+      .select { tag, _, _ in tag },
+    animation: .default
   )
   private var tags
 
-  @SharedReader(
-    .fetchOne(
-      Reminder.select {
-        Stats.Columns(
-          allCount: $0.count(filter: !$0.isCompleted),
-          flaggedCount: $0.count(filter: $0.isFlagged),
-          scheduledCount: $0.count(filter: $0.isScheduled),
-          todayCount: $0.count(filter: $0.isToday)
-        )
-      }
-    )
+  @FetchOne(
+    Reminder.select {
+      Stats.Columns(
+        allCount: $0.count(filter: !$0.isCompleted),
+        flaggedCount: $0.count(filter: $0.isFlagged),
+        scheduledCount: $0.count(filter: $0.isScheduled),
+        todayCount: $0.count(filter: $0.isToday)
+      )
+    }
   )
   private var stats = Stats()
 

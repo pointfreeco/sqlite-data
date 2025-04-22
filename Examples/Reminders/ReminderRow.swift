@@ -127,7 +127,8 @@ struct ReminderRow: View {
   private func toggleCompletion() {
     withErrorReporting {
       try database.write { db in
-        isCompleted = try Reminder
+        isCompleted =
+          try Reminder
           .find(reminder.id)
           .update { $0.isCompleted.toggle() }
           .returning(\.isCompleted)

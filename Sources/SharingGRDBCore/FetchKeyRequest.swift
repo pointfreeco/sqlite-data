@@ -26,13 +26,12 @@ import GRDB
 /// }
 /// ```
 ///
-/// And then can be used with a `@SharedReader` and
-/// ``Sharing/SharedReaderKey/fetch(_:database:animation:)`` to popular state in a SwiftUI view,
+/// And then can be used with the ``Fetch`` property wrapper to popular state in a SwiftUI view,
 /// `@Observable` model, UIKit view controller, and more:
 ///
 /// ```swift
 /// struct PlayersView: View {
-///   @SharedReader(.fetch(PlayersRequest())) var response
+///   @Fetch(PlayersRequest()) var response
 ///
 ///   var body: some View {
 ///     ForEach(response.players) { player in

@@ -8,11 +8,11 @@ imported when you `import SharingGRDB` or `StructuredQueriesGRDB`.
 This library can be used to directly execute queries built using the [StructuredQueries][sq-gh]
 library and a [GRDB][grdb-gh] database.
 
-While the `SharingGRDB` module provides tools to observe queries using the `@SharedReader` property
-wrapper, you will also want to execute one-off queries directly, without Sharing's APIs, especially
-when it comes to `INSERT`, `UPDATE`, and `DELETE` statements. This module extends Structured
-Queries' `Statement` type with `execute`, `fetchAll`, `fetchOne`, and `fetchCount` methods that
-execute the query on a given GRDB database.
+While the `SharingGRDB` module provides tools to observe queries using the `@FetchAll`, `@FetchOne`,
+and `@Fetch` property wrappers, you will also want to execute one-off queries directly, especially
+when it comes to `INSERT`, `UPDATE`, and `DELETE` statements. This module extends
+StructuredQueries' `Statement` type with `execute`, `fetchAll`, `fetchOne`, and `fetchCount` methods
+that execute the query on a given GRDB database.
 
 ```swift
 @Table
@@ -56,9 +56,9 @@ For more information on how to build queries, see the [StructuredQueries documen
 ### Executing statements
 
 - ``StructuredQueriesCore/Statement/execute(_:)``
-- ``StructuredQueriesCore/Statement/fetchAll(_:)-4glz5``
-- ``StructuredQueriesCore/Statement/fetchOne(_:)-3mdmq``
-- ``StructuredQueriesCore/Statement/fetchCursor(_:)-5bk5y``
+- ``StructuredQueriesCore/Statement/fetchAll(_:)``
+- ``StructuredQueriesCore/Statement/fetchOne(_:)``
+- ``StructuredQueriesCore/Statement/fetchCursor(_:)``
 - ``StructuredQueriesCore/SelectStatement/fetchCount(_:)``
 
 ### Iterating over rows

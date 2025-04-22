@@ -13,7 +13,7 @@ import Testing
     try await withDependencies {
       $0.defaultDatabase = try DatabaseQueue()
     } operation: {
-      @SharedReader(.fetchOne(sql: "SELECT 1")) var bool = false
+      @FetchOne(#sql("SELECT 1", as: Bool.self)) var bool = false
       try await Task.sleep(nanoseconds: 100_000_000)
       #expect(bool)
       #expect($bool.loadError == nil)
@@ -34,7 +34,7 @@ import Testing
     try await withDependencies {
       $0.defaultDatabase = try DatabaseQueue()
     } operation: {
-      @SharedReader(.fetchOne(sql: "SELEC 1")) var bool = false
+      @FetchOne(#sql("SELEC 1", as: Bool.self)) var bool = false
       #expect(bool == false)
       try await Task.sleep(nanoseconds: 100_000_000)
       #expect($bool.loadError is DatabaseError?)

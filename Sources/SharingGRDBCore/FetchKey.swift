@@ -45,6 +45,10 @@ extension SharedReaderKey {
   ///   - database: The database to read from. A value of `nil` will use
   ///     `@Dependency(\.defaultDatabase)``.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  @available(iOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(macOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(tvOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(watchOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
   public static func fetch<Value>(
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil
@@ -68,6 +72,10 @@ extension SharedReaderKey {
   ///   - database: The database to read from. A value of `nil` will use
   ///     `@Dependency(\.defaultDatabase)``.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  @available(iOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(macOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(tvOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(watchOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
   public static func fetch<Records: RangeReplaceableCollection>(
     _ request: some FetchKeyRequest<Records>,
     database: (any DatabaseReader)? = nil
@@ -93,6 +101,10 @@ extension SharedReaderKey {
   ///   - database: The database to read from. A value of `nil` will use
   ///     `@Dependency(\.defaultDatabase)``.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  @available(iOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
+  @available(macOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
+  @available(tvOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
+  @available(watchOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
   public static func fetchAll<Record: FetchableRecord>(
     sql: String,
     arguments: StatementArguments = StatementArguments(),
@@ -100,7 +112,7 @@ extension SharedReaderKey {
   ) -> Self
   where Self == FetchKey<[Record]>.Default {
     Self[
-      .fetch(FetchAll(sql: sql, arguments: arguments), database: database),
+      .fetch(FetchAllRequest(sql: sql, arguments: arguments), database: database),
       default: []
     ]
   }
@@ -122,13 +134,17 @@ extension SharedReaderKey {
   ///   - database: The database to read from. A value of `nil` will use
   ///     `@Dependency(\.defaultDatabase)``.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  @available(iOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
+  @available(macOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
+  @available(tvOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
+  @available(watchOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
   public static func fetchOne<Value: DatabaseValueConvertible>(
     sql: String,
     arguments: StatementArguments = StatementArguments(),
     database: (any DatabaseReader)? = nil
   ) -> Self
   where Self == FetchKey<Value> {
-    .fetch(FetchOne(sql: sql, arguments: arguments), database: database)
+    .fetch(FetchOneRequest(sql: sql, arguments: arguments), database: database)
   }
 }
 
@@ -146,6 +162,10 @@ extension SharedReaderKey {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  @available(iOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(macOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(tvOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(watchOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
   public static func fetch<Value>(
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil,
@@ -168,6 +188,10 @@ extension SharedReaderKey {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  @available(iOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(macOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(tvOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+  @available(watchOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
   public static func fetch<Records: RangeReplaceableCollection>(
     _ request: some FetchKeyRequest<Records>,
     database: (any DatabaseReader)? = nil,
@@ -191,6 +215,10 @@ extension SharedReaderKey {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  @available(iOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
+  @available(macOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
+  @available(tvOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
+  @available(watchOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
   public static func fetchAll<Record: FetchableRecord>(
     sql: String,
     arguments: StatementArguments = StatementArguments(),
@@ -199,7 +227,9 @@ extension SharedReaderKey {
   ) -> Self
   where Self == FetchKey<[Record]>.Default {
     Self[
-      .fetch(FetchAll(sql: sql, arguments: arguments), database: database, scheduler: scheduler),
+      .fetch(
+        FetchAllRequest(sql: sql, arguments: arguments), database: database, scheduler: scheduler
+      ),
       default: []
     ]
   }
@@ -218,6 +248,10 @@ extension SharedReaderKey {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+  @available(iOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
+  @available(macOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
+  @available(tvOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
+  @available(watchOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
   public static func fetchOne<Value: DatabaseValueConvertible>(
     sql: String,
     arguments: StatementArguments = StatementArguments(),
@@ -225,7 +259,9 @@ extension SharedReaderKey {
     scheduler: some ValueObservationScheduler & Hashable
   ) -> Self
   where Self == FetchKey<Value> {
-    .fetch(FetchOne(sql: sql, arguments: arguments), database: database, scheduler: scheduler)
+    .fetch(
+      FetchOneRequest(sql: sql, arguments: arguments), database: database, scheduler: scheduler
+    )
   }
 }
 
@@ -377,7 +413,7 @@ public struct FetchKeyID: Hashable {
   }
 }
 
-private struct FetchAll<Element: FetchableRecord>: FetchKeyRequest {
+private struct FetchAllRequest<Element: FetchableRecord>: FetchKeyRequest {
   var sql: String
   var arguments: StatementArguments = StatementArguments()
   func fetch(_ db: Database) throws -> [Element] {
@@ -385,7 +421,7 @@ private struct FetchAll<Element: FetchableRecord>: FetchKeyRequest {
   }
 }
 
-private struct FetchOne<Value: DatabaseValueConvertible>: FetchKeyRequest {
+private struct FetchOneRequest<Value: DatabaseValueConvertible>: FetchKeyRequest {
   var sql: String
   var arguments: StatementArguments = StatementArguments()
   func fetch(_ db: Database) throws -> Value {

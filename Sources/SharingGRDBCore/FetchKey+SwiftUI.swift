@@ -14,6 +14,10 @@
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+    @available(iOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+    @available(macOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+    @available(tvOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+    @available(watchOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
     public static func fetch<Value>(
       _ request: some FetchKeyRequest<Value>,
       database: (any DatabaseReader)? = nil,
@@ -33,6 +37,10 @@
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+    @available(iOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+    @available(macOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+    @available(tvOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
+    @available(watchOS, deprecated: 9999, message: "Use the '@Fetch' property wrapper, instead")
     public static func fetch<Records: RangeReplaceableCollection>(
       _ request: some FetchKeyRequest<Records>,
       database: (any DatabaseReader)? = nil,
@@ -53,6 +61,10 @@
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+    @available(iOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
+    @available(macOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
+    @available(tvOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
+    @available(watchOS, deprecated: 9999, message: "Use '@FetchAll' and '#sql', instead")
     public static func fetchAll<Record: FetchableRecord>(
       sql: String,
       arguments: StatementArguments = StatementArguments(),
@@ -79,6 +91,10 @@
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     /// - Returns: A key that can be passed to the `@SharedReader` property wrapper.
+    @available(iOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
+    @available(macOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
+    @available(tvOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
+    @available(watchOS, deprecated: 9999, message: "Use '@FetchOne' and '#sql', instead")
     public static func fetchOne<Value: DatabaseValueConvertible>(
       sql: String,
       arguments: StatementArguments = StatementArguments(),
