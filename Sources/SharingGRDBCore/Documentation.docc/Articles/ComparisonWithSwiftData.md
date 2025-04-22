@@ -324,7 +324,7 @@ search for rows in a table:
 Note that the SwiftData version of this code must have two views. The outer view, `ItemsView`, 
 holds onto the `searchText` state that the user can change and uses the `searchable` SwiftUI view
 modifier. Then, the inner view, `SearchResultsView`, holds onto the `@Query` state so that it can
-initializer with a dynamic predicate based on the `searchText`. These two views are necessary 
+initialize with a dynamic predicate based on the `searchText`. These two views are necessary 
 because `@Query` state is not mutable after it is initialized. The only way to change `@Query`
 state is if the view holding it is reinitialized, which requires a parent view to recreate the
 child view.
