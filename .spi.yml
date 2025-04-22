@@ -2,8 +2,8 @@ version: 1
 builder:
   configs:
   - documentation_targets:
-    - SharingGRDB
     - SharingGRDBCore
+    - SharingGRDB
     - StructuredQueriesGRDB
     - StructuredQueriesGRDBCore
     custom_documentation_parameters: [--enable-experimental-overloaded-symbol-presentation]
