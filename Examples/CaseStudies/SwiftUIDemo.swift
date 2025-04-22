@@ -1,4 +1,3 @@
-import Dependencies
 import SharingGRDB
 import SwiftUI
 
@@ -7,14 +6,14 @@ struct SwiftUIDemo: SwiftUICaseStudy {
     This demonstrates how to use the `fetchAll` and `fetchOne` queries directly in a SwiftUI view. \
     The tools listen for changes in the database so that when the table changes it automatically \
     updates state and re-renders the view.
-    
+
     You can also delete rows by swiping on a row and tapping the "Delete" button.
     """
   let caseStudyTitle = "SwiftUI Views"
 
-  @SharedReader(.fetchAll(sql: #"SELECT * FROM "facts" ORDER BY "id" DESC"#, animation: .default))
-  private var facts: [Fact]
-  @SharedReader(.fetchOne(sql: #"SELECT count(*) FROM "facts""#, animation: .default))
+  @FetchAll(Fact.order { $0.id.desc() }, animation: .default)
+  private var facts
+  @FetchOne(Fact.count(), animation: .default)
   var factsCount = 0
 
   @Dependency(\.defaultDatabase) var database
@@ -45,7 +44,8 @@ struct SwiftUIDemo: SwiftUICaseStudy {
             as: UTF8.self
           )
           try await database.write { db in
-            _ = try Fact(body: fact).inserted(db)
+            try Fact.insert(Fact.Draft(body: fact))
+              .execute(db)
           }
         }
       } catch {}
@@ -53,13 +53,10 @@ struct SwiftUIDemo: SwiftUICaseStudy {
   }
 }
 
-private struct Fact: Codable, FetchableRecord, Identifiable, MutablePersistableRecord {
-  static let databaseTableName = "facts"
-  var id: Int64?
+@Table
+private struct Fact: Identifiable {
+  let id: Int
   var body: String
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
 extension DatabaseWriter where Self == DatabaseQueue {
@@ -67,10 +64,15 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try db.create(table: Fact.databaseTableName) { table in
-        table.autoIncrementedPrimaryKey("id")
-        table.column("body", .text).notNull()
-      }
+      try #sql(
+        """
+        CREATE TABLE "facts" (
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "body" TEXT NOT NULL
+        )
+        """
+      )
+      .execute(db)
     }
     try! migrator.migrate(databaseQueue)
     return databaseQueue

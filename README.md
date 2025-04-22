@@ -1,18 +1,23 @@
 # SharingGRDB
 
-A lightweight replacement for SwiftData and `@Query`.
+A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL.
 
 [![CI](https://github.com/pointfreeco/sharing-grdb/workflows/CI/badge.svg)](https://github.com/pointfreeco/sharing-grdb/actions?query=workflow%3ACI)
+[![Slack](https://img.shields.io/badge/slack-chat-informational.svg?label=Slack&logo=slack)](https://www.pointfree.co/slack-invite)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
 
-* [Learn more](#Learn-more)
-* [Overview](#Overview)
-* [Demos](#Demos)
-* [Documentation](#Documentation)
-* [Installation](#Installation)
-* [Community](#Community)
-* [License](#License)
+  * [Learn more](#Learn-more)
+  * [Overview](#Overview)
+  * [Quick start](#Quick-start)
+  * [Performance](#Performance)
+  * [SQLite knowledge required](#SQLite-knowledge-required)
+  * [Overview](#Overview)
+  * [Demos](#Demos)
+  * [Documentation](#Documentation)
+  * [Installation](#Installation)
+  * [Community](#Community)
+  * [License](#License)
 
 ## Learn more
 
@@ -28,8 +33,9 @@ library, [subscribe today](https://www.pointfree.co/pricing).
 
 ## Overview
 
-SharingGRDB is lightweight replacement for SwiftData and the `@Query` macro that deploys all the way
-back to the iOS 13 generation of targets.
+SharingGRDB is a [fast](#performance), lightweight replacement for SwiftData that deploys all the
+way back to the iOS 13 generation of targets. To populate data from the database you can use
+the `@FetchAll` property wrapper, which is similar to SwiftData's `@Query` macro:
 
 <table>
 <tr>
@@ -40,12 +46,16 @@ back to the iOS 13 generation of targets.
 <td width=415>
       
 ```swift
-@SharedReader(
-  .fetchAll(
-    sql: "SELECT * FROM items"
-  )
-)
+@FetchAll
 var items: [Item]
+
+@Table
+struct Item {
+  let id: Int
+  var title = ""
+  var isInStock = true
+  var notes = ""
+}
 ```
 
 </td>
@@ -54,19 +64,34 @@ var items: [Item]
 ```swift
 @Query
 var items: [Item]
+
+@Model
+class Item {
+  var title: String
+  var isInStock: Bool
+  var notes: String
+  init(
+    title: String = "",
+    isInStock: Bool = true,
+    notes: String = ""
+  ) {
+    self.title = title
+    self.isInStock = isInStock
+    self.notes = notes
+  }
+}
 ```
 
 </td>
 </tr>
 </table>
 
-Both of the above examples fetch items from an external data store, and both are automatically
-observed by SwiftUI so that views are recomputed when the external data changes, but SharingGRDB is
-powered directly by SQLite using [Sharing][sharing-gh] and [GRDB][grdb], and is
-usable from UIKit, `@Observable` models, and more.
+Both of the above examples fetch items from an external data store using Swift data types, and both
+are automatically observed by SwiftUI so that views are recomputed when the external data changes,
+but SharingGRDB is powered directly by SQLite using [Sharing][], [StructuredQueries][], and
+[GRDB][], and is usable from UIKit, `@Observable` models, and more.
 
-> Note: It is not required to write queries as a raw SQL string, and a query builder can be used 
-> instead. For more information on SharingGRDB's querying capabilities, see 
+For more information on SharingGRDB's querying capabilities, see
 [Fetching model data][fetching-article].
 
 ## Quick start
@@ -124,15 +149,19 @@ struct MyApp: App {
 </tr>
 </table>
 
-> Note: For more information on preparing a SQLite database, see 
-[Preparing a SQLite database][preparing-db-article].
+> [!NOTE]
+> For more information on preparing a SQLite database, see
+> [Preparing a SQLite database][preparing-db-article].
 
 This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies, like 
- [`fetchAll`][fetchall-docs]:
+[`@FetchAll`][fetchall-docs] and [`@FetchOne`][fetchone-docs]:
 
 ```swift
-@SharedReader(.fetchAll(sql: "SELECT * FROM items"))
+@FetchAll
 var items: [Item]
+
+@FetchOne(Item.where(\.isInStock).count())
+var inStockItemsCount = 0
 ```
 
 And you can access this database throughout your application in a way similar to how one accesses
@@ -150,9 +179,10 @@ a model context, via a property wrapper:
 @Dependency(\.defaultDatabase) 
 var database
     
-var newItem = Item(/* ... */)
+let newItem = Item(/* ... */)
 try database.write { db in
-  try newItem.insert(db)
+  try Item.insert(newItem)
+    .execute(db))
 }
 ```
 
@@ -172,71 +202,95 @@ try modelContext.save()
 </tr>
 </table>
 
-> Note: For more information on how SharingGRDB compares to SwiftData, see
+> [!NOTE]
+> For more information on how SharingGRDB compares to SwiftData, see
 > [Comparison with SwiftData][comparison-swiftdata-article].
 
 This is all you need to know to get started with SharingGRDB, but there's much more to learn. Read
 the [articles][articles] below to learn how to best utilize this library:
 
-* [Fetching model data][fetching-article]
-* [Observing changes to model data][observing-article]
-* [Preparing a SQLite database][preparing-db-article]
-* [Dynamic queries][dynamic-queries-article]
-* [Comparison with SwiftData][comparison-swiftdata-article]
+  * [Fetching model data][fetching-article]
+  * [Observing changes to model data][observing-article]
+  * [Preparing a SQLite database][preparing-db-article]
+  * [Dynamic queries][dynamic-queries-article]
+  * [Comparison with SwiftData][comparison-swiftdata-article]
 
 [observing-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/observing
 [dynamic-queries-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/dynamicqueries
 [articles]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb#Essentials
 [comparison-swiftdata-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/comparisonwithswiftdata
 [fetching-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/fetching
-[preparing-db-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/preparingdatabase 
- [fetchall-docs]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/sharing/sharedreaderkey/fetchall(sql:arguments:database:animation:)
+[preparing-db-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/preparingdatabase
+
+<!-- TODO: update docs link for fetchall and fetchone -->
+[fetchall-docs]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/sharing/sharedreaderkey/fetchall(sql:arguments:database:animation:)
+[fetchone-docs]: todo: find link
+
+## Performance
+
+SharingGRDB leverages high-performance decoding from [StructuredQueries][] to turn fetched data into
+your Swift domain types, and has a performance profile similar to invoking SQLite's C APIs directly.
+
+See the following benchmarks against
+[Lighter's performance test suite](https://github.com/Lighter-swift/PerformanceTestSuite) for a
+taste of how it compares:
+
+```
+Orders.fetchAll                          setup    rampup   duration
+  SQLite (generated by Enlighter 1.4.10) 0        0.144    7.183
+  Lighter (1.4.10)                       0        0.164    8.059
+  SharingGRDB (0.2.0)                    0        0.172    8.511
+  GRDB (7.4.1, manual decoding)          0        0.376    18.819
+  SQLite.swift (0.15.3, manual decoding) 0        0.564    27.994
+  SQLite.swift (0.15.3, Codable)         0        0.863    43.261
+  GRDB (7.4.1, Codable)                  0.002    1.07     53.326
+```
 
 ## SQLite knowledge required
 
 SQLite is one of the 
- [most established and widely distributed](https://www.sqlite.org/mostdeployed.html) pieces of 
+[most established and widely distributed](https://www.sqlite.org/mostdeployed.html) pieces of 
 software in the history of software. Knowledge of SQLite is a great skill for any app developer to
 have, and this library does not want to conceal it from you. So, we feel that to best wield this
 library you should be familiar with the basics of SQLite, including schema design and normalization,
 SQL queries, including joins and aggregates, and performance, including indices.
 
 With some basic knowledge you can apply this library to your database schema in order to query
-for data and keep your views up-to-date when data in the database changes. You can use GRDB's
-[query builder][query-interface] APIs to query your database, or you can use raw SQL queries, 
-along with all of the power that SQL has to offer.
+for data and keep your views up-to-date when data in the database changes, and you can use
+[StructuredQueries][] to build queries, either using its type-safe, discoverable
+[query building APIs][], or using its `#sql` macro for writing [safe SQL strings][].
 
-[query-interface]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/queryinterface
-[sharing-gh]: http://github.com/pointfreeco/swift-sharing
-[grdb]: http://github.com/groue/grdb.swift
-[swift-nav-gh]: https://github.com/pointfreeco/swift-navigation
-[observe-docs]: https://swiftpackageindex.com/pointfreeco/swift-navigation/main/documentation/swiftnavigation/objectivec/nsobject/observe(_:)-94oxy
+[Sharing]: https://github.com/pointfreeco/swift-sharing
+[StructuredQueries]: https://github.com/pointfreeco/swift-structured-queries
+[GRDB]: https://github.com/groue/GRDB.swift
+[query building APIs]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore
+[safe SQL strings]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore/safesqlstrings
 
 ## Demos
 
 This repo comes with _lots_ of examples to demonstrate how to solve common and complex problems with
 Sharing. Check out [this](./Examples) directory to see them all, including:
 
-  * [Case Studies](./Examples/CaseStudies):
-    A number of case studies demonstrating the built-in features of the library.
+  * [Case Studies](./Examples/CaseStudies): A number of case studies demonstrating the built-in
+    features of the library.
 
-  * [SyncUps](./Examples/SyncUps): We also rebuilt Apple's [Scrumdinger][scrumdinger] demo
-    application using modern, best practices for SwiftUI development, including using this library
-    to query and persist state using SQLite.
+  * [SyncUps](./Examples/SyncUps): We also rebuilt Apple's [Scrumdinger][] demo application using
+    modern, best practices for SwiftUI development, including using this library to query and
+    persist state using SQLite.
     
   * [Reminders](./Examples/Reminders): A rebuild of Apple's [Reminders][reminders-app-store] app
     that uses a SQLite database to model the reminders, lists and tags. It features many advanced
     queries, such as searching, and stats aggregation.
 
-[scrumdinger]: https://developer.apple.com/tutorials/app-dev-training/getting-started-with-scrumdinger
+[Scrumdinger]: https://developer.apple.com/tutorials/app-dev-training/getting-started-with-scrumdinger
 [reminders-app-store]: https://apps.apple.com/us/app/reminders/id1108187841
 
 ## Documentation
 
 The documentation for releases and `main` are available here:
 
-* [`main`](https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb)
-* [0.1.x](https://swiftpackageindex.com/pointfreeco/sharing-grdb/~/documentation/sharinggrdb)
+  * [`main`](https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdb/)
+  * [0.x.x](https://swiftpackageindex.com/pointfreeco/sharing-grdb/~/documentation/sharinggrdb/)
 
 ## Installation
 
@@ -249,11 +303,11 @@ simple as adding it to your `Package.swift`:
 
 ``` swift
 dependencies: [
-  .package(url: "https://github.com/pointfreeco/sharing-grdb", from: "0.1.0")
+  .package(url: "https://github.com/pointfreeco/sharing-grdb", from: "0.2.0")
 ]
 ```
 
-And then adding the product to any target that needs access to the library:
+And then adding the following product to any target that needs access to the library:
 
 ```swift
 .product(name: "SharingGRDB", package: "sharing-grdb"),

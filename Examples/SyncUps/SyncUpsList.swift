@@ -6,7 +6,15 @@ import SwiftUINavigation
 @Observable
 final class SyncUpsListModel {
   var addSyncUp: SyncUpFormModel?
-  @ObservationIgnored @SharedReader var syncUps: [SyncUps.Record]
+  @ObservationIgnored
+  @FetchAll(
+    SyncUp
+      .group(by: \.id)
+      .leftJoin(Attendee.all) { $0.id.eq($1.syncUpID) }
+      .select { Record.Columns(attendeeCount: $1.count(), syncUp: $0) },
+    animation: .default
+  )
+  var syncUps: [Record]
   @ObservationIgnored @Dependency(\.uuid) var uuid
   @ObservationIgnored @Dependency(\.defaultDatabase) var database
 
@@ -14,26 +22,18 @@ final class SyncUpsListModel {
     addSyncUp: SyncUpFormModel? = nil
   ) {
     self.addSyncUp = addSyncUp
-    _syncUps = SharedReader(.fetch(SyncUps(), animation: .default))
   }
 
   func addSyncUpButtonTapped() {
     addSyncUp = withDependencies(from: self) {
-      SyncUpFormModel(syncUp: SyncUp())
+      SyncUpFormModel(syncUp: SyncUp.Draft())
     }
   }
 
-  struct SyncUps: FetchKeyRequest {
-    struct Record: Decodable, FetchableRecord {
-      let syncUp: SyncUp
-      let attendeeCount: Int
-    }
-    func fetch(_ db: Database) throws -> [Record] {
-      try SyncUp.all()
-        .annotated(with: [SyncUp.hasMany(Attendee.self).count])
-        .asRequest(of: Record.self)
-        .fetchAll(db)
-    }
+  @Selection
+  struct Record {
+    let attendeeCount: Int
+    let syncUp: SyncUp
   }
 }
 
@@ -78,7 +78,7 @@ struct CardView: View {
       HStack {
         Label("\(attendeeCount)", systemImage: "person.3")
         Spacer()
-        Label(syncUp.duration.formatted(.units()), systemImage: "clock")
+        Label(syncUp.seconds.duration.formatted(.units()), systemImage: "clock")
           .labelStyle(.trailingIcon)
       }
       .font(.caption)

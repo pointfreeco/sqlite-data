@@ -1,7 +1,10 @@
 import Dependencies
+import DependenciesTestSupport
 import GRDB
 import Sharing
 import SharingGRDB
+import StructuredQueries
+import SwiftUI
 import Testing
 
 @Suite struct GRDBSharingTests {
@@ -10,7 +13,7 @@ import Testing
     try await withDependencies {
       $0.defaultDatabase = try DatabaseQueue()
     } operation: {
-      @SharedReader(.fetchOne(sql: "SELECT 1")) var bool = false
+      @FetchOne(#sql("SELECT 1", as: Bool.self)) var bool = false
       try await Task.sleep(nanoseconds: 100_000_000)
       #expect(bool)
       #expect($bool.loadError == nil)
@@ -31,7 +34,7 @@ import Testing
     try await withDependencies {
       $0.defaultDatabase = try DatabaseQueue()
     } operation: {
-      @SharedReader(.fetchOne(sql: "SELEC 1")) var bool = false
+      @FetchOne(#sql("SELEC 1", as: Bool.self)) var bool = false
       #expect(bool == false)
       try await Task.sleep(nanoseconds: 100_000_000)
       #expect($bool.loadError is DatabaseError?)
@@ -84,16 +87,16 @@ import Testing
   }
 }
 
-fileprivate struct Fetch1: FetchKeyRequest {
+private struct Fetch1: FetchKeyRequest {
   func fetch(_ db: Database) throws {
   }
 }
-fileprivate struct Fetch2: FetchKeyRequest {
+private struct Fetch2: FetchKeyRequest {
   func fetch(_ db: Database) throws {
   }
 }
 
-fileprivate struct Record: Codable, Equatable, FetchableRecord, MutablePersistableRecord {
+private struct Record: Codable, Equatable, FetchableRecord, MutablePersistableRecord {
   static let databaseTableName = "records"
   let id: Int
 }
@@ -107,9 +110,12 @@ extension DatabaseWriter where Self == DatabaseQueue {
     }
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Up") { db in
-      try db.create(table: "records") { table in
-        table.column("id", .integer).primaryKey(autoincrement: true)
-      }
+      try #sql(
+        """
+        CREATE TABLE "records" ("id" INTEGER PRIMARY KEY AUTOINCREMENT)
+        """
+      )
+      .execute(db)
       for index in 1...3 {
         _ = try Record(id: index).inserted(db)
       }

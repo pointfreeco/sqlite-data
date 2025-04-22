@@ -1,35 +1,41 @@
-import Dependencies
-import GRDB
 import IssueReporting
+import SharingGRDB
 import SwiftUI
 
 struct RemindersListForm: View {
   @Dependency(\.defaultDatabase) private var database
 
-  @State var remindersList: RemindersList
+  @State var remindersList: RemindersList.Draft
   @Environment(\.dismiss) var dismiss
 
-  init(existingList: RemindersList? = nil) {
-    if let existingList {
-      remindersList = existingList
-    } else {
-      remindersList = RemindersList()
-    }
+  init(existingList: RemindersList.Draft? = nil) {
+    remindersList = existingList ?? RemindersList.Draft()
   }
 
   var body: some View {
     Form {
-      TextField("Name", text: $remindersList.name)
-      ColorPicker("Color", selection: $remindersList.color.cgColor)
+      Section {
+        VStack {
+          TextField("List Name", text: $remindersList.title)
+            .font(.system(.title2, design: .rounded, weight: .bold))
+            .foregroundStyle(remindersList.color)
+            .multilineTextAlignment(.center)
+            .padding()
+            .textFieldStyle(.plain)
+        }
+        .background(Color(.secondarySystemBackground))
+        .clipShape(.buttonBorder)
+      }
+      ColorPicker("Color", selection: $remindersList.color)
     }
+    .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItem {
         Button("Save") {
           withErrorReporting {
-            do {
-              try database.write { db in
-                _ = try remindersList.saved(db)
-              }
+            try database.write { db in
+              try RemindersList.upsert(remindersList)
+                .execute(db)
             }
           }
           dismiss()
@@ -44,31 +50,12 @@ struct RemindersListForm: View {
   }
 }
 
-extension Int {
-  fileprivate var cgColor: CGColor {
-    get {
-      CGColor(
-        red: Double((self >> 16) & 0xFF) / 255.0,
-        green: Double((self >> 8) & 0xFF) / 255.0,
-        blue: Double(self & 0xFF) / 255.0,
-        alpha: 1
-      )
-    }
-    set {
-      guard let components = newValue.components
-      else { return }
-      self = (Int(components[0] * 255) << 16)
-        | (Int(components[1] * 255) << 8)
-        | Int(components[2] * 255)
-    }
-  }
-}
-
 #Preview {
   let _ = try! prepareDependencies {
     $0.defaultDatabase = try Reminders.appDatabase()
   }
   NavigationStack {
     RemindersListForm()
+      .navigationTitle("New List")
   }
 }

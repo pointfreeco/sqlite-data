@@ -1,4 +1,3 @@
-import Dependencies
 import SharingGRDB
 import SwiftUI
 import SwiftUINavigation
@@ -8,7 +7,7 @@ final class SyncUpFormModel: Identifiable {
   var attendees: [AttendeeDraft] = []
   var focus: Field?
   var isDismissed = false
-  var syncUp: SyncUp
+  var syncUp: SyncUp.Draft
 
   @ObservationIgnored @Dependency(\.defaultDatabase) var database
   @ObservationIgnored @Dependency(\.uuid) var uuid
@@ -24,16 +23,27 @@ final class SyncUpFormModel: Identifiable {
   }
 
   init(
-    syncUp: SyncUp,
-    attendees: [Attendee] = [],
+    syncUp: SyncUp.Draft,
     focus: Field? = .title
   ) {
     self.syncUp = syncUp
-    self.attendees = attendees.map { AttendeeDraft(id: uuid(), name: $0.name) }
-    if attendees.isEmpty {
-      self.attendees.append(AttendeeDraft(id: uuid()))
-    }
     self.focus = focus
+    defer {
+      if attendees.isEmpty {
+        self.attendees.append(AttendeeDraft(id: uuid()))
+      }
+    }
+    guard let syncUpID = syncUp.id
+    else { return }
+
+    withErrorReporting {
+      self.attendees = try database.read { db in
+        try Attendee.all
+          .where { $0.syncUpID.eq(syncUpID) }
+          .fetchAll(db)
+          .map { (attendee: Attendee) in AttendeeDraft(id: uuid(), name: attendee.name) }
+      }
+    }
   }
 
   func deleteAttendees(atOffsets indices: IndexSet) {
@@ -66,11 +76,11 @@ final class SyncUpFormModel: Identifiable {
     }
     withErrorReporting {
       try database.write { db in
-        try syncUp.save(db)
-        try Attendee.filter(Column("syncUpID") == syncUp.id!).deleteAll(db)
-        for attendee in attendees {
-          _ = try Attendee(name: attendee.name, syncUpID: syncUp.id!).inserted(db)
-        }
+        let syncUpID = try SyncUp.upsert(syncUp).returning(\.id).fetchOne(db)!
+        try Attendee.where { $0.syncUpID == syncUpID }.delete().execute(db)
+        try Attendee
+          .insert(attendees.map { Attendee.Draft(name: $0.name, syncUpID: syncUpID) })
+          .execute(db)
       }
     }
     isDismissed = true
@@ -88,11 +98,11 @@ struct SyncUpFormView: View {
         TextField("Title", text: $model.syncUp.title)
           .focused($focus, equals: .title)
         HStack {
-          Slider(value: $model.syncUp.duration.seconds, in: 5...30, step: 1) {
+          Slider(value: $model.syncUp.seconds.toDouble, in: 5...30, step: 1) {
             Text("Length")
           }
           Spacer()
-          Text(model.syncUp.duration.formatted(.units()))
+          Text(model.syncUp.seconds.duration.formatted(.units()))
         }
         ThemePicker(selection: $model.syncUp.theme)
       } header: {
@@ -133,6 +143,13 @@ struct SyncUpFormView: View {
   }
 }
 
+extension Int {
+  fileprivate var toDouble: Double {
+    get { Double(self) }
+    set { self = Int(newValue) }
+  }
+}
+
 struct ThemePicker: View {
   @Binding var selection: Theme
 
@@ -153,19 +170,14 @@ struct ThemePicker: View {
   }
 }
 
-extension Duration {
-  fileprivate var seconds: Double {
-    get { Double(components.seconds / 60) }
-    set { self = .seconds(newValue * 60) }
-  }
-}
-
-#Preview {
-  NavigationStack {
-    SyncUpFormView(
-      model: SyncUpFormModel(
-        syncUp: SyncUp()
+struct SyncUpFormPreviews: PreviewProvider {
+  static var previews: some View {
+    NavigationStack {
+      SyncUpFormView(
+        model: SyncUpFormModel(
+          syncUp: SyncUp.Draft()
+        )
       )
-    )
+    }
   }
 }

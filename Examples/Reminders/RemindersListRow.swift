@@ -2,7 +2,7 @@ import SharingGRDB
 import SwiftUI
 
 struct RemindersListRow: View {
-  let reminderCount: Int
+  let remindersCount: Int
   let remindersList: RemindersList
 
   @State var editList: RemindersList?
@@ -12,17 +12,22 @@ struct RemindersListRow: View {
   var body: some View {
     HStack {
       Image(systemName: "list.bullet.circle.fill")
-        .font(.title)
-        .foregroundStyle(Color.hex(remindersList.color))
-      Text(remindersList.name)
+        .font(.largeTitle)
+        .foregroundStyle(remindersList.color)
+        .background(
+          Color.white.clipShape(Circle()).padding(4)
+        )
+      Text(remindersList.title)
       Spacer()
-      Text("\(reminderCount)")
+      Text("\(remindersCount)")
+        .foregroundStyle(.gray)
     }
     .swipeActions {
       Button {
         withErrorReporting {
-          _ = try database.write { db in
-            try remindersList.delete(db)
+          try database.write { db in
+            try RemindersList.delete(remindersList)
+              .execute(db)
           }
         }
       } label: {
@@ -37,7 +42,7 @@ struct RemindersListRow: View {
     }
     .sheet(item: $editList) { list in
       NavigationStack {
-        RemindersListForm(existingList: list)
+        RemindersListForm(existingList: RemindersList.Draft(list))
           .navigationTitle("Edit list")
       }
       .presentationDetents([.medium])
@@ -49,9 +54,10 @@ struct RemindersListRow: View {
   NavigationStack {
     List {
       RemindersListRow(
-        reminderCount: 10,
+        remindersCount: 10,
         remindersList: RemindersList(
-          name: "Personal"
+          id: 1,
+          title: "Personal"
         )
       )
     }

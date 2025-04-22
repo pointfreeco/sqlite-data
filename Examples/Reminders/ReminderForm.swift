@@ -1,31 +1,24 @@
-import Dependencies
-import GRDB
 import IssueReporting
-import Sharing
 import SharingGRDB
 import SwiftUI
 
 struct ReminderFormView: View {
-  @SharedReader(.fetchAll(sql: #"SELECT * FROM "remindersLists" ORDER BY "name" ASC"#))
-  var remindersLists: [RemindersList]
+  @FetchAll(RemindersList.order(by: \.title)) var remindersLists
 
   @State var isPresentingTagsPopover = false
   @State var remindersList: RemindersList
-  @State var reminder: Reminder
+  @State var reminder: Reminder.Draft
   @State var selectedTags: [Tag] = []
 
   @Dependency(\.defaultDatabase) private var database
   @Environment(\.dismiss) var dismiss
 
-  init?(existingReminder: Reminder? = nil, remindersList: RemindersList) {
+  init(existingReminder: Reminder? = nil, remindersList: RemindersList) {
     self.remindersList = remindersList
     if let existingReminder {
-      reminder = existingReminder
-    } else if let listID = remindersList.id {
-      reminder = Reminder(remindersListID: listID)
+      reminder = Reminder.Draft(existingReminder)
     } else {
-      reportIssue("'list.id' is required to be non-nil.")
-      return nil
+      reminder = Reminder.Draft(remindersListID: remindersList.id)
     }
   }
 
@@ -54,13 +47,15 @@ struct ReminderFormView: View {
               .font(.title)
               .foregroundStyle(.gray)
             Text("Tags")
-              .foregroundStyle(.black)
+              .foregroundStyle(Color(.label))
             Spacer()
-            tagsDetail
-              .lineLimit(1)
-              .truncationMode(.tail)
-              .font(.callout)
-              .foregroundStyle(.gray)
+            if let tagsDetail {
+              tagsDetail
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .font(.callout)
+                .foregroundStyle(.gray)
+            }
             Image(systemName: "chevron.right")
           }
         }
@@ -80,10 +75,10 @@ struct ReminderFormView: View {
             Text("Date")
           }
         }
-        if let date = reminder.date {
+        if let dueDate = reminder.dueDate {
           DatePicker(
             "",
-            selection: $reminder.date[coalesce: date],
+            selection: $reminder.dueDate[coalesce: dueDate],
             displayedComponents: [.date, .hourAndMinute]
           )
           .padding([.top, .bottom], 2)
@@ -100,11 +95,11 @@ struct ReminderFormView: View {
           }
         }
         Picker(selection: $reminder.priority) {
-          Text("None").tag(Int?.none)
+          Text("None").tag(Priority?.none)
           Divider()
-          Text("High").tag(3)
-          Text("Medium").tag(2)
-          Text("Low").tag(1)
+          Text("High").tag(Priority.high)
+          Text("Medium").tag(Priority.medium)
+          Text("Low").tag(Priority.low)
         } label: {
           HStack {
             Image(systemName: "exclamationmark.circle.fill")
@@ -116,7 +111,7 @@ struct ReminderFormView: View {
 
         Picker(selection: $remindersList) {
           ForEach(remindersLists) { remindersList in
-            Text(remindersList.name)
+            Text(remindersList.title)
               .tag(remindersList)
               .buttonStyle(.plain)
           }
@@ -124,22 +119,26 @@ struct ReminderFormView: View {
           HStack {
             Image(systemName: "list.bullet.circle.fill")
               .font(.title)
-              .foregroundStyle(Color.hex(remindersList.color))
+              .foregroundStyle(remindersList.color)
             Text("List")
           }
         }
         .onChange(of: remindersList) {
-          reminder.remindersListID = remindersList.id!
+          reminder.remindersListID = remindersList.id
         }
       }
     }
-    .task { [reminderID = reminder.id] in
+    .padding(.top, -28)
+    .task {
+      guard let reminderID = reminder.id
+      else { return }
       do {
         selectedTags = try await database.read { db in
-          try Tag.all()
-            .joining(optional: Tag.hasMany(ReminderTag.self))
-            .filter(Column("reminderID").detached == reminderID)
-            .order(Column("name"))
+          try Tag
+            .order(by: \.title)
+            .join(ReminderTag.all) { $0.id.eq($1.tagID) }
+            .where { $1.reminderID.eq(reminderID) }
+            .select { tag, _ in tag }
             .fetchAll(db)
         }
       } catch {
@@ -147,7 +146,7 @@ struct ReminderFormView: View {
         reportIssue(error)
       }
     }
-    .navigationTitle(remindersList.name)
+    .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItem {
         Button(action: saveButtonTapped) {
@@ -162,32 +161,40 @@ struct ReminderFormView: View {
     }
   }
 
-  private var tagsDetail: Text {
-    selectedTags.reduce(Text("")) { result, tag in
-      result + Text("#\(tag.name) ")
+  private var tagsDetail: Text? {
+    guard let tag = selectedTags.first else { return nil }
+    return selectedTags.dropFirst().reduce(Text("#\(tag.title)")) { result, tag in
+      result + Text(" #\(tag.title) ")
     }
   }
 
   private func saveButtonTapped() {
     withErrorReporting {
       try database.write { db in
-        try reminder.save(db)
-        try ReminderTag.filter(Column("reminderID") == reminder.id!).deleteAll(db)
-        for tag in selectedTags {
-          _ = try ReminderTag(reminderID: reminder.id!, tagID: tag.id!).saved(db)
-        }
+        let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)!
+        try ReminderTag
+          .where { $0.reminderID.eq(reminderID) }
+          .delete()
+          .execute(db)
+        try ReminderTag.insert(
+          selectedTags.map { tag in
+            ReminderTag(reminderID: reminderID, tagID: tag.id)
+          }
+        )
+        .execute(db)
       }
     }
     dismiss()
   }
 }
 
-extension Reminder {
+extension Reminder.Draft {
   fileprivate var isDateSet: Bool {
-    get { date != nil }
-    set { date = newValue ? Date() : nil }
+    get { dueDate != nil }
+    set { dueDate = newValue ? Date() : nil }
   }
 }
+
 extension Optional {
   fileprivate subscript(coalesce coalesce: Wrapped) -> Wrapped {
     get { self ?? coalesce }
@@ -195,18 +202,21 @@ extension Optional {
   }
 }
 
-#Preview {
-  let (remindersList, reminder) = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase()
-    return try $0.defaultDatabase.write { db in
-      let remindersList = try RemindersList.fetchOne(db)!
-      return (
-        remindersList,
-        try Reminder.filter(Column("remindersListID") == remindersList.id).fetchOne(db)!
-      )
+struct ReminderFormPreview: PreviewProvider {
+  static var previews: some View {
+    let (remindersList, reminder) = try! prepareDependencies {
+      $0.defaultDatabase = try Reminders.appDatabase()
+      return try $0.defaultDatabase.write { db in
+        let remindersList = try RemindersList.all.fetchOne(db)!
+        return (
+          remindersList,
+          try Reminder.where { $0.remindersListID == remindersList.id }.fetchOne(db)!
+        )
+      }
     }
-  }
-  NavigationStack {
-    ReminderFormView(existingReminder: reminder, remindersList: remindersList)
+    NavigationStack {
+      ReminderFormView(existingReminder: reminder, remindersList: remindersList)
+        .navigationTitle("Detail")
+    }
   }
 }

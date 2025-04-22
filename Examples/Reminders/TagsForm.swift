@@ -2,7 +2,7 @@ import SharingGRDB
 import SwiftUI
 
 struct TagsView: View {
-  @SharedReader(.fetch(Tags())) var tags = Tags.Value()
+  @Fetch(Tags()) var tags = Tags.Value()
   @Binding var selectedTags: [Tag]
 
   @Environment(\.dismiss) var dismiss
@@ -45,29 +45,21 @@ struct TagsView: View {
 
   struct Tags: FetchKeyRequest {
     func fetch(_ db: Database) throws -> Value {
-      let top = try Tag.fetchAll(
-        db,
-        sql: """
-          SELECT "tags".*, count("reminders"."id")
-          FROM "tags"
-          LEFT JOIN "remindersTags" 
-            ON "tags"."id" = "remindersTags"."tagID"
-          LEFT JOIN "reminders" 
-            ON "remindersTags"."reminderID" = "reminders"."id"
-          GROUP BY "tags"."id"
-          HAVING count("reminders"."id") > 0
-          ORDER BY count("reminders"."id") DESC, "name"
-          LIMIT 3
-          """)
-      let rest = try Tag.fetchAll(
-        db,
-        SQLRequest(literal: """
-          SELECT "tags".*
-          FROM "tags"
-          WHERE "id" NOT IN \(top.compactMap(\.id))
-          ORDER BY "name"
-          """)
-      )
+      let top =
+        try Tag
+        .withReminders
+        .having { $2.count().gt(0) }
+        .order { ($2.count().desc(), $0.title) }
+        .select { tag, _, _ in tag }
+        .limit(3)
+        .fetchAll(db)
+
+      let rest =
+        try Tag
+        .where { !$0.id.in(top.map(\.id)) }
+        .order(by: \.title)
+        .fetchAll(db)
+
       return Value(rest: rest, top: top)
     }
     struct Value {
@@ -94,10 +86,10 @@ private struct TagView: View {
         if isSelected {
           Image.init(systemName: "checkmark")
         }
-        Text(tag.name)
+        Text(tag.title)
       }
     }
-    .tint(isSelected ? .blue : .black)
+    .tint(isSelected ? .accentColor : .primary)
   }
 }
 

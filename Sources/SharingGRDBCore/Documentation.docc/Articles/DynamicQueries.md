@@ -17,7 +17,7 @@ Take the following example:
 
 ```swift
 struct ContentView: View {
-  @SharedReader(.fetchAll("SELECT * FROM items")) var items: [Item]
+  @FetchAll var items: [Item]
   @State var filterDate: Date?
   @State var order: SortOrder = .reverse
 
@@ -64,24 +64,22 @@ struct ContentView: View {
 
   private func updateQuery() async {
     do {
-      try await $items.load(.fetch(Items(filterDate: filterDate, order: order)))
+      try await $items.load(
+        .fetchAll(
+          Items
+            .where { $0.timestamp > #bind(filterDate ?? .distantPast) }
+            .order {
+              if order == .forward {
+                $0.timestamp
+              } else {
+                $0.timestamp.desc()
+              }
+            }
+            .limit(10)
+        )
+      )
     } catch {
       // Handle error...
-    }
-  }
-
-  private struct Items: FetchKeyRequest {
-    var filterDate: Date?
-    var order: SortOrder = .reverse
-    func fetch(_ db: Database) throws -> [Item] {
-      try Item.all()
-        .filter(Column("timestamp") > filterDate ?? .distantPast)
-        .sort(
-          order == .forward 
-            ? Column("timestamp")
-            : Column("timestamp").desc
-        )
-        .limit(10)
     }
   }
 
@@ -90,9 +88,9 @@ struct ContentView: View {
 ```
 
 > Important: If a parent view refreshes, a dynamically-updated query can be overwritten with the
-> initial `@SharedReader`'s value, taken from the parent. To manage the state of this dynamic query
-> locally to this view, we use `@State.SharedReader`, instead, which wraps a `@SharedReader` in
-> SwiftUI `@State`.
+> initial `@FetchAll`'s value, taken from the parent. To manage the state of this dynamic query
+> locally to this view, we use `@State @FetchAll`, instead, and to access the underlying 
+> `FetchAll` value you can use `wrappedValue`.
 
-> Note: We are using the ``Sharing/SharedReaderKey/fetch(_:database:animation:)-rgj4`` style of 
+> Note: We are using the ``Sharing/SharedReaderKey/fetchAll(_:database:)`` style of 
 > querying the database. See <doc:Fetching> for more APIs that can be used.

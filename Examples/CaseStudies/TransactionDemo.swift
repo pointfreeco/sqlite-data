@@ -1,4 +1,3 @@
-import Dependencies
 import SharingGRDB
 import SwiftUI
 
@@ -8,7 +7,7 @@ struct TransactionDemo: SwiftUICaseStudy {
     database transaction. If you need to fetch multiple pieces of data from the database that \
     all tend to change together, then performing those queries in a single transaction can be \
     more performant.
-    
+
     For example, if you need to fetch rows from a table as well as a count of the rows in the \
     table, then those two pieces of data will tend to change at the same time (though not always). \
     So, it can be better to perform the select and count as two different queries in the same \
@@ -16,7 +15,8 @@ struct TransactionDemo: SwiftUICaseStudy {
     """
   let caseStudyTitle = "Database Transactions"
 
-  @SharedReader(.fetch(Facts(), animation: .default)) private var facts = Facts.Value()
+  @Fetch(Facts(), animation: .default)
+  private var facts = Facts.Value()
 
   @Dependency(\.defaultDatabase) var database
 
@@ -46,7 +46,8 @@ struct TransactionDemo: SwiftUICaseStudy {
             as: UTF8.self
           )
           try await database.write { db in
-            _ = try Fact(body: fact).inserted(db)
+            try Fact.insert(Fact.Draft(body: fact))
+              .execute(db)
           }
         }
       } catch {}
@@ -60,21 +61,18 @@ struct TransactionDemo: SwiftUICaseStudy {
     }
     func fetch(_ db: Database) throws -> Value {
       try Value(
-        facts: Fact.order(Column("id").desc).fetchAll(db),
-        count: Fact.fetchCount(db)
+        facts: Fact.order { $0.id.desc() }.fetchAll(db),
+        count: Fact.all.fetchCount(db)
       )
     }
   }
-
 }
 
-private struct Fact: Codable, FetchableRecord, Identifiable, MutablePersistableRecord {
+@Table
+private struct Fact: Identifiable {
   static let databaseTableName = "facts"
-  var id: Int64?
+  let id: Int
   var body: String
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
 extension DatabaseWriter where Self == DatabaseQueue {
@@ -82,10 +80,15 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try db.create(table: Fact.databaseTableName) { table in
-        table.autoIncrementedPrimaryKey("id")
-        table.column("body", .text).notNull()
-      }
+      try #sql(
+        """
+        CREATE TABLE "facts" (
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "body" TEXT NOT NULL
+        )
+        """
+      )
+      .execute(db)
     }
     try! migrator.migrate(databaseQueue)
     return databaseQueue

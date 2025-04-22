@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
+		CAD001872D874F1F00FA977A /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CAD001862D874F1F00FA977A /* DependenciesTestSupport */; };
 		CAFDD64A2D5E823A00EE099E /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CAFDD6492D5E823A00EE099E /* SharingGRDB */; };
 		DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = DC5FA7472D4C63D60082743E /* DependenciesMacros */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
@@ -17,6 +19,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		CAD001812D874E6F00FA977A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CAF836902D4735620047AEB5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DCBE89CB2D483FB90071F499;
+			remoteInfo = SyncUps;
+		};
 		CAF836A92D4735640047AEB5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CAF836902D4735620047AEB5 /* Project object */;
@@ -28,6 +37,7 @@
 
 /* Begin PBXFileReference section */
 		CA5F37542D5AFBBC002E1A9E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAF836982D4735620047AEB5 /* CaseStudies.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CaseStudies.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAF836A82D4735640047AEB5 /* CaseStudiesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CaseStudiesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAF836D82D4735AB0047AEB5 /* Reminders.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Reminders.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -60,6 +70,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		CAD0017E2D874E6F00FA977A /* SyncUpTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SyncUpTests;
+			sourceTree = "<group>";
+		};
 		CAF8369A2D4735620047AEB5 /* CaseStudies */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -92,6 +107,14 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CAD0017A2D874E6F00FA977A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CAD001872D874F1F00FA977A /* DependenciesTestSupport in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CAF836952D4735620047AEB5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -113,6 +136,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CAFDD64A2D5E823A00EE099E /* SharingGRDB in Frameworks */,
+				CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -138,6 +162,7 @@
 				CAF836AB2D4735640047AEB5 /* CaseStudiesTests */,
 				CAF836D92D4735AB0047AEB5 /* Reminders */,
 				DCBE89CD2D483FB90071F499 /* SyncUps */,
+				CAD0017E2D874E6F00FA977A /* SyncUpTests */,
 				CAF837022D4735C00047AEB5 /* Frameworks */,
 				CAF836992D4735620047AEB5 /* Products */,
 			);
@@ -150,6 +175,7 @@
 				CAF836A82D4735640047AEB5 /* CaseStudiesTests.xctest */,
 				CAF836D82D4735AB0047AEB5 /* Reminders.app */,
 				DCBE89CC2D483FB90071F499 /* SyncUps.app */,
+				CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -164,6 +190,30 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		CAD0017C2D874E6F00FA977A /* SyncUpTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CAD001852D874E6F00FA977A /* Build configuration list for PBXNativeTarget "SyncUpTests" */;
+			buildPhases = (
+				CAD001792D874E6F00FA977A /* Sources */,
+				CAD0017A2D874E6F00FA977A /* Frameworks */,
+				CAD0017B2D874E6F00FA977A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CAD001822D874E6F00FA977A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CAD0017E2D874E6F00FA977A /* SyncUpTests */,
+			);
+			name = SyncUpTests;
+			packageProductDependencies = (
+				CAD001862D874F1F00FA977A /* DependenciesTestSupport */,
+			);
+			productName = SyncUpTests;
+			productReference = CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		CAF836972D4735620047AEB5 /* CaseStudies */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CAF836BC2D4735640047AEB5 /* Build configuration list for PBXNativeTarget "CaseStudies" */;
@@ -229,6 +279,7 @@
 			name = Reminders;
 			packageProductDependencies = (
 				CAFDD6492D5E823A00EE099E /* SharingGRDB */,
+				CA14DBC82DA884C400E36852 /* CasePaths */,
 			);
 			productName = Reminders;
 			productReference = CAF836D82D4735AB0047AEB5 /* Reminders.app */;
@@ -267,9 +318,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
+				LastSwiftUpdateCheck = 1630;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					CAD0017C2D874E6F00FA977A = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = DCBE89CB2D483FB90071F499;
+					};
 					CAF836972D4735620047AEB5 = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -308,11 +363,19 @@
 				CAF836A72D4735640047AEB5 /* CaseStudiesTests */,
 				CAF836D72D4735AB0047AEB5 /* Reminders */,
 				DCBE89CB2D483FB90071F499 /* SyncUps */,
+				CAD0017C2D874E6F00FA977A /* SyncUpTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		CAD0017B2D874E6F00FA977A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CAF836962D4735620047AEB5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -344,6 +407,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		CAD001792D874E6F00FA977A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CAF836942D4735620047AEB5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -375,6 +445,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CAD001822D874E6F00FA977A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DCBE89CB2D483FB90071F499 /* SyncUps */;
+			targetProxy = CAD001812D874E6F00FA977A /* PBXContainerItemProxy */;
+		};
 		CAF836AA2D4735640047AEB5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = CAF836972D4735620047AEB5 /* CaseStudies */;
@@ -383,6 +458,42 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		CAD001832D874E6F00FA977A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SyncUpTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SyncUps.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SyncUps";
+			};
+			name = Debug;
+		};
+		CAD001842D874E6F00FA977A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SyncUpTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SyncUps.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SyncUps";
+			};
+			name = Release;
+		};
 		CAF836BA2D4735640047AEB5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -707,6 +818,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CAD001852D874E6F00FA977A /* Build configuration list for PBXNativeTarget "SyncUpTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAD001832D874E6F00FA977A /* Debug */,
+				CAD001842D874E6F00FA977A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CAF836932D4735620047AEB5 /* Build configuration list for PBXProject "Examples" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -782,10 +902,20 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		CA14DBC82DA884C400E36852 /* CasePaths */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
+			productName = CasePaths;
+		};
 		CA2908C82D4AF70E003F165F /* UIKitNavigation */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
 			productName = UIKitNavigation;
+		};
+		CAD001862D874F1F00FA977A /* DependenciesTestSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */;
+			productName = DependenciesTestSupport;
 		};
 		CAFDD6492D5E823A00EE099E /* SharingGRDB */ = {
 			isa = XCSwiftPackageProductDependency;

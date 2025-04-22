@@ -13,8 +13,8 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
     """
 
   private var dataSource: UICollectionViewDiffableDataSource<Section, Fact>!
-  @SharedReader(.fetchAll(sql: #"SELECT * FROM "facts" ORDER BY "id" DESC"#, animation: .default))
-  private var facts: [Fact]
+  @FetchAll(Fact.order { $0.id.desc() }, animation: .default)
+  private var facts
   private var viewDidLoadTask: Task<Void, Error>?
 
   @Dependency(\.defaultDatabase) var database
@@ -29,9 +29,9 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
             style: .destructive,
             title: "Delete"
           ) { action, view, completion in
-            _ = withErrorReporting {
+            withErrorReporting {
               try database.wrappedValue.write { db in
-                try facts.wrappedValue[indexPath.row].delete(db)
+                try Fact.delete(facts.wrappedValue[indexPath.row]).execute(db)
               }
             }
           }
@@ -96,7 +96,8 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
         if let fact {
           await withErrorReporting {
             try await database.write { db in
-              _ = try Fact(body: fact).inserted(db)
+              try Fact.insert(Fact.Draft(body: fact))
+                .execute(db)
             }
           }
         }
@@ -109,13 +110,10 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
   }
 }
 
-private struct Fact: Codable, FetchableRecord, Hashable, Identifiable, MutablePersistableRecord {
-  static let databaseTableName = "facts"
-  var id: Int64?
+@Table
+private struct Fact: Hashable, Identifiable {
+  let id: Int
   var body: String
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
 extension DatabaseWriter where Self == DatabaseQueue {
@@ -123,10 +121,15 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try db.create(table: Fact.databaseTableName) { table in
-        table.autoIncrementedPrimaryKey("id")
-        table.column("body", .text).notNull()
-      }
+      try #sql(
+        """
+        CREATE TABLE "facts" (
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "body" TEXT NOT NULL
+        )
+        """
+      )
+      .execute(db)
     }
     try! migrator.migrate(databaseQueue)
     return databaseQueue

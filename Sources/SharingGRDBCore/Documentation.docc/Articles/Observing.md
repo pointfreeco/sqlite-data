@@ -10,13 +10,14 @@ macro from SwiftData.
 
 ### SwiftUI
 
-The `@SharedReader` property wrapper works in SwiftUI views similarly to how the `@Query` macro does
-from SwiftData. You simply add a property to the view that is annotated with `@SharedReader` and
-choose one of the various ways for [querying your database](<doc:Fetching>):
+The `@FetchAll`, `@FetchOne`, and `@Fetch` property wrappers work in SwiftUI views similarly to how
+the `@Query` macro does from SwiftData. You simply add a property to the view that is annotated with
+one of the various ways of [querying your database](<doc:Fetching>):
 
 ```swift
 struct ItemsView: View {
-  @SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
+  @FetchAll var items: [Item]
+
   var body: some View {
     ForEach(items) { item in
       Text(item.name)
@@ -30,27 +31,29 @@ queried data to update.
 
 ### @Observable models
 
-The `@SharedReader` property also works in `@Observable` models (and `ObservableObject`s for pre-iOS
-17 apps). You can add a property to an `@Observable` class, and its data will automatically update
-when the database changes and cause any SwiftUI view using it to re-render:
+SharedGRDB's property wrappers also works in `@Observable` models (and `ObservableObject`s for
+pre-iOS 17 apps). You can add a property to an `@Observable` class, and its data will automatically
+update when the database changes and cause any SwiftUI view using it to re-render:
 
 ```swift
 @Observable
 class ItemsModel {
   @ObservationIgnored
-  @SharedReader(.fetchAll(sql: "SELECT * FROM items")) var items: [Item]
+  @FetchAll var items: [Item]
 }
 struct ItemsView: View {
+  let model: ItemsModel
+
   var body: some View {
-    ForEach(items) { item in
+    ForEach(model.items) { item in
       Text(item.name)
     }
   }
 }
 ```
 
-> Note: Due to how macros work in Swift, `@SharedReader` must be annotated with
-> `@ObservationIgnored`, but that does not affect observation as `@SharedReader` handles its own
+> Note: Due to how macros work in Swift, property wrappers must be annotated with
+> `@ObservationIgnored`, but this does not affect observation as SharingGRDB handles its own
 > observation.
 
 ### UIKit
@@ -61,7 +64,7 @@ then you can do roughly the following:
 
 ```swift
 class ItemsViewController: UICollectionViewController {
-  @SharedReader(.fetchAll("SELECT * FROM items")) var items: [Item]
+  @FetchAll var items: [Item]
   
   override func viewDidLoad() {
     // Set up data source and cell registration...
@@ -79,8 +82,8 @@ class ItemsViewController: UICollectionViewController {
 }
 ```
 
-This uses the `publisher` property that is available on every `SharedReader` value to update the
-collection view's data source whenever the `items` change.
+This uses the `publisher` property that is available on every fetched value to update the collection
+view's data source whenever the `items` change.
 
 > Tip: There is an alternative way to observe changes to `items`. If you are already depending on 
 > our [Swift Navigation][swift-nav-gh] library to make use of powerful navigation APIs for SwiftUI 

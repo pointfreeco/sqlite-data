@@ -13,8 +13,6 @@ class AppModel {
   }
 
   @ObservationIgnored
-  @Dependency(\.continuousClock) var clock
-  @ObservationIgnored
   @Dependency(\.date.now) var now
   @ObservationIgnored
   @Dependency(\.uuid) var uuid

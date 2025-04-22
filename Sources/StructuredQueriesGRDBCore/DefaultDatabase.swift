@@ -1,4 +1,5 @@
 import Dependencies
+import GRDB
 
 extension DependencyValues {
   /// The default database used by `fetchAll`, `fetchOne`, and `fetch`.
@@ -106,6 +107,6 @@ extension DependencyValues {
 
 #if DEBUG
   extension String {
-    static let defaultDatabaseLabel = "co.pointfree.SharingGRDB.testValue"
+    package static let defaultDatabaseLabel = "co.pointfree.SharingGRDB.testValue"
   }
 #endif

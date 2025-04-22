@@ -3,4 +3,7 @@ builder:
   configs:
   - documentation_targets:
     - SharingGRDB
-    swift_version: 6.0
+    - SharingGRDBCore
+    - StructuredQueriesGRDB
+    - StructuredQueriesGRDBCore
+    custom_documentation_parameters: [--enable-experimental-overloaded-symbol-presentation]

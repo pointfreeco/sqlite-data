@@ -1,34 +1,34 @@
 import Dependencies
 import DependenciesTestSupport
-import GRDB
 import Sharing
 import SharingGRDB
+import StructuredQueries
 import Testing
 
 @Suite(.dependency(\.defaultDatabase, try .syncUps()))
 struct IntegrationTests {
+  @Dependency(\.defaultDatabase) var database
+
   @Test
   func fetchAll_SQLString() async throws {
-    @SharedReader(.fetchAll(sql: #"SELECT * FROM "syncUps" WHERE "isActive""#))
-    var syncUps: [SyncUp] = []
+    @FetchAll(SyncUp.where(\.isActive)) var syncUps: [SyncUp]
     #expect(syncUps == [])
 
-    @Dependency(\.defaultDatabase) var database
     try await database.write { db in
-      _ = try SyncUp(isActive: true, title: "Engineering")
-        .inserted(db)
+      _ = try SyncUp.insert(SyncUp.Draft(isActive: true, title: "Engineering"))
+        .execute(db)
     }
     try await Task.sleep(nanoseconds: 100_000_000)
     #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
     try await database.write { db in
-      _ = try SyncUp(id: 1, isActive: false, title: "Engineering")
-        .saved(db)
+      _ = try SyncUp.upsert(SyncUp.Draft(id: 1, isActive: false, title: "Engineering"))
+        .execute(db)
     }
     try await Task.sleep(nanoseconds: 100_000_000)
     #expect(syncUps == [])
     try await database.write { db in
-      _ = try SyncUp(id: 1, isActive: true, title: "Engineering")
-        .saved(db)
+      _ = try SyncUp.upsert(SyncUp.Draft(id: 1, isActive: true, title: "Engineering"))
+        .execute(db)
     }
     try await Task.sleep(nanoseconds: 100_000_000)
     #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
@@ -36,67 +36,71 @@ struct IntegrationTests {
 
   @Test
   func fetch_FetchKeyRequest() async throws {
-    @SharedReader(.fetch(ActiveSyncUps()))
-    var syncUps: [SyncUp] = []
+    @Fetch(ActiveSyncUps()) var syncUps: [SyncUp] = []
     #expect(syncUps == [])
 
-    @Dependency(\.defaultDatabase) var database
     try await database.write { db in
-      _ = try SyncUp(isActive: true, title: "Engineering")
-        .inserted(db)
+      _ = try SyncUp.insert(SyncUp.Draft(isActive: true, title: "Engineering"))
+        .execute(db)
     }
     try await Task.sleep(nanoseconds: 100_000_000)
     #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
     try await database.write { db in
-      _ = try SyncUp(id: 1, isActive: false, title: "Engineering")
-        .saved(db)
+      _ = try SyncUp.upsert(SyncUp.Draft(id: 1, isActive: false, title: "Engineering"))
+        .execute(db)
     }
     try await Task.sleep(nanoseconds: 100_000_000)
     #expect(syncUps == [])
     try await database.write { db in
-      _ = try SyncUp(id: 1, isActive: true, title: "Engineering")
-        .saved(db)
+      _ = try SyncUp.upsert(SyncUp.Draft(id: 1, isActive: true, title: "Engineering"))
+        .execute(db)
     }
     try await Task.sleep(nanoseconds: 100_000_000)
     #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
   }
 }
 
-private struct SyncUp: Codable, Equatable, FetchableRecord, MutablePersistableRecord {
-  var id: Int64?
+@Table
+private struct SyncUp: Equatable, Identifiable {
+  let id: Int
   var isActive: Bool
   var title: String
-  static let databaseTableName = "syncUps"
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
-private struct Attendee: Codable, Equatable, FetchableRecord, MutablePersistableRecord {
-  var id: Int64?
+@Table
+private struct Attendee: Equatable {
+  let id: Int
   var name: String
-  var syncUpID: Int
-  static let databaseTableName = "attendees"
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
+  var syncUpID: SyncUp.ID
 }
 
-private extension DatabaseWriter where Self == DatabaseQueue {
-  static func syncUps() throws -> Self {
+extension DatabaseWriter where Self == DatabaseQueue {
+  fileprivate static func syncUps() throws -> Self {
     let database = try DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create schema") { db in
-      try db.create(table: SyncUp.databaseTableName) { t in
-        t.autoIncrementedPrimaryKey("id")
-        t.column("isActive", .boolean).notNull()
-        t.column("title", .text).notNull()
-      }
-      try db.create(table: Attendee.databaseTableName) { t in
-        t.autoIncrementedPrimaryKey("id")
-        t.column("syncUpID", .integer).notNull()
-        t.column("name", .text).notNull()
-      }
+      try #sql(
+        """
+        CREATE TABLE "syncUps" (
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "isActive" INTEGER NOT NULL,
+          "title" TEXT NOT NULL
+        )
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE TABLE "attendees" (
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "syncUpID" INTEGER NOT NULL,
+          "name" TEXT NOT NULL,
+
+          FOREIGN KEY("syncUpID") REFERENCES "syncUps"("id")
+        )
+        """
+      )
+      .execute(db)
     }
     try migrator.migrate(database)
     return database
@@ -106,8 +110,7 @@ private extension DatabaseWriter where Self == DatabaseQueue {
 private struct ActiveSyncUps: FetchKeyRequest {
   func fetch(_ db: Database) throws -> [SyncUp] {
     try SyncUp
-      .all()
-      .filter(Column("isActive"))
+      .where(\.isActive)
       .fetchAll(db)
   }
 }

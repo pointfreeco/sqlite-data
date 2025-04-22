@@ -1,50 +1,31 @@
 import SharingGRDB
 import SwiftUI
 
-struct SyncUp: Codable, Hashable, FetchableRecord, MutablePersistableRecord {
-  static let tableName = "syncUps"
-
-  var id: Int64?
-  var seconds = 60 * 5
+@Table
+struct SyncUp: Hashable, Identifiable {
+  let id: Int
+  var seconds: Int = 60 * 5
   var theme: Theme = .bubblegum
   var title = ""
-
-  var duration: Duration {
-    get { .seconds(seconds) }
-    set { seconds = Int(newValue.components.seconds) }
-  }
-
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
-struct Attendee: Codable, Hashable, FetchableRecord, MutablePersistableRecord {
-  static let tableName = "attendees"
-
-  var id: Int64?
+@Table
+struct Attendee: Hashable, Identifiable {
+  let id: Int
   var name = ""
-  var syncUpID: Int64
-
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
+  var syncUpID: SyncUp.ID
 }
 
-struct Meeting: Codable, Hashable, FetchableRecord, MutablePersistableRecord {
-  static let tableName = "meetings"
-
-  var id: Int64?
+@Table
+struct Meeting: Hashable, Identifiable {
+  let id: Int
+  @Column(as: Date.ISO8601Representation.self)
   var date: Date
-  var syncUpID: Int64
+  var syncUpID: SyncUp.ID
   var transcript: String
-
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
-enum Theme: String, CaseIterable, Codable, Hashable, Identifiable, DatabaseValueConvertible {
+enum Theme: String, CaseIterable, Hashable, Identifiable, QueryBindable {
   case appIndigo
   case appMagenta
   case appOrange
@@ -87,6 +68,13 @@ enum Theme: String, CaseIterable, Codable, Hashable, Identifiable, DatabaseValue
   }
 }
 
+extension Int {
+  var duration: Duration {
+    get { .seconds(self) }
+    set { self = Int(newValue.components.seconds) }
+  }
+}
+
 func appDatabase() throws -> any DatabaseWriter {
   let database: any DatabaseWriter
   var configuration = Configuration()
@@ -111,35 +99,53 @@ func appDatabase() throws -> any DatabaseWriter {
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Create sync-ups table") { db in
-    try db.create(table: SyncUp.databaseTableName) { table in
-      table.autoIncrementedPrimaryKey("id")
-      table.column("seconds", .integer).defaults(to: 5 * 60).notNull()
-      table.column("theme", .text).notNull().defaults(to: Theme.bubblegum)
-      table.column("title", .text).notNull()
-    }
+    try #sql(
+      """
+      CREATE TABLE "syncUps" (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "seconds" INTEGER NOT NULL DEFAULT 300,
+        "theme" TEXT NOT NULL DEFAULT \(raw: Theme.bubblegum.rawValue),
+        "title" TEXT NOT NULL
+      )
+      """
+    )
+    .execute(db)
   }
   migrator.registerMigration("Create attendees table") { db in
-    try db.create(table: Attendee.databaseTableName) { table in
-      table.autoIncrementedPrimaryKey("id")
-      table.column("name", .text).notNull()
-      table.column("syncUpID", .integer)
-        .references(SyncUp.databaseTableName, column: "id", onDelete: .cascade)
-        .notNull()
-    }
+    try #sql(
+      """
+      CREATE TABLE "attendees" (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "name" TEXT NOT NULL,
+        "syncUpID" INTEGER NOT NULL,
+        
+        FOREIGN KEY("syncUpID") REFERENCES "syncUps"("id") ON DELETE CASCADE
+      )
+      """
+    )
+    .execute(db)
   }
   migrator.registerMigration("Create meetings table") { db in
-    try db.create(table: Meeting.databaseTableName) { table in
-      table.autoIncrementedPrimaryKey("id")
-      table.column("date", .datetime).notNull().unique().defaults(sql: "CURRENT_TIMESTAMP")
-      table.column("syncUpID", .integer)
-        .references(SyncUp.databaseTableName, column: "id", onDelete: .cascade)
-        .notNull()
-      table.column("transcript", .text).notNull()
-    }
+    try #sql(
+      """
+      CREATE TABLE "meetings" (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "date" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP UNIQUE,
+        "syncUpID" INTEGER NOT NULL,
+        "transcript" TEXT NOT NULL,
+
+        FOREIGN KEY("syncUpID") REFERENCES "syncUps"("id") ON DELETE CASCADE
+      )
+      """
+    )
+    .execute(db)
   }
-  #if DEBUG
-    migrator.registerMigration("Insert sample data") { db in
-      try db.insertSampleData()
+
+  #if DEBUG && targetEnvironment(simulator)
+    if context != .test {
+      migrator.registerMigration("Seed sample data") { db in
+        try db.seedSampleData()
+      }
     }
   #endif
 
@@ -148,39 +154,35 @@ func appDatabase() throws -> any DatabaseWriter {
   return database
 }
 
-#if DEBUG
-  extension Database {
-    func insertSampleData() throws {
-      let design = try SyncUp(seconds: 60, theme: .appOrange, title: "Design")
-        .inserted(self)
+extension Database {
+  fileprivate func seedSampleData() throws {
+    try seed {
+      SyncUp(id: 1, seconds: 60, theme: .appOrange, title: "Design")
+      SyncUp(id: 2, seconds: 60 * 10, theme: .periwinkle, title: "Engineering")
+      SyncUp(id: 3, seconds: 60 * 30, theme: .poppy, title: "Product")
+
       for name in ["Blob", "Blob Jr", "Blob Sr", "Blob Esq", "Blob III", "Blob I"] {
-        _ = try Attendee(name: name, syncUpID: design.id!).inserted(self)
+        Attendee.Draft(name: name, syncUpID: 1)
       }
-      _ = try Meeting(
+      for name in ["Blob", "Blob Jr"] {
+        Attendee.Draft(name: name, syncUpID: 2)
+      }
+      for name in ["Blob Sr", "Blob Jr"] {
+        Attendee.Draft(name: name, syncUpID: 3)
+      }
+
+      Meeting.Draft(
         date: Date().addingTimeInterval(-60 * 60 * 24 * 7),
-        syncUpID: design.id!,
+        syncUpID: 1,
         transcript: """
           Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor \
           incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud \
-          exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure \
-          dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. \
-          Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt \
-          mollit anim id est laborum.
+          exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute \
+          irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla \
+          pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia \
+          deserunt mollit anim id est laborum.
           """
       )
-      .inserted(self)
-
-      let engineering = try SyncUp(seconds: 60 * 10, theme: .periwinkle, title: "Engineering")
-        .inserted(self)
-      for name in ["Blob", "Blob Jr"] {
-        _ = try Attendee(name: name, syncUpID: engineering.id!).inserted(self)
-      }
-
-      let product = try SyncUp(seconds: 60 * 30, theme: .poppy, title: "Product")
-        .inserted(self)
-      for name in ["Blob Sr", "Blob Jr"] {
-        _ = try Attendee(name: name, syncUpID: product.id!).inserted(self)
-      }
     }
   }
-#endif
+}

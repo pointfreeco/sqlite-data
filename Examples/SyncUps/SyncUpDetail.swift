@@ -7,7 +7,7 @@ import SwiftUINavigation
 final class SyncUpDetailModel: HashableObject {
   var destination: Destination?
   var isDismissed = false
-  @ObservationIgnored @SharedReader var details: Details.Value
+  @ObservationIgnored @Fetch var details: Details.Value
 
   var onMeetingStarted: (SyncUp, [Attendee]) -> Void = unimplemented("onMeetingStarted")
 
@@ -33,16 +33,17 @@ final class SyncUpDetailModel: HashableObject {
     syncUp: SyncUp
   ) {
     self.destination = destination
-    _details = SharedReader(
+    _details = Fetch(
       wrappedValue: Details.Value(syncUp: syncUp),
-      .fetch(Details(syncUp: syncUp), animation: .default)
+      Details(syncUp: syncUp), animation: .default
     )
   }
 
   func deleteMeetings(atOffsets indices: IndexSet) {
     withErrorReporting {
       try database.write { db in
-        _ = try Meeting.deleteAll(db, keys: indices.map { details.meetings[$0].id })
+        let ids = indices.map { details.meetings[$0].id }
+        try Meeting.where { ids.contains($0.id) }.delete().execute(db)
       }
     }
   }
@@ -58,7 +59,7 @@ final class SyncUpDetailModel: HashableObject {
       try? await clock.sleep(for: .seconds(0.4))
       await withErrorReporting {
         try await database.write { [syncUp = details.syncUp] db in
-          _ = try syncUp.delete(db)
+          try SyncUp.delete(syncUp).execute(db)
         }
       }
 
@@ -76,7 +77,7 @@ final class SyncUpDetailModel: HashableObject {
   func editButtonTapped() {
     destination = .edit(
       withDependencies(from: self) {
-        SyncUpFormModel(syncUp: details.syncUp, attendees: details.attendees)
+        SyncUpFormModel(syncUp: SyncUp.Draft(details.syncUp))
       }
     )
   }
@@ -107,13 +108,16 @@ final class SyncUpDetailModel: HashableObject {
     let syncUp: SyncUp
 
     func fetch(_ db: Database) throws -> Value {
-      try Value(
-        attendees: Attendee.filter(Column("syncUpID") == syncUp.id).fetchAll(db),
-        meetings: Meeting
-          .filter(Column("syncUpID") == syncUp.id)
-          .order(Column("date").desc)
+      guard let syncUp = try SyncUp.where({ $0.id == syncUp.id }).fetchOne(db)
+      else { throw NotFound() }
+      return try Value(
+        attendees: Attendee.where { $0.syncUpID == syncUp.id }.fetchAll(db),
+        meetings:
+          Meeting
+          .where { $0.syncUpID.eq(syncUp.id) }
+          .order { $0.date.desc() }
           .fetchAll(db),
-        syncUp: SyncUp.fetchOne(db, key: syncUp.id) ?? SyncUp()
+        syncUp: syncUp
       )
     }
   }
@@ -136,7 +140,7 @@ struct SyncUpDetailView: View {
         HStack {
           Label("Length", systemImage: "clock")
           Spacer()
-          Text(model.details.syncUp.duration.formatted(.units()))
+          Text(model.details.syncUp.seconds.duration.formatted(.units()))
         }
 
         HStack {
@@ -155,7 +159,9 @@ struct SyncUpDetailView: View {
       if !model.details.meetings.isEmpty {
         Section {
           ForEach(model.details.meetings, id: \.id) { meeting in
-            NavigationLink(value: AppModel.Path.meeting(meeting, attendees: model.details.attendees)) {
+            NavigationLink(
+              value: AppModel.Path.meeting(meeting, attendees: model.details.attendees)
+            ) {
               HStack {
                 Image(systemName: "calendar")
                 Text(meeting.date, style: .date)
@@ -293,7 +299,7 @@ struct MeetingView: View {
   }
   @Dependency(\.defaultDatabase) var database
   let syncUp = try! database.read { db in
-    try SyncUp.fetchOne(db)!
+    try SyncUp.limit(1).fetchOne(db)!
   }
   NavigationStack {
     SyncUpDetailView(

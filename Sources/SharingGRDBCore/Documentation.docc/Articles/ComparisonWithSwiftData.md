@@ -10,6 +10,7 @@ SwiftUI views (including UIKit, `@Observable` models, _etc._). This article desc
 approaches compare in a variety of situations, such as setting up the data store, fetching data,
 associations, and more.
 
+  * [Defining your schema](#Defining-your-schema)
   * [Setting up external storage](#Setting-up-external-storage)
   * [Fetching data for a view](#Fetching-data-for-a-view)
   * [Fetching data for an @Observable model](#Fetching-data-for-an-Observable-model)
@@ -21,12 +22,68 @@ associations, and more.
     * [Manual migrations](#Manual-migrations)
   * [Supported Apple platforms](#Supported-Apple-platforms)
 
+### Defining your schema
+
+Both SharingGRDB and SwiftData come with tools to expose your data types' fields to the compiler
+so that type-safe and schema-safe queries can be written. SharingGRDB uses another library of ours
+to provide these tools, called [StructuredQueries][sq-gh], and its `@Table` macro works similarly
+to SwiftData's `@Model` macro:
+
+[sq-gh]: http://github.com/pointfreeco/swift-structured-queries
+
+@Row {
+  @Column {
+    ```swift
+    // SharingGRDB
+    @Table
+    struct Item {
+      let id: Int
+      var title = ""
+      var isInStock = true 
+      var notes = ""
+    }
+    ```
+  }
+  @Column {
+    ```swift
+    // SwiftData
+    @Model
+    class Item {
+      var title: String
+      var isInStock: Bool
+      var notes: String
+      init(
+        title: String = "", 
+        isInStock: Bool = true, 
+        notes: String = ""
+      ) {
+        self.title = title
+        self.isInStock = isInStock
+        self.notes = notes
+      }
+    }
+    ```
+  }
+}
+
+Some key differences:
+
+  * The `@Table` macro works with struct data types, whereas `@Model` only works with classes.
+  * Because the `@Model` version of `Item` is a class it is necessary to provide an initializer.
+  * The `@Model` version of `Item` does not need an `id` field because SwiftData provides a
+    `persistentIdentifier` to each model.
+
+See the [documentation][sq-defining-schema] from StructuredQueries for more information on how
+to define your schema.
+
+[sq-defining-schema]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/definingyourschema
+
 ### Setting up external storage
 
 Both SharingGRDB and SwiftData require some work to be done at the entry point of the app in order
 to set up the external storage system that will be used throughout the app. In SharingGRDB we use
-the `prepareDependencies` function to set up the ``Dependencies/DependencyValues/defaultDatabase``
-used, and in SwiftUI you construct a `ModelContainer` and propagate it through the environment:
+the `prepareDependencies` function to set up the default database used, and in SwiftUI you construct
+a `ModelContainer` and propagate it through the environment:
 
 @Row {
   @Column {
@@ -71,7 +128,7 @@ configure your SQLite database for use with SharingGRDB.
 
 ### Fetching data for a view
 
-To fetch data from a SQLite database you use the `@SharedReader` property wrapper in SharingGRDB,
+To fetch data from a SQLite database you use the `@FetchAll` property wrapper in SharingGRDB,
 whereas you use the `@Query` macro with SwiftData:
 
 @Row {
@@ -79,8 +136,8 @@ whereas you use the `@Query` macro with SwiftData:
     ```swift
     // SharingGRDB
     struct ItemsView: View {
-      @SharedReader(.fetchAll(sql: "SELECT * FROM items"))
-      var items: [Item]
+      @FetchAll(Item.order(by: \.title))
+      var items
       
       var body: some View {
         ForEach(items) { item in
@@ -94,7 +151,7 @@ whereas you use the `@Query` macro with SwiftData:
     ```swift
     // SwiftData
     struct ItemsView: View {
-      @Query
+      @Query(sort: \Item.title)
       var items: [Item]
       
       var body: some View {
@@ -107,17 +164,30 @@ whereas you use the `@Query` macro with SwiftData:
   }
 }
 
-The `@SharedReader` property wrapper takes a variety of options, detailed more in <doc:Fetching>,
-and allows you to write raw SQL queries for fetching and aggregating data from your database. It 
-is also possibly to construct SQL queries using GRDB's query builder syntax. See
-[`fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)-3qcpd>) for more information.
+The `@FetchAll` property wrapper takes a variety of options and allows you to write queries using a 
+type-safe and schema-safe builder syntax, or you can write safe SQL strings that are schema-safe and 
+protect you from SQL injection.
+
+The library also ships a few other property wrappres that have no equivalent in SwiftData. For
+example, the [`@FetchOne`](<doc:FetchOne>) property wrapper allows you to query for just a single
+value, which can be useful for computing aggegrate data:
+
+```swift
+@FetchOne(Item.where(\.isInStock).count())
+var inStockItemsCount = 0
+```
+
+And the [`@Fetch`](<doc:Fetch>) property wrapper allows you to execute multiple queries in a single
+database transaction to gather you data into a single data type. SwiftData has no equivalent for
+either of these operations. See <doc:Fetching> for more detailed information on how to fetch
+data from your database using the tools of this library.
 
 ### Fetching data for an @Observable model
 
 There are many reasons one may want to move logic out of the view and into an `@Observable` model,
 such as allowing to unit test your feature's logic, and making it possible to deep link in your 
-app. The `@SharedReader` and [data fetching tools](<doc:Fetching>) work just as well in an
-`@Observable` model as they do in a SwiftUI view. The state held in the property wrapper
+app. The `@FetchAll` property warpper, and other [data fetching tools](<doc:Fetching>) work just as 
+well in an `@Observable` model as they do in a SwiftUI view. The state held in the property wrapper
 automatically updates when changes are made to the database.
 
 The `@Query` macro, on the other hand, only works in SwiftUI views. This means if you want to move
@@ -131,7 +201,7 @@ its functionality from scratch:
     @Observable
     class FeatureModel {
       @ObservationIgnored
-      @SharedReader(.fetchAll(sql: "SELECT * FROM items"))
+      @FetchAll(Item.order(by: \.title)) var items
       // ...
     }
     ```
@@ -176,8 +246,8 @@ its functionality from scratch:
   }
 }
 
-> Note: It is necessary to annotate `@SharedReader` with `@ObservationIgnored` when using the 
-> `@Observable` macro due to how macros interact with property wrappers. However, `@SharedReader`
+> Note: It is necessary to annotate `@FetchAll` with `@ObservationIgnored` when using the 
+> `@Observable` macro due to how macros interact with property wrappers. However, `@FetchAll`
 > handles its own observation, and so state will still be observed when accessed in a view.
 
 ### Dynamic queries
@@ -192,24 +262,24 @@ search for rows in a table:
     // SharingGRDB
     struct ItemsView: View {
       @State var searchText = ""
-      @SharedReader var items: [Item]
+      @FetchAll var items: [Item]
       
       var body: some View {
         ForEach(items) { item in
           Text(item.name)
         }
         .searchable(text: $searchText)
-        .onChange(of: searchText) {
-          updateSearchQuery()
+        .task(id: searchText) {
+          await updateSearchQuery()
         }
       }
       
       func updateSearchQuery() {
-        $items = SharedReader(
-          wrappedValue: items, 
+        await $items.load(
           .fetchAll(
-            sql: "SELECT * FROM items WHERE title LIKE ?",
-            arguments: ["%\(searchText)%"]
+            Item.where {
+              $0.title.contains(searchText)
+            }
           )
         )
       }
@@ -259,21 +329,19 @@ because `@Query` state is not mutable after it is initialized. The only way to c
 state is if the view holding it is reinitialized, which requires a parent view to recreate the
 child view.
 
-On the other hand, the same UI made with `@SharedReader` can all happen in a single view. We can
+On the other hand, the same UI made with `@FetchAll` can all happen in a single view. We can
 hold onto the `searchText` state that the user edits, use the `searchable` view modifier for the
-UI, and update the `@SharedReader` query when the `searchText` state changes.
+UI, and update the `@FetchAll` query when the `searchText` state changes.
 
 See <doc:DynamicQueries> for more information on how to execute dynamic queries in the library.
 
 ### Creating, update and delete data
 
-To create, update and delete data from the database you must use the 
-``Dependencies/DependencyValues/defaultDatabase`` dependency. This is similar to what one does
-with SwiftData too, where all changes to the database go through the `ModelContext` and is not
-done through the `@Query` macro at all.
+To create, update and delete data from the database you must use the `defaultDatabase` dependency.
+This is similar to what one does with SwiftData too, where all changes to the database go through
+the `ModelContext` and is not done through the `@Query` macro at all.
 
-For example, to get access to the ``Dependencies/DependencyValues/defaultDatabase``, you use the 
-`@Dependency` property wrapper:
+For example, to get access to `defaultDatabase`, you use the `@Dependency` property wrapper:
 
 @Row {
   @Column {
@@ -290,7 +358,7 @@ For example, to get access to the ``Dependencies/DependencyValues/defaultDatabas
   }
 }
 
-Then, to create a new row in a table you use the `write` and `insert` methods from GRDB:
+Then, to create a new row in a table you use the `write` and `insert` methods from SharingGRDB:
 
 @Row {
   @Column {
@@ -298,9 +366,9 @@ Then, to create a new row in a table you use the `write` and `insert` methods fr
     // SharingGRDB
     @Dependency(\.defaultDatabase) var database
     
-    var newItem = Item(/* ... */)
     try database.write { db in
-      try newItem.insert(db)
+      try Item.insert(Item(/* ... */))
+        .execute(db)
     }
     ```
   }
@@ -316,7 +384,7 @@ Then, to create a new row in a table you use the `write` and `insert` methods fr
   }
 }
 
-To update an existing row you can use the `write` and `update` methods from GRDB:
+To update an existing row you can use the `write` and `update` methods from SharingGRDB:
 
 @Row {
   @Column {
@@ -326,7 +394,7 @@ To update an existing row you can use the `write` and `update` methods from GRDB
     
     existingItem.title = "Computer"
     try database.write { db in
-      try existingItem.update(db)
+      try Item.update(existingItem).execute(db)
     }
     ```
   }
@@ -341,7 +409,7 @@ To update an existing row you can use the `write` and `update` methods from GRDB
   }
 }
 
-And to delete an existing row, you can use the `write` and `delete` methods from GRDB:
+And to delete an existing row, you can use the `write` and `delete` methods from SharingGRDB:
 
 @Row {
   @Column {
@@ -350,7 +418,7 @@ And to delete an existing row, you can use the `write` and `delete` methods from
     @Dependency(\.defaultDatabase) var database
     
     try database.write { db in
-      try existingItem.delete(db)
+      try Item.delete(existingItem).execute(db)
     }
     ```
   }
@@ -367,8 +435,8 @@ And to delete an existing row, you can use the `write` and `delete` methods from
 
 ### Associations
 
-The biggest difference between SwiftData and GRDB is that SwiftData provides tools for an
-Object Relational Mapping (ORM), whereas GRDB is largely just a nice API for interacting with SQLite
+The biggest difference between SwiftData and SharingGRDB is that SwiftData provides tools for an
+Object Relational Mapping (ORM), whereas SharingGRDB is largely just a nice API for interacting with SQLite
 directly.
 
 For example, SwiftData allows you to model a `Sport` type that belongs to many `Team`s like
@@ -398,59 +466,39 @@ for sport in sports {
 This is powerful, but it can also lead to a number of problems in apps. First, the only way for this
 mechanism to work is for `Team` and `Sport` to be classes, and the `@Model` macro enforces that.
 Second, because the SQLite execution is so abstracted from us, it makes it easy to execute many,
-_many_ queries, leading to inefficient code. In this case, we are executing a whole new SQL query
-for each sport in order to get their teams. And on top of that, we are loading every team into
-memory just to get the number of teams. We don't actually need any data from the team.
+_many_ queries, leading to inefficient code. In this case, we are first executing a query to
+get all sports, and then executing a query for each sport to get the number of teams in each
+sport. And on top of that, we are loading every team into memory just to compute the number of 
+teams.  We don't actually need any data from the team, only their aggregate count.
 
-GRDB does not provide these kinds of tools, and for good reason. Instead, if you know you want to
-fetch all of the teams with their corresponding sport, you can simply perform a single query that
-joins the two tables together:
+SharingGRDB does not provide these kinds of tools, and for good reason. Instead, if you know you 
+want to fetch all of the teams with their corresponding sport, you can simply perform a single 
+query that joins the two tables together:
 
 ```swift
-struct SportWithTeamCount: Decodable, FetchableRecord {
+@Selection
+struct SportWithTeamCount {
   let sport: Sport
   let teamCount: Int
 }
 
-let sportsWithTeamCounts = try sportsWithTeamCounts.fetchAll(
-  db,
-  Sport.annotated(
-    with: Sport.hasMany(Team.self).count
-  )
+@FetchAll(
+  Sport
+    .group(by: \.id)
+    .leftJoin(Team.all) { $0.id.eq($1.sportID) }
+    .select {
+      SportWithTeamCount.Columns(sport: $0, teamCount: $1.count())
+    }
 )
-```
-
-This fetches all of the sports with the number of teams in each sport, all in a single query. And
-most importantly, it does not load all of the team data into memory just to compute their count.
-
-One can package this query up into a dedicated ``FetchKeyRequest`` like so:
-
-```swift
-struct SportsWithTeamCounts: FetchKeyRequest {
-  struct Record {
-    let sport: Sport
-    let teamCount: Int
-  }
-  func fetch(_ db: Database) throws -> [Record] {
-    try sportsWithTeamCounts.fetchAll(
-      db,
-      Sport.annotated(
-        with: Sport.hasMany(Team.self).count
-      )
-    )
-  }
-}
-```
-
-And then use this with `@SharedReader` in order to model state that is a collection of all sports
-along with their corresponding team count:
-
-```swift
-@SharedReader(.fetch(SportsWithTeamCounts())) var sportsWithTeamCounts
+var sportsWithTeamCounts
 ```
 
 If either of the "sports" or "teams" tables change, this query will be executed again and the
 state will update to the freshest values.
+
+This style of handling associations does require you to be knowledgable in SQL to wield it
+correctly, but that is a benefit! SQL (and SQLite) are some of the most proven pieces of 
+technologies in the history of computers, and knowing how to wield their powers is a huge benefit.
 
 ### Migrations
 
@@ -473,18 +521,24 @@ Lightweight migrations in SwiftData work for simple situations, such as adding a
   @Column {
     ```swift
     // SharingGRDB
+    @Table
     struct Item {
-      var id: Int64
+      let id: Int
       var title = ""
       var isInStock = true
     }
     
     migrator.registerMigration("Create 'items' table") { db in
-      db.createTable("items") { table in
-        table.autoIncrementedPrimaryKey("id")
-        table.column("title", .text).notNull()
-        table.column("isInStock", .boolean).notNull().defaults(to: true)
-      }
+      try #sql(
+        """
+        CREATE TABLE "items" (
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "title" TEXT NOT NULL,
+          "isInStock" INTEGER NOT NULL DEFAULT 1
+        )
+        """
+      )
+      .execute(db)
     }
     ```
   }
@@ -509,18 +563,22 @@ adding a `description` field to the `Item` type:
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    @Table
     struct Item {
-      var id: Int64
+      let id: Int
       var title = ""
       var description = ""
       var isInStock = true
     }
     
     migrator.registerMigration("Add 'description' column to 'items'") { db in
-      db.alterTable("items") { table in
-        table.add(column: "description", .text)
-      }
+      try #sql(
+        """
+        ALTER TABLE "items" 
+        ADD COLUMN "description" TEXT
+        """
+      )
+      .execute(db)
     }
     ```
   }
@@ -585,16 +643,23 @@ structure of your data types. The overall steps to follow are as such:
     // SharingGRDB
     migrator.registerMigration("Make 'title' unique") { db in
       // 1️⃣ Delete all items that have duplicate title, keeping the first created one:
-      try db.execute("""
-        DELETE FROM "items"
-        WHERE rowid NOT IN (
-          SELECT min(rowid)
-          FROM "items"
-          GROUP BY "items"."title"
-        )
-        """)
+      try Item
+        .where {
+          !$0.id.in(
+            Item
+              .select { $0.id.min() }
+              .group(by: \.title)
+          )
+        }
+        .execute()
       // 2️⃣ Create unique index
-      try db.create(indexOn: "items", columns: ["title"], options: .unique)
+      try #sql(
+        """
+        CREATE UNIQUE INDEX 
+        "items_title" ON "items" ("title") 
+        """
+      )
+      .execute(db)
     }
     ```
   }

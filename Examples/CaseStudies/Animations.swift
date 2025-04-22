@@ -1,4 +1,3 @@
-import Dependencies
 import SharingGRDB
 import SwiftUI
 
@@ -7,14 +6,14 @@ struct AnimationsCaseStudy: SwiftUICaseStudy {
     This demonstrates how to animate fetching data from the database, or when data changes in \
     the database. Simply provide the `animation` argument to `fetchAll` (or the other querying \
     tools, such as `fetch` and `fetchOne`). 
-    
+
     This is analogous to how animations work in SwiftData in which one provides an `animation` \
     argument to the `@Query` macro.
     """
   let caseStudyTitle = "Animations"
 
-  @SharedReader(.fetchAll(sql: #"SELECT * FROM "facts" ORDER BY "id" DESC"#, animation: .default))
-  private var facts: [Fact]
+  @FetchAll(Fact.order { $0.id.desc() }, animation: .default)
+  private var facts
 
   @Dependency(\.defaultDatabase) var database
 
@@ -36,7 +35,8 @@ struct AnimationsCaseStudy: SwiftUICaseStudy {
             as: UTF8.self
           )
           try await database.write { db in
-            _ = try Fact(body: fact).inserted(db)
+            try Fact.insert(Fact.Draft(body: fact))
+              .execute(db)
           }
         }
       } catch {}
@@ -44,13 +44,10 @@ struct AnimationsCaseStudy: SwiftUICaseStudy {
   }
 }
 
-private struct Fact: Codable, FetchableRecord, Identifiable, MutablePersistableRecord {
-  static let databaseTableName = "facts"
-  var id: Int64?
+@Table
+private struct Fact: Identifiable {
+  let id: Int
   var body: String
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    id = inserted.rowID
-  }
 }
 
 extension DatabaseWriter where Self == DatabaseQueue {
@@ -58,10 +55,15 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let databaseQueue = try! DatabaseQueue()
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
-      try db.create(table: Fact.databaseTableName) { table in
-        table.autoIncrementedPrimaryKey("id")
-        table.column("body", .text).notNull()
-      }
+      try #sql(
+        """
+        CREATE TABLE "facts" (
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "body" TEXT NOT NULL
+        )
+        """
+      )
+      .execute(db)
     }
     try! migrator.migrate(databaseQueue)
     return databaseQueue

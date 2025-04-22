@@ -1,5 +1,4 @@
-import Dependencies
-import GRDB
+import SharingGRDB
 import SwiftUI
 
 @main
@@ -9,7 +8,7 @@ struct RemindersApp: App {
       $0.defaultDatabase = try Reminders.appDatabase()
     }
   }
-  
+
   var body: some Scene {
     WindowGroup {
       NavigationStack {

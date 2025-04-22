@@ -3,7 +3,8 @@ import SharingGRDB
 import SwiftUI
 
 struct SearchRemindersView: View {
-  @SharedReader var searchReminders: SearchReminders.Value
+  @FetchOne var completedCount: Int = 0
+  @State @FetchAll var reminders: [ReminderState]
 
   let searchText: String
   @State var showCompletedInSearchResults = false
@@ -12,24 +13,15 @@ struct SearchRemindersView: View {
 
   init(searchText: String) {
     self.searchText = searchText
-    _searchReminders = SharedReader(
-      wrappedValue: SearchReminders.Value(),
-      .fetch(
-        SearchReminders(
-          showCompletedInSearchResults: _showCompletedInSearchResults.wrappedValue,
-          searchText: searchText
-        ),
-        animation: .default
-      )
-    )
+    _reminders = State(wrappedValue: FetchAll())
   }
 
   var body: some View {
     HStack {
-      Text("\(searchReminders.completedCount) Completed")
+      Text("\(completedCount) Completed")
         .monospacedDigit()
         .contentTransition(.numericText())
-      if searchReminders.completedCount > 0 {
+      if completedCount > 0 {
         Text("•")
         Menu {
           Text("Clear Completed Reminders")
@@ -41,14 +33,8 @@ struct SearchRemindersView: View {
           Text("Clear")
         }
         Spacer()
-        if showCompletedInSearchResults {
-          Button("Hide") {
-            showCompletedInSearchResults = false
-          }
-        } else {
-          Button("Show") {
-            showCompletedInSearchResults = true
-          }
+        Button(showCompletedInSearchResults ? "Hide" : "Show") {
+          showCompletedInSearchResults.toggle()
         }
       }
     }
@@ -59,12 +45,15 @@ struct SearchRemindersView: View {
       }
     }
 
-    ForEach(searchReminders.reminders, id: \.reminder.id) { reminder in
+    ForEach(reminders) { reminder in
       ReminderRow(
+        color: reminder.remindersList.color,
         isPastDue: reminder.isPastDue,
+        notes: reminder.notes,
         reminder: reminder.reminder,
         remindersList: reminder.remindersList,
-        tags: (reminder.commaSeparatedTags ?? "").split(separator: ",").map(String.init)
+        showCompleted: showCompletedInSearchResults,
+        tags: reminder.tags
       )
     }
   }
@@ -73,113 +62,59 @@ struct SearchRemindersView: View {
     if searchText.isEmpty {
       showCompletedInSearchResults = false
     }
-    try await $searchReminders.load(
-      .fetch(
-        SearchReminders(
-          showCompletedInSearchResults: showCompletedInSearchResults,
-          searchText: searchText
-        ),
-        animation: .default
-      )
+    try await $completedCount.load(
+      Reminder.searching(searchText)
+        .where(\.isCompleted)
+        .count(),
+      animation: .default
+    )
+    try await $reminders.wrappedValue.load(
+      Reminder
+        .searching(searchText)
+        .where { showCompletedInSearchResults || !$0.isCompleted }
+        .order { ($0.isCompleted, $0.dueDate) }
+        .withTags
+        .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
+        .select {
+          ReminderState.Columns(
+            isPastDue: $0.isPastDue,
+            notes: $0.inlineNotes,
+            reminder: $0,
+            remindersList: $3,
+            tags: #sql("\($2.jsonNames)")
+          )
+        },
+      animation: .default
     )
   }
 
   private func deleteCompletedReminders(monthsAgo: Int? = nil) {
     withErrorReporting {
       try database.write { db in
-        let baseQuery = searchQueryBase(searchText: searchText)
-          .filter(Column("isCompleted"))
-        if let monthsAgo {
-          _ = try baseQuery
-            .filter(Column("date") < "date('now', '-\(monthsAgo) months')")
-            .deleteAll(db)
-        } else {
-          _ = try baseQuery.deleteAll(db)
-        }
+        try Reminder
+          .searching(searchText)
+          .where(\.isCompleted)
+          .where {
+            if let monthsAgo {
+              #sql("\($0.dueDate) < date('now', '-\(raw: monthsAgo) months')")
+            }
+          }
+          .delete()
+          .execute(db)
       }
     }
   }
 
-  struct SearchReminders: FetchKeyRequest {
-    let showCompletedInSearchResults: Bool
-    let searchText: String
-
-    func fetch(_ db: Database) throws -> Value {
-      struct LocalRequest: Decodable, FetchableRecord {
-        var isPastDue: Bool
-        let reminder: Reminder
-        let remindersListID: Int64
-        let commaSeparatedTags: String?
-      }
-      let reminders = try LocalRequest.fetchAll(
-        db,
-        SQLRequest(literal: """
-          SELECT 
-            "reminders".*,
-            "remindersLists"."id" AS "remindersListID",
-            group_concat("tags"."name", ',') AS "commaSeparatedTags",
-            NOT "isCompleted" AND coalesce("reminders"."date", date('now')) < date('now') AS "isPastDue"
-          FROM "reminders"
-          LEFT JOIN "remindersLists" ON "reminders"."remindersListID" = "remindersLists"."id"
-          LEFT JOIN "remindersTags" ON "reminders"."id" = "remindersTags"."reminderID"
-          LEFT JOIN "tags" ON "remindersTags"."tagID" = "tags"."id"
-          WHERE 
-            (
-              "reminders"."title" COLLATE NOCASE LIKE \("%\(searchText)%")
-                OR "reminders"."notes" COLLATE NOCASE LIKE \("%\(searchText)%")
-            )
-            \(sql: showCompletedInSearchResults ? "" : #"AND NOT "reminders"."isCompleted""#)
-          GROUP BY "reminders"."id"
-          ORDER BY
-            "reminders"."isCompleted", "reminders"."date" 
-          """)
-      )
-
-      // NB: We are loading lists as a separate query because we are not sure how to join
-      //     "remindersLists" into the above query and decode it into 'State'. Ideally this
-      //     could all be done with a single query.
-      let remindersLists = try RemindersList.fetchAll(
-        db,
-        keys: Set(reminders.map(\.remindersListID))
-      )
-
-      let completedCount = try searchQueryBase(searchText: searchText)
-        .filter(Column("isCompleted"))
-        .fetchCount(db)
-
-      return Value(
-        completedCount: completedCount,
-        reminders: reminders.map { reminder in
-          Value.Reminder(
-            isPastDue: reminder.isPastDue,
-            reminder: reminder.reminder,
-            remindersList: remindersLists.first(
-              where: { $0.id == reminder.reminder.remindersListID }
-            )!,
-            commaSeparatedTags: reminder.commaSeparatedTags
-          )
-        }
-      )
-    }
-    struct Value {
-      var completedCount = 0
-      var reminders: [Reminder] = []
-      struct Reminder: Decodable, FetchableRecord {
-        var isPastDue: Bool
-        let reminder: Reminders.Reminder
-        let remindersList: RemindersList
-        let commaSeparatedTags: String?
-      }
-    }
+  @Selection
+  struct ReminderState: Identifiable {
+    var id: Reminder.ID { reminder.id }
+    let isPastDue: Bool
+    let notes: String
+    let reminder: Reminders.Reminder
+    let remindersList: RemindersList
+    @Column(as: JSONRepresentation<[String]>.self)
+    let tags: [String]
   }
-}
-
-private func searchQueryBase(searchText: String) -> QueryInterfaceRequest<Reminder> {
-  Reminder
-    .filter(
-      Column("title").collating(.nocase).like("%\(searchText.lowercased())%")
-      || Column("notes").collating(.nocase).like("%\(searchText.lowercased())%")
-    )
 }
 
 #Preview {

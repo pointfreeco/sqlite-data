@@ -225,8 +225,8 @@ func appDatabase() throws -> any DatabaseWriter {
 ### Step 5: Set database connection in entry point
 
 Once you have defined your `appDatabase` helper for creating a database connection, you must set
-it as the ``Dependencies/DependencyValues/defaultDatabase`` for your app in its entry point. This
-can be in done in SwiftUI by using `prepareDependencies` in the `init` of your `App` conformance:
+it as the `defaultDatabase` for your app in its entry point. This can be in done in SwiftUI by using
+`prepareDependencies` in the `init` of your `App` conformance:
 
 ```swift
 import SharingGRDB
@@ -246,8 +246,8 @@ struct MyApp: App {
 > Important: You can only prepare the default database a single time in the lifetime of your
 > application. It is best to do this as early as possible after the app launches.
 
-If using app or scene delegates, then you can prepare the
-``Dependencies/DependencyValues/defaultDatabase`` in one of those conformances:
+If using app or scene delegates, then you can prepare the `defaultDatabase` in one of those
+conformances:
 
 ```swift
 import SharingGRDB
@@ -263,9 +263,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 }
 ```
 
-And if using something besides UIKit or SwiftUI, then simply set the
-``Dependencies/DependencyValues/defaultDatabase`` as early as possible in the application's 
-lifecycle.
+And if using something besides UIKit or SwiftUI, then simply set the `defaultDatabase` as early as
+possible in the application's lifecycle.
 
 It is also important to prepare the database in Xcode previews. This can be done like so:
 
