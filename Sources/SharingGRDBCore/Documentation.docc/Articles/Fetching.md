@@ -4,14 +4,14 @@ Learn about the various tools for fetching data from a SQLite database.
 
 ## Overview
 
-All data fetching happens by using the `@FetchAll`, `@FetchOne` or `@Fetch` property wrappers.
+All data fetching happens by using the `@FetchAll`, `@FetchOne`, or `@Fetch` property wrappers.
 The primary difference between these choices is whether if you want to fetch a collection of
-rows, or fetch a single row (e.g. an aggegrate computation), or if you want to execute multiple
+rows, or fetch a single row (_e.g._, an aggregate computation), or if you want to execute multiple
 queries in a single transaction.
 
-* [@FetchAll](#FetchAll)
-* [@FetchOne](#FetchOne)
-* [@Fetch](#Fetch)
+  * [`@FetchAll`](#FetchAll)
+  * [`@FetchOne`](#FetchOne)
+  * [`@Fetch`](#Fetch)
 
 ### @FetchAll
 
@@ -40,12 +40,11 @@ struct Reminder {
 
 [Defining your schema]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/definingyourschema
 
-With that done you can already sort all records from the `Reminder` table in their default order by
+With that done you can already fetch all records from the `Reminder` table in their default order by
 simply doing:
 
 ```swift
-@FetchAll(Reminder.all)
-var reminders
+@FetchAll var reminders: [Reminder]
 ```
 
 If you want to execute a more complex query, such as one that sorts the results by the reminder's 
@@ -75,9 +74,10 @@ You can even execute a SQL string to populate the data in your features:
 
 ```swift
 @FetchAll(
-  #sql("""
-  SELECT * FROM reminders where isCompleted ORDER BY title DESC
-  """, as: Reminder.self)
+  #sql(
+    "SELECT * FROM reminders where isCompleted ORDER BY title DESC",
+    as: Reminder.self
+  )
 )
 var completedReminders
 ```
@@ -88,12 +88,15 @@ description of your schema to prevent accidental typos:
 
 ```swift
 @FetchAll(
-  #sql("""
-  SELECT \(Reminder.columns) 
-  FROM \(Reminder.self) 
-  WHERE \(Reminder.isCompleted) 
-  ORDER BY \(Reminder.title) DESC
-  """, as: Reminder.self)
+  #sql(
+    """
+    SELECT \(Reminder.columns)
+    FROM \(Reminder.self)
+    WHERE \(Reminder.isCompleted)
+    ORDER BY \(Reminder.title) DESC
+    """,
+    as: Reminder.self
+  )
 )
 var completedReminders
 ```
@@ -165,7 +168,7 @@ you must construct a dedicated `FetchDescriptor` value and set its `propertiesTo
 
 The [`@FetchOne`](<doc:FetchOne>) property wrapper works similarly to `@FetchAll`, but fetches
 only a single record from the database and you must provide a default for when no record is found.
-This tool can be handy for computing aggegrate data, such as the number of reminders in the 
+This tool can be handy for computing aggregate data, such as the number of reminders in the
 database:
 
 ```swift
@@ -189,12 +192,12 @@ var completedRemindersCount = 0
 
 ### @Fetch
 
-It is also possible to execute multiple database queries to fetch data for your features. 
-This can be useful for performing several queries in a single database transaction:
+It is also possible to execute multiple database queries to fetch data for your features. This can
+be useful for performing several queries in a single database transaction:
 
-Each instance of `@FetchAll` in a feature executes their queries in a separate
-transaction. So, if we wanted to query for all completed reminders, along with a total count of 
-reminders (completed and uncompleted), we could do so like this:
+Each instance of `@FetchAll` in a feature executes their queries in a separate transaction. So, if
+we wanted to query for all completed reminders, along with a total count of reminders (completed and
+uncompleted), we could do so like this:
 
 ```swift
 @FetchOne(Reminder.count())
@@ -206,8 +209,8 @@ var completedReminders
 
 …this is technically 2 queries run in 2 separate database transactions.
 
-Often this can be just fine, but if you have multiple queries that tend to change at the same
-time (_e.g._, when reminders are created or deleted, `remindersCount` and `completedReminders` will
+Often this can be just fine, but if you have multiple queries that tend to change at the same time
+(_e.g._, when reminders are created or deleted, `remindersCount` and `completedReminders` will
 change at the same time), then you can bundle these two queries into a single transaction.
 
 To do this, one simply defines a conformance to our ``FetchKeyRequest`` protocol, and in that
