@@ -15,7 +15,8 @@ struct TransactionDemo: SwiftUICaseStudy {
     """
   let caseStudyTitle = "Database Transactions"
 
-  @SharedReader(.fetch(Facts(), animation: .default)) private var facts = Facts.Value()
+  @Fetch(Facts(), animation: .default)
+  private var facts = Facts.Value()
 
   @Dependency(\.defaultDatabase) var database
 

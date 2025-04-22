@@ -17,7 +17,7 @@ Take the following example:
 
 ```swift
 struct ContentView: View {
-  @SharedReader(.fetchAll(Item.all) var items
+  @FetchAll var items: [Item]
   @State var filterDate: Date?
   @State var order: SortOrder = .reverse
 
@@ -88,9 +88,9 @@ struct ContentView: View {
 ```
 
 > Important: If a parent view refreshes, a dynamically-updated query can be overwritten with the
-> initial `@SharedReader`'s value, taken from the parent. To manage the state of this dynamic query
-> locally to this view, we use `@State.SharedReader`, instead, which wraps a `@SharedReader` in
-> SwiftUI `@State`.
+> initial `@FetchAll`'s value, taken from the parent. To manage the state of this dynamic query
+> locally to this view, we use `@State @FetchAll`, instead, and to access the underlying 
+> `FetchAll` value you can use `wrappedValue`.
 
 > Note: We are using the ``Sharing/SharedReaderKey/fetchAll(_:database:)`` style of 
 > querying the database. See <doc:Fetching> for more APIs that can be used.

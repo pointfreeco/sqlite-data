@@ -123,7 +123,7 @@ configure your SQLite database for use with SharingGRDB.
 
 ### Fetching data for a view
 
-To fetch data from a SQLite database you use the `@SharedReader` property wrapper in SharingGRDB,
+To fetch data from a SQLite database you use the `@FetchAll` property wrapper in SharingGRDB,
 whereas you use the `@Query` macro with SwiftData:
 
 @Row {
@@ -131,7 +131,7 @@ whereas you use the `@Query` macro with SwiftData:
     ```swift
     // SharingGRDB
     struct ItemsView: View {
-      @SharedReader(.fetchAll(Item.order(by: \.title)))
+      @FetchAll(Item.order(by: \.title))
       var items
       
       var body: some View {
@@ -159,16 +159,30 @@ whereas you use the `@Query` macro with SwiftData:
   }
 }
 
-The `@SharedReader` property wrapper takes a variety of options, detailed more in <doc:Fetching>,
-and allows you to write queries using a type-safe and schema-safe builder syntax, or you can write
-safe SQL strings that are schema-safe and protect you from SQL injection.
+The `@FetchAll` property wrapper takes a variety of options and allows you to write queries using a 
+type-safe and schema-safe builder syntax, or you can write safe SQL strings that are schema-safe and 
+protect you from SQL injection.
+
+The library also ships a few other property wrappres that have no equivalent in SwiftData. For
+example, the [`@FetchOne`](<doc:FetchOne>) property wrapper allows you to query for just a single
+value, which can be useful for computing aggegrate data:
+
+```swift
+@FetchOne(Item.where(\.isInStock).count())
+var inStockItemsCount = 0
+```
+
+And the [`@Fetch`](<doc:Fetch>) property wrapper allows you to execute multiple queries in a single
+database transaction to gather you data into a single data type. SwiftData has no equivalent for
+either of these operations. See <doc:Fetching> for more detailed information on how to fetch
+data from your database using the tools of this library.
 
 ### Fetching data for an @Observable model
 
 There are many reasons one may want to move logic out of the view and into an `@Observable` model,
 such as allowing to unit test your feature's logic, and making it possible to deep link in your 
-app. The `@SharedReader` and [data fetching tools](<doc:Fetching>) work just as well in an
-`@Observable` model as they do in a SwiftUI view. The state held in the property wrapper
+app. The `@FetchAll` property warpper, and other [data fetching tools](<doc:Fetching>) work just as 
+well in an `@Observable` model as they do in a SwiftUI view. The state held in the property wrapper
 automatically updates when changes are made to the database.
 
 The `@Query` macro, on the other hand, only works in SwiftUI views. This means if you want to move
@@ -182,7 +196,7 @@ its functionality from scratch:
     @Observable
     class FeatureModel {
       @ObservationIgnored
-      @SharedReader(.fetchAll(Item.order(by: \.title))
+      @FetchAll(Item.order(by: \.title)) var items
       // ...
     }
     ```
@@ -227,8 +241,8 @@ its functionality from scratch:
   }
 }
 
-> Note: It is necessary to annotate `@SharedReader` with `@ObservationIgnored` when using the 
-> `@Observable` macro due to how macros interact with property wrappers. However, `@SharedReader`
+> Note: It is necessary to annotate `@FetchAll` with `@ObservationIgnored` when using the 
+> `@Observable` macro due to how macros interact with property wrappers. However, `@FetchAll`
 > handles its own observation, and so state will still be observed when accessed in a view.
 
 ### Dynamic queries
@@ -243,7 +257,7 @@ search for rows in a table:
     // SharingGRDB
     struct ItemsView: View {
       @State var searchText = ""
-      @SharedReader(value: []) var items: [Item]
+      @FetchAll var items: [Item]
       
       var body: some View {
         ForEach(items) { item in
@@ -310,9 +324,9 @@ because `@Query` state is not mutable after it is initialized. The only way to c
 state is if the view holding it is reinitialized, which requires a parent view to recreate the
 child view.
 
-On the other hand, the same UI made with `@SharedReader` can all happen in a single view. We can
+On the other hand, the same UI made with `@FetchAll` can all happen in a single view. We can
 hold onto the `searchText` state that the user edits, use the `searchable` view modifier for the
-UI, and update the `@SharedReader` query when the `searchText` state changes.
+UI, and update the `@FetchAll` query when the `searchText` state changes.
 
 See <doc:DynamicQueries> for more information on how to execute dynamic queries in the library.
 
@@ -463,15 +477,13 @@ struct SportWithTeamCount {
   let teamCount: Int
 }
 
-@SharedReader(
-  .fetchAll(
-    Sport
-      .group(by: \.id)
-      .leftJoin(Team.all) { $0.id.eq($1.sportID) }
-      .select {
-        SportWithTeamCount.Columns(sport: $0, teamCount: $1.count())
-      }
-   )
+@FetchAll(
+  Sport
+    .group(by: \.id)
+    .leftJoin(Team.all) { $0.id.eq($1.sportID) }
+    .select {
+      SportWithTeamCount.Columns(sport: $0, teamCount: $1.count())
+    }
 )
 var sportsWithTeamCounts
 ```

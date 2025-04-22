@@ -4,8 +4,23 @@ Learn about the various tools for fetching data from a SQLite database.
 
 ## Overview
 
-All data fetching happens by providing the `fetchAll`, `fetchOne`, or `fetch` key to the
-`@SharedReader` property wrapper. The primary differences between these choices is whether you want
+All data fetching happens by using the `@FetchAll`, `@FetchOne` or `@Fetch` property wrappers.
+The primary difference between these choices is whether if you want to fetch a collection of
+rows, or fetch a single row (e.g. an aggegrate computation), or if you want to execute multiple
+queries in a single transaction.
+
+* [@FetchAll](#)
+* [@FetchOne](#)
+* [@Fetch](#)
+
+
+### FetchAll
+
+
+----
+
+
+The primary differences between these choices is whether you want
 to build queries with [StructuredQueries][structured-queries-gh], specify your query as a raw SQL
 string, or if you want to assemble your value from one or more queries using a raw database
 connection.
