@@ -79,6 +79,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   }
 
   /// Initializes this property with a default value.
+  @_disfavoredOverload
   public init(
     wrappedValue: [Element] = []
   ) {
