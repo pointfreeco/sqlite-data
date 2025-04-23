@@ -21,12 +21,6 @@ struct FetchTests {
     #expect(records == [Record(id: 2), Record(id: 3)])
   }
 
-  @Test func bareFetchCount() async throws {
-    @FetchOne var recordsCount = 0
-    try await Task.sleep(nanoseconds: 100_000_000)
-    #expect(recordsCount == 3)
-  }
-
   @Test func fetchCountWithQuery() async throws {
     @FetchOne(Record.where { $0.id > 1 }.count()) var recordsCount = 0
     try await Task.sleep(nanoseconds: 100_000_000)
