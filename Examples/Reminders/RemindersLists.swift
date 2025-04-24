@@ -229,12 +229,6 @@ struct RemindersListsView: View {
       }
     }
   }
-
-  @Table @Selection
-  fileprivate struct PositionToRemindersListID {
-    let position: Int
-    let remindersListID: Int
-  }
 }
 
 private struct ReminderGridCell: View {
