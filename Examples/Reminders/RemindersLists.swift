@@ -5,6 +5,7 @@ struct RemindersListsView: View {
   @FetchAll(
     RemindersList
       .group(by: \.id)
+      .order(by: \.position)
       .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted }
       .select {
         ReminderListState.Columns(remindersCount: $1.id.count(), remindersList: $0)
@@ -129,7 +130,10 @@ struct RemindersListsView: View {
                 remindersCount: state.remindersCount,
                 remindersList: state.remindersList
               )
-            }
+          }
+          }
+          .onMove { indexSet, index in
+            move(from: indexSet, to: index)
           }
         } header: {
           Text("My Lists")
@@ -209,6 +213,51 @@ struct RemindersListsView: View {
     .navigationDestination(item: $remindersDetailType) { detailType in
       RemindersListDetailView(detailType: detailType)
     }
+  }
+
+  func move(from source: IndexSet, to destination: Int) {
+    withErrorReporting {
+      try database.write { db in
+        var ids = remindersLists.map { $0.remindersList.id }
+        ids.move(fromOffsets: source, toOffset: destination)
+
+        for (position, id) in ids.enumerated() {
+          try RemindersList
+            .find(id)
+            .update { $0.position = position }
+            .execute(db)
+        }
+
+//        let positionToRemindersListIDs = ids.enumerated().map { position, id in
+//          PositionToRemindersListID(position: position, remindersListID: id)
+//        }
+//        guard let first = positionToRemindersListIDs.first
+//        else { return }
+//        let rest = positionToRemindersListIDs.dropFirst()
+//
+//        let cte = rest.reduce(first as any PartialSelectStatement<PositionToRemindersListID>) { query, positionToRemindersListID in
+//          query.union(positionToRemindersListID)
+//        }
+//
+//        try With {
+//          cte
+//        } query: {
+//          RemindersList
+//            .update { remindersList in
+//              remindersList.position = PositionToRemindersListID
+//                .select { $0.position }
+//                .where { $0.remindersListID.eq(remindersList.id) }
+//            }
+//        }
+//        .execute(db)
+      }
+    }
+  }
+
+  @Table @Selection
+  fileprivate struct PositionToRemindersListID {
+    let position: Int
+    let remindersListID: Int
   }
 }
 

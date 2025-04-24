@@ -8,6 +8,7 @@ struct RemindersList: Hashable, Identifiable {
   var id: Int
   @Column(as: Color.HexRepresentation.self)
   var color = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
+  var position = 0
   var title = ""
 }
 
@@ -106,7 +107,7 @@ func appDatabase() throws -> any DatabaseWriter {
   #if DEBUG
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
-  migrator.registerMigration("Add reminders lists table") { db in
+  migrator.registerMigration("Create initial tables") { db in
     try #sql(
       """
       CREATE TABLE "remindersLists" (
@@ -117,8 +118,6 @@ func appDatabase() throws -> any DatabaseWriter {
       """
     )
     .execute(db)
-  }
-  migrator.registerMigration("Add reminders table") { db in
     try #sql(
       """
       CREATE TABLE "reminders" (
@@ -136,8 +135,6 @@ func appDatabase() throws -> any DatabaseWriter {
       """
     )
     .execute(db)
-  }
-  migrator.registerMigration("Add tags table") { db in
     try #sql(
       """
       CREATE TABLE "tags" (
@@ -156,6 +153,27 @@ func appDatabase() throws -> any DatabaseWriter {
         FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
         FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
       ) STRICT
+      """
+    )
+    .execute(db)
+  }
+  migrator.registerMigration("Add 'position' column to 'remindersLists'") { db in
+    try #sql(
+      """
+      ALTER TABLE "remindersLists"
+      ADD COLUMN "position" INTEGER NOT NULL DEFAULT 0
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TRIGGER "default_position_reminders_lists" 
+      AFTER INSERT ON "remindersLists"
+      FOR EACH ROW BEGIN
+        UPDATE "remindersLists"
+        SET "position" = (SELECT max("position") + 1 FROM "remindersLists")
+        WHERE "id" = NEW."id";
+      END
       """
     )
     .execute(db)
