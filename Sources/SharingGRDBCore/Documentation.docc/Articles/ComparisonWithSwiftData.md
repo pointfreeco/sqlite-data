@@ -644,6 +644,7 @@ structure of your data types. The overall steps to follow are as such:
     migrator.registerMigration("Make 'title' unique") { db in
       // 1️⃣ Delete all items that have duplicate title, keeping the first created one:
       try Item
+        .delete()
         .where {
           !$0.id.in(
             Item
