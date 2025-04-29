@@ -198,6 +198,8 @@ That is all it takes to create, configure and migrate a database connection. Her
 we have just written in one snippet:
 
 ```swift
+import OSLog
+
 func appDatabase() throws -> any DatabaseWriter {
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
@@ -230,6 +232,8 @@ func appDatabase() throws -> any DatabaseWriter {
   try migrator.migrate(database)
   return database
 }
+
+private let logger = Logger(subsystem: "MyApp", category: "Database")
 ```
 
 [grdb-migration-docs]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/migrations
