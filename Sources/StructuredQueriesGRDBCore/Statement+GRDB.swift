@@ -1,5 +1,5 @@
 import GRDB
-import SQLite3
+import GRDBSQLite
 import StructuredQueriesCore
 
 extension StructuredQueriesCore.Statement {
