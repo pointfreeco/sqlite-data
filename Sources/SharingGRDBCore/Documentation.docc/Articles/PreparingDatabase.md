@@ -57,22 +57,29 @@ than you expect. We also recommend only doing this in debug builds to avoid leak
 information when the app is running on a user's device:
 
 ```diff
++import OSLog
+
  func appDatabase() -> any DatabaseWriter {
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
 +  #if DEBUG
 +    configuration.prepareDatabase { db in
 +      db.trace(options: .profile) {
-+        print($0.expandedDescription)
++        logger.debug("\($0.expandedDescription)")
 +      }
 +    }
 +  #endif
  }
+
++private let logger = Logger(subsystem: "MyApp", category: "Database")
 ```
 
 > Note: `expandedDescription` will also print the data bound to the SQL statement, which can include
-> sensitive data that you may not want to leak. In this case we feel it is ok because everything
+> sensitive data that you may not want to leak. In this case we feel it is OK because everything
 > is surrounded in `#if DEBUG`, but it is something to be careful of in your own apps.
+
+> Tip: OSLog allows you to more flexibly filter logs in Xcode, but if you are on a non-Apple
+> platform you can use Swift's `print` function, instead.
 
 For more information on configuring tracing, see [GRDB's documentation][trace-docs] on the
 matter.
@@ -93,11 +100,12 @@ way to do this is to construct the database connection for a path on the file sy
    #if DEBUG
      configuration.prepareDatabase { db in
        db.trace(options: .profile) {
-         print($0.expandedDescription)
+         logger.debug("\($0.expandedDescription)")
        }
      }
    #endif
 +  let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
++  logger.info("open \(path)")
 +  let database = try DatabasePool(path: path, configuration: configuration)
 +  return database
  }
@@ -117,16 +125,18 @@ context or if we're in a preview or test.
    #if DEBUG
      configuration.prepareDatabase { db in
        db.trace(options: .profile) {
-         print($0.expandedDescription)
+         logger.debug("\($0.expandedDescription)")
        }
      }
    #endif
 -  let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
+-  logger.info("open \(path)")
 -  let database = try DatabasePool(path: path, configuration: configuration)
 +  @Dependency(\.context) var context
 +  let database: any DatabaseWriter
 +  if context == .live {
 +    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
++    logger.info("open \(path)")
 +    database = try DatabasePool(path: path, configuration: configuration)
 +  } else {
 +    database = try DatabaseQueue(configuration: configuration)
@@ -154,7 +164,7 @@ database connection:
    #if DEBUG
      configuration.prepareDatabase { db in
        db.trace(options: .profile) {
-         print($0.expandedDescription)
+         logger.debug("\($0.expandedDescription)")
        }
      }
    #endif
@@ -162,6 +172,7 @@ database connection:
    let database: any DatabaseWriter
    if context == .live {
      let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
+     logger.info("open \(path)")
      database = try DatabasePool(path: path, configuration: configuration)
    } else {
      database = try DatabaseQueue(configuration: configuration)
@@ -187,13 +198,15 @@ That is all it takes to create, configure and migrate a database connection. Her
 we have just written in one snippet:
 
 ```swift
+import OSLog
+
 func appDatabase() throws -> any DatabaseWriter {
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
   #if DEBUG
     configuration.prepareDatabase { db in
       db.trace(options: .profile) {
-        print($0.expandedDescription)
+        logger.debug("\($0.expandedDescription)")
       }
     }
   #endif
@@ -201,6 +214,7 @@ func appDatabase() throws -> any DatabaseWriter {
   let database: any DatabaseWriter
   if context == .live {
     let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
+    logger.info("open \(path)")
     database = try DatabasePool(path: path, configuration: configuration)
   } else {
     database = try DatabaseQueue(configuration: configuration)
@@ -218,6 +232,8 @@ func appDatabase() throws -> any DatabaseWriter {
   try migrator.migrate(database)
   return database
 }
+
+private let logger = Logger(subsystem: "MyApp", category: "Database")
 ```
 
 [grdb-migration-docs]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/migrations

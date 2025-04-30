@@ -1,3 +1,4 @@
+import OSLog
 import SharingGRDB
 import SwiftUI
 
@@ -82,14 +83,14 @@ func appDatabase() throws -> any DatabaseWriter {
   configuration.prepareDatabase { db in
     #if DEBUG
       db.trace(options: .profile) {
-        print($0.expandedDescription)
+        logger.debug("\($0.expandedDescription)")
       }
     #endif
   }
   @Dependency(\.context) var context
   if context == .live {
     let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-    print("open", path)
+    logger.info("open \(path)")
     database = try DatabasePool(path: path, configuration: configuration)
   } else {
     database = try DatabaseQueue(configuration: configuration)
@@ -153,6 +154,8 @@ func appDatabase() throws -> any DatabaseWriter {
 
   return database
 }
+
+private let logger = Logger(subsystem: "SyncUps", category: "Database")
 
 extension Database {
   fileprivate func seedSampleData() throws {
