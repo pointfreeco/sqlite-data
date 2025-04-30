@@ -203,7 +203,7 @@ struct RemindersListDetailView: View {
     let remindersList: RemindersList
     let isPastDue: Bool
     let notes: String
-    @Column(as: JSONRepresentation<[String]>.self)
+    @Column(as: [String].JSONRepresentation.self)
     let tags: [String]
   }
 }

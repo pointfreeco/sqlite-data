@@ -71,7 +71,7 @@ extension Tag {
 }
 
 extension Tag.TableColumns {
-  var jsonNames: some QueryExpression<JSONRepresentation<[String]>> {
+  var jsonNames: some QueryExpression<[String].JSONRepresentation> {
     self.title.jsonGroupArray(filter: self.title.isNot(nil))
   }
 }
