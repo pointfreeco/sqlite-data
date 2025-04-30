@@ -112,7 +112,7 @@ struct SearchRemindersView: View {
     let notes: String
     let reminder: Reminders.Reminder
     let remindersList: RemindersList
-    @Column(as: JSONRepresentation<[String]>.self)
+    @Column(as: [String].JSONRepresentation.self)
     let tags: [String]
   }
 }

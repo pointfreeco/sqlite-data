@@ -4,7 +4,6 @@ import GRDB
 import Sharing
 import SharingGRDB
 import StructuredQueries
-import SwiftUI
 import Testing
 
 @Suite(.dependency(\.defaultDatabase, try .database()))
