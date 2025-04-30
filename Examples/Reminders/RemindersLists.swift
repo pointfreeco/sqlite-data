@@ -5,6 +5,7 @@ struct RemindersListsView: View {
   @FetchAll(
     RemindersList
       .group(by: \.id)
+      .order(by: \.position)
       .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted }
       .select {
         ReminderListState.Columns(remindersCount: $1.id.count(), remindersList: $0)
@@ -129,7 +130,10 @@ struct RemindersListsView: View {
                 remindersCount: state.remindersCount,
                 remindersList: state.remindersList
               )
-            }
+          }
+          }
+          .onMove { indexSet, index in
+            move(from: indexSet, to: index)
           }
         } header: {
           Text("My Lists")
@@ -208,6 +212,27 @@ struct RemindersListsView: View {
     .searchable(text: $searchText)
     .navigationDestination(item: $remindersDetailType) { detailType in
       RemindersListDetailView(detailType: detailType)
+    }
+  }
+
+  func move(from source: IndexSet, to destination: Int) {
+    withErrorReporting {
+      try database.write { db in
+        var ids = remindersLists.map(\.remindersList.id)
+        ids.move(fromOffsets: source, toOffset: destination)
+        try RemindersList
+          .where { $0.id.in(ids) }
+          .update {
+            let ids = Array(ids.enumerated())
+            let (first, rest) = (ids.first!, ids.dropFirst())
+            $0.position = rest
+              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
+                cases.when(id.element, then: id.offset)
+              }
+              .else($0.position)
+          }
+          .execute(db)
+      }
     }
   }
 }
