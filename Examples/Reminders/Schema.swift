@@ -23,6 +23,7 @@ struct Reminder: Equatable, Identifiable {
   var notes = ""
   var priority: Priority?
   var remindersListID: Int
+//  var position = 0
   var title = ""
 }
 
@@ -173,6 +174,42 @@ func appDatabase() throws -> any DatabaseWriter {
       FOR EACH ROW BEGIN
         UPDATE "remindersLists"
         SET "position" = (SELECT max("position") + 1 FROM "remindersLists")
+        WHERE "id" = NEW."id";
+      END
+      """
+    )
+    .execute(db)
+  }
+  migrator.registerMigration("Add 'position' column to 'reminders'") { db in
+    try #sql(
+      """
+      ALTER TABLE "reminders"
+      ADD COLUMN "position" INTEGER NOT NULL DEFAULT 0
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      WITH "reminderPositions" AS (
+        SELECT
+          id,
+          ROW_NUMBER() OVER (PARTITION BY "remindersListID" ORDER BY id) - 1 AS "position"
+        FROM "reminders"
+      )
+      UPDATE "reminders"
+      SET "position" = "reminderPositions"."position"
+      FROM "reminderPositions"
+      WHERE "reminders"."id" = "reminderPositions"."id"
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TRIGGER "default_position_reminders" 
+      AFTER INSERT ON "reminders"
+      FOR EACH ROW BEGIN
+        UPDATE "reminders"
+        SET "position" = (SELECT max("position") + 1 FROM "reminders")
         WHERE "id" = NEW."id";
       END
       """
