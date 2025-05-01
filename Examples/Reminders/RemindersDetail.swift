@@ -130,7 +130,6 @@ struct RemindersDetailView: View {
   }
 
   func move(from source: IndexSet, to destination: Int) {
-    print("?!?!!?")
     withErrorReporting {
       try database.write { db in
         var ids = reminderStates.map(\.reminder.id)
