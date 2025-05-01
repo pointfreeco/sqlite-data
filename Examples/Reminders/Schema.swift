@@ -197,7 +197,7 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       WITH "reminderPositions" AS (
         SELECT
-          id,
+          "reminders"."id",
           ROW_NUMBER() OVER (PARTITION BY "remindersListID" ORDER BY id) - 1 AS "position"
         FROM "reminders"
         ORDER BY NOT "isCompleted", "dueDate" DESC
