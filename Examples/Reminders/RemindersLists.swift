@@ -130,7 +130,7 @@ struct RemindersListsView: View {
                 remindersCount: state.remindersCount,
                 remindersList: state.remindersList
               )
-          }
+            }
           }
           .onMove { indexSet, index in
             move(from: indexSet, to: index)
@@ -225,7 +225,8 @@ struct RemindersListsView: View {
           .update {
             let ids = Array(ids.enumerated())
             let (first, rest) = (ids.first!, ids.dropFirst())
-            $0.position = rest
+            $0.position =
+              rest
               .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
                 cases.when(id.element, then: id.offset)
               }

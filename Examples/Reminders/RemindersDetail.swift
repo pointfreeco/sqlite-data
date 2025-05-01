@@ -46,6 +46,9 @@ struct RemindersDetailView: View {
           tags: reminderState.tags
         )
       }
+      .onMove { indexSet, index in
+        move(from: indexSet, to: index)
+      }
     }
     .onScrollGeometryChange(for: Bool.self) { geometry in
       geometry.contentOffset.y + geometry.contentInsets.top > navigationTitleHeight
@@ -126,6 +129,30 @@ struct RemindersDetailView: View {
     }
   }
 
+  func move(from source: IndexSet, to destination: Int) {
+    print("?!?!!?")
+    withErrorReporting {
+      try database.write { db in
+        var ids = reminderStates.map(\.reminder.id)
+        ids.move(fromOffsets: source, toOffset: destination)
+        try Reminder
+          .where { $0.id.in(ids) }
+          .update {
+            let ids = Array(ids.enumerated())
+            let (first, rest) = (ids.first!, ids.dropFirst())
+            $0.position =
+            rest
+              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
+                cases.when(id.element, then: id.offset)
+              }
+              .else($0.position)
+          }
+          .execute(db)
+      }
+    }
+    ordering = .manual
+  }
+
   private enum Ordering: String, CaseIterable {
     case dueDate = "Due Date"
     case manual = "Manual"
@@ -169,7 +196,7 @@ struct RemindersDetailView: View {
       .order {
         switch ordering {
         case .dueDate: $0.dueDate
-        case .manual: $0.dueDate // TODO: position
+        case .manual: $0.position
         case .priority: ($0.priority.desc(), $0.isFlagged.desc())
         case .title: $0.title
         }
