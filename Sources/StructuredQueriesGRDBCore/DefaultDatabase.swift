@@ -83,7 +83,10 @@ extension DependencyValues {
         case .test:
           return """
             A blank, in-memory database is being used. To set the database that is used by \
-            'SharingGRDB' in a test, use a tool like the 'dependency' trait:
+            'SharingGRDB' in a test, use a tool like the 'dependency' trait from \
+            'DependenciesTestSupport':
+
+                import DependenciesTestSupport
 
                 @Suite(.dependency(\\.defaultDatabase, try DatabaseQueue(/* ... */)))
                 struct MyTests {
