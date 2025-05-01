@@ -69,28 +69,30 @@ extension DependencyValues {
             """
 
         case .preview:
-          return #"""
+          return """
             A blank, in-memory database is being used. To set the database that is used by \
             'SharingGRDB' in a preview, use a tool like the 'dependency' trait:
 
                 #Preview(
-                  trait: .dependency(\.defaultDatabase, try DatabaseQueue(/* ... */))
+                  traits: .dependency(\\.defaultDatabase, try DatabaseQueue(/* ... */))
                 ) {
                   // ...
                 }
-            """#
+            """
 
         case .test:
-          return #"""
+          return """
             A blank, in-memory database is being used. To set the database that is used by \
-            'SharingGRDB' in a test, use a tool like the 'dependency' trait:
+            'SharingGRDB' in a test, use a tool like the 'dependency' trait from \
+            'DependenciesTestSupport':
 
-                @Suite(.dependency(\.defaultDatabase, try DatabaseQueue(/* ... */)))
+                import DependenciesTestSupport
+
+                @Suite(.dependency(\\.defaultDatabase, try DatabaseQueue(/* ... */)))
                 struct MyTests {
                   // ...
                 }
-            """#
-
+            """
         }
       }
       if shouldReportUnimplemented {
