@@ -51,7 +51,10 @@ extension DependencyValues {
         switch context {
         case .live:
           return """
-            A blank, in-memory database is being used. To set the database that is used by 'SharingGRDB', use the 'prepareDependencies' tool as early as possible in the lifetime of your app, such as in your app or scene delegate in UIKit, or the app entry point in SwiftUI:
+            A blank, in-memory database is being used. To set the database that is used by \
+            'SharingGRDB', use the 'prepareDependencies' tool as early as possible in the lifetime \
+            of your app, such as in your app or scene delegate in UIKit, or the app entry point in \
+            SwiftUI:
 
                 @main
                 struct MyApp: App {
@@ -67,7 +70,8 @@ extension DependencyValues {
 
         case .preview:
           return """
-            A blank, in-memory database is being used. To set the database that is used by 'SharingGRDB' in a preview, use a tool like the 'dependency' trait:
+            A blank, in-memory database is being used. To set the database that is used by \
+            'SharingGRDB' in a preview, use a tool like the 'dependency' trait:
 
                 #Preview(
                   traits: .dependency(\\.defaultDatabase, try DatabaseQueue(/* ... */))
@@ -78,7 +82,9 @@ extension DependencyValues {
 
         case .test:
           return """
-            A blank, in-memory database is being used. To set the database that is used by 'SharingGRDB' in a test, use a tool like the 'dependency' trait from 'DependenciesTestSupport':
+            A blank, in-memory database is being used. To set the database that is used by \
+            'SharingGRDB' in a test, use a tool like the 'dependency' trait from \
+            'DependenciesTestSupport':
 
                 import DependenciesTestSupport
 
