@@ -23,6 +23,7 @@ struct Reminder: Equatable, Identifiable {
   var notes = ""
   var priority: Priority?
   var remindersListID: Int
+  var position = 0
   var title = ""
 }
 
@@ -86,17 +87,21 @@ struct ReminderTag: Hashable, Identifiable {
 }
 
 func appDatabase() throws -> any DatabaseWriter {
+  @Dependency(\.context) var context
   let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
   configuration.prepareDatabase { db in
     #if DEBUG
       db.trace(options: .profile) {
-        logger.debug("\($0.expandedDescription)")
+        if context == .live {
+          logger.debug("\($0.expandedDescription)")
+        } else {
+          print("\($0.expandedDescription)")
+        }
       }
     #endif
   }
-  @Dependency(\.context) var context
   if context == .live {
     let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
     logger.info("open \(path)")
@@ -173,6 +178,44 @@ func appDatabase() throws -> any DatabaseWriter {
       FOR EACH ROW BEGIN
         UPDATE "remindersLists"
         SET "position" = (SELECT max("position") + 1 FROM "remindersLists")
+        WHERE "id" = NEW."id";
+      END
+      """
+    )
+    .execute(db)
+  }
+  migrator.registerMigration("Add 'position' column to 'reminders'") { db in
+    try #sql(
+      """
+      ALTER TABLE "reminders"
+      ADD COLUMN "position" INTEGER NOT NULL DEFAULT 0
+      """
+    )
+    .execute(db)
+    // Backfill position of reminders based on their completion status and due date.
+    try #sql(
+      """
+      WITH "reminderPositions" AS (
+        SELECT
+          "reminders"."id",
+          ROW_NUMBER() OVER (PARTITION BY "remindersListID" ORDER BY id) - 1 AS "position"
+        FROM "reminders"
+        ORDER BY NOT "isCompleted", "dueDate" DESC
+      )
+      UPDATE "reminders"
+      SET "position" = "reminderPositions"."position"
+      FROM "reminderPositions"
+      WHERE "reminders"."id" = "reminderPositions"."id"
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TRIGGER "default_position_reminders" 
+      AFTER INSERT ON "reminders"
+      FOR EACH ROW BEGIN
+        UPDATE "reminders"
+        SET "position" = (SELECT max("position") + 1 FROM "reminders")
         WHERE "id" = NEW."id";
       END
       """

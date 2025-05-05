@@ -2,7 +2,7 @@ import CasePaths
 import SharingGRDB
 import SwiftUI
 
-struct RemindersListDetailView: View {
+struct RemindersDetailView: View {
   @FetchAll private var reminderStates: [ReminderState]
   @AppStorage private var ordering: Ordering
   @AppStorage private var showCompleted: Bool
@@ -45,6 +45,9 @@ struct RemindersListDetailView: View {
           showCompleted: showCompleted,
           tags: reminderState.tags
         )
+      }
+      .onMove { indexSet, index in
+        move(from: indexSet, to: index)
       }
     }
     .onScrollGeometryChange(for: Bool.self) { geometry in
@@ -126,13 +129,38 @@ struct RemindersListDetailView: View {
     }
   }
 
+  func move(from source: IndexSet, to destination: Int) {
+    withErrorReporting {
+      try database.write { db in
+        var ids = reminderStates.map(\.reminder.id)
+        ids.move(fromOffsets: source, toOffset: destination)
+        try Reminder
+          .where { $0.id.in(ids) }
+          .update {
+            let ids = Array(ids.enumerated())
+            let (first, rest) = (ids.first!, ids.dropFirst())
+            $0.position =
+            rest
+              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
+                cases.when(id.element, then: id.offset)
+              }
+              .else($0.position)
+          }
+          .execute(db)
+      }
+    }
+    ordering = .manual
+  }
+
   private enum Ordering: String, CaseIterable {
     case dueDate = "Due Date"
+    case manual = "Manual"
     case priority = "Priority"
     case title = "Title"
     var icon: Image {
       switch self {
       case .dueDate: Image(systemName: "calendar")
+      case .manual: Image(systemName: "hand.draw")
       case .priority: Image(systemName: "chart.bar.fill")
       case .title: Image(systemName: "textformat.characters")
       }
@@ -157,7 +185,7 @@ struct RemindersListDetailView: View {
 
   fileprivate var remindersQuery: some StructuredQueriesCore.Statement<ReminderState> {
     let query =
-      Reminder
+    Reminder
       .where {
         if !showCompleted {
           !$0.isCompleted
@@ -167,6 +195,7 @@ struct RemindersListDetailView: View {
       .order {
         switch ordering {
         case .dueDate: $0.dueDate
+        case .manual: $0.position
         case .priority: ($0.priority.desc(), $0.isFlagged.desc())
         case .title: $0.title
         }
@@ -208,7 +237,7 @@ struct RemindersListDetailView: View {
   }
 }
 
-extension RemindersListDetailView.DetailType {
+extension RemindersDetailView.DetailType {
   fileprivate var id: String {
     switch self {
     case .all: "all"
@@ -249,7 +278,7 @@ extension RemindersListDetailView.DetailType {
   }
 }
 
-struct RemindersListDetailPreview: PreviewProvider {
+struct RemindersDetailPreview: PreviewProvider {
   static var previews: some View {
     let (remindersList, tag) = try! prepareDependencies {
       $0.defaultDatabase = try Reminders.appDatabase()
@@ -260,14 +289,14 @@ struct RemindersListDetailPreview: PreviewProvider {
         )
       }
     }
-    let detailTypes: [RemindersListDetailView.DetailType] = [
+    let detailTypes: [RemindersDetailView.DetailType] = [
       .all,
       .list(remindersList),
       .tags([tag]),
     ]
     ForEach(detailTypes, id: \.self) { detailType in
       NavigationStack {
-        RemindersListDetailView(detailType: detailType)
+        RemindersDetailView(detailType: detailType)
       }
       .previewDisplayName(detailType.navigationTitle)
     }

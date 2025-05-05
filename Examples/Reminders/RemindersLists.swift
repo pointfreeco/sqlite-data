@@ -37,7 +37,7 @@ struct RemindersListsView: View {
   private var stats = Stats()
 
   @State private var destination: Destination?
-  @State private var remindersDetailType: RemindersListDetailView.DetailType?
+  @State private var remindersDetailType: RemindersDetailView.DetailType?
   @State private var searchText = ""
 
   @Dependency(\.defaultDatabase) private var database
@@ -124,13 +124,13 @@ struct RemindersListsView: View {
         Section {
           ForEach(remindersLists) { state in
             NavigationLink {
-              RemindersListDetailView(detailType: .list(state.remindersList))
+              RemindersDetailView(detailType: .list(state.remindersList))
             } label: {
               RemindersListRow(
                 remindersCount: state.remindersCount,
                 remindersList: state.remindersList
               )
-          }
+            }
           }
           .onMove { indexSet, index in
             move(from: indexSet, to: index)
@@ -148,7 +148,7 @@ struct RemindersListsView: View {
         Section {
           ForEach(tags) { tag in
             NavigationLink {
-              RemindersListDetailView(detailType: .tags([tag]))
+              RemindersDetailView(detailType: .tags([tag]))
             } label: {
               TagRow(tag: tag)
             }
@@ -211,7 +211,7 @@ struct RemindersListsView: View {
     }
     .searchable(text: $searchText)
     .navigationDestination(item: $remindersDetailType) { detailType in
-      RemindersListDetailView(detailType: detailType)
+      RemindersDetailView(detailType: detailType)
     }
   }
 
@@ -225,7 +225,8 @@ struct RemindersListsView: View {
           .update {
             let ids = Array(ids.enumerated())
             let (first, rest) = (ids.first!, ids.dropFirst())
-            $0.position = rest
+            $0.position =
+              rest
               .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
                 cases.when(id.element, then: id.offset)
               }
