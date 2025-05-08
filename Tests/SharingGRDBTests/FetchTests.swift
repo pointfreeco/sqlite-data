@@ -50,3 +50,20 @@ extension DatabaseWriter where Self == DatabaseQueue {
     return database
   }
 }
+
+@Test(.dependency(\.defaultDatabase, try .database())) func foo() throws {
+  @Dependency(\.defaultDatabase) var defaultDatabase
+  try defaultDatabase.write { db in
+    db.add(function: DatabaseFunction.init("didInsert", function: { arguments in
+      return 0
+    }))
+  }
+
+  try defaultDatabase.write { db in
+    try #sql("""
+      select didInsert(1) 
+      """)
+      .execute(db)
+  }
+}
+import Foundation

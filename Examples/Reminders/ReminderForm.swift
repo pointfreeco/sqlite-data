@@ -137,7 +137,7 @@ struct ReminderFormView: View {
           try Tag
             .order(by: \.title)
             .join(ReminderTag.all) { $0.id.eq($1.tagID) }
-            .where { $1.reminderID.eq(reminderID) }
+            .where { $1.reminderID.eq(#bind(reminderID)) }
             .select { tag, _ in tag }
             .fetchAll(db)
         }
@@ -173,7 +173,7 @@ struct ReminderFormView: View {
       try database.write { db in
         let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)!
         try ReminderTag
-          .where { $0.reminderID.eq(reminderID) }
+          .where { $0.reminderID.eq(#bind(reminderID)) }
           .delete()
           .execute(db)
         try ReminderTag.insert(
@@ -210,7 +210,7 @@ struct ReminderFormPreview: PreviewProvider {
         let remindersList = try RemindersList.all.fetchOne(db)!
         return (
           remindersList,
-          try Reminder.where { $0.remindersListID == remindersList.id }.fetchOne(db)!
+          try Reminder.where { $0.remindersListID.eq(#bind(remindersList.id)) }.fetchOne(db)!
         )
       }
     }

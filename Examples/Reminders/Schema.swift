@@ -6,7 +6,8 @@ import SwiftUI
 
 @Table
 struct RemindersList: Hashable, Identifiable {
-  var id: Int
+  @Column(as: UUID.LowercasedRepresentation.self)
+  var id: UUID
   @Column(as: Color.HexRepresentation.self)
   var color = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
   var position = 0
@@ -15,14 +16,16 @@ struct RemindersList: Hashable, Identifiable {
 
 @Table
 struct Reminder: Equatable, Identifiable {
-  var id: Int
+  @Column(as: UUID.LowercasedRepresentation.self)
+  var id: UUID
   @Column(as: Date.ISO8601Representation?.self)
   var dueDate: Date?
   var isCompleted = false
   var isFlagged = false
   var notes = ""
   var priority: Priority?
-  var remindersListID: Int
+  @Column(as: UUID.LowercasedRepresentation.self)
+  var remindersListID: RemindersList.ID
   var position = 0
   var title = ""
 }
@@ -63,7 +66,8 @@ enum Priority: Int, QueryBindable {
 
 @Table
 struct Tag: Hashable, Identifiable {
-  var id: Int
+  @Column(as: UUID.LowercasedRepresentation.self)
+  var id: UUID
   var title = ""
 }
 
@@ -81,7 +85,9 @@ extension Tag.TableColumns {
 
 @Table("remindersTags")
 struct ReminderTag: Hashable, Identifiable {
+  @Column(as: UUID.LowercasedRepresentation.self)
   var reminderID: Reminder.ID
+  @Column(as: UUID.LowercasedRepresentation.self)
   var tagID: Tag.ID
   var id: Self { self }
 }
@@ -117,7 +123,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "remindersLists" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "id" TEXT PRIMARY KEY DEFAULT (uuid()),
         "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99_ef00),
         "title" TEXT NOT NULL
       ) STRICT
@@ -127,13 +133,13 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "reminders" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "id" TEXT PRIMARY KEY DEFAULT (uuid()),
         "dueDate" TEXT,
         "isCompleted" INTEGER NOT NULL DEFAULT 0,
         "isFlagged" INTEGER NOT NULL DEFAULT 0,
         "notes" TEXT,
         "priority" INTEGER,
-        "remindersListID" INTEGER NOT NULL,
+        "remindersListID" TEXT NOT NULL,
         "title" TEXT NOT NULL,
 
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
@@ -144,7 +150,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "tags" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "id" TEXT PRIMARY KEY DEFAULT (uuid()),
         "title" TEXT NOT NULL COLLATE NOCASE UNIQUE
       ) STRICT
       """
@@ -153,8 +159,8 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "remindersTags" (
-        "reminderID" INTEGER NOT NULL,
-        "tagID" INTEGER NOT NULL,
+        "reminderID" TEXT NOT NULL,
+        "tagID" TEXT NOT NULL,
 
         FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
         FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
@@ -231,8 +237,111 @@ func appDatabase() throws -> any DatabaseWriter {
   #endif
   try migrator.migrate(database)
 
+  try database.write { db in
+    try installTriggers(db: db)
+  }
+
+  /*
+   prepareDependencies {
+    $0.cloudKitDatabase = …
+   }
+
+   @Dependency(\.cloudKitDatabase) var cloudKitDatabase
+   try cloudKitDatabase.registerTriggers(db)
+
+   let tableNames = select name from sqlite_master where type = 'table';
+   for tableName in tablesNames {
+      CREATE TRIGGER "\(tableName)_insert_trigger"
+      AFTER INSERT ON "\(tableName)" FOR EACH ROW BEGIN
+        SELECT insertTrigger('\(tableName)', new.id)
+      END
+   }
+}
+   */
+
   return database
 }
+
+func installTriggers(db: Database) throws {
+  db.add(function: DatabaseFunction.init("didInsert", function: { arguments in
+    logger.info("didInsert: \(arguments[0]).\(arguments[1])")
+    return 0
+  }))
+  db.add(function: DatabaseFunction.init("didUpdate", function: { arguments in
+    logger.info("didUpdate: \(arguments[0]).\(arguments[1])")
+    return 0
+  }))
+  db.add(function: DatabaseFunction.init("didDelete", function: { arguments in
+    logger.info("didDelete: \(arguments[0]).\(arguments[1])")
+    return 0
+  }))
+  let tableNames = try #sql(
+    """
+    SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
+    """,
+    as: String.self
+  )
+  .fetchAll(db)
+  .filter { !$0.hasPrefix("sqlite_") && !$0.hasPrefix("grdb_") }
+
+  for tableName in tableNames {
+    try #sql(
+      """
+      DROP TRIGGER IF EXISTS "__\(raw: tableName)_sync_inserts"
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      DROP TRIGGER IF EXISTS "__\(raw: tableName)_sync_updates"
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      DROP TRIGGER IF EXISTS "__\(raw: tableName)_sync_deletes"
+      """
+    )
+    .execute(db)
+//    // TODO: what about tables without 'id'?
+    try #sql(
+      """
+      CREATE TRIGGER "__\(raw: tableName)_sync_inserts"
+      AFTER INSERT ON "\(raw: tableName)" FOR EACH ROW BEGIN
+        SELECT didInsert('\(raw: tableName)', new.rowid);
+      END
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TRIGGER "__\(raw: tableName)_sync_updates"
+      AFTER UPDATE ON "\(raw: tableName)" FOR EACH ROW BEGIN
+        SELECT didUpdate('\(raw: tableName)', new.rowid);
+      END
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TRIGGER "__\(raw: tableName)_sync_deletes"
+      BEFORE DELETE ON "\(raw: tableName)" FOR EACH ROW BEGIN
+        SELECT didDelete('\(raw: tableName)', old.rowid);
+      END
+      """
+    )
+    .execute(db)
+  }
+}
+
+//
+//func insertTrigger(tableName: String, id: UUID) {
+//  @Dependency(\.cloudKitDatabase) var db
+//  db.add(pendingRecordZoneChanges: .saveRecord(CKRecord.ID(zoneID: tableName, recordName: id)))
+//}
+//func nextRecordZoneChangeBatch(_ context: CKSyncEngine.SendChangesContext, syncEngine: CKSyncEngine) async -> CKSyncEngine.RecordZoneChangeBatch? {
+//}
+//
 
 private let logger = Logger(subsystem: "Reminders", category: "Database")
 
@@ -241,112 +350,115 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
     func seedSampleData() throws {
       try seed {
         RemindersList(
-          id: 1,
+          id: UUID(1),
           color: Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255),
           title: "Personal"
         )
         RemindersList(
-          id: 2,
+          id: UUID(2),
           color: Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255),
           title: "Family"
         )
         RemindersList(
-          id: 3,
+          id: UUID(3),
           color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
           title: "Business"
         )
+
         Reminder(
-          id: 1,
+          id: UUID(1),
           notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
-          remindersListID: 1,
+          remindersListID: UUID(1),
           title: "Groceries"
         )
         Reminder(
-          id: 2,
+          id: UUID(2),
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isFlagged: true,
-          remindersListID: 1,
+          remindersListID: UUID(1),
           title: "Haircut"
         )
         Reminder(
-          id: 3,
+          id: UUID(3),
           dueDate: Date(),
           notes: "Ask about diet",
           priority: .high,
-          remindersListID: 1,
+          remindersListID: UUID(1),
           title: "Doctor appointment"
         )
         Reminder(
-          id: 4,
+          id: UUID(4),
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 190),
           isCompleted: true,
-          remindersListID: 1,
+          remindersListID: UUID(1),
           title: "Take a walk"
         )
         Reminder(
-          id: 5,
+          id: UUID(5),
           dueDate: Date(),
-          remindersListID: 1,
+          remindersListID: UUID(1),
           title: "Buy concert tickets"
         )
         Reminder(
-          id: 6,
+          id: UUID(6),
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           isFlagged: true,
           priority: .high,
-          remindersListID: 2,
+          remindersListID: UUID(2),
           title: "Pick up kids from school"
         )
         Reminder(
-          id: 7,
+          id: UUID(7),
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .low,
-          remindersListID: 2,
+          remindersListID: UUID(2),
           title: "Get laundry"
         )
         Reminder(
-          id: 8,
+          id: UUID(8),
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 4),
           isCompleted: false,
           priority: .high,
-          remindersListID: 2,
+          remindersListID: UUID(2),
           title: "Take out trash"
         )
         Reminder(
-          id: 9,
+          id: UUID(9),
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           notes: """
             Status of tax return
             Expenses for next year
             Changing payroll company
             """,
-          remindersListID: 3,
+          remindersListID: UUID(3),
           title: "Call accountant"
         )
         Reminder(
-          id: 10,
+          id: UUID(10),
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .medium,
-          remindersListID: 3,
+          remindersListID: UUID(3),
           title: "Send weekly emails"
         )
-        Tag(id: 1, title: "car")
-        Tag(id: 2, title: "kids")
-        Tag(id: 3, title: "someday")
-        Tag(id: 4, title: "optional")
-        Tag(id: 5, title: "social")
-        Tag(id: 6, title: "night")
-        Tag(id: 7, title: "adulting")
-        ReminderTag(reminderID: 1, tagID: 3)
-        ReminderTag(reminderID: 1, tagID: 4)
-        ReminderTag(reminderID: 1, tagID: 7)
-        ReminderTag(reminderID: 2, tagID: 3)
-        ReminderTag(reminderID: 2, tagID: 4)
-        ReminderTag(reminderID: 3, tagID: 7)
-        ReminderTag(reminderID: 4, tagID: 1)
-        ReminderTag(reminderID: 4, tagID: 2)
+
+        Tag(id: UUID(1), title: "car")
+        Tag(id: UUID(2), title: "kids")
+        Tag(id: UUID(3), title: "someday")
+        Tag(id: UUID(4), title: "optional")
+        Tag(id: UUID(5), title: "social")
+        Tag(id: UUID(6), title: "night")
+        Tag(id: UUID(7), title: "adulting")
+        
+        ReminderTag(reminderID: UUID(1), tagID: UUID(3))
+        ReminderTag(reminderID: UUID(1), tagID: UUID(4))
+        ReminderTag(reminderID: UUID(1), tagID: UUID(7))
+        ReminderTag(reminderID: UUID(2), tagID: UUID(3))
+        ReminderTag(reminderID: UUID(2), tagID: UUID(4))
+        ReminderTag(reminderID: UUID(3), tagID: UUID(7))
+        ReminderTag(reminderID: UUID(4), tagID: UUID(1))
+        ReminderTag(reminderID: UUID(4), tagID: UUID(2))
       }
     }
   }

@@ -135,14 +135,14 @@ struct RemindersDetailView: View {
         var ids = reminderStates.map(\.reminder.id)
         ids.move(fromOffsets: source, toOffset: destination)
         try Reminder
-          .where { $0.id.in(ids) }
+          .where { $0.id.in(ids.map { #bind($0) }) }
           .update {
             let ids = Array(ids.enumerated())
             let (first, rest) = (ids.first!, ids.dropFirst())
             $0.position =
             rest
-              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
-                cases.when(id.element, then: id.offset)
+              .reduce(Case($0.id).when(#bind(first.element), then: first.offset)) { cases, id in
+                cases.when(#bind(id.element), then: id.offset)
               }
               .else($0.position)
           }
@@ -206,9 +206,9 @@ struct RemindersDetailView: View {
         case .all: !reminder.isCompleted
         case .completed: reminder.isCompleted
         case .flagged: reminder.isFlagged
-        case .list(let list): reminder.remindersListID.eq(list.id)
+        case .list(let list): reminder.remindersListID.eq(#bind(list.id))
         case .scheduled: reminder.isScheduled
-        case .tags(let tags): tag.id.ifnull(0).in(tags.map(\.id))
+        case .tags(let tags): tag.id.ifnull(#bind(UUID(0))).in(tags.map { #bind($0.id) })
         case .today: reminder.isToday
         }
       }

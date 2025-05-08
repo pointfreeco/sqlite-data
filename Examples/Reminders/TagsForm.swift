@@ -56,7 +56,7 @@ struct TagsView: View {
 
       let rest =
         try Tag
-        .where { !$0.id.in(top.map(\.id)) }
+        .where { !$0.id.in(top.map { #bind($0.id) }) }
         .order(by: \.title)
         .fetchAll(db)
 
