@@ -63,7 +63,6 @@ extension DependencyValues {
                       $0.defaultDatabase = try! DatabaseQueue(/* ... */)
                     }
                   }
-
                   // ...
                 }
             """
@@ -71,11 +70,12 @@ extension DependencyValues {
         case .preview:
           return """
             A blank, in-memory database is being used. To set the database that is used by \
-            'SharingGRDB' in a preview, use a tool like the 'dependency' trait:
+            'SharingGRDB' in a preview, use a tool like 'prepareDependencies':
 
-                #Preview(
-                  traits: .dependency(\\.defaultDatabase, try DatabaseQueue(/* ... */))
-                ) {
+                #Preview {
+                  let _ = prepareDependencies {
+                    $0.defaultDatabase = try! DatabaseQueue(/* ... */)
+                  }
                   // ...
                 }
             """
