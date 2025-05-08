@@ -9,7 +9,7 @@ struct RemindersListForm: View {
   @Environment(\.dismiss) var dismiss
 
   init(existingList: RemindersList.Draft? = nil) {
-    remindersList = existingList ?? RemindersList.Draft()
+    remindersList = existingList ?? RemindersList.Draft(id: UUID())
   }
 
   var body: some View {

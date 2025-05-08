@@ -18,7 +18,10 @@ struct ReminderFormView: View {
     if let existingReminder {
       reminder = Reminder.Draft(existingReminder)
     } else {
-      reminder = Reminder.Draft(remindersListID: remindersList.id)
+      var reminder = Reminder.Draft(remindersListID: remindersList.id)
+      // TODO: better way to handle default UUID?
+      reminder.id = UUID()
+      self.reminder = reminder
     }
   }
 
@@ -178,7 +181,7 @@ struct ReminderFormView: View {
           .execute(db)
         try ReminderTag.insert(
           selectedTags.map { tag in
-            ReminderTag(reminderID: reminderID, tagID: tag.id)
+            ReminderTag(id: UUID(), reminderID: reminderID, tagID: tag.id)
           }
         )
         .execute(db)

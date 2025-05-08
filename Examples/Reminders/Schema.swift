@@ -86,17 +86,19 @@ extension Tag.TableColumns {
 @Table("remindersTags")
 struct ReminderTag: Hashable, Identifiable {
   @Column(as: UUID.LowercasedRepresentation.self)
+  var id: UUID
+
+  @Column(as: UUID.LowercasedRepresentation.self)
   var reminderID: Reminder.ID
   @Column(as: UUID.LowercasedRepresentation.self)
   var tagID: Tag.ID
-  var id: Self { self }
 }
 
 func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
   let database: any DatabaseWriter
   var configuration = Configuration()
-  configuration.foreignKeysEnabled = true
+  //configuration.foreignKeysEnabled = true
   configuration.prepareDatabase { db in
     #if DEBUG
       db.trace(options: .profile) {
@@ -159,6 +161,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "remindersTags" (
+        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
         "reminderID" TEXT NOT NULL,
         "tagID" TEXT NOT NULL,
 
@@ -228,6 +231,9 @@ func appDatabase() throws -> any DatabaseWriter {
     )
     .execute(db)
   }
+
+
+
   #if DEBUG && targetEnvironment(simulator)
     if context != .test {
       migrator.registerMigration("Seed sample data") { db in
@@ -241,109 +247,115 @@ func appDatabase() throws -> any DatabaseWriter {
     try installTriggers(db: db)
   }
 
-  /*
-   prepareDependencies {
-    $0.cloudKitDatabase = …
-   }
-
-   @Dependency(\.cloudKitDatabase) var cloudKitDatabase
-   try cloudKitDatabase.registerTriggers(db)
-
-   let tableNames = select name from sqlite_master where type = 'table';
-   for tableName in tablesNames {
-      CREATE TRIGGER "\(tableName)_insert_trigger"
-      AFTER INSERT ON "\(tableName)" FOR EACH ROW BEGIN
-        SELECT insertTrigger('\(tableName)', new.id)
-      END
-   }
-}
-   */
-
   return database
 }
 
+// TODO: can cloudKitDatabase be created in here and captured in DatabaseFunctions? does any part of the app need access to it?
 func installTriggers(db: Database) throws {
-  db.add(function: DatabaseFunction.init("didInsert", function: { arguments in
-    logger.info("didInsert: \(arguments[0]).\(arguments[1])")
-    return 0
-  }))
-  db.add(function: DatabaseFunction.init("didUpdate", function: { arguments in
-    logger.info("didUpdate: \(arguments[0]).\(arguments[1])")
-    return 0
-  }))
-  db.add(function: DatabaseFunction.init("didDelete", function: { arguments in
-    logger.info("didDelete: \(arguments[0]).\(arguments[1])")
-    return 0
-  }))
+  @Dependency(\.cloudKitDatabase) var cloudKitDatabase
+
+  db.add(
+    function: DatabaseFunction.init(
+      "didInsert",
+      argumentCount: 2,
+      function: { arguments in
+        logger.info("didInsert: \(arguments[0]).\(arguments[1])")
+        guard
+          let tableName = String.fromDatabaseValue(arguments[0]),
+          let id = String.fromDatabaseValue(arguments[1])
+        else {
+          return 0
+        }
+        cloudKitDatabase.didInsert(tableName: tableName, id: id)
+        return 0
+      }
+    )
+  )
+  db.add(
+    function: DatabaseFunction.init(
+      "didUpdate",
+      argumentCount: 2,
+      function: { arguments in
+        logger.info("didUpdate: \(arguments[0]).\(arguments[1])")
+        guard
+          let tableName = String.fromDatabaseValue(arguments[0]),
+          let id = String.fromDatabaseValue(arguments[1])
+        else {
+          return 0
+        }
+        cloudKitDatabase.didUpdate(tableName: tableName, id: id)
+        return 0
+      }
+    )
+  )
+  db.add(
+    function: DatabaseFunction.init(
+      "willDelete",
+      argumentCount: 2,
+      function: { arguments in
+        logger.info("willDelete: \(arguments[0]).\(arguments[1])")
+        guard
+          let tableName = String.fromDatabaseValue(arguments[0]),
+          let id = String.fromDatabaseValue(arguments[1])
+        else {
+          return 0
+        }
+        cloudKitDatabase.willDelete(tableName: tableName, id: id)
+        return 0
+      }
+    )
+  )
+
   let tableNames = try #sql(
     """
-    SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
+    SELECT "name" FROM "sqlite_master" 
+    WHERE "type" = 'table'
+    AND "name" NOT LIKE 'sqlite_%'
+    AND "name" NOT LIKE 'grdb_%'
     """,
     as: String.self
   )
   .fetchAll(db)
-  .filter { !$0.hasPrefix("sqlite_") && !$0.hasPrefix("grdb_") }
 
+  cloudKitDatabase.saveZones(tableNames: tableNames)
   for tableName in tableNames {
-    try #sql(
-      """
-      DROP TRIGGER IF EXISTS "__\(raw: tableName)_sync_inserts"
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      DROP TRIGGER IF EXISTS "__\(raw: tableName)_sync_updates"
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      DROP TRIGGER IF EXISTS "__\(raw: tableName)_sync_deletes"
-      """
-    )
-    .execute(db)
-//    // TODO: what about tables without 'id'?
-    try #sql(
-      """
-      CREATE TRIGGER "__\(raw: tableName)_sync_inserts"
-      AFTER INSERT ON "\(raw: tableName)" FOR EACH ROW BEGIN
-        SELECT didInsert('\(raw: tableName)', new.rowid);
-      END
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TRIGGER "__\(raw: tableName)_sync_updates"
-      AFTER UPDATE ON "\(raw: tableName)" FOR EACH ROW BEGIN
-        SELECT didUpdate('\(raw: tableName)', new.rowid);
-      END
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TRIGGER "__\(raw: tableName)_sync_deletes"
-      BEFORE DELETE ON "\(raw: tableName)" FOR EACH ROW BEGIN
-        SELECT didDelete('\(raw: tableName)', old.rowid);
-      END
-      """
-    )
-    .execute(db)
+    try Trigger.delete(tableName: tableName).sql
+      .execute(db)
+    try Trigger.insert(tableName: tableName).sql
+      .execute(db)
+    try Trigger.update(tableName: tableName).sql
+      .execute(db)
   }
 }
 
-//
-//func insertTrigger(tableName: String, id: UUID) {
-//  @Dependency(\.cloudKitDatabase) var db
-//  db.add(pendingRecordZoneChanges: .saveRecord(CKRecord.ID(zoneID: tableName, recordName: id)))
-//}
-//func nextRecordZoneChangeBatch(_ context: CKSyncEngine.SendChangesContext, syncEngine: CKSyncEngine) async -> CKSyncEngine.RecordZoneChangeBatch? {
-//}
-//
+struct Trigger {
+  let idColumn: String
+  let function: String
+  let tableName: String
+  let type: String
+  let when: String
+  static func delete(tableName: String) -> Self {
+    Trigger(idColumn: "old.id", function: "willDelete", tableName: tableName, type: "DELETE", when: "BEFORE")
+  }
+  static func insert(tableName: String) -> Self {
+    Trigger(idColumn: "new.id", function: "didInsert", tableName: tableName, type: "INSERT", when: "AFTER")
+  }
+  static func update(tableName: String) -> Self {
+    Trigger(idColumn: "new.id", function: "didUpdate", tableName: tableName, type: "UPDATE", when: "AFTER")
+  }
+  var sql: SQLQueryExpression<Void> {
+    #sql(
+      """
+      CREATE TEMP TRIGGER "sharing_grdb_cloudkit_\(raw: type.lowercased())_\(raw: tableName)"
+      \(raw: when) \(raw: type) ON "\(raw: tableName)" FOR EACH ROW BEGIN
+        SELECT \(raw: function)('\(raw: tableName)', \(raw: idColumn));
+      END
+      """
+    )
+  }
+}
 
-private let logger = Logger(subsystem: "Reminders", category: "Database")
+let logger = Logger(subsystem: "Reminders", category: "Database")
 
 #if DEBUG
   extension Database {
@@ -450,15 +462,15 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
         Tag(id: UUID(5), title: "social")
         Tag(id: UUID(6), title: "night")
         Tag(id: UUID(7), title: "adulting")
-        
-        ReminderTag(reminderID: UUID(1), tagID: UUID(3))
-        ReminderTag(reminderID: UUID(1), tagID: UUID(4))
-        ReminderTag(reminderID: UUID(1), tagID: UUID(7))
-        ReminderTag(reminderID: UUID(2), tagID: UUID(3))
-        ReminderTag(reminderID: UUID(2), tagID: UUID(4))
-        ReminderTag(reminderID: UUID(3), tagID: UUID(7))
-        ReminderTag(reminderID: UUID(4), tagID: UUID(1))
-        ReminderTag(reminderID: UUID(4), tagID: UUID(2))
+
+        ReminderTag(id: UUID(), reminderID: UUID(1), tagID: UUID(3))
+        ReminderTag(id: UUID(), reminderID: UUID(1), tagID: UUID(4))
+        ReminderTag(id: UUID(), reminderID: UUID(1), tagID: UUID(7))
+        ReminderTag(id: UUID(), reminderID: UUID(2), tagID: UUID(3))
+        ReminderTag(id: UUID(), reminderID: UUID(2), tagID: UUID(4))
+        ReminderTag(id: UUID(), reminderID: UUID(3), tagID: UUID(7))
+        ReminderTag(id: UUID(), reminderID: UUID(4), tagID: UUID(1))
+        ReminderTag(id: UUID(), reminderID: UUID(4), tagID: UUID(2))
       }
     }
   }
