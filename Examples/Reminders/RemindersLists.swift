@@ -25,14 +25,16 @@ struct RemindersListsView: View {
   private var tags
 
   @FetchOne(
-    Reminder.select {
-      Stats.Columns(
-        allCount: $0.count(filter: !$0.isCompleted),
-        flaggedCount: $0.count(filter: $0.isFlagged),
-        scheduledCount: $0.count(filter: $0.isScheduled),
-        todayCount: $0.count(filter: $0.isToday)
-      )
-    }
+    Reminder
+      .join(RemindersList.all) { $0.remindersListID.eq($1.id) }
+      .select { reminder, _ in
+        Stats.Columns(
+          allCount: reminder.count(filter: !reminder.isCompleted),
+          flaggedCount: reminder.count(filter: reminder.isFlagged),
+          scheduledCount: reminder.count(filter: reminder.isScheduled),
+          todayCount: reminder.count(filter: reminder.isToday)
+        )
+      }
   )
   private var stats = Stats()
 
