@@ -23,6 +23,8 @@ extension CloudKitDatabase: TestDependencyKey {
 
 // TODO: fix sendable by either making actor or locking mutable state
 class CloudKitDatabase: @unchecked Sendable {
+  @Dependency(\.defaultDatabase) var database
+
   let container: CKContainer
   let syncEngine: CKSyncEngine
   var stateSerialization: CKSyncEngine.State.Serialization?
@@ -35,17 +37,20 @@ class CloudKitDatabase: @unchecked Sendable {
       UserDefaults.standard.data(
         forKey: stateSerializationKey(containerIdentifier: container.containerIdentifier)
       ) ?? Data()
-    stateSerialization = try? JSONDecoder()
-      .decode(
-        CKSyncEngine.State.Serialization.self,
-        from: stateSerializationData
-      )
+    stateSerialization = withErrorReporting {
+      try JSONDecoder()
+        .decode(
+          CKSyncEngine.State.Serialization.self,
+          from: stateSerializationData
+        )
+    }
     let configuration = CKSyncEngine.Configuration(
       database: container.privateCloudDatabase,
       stateSerialization: stateSerialization,
       delegate: delegate
     )
     syncEngine = CKSyncEngine(configuration)
+    delegate.syncEngine = syncEngine
   }
 
   func saveZones(tableNames: [String]) {
@@ -95,11 +100,23 @@ class CloudKitDatabase: @unchecked Sendable {
       ]
     )
   }
+
+  #if DEBUG
+    func deleteAllRecords() async throws {
+      let tableNames = try await database.read { try $0.tableNames }
+      for tableName in tableNames {
+        let zoneID = CKRecordZone.ID(zoneName: tableName)
+        syncEngine.state.add(pendingDatabaseChanges: [.deleteZone(zoneID)])
+        try await syncEngine.sendChanges()
+      }
+    }
+  #endif
 }
 
 final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
   @Dependency(\.defaultDatabase) var database
   let container: CKContainer
+  var syncEngine: CKSyncEngine!
   init(container: CKContainer) {
     self.container = container
   }
@@ -108,11 +125,12 @@ final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
     logger.info("CloudKitDatabase.Delegate.handleEvent.\(event)")
     switch event {
     case .stateUpdate(let stateUpdate):
-      UserDefaults.standard.set(
-        try? JSONEncoder().encode(stateUpdate.stateSerialization),
-        forKey: stateSerializationKey(containerIdentifier: container.containerIdentifier)
-      )
-      // TODO
+      withErrorReporting {
+        UserDefaults.standard.set(
+          try JSONEncoder().encode(stateUpdate.stateSerialization),
+          forKey: stateSerializationKey(containerIdentifier: container.containerIdentifier)
+        )
+      }
       break
     case .accountChange(_):
       // TODO
@@ -154,93 +172,114 @@ final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
   }
 
   private func handleSentRecordZoneChanges(_ changes: CKSyncEngine.Event.SentRecordZoneChanges) {
+    var newPendingRecordZoneChanges = [CKSyncEngine.PendingRecordZoneChange]()
+    var newPendingDatabaseChanges = [CKSyncEngine.PendingDatabaseChange]()
+    defer {
+      syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
+      syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
+    }
+
     withErrorReporting {
       try database.write { db in
-
         for savedRecord in changes.savedRecords {
-          // TODO: do this
+          try db.cacheNewRecordIfNewer(savedRecord)
         }
 
         for failedRecordSave in changes.failedRecordSaves {
           // TODO: do this
-          switch failedRecordSave.error.code  {
-            //      case .internalError:
-            //        <#code#>
-            //      case .partialFailure:
-            //        <#code#>
-            //      case .networkUnavailable:
-            //        <#code#>
-            //      case .networkFailure:
-            //        <#code#>
-            //      case .badContainer:
-            //        <#code#>
-            //      case .serviceUnavailable:
-            //        <#code#>
-            //      case .requestRateLimited:
-            //        <#code#>
-            //      case .missingEntitlement:
-            //        <#code#>
-            //      case .notAuthenticated:
-            //        <#code#>
-            //      case .permissionFailure:
-            //        <#code#>
-            //      case .unknownItem:
-            //        <#code#>
-            //      case .invalidArguments:
-            //        <#code#>
-            //      case .resultsTruncated:
-            //        <#code#>
+          switch failedRecordSave.error.code {
+          //      case .internalError:
+          //        <#code#>
+          //      case .partialFailure:
+          //        <#code#>
+          //      case .networkUnavailable:
+          //        <#code#>
+          //      case .networkFailure:
+          //        <#code#>
+          //      case .badContainer:
+          //        <#code#>
+          //      case .serviceUnavailable:
+          //        <#code#>
+          //      case .requestRateLimited:
+          //        <#code#>
+          //      case .missingEntitlement:
+          //        <#code#>
+          //      case .notAuthenticated:
+          //        <#code#>
+          //      case .permissionFailure:
+          //        <#code#>
+          case .unknownItem:
+            print("")
+          //      case .invalidArguments:
+          //        <#code#>
+          //      case .resultsTruncated:
+          //        <#code#>
           case .serverRecordChanged:
-            try failedRecordSave.error.serverRecord?.upsert(db: db)
-            //newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
-            print("?!?!")
-            //      case .serverRejectedRequest:
-            //        <#code#>
-            //      case .assetFileNotFound:
-            //        <#code#>
-            //      case .assetFileModified:
-            //        <#code#>
-            //      case .incompatibleVersion:
-            //        <#code#>
-            //      case .constraintViolation:
-            //        <#code#>
-            //      case .operationCancelled:
-            //        <#code#>
-            //      case .changeTokenExpired:
-            //        <#code#>
-            //      case .batchRequestFailed:
-            //        <#code#>
-            //      case .zoneBusy:
-            //        <#code#>
-            //      case .badDatabase:
-            //        <#code#>
-            //      case .quotaExceeded:
-            //        <#code#>
-            //      case .zoneNotFound:
-            //        <#code#>
-            //      case .limitExceeded:
-            //        <#code#>
-            //      case .userDeletedZone:
-            //        <#code#>
-            //      case .tooManyParticipants:
-            //        <#code#>
-            //      case .alreadyShared:
-            //        <#code#>
-            //      case .referenceViolation:
-            //        <#code#>
-            //      case .managedAccountRestricted:
-            //        <#code#>
-            //      case .participantMayNeedVerification:
-            //        <#code#>
-            //      case .serverResponseLost:
-            //        <#code#>
-            //      case .assetNotAvailable:
-            //        <#code#>
-            //      case .accountTemporarilyUnavailable:
-            //        <#code#>
+            guard let serverRecord = failedRecordSave.error.serverRecord
+            else { continue }
+            try db.cacheNewRecordIfNewer(serverRecord)
+            try serverRecord.upsertIfNewer(db: db)
+            print(serverRecord.recordID, failedRecordSave.record.recordID, serverRecord.recordID == failedRecordSave.record.recordID)
+            newPendingRecordZoneChanges.append(.saveRecord(failedRecordSave.record.recordID))
+          //      case .serverRejectedRequest:
+          //        <#code#>
+          //      case .assetFileNotFound:
+          //        <#code#>
+          //      case .assetFileModified:
+          //        <#code#>
+          //      case .incompatibleVersion:
+          //        <#code#>
+          //      case .constraintViolation:
+          //        <#code#>
+          //      case .operationCancelled:
+          //        <#code#>
+          //      case .changeTokenExpired:
+          //        <#code#>
+          //      case .batchRequestFailed:
+          //        <#code#>
+          //      case .zoneBusy:
+          //        <#code#>
+          //      case .badDatabase:
+          //        <#code#>
+          //      case .quotaExceeded:
+          //        <#code#>
+          case .zoneNotFound:
+            // TODO: recreate zone if it matches a table name?
+            let zone = CKRecordZone(zoneID: failedRecordSave.record.recordID.zoneID)
+            newPendingDatabaseChanges.append(.saveZone(zone))
+            newPendingRecordZoneChanges.append(.saveRecord(failedRecordSave.record.recordID))
 
+
+          //      case .limitExceeded:
+          //        <#code#>
+          //      case .userDeletedZone:
+          //        <#code#>
+          //      case .tooManyParticipants:
+          //        <#code#>
+          //      case .alreadyShared:
+          //        <#code#>
+          //      case .referenceViolation:
+          //        <#code#>
+          //      case .managedAccountRestricted:
+          //        <#code#>
+          //      case .participantMayNeedVerification:
+          //        <#code#>
+          //      case .serverResponseLost:
+          //        <#code#>
+          //      case .assetNotAvailable:
+          //        <#code#>
+          //      case .accountTemporarilyUnavailable:
+          //        <#code#>
+
+          case .networkFailure,
+            .networkUnavailable,
+            .zoneBusy,
+            .serviceUnavailable,
+            .notAuthenticated,
+            .operationCancelled:
+            print("")
           default:
-            fatalError()
+            reportIssue("Unhandled error: \(failedRecordSave.error.code)")
           }
         }
       }
@@ -351,24 +390,8 @@ final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
     withErrorReporting {
       try database.write { db in
         for modification in changes.modifications {
-          let count = try #sql(
-            """
-            SELECT count(*) FROM "\(raw: modification.record.recordID.tableName)"
-            WHERE "id" = \(bind: modification.record.recordID.primaryKey)
-            """,
-            as: Int.self
-          )
-          .fetchOne(db) ?? 0
-          if count > 0 {
-            // TODO: fetch CKRecord data from centralized table associated with modification.recordID
-            // TODO: merge modification.record into saved CKRecord, respecting modification dates
-            // TODO: merge updated CKRecord state into row data
-            // TODO: save freshes CKRecord data into centralized database
-            try modification.record.upsert(db: db)
-          } else {
-            try modification.record.upsert(db: db)
-            // TODO: create entry in centralized database with CKRecord
-          }
+          try modification.record.upsertIfNewer(db: db)
+          try db.cacheNewRecordIfNewer(modification.record)
         }
 
         for deletion in changes.deletions {
@@ -389,6 +412,12 @@ final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
             """
           )
           .execute(db)
+
+          syncEngine.state.add(
+            pendingDatabaseChanges: [
+              .saveZone(CKRecordZone(zoneName: tableName))
+            ]
+          )
         }
       }
     }
@@ -402,12 +431,10 @@ final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
 
     let changes = syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
     let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
-      // TODO: fetch record data from centralized table
-      let record = CKRecord(recordType: recordID.tableName, recordID: recordID)
-
-      let row = withErrorReporting {
-        try database.read { db in
-          try Row.fetchOne(
+      do {
+        return try database.write { db in
+          let record = try db.fetchLastCachedRecord(id: recordID)
+          let row = try Row.fetchOne(
             db,
             SQLRequest(
               sql: """
@@ -416,48 +443,53 @@ final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
               arguments: [recordID.primaryKey]
             )
           )
-        }
-      }
 
-      guard
-        let row,  // NB: No error was thrown from fetchOne
-        let row  // NB: fetchOne returned a value
-      else {
-        syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+          guard let row
+          else {
+            syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+            return nil
+          }
+          record.update(with: row)
+          try db.cacheNewRecordIfNewer(record)
+          return record
+        }
+      } catch {
+        reportIssue(error)
         return nil
       }
-
-      for columnName in row.columnNames {
-        switch row[columnName]?.databaseValue.storage {
-        case .null:
-          if record.encryptedValues[columnName] != nil {
-            record.encryptedValues[columnName] = nil
-          }
-        case .int64(let value):
-          if record.object(forKey: columnName) as? Int64 != value {
-            record.encryptedValues[columnName] = value
-          }
-        case .double(let value):
-          if record.object(forKey: columnName) as? Double != value {
-            record.encryptedValues[columnName] = value
-          }
-        case .string(let value):
-          if record.object(forKey: columnName) as? String != value {
-            record.encryptedValues[columnName] = value
-          }
-        case .blob(let value):
-          if record.object(forKey: columnName) as? Data != value {
-            record.encryptedValues[columnName] = value
-          }
-        case .none:
-          break
-        }
-      }
-      // TODO: save new record in centralized table
-
-      return record
     }
     return batch
+  }
+}
+
+extension CKRecord {
+  func update(with row: Row) {
+    for columnName in row.columnNames {
+      switch row[columnName]?.databaseValue.storage {
+      case .null:
+        if encryptedValues[columnName] != nil {
+          encryptedValues[columnName] = nil
+        }
+      case .int64(let value):
+        if object(forKey: columnName) as? Int64 != value {
+          encryptedValues[columnName] = value
+        }
+      case .double(let value):
+        if object(forKey: columnName) as? Double != value {
+          encryptedValues[columnName] = value
+        }
+      case .string(let value):
+        if object(forKey: columnName) as? String != value {
+          encryptedValues[columnName] = value
+        }
+      case .blob(let value):
+        if object(forKey: columnName) as? Data != value {
+          encryptedValues[columnName] = value
+        }
+      case .none:
+        break
+      }
+    }
   }
 }
 
@@ -470,41 +502,118 @@ private func stateSerializationKey(containerIdentifier: String?) -> String {
   (containerIdentifier ?? "") + ".stateSerializationData"
 }
 
-extension CKRecord {
-  func upsert(db: Database) throws {
-    let columnNames = try String.fetchAll(
-      db,
-      sql: """
-        SELECT "name" 
-        FROM pragma_table_info('\(recordID.tableName)')
+extension Database {
+  func cacheNewRecordIfNewer(_ newRecord: CKRecord) throws {
+    let existingRecord = try fetchLastCachedRecord(id: newRecord.recordID)
+    if let existingRecordModificationDate = existingRecord.modificationDate {
+      if let newRecordModificationDate = newRecord.modificationDate,
+        existingRecordModificationDate < newRecordModificationDate
+      {
+        try update()
+      } else {
+        print("Modification date caught")
+      }
+    } else {
+      try update()
+    }
+
+    func update() throws {
+      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
+      newRecord.encodeSystemFields(with: archiver)
+      // TODO: should we use userModificationDate based on record.modificationDate?
+      try #sql(
         """
-    )
-    var query: QueryFragment = """
-      INSERT INTO \(raw: recordID.tableName) (
+        INSERT INTO "sharing_grdb_cloudkit"
+        ("tableName", "primaryKey", "recordData", "userModificationDate")
+        VALUES (
+          \(bind: newRecord.recordID.tableName),
+          \(bind: newRecord.recordID.primaryKey),
+          \(archiver.encodedData),
+          \(bind: Date.ISO8601Representation(queryOutput: newRecord.modificationDate ?? Date()))
+        )
+        ON CONFLICT("tableName", "primaryKey") DO UPDATE SET
+        "recordData" = \(archiver.encodedData)
+        """
+      )
+      .execute(self)
+    }
+  }
+
+  func fetchLastCachedRecord(id recordID: CKRecord.ID) throws -> CKRecord {
+    return try #sql(
       """
-    query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ","))
-    query.append(
-      """
-      ) VALUES (
-      """
+      SELECT "recordData"
+      FROM "sharing_grdb_cloudkit"
+      WHERE "tableName" = \(bind: recordID.tableName)
+      AND "primaryKey" = \(bind: recordID.primaryKey)
+      """,
+      as: Data?.self
     )
-    query.append(
-      columnNames.map { columnName in
-        "\(bind: convert(encryptedValues[columnName]))"
-      }.joined(separator: ",")
-    )
-    query.append(
-      """
-      ) ON CONFLICT("id") DO UPDATE SET
-      """
-    )
-    query.append(
-      columnNames
-        .map { " \(quote: $0) = excluded.\(quote: $0)" }
-        .joined(separator: ",")
-    )
-    try SQLQueryExpression(query).execute(db)
-    print("?!?!")
+    .fetchOne(self)
+    .flatMap { $0 }
+    .flatMap { data in
+      let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
+      unarchiver.requiresSecureCoding = true
+      return CKRecord(coder: unarchiver)
+    }
+      ?? CKRecord(recordType: recordID.tableName, recordID: recordID)
+  }
+}
+
+extension CKRecord {
+  func upsertIfNewer(db: Database) throws {
+    let userModificationDate =
+      try #sql(
+        """
+        SELECT "userModificationDate" FROM "sharing_grdb_cloudkit"
+        WHERE "tableName" = \(bind: recordID.tableName)
+        AND "primaryKey" = \(bind: recordID.primaryKey)
+        """,
+        as: Date?.ISO8601Representation.self
+      )
+      .fetchOne(db)
+      ?? nil
+
+
+    if let userModificationDate,
+      userModificationDate > (modificationDate ?? .distantPast)
+    {
+      print("Modification date caught")
+    } else {
+      // TODO: can we use record.keysChanged to update only columns that changed?
+      let columnNames = try String.fetchAll(
+        db,
+        sql: """
+          SELECT "name" 
+          FROM pragma_table_info('\(recordID.tableName)')
+          """
+      )
+      var query: QueryFragment = """
+        INSERT INTO "\(raw: recordID.tableName)" (
+        """
+      query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ","))
+      query.append(
+        """
+        ) VALUES (
+        """
+      )
+      query.append(
+        columnNames.map { columnName in
+          "\(bind: convert(encryptedValues[columnName]))"
+        }.joined(separator: ",")
+      )
+      query.append(
+        """
+        ) ON CONFLICT("id") DO UPDATE SET
+        """
+      )
+      query.append(
+        columnNames
+          .map { " \(quote: $0) = excluded.\(quote: $0)" }
+          .joined(separator: ",")
+      )
+      try SQLQueryExpression(query).execute(db)
+    }
   }
 }
 
@@ -533,7 +642,8 @@ extension CKRecordZone.ID {
 
 private func convert(_ value: (any __CKRecordObjCValue)?) -> any QueryExpression {
   guard let value else {
-    return _Null<Void>(nilLiteral: ())
+    // TODO: better way?
+    return SQLQueryExpression("NULL", as: Void?.self)
   }
   if let value = value as? Int64 {
     return value
@@ -545,5 +655,180 @@ private func convert(_ value: (any __CKRecordObjCValue)?) -> any QueryExpression
     return value
   } else {
     fatalError("TODO: do we need to do all numeric types?")
+  }
+}
+
+extension DatabaseWriter {
+  func setUp(migrator: DatabaseMigrator, body: (inout DatabaseMigrator) throws -> Void) throws {
+    var migrator = migrator
+    try body(&migrator)
+    migrator.registerMigration("Create SharingGRDB tables") { db in
+      try #sql(
+        """
+        CREATE TABLE "sharing_grdb_cloudkit" (
+          "tableName" TEXT NOT NULL,
+          "primaryKey" TEXT NOT NULL,
+          "recordData" BLOB,
+          "userModificationDate" TEXT,
+          PRIMARY KEY("tableName", "primaryKey")
+        )
+        """
+      )
+      .execute(db)
+    }
+    try write { db in
+      try installTriggers(db: db)
+    }
+    try migrator.migrate(self)
+  }
+}
+
+extension Database {
+  //func cascade(of: String, whenDeleting: String)
+  func installForeignKeyTrigger<Child: PrimaryKeyedTable, Parent: StructuredQueries.Table>(
+    _ childTable: Child.Type,
+    belongsTo: Parent.Type,
+    through foreignKey: TableColumn<Parent, Child.TableColumns.PrimaryKey>
+  ) throws {
+    try #sql(
+      """
+      CREATE TEMP TRIGGER "foreign_key_\(raw: Child.tableName)_belongsTo_\(raw: Parent.tableName)" 
+      AFTER DELETE ON \(Child.self)
+      FOR EACH ROW BEGIN
+        DELETE FROM \(Parent.self)
+        WHERE \(foreignKey) = old.\(raw: Child.columns.primaryKey.name);
+      END
+      """
+    )
+    .execute(self)
+  }
+}
+
+extension DatabaseFunction {
+  convenience init(name: String, function: @escaping @Sendable (String, String) -> Void) {
+    self.init(name, argumentCount: 2) { arguments in
+      guard
+        let tableName = String.fromDatabaseValue(arguments[0]),
+        let id = String.fromDatabaseValue(arguments[1])
+      else {
+        return 0
+      }
+      function(tableName, id)
+      return 0
+    }
+  }
+}
+
+func installTriggers(db: Database) throws {
+  @Dependency(\.cloudKitDatabase) var cloudKitDatabase
+  db.add(
+    function: DatabaseFunction(
+      name: "didInsert",
+      function: cloudKitDatabase.didInsert(tableName:id:)
+    )
+  )
+  db.add(
+    function: DatabaseFunction(
+      name: "didUpdate",
+      function: cloudKitDatabase.didUpdate(tableName:id:)
+    )
+  )
+  db.add(
+    function: DatabaseFunction(
+      name: "willDelete",
+      function: cloudKitDatabase.willDelete(tableName:id:)
+    )
+  )
+  db.add(function: DatabaseFunction("currentDate", argumentCount: 0, function: { _ in
+    Date()
+  }))
+  let tableNames = try db.tableNames
+  cloudKitDatabase.saveZones(tableNames: tableNames)
+  for tableName in tableNames {
+    try Trigger.delete(tableName: tableName).sql
+      .execute(db)
+    try Trigger.insert(tableName: tableName).sql
+      .execute(db)
+    try Trigger.update(tableName: tableName).sql
+      .execute(db)
+    try #sql("""
+      CREATE TEMP TRIGGER "sharing_grdb_cloudkit_\(raw: tableName)_userModificationDate" 
+      AFTER UPDATE ON "\(raw: tableName)" FOR EACH ROW BEGIN
+        INSERT INTO "sharing_grdb_cloudkit"
+        ("tableName", "primaryKey", "userModificationDate")
+        VALUES 
+        (
+          '\(raw: tableName)',
+          new."id",
+          currentDate()
+        )
+        ON CONFLICT("tableName", "primaryKey") DO UPDATE SET
+        "userModificationDate" = excluded."userModificationDate";
+      END
+      """)
+    .execute(db)
+  }
+}
+
+extension Database {
+  var tableNames: [String] {
+    get throws {
+      try #sql(
+        """
+        SELECT "name" FROM "sqlite_master" 
+        WHERE "type" = 'table'
+        AND "name" NOT LIKE 'sqlite_%'
+        AND "name" NOT LIKE 'grdb_%'
+        AND "name" NOT LIKE 'sharing_grdb_%'
+        """,
+        as: String.self
+      )
+      .fetchAll(self)
+    }
+  }
+}
+
+struct Trigger {
+  let idColumn: String
+  let function: String
+  let tableName: String
+  let type: String
+  let when: String
+  static func delete(tableName: String) -> Self {
+    Trigger(
+      idColumn: "old.id",
+      function: "willDelete",
+      tableName: tableName,
+      type: "DELETE",
+      when: "BEFORE"
+    )
+  }
+  static func insert(tableName: String) -> Self {
+    Trigger(
+      idColumn: "new.id",
+      function: "didInsert",
+      tableName: tableName,
+      type: "INSERT",
+      when: "AFTER"
+    )
+  }
+  static func update(tableName: String) -> Self {
+    Trigger(
+      idColumn: "new.id",
+      function: "didUpdate",
+      tableName: tableName,
+      type: "UPDATE",
+      when: "AFTER"
+    )
+  }
+  var sql: SQLQueryExpression<Void> {
+    #sql(
+      """
+      CREATE TEMP TRIGGER "sharing_grdb_cloudkit_\(raw: type.lowercased())_\(raw: tableName)"
+      \(raw: when) \(raw: type) ON "\(raw: tableName)" FOR EACH ROW BEGIN
+        SELECT \(raw: function)('\(raw: tableName)', \(raw: idColumn));
+      END
+      """
+    )
   }
 }

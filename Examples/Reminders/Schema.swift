@@ -1,3 +1,4 @@
+import CloudKit
 import Foundation
 import IssueReporting
 import OSLog
@@ -121,233 +122,142 @@ func appDatabase() throws -> any DatabaseWriter {
   #if DEBUG
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
-  migrator.registerMigration("Create initial tables") { db in
-    try #sql(
-      """
-      CREATE TABLE "remindersLists" (
-        "id" TEXT PRIMARY KEY DEFAULT (uuid()),
-        "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99_ef00),
-        "title" TEXT NOT NULL
-      ) STRICT
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TABLE "reminders" (
-        "id" TEXT PRIMARY KEY DEFAULT (uuid()),
-        "dueDate" TEXT,
-        "isCompleted" INTEGER NOT NULL DEFAULT 0,
-        "isFlagged" INTEGER NOT NULL DEFAULT 0,
-        "notes" TEXT,
-        "priority" INTEGER,
-        "remindersListID" TEXT NOT NULL,
-        "title" TEXT NOT NULL
-      ) STRICT
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TABLE "tags" (
-        "id" TEXT PRIMARY KEY DEFAULT (uuid()),
-        "title" TEXT NOT NULL COLLATE NOCASE UNIQUE
-      ) STRICT
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TABLE "remindersTags" (
-        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-        "reminderID" TEXT NOT NULL,
-        "tagID" TEXT NOT NULL
-      ) STRICT
-      """
-    )
-    .execute(db)
-  }
-  migrator.registerMigration("Add 'position' column to 'remindersLists'") { db in
-    try #sql(
-      """
-      ALTER TABLE "remindersLists"
-      ADD COLUMN "position" INTEGER NOT NULL DEFAULT 0
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TRIGGER "default_position_reminders_lists" 
-      AFTER INSERT ON "remindersLists"
-      FOR EACH ROW BEGIN
-        UPDATE "remindersLists"
-        SET "position" = (SELECT max("position") + 1 FROM "remindersLists")
-        WHERE "id" = NEW."id";
-      END
-      """
-    )
-    .execute(db)
-  }
-  migrator.registerMigration("Add 'position' column to 'reminders'") { db in
-    try #sql(
-      """
-      ALTER TABLE "reminders"
-      ADD COLUMN "position" INTEGER NOT NULL DEFAULT 0
-      """
-    )
-    .execute(db)
-    // Backfill position of reminders based on their completion status and due date.
-    try #sql(
-      """
-      WITH "reminderPositions" AS (
-        SELECT
-          "reminders"."id",
-          ROW_NUMBER() OVER (PARTITION BY "remindersListID" ORDER BY id) - 1 AS "position"
-        FROM "reminders"
-        ORDER BY NOT "isCompleted", "dueDate" DESC
+
+  try database.setUp(migrator: migrator) { migrator in 
+    migrator.registerMigration("Create initial tables") { db in
+      try #sql(
+        """
+        CREATE TABLE "remindersLists" (
+          "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+          "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99_ef00),
+          "title" TEXT NOT NULL
+        ) STRICT
+        """
       )
-      UPDATE "reminders"
-      SET "position" = "reminderPositions"."position"
-      FROM "reminderPositions"
-      WHERE "reminders"."id" = "reminderPositions"."id"
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TRIGGER "default_position_reminders" 
-      AFTER INSERT ON "reminders"
-      FOR EACH ROW BEGIN
-        UPDATE "reminders"
-        SET "position" = (SELECT max("position") + 1 FROM "reminders")
-        WHERE "id" = NEW."id";
-      END
-      """
-    )
-    .execute(db)
-  }
-
-
-
-  #if DEBUG && targetEnvironment(simulator)
-    if context != .test {
-      migrator.registerMigration("Seed sample data") { db in
-        try db.seedSampleData()
-      }
+      .execute(db)
+      try #sql(
+        """
+        CREATE TABLE "reminders" (
+          "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+          "dueDate" TEXT,
+          "isCompleted" INTEGER NOT NULL DEFAULT 0,
+          "isFlagged" INTEGER NOT NULL DEFAULT 0,
+          "notes" TEXT,
+          "priority" INTEGER,
+          "remindersListID" TEXT NOT NULL,
+          "title" TEXT NOT NULL
+        ) STRICT
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE TABLE "tags" (
+          "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+          "title" TEXT NOT NULL COLLATE NOCASE UNIQUE
+        ) STRICT
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE TABLE "remindersTags" (
+          "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+          "reminderID" TEXT NOT NULL,
+          "tagID" TEXT NOT NULL
+        ) STRICT
+        """
+      )
+      .execute(db)
     }
-  #endif
-  try migrator.migrate(database)
+    migrator.registerMigration("Add 'position' column to 'remindersLists'") { db in
+      try #sql(
+        """
+        ALTER TABLE "remindersLists"
+        ADD COLUMN "position" INTEGER NOT NULL DEFAULT 0
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE TRIGGER "default_position_reminders_lists" 
+        AFTER INSERT ON "remindersLists"
+        FOR EACH ROW BEGIN
+          UPDATE "remindersLists"
+          SET "position" = (SELECT max("position") + 1 FROM "remindersLists")
+          WHERE "id" = NEW."id";
+        END
+        """
+      )
+      .execute(db)
+    }
+    migrator.registerMigration("Add 'position' column to 'reminders'") { db in
+      try #sql(
+        """
+        ALTER TABLE "reminders"
+        ADD COLUMN "position" INTEGER NOT NULL DEFAULT 0
+        """
+      )
+      .execute(db)
+      // Backfill position of reminders based on their completion status and due date.
+      try #sql(
+        """
+        WITH "reminderPositions" AS (
+          SELECT
+            "reminders"."id",
+            ROW_NUMBER() OVER (PARTITION BY "remindersListID" ORDER BY id) - 1 AS "position"
+          FROM "reminders"
+          ORDER BY NOT "isCompleted", "dueDate" DESC
+        )
+        UPDATE "reminders"
+        SET "position" = "reminderPositions"."position"
+        FROM "reminderPositions"
+        WHERE "reminders"."id" = "reminderPositions"."id"
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE TRIGGER "default_position_reminders" 
+        AFTER INSERT ON "reminders"
+        FOR EACH ROW BEGIN
+          UPDATE "reminders"
+          SET "position" = (SELECT max("position") + 1 FROM "reminders")
+          WHERE "id" = NEW."id";
+        END
+        """
+      )
+      .execute(db)
+    }
+
+    #if DEBUG && targetEnvironment(simulator)
+      if context != .test {
+        migrator.registerMigration("Seed sample data") { db in
+          try db.seedSampleData()
+        }
+      }
+    #endif
+  }
 
   try database.write { db in
-    try installTriggers(db: db)
+    try db.installForeignKeyTrigger(
+      RemindersList.self,
+      belongsTo: Reminder.self,
+      through: Reminder.remindersListID
+    )
+    try db.installForeignKeyTrigger(
+      Tag.self,
+      belongsTo: ReminderTag.self,
+      through: ReminderTag.tagID
+    )
+    try db.installForeignKeyTrigger(
+      Reminder.self,
+      belongsTo: ReminderTag.self,
+      through: ReminderTag.reminderID
+    )
   }
 
   return database
-}
-
-// TODO: can cloudKitDatabase be created in here and captured in DatabaseFunctions? does any part of the app need access to it?
-func installTriggers(db: Database) throws {
-  @Dependency(\.cloudKitDatabase) var cloudKitDatabase
-
-  db.add(
-    function: DatabaseFunction.init(
-      "didInsert",
-      argumentCount: 2,
-      function: { arguments in
-        logger.info("didInsert: \(arguments[0]).\(arguments[1])")
-        guard
-          let tableName = String.fromDatabaseValue(arguments[0]),
-          let id = String.fromDatabaseValue(arguments[1])
-        else {
-          return 0
-        }
-        cloudKitDatabase.didInsert(tableName: tableName, id: id)
-        return 0
-      }
-    )
-  )
-  db.add(
-    function: DatabaseFunction.init(
-      "didUpdate",
-      argumentCount: 2,
-      function: { arguments in
-        logger.info("didUpdate: \(arguments[0]).\(arguments[1])")
-        guard
-          let tableName = String.fromDatabaseValue(arguments[0]),
-          let id = String.fromDatabaseValue(arguments[1])
-        else {
-          return 0
-        }
-        cloudKitDatabase.didUpdate(tableName: tableName, id: id)
-        return 0
-      }
-    )
-  )
-  db.add(
-    function: DatabaseFunction.init(
-      "willDelete",
-      argumentCount: 2,
-      function: { arguments in
-        logger.info("willDelete: \(arguments[0]).\(arguments[1])")
-        guard
-          let tableName = String.fromDatabaseValue(arguments[0]),
-          let id = String.fromDatabaseValue(arguments[1])
-        else {
-          return 0
-        }
-        cloudKitDatabase.willDelete(tableName: tableName, id: id)
-        return 0
-      }
-    )
-  )
-
-  let tableNames = try #sql(
-    """
-    SELECT "name" FROM "sqlite_master" 
-    WHERE "type" = 'table'
-    AND "name" NOT LIKE 'sqlite_%'
-    AND "name" NOT LIKE 'grdb_%'
-    """,
-    as: String.self
-  )
-  .fetchAll(db)
-
-  cloudKitDatabase.saveZones(tableNames: tableNames)
-  for tableName in tableNames {
-    try Trigger.delete(tableName: tableName).sql
-      .execute(db)
-    try Trigger.insert(tableName: tableName).sql
-      .execute(db)
-    try Trigger.update(tableName: tableName).sql
-      .execute(db)
-  }
-}
-
-struct Trigger {
-  let idColumn: String
-  let function: String
-  let tableName: String
-  let type: String
-  let when: String
-  static func delete(tableName: String) -> Self {
-    Trigger(idColumn: "old.id", function: "willDelete", tableName: tableName, type: "DELETE", when: "BEFORE")
-  }
-  static func insert(tableName: String) -> Self {
-    Trigger(idColumn: "new.id", function: "didInsert", tableName: tableName, type: "INSERT", when: "AFTER")
-  }
-  static func update(tableName: String) -> Self {
-    Trigger(idColumn: "new.id", function: "didUpdate", tableName: tableName, type: "UPDATE", when: "AFTER")
-  }
-  var sql: SQLQueryExpression<Void> {
-    #sql(
-      """
-      CREATE TEMP TRIGGER "sharing_grdb_cloudkit_\(raw: type.lowercased())_\(raw: tableName)"
-      \(raw: when) \(raw: type) ON "\(raw: tableName)" FOR EACH ROW BEGIN
-        SELECT \(raw: function)('\(raw: tableName)', \(raw: idColumn));
-      END
-      """
-    )
-  }
 }
 
 let logger = Logger(subsystem: "Reminders", category: "Database")
@@ -355,6 +265,7 @@ let logger = Logger(subsystem: "Reminders", category: "Database")
 #if DEBUG
   extension Database {
     func seedSampleData() throws {
+      return 
       try seed {
         RemindersList(
           id: UUID(1),

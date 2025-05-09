@@ -26,13 +26,12 @@ struct RemindersListsView: View {
 
   @FetchOne(
     Reminder
-      .join(RemindersList.all) { $0.remindersListID.eq($1.id) }
-      .select { reminder, _ in
+      .select {
         Stats.Columns(
-          allCount: reminder.count(filter: !reminder.isCompleted),
-          flaggedCount: reminder.count(filter: reminder.isFlagged),
-          scheduledCount: reminder.count(filter: reminder.isScheduled),
-          todayCount: reminder.count(filter: reminder.isToday)
+          allCount: $0.count(filter: !$0.isCompleted),
+          flaggedCount: $0.count(filter: $0.isFlagged && !$0.isCompleted),
+          scheduledCount: $0.count(filter: $0.isScheduled),
+          todayCount: $0.count(filter: $0.isToday)
         )
       }
   )
@@ -42,6 +41,7 @@ struct RemindersListsView: View {
   @State private var remindersDetailType: RemindersDetailView.DetailType?
   @State private var searchText = ""
 
+  @Dependency(\.cloudKitDatabase) var cloudKitDatabase
   @Dependency(\.defaultDatabase) private var database
 
   @Selection
@@ -172,6 +172,17 @@ struct RemindersListsView: View {
     .id(searchText)
     .listStyle(.insetGrouped)
     .toolbar {
+      #if DEBUG
+      ToolbarItem(placement: .destructiveAction) {
+        Button("Clear data") {
+          Task {
+            await withErrorReporting {
+              try await cloudKitDatabase.deleteAllRecords()
+            }
+          }
+        }
+      }
+      #endif
       ToolbarItem(placement: .bottomBar) {
         HStack {
           Button {

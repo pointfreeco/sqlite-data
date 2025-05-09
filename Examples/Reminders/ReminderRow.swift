@@ -11,7 +11,7 @@ struct ReminderRow: View {
   let tags: [String]
 
   @State var editReminder: Reminder?
-  @State var isCompleted: Bool
+  //@State var isCompleted: Bool
 
   @Dependency(\.defaultDatabase) private var database
 
@@ -33,14 +33,14 @@ struct ReminderRow: View {
     self.showCompleted = showCompleted
     self.tags = tags
     self.editReminder = editReminder
-    self.isCompleted = reminder.isCompleted
+//    self.isCompleted = reminder.isCompleted
   }
 
   var body: some View {
     HStack {
       HStack(alignment: .firstTextBaseline) {
         Button(action: completeButtonTapped) {
-          Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
+          Image(systemName: reminder.isCompleted ? "circle.inset.filled" : "circle")
             .foregroundStyle(.gray)
             .font(.title2)
             .padding([.trailing], 5)
@@ -58,7 +58,7 @@ struct ReminderRow: View {
         }
       }
       Spacer()
-      if !isCompleted {
+      if !reminder.isCompleted {
         HStack {
           if reminder.isFlagged {
             Image(systemName: "flag.fill")
@@ -103,36 +103,36 @@ struct ReminderRow: View {
           .navigationTitle("Details")
       }
     }
-    .task(id: isCompleted) {
-      guard !showCompleted else { return }
-      guard
-        isCompleted,
-        isCompleted != reminder.isCompleted
-      else { return }
-      do {
-        try await Task.sleep(for: .seconds(2))
-        toggleCompletion()
-      } catch {}
-    }
+//    .task(id: isCompleted) {
+//      guard !showCompleted else { return }
+//      guard
+//        isCompleted,
+//        isCompleted != reminder.isCompleted
+//      else { return }
+//      do {
+//        try await Task.sleep(for: .seconds(2))
+//        toggleCompletion()
+//      } catch {}
+//    }
   }
 
   private func completeButtonTapped() {
-    if showCompleted {
+//    if showCompleted {
       toggleCompletion()
-    } else {
-      isCompleted.toggle()
-    }
+//    } else {
+//      isCompleted.toggle()
+//    }
   }
 
   private func toggleCompletion() {
     withErrorReporting {
       try database.write { db in
-        isCompleted =
+//        isCompleted =
           try Reminder
           .find(UUID.LowercasedRepresentation(queryOutput: reminder.id))
           .update { $0.isCompleted.toggle() }
-          .returning(\.isCompleted)
-          .fetchOne(db) ?? isCompleted
+//          .returning(\.isCompleted)
+          .fetchOne(db)// ?? isCompleted
       }
     }
   }
@@ -162,10 +162,10 @@ struct ReminderRow: View {
     return HStack(alignment: .firstTextBaseline) {
       if let priority = reminder.priority {
         Text(String(repeating: "!", count: priority.rawValue))
-          .foregroundStyle(isCompleted ? .gray : remindersList.color)
+          .foregroundStyle(reminder.isCompleted ? .gray : remindersList.color)
       }
       Text(reminder.title)
-        .foregroundStyle(isCompleted ? .gray : .primary)
+        .foregroundStyle(reminder.isCompleted ? .gray : .primary)
     }
     .font(.title3)
   }
