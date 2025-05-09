@@ -282,106 +282,20 @@ final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
             reportIssue("Unhandled error: \(failedRecordSave.error.code)")
           }
         }
-      }
-    }
 
-    for (recordID, failedRecordDelete) in changes.failedRecordDeletes {
-      // TODO: do this
-      print(failedRecordDelete)
-    }
+        for (recordID, failedRecordDelete) in changes.failedRecordDeletes {
+          // TODO: do this
+          print(failedRecordDelete)
+        }
 
-    withErrorReporting {
-      // TODO: double check this is correct. the sample code doesn't have this
-      try database.write { db in
-        for deletedRecordID in changes.deletedRecordIDs {
-          try deletedRecordID.delete(db: db)
+        // TODO: double check this is correct. the sample code doesn't have this
+        try database.write { db in
+          for deletedRecordID in changes.deletedRecordIDs {
+            try deletedRecordID.delete(db: db)
+          }
         }
       }
     }
-
-    //    // If we failed to save a record, we might want to retry depending on the error code.
-    //    var newPendingRecordZoneChanges = [CKSyncEngine.PendingRecordZoneChange]()
-    //    var newPendingDatabaseChanges = [CKSyncEngine.PendingDatabaseChange]()
-    //
-    //    // Update the last known server record for each of the saved records.
-    //    for savedRecord in event.savedRecords {
-    //
-    //      let id = savedRecord.recordID.recordName
-    //      if var contact = self.appData.contacts[id] {
-    //        contact.setLastKnownRecordIfNewer(savedRecord)
-    //        self.appData.contacts[id] = contact
-    //      }
-    //    }
-    //
-    //    // Handle any failed record saves.
-    //    for failedRecordSave in event.failedRecordSaves {
-    //      let failedRecord = failedRecordSave.record
-    //      let contactID = failedRecord.recordID.recordName
-    //      var shouldClearServerRecord = false
-    //
-    //      switch failedRecordSave.error.code {
-    //
-    //      case .serverRecordChanged:
-    //        // Let's merge the record from the server into our own local copy.
-    //        // The `mergeFromServerRecord` function takes care of the conflict resolution.
-    //        guard let serverRecord = failedRecordSave.error.serverRecord else {
-    //          Logger.database.error("No server record for conflict \(failedRecordSave.error)")
-    //          continue
-    //        }
-    //        guard var contact = self.appData.contacts[contactID] else {
-    //          Logger.database.error("No local object for conflict \(failedRecordSave.error)")
-    //          continue
-    //        }
-    //        contact.mergeFromServerRecord(serverRecord)
-    //        contact.setLastKnownRecordIfNewer(serverRecord)
-    //        self.appData.contacts[contactID] = contact
-    //        newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
-    //
-    //      case .zoneNotFound:
-    //        // Looks like we tried to save a record in a zone that doesn't exist.
-    //        // Let's save that zone and retry saving the record.
-    //        // Also clear the last known server record if we have one, it's no longer valid.
-    //        let zone = CKRecordZone(zoneID: failedRecord.recordID.zoneID)
-    //        newPendingDatabaseChanges.append(.saveZone(zone))
-    //        newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
-    //        shouldClearServerRecord = true
-    //
-    //      case .unknownItem:
-    //        // We tried to save a record with a locally-cached server record, but that record no longer exists on the server.
-    //        // This might mean that another device deleted the record, but we still have the data for that record locally.
-    //        // We have the choice of either deleting the local data or re-uploading the local data.
-    //        // For this sample app, let's re-upload the local data.
-    //        newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
-    //        shouldClearServerRecord = true
-    //
-    //      case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable, .notAuthenticated,
-    //        .operationCancelled:
-    //        // There are several errors that the sync engine will automatically retry, let's just log and move on.
-    //        Logger.database.debug(
-    //          "Retryable error saving \(failedRecord.recordID): \(failedRecordSave.error)"
-    //        )
-    //
-    //      default:
-    //        // We got an error, but we don't know what it is or how to handle it.
-    //        // If you have any sort of telemetry system, you should consider tracking this scenario so you can understand which errors you see in the wild.
-    //        Logger.database.fault(
-    //          "Unknown error saving record \(failedRecord.recordID): \(failedRecordSave.error)"
-    //        )
-    //      }
-    //
-    //      if shouldClearServerRecord {
-    //        if var contact = self.appData.contacts[contactID] {
-    //          contact.lastKnownRecord = nil
-    //          self.appData.contacts[contactID] = contact
-    //        }
-    //      }
-    //    }
-    //
-    //    self.syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
-    //    self.syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
-    //
-    //    // Now that we've processed the batch, save to disk.
-    //    try? self.persistLocalData()
   }
 
   private func handleFetchedRecordZoneChanges(
@@ -684,7 +598,6 @@ extension DatabaseWriter {
 }
 
 extension Database {
-  //func cascade(of: String, whenDeleting: String)
   func installForeignKeyTrigger<Child: PrimaryKeyedTable, Parent: StructuredQueries.Table>(
     _ childTable: Child.Type,
     belongsTo: Parent.Type,
