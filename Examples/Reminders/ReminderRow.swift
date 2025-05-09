@@ -86,7 +86,7 @@ struct ReminderRow: View {
         withErrorReporting {
           try database.write { db in
             try Reminder
-              .find(UUID.LowercasedRepresentation(queryOutput: reminder.id))
+              .find(reminder.id)
               .update { $0.isFlagged.toggle() }
               .execute(db)
           }
@@ -129,7 +129,7 @@ struct ReminderRow: View {
       try database.write { db in
 //        isCompleted =
           try Reminder
-          .find(UUID.LowercasedRepresentation(queryOutput: reminder.id))
+          .find(reminder.id)
           .update { $0.isCompleted.toggle() }
 //          .returning(\.isCompleted)
           .fetchOne(db)// ?? isCompleted

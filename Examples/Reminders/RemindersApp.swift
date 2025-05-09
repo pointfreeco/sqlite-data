@@ -6,17 +6,6 @@ import SwiftUI
 struct RemindersApp: App {
   init() {
     try! prepareDependencies {
-//      $0.cloudKitDatabase = CloudKitDatabase(
-//        container: CKContainer(
-//          identifier: "iCloud.co.pointfree.sharing-grdb.Reminders"
-//        ),
-//        tables: [
-//          Reminder.self,
-//          RemindersList.self,
-//          Tag.self,
-//          ReminderTag.self
-//        ]
-//      )
       $0.defaultDatabase = try Reminders.appDatabase()
     }
   }

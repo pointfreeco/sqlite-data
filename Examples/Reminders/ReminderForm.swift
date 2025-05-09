@@ -18,10 +18,7 @@ struct ReminderFormView: View {
     if let existingReminder {
       reminder = Reminder.Draft(existingReminder)
     } else {
-      var reminder = Reminder.Draft(remindersListID: remindersList.id)
-      // TODO: better way to handle default UUID?
-      reminder.id = UUID()
-      self.reminder = reminder
+      self.reminder = Reminder.Draft(id: UUID(), remindersListID: remindersList.id)
     }
   }
 
@@ -140,7 +137,7 @@ struct ReminderFormView: View {
           try Tag
             .order(by: \.title)
             .join(ReminderTag.all) { $0.id.eq($1.tagID) }
-            .where { $1.reminderID.eq(#bind(reminderID)) }
+            .where { $1.reminderID.eq(reminderID) }
             .select { tag, _ in tag }
             .fetchAll(db)
         }
@@ -176,7 +173,7 @@ struct ReminderFormView: View {
       try database.write { db in
         let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)!
         try ReminderTag
-          .where { $0.reminderID.eq(#bind(reminderID)) }
+          .where { $0.reminderID.eq(reminderID) }
           .delete()
           .execute(db)
         try ReminderTag.insert(
@@ -213,7 +210,7 @@ struct ReminderFormPreview: PreviewProvider {
         let remindersList = try RemindersList.all.fetchOne(db)!
         return (
           remindersList,
-          try Reminder.where { $0.remindersListID.eq(#bind(remindersList.id)) }.fetchOne(db)!
+          try Reminder.where { $0.remindersListID.eq(remindersList.id) }.fetchOne(db)!
         )
       }
     }

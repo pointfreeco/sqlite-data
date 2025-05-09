@@ -7,8 +7,7 @@ import SwiftUI
 
 @Table
 struct RemindersList: Hashable, Identifiable {
-  @Column(as: UUID.LowercasedRepresentation.self)
-  var id: UUID
+  let id: UUID
   @Column(as: Color.HexRepresentation.self)
   var color = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
   var position = 0
@@ -17,15 +16,12 @@ struct RemindersList: Hashable, Identifiable {
 
 @Table
 struct Reminder: Equatable, Identifiable {
-  @Column(as: UUID.LowercasedRepresentation.self)
-  var id: UUID
-  @Column(as: Date.ISO8601Representation?.self)
+  let id: UUID
   var dueDate: Date?
   var isCompleted = false
   var isFlagged = false
   var notes = ""
   var priority: Priority?
-  @Column(as: UUID.LowercasedRepresentation.self)
   var remindersListID: RemindersList.ID
   var position = 0
   var title = ""
@@ -67,8 +63,7 @@ enum Priority: Int, QueryBindable {
 
 @Table
 struct Tag: Hashable, Identifiable {
-  @Column(as: UUID.LowercasedRepresentation.self)
-  var id: UUID
+  let id: UUID
   var title = ""
 }
 
@@ -86,12 +81,8 @@ extension Tag.TableColumns {
 
 @Table("remindersTags")
 struct ReminderTag: Hashable, Identifiable {
-  @Column(as: UUID.LowercasedRepresentation.self)
-  var id: UUID
-
-  @Column(as: UUID.LowercasedRepresentation.self)
+  let id: UUID
   var reminderID: Reminder.ID
-  @Column(as: UUID.LowercasedRepresentation.self)
   var tagID: Tag.ID
 }
 
@@ -144,7 +135,9 @@ func appDatabase() throws -> any DatabaseWriter {
         "notes" TEXT,
         "priority" INTEGER,
         "remindersListID" TEXT NOT NULL,
-        "title" TEXT NOT NULL
+        "title" TEXT NOT NULL,
+      
+        FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
       """
     )
@@ -163,7 +156,10 @@ func appDatabase() throws -> any DatabaseWriter {
       CREATE TABLE "remindersTags" (
         "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
         "reminderID" TEXT NOT NULL,
-        "tagID" TEXT NOT NULL
+        "tagID" TEXT NOT NULL,
+      
+        FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
+        FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
       ) STRICT
       """
     )

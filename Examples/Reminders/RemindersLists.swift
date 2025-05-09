@@ -234,14 +234,14 @@ struct RemindersListsView: View {
         var ids = remindersLists.map(\.remindersList.id)
         ids.move(fromOffsets: source, toOffset: destination)
         try RemindersList
-          .where { $0.id.in(ids.map { #bind($0) }) }
+          .where { $0.id.in(ids) }
           .update {
             let ids = Array(ids.enumerated())
             let (first, rest) = (ids.first!, ids.dropFirst())
             $0.position =
               rest
-              .reduce(Case($0.id).when(#bind(first.element), then: first.offset)) { cases, id in
-                cases.when(#bind(id.element), then: id.offset)
+              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
+                cases.when(id.element, then: id.offset)
               }
               .else($0.position)
           }
