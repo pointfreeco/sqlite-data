@@ -154,93 +154,101 @@ final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
   }
 
   private func handleSentRecordZoneChanges(_ changes: CKSyncEngine.Event.SentRecordZoneChanges) {
+    withErrorReporting {
+      try database.write { db in
 
-    for savedRecord in changes.savedRecords {
-      // TODO: do this
+        for savedRecord in changes.savedRecords {
+          // TODO: do this
+        }
+
+        for failedRecordSave in changes.failedRecordSaves {
+          // TODO: do this
+          switch failedRecordSave.error.code  {
+            //      case .internalError:
+            //        <#code#>
+            //      case .partialFailure:
+            //        <#code#>
+            //      case .networkUnavailable:
+            //        <#code#>
+            //      case .networkFailure:
+            //        <#code#>
+            //      case .badContainer:
+            //        <#code#>
+            //      case .serviceUnavailable:
+            //        <#code#>
+            //      case .requestRateLimited:
+            //        <#code#>
+            //      case .missingEntitlement:
+            //        <#code#>
+            //      case .notAuthenticated:
+            //        <#code#>
+            //      case .permissionFailure:
+            //        <#code#>
+            //      case .unknownItem:
+            //        <#code#>
+            //      case .invalidArguments:
+            //        <#code#>
+            //      case .resultsTruncated:
+            //        <#code#>
+          case .serverRecordChanged:
+            try failedRecordSave.error.serverRecord?.upsert(db: db)
+            //newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
+            print("?!?!")
+            //      case .serverRejectedRequest:
+            //        <#code#>
+            //      case .assetFileNotFound:
+            //        <#code#>
+            //      case .assetFileModified:
+            //        <#code#>
+            //      case .incompatibleVersion:
+            //        <#code#>
+            //      case .constraintViolation:
+            //        <#code#>
+            //      case .operationCancelled:
+            //        <#code#>
+            //      case .changeTokenExpired:
+            //        <#code#>
+            //      case .batchRequestFailed:
+            //        <#code#>
+            //      case .zoneBusy:
+            //        <#code#>
+            //      case .badDatabase:
+            //        <#code#>
+            //      case .quotaExceeded:
+            //        <#code#>
+            //      case .zoneNotFound:
+            //        <#code#>
+            //      case .limitExceeded:
+            //        <#code#>
+            //      case .userDeletedZone:
+            //        <#code#>
+            //      case .tooManyParticipants:
+            //        <#code#>
+            //      case .alreadyShared:
+            //        <#code#>
+            //      case .referenceViolation:
+            //        <#code#>
+            //      case .managedAccountRestricted:
+            //        <#code#>
+            //      case .participantMayNeedVerification:
+            //        <#code#>
+            //      case .serverResponseLost:
+            //        <#code#>
+            //      case .assetNotAvailable:
+            //        <#code#>
+            //      case .accountTemporarilyUnavailable:
+            //        <#code#>
+
+          default:
+            fatalError()
+          }
+        }
+      }
     }
 
-    for failedRecordSave in changes.failedRecordSaves {
+    for (recordID, failedRecordDelete) in changes.failedRecordDeletes {
       // TODO: do this
-      //      switch failedRecordSave.error.code  {
-      //      case .internalError:
-      //        <#code#>
-      //      case .partialFailure:
-      //        <#code#>
-      //      case .networkUnavailable:
-      //        <#code#>
-      //      case .networkFailure:
-      //        <#code#>
-      //      case .badContainer:
-      //        <#code#>
-      //      case .serviceUnavailable:
-      //        <#code#>
-      //      case .requestRateLimited:
-      //        <#code#>
-      //      case .missingEntitlement:
-      //        <#code#>
-      //      case .notAuthenticated:
-      //        <#code#>
-      //      case .permissionFailure:
-      //        <#code#>
-      //      case .unknownItem:
-      //        <#code#>
-      //      case .invalidArguments:
-      //        <#code#>
-      //      case .resultsTruncated:
-      //        <#code#>
-      //      case .serverRecordChanged:
-      //        <#code#>
-      //      case .serverRejectedRequest:
-      //        <#code#>
-      //      case .assetFileNotFound:
-      //        <#code#>
-      //      case .assetFileModified:
-      //        <#code#>
-      //      case .incompatibleVersion:
-      //        <#code#>
-      //      case .constraintViolation:
-      //        <#code#>
-      //      case .operationCancelled:
-      //        <#code#>
-      //      case .changeTokenExpired:
-      //        <#code#>
-      //      case .batchRequestFailed:
-      //        <#code#>
-      //      case .zoneBusy:
-      //        <#code#>
-      //      case .badDatabase:
-      //        <#code#>
-      //      case .quotaExceeded:
-      //        <#code#>
-      //      case .zoneNotFound:
-      //        <#code#>
-      //      case .limitExceeded:
-      //        <#code#>
-      //      case .userDeletedZone:
-      //        <#code#>
-      //      case .tooManyParticipants:
-      //        <#code#>
-      //      case .alreadyShared:
-      //        <#code#>
-      //      case .referenceViolation:
-      //        <#code#>
-      //      case .managedAccountRestricted:
-      //        <#code#>
-      //      case .participantMayNeedVerification:
-      //        <#code#>
-      //      case .serverResponseLost:
-      //        <#code#>
-      //      case .assetNotAvailable:
-      //        <#code#>
-      //      case .accountTemporarilyUnavailable:
-      //        <#code#>
-      //      @unknown default:
-      //        <#fatalError()#>
-      //      }
-    }
-
-    for failedRecordDelete in changes.failedRecordDeletes {
-      // TODO: do this
+      print(failedRecordDelete)
     }
 
     withErrorReporting {
@@ -343,17 +351,15 @@ final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
     withErrorReporting {
       try database.write { db in
         for modification in changes.modifications {
-          let row = try Row.fetchOne(
-            db,
-            sql: """
-              SELECT * FROM "\(modification.record.recordID.tableName)"
-              WHERE "id" = ?
-              """,
-            arguments: [modification.record.recordID.primaryKey]
+          let count = try #sql(
+            """
+            SELECT count(*) FROM "\(raw: modification.record.recordID.tableName)"
+            WHERE "id" = \(bind: modification.record.recordID.primaryKey)
+            """,
+            as: Int.self
           )
-          if let row {
-            print(row)
-            print("?!?!?")
+          .fetchOne(db) ?? 0
+          if count > 0 {
             // TODO: fetch CKRecord data from centralized table associated with modification.recordID
             // TODO: merge modification.record into saved CKRecord, respecting modification dates
             // TODO: merge updated CKRecord state into row data
@@ -477,9 +483,11 @@ extension CKRecord {
       INSERT INTO \(raw: recordID.tableName) (
       """
     query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ","))
-    query.append("""
+    query.append(
+      """
       ) VALUES (
-      """)
+      """
+    )
     query.append(
       columnNames.map { columnName in
         "\(bind: convert(encryptedValues[columnName]))"
