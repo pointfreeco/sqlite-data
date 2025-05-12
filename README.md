@@ -296,6 +296,29 @@ You can add SharingGRDB to an Xcode project by adding it to your project as a pa
 
 > https://github.com/pointfreeco/sharing-grdb
 
+And adding the `SharingGRDB` product to your target.
+
+> [!TIP]
+> SharingGRDB's primary product is the `SharingGRDB` module, which includes all of the library's
+> functionality, including the `@Fetch` family of property wrappers, the `@Table` macro, and tools
+> for driving StructuredQueries using GRDB. This is the module that most library users should depend
+> on.
+>
+> If you are a library author that wishes to extend SharingGRDB with additional functionality, you
+> may want to depend on a different module:
+>
+>   * `SharingGRDBCore`: This product includes everything in `SharingGRDB` _except_ the macros
+>     (`@Table`, `#sql`, _etc._). This module can be imported to extend SharingGRDB with additional
+>     functionality without forcing the heavyweight dependency of SwiftSyntax on your users.
+>   * `StructuredQueriesGRDB`: This product includes everything in `SharingGRDB` _except_ the
+>     `@Fetch` family of property wrappers. It can be imported if you want to extend
+>     StructuredQueries' GRDB driver but do not need access to observation tools provided by
+>     Sharing.
+>   * `StructuredQueriesGRDBCore`: This product includes everything in `StructuredQueriesGRDB`
+>     _except_ the macros. This module can be imported to extend StructuredQueries' GRDB driver with
+>     additional functionality without forcing the heavyweight dependency of SwiftSyntax on your
+>     users.
+
 If you want to use SharingGRDB in a [SwiftPM](https://swift.org/package-manager/) project, it's as
 simple as adding it to your `Package.swift`:
 
