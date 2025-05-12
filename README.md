@@ -292,11 +292,11 @@ The documentation for releases and `main` are available here:
 
 ## Installation
 
-You can add SharingGRDB to an Xcode project by adding it to your project as a package.
+You can add SharingGRDB to an Xcode project by adding it to your project as a package…
 
 > https://github.com/pointfreeco/sharing-grdb
 
-And adding the `SharingGRDB` product to your target.
+…and adding the `SharingGRDB` product to your target.
 
 > [!TIP]
 > SharingGRDB's primary product is the `SharingGRDB` module, which includes all of the library's
