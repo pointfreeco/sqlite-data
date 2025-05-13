@@ -90,7 +90,7 @@ func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
   let database: any DatabaseWriter
   var configuration = Configuration()
-  configuration.foreignKeysEnabled = false
+  configuration.foreignKeysEnabled = context != .live
   configuration.prepareDatabase { db in
     #if DEBUG
       db.trace(options: .profile) {
@@ -234,19 +234,6 @@ func appDatabase() throws -> any DatabaseWriter {
   #endif
 
   try migrator.migrate(database)
-
-  try database.write { db in
-    try db.setUpCloudKit(
-      containerIdentifier: "iCloud.co.pointfree.sharing-grdb.Reminders",
-      tables: [
-        Reminder.self,
-        RemindersList.self,
-        Tag.self,
-        ReminderTag.self,
-      ]
-    )
-  }
-
   return database
 }
 

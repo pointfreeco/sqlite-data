@@ -17,8 +17,9 @@ extension CloudKitDatabase: TestDependencyKey {
     if shouldReportUnimplemented {
       reportIssue("TODO")
     }
-    return CloudKitDatabase(
+    return try! CloudKitDatabase(
       container: CKContainer(identifier: "default"),
+      database: try! DatabaseQueue(),
       tables: []
     )
   }
@@ -26,19 +27,20 @@ extension CloudKitDatabase: TestDependencyKey {
 
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 public actor CloudKitDatabase {
-  @Dependency(\.defaultDatabase) var database
-
   let container: CKContainer
+  let database: any DatabaseWriter
   var syncEngine: CKSyncEngine!
   var stateSerialization: CKSyncEngine.State.Serialization?
   let tables: [any StructuredQueriesCore.Table.Type]
   var delegate: Delegate
 
-  init(
+  public init(
     container: CKContainer,
+    database: any DatabaseWriter,
     tables: [any StructuredQueriesCore.Table.Type]
-  ) {
+  ) throws {
     self.container = container
+    self.database = database
     self.delegate = Delegate(container: container)
     self.tables = tables
     let stateSerializationData =
@@ -54,11 +56,47 @@ public actor CloudKitDatabase {
       stateSerialization: stateSerialization,
       delegate: delegate
     )
-    syncEngine = CKSyncEngine(configuration)
+    let syncEngine = CKSyncEngine(configuration)
+    self.syncEngine = syncEngine
     delegate.syncEngine = syncEngine
-    Task {
-      await saveZones()
+    try? FileManager.default
+      .createDirectory(
+        at: URL.applicationSupportDirectory,
+        withIntermediateDirectories: false
+      )
+    let url = URL.applicationSupportDirectory.appending(component: "sharing-grdb-cloudkit.sqlite")
+    logger.info("open \(url.absoluteString)")
+    let cloudKitDatabase = try DatabasePool(path: url.absoluteString)
+    var migrator = DatabaseMigrator()
+    migrator.registerMigration("Create SharingGRDB tables") { db in
+      try SQLQueryExpression(
+        """
+        CREATE TABLE "sharing_grdb_cloudkit" (
+          "tableName" TEXT NOT NULL,
+          "primaryKey" TEXT NOT NULL,
+          "recordData" BLOB,
+          "userModificationDate" TEXT,
+          PRIMARY KEY("tableName", "primaryKey")
+        )
+        """
+      )
+      .execute(db)
     }
+    try migrator.migrate(cloudKitDatabase)
+    try database.write { db in
+      try db.execute(
+        literal: """
+        ATTACH DATABASE \(url.absoluteString) AS "sharing_grdb_cloudkit_db"
+        """
+      )
+      try db.execute(
+        literal: """
+        SELECT * FROM "sharing_grdb_cloudkit"
+        """
+      )
+      try installTriggers(db: db, cloudKitDatabase: self)
+    }
+    Self.saveZones(syncEngine: syncEngine, tables: tables)
   }
 
   deinit {
@@ -81,12 +119,19 @@ public actor CloudKitDatabase {
     saveZones()
   }
 
-  func saveZones() {
+  static func saveZones(
+    syncEngine: CKSyncEngine,
+    tables: [any StructuredQueriesCore.Table.Type]
+  ) {
     syncEngine.state.add(
       pendingDatabaseChanges: tables.map {
         .saveZone(CKRecordZone(zoneName: $0.tableName))
       }
     )
+  }
+
+  func saveZones() {
+    Self.saveZones(syncEngine: syncEngine, tables: tables)
   }
 
   func didInsert(tableName: String, id: String) {
@@ -615,63 +660,6 @@ extension DatabaseFunction {
       Task { await function(tableName, id) }
       return 0
     }
-  }
-}
-
-extension Database {
-  @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
-  public func setUpCloudKit(
-    containerIdentifier: String,
-    tables: [any StructuredQueriesCore.Table.Type]
-  ) throws {
-    @Dependency(\.context) var context
-    guard context == .live else { return }
-
-    let cloudKitDatabase = CloudKitDatabase(
-      container: CKContainer(
-        identifier: "iCloud.co.pointfree.sharing-grdb.Reminders"
-      ),
-      tables: tables
-    )
-    prepareDependencies {
-      $0.cloudKitDatabase = cloudKitDatabase
-    }
-
-    try? FileManager.default
-      .createDirectory(
-        at: URL.applicationSupportDirectory,
-        withIntermediateDirectories: false
-      )
-    let url = URL.applicationSupportDirectory.appending(component: "sharing-grdb-cloudkit.sqlite")
-    logger.info("open \(url.absoluteString)")
-    let database = try DatabasePool(path: url.absoluteString)
-    var migrator = DatabaseMigrator()
-    migrator.registerMigration("Create SharingGRDB tables") { db in
-      try SQLQueryExpression(
-        """
-        CREATE TABLE "sharing_grdb_cloudkit" (
-          "tableName" TEXT NOT NULL,
-          "primaryKey" TEXT NOT NULL,
-          "recordData" BLOB,
-          "userModificationDate" TEXT,
-          PRIMARY KEY("tableName", "primaryKey")
-        )
-        """
-      )
-      .execute(db)
-    }
-    try migrator.migrate(database)
-    try execute(
-      literal: """
-        ATTACH DATABASE \(url.absoluteString) AS "sharing_grdb_cloudkit_db"
-        """
-    )
-    try execute(
-      literal: """
-          SELECT * FROM "sharing_grdb_cloudkit"
-        """
-    )
-    try installTriggers(db: self, cloudKitDatabase: cloudKitDatabase)
   }
 }
 
