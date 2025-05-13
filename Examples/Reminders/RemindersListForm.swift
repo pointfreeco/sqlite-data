@@ -34,9 +34,7 @@ struct RemindersListForm: View {
         Button("Save") {
           withErrorReporting {
             try database.write { db in
-              let query = RemindersList.upsert(remindersList)
-              print(query.queryFragment.debugDescription)
-              try query
+              try RemindersList.upsert(remindersList)
                 .execute(db)
             }
           }

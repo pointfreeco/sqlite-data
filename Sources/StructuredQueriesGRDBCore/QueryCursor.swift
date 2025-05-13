@@ -99,7 +99,7 @@ extension QueryBinding {
       case let .text(text):
         return text.databaseValue
       case .uuid(let uuid):
-        return uuid.databaseValue
+        return uuid.uuidString.lowercased().databaseValue
       case let .invalid(error):
         throw error
       }

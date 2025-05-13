@@ -1,3 +1,4 @@
+import Foundation
 import GRDBSQLite
 import StructuredQueriesCore
 
@@ -61,4 +62,23 @@ struct SQLiteQueryDecoder: QueryDecoder {
   mutating func decode(_ columnType: Int.Type) throws -> Int? {
     try decode(Int64.self).map(Int.init)
   }
+
+  @inlinable
+  mutating func decode(_ columnType: Date.Type) throws -> Date? {
+    try decode(String.self).map { try Date.ISO8601Representation(iso8601String: $0).queryOutput }
+  }
+
+  @inlinable
+  mutating func decode(_ columnType: UUID.Type) throws -> UUID? {
+    guard let uuidString = try decode(String.self) else { return nil }
+    guard let uuid = UUID(uuidString: uuidString) else { throw InvalidUUID() }
+    return uuid
+  }
+
+}
+
+@usableFromInline
+struct InvalidUUID: Error {
+  @usableFromInline
+  init() {}
 }
