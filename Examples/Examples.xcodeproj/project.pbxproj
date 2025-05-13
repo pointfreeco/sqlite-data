@@ -10,6 +10,8 @@
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
 		CAD001872D874F1F00FA977A /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CAD001862D874F1F00FA977A /* DependenciesTestSupport */; };
+		CAF1E0E82DD2DF7600E18D7C /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CAF1E0E72DD2DF7600E18D7C /* SharingGRDB */; };
+		CAF1E0EB2DD2DF9300E18D7C /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CAF1E0EA2DD2DF9300E18D7C /* SharingGRDB */; };
 		CAFDD64A2D5E823A00EE099E /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CAFDD6492D5E823A00EE099E /* SharingGRDB */; };
 		DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = DC5FA7472D4C63D60082743E /* DependenciesMacros */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
@@ -136,6 +138,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				CAFDD64A2D5E823A00EE099E /* SharingGRDB in Frameworks */,
+				CAF1E0E82DD2DF7600E18D7C /* SharingGRDB in Frameworks */,
+				CAF1E0EB2DD2DF9300E18D7C /* SharingGRDB in Frameworks */,
 				CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -280,6 +284,8 @@
 			packageProductDependencies = (
 				CAFDD6492D5E823A00EE099E /* SharingGRDB */,
 				CA14DBC82DA884C400E36852 /* CasePaths */,
+				CAF1E0E72DD2DF7600E18D7C /* SharingGRDB */,
+				CAF1E0EA2DD2DF9300E18D7C /* SharingGRDB */,
 			);
 			productName = Reminders;
 			productReference = CAF836D82D4735AB0047AEB5 /* Reminders.app */;
@@ -353,6 +359,7 @@
 				DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */,
 				DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */,
 				DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */,
+				CAF1E0E92DD2DF9300E18D7C /* XCRemoteSwiftPackageReference "sharing-grdb" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CAF836992D4735620047AEB5 /* Products */;
@@ -875,6 +882,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		CAF1E0E92DD2DF9300E18D7C /* XCRemoteSwiftPackageReference "sharing-grdb" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/sharing-grdb";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.2.2;
+			};
+		};
 		DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/pointfreeco/swift-dependencies";
@@ -916,6 +931,15 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */;
 			productName = DependenciesTestSupport;
+		};
+		CAF1E0E72DD2DF7600E18D7C /* SharingGRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SharingGRDB;
+		};
+		CAF1E0EA2DD2DF9300E18D7C /* SharingGRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CAF1E0E92DD2DF9300E18D7C /* XCRemoteSwiftPackageReference "sharing-grdb" */;
+			productName = SharingGRDB;
 		};
 		CAFDD6492D5E823A00EE099E /* SharingGRDB */ = {
 			isa = XCSwiftPackageProductDependency;
