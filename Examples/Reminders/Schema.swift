@@ -245,23 +245,6 @@ func appDatabase() throws -> any DatabaseWriter {
         ReminderTag.self,
       ]
     )
-
-    // TODO: hopefully this can be automated
-    try db.installForeignKeyTrigger(
-      RemindersList.self,
-      belongsTo: Reminder.self,
-      through: Reminder.remindersListID
-    )
-    try db.installForeignKeyTrigger(
-      Tag.self,
-      belongsTo: ReminderTag.self,
-      through: ReminderTag.tagID
-    )
-    try db.installForeignKeyTrigger(
-      Reminder.self,
-      belongsTo: ReminderTag.self,
-      through: ReminderTag.reminderID
-    )
   }
 
   return database

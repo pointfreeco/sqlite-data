@@ -1,19 +1,19 @@
+#if canImport(CloudKit)
 import CloudKit
 import Dependencies
-import SharingGRDB
+import OSLog
 
 extension DependencyValues {
-  var cloudKitDatabase: CloudKitDatabase {
-    get {
-      self[CloudKitDatabase.self]
-    }
-    set {
-      self[CloudKitDatabase.self] = newValue
-    }
+  @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
+  public var cloudKitDatabase: CloudKitDatabase {
+    get { self[CloudKitDatabase.self] }
+    set { self[CloudKitDatabase.self] = newValue }
   }
 }
+
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension CloudKitDatabase: TestDependencyKey {
-  static var testValue: CloudKitDatabase {
+  public static var testValue: CloudKitDatabase {
     if shouldReportUnimplemented {
       reportIssue("TODO")
     }
@@ -24,18 +24,19 @@ extension CloudKitDatabase: TestDependencyKey {
   }
 }
 
-actor CloudKitDatabase {
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
+public actor CloudKitDatabase {
   @Dependency(\.defaultDatabase) var database
 
   let container: CKContainer
   var syncEngine: CKSyncEngine!
   var stateSerialization: CKSyncEngine.State.Serialization?
-  let tables: [any StructuredQueries.Table.Type]
+  let tables: [any StructuredQueriesCore.Table.Type]
   var delegate: Delegate
 
   init(
     container: CKContainer,
-    tables: [any StructuredQueries.Table.Type]
+    tables: [any StructuredQueriesCore.Table.Type]
   ) {
     self.container = container
     self.delegate = Delegate(container: container)
@@ -129,7 +130,7 @@ actor CloudKitDatabase {
   }
 
   #if DEBUG
-    func deleteAllRecords() async throws {
+    public func deleteAllRecords() async throws {
       syncEngine.state.add(
         pendingDatabaseChanges: tables.map { table in
           .deleteZone(CKRecordZone.ID(zoneName: table.tableName))
@@ -140,6 +141,7 @@ actor CloudKitDatabase {
   #endif
 }
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
   @Dependency(\.defaultDatabase) var database
   let container: CKContainer
@@ -348,7 +350,7 @@ final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
       try database.write { db in
         for deletion in changes.deletions {
           let tableName = deletion.zoneID.zoneName
-          try #sql(
+          try SQLQueryExpression(
             """
             DELETE FROM "\(raw: tableName)"
             """
@@ -404,6 +406,7 @@ final class Delegate: CKSyncEngineDelegate, @unchecked Sendable {
   }
 }
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension CKRecord {
   func update(with row: Row) {
     for columnName in row.columnNames {
@@ -463,7 +466,7 @@ extension Database {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       newRecord.encodeSystemFields(with: archiver)
       // TODO: should we use userModificationDate based on record.modificationDate?
-      try #sql(
+      try SQLQueryExpression(
         """
         INSERT INTO "sharing_grdb_cloudkit"
         ("tableName", "primaryKey", "recordData", "userModificationDate")
@@ -482,7 +485,7 @@ extension Database {
   }
 
   func fetchLastCachedRecord(id recordID: CKRecord.ID) throws -> CKRecord {
-    return try #sql(
+    return try SQLQueryExpression(
       """
       SELECT "recordData"
       FROM "sharing_grdb_cloudkit"
@@ -502,10 +505,11 @@ extension Database {
   }
 }
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension CKRecord {
   func upsertIfNewer(db: Database) throws {
     let userModificationDate =
-      try #sql(
+      try SQLQueryExpression(
         """
         SELECT "userModificationDate" FROM "sharing_grdb_cloudkit"
         WHERE "tableName" = \(bind: recordID.tableName)
@@ -560,7 +564,7 @@ extension CKRecord {
 
 extension CKRecord.ID {
   func delete(db: Database) throws {
-    try #sql(
+    try SQLQueryExpression(
       """
       DELETE FROM "\(raw: tableName)" 
       WHERE "id" = \(bind: primaryKey)
@@ -572,7 +576,7 @@ extension CKRecord.ID {
 
 extension CKRecordZone.ID {
   func deleteAll(db: Database) throws {
-    try #sql(
+    try SQLQueryExpression(
       """
       DELETE FROM "\(raw: zoneName)"
       """
@@ -599,27 +603,6 @@ private func convert(_ value: (any __CKRecordObjCValue)?) -> any QueryExpression
   }
 }
 
-extension Database {
-  // TODO: Can this be done automatically by looking at the schema of the tables?
-  func installForeignKeyTrigger<Child: PrimaryKeyedTable, Parent: StructuredQueries.Table>(
-    _ childTable: Child.Type,
-    belongsTo: Parent.Type,
-    through foreignKey: TableColumn<Parent, Child.TableColumns.PrimaryKey>
-  ) throws {
-    try #sql(
-      """
-      CREATE TEMP TRIGGER "foreign_key_\(raw: Child.tableName)_belongsTo_\(raw: Parent.tableName)" 
-      AFTER DELETE ON \(Child.self)
-      FOR EACH ROW BEGIN
-        DELETE FROM \(Parent.self)
-        WHERE \(foreignKey) = old.\(raw: Child.columns.primaryKey.name);
-      END
-      """
-    )
-    .execute(self)
-  }
-}
-
 extension DatabaseFunction {
   convenience init(name: String, function: @escaping @Sendable (String, String) async -> Void) {
     self.init(name, argumentCount: 2) { arguments in
@@ -636,9 +619,10 @@ extension DatabaseFunction {
 }
 
 extension Database {
-  func setUpCloudKit(
+  @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
+  public func setUpCloudKit(
     containerIdentifier: String,
-    tables: [any StructuredQueries.Table.Type]
+    tables: [any StructuredQueriesCore.Table.Type]
   ) throws {
     @Dependency(\.context) var context
     guard context == .live else { return }
@@ -647,12 +631,7 @@ extension Database {
       container: CKContainer(
         identifier: "iCloud.co.pointfree.sharing-grdb.Reminders"
       ),
-      tables: [
-        Reminder.self,
-        RemindersList.self,
-        Tag.self,
-        ReminderTag.self,
-      ]
+      tables: tables
     )
     prepareDependencies {
       $0.cloudKitDatabase = cloudKitDatabase
@@ -668,7 +647,7 @@ extension Database {
     let database = try DatabasePool(path: url.absoluteString)
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create SharingGRDB tables") { db in
-      try #sql(
+      try SQLQueryExpression(
         """
         CREATE TABLE "sharing_grdb_cloudkit" (
           "tableName" TEXT NOT NULL,
@@ -693,10 +672,10 @@ extension Database {
         """
     )
     try installTriggers(db: self, cloudKitDatabase: cloudKitDatabase)
-    // TODO: look at schema to create triggers for foreign key cascading
   }
 }
 
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 func installTriggers(
   db: Database,
   cloudKitDatabase: CloudKitDatabase
@@ -735,7 +714,7 @@ func installTriggers(
       .execute(db)
     try Trigger.update(tableName: table.tableName).sql
       .execute(db)
-    try #sql(
+    try SQLQueryExpression(
       """
       CREATE TEMP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_userModificationDate" 
       AFTER UPDATE ON \(table) FOR EACH ROW BEGIN
@@ -753,6 +732,102 @@ func installTriggers(
       """
     )
     .execute(db)
+    let foreignKeys = try SQLQueryExpression(
+      """
+      SELECT \(PragmaForeignKey.columns) FROM pragma_foreign_key_list(\(bind: table.tableName))
+      """,
+      as: PragmaForeignKey.self
+    )
+    .fetchAll(db)
+    for foreignKey in foreignKeys {
+      switch foreignKey.onDelete {
+      case .cascade:
+        try SQLQueryExpression(
+          """
+          CREATE TEMP TRIGGER "foreign_key_\(raw: table.tableName)_belongsTo_\(raw: foreignKey.table)" 
+          AFTER DELETE ON \(quote: foreignKey.table)
+          FOR EACH ROW BEGIN
+            DELETE FROM \(quote: table.tableName)
+            WHERE \(quote: foreignKey.from) = old.\(quote: foreignKey.to);
+          END
+          """
+        )
+        .execute(db)
+      case .restrict:
+        fatalError("TODO: report issue?")
+      case .setDefault:
+        fatalError("TODO: report issue?")
+      case .setNull:
+        try SQLQueryExpression(
+          """
+          CREATE TEMP TRIGGER "foreign_key_\(raw: table.tableName)_belongsTo_\(raw: foreignKey.table)" 
+          AFTER DELETE ON \(quote: foreignKey.table)
+          FOR EACH ROW BEGIN
+            UPDATE \(quote: table.tableName)
+            SET \(quote: foreignKey.from) = NULL
+            WHERE \(quote: foreignKey.from) = old.\(quote: foreignKey.to);
+          END
+          """
+        )
+        .execute(db)
+      case .noAction:
+        continue
+      }
+
+      switch foreignKey.onUpdate {
+      case .cascade:
+        fatalError("TODO")
+      case .restrict:
+        fatalError("TODO")
+      case .setDefault:
+        fatalError("TODO")
+      case .setNull:
+        fatalError("TODO")
+      case .noAction:
+        continue
+      }
+    }
+  }
+}
+
+private struct PragmaForeignKey: QueryDecodable, QueryRepresentable {
+  enum Action: String, QueryBindable {
+    case cascade = "CASCADE"
+    case restrict = "RESTRICT"
+    case setDefault = "SET DEFAULT"
+    case setNull = "SET NULL"
+    case noAction = "NO ACTION"
+  }
+
+  typealias QueryValue = Self
+
+  let table: String
+  let from: String
+  let to: String
+  let onUpdate: Action
+  let onDelete: Action
+
+  init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    guard
+      let table = try decoder.decode(String.self),
+      let from = try decoder.decode(String.self),
+      let to = try decoder.decode(String.self),
+      let onUpdate = try decoder.decode(Action.self),
+      let onDelete = try decoder.decode(Action.self)
+    else {
+      throw QueryDecodingError.missingRequiredColumn
+    }
+    self.table = table
+    self.from = from
+    self.to = to
+    self.onUpdate = onUpdate
+    self.onDelete = onDelete
+  }
+
+  static var columns: QueryFragment {
+    """
+    "table", "from", "to", "on_update", "on_delete", "match"
+    """
   }
 }
 
@@ -790,7 +865,7 @@ struct Trigger {
     )
   }
   var sql: SQLQueryExpression<Void> {
-    #sql(
+    SQLQueryExpression(
       """
       CREATE TEMP TRIGGER "sharing_grdb_cloudkit_\(raw: type.lowercased())_\(raw: tableName)"
       \(raw: when) \(raw: type) ON "\(raw: tableName)" FOR EACH ROW BEGIN
@@ -800,3 +875,7 @@ struct Trigger {
     )
   }
 }
+
+@available(macOS 11, iOS 14, watchOS 7, tvOS 14, *)
+private let logger = Logger(subsystem: "SharingGRDB", category: "CloudKit")
+#endif

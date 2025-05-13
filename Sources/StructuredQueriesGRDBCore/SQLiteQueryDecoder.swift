@@ -74,7 +74,6 @@ struct SQLiteQueryDecoder: QueryDecoder {
     guard let uuid = UUID(uuidString: uuidString) else { throw InvalidUUID() }
     return uuid
   }
-
 }
 
 @usableFromInline
