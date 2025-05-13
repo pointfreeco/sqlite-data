@@ -33,7 +33,8 @@ public struct FetchOne<Value: Sendable>: Sendable {
   /// Useful if you want to access various property wrapper state, like ``loadError``,
   /// ``isLoading``, and ``publisher``.
   public var projectedValue: Self {
-    self
+    get { self }
+    nonmutating set { sharedReader.projectedValue = newValue.sharedReader.projectedValue }
   }
 
   /// Returns a ``sharedReader`` for the given key path.
