@@ -31,13 +31,13 @@
     let database: any DatabaseWriter
     var syncEngine: CKSyncEngine!
     var stateSerialization: CKSyncEngine.State.Serialization?
-    let tables: [any StructuredQueriesCore.Table.Type]
+    let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
     var delegate: Delegate
 
     public init(
       container: CKContainer,
       database: any DatabaseWriter,
-      tables: [any StructuredQueriesCore.Table.Type]
+      tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
     ) throws {
       self.container = container
       self.database = database
@@ -138,7 +138,7 @@
 
     static func saveZones(
       syncEngine: CKSyncEngine,
-      tables: [any StructuredQueriesCore.Table.Type]
+      tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
     ) {
       syncEngine.state.add(
         pendingDatabaseChanges: tables.map {
@@ -684,7 +684,7 @@
   @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
   func dropTriggers(
     db: Database,
-    tables: [any StructuredQueriesCore.Table.Type]
+    tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) throws {
     db.remove(function: .didInsert)
     db.remove(function: .didUpdate)

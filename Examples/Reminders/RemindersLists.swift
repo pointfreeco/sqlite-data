@@ -173,15 +173,55 @@ struct RemindersListsView: View {
     .listStyle(.insetGrouped)
     .toolbar {
       #if DEBUG
-      ToolbarItem(placement: .destructiveAction) {
-        Button("Clear data") {
-          Task {
-            await withErrorReporting {
-              try await cloudKitDatabase.deleteAllRecords()
+        ToolbarItem(placement: .primaryAction) {
+          Menu {
+            Button {
+              Task {
+                await withErrorReporting {
+                  try await cloudKitDatabase.deleteAllRecords()
+                }
+              }
+            } label: {
+              Text("Clear data")
+              Image(systemName: "xmark")
             }
+            Button {
+              withErrorReporting {
+                try database.write { db in
+                  try db.seedSampleData()
+                }
+              }
+            } label: {
+              Text("Seed data")
+              Image(systemName: "leaf")
+            }
+            //          Group {
+            //            Menu {
+            //              ForEach(Ordering.allCases, id: \.self) { ordering in
+            //                Button {
+            //                  self.ordering = ordering
+            //                } label: {
+            //                  Text(ordering.rawValue)
+            //                  ordering.icon
+            //                }
+            //              }
+            //            } label: {
+            //              Text("Sort By")
+            //              Text(ordering.rawValue)
+            //              Image(systemName: "arrow.up.arrow.down")
+            //            }
+            //            Button {
+            //              showCompleted.toggle()
+            //            } label: {
+            //              Text(showCompleted ? "Hide Completed" : "Show Completed")
+            //              Image(systemName: showCompleted ? "eye.slash.fill" : "eye")
+            //            }
+            //          }
+            //          .tint(detailType.color)
+          } label: {
+            Image(systemName: "ellipsis.circle")
           }
         }
-      }
       #endif
       ToolbarItem(placement: .bottomBar) {
         HStack {
