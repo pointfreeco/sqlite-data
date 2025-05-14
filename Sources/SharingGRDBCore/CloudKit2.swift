@@ -2,31 +2,19 @@ import CloudKit
 import OSLog
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension DependencyValues {
+  public var defaultSyncEngine: SyncEngine {
+    get { self[SyncEngine.self] }
+    set { self[SyncEngine.self] = newValue }
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 public final actor SyncEngine {
   nonisolated let container: CKContainer
   nonisolated let database: any DatabaseWriter
-  nonisolated let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
-  lazy var stateSerialization: CKSyncEngine.State.Serialization? =
-    withErrorReporting {
-      if let data = try? Data(contentsOf: .stateSerialization(container: container)) {
-        return try JSONDecoder().decode(CKSyncEngine.State.Serialization?.self, from: data)
-      } else {
-        return nil
-      }
-    } ?? nil
-  {
-    didSet {
-      withErrorReporting {
-        if let stateSerialization {
-          try JSONEncoder()
-            .encode(stateSerialization)
-            .write(to: .stateSerialization(container: container))
-        } else {
-          try FileManager.default.removeItem(at: .stateSerialization(container: container))
-        }
-      }
-    }
-  }
+  nonisolated let tables: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  var stateSerialization: CKSyncEngine.State.Serialization?
   lazy var underlyingSyncEngine: CKSyncEngine = defaultSyncEngine
 
   public init(
@@ -36,20 +24,146 @@ public final actor SyncEngine {
   ) {
     self.container = container
     self.database = database
-    self.tables = tables
-    Task { _ = await underlyingSyncEngine }
+    self.tables = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
+    Task {
+      await withErrorReporting("SharingGRDB CloudKit Failure") {
+        try await setUpSyncEngine()
+      }
+    }
   }
 
-  func deleteLocalData() {
+  func setUpSyncEngine() throws {
+    let metadatabaseURL = try URL.metadatabase(container: container)
+    var configuration = Configuration()
+    configuration.prepareDatabase { db in
+      db.trace {
+        logger.debug("\($0.expandedDescription)")
+      }
+    }
+    let metadatabase = try DatabaseQueue(
+      path: metadatabaseURL.absoluteString,
+      configuration: configuration
+    )
+    logger.info(
+      """
+      Opened metadatabase
+      \(metadatabaseURL.absoluteString)
+      """
+    )
+    var migrator = DatabaseMigrator()
+    #if DEBUG
+      migrator.eraseDatabaseOnSchemaChange = true
+    #endif
+    migrator.registerMigration("Create Metadata Tables") { db in
+      try SQLQueryExpression(
+        """
+        CREATE TABLE "records" (
+          "zoneName" TEXT NOT NULL,
+          "recordName" TEXT NOT NULL,
+          "recordData" BLOB,
+          "userModificationDate" TEXT,
+          PRIMARY KEY("zoneName", "recordName")
+        ) STRICT
+        """
+      )
+      .execute(db)
+      try SQLQueryExpression(
+        """
+        CREATE TABLE "zones" (
+          "zoneName" TEXT PRIMARY KEY NOT NULL
+          "columnNames" TEXT
+        ) STRICT
+        """
+      )
+      .execute(db)
+      try SQLQueryExpression(
+        """
+        CREATE TABLE "stateSerialization" (
+          "id" INTEGER PRIMARY KEY ON CONFLICT REPLACE CHECK ("id" = 1),
+          "data" TEXT
+        ) STRICT
+        """
+      )
+      .execute(db)
+    }
+    try migrator.migrate(metadatabase)
     withErrorReporting {
-      try database.write { db in
-        for table in tables {
-          db.deleteAll(tableName: table.tableName)
+      stateSerialization =
+        try metadatabase.read { db in
+          try SQLQueryExpression(
+            """
+            SELECT "data" FROM "stateSerialization" LIMIT 1
+            """,
+            as: CKSyncEngine.State.Serialization?.JSONRepresentation.self
+          )
+          .fetchOne(db)
+        }
+        ?? nil
+    }
+    let existingTables = try metadatabase.read { db in
+      try SQLQueryExpression(
+        """
+        SELECT "zoneName" FROM "zones"
+        """,
+        as: String.self
+      )
+      .fetchAll(db)
+    }
+    let newTables = Set(tables.keys).subtracting(existingTables)
+    if !newTables.isEmpty {
+      Task {
+        await withErrorReporting {
+          try await underlyingSyncEngine.fetchChanges(
+            CKSyncEngine.FetchChangesOptions(
+              scope: .zoneIDs(newTables.map { CKRecordZone(zoneName: $0).zoneID })
+            )
+          )
+          try await metadatabase.write { db in
+            try SQLQueryExpression(
+            """
+            INSERT INTO "zones" ("zoneName")
+            VALUES \(newTables.map { QueryFragment("(\(bind: $0))") }.joined(separator: ", "))
+            """
+            )
+            .execute(db)
+          }
         }
       }
     }
-    stateSerialization = nil
-    underlyingSyncEngine = defaultSyncEngine
+    try database.write { db in
+      try SQLQueryExpression(
+        "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitDatabaseName)"
+      )
+      .execute(db)
+    }
+  }
+
+  func tearDownSyncEngine() throws {
+    let metadatabaseURL = try URL.metadatabase(container: container)
+    try database.write { db in
+      try SQLQueryExpression(
+        "DETACH DATABASE \(quote: .sharingGRDBCloudKitDatabaseName)"
+      )
+      .execute(db)
+    }
+    try FileManager.default.removeItem(at: metadatabaseURL)
+  }
+
+  func deleteLocalData() throws {
+    withErrorReporting {
+      try database.write { db in
+        for table in tables.values {
+          func open<T: PrimaryKeyedTable>(_: T.Type) {
+            withErrorReporting {
+              try T.delete().execute(db)
+            }
+          }
+          open(table)
+        }
+      }
+    }
+    try tearDownSyncEngine()
+    try setUpSyncEngine()
   }
 
   private var defaultSyncEngine: CKSyncEngine {
@@ -71,6 +185,24 @@ extension SyncEngine: CKSyncEngineDelegate {
       handleAccountChange(event)
     case .stateUpdate(let event):
       stateSerialization = event.stateSerialization
+      withErrorReporting {
+        try database.write { db in
+          let data = BindQueryExpression(
+            event.stateSerialization,
+            as: CKSyncEngine.State.Serialization.JSONRepresentation.self
+          )
+          try SQLQueryExpression(
+            """
+            INSERT INTO \(quote: .sharingGRDBCloudKitDatabaseName)."stateSerialization"
+              ("id", "data")
+            VALUES
+              (1, \(data))
+            """
+          )
+          .execute(db)
+        }
+      }
+
     case .fetchedDatabaseChanges(let event):
       handleFetchedDatabaseChanges(event)
     case .sentDatabaseChanges:
@@ -97,7 +229,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) {
     switch event.changeType {
     case .signIn:
-      for table in tables {
+      for table in tables.values {
         underlyingSyncEngine.state.add(
           pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneName: table.tableName))]
         )
@@ -125,7 +257,9 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
       }
     case .signOut, .switchAccounts:
-      deleteLocalData()
+      withErrorReporting {
+        try deleteLocalData()
+      }
     @unknown default:
       break
     }
@@ -135,7 +269,14 @@ extension SyncEngine: CKSyncEngineDelegate {
     withErrorReporting {
       try database.write { db in
         for deletion in event.deletions {
-          db.deleteAll(tableName: deletion.zoneID.zoneName)
+          if let table = tables[deletion.zoneID.zoneName] {
+            func open<T: PrimaryKeyedTable>(_: T.Type) {
+              withErrorReporting {
+                try T.delete().execute(db)
+              }
+            }
+            open(table)
+          }
         }
       }
     }
@@ -150,21 +291,26 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 }
 
-extension Database {
-  fileprivate func deleteAll(tableName: String) {
-    withErrorReporting {
-      try SQLQueryExpression("DELETE FROM \(quote: tableName)").execute(self)
-    }
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncEngine: TestDependencyKey {
+  public static var testValue: SyncEngine {
+    SyncEngine(container: .default(), database: try! DatabaseQueue(), tables: [])
   }
+}
+
+extension String {
+  fileprivate static let sharingGRDBCloudKitDatabaseName = "sharing_grdb_icloud"
 }
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
 extension URL {
-  fileprivate static func stateSerialization(container: CKContainer) throws -> Self {
-    try FileManager.default
-      .createDirectory(at: applicationSupportDirectory, withIntermediateDirectories: true)
+  fileprivate static func metadatabase(container: CKContainer) throws -> Self {
+    try FileManager.default.createDirectory(
+      at: applicationSupportDirectory,
+      withIntermediateDirectories: true
+    )
     return applicationSupportDirectory.appending(
-      component: "sharing-grdb-icloud\(container.containerIdentifier.map { ".\($0)" } ?? "").json"
+      component: "\(container.containerIdentifier.map { "\($0)." } ?? "")sharing-grdb-icloud.sqlite"
     )
   }
 }
