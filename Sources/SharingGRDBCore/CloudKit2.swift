@@ -46,8 +46,7 @@ public final actor SyncEngine {
     )
     logger.info(
       """
-      Opened metadatabase
-      \(metadatabaseURL.absoluteString)
+      open "\(metadatabaseURL.path(percentEncoded: false))"
       """
     )
     var migrator = DatabaseMigrator()
@@ -55,6 +54,7 @@ public final actor SyncEngine {
       migrator.eraseDatabaseOnSchemaChange = true
     #endif
     migrator.registerMigration("Create Metadata Tables") { db in
+      // TODO: make proper Record type with @Table macro inlined
       try SQLQueryExpression(
         """
         CREATE TABLE "records" (
@@ -70,12 +70,13 @@ public final actor SyncEngine {
       try SQLQueryExpression(
         """
         CREATE TABLE "zones" (
-          "zoneName" TEXT PRIMARY KEY NOT NULL
-          "columnNames" TEXT
+          "zoneName" TEXT PRIMARY KEY NOT NULL,
+          "schema" TEXT NOT NULL
         ) STRICT
         """
       )
       .execute(db)
+      // TODO: make proper StateSerialization type with @Table macro inlined
       try SQLQueryExpression(
         """
         CREATE TABLE "stateSerialization" (
@@ -100,32 +101,42 @@ public final actor SyncEngine {
         }
         ?? nil
     }
-    let existingTables = try metadatabase.read { db in
+    let previousZones = try metadatabase.read { db in
+      try Zone.all.fetchAll(db)
+    }
+
+    let currentZones = try database.read { db in
       try SQLQueryExpression(
         """
-        SELECT "zoneName" FROM "zones"
+        SELECT "name", "sql" 
+        FROM "sqlite_master" 
+        WHERE "type" = 'table'
+        AND "name" IN (\(tables.keys.map(\.queryFragment).joined(separator: ",")))
         """,
-        as: String.self
+        as: Zone.self
       )
       .fetchAll(db)
     }
-    let newTables = Set(tables.keys).subtracting(existingTables)
-    if !newTables.isEmpty {
+
+    let zonesToFetch = currentZones.filter { currentZone in
+      guard let existingZone = previousZones
+        .first(where: { previousZone in currentZone.zoneName == previousZone.zoneName })
+      else { return true }
+      return existingZone.schema != currentZone.schema
+    }
+
+    if !zonesToFetch.isEmpty {
       Task {
         await withErrorReporting {
           try await underlyingSyncEngine.fetchChanges(
             CKSyncEngine.FetchChangesOptions(
-              scope: .zoneIDs(newTables.map { CKRecordZone(zoneName: $0).zoneID })
+              scope: .zoneIDs(zonesToFetch.map { CKRecordZone(zoneName: $0.zoneName).zoneID })
             )
           )
           try await metadatabase.write { db in
-            try SQLQueryExpression(
-            """
-            INSERT INTO "zones" ("zoneName")
-            VALUES \(newTables.map { QueryFragment("(\(bind: $0))") }.joined(separator: ", "))
-            """
-            )
-            .execute(db)
+            for zone in zonesToFetch {
+              try Zone.upsert(Zone.Draft(zone)).execute(db)
+            }
           }
         }
       }
@@ -177,6 +188,7 @@ public final actor SyncEngine {
   }
 }
 
+//select sql from sqlite_master where name = 'reminders';
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine: CKSyncEngineDelegate {
   public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
@@ -317,3 +329,71 @@ extension URL {
 
 @available(iOS 14, macOS 11, tvOS 14, watchOS 7, *)
 private let logger = Logger(subsystem: "SharingGRDB", category: "CloudKit")
+
+struct Zone {
+  let zoneName: String
+  let schema: String
+}
+
+extension Zone: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
+  public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore.PrimaryKeyedTableDefinition {
+    public typealias QueryValue = Zone
+    public let zoneName = StructuredQueriesCore.TableColumn<QueryValue, String>("zoneName", keyPath: \QueryValue.zoneName)
+    public let schema = StructuredQueriesCore.TableColumn<QueryValue, String>("schema", keyPath: \QueryValue.schema)
+    public var primaryKey: StructuredQueriesCore.TableColumn<QueryValue, String> {
+      self.zoneName
+    }
+    public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
+      [QueryValue.columns.zoneName, QueryValue.columns.schema]
+    }
+  }
+  public struct Draft: StructuredQueriesCore.TableDraft {
+    public typealias PrimaryTable = Zone
+    let zoneName: String?
+    let schema: String
+    public struct TableColumns: StructuredQueriesCore.TableDefinition {
+      public typealias QueryValue = Zone.Draft
+      public let zoneName = StructuredQueriesCore.TableColumn<QueryValue, String?>("zoneName", keyPath: \QueryValue.zoneName)
+      public let schema = StructuredQueriesCore.TableColumn<QueryValue, String>("schema", keyPath: \QueryValue.schema)
+      public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
+        [QueryValue.columns.zoneName, QueryValue.columns.schema]
+      }
+    }
+    public static let columns = TableColumns()
+    public static let tableName = Zone.tableName
+    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+      self.zoneName = try decoder.decode(String.self)
+      let schema = try decoder.decode(String.self)
+      guard let schema else {
+        throw QueryDecodingError.missingRequiredColumn
+      }
+      self.schema = schema
+    }
+    public init(_ other: Zone) {
+      self.zoneName = other.zoneName
+      self.schema = other.schema
+    }
+    public init(
+      zoneName: String? = nil,
+      schema: String
+    ) {
+      self.zoneName = zoneName
+      self.schema = schema
+    }
+  }
+  public static let columns = TableColumns()
+  public static let tableName = "zones"
+  public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    let zoneName = try decoder.decode(String.self)
+    let schema = try decoder.decode(String.self)
+    guard let zoneName else {
+      throw QueryDecodingError.missingRequiredColumn
+    }
+    guard let schema else {
+      throw QueryDecodingError.missingRequiredColumn
+    }
+    self.zoneName = zoneName
+    self.schema = schema
+  }
+}
+

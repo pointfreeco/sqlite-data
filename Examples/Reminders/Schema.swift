@@ -225,6 +225,10 @@ func appDatabase() throws -> any DatabaseWriter {
     .execute(db)
   }
 
+  migrator.registerMigration("foo") { db in
+    try #sql("alter table tags add column hello text").execute(db)
+  }
+
   #if DEBUG && targetEnvironment(simulator)
     if context != .test {
       migrator.registerMigration("Seed sample data") { db in
