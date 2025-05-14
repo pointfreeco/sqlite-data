@@ -81,7 +81,7 @@ public final actor SyncEngine {
         """
         CREATE TABLE "stateSerialization" (
           "id" INTEGER PRIMARY KEY ON CONFLICT REPLACE CHECK ("id" = 1),
-          "data" TEXT
+          "data" TEXT NOT NULL
         ) STRICT
         """
       )
@@ -89,17 +89,15 @@ public final actor SyncEngine {
     }
     try migrator.migrate(metadatabase)
     withErrorReporting {
-      stateSerialization =
-        try metadatabase.read { db in
-          try SQLQueryExpression(
-            """
-            SELECT "data" FROM "stateSerialization" LIMIT 1
-            """,
-            as: CKSyncEngine.State.Serialization?.JSONRepresentation.self
-          )
-          .fetchOne(db)
-        }
-        ?? nil
+      stateSerialization = try metadatabase.read { db in
+        try SQLQueryExpression(
+          """
+          SELECT "data" FROM "stateSerialization" LIMIT 1
+          """,
+          as: CKSyncEngine.State.Serialization.JSONRepresentation.self
+        )
+        .fetchOne(db)
+      }
     }
     let previousZones = try metadatabase.read { db in
       try Zone.all.fetchAll(db)
@@ -119,8 +117,10 @@ public final actor SyncEngine {
     }
 
     let zonesToFetch = currentZones.filter { currentZone in
-      guard let existingZone = previousZones
-        .first(where: { previousZone in currentZone.zoneName == previousZone.zoneName })
+      guard
+        let existingZone =
+          previousZones
+          .first(where: { previousZone in currentZone.zoneName == previousZone.zoneName })
       else { return true }
       return existingZone.schema != currentZone.schema
     }
@@ -329,71 +329,3 @@ extension URL {
 
 @available(iOS 14, macOS 11, tvOS 14, watchOS 7, *)
 private let logger = Logger(subsystem: "SharingGRDB", category: "CloudKit")
-
-struct Zone {
-  let zoneName: String
-  let schema: String
-}
-
-extension Zone: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
-  public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore.PrimaryKeyedTableDefinition {
-    public typealias QueryValue = Zone
-    public let zoneName = StructuredQueriesCore.TableColumn<QueryValue, String>("zoneName", keyPath: \QueryValue.zoneName)
-    public let schema = StructuredQueriesCore.TableColumn<QueryValue, String>("schema", keyPath: \QueryValue.schema)
-    public var primaryKey: StructuredQueriesCore.TableColumn<QueryValue, String> {
-      self.zoneName
-    }
-    public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
-      [QueryValue.columns.zoneName, QueryValue.columns.schema]
-    }
-  }
-  public struct Draft: StructuredQueriesCore.TableDraft {
-    public typealias PrimaryTable = Zone
-    let zoneName: String?
-    let schema: String
-    public struct TableColumns: StructuredQueriesCore.TableDefinition {
-      public typealias QueryValue = Zone.Draft
-      public let zoneName = StructuredQueriesCore.TableColumn<QueryValue, String?>("zoneName", keyPath: \QueryValue.zoneName)
-      public let schema = StructuredQueriesCore.TableColumn<QueryValue, String>("schema", keyPath: \QueryValue.schema)
-      public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
-        [QueryValue.columns.zoneName, QueryValue.columns.schema]
-      }
-    }
-    public static let columns = TableColumns()
-    public static let tableName = Zone.tableName
-    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-      self.zoneName = try decoder.decode(String.self)
-      let schema = try decoder.decode(String.self)
-      guard let schema else {
-        throw QueryDecodingError.missingRequiredColumn
-      }
-      self.schema = schema
-    }
-    public init(_ other: Zone) {
-      self.zoneName = other.zoneName
-      self.schema = other.schema
-    }
-    public init(
-      zoneName: String? = nil,
-      schema: String
-    ) {
-      self.zoneName = zoneName
-      self.schema = schema
-    }
-  }
-  public static let columns = TableColumns()
-  public static let tableName = "zones"
-  public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-    let zoneName = try decoder.decode(String.self)
-    let schema = try decoder.decode(String.self)
-    guard let zoneName else {
-      throw QueryDecodingError.missingRequiredColumn
-    }
-    guard let schema else {
-      throw QueryDecodingError.missingRequiredColumn
-    }
-    self.zoneName = zoneName
-    self.schema = schema
-  }
-}
-
