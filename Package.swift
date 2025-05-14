@@ -34,7 +34,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     //.package(url: "https://github.com/pointfreeco/swift-structured-queries", from: "0.2.0"),
-    .package(path: "../swift-structured-queries")
+    .package(url: "https://github.com/pointfreeco/swift-structured-queries", branch: "default-date-uuid-representations"),
   ],
   targets: [
     .target(
