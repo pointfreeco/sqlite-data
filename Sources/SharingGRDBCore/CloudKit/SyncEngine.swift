@@ -41,7 +41,7 @@ public final actor SyncEngine {
       }
     }
     let metadatabase = try DatabaseQueue(
-      path: metadatabaseURL.absoluteString,
+      path: metadatabaseURL.path(percentEncoded: false),
       configuration: configuration
     )
     logger.info(
@@ -54,7 +54,6 @@ public final actor SyncEngine {
       migrator.eraseDatabaseOnSchemaChange = true
     #endif
     migrator.registerMigration("Create Metadata Tables") { db in
-      // TODO: make proper Record type with @Table macro inlined
       try SQLQueryExpression(
         """
         CREATE TABLE "records" (
@@ -76,7 +75,6 @@ public final actor SyncEngine {
         """
       )
       .execute(db)
-      // TODO: make proper StateSerialization type with @Table macro inlined
       try SQLQueryExpression(
         """
         CREATE TABLE "stateSerialization" (
@@ -90,13 +88,7 @@ public final actor SyncEngine {
     try migrator.migrate(metadatabase)
     withErrorReporting {
       stateSerialization = try metadatabase.read { db in
-        try SQLQueryExpression(
-          """
-          SELECT "data" FROM "stateSerialization" LIMIT 1
-          """,
-          as: CKSyncEngine.State.Serialization.JSONRepresentation.self
-        )
-        .fetchOne(db)
+        try StateSerialization.all.fetchOne(db)?.data
       }
     }
     let previousZones = try metadatabase.read { db in
@@ -109,7 +101,7 @@ public final actor SyncEngine {
         SELECT "name", "sql" 
         FROM "sqlite_master" 
         WHERE "type" = 'table'
-        AND "name" IN (\(tables.keys.map(\.queryFragment).joined(separator: ",")))
+        AND "name" IN (\(tables.keys.map(\.queryFragment).joined(separator: ", ")))
         """,
         as: Zone.self
       )
@@ -119,8 +111,9 @@ public final actor SyncEngine {
     let zonesToFetch = currentZones.filter { currentZone in
       guard
         let existingZone =
-          previousZones
-          .first(where: { previousZone in currentZone.zoneName == previousZone.zoneName })
+          previousZones.first(where: { previousZone in
+            currentZone.zoneName == previousZone.zoneName
+          })
       else { return true }
       return existingZone.schema != currentZone.schema
     }
@@ -188,7 +181,6 @@ public final actor SyncEngine {
   }
 }
 
-//select sql from sqlite_master where name = 'reminders';
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine: CKSyncEngineDelegate {
   public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
@@ -199,17 +191,8 @@ extension SyncEngine: CKSyncEngineDelegate {
       stateSerialization = event.stateSerialization
       withErrorReporting {
         try database.write { db in
-          let data = BindQueryExpression(
-            event.stateSerialization,
-            as: CKSyncEngine.State.Serialization.JSONRepresentation.self
-          )
-          try SQLQueryExpression(
-            """
-            INSERT INTO \(quote: .sharingGRDBCloudKitDatabaseName)."stateSerialization"
-              ("id", "data")
-            VALUES
-              (1, \(data))
-            """
+          try StateSerialization.insert(
+            StateSerialization.Draft(id: 1, data: event.stateSerialization)
           )
           .execute(db)
         }

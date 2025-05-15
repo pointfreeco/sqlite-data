@@ -103,8 +103,12 @@ func appDatabase() throws -> any DatabaseWriter {
     #endif
   }
   if context == .live {
-    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-    logger.info("open \(path)")
+    let path = URL.documentsDirectory.appending(component: "db.sqlite").path(percentEncoded: false)
+    logger.info(
+      """
+      open "\(path)"
+      """
+    )
     database = try DatabasePool(path: path, configuration: configuration)
   } else {
     database = try DatabaseQueue(configuration: configuration)
