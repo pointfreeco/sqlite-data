@@ -59,8 +59,8 @@ public final actor SyncEngine {
         CREATE TABLE "sharing_grdb_cloudkit_records" (
           "zoneName" TEXT NOT NULL,
           "recordName" TEXT NOT NULL,
-          "recordData" BLOB,
-          "localModificationDate" TEXT,
+          "lastKnownServerRecord" BLOB,
+          "localModificationDate" TEXT NOT NULL,
           PRIMARY KEY("zoneName", "recordName")
         ) STRICT
         """
@@ -133,7 +133,6 @@ public final actor SyncEngine {
         "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitSchemaName)"
       )
       .execute(db)
-      db.add(function: .ckRecord)
       db.add(function: .didInsert)
       db.add(function: .didUpdate)
       db.add(function: .willDelete)
@@ -157,12 +156,11 @@ public final actor SyncEngine {
               "sharing_grdb_cloudkit_\(raw: T.tableName)_localModifications"
             AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
               INSERT INTO \(Record.self)
-                ("zoneName", "recordName", "recordData", "localModificationDate")
+                ("zoneName", "recordName", "localModificationDate")
               VALUES 
                 (
                   '\(raw: table.tableName)',
                   "new".\(quote: T.columns.primaryKey.name),
-                  CKRecord('\(raw: T.tableName)', "new".\(quote: T.columns.primaryKey.name)),
                   datetime('subsec')
                 )
               ON CONFLICT("zoneName", "recordName") DO UPDATE SET
@@ -205,7 +203,6 @@ public final actor SyncEngine {
       db.remove(function: .willDelete)
       db.remove(function: .didUpdate)
       db.remove(function: .didInsert)
-      db.remove(function: .ckRecord)
     }
     let metadatabaseURL = try URL.metadatabase(container: container)
     try database.write { db in
@@ -421,21 +418,6 @@ extension SyncEngine: TestDependencyKey {
 
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension DatabaseFunction {
-  fileprivate static var ckRecord: Self {
-    Self("CKRecord", argumentCount: 2) { arguments in
-      guard
-        let recordType = String.fromDatabaseValue(arguments[0]),
-        let recordName = String.fromDatabaseValue(arguments[1])
-      else {
-        return nil
-      }
-      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
-      CKRecord(recordType: recordType, recordID: CKRecord.ID(recordName: recordName))
-        .encodeSystemFields(with: archiver)
-      return archiver.encodedData
-    }
-  }
-
   fileprivate static var didInsert: Self {
     Self("didInsert") {
       @Dependency(\.defaultSyncEngine) var defaultSyncEngine

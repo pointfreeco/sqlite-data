@@ -40,8 +40,8 @@ extension CKRecord? {
 struct Record {
   var zoneName: String
   var recordName: String
-  // @Column(as: CKRecord.DataRepresentation.self)
-  var recordData: CKRecord
+  // @Column(as: CKRecord?.DataRepresentation.self)
+  var lastKnownServerRecord: CKRecord?
   var localModificationDate: Date
 }
 
@@ -58,17 +58,17 @@ extension Record: StructuredQueriesCore.Table {
       "recordName",
       keyPath: \QueryValue.recordName
     )
-    public let recordData = StructuredQueriesCore.TableColumn<
-      QueryValue, CKRecord.DataRepresentation
-    >("recordData", keyPath: \QueryValue.recordData)
+    public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<
+      QueryValue, CKRecord?.DataRepresentation
+    >("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
     public let localModificationDate = StructuredQueriesCore.TableColumn<QueryValue, Date>(
       "localModificationDate",
       keyPath: \QueryValue.localModificationDate
     )
     public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
       [
-        QueryValue.columns.zoneName, QueryValue.columns.recordName, QueryValue.columns.recordData,
-        QueryValue.columns.localModificationDate,
+        QueryValue.columns.zoneName, QueryValue.columns.recordName,
+        QueryValue.columns.lastKnownServerRecord, QueryValue.columns.localModificationDate,
       ]
     }
   }
@@ -77,7 +77,7 @@ extension Record: StructuredQueriesCore.Table {
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
     let zoneName = try decoder.decode(String.self)
     let recordName = try decoder.decode(String.self)
-    let recordData = try decoder.decode(CKRecord.DataRepresentation.self)
+    let lastKnownServerRecord = try decoder.decode(CKRecord?.DataRepresentation.self)
     let localModificationDate = try decoder.decode(Date.self)
     guard let zoneName else {
       throw QueryDecodingError.missingRequiredColumn
@@ -85,7 +85,7 @@ extension Record: StructuredQueriesCore.Table {
     guard let recordName else {
       throw QueryDecodingError.missingRequiredColumn
     }
-    guard let recordData else {
+    guard let lastKnownServerRecord else {
       throw QueryDecodingError.missingRequiredColumn
     }
     guard let localModificationDate else {
@@ -93,7 +93,7 @@ extension Record: StructuredQueriesCore.Table {
     }
     self.zoneName = zoneName
     self.recordName = recordName
-    self.recordData = recordData
+    self.lastKnownServerRecord = lastKnownServerRecord
     self.localModificationDate = localModificationDate
   }
 }
