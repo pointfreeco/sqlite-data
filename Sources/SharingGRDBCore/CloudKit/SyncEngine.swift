@@ -86,10 +86,8 @@ public final actor SyncEngine {
       .execute(db)
     }
     try migrator.migrate(metadatabase)
-    withErrorReporting {
-      stateSerialization = try metadatabase.read { db in
-        try StateSerialization.all.fetchOne(db)?.data
-      }
+    stateSerialization = try metadatabase.read { db in
+      try StateSerialization.all.fetchOne(db)?.data
     }
     let previousZones = try metadatabase.read { db in
       try Zone.all.fetchAll(db)
@@ -192,7 +190,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       withErrorReporting {
         try database.write { db in
           try StateSerialization.insert(
-            StateSerialization.Draft(id: 1, data: event.stateSerialization)
+            StateSerialization(id: 1, data: event.stateSerialization)
           )
           .execute(db)
         }
