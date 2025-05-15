@@ -137,10 +137,18 @@ public final actor SyncEngine {
         "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitDatabaseName)"
       )
       .execute(db)
+      db.add(function: .didInsert)
+      db.add(function: .didUpdate)
+      db.add(function: .willDelete)
     }
   }
 
   func tearDownSyncEngine() throws {
+    try database.write { db in
+      db.remove(function: .willDelete)
+      db.remove(function: .didUpdate)
+      db.remove(function: .didInsert)
+    }
     let metadatabaseURL = try URL.metadatabase(container: container)
     try database.write { db in
       try SQLQueryExpression(
@@ -166,6 +174,46 @@ public final actor SyncEngine {
     }
     try tearDownSyncEngine()
     try setUpSyncEngine()
+  }
+
+  func didInsert(recordName: String, zoneName: String) {
+    underlyingSyncEngine.state.add(
+      pendingRecordZoneChanges: [
+        .saveRecord(
+          CKRecord.ID(
+            recordName: recordName,
+            zoneID: CKRecordZone(zoneName: zoneName).zoneID
+          )
+        )
+      ]
+    )
+  }
+
+  func didUpdate(recordName: String, zoneName: String) {
+    // TODO: Check user modification dates
+    underlyingSyncEngine.state.add(
+      pendingRecordZoneChanges: [
+        .saveRecord(
+          CKRecord.ID(
+            recordName: recordName,
+            zoneID: CKRecordZone(zoneName: zoneName).zoneID
+          )
+        )
+      ]
+    )
+  }
+
+  func willDelete(recordName: String, zoneName: String) {
+    underlyingSyncEngine.state.add(
+      pendingRecordZoneChanges: [
+        .deleteRecord(
+          CKRecord.ID(
+            recordName: recordName,
+            zoneID: CKRecordZone(zoneName: zoneName).zoneID
+          )
+        )
+      ]
+    )
   }
 
   private var defaultSyncEngine: CKSyncEngine {
@@ -288,6 +336,46 @@ extension SyncEngine: CKSyncEngineDelegate {
 extension SyncEngine: TestDependencyKey {
   public static var testValue: SyncEngine {
     SyncEngine(container: .default(), database: try! DatabaseQueue(), tables: [])
+  }
+}
+
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
+extension DatabaseFunction {
+  fileprivate static var didInsert: Self {
+    Self("didInsert") {
+      @Dependency(\.defaultSyncEngine) var defaultSyncEngine
+      await defaultSyncEngine.didInsert(recordName: $0, zoneName: $1)
+    }
+  }
+
+  fileprivate static var didUpdate: Self {
+    Self("didUpdate") {
+      @Dependency(\.defaultSyncEngine) var defaultSyncEngine
+      await defaultSyncEngine.didUpdate(recordName: $0, zoneName: $1)
+    }
+  }
+
+  fileprivate static var willDelete: Self {
+    Self("willDelete") {
+      @Dependency(\.defaultSyncEngine) var defaultSyncEngine
+      await defaultSyncEngine.willDelete(recordName: $0, zoneName: $1)
+    }
+  }
+
+  fileprivate convenience init(
+    _ name: String,
+    function: @escaping @Sendable (String, String) async -> Void
+  ) {
+    self.init(name, argumentCount: 2) { arguments in
+      guard
+        let tableName = String.fromDatabaseValue(arguments[0]),
+        let id = String.fromDatabaseValue(arguments[1])
+      else {
+        return nil
+      }
+      Task { await function(tableName, id) }
+      return nil
+    }
   }
 }
 

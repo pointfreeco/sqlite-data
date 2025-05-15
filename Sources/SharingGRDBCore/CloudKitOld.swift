@@ -667,7 +667,10 @@
   }
 
   extension DatabaseFunction {
-    convenience init(name: String, function: @escaping @Sendable (String, String) async -> Void) {
+    fileprivate convenience init(
+      name: String,
+      function: @escaping @Sendable (String, String) async -> Void
+    ) {
       self.init(name, argumentCount: 2) { arguments in
         guard
           let tableName = String.fromDatabaseValue(arguments[0]),
@@ -926,21 +929,21 @@
 
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension DatabaseFunction {
-  static var didInsert: Self {
+  fileprivate static var didInsert: Self {
     @Dependency(\.cloudKitDatabase) var cloudKitDatabase
     return Self(
       name: "didInsert",
       function: { await cloudKitDatabase.didInsert(tableName: $0, id: $1) }
     )
   }
-  static var didUpdate: Self {
+  fileprivate static var didUpdate: Self {
     @Dependency(\.cloudKitDatabase) var cloudKitDatabase
     return Self(
       name: "didUpdate",
       function: { await cloudKitDatabase.didUpdate(tableName: $0, id: $1) }
     )
   }
-  static var willDelete: Self {
+  fileprivate static var willDelete: Self {
     @Dependency(\.cloudKitDatabase) var cloudKitDatabase
     return Self(
       name: "willDelete",
