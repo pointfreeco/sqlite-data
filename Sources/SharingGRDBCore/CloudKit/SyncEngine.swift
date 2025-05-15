@@ -393,14 +393,44 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
 
     for savedRecord in event.savedRecords {
-      let existingRecord = withErrorReporting {
-        try database.read { db in
-          try Record.where {
-            $0.zoneName.eq(savedRecord.recordID.zoneID.zoneName)
-              && $0.recordName.eq(savedRecord.recordID.recordName)
+      let query = Record.where {
+        $0.zoneName.eq(savedRecord.recordID.zoneID.zoneName)
+          && $0.recordName.eq(savedRecord.recordID.recordName)
+      }
+      let lastKnownServerRecord =
+        withErrorReporting {
+          try database.read { db in
+            try query
+            .select(\.lastKnownServerRecord)
+            .fetchOne(db)
           }
-          .fetchOne(db)
+            ?? nil
         }
+        ?? nil
+
+      let localRecord =
+        lastKnownServerRecord
+        ?? CKRecord(
+          recordType: savedRecord.recordID.zoneID.zoneName,
+          recordID: savedRecord.recordID
+        )
+
+      func updateLastKnownServerRecord() {
+        withErrorReporting {
+          try database.write { db in
+            try query
+              .update { $0.lastKnownServerRecord = savedRecord }
+              .execute(db)
+          }
+        }
+      }
+
+      if let lastKnownDate = localRecord.modificationDate {
+        if let savedDate = savedRecord.modificationDate, lastKnownDate < savedDate {
+          updateLastKnownServerRecord()
+        }
+      } else {
+        updateLastKnownServerRecord()
       }
     }
 
@@ -456,7 +486,7 @@ extension DatabaseFunction {
   }
 }
 
-fileprivate struct Trigger<Base: PrimaryKeyedTable> {
+private struct Trigger<Base: PrimaryKeyedTable> {
   typealias QueryValue = Void
 
   let function: DatabaseFunction
