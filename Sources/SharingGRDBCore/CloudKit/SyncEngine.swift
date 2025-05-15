@@ -26,7 +26,7 @@ public final actor SyncEngine {
     self.database = database
     self.tables = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
     Task {
-      await withErrorReporting("SharingGRDB CloudKit Failure") {
+      await withErrorReporting(.sharingGRDBCloudKitFailure) {
         try await setUpSyncEngine()
       }
     }
@@ -118,7 +118,7 @@ public final actor SyncEngine {
 
     if !zonesToFetch.isEmpty {
       Task {
-        await withErrorReporting {
+        await withErrorReporting(.sharingGRDBCloudKitFailure) {
           try await underlyingSyncEngine.fetchChanges(
             CKSyncEngine.FetchChangesOptions(
               scope: .zoneIDs(zonesToFetch.map { CKRecordZone(zoneName: $0.zoneName).zoneID })
@@ -152,11 +152,11 @@ public final actor SyncEngine {
   }
 
   func deleteLocalData() throws {
-    withErrorReporting {
+    withErrorReporting(.sharingGRDBCloudKitFailure) {
       try database.write { db in
         for table in tables.values {
           func open<T: PrimaryKeyedTable>(_: T.Type) {
-            withErrorReporting {
+            withErrorReporting(.sharingGRDBCloudKitFailure) {
               try T.delete().execute(db)
             }
           }
@@ -187,7 +187,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       handleAccountChange(event)
     case .stateUpdate(let event):
       stateSerialization = event.stateSerialization
-      withErrorReporting {
+      withErrorReporting(.sharingGRDBCloudKitFailure) {
         try database.write { db in
           try StateSerialization.insert(
             StateSerialization(id: 1, data: event.stateSerialization)
@@ -226,7 +226,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         underlyingSyncEngine.state.add(
           pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneName: table.tableName))]
         )
-        withErrorReporting {
+        withErrorReporting(.sharingGRDBCloudKitFailure) {
           let names: [String] = try database.read { db in
             func open<T: PrimaryKeyedTable>(_ table: T.Type) throws -> [String] {
               try SQLQueryExpression(
@@ -250,7 +250,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
       }
     case .signOut, .switchAccounts:
-      withErrorReporting {
+      withErrorReporting(.sharingGRDBCloudKitFailure) {
         try deleteLocalData()
       }
     @unknown default:
@@ -259,12 +259,12 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func handleFetchedDatabaseChanges(_ event: CKSyncEngine.Event.FetchedDatabaseChanges) {
-    withErrorReporting {
+    withErrorReporting(.sharingGRDBCloudKitFailure) {
       try database.write { db in
         for deletion in event.deletions {
           if let table = tables[deletion.zoneID.zoneName] {
             func open<T: PrimaryKeyedTable>(_: T.Type) {
-              withErrorReporting {
+              withErrorReporting(.sharingGRDBCloudKitFailure) {
                 try T.delete().execute(db)
               }
             }
@@ -293,6 +293,7 @@ extension SyncEngine: TestDependencyKey {
 
 extension String {
   fileprivate static let sharingGRDBCloudKitDatabaseName = "sharing_grdb_icloud"
+  fileprivate static let sharingGRDBCloudKitFailure = "SharingGRDB CloudKit Failure"
 }
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
