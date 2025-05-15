@@ -1,4 +1,4 @@
-// @Table
+// @Table("sharing_grdb_cloudkit_zones")
 struct Zone {
   // @Column(primaryKey: true)
   let zoneName: String
@@ -59,7 +59,7 @@ extension Zone: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedT
     }
   }
   public static let columns = TableColumns()
-  public static let tableName = "zones"
+  public static let tableName = "sharing_grdb_cloudkit_zones"
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
     let zoneName = try decoder.decode(String.self)
     let schema = try decoder.decode(String.self)

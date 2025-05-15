@@ -878,7 +878,7 @@
     }
   }
 
-  struct Trigger {
+  fileprivate struct Trigger {
     let idColumn: String
     let function: String
     let tableName: String

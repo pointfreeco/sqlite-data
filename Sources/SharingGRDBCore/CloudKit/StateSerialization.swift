@@ -1,6 +1,6 @@
 import CloudKit
 
-// @Table("stateSerialization")
+// @Table("sharing_grdb_cloudkit_stateSerialization")
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 struct StateSerialization {
   var id = 1
@@ -26,7 +26,7 @@ extension StateSerialization: StructuredQueriesCore.Table {
     }
   }
   public static let columns = TableColumns()
-  public static let tableName = "stateSerialization"
+  public static let tableName = "sharing_grdb_cloudkit_stateSerialization"
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
     self.id = try decoder.decode(Swift.Int.self) ?? 1
     let data = try decoder.decode(CKSyncEngine.State.Serialization.JSONRepresentation.self)
