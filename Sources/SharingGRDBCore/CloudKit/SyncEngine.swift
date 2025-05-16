@@ -23,9 +23,13 @@ public final actor SyncEngine {
     database: any DatabaseWriter,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) {
-    if database.configuration.foreignKeysEnabled {
-      reportIssue("TODO: better messaging")
-    }
+    // TODO: Explain why / link to documentation?
+    precondition(
+      !database.configuration.foreignKeysEnabled,
+      """
+      Foreign key support must be disabled to synchronize with CloudKit.
+      """
+    )
     self.container = container
     self.database = database
     self.tables = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
@@ -102,7 +106,7 @@ public final actor SyncEngine {
       return existingZone.schema != currentZone.schema
     }
     if !zonesToFetch.isEmpty {
-      // TODO: could this be removed if setUpSyncEngine was async?
+      // TODO: Should we avoid this unstructured task by making 'setUpSyncEngine' async?
       Task {
         await withErrorReporting(.sharingGRDBCloudKitFailure) {
           try await underlyingSyncEngine.fetchChanges(
@@ -254,8 +258,8 @@ public final actor SyncEngine {
     )
   }
 
+  // TODO: This is the same as 'didInsert'. Does it need special logic or can we maintain 1 method?
   func didUpdate(recordName: String, zoneName: String) {
-    // TODO: Check user modification dates
     underlyingSyncEngine.state.add(
       pendingRecordZoneChanges: [
         .saveRecord(
@@ -409,6 +413,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneName: table.tableName))]
         )
         withErrorReporting(.sharingGRDBCloudKitFailure) {
+          // TODO: Should this work be batched?
           let names: [String] = try database.read { db in
             func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String] {
               try T
@@ -500,9 +505,8 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
 
     for failedRecordSave in event.failedRecordSaves {
-//      switch failedRecordSave.error.code {
-//        
-//      }
+      // switch failedRecordSave.error.code {
+      // }
     }
   }
 
