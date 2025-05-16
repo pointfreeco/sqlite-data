@@ -234,7 +234,7 @@ func appDatabase() throws -> any DatabaseWriter {
   }
 
   #if DEBUG && targetEnvironment(simulator)
-    if context != .test {
+    if context == .preview {
       migrator.registerMigration("Seed sample data") { db in
         try db.seedSampleData()
       }

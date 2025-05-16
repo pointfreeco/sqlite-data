@@ -23,6 +23,9 @@ public final actor SyncEngine {
     database: any DatabaseWriter,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) {
+    if database.configuration.foreignKeysEnabled {
+      reportIssue("TODO: better messaging")
+    }
     self.container = container
     self.database = database
     self.tables = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
@@ -34,6 +37,8 @@ public final actor SyncEngine {
   }
 
   func setUpSyncEngine() throws {
+    defer { underlyingSyncEngine = defaultSyncEngine }
+
     metadatabase = try defaultMetadatabase
     var migrator = DatabaseMigrator()
     #if DEBUG
@@ -72,11 +77,9 @@ public final actor SyncEngine {
       .execute(db)
     }
     try migrator.migrate(metadatabase)
-    stateSerialization = try metadatabase.read { db in
-      try StateSerialization.all.fetchOne(db)?.data
-    }
     let previousZones = try metadatabase.read { db in
-      try Zone.all.fetchAll(db)
+      stateSerialization = try StateSerialization.all.fetchOne(db)?.data
+      return try Zone.all.fetchAll(db)
     }
     let currentZones = try database.read { db in
       try SQLQueryExpression(
@@ -99,6 +102,7 @@ public final actor SyncEngine {
       return existingZone.schema != currentZone.schema
     }
     if !zonesToFetch.isEmpty {
+      // TODO: could this be removed if setUpSyncEngine was async?
       Task {
         await withErrorReporting(.sharingGRDBCloudKitFailure) {
           try await underlyingSyncEngine.fetchChanges(
@@ -119,6 +123,7 @@ public final actor SyncEngine {
         "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitSchemaName)"
       )
       .execute(db)
+      db.add(function: .areTriggersEnabled)
       db.add(function: .didInsert)
       db.add(function: .didUpdate)
       db.add(function: .willDelete)
@@ -139,14 +144,28 @@ public final actor SyncEngine {
           try SQLQueryExpression(
             """
             CREATE TEMPORARY TRIGGER
-              "sharing_grdb_cloudkit_\(raw: T.tableName)_localModifications"
+              "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
+            AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
+              INSERT INTO \(Record.self)
+                ("zoneName", "recordName", "localModificationDate")
+              SELECT '\(raw: table.tableName)', "new".\(quote: T.columns.primaryKey.name), datetime('subsec')
+              WHERE areTriggersEnabled()
+              ON CONFLICT("zoneName", "recordName") DO NOTHING;
+            END
+            """
+          )
+          .execute(db)
+          try SQLQueryExpression(
+            """
+            CREATE TEMPORARY TRIGGER
+              "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
             AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
               INSERT INTO \(Record.self)
                 ("zoneName", "recordName")
-              VALUES 
-                ('\(raw: table.tableName)', "new".\(quote: T.columns.primaryKey.name))
+              SELECT '\(raw: table.tableName)', "new".\(quote: T.columns.primaryKey.name)
+              WHERE areTriggersEnabled()
               ON CONFLICT("zoneName", "recordName") DO UPDATE SET
-                "localModificationDate" = "excluded"."localModificationDate";
+                "localModificationDate" = datetime('subsec');
             END
             """
           )
@@ -162,7 +181,13 @@ public final actor SyncEngine {
       for table in tables.values {
         try SQLQueryExpression(
           """
-          DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_localModifications"
+          DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_metadataUpdates"
+          """
+        )
+        .execute(db)
+        try SQLQueryExpression(
+          """
+          DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_metadataInserts"
           """
         )
         .execute(db)
@@ -185,6 +210,7 @@ public final actor SyncEngine {
       db.remove(function: .willDelete)
       db.remove(function: .didUpdate)
       db.remove(function: .didInsert)
+      db.remove(function: .areTriggersEnabled)
     }
     try database.write { db in
       try SQLQueryExpression(
@@ -329,7 +355,44 @@ extension SyncEngine: CKSyncEngineDelegate {
     syncEngine: CKSyncEngine
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
     logger.debug("nextRecordZoneChangeBatch: \(context)")
-    return nil
+
+    let changes = syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
+    let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
+      let record = await lastKnownServerRecord(recordID: recordID)
+      guard let table = tables[recordID.zoneID.zoneName]
+      else {
+        reportIssue("")
+        syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+        return nil
+      }
+      func open<T: PrimaryKeyedTable>(_ table: T.Type) async -> CKRecord? {
+        let row =
+          withErrorReporting {
+            try database.read { db in
+              try T.find(recordID: recordID).fetchOne(db)
+            }
+          }
+          ?? nil
+        guard let row
+        else {
+          syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+          return nil
+        }
+
+        let ckRecord = record?.lastKnownServerRecord ?? CKRecord(
+                  recordType: recordID.zoneID.zoneName,
+                  recordID: recordID
+                )
+        ckRecord.update(
+          with: T(queryOutput: row),
+          userModificationDate: record?.localModificationDate
+        )
+        await refreshLastKnownServerRecord(ckRecord)
+        return ckRecord
+      }
+      return await open(table)
+    }
+    return batch
   }
 
   private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) {
@@ -399,10 +462,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         func open<T: PrimaryKeyedTable>(_: T.Type) {
           withErrorReporting(.sharingGRDBCloudKitFailure) {
             try database.write { db in
-              try T
-                .where {
-                  SQLQueryExpression("\($0.primaryKey) = \(bind: deletion.recordID.recordName)")
-                }
+              try T.find(recordID: deletion.recordID)
                 .delete()
                 .execute(db)
             }
@@ -439,10 +499,11 @@ extension SyncEngine: CKSyncEngineDelegate {
 
   private func mergeFromServerRecord(_ record: CKRecord) {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
-      let localModificationDate = try metadatabase.read { db in
-        try Record.for(record.recordID).select(\.localModificationDate).fetchOne(db)
-      }
-      ?? nil
+      let localModificationDate =
+        try metadatabase.read { db in
+          try Record.for(record.recordID).select(\.localModificationDate).fetchOne(db)
+        }
+        ?? nil
       guard let table = tables[record.recordID.zoneID.zoneName]
       else {
         reportIssue(
@@ -454,6 +515,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         )
         return
       }
+      // TODO: should be use userModificationDate here instead of record.modificationDate
       guard
         let localModificationDate,
         localModificationDate > record.modificationDate ?? .distantPast
@@ -503,7 +565,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func refreshLastKnownServerRecord(_ record: CKRecord) {
-    let localRecord = lastKnownServerOrLocalRecord(recordID: record.recordID)
+    let localRecord = lastKnownServerRecord(recordID: record.recordID)
 
     func updateLastKnownServerRecord() {
       withErrorReporting(.sharingGRDBCloudKitFailure) {
@@ -515,7 +577,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
     }
 
-    if let lastKnownDate = localRecord.modificationDate {
+    if let lastKnownDate = localRecord?.lastKnownServerRecord?.modificationDate {
       if let recordDate = record.modificationDate, lastKnownDate < recordDate {
         updateLastKnownServerRecord()
       }
@@ -524,22 +586,15 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  private func lastKnownServerOrLocalRecord(recordID: CKRecord.ID) -> CKRecord {
-    let lastKnownServerRecord =
-      withErrorReporting(.sharingGRDBCloudKitFailure) {
-        try metadatabase.read { db in
-          try Record.for(recordID)
-            .select(\.lastKnownServerRecord)
-            .fetchOne(db)
-        }
-          ?? nil
+  private func lastKnownServerRecord(recordID: CKRecord.ID) -> Record? {
+
+    withErrorReporting(.sharingGRDBCloudKitFailure) {
+      try metadatabase.read { db in
+        try Record.for(recordID)
+          .fetchOne(db)
       }
+    }
       ?? nil
-    return lastKnownServerRecord
-    ?? CKRecord(
-      recordType: recordID.zoneID.zoneName,
-      recordID: recordID
-    )
   }
 }
 
@@ -554,9 +609,6 @@ extension SyncEngine: TestDependencyKey {
 extension DatabaseFunction {
   fileprivate static var didInsert: Self {
     Self("didInsert") {
-      guard areTriggersEnabled else {
-        return
-      }
       @Dependency(\.defaultSyncEngine) var defaultSyncEngine
       await defaultSyncEngine.didInsert(recordName: $0, zoneName: $1)
     }
@@ -564,9 +616,6 @@ extension DatabaseFunction {
 
   fileprivate static var didUpdate: Self {
     Self("didUpdate") {
-      guard areTriggersEnabled else {
-        return
-      }
       @Dependency(\.defaultSyncEngine) var defaultSyncEngine
       await defaultSyncEngine.didUpdate(recordName: $0, zoneName: $1)
     }
@@ -574,11 +623,14 @@ extension DatabaseFunction {
 
   fileprivate static var willDelete: Self {
     Self("willDelete") {
-      guard areTriggersEnabled else {
-        return
-      }
       @Dependency(\.defaultSyncEngine) var defaultSyncEngine
       await defaultSyncEngine.willDelete(recordName: $0, zoneName: $1)
+    }
+  }
+
+  fileprivate static var areTriggersEnabled: Self {
+    Self("areTriggersEnabled", argumentCount: 0) { _ in
+      SharingGRDBCore.areTriggersEnabled
     }
   }
 
@@ -599,7 +651,7 @@ extension DatabaseFunction {
   }
 }
 
-@TaskLocal fileprivate var areTriggersEnabled = true
+@TaskLocal private var areTriggersEnabled = true
 
 private struct Trigger<Base: PrimaryKeyedTable> {
   typealias QueryValue = Void
@@ -623,9 +675,10 @@ private struct Trigger<Base: PrimaryKeyedTable> {
     CREATE TEMPORARY TRIGGER \(name)
     \(when.rawValue) \(operation.rawValue) ON \(quote: Base.tableName) FOR EACH ROW BEGIN
       SELECT \(raw: function.name)(
-        \(quote: Base.tableName, delimiter: .text),
-        \(quote: operation == .delete ? "old" : "new").\(quote: Base.columns.primaryKey.name)
-      );
+        \(quote: operation == .delete ? "old" : "new").\(quote: Base.columns.primaryKey.name),
+        \(quote: Base.tableName, delimiter: .text)
+      )
+      WHERE areTriggersEnabled();
     END
     """
   }

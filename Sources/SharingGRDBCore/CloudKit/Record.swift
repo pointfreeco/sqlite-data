@@ -1,39 +1,4 @@
 import CloudKit
-import Foundation
-
-extension CKRecord {
-  struct DataRepresentation: QueryBindable, QueryRepresentable {
-    let queryOutput: CKRecord
-
-    var queryBinding: QueryBinding {
-      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
-      queryOutput.encodeSystemFields(with: archiver)
-      return archiver.encodedData.queryBinding
-    }
-
-    init(queryOutput: CKRecord) {
-      self.queryOutput = queryOutput
-    }
-
-    init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-      guard let data = try Data?(decoder: &decoder) else {
-        throw QueryDecodingError.missingRequiredColumn
-      }
-      let coder = try NSKeyedUnarchiver(forReadingFrom: data)
-      coder.requiresSecureCoding = true
-      guard let queryOutput = CKRecord(coder: coder) else {
-        throw DecodingError()
-      }
-      self.init(queryOutput: queryOutput)
-    }
-
-    private struct DecodingError: Error {}
-  }
-}
-
-extension CKRecord? {
-  typealias DataRepresentation = CKRecord.DataRepresentation?
-}
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 // @Table("sharing_grdb_cloudkit_records")

@@ -1,0 +1,78 @@
+import CloudKit
+import StructuredQueriesCore
+
+extension CKRecord {
+  struct DataRepresentation: QueryBindable, QueryRepresentable {
+    let queryOutput: CKRecord
+
+    var queryBinding: QueryBinding {
+      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
+      queryOutput.encodeSystemFields(with: archiver)
+      return archiver.encodedData.queryBinding
+    }
+
+    init(queryOutput: CKRecord) {
+      self.queryOutput = queryOutput
+    }
+
+    init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+      guard let data = try Data?(decoder: &decoder) else {
+        throw QueryDecodingError.missingRequiredColumn
+      }
+      let coder = try NSKeyedUnarchiver(forReadingFrom: data)
+      coder.requiresSecureCoding = true
+      guard let queryOutput = CKRecord(coder: coder) else {
+        throw DecodingError()
+      }
+      self.init(queryOutput: queryOutput)
+    }
+
+    private struct DecodingError: Error {}
+  }
+}
+
+extension CKRecord? {
+  typealias DataRepresentation = CKRecord.DataRepresentation?
+}
+
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
+extension CKRecord {
+  func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date?) {
+    encryptedValues[Self.userModificationDateKey] = userModificationDate
+    for column in T.TableColumns.allColumns {
+      func open<Root, Value>(_ column: some TableColumnExpression<Root, Value>) {
+        let column = column as! any TableColumnExpression<T, Value>
+        let value = Value.init(queryOutput: row[keyPath: column.keyPath])
+        switch value.queryBinding {
+        case .blob(let value):
+          encryptedValues[column.name] = Data(value)
+        case .double(let value):
+          encryptedValues[column.name] = value
+        case .date(let value):
+          encryptedValues[column.name] = value
+        case .int(let value):
+          encryptedValues[column.name] = value
+        case .null:
+          encryptedValues[column.name] = nil
+        case .text(let value):
+          encryptedValues[column.name] = value
+        case .uuid(let value):
+          encryptedValues[column.name] = value.uuidString.lowercased()
+        case .invalid(let error):
+          reportIssue(error)
+        }
+      }
+      open(column)
+    }
+  }
+
+  private static let userModificationDateKey = "sharing_grdb_cloudkit_userModificationDate"
+}
+
+extension PrimaryKeyedTable {
+  static func find(recordID: CKRecord.ID) -> Where<Self> {
+    Self.where {
+      SQLQueryExpression("\($0.primaryKey) = \(bind: recordID.recordName)")
+    }
+  }
+}
