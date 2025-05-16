@@ -128,13 +128,12 @@ public final actor SyncEngine {
       )
       .execute(db)
       db.add(function: .areTriggersEnabled)
-      db.add(function: .didInsert)
       db.add(function: .didUpdate)
       db.add(function: .willDelete)
       for table in tables.values {
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
           try SQLQueryExpression(
-            Trigger(on: T.self, .after, .insert, select: .didInsert).create
+            Trigger(on: T.self, .after, .insert, select: .didUpdate).create
           )
           .execute(db)
           try SQLQueryExpression(
@@ -367,7 +366,7 @@ public final actor SyncEngine {
           )
           .execute(db)
           try SQLQueryExpression(
-            Trigger(on: T.self, .after, .insert, select: .didInsert).drop
+            Trigger(on: T.self, .after, .insert, select: .didUpdate).drop
           )
           .execute(db)
         }
@@ -375,7 +374,6 @@ public final actor SyncEngine {
       }
       db.remove(function: .willDelete)
       db.remove(function: .didUpdate)
-      db.remove(function: .didInsert)
       db.remove(function: .areTriggersEnabled)
     }
     try database.write { db in
@@ -404,20 +402,6 @@ public final actor SyncEngine {
     try setUpSyncEngine()
   }
 
-  func didInsert(recordName: String, zoneName: String) {
-    underlyingSyncEngine.state.add(
-      pendingRecordZoneChanges: [
-        .saveRecord(
-          CKRecord.ID(
-            recordName: recordName,
-            zoneID: CKRecordZone(zoneName: zoneName).zoneID
-          )
-        )
-      ]
-    )
-  }
-
-  // TODO: This is the same as 'didInsert'. Does it need special logic or can we maintain 1 method?
   func didUpdate(recordName: String, zoneName: String) {
     underlyingSyncEngine.state.add(
       pendingRecordZoneChanges: [
@@ -811,13 +795,6 @@ extension SyncEngine: TestDependencyKey {
 
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension DatabaseFunction {
-  fileprivate static var didInsert: Self {
-    Self("didInsert") {
-      @Dependency(\.defaultSyncEngine) var syncEngine
-      await syncEngine.didInsert(recordName: $0, zoneName: $1)
-    }
-  }
-
   fileprivate static var didUpdate: Self {
     Self("didUpdate") {
       @Dependency(\.defaultSyncEngine) var syncEngine
