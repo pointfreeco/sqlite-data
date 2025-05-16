@@ -38,11 +38,11 @@ extension CKRecord? {
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension CKRecord {
   func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date?) {
-    encryptedValues[Self.userModificationDateKey] = userModificationDate
+    self.userModificationDate = userModificationDate
     for column in T.TableColumns.allColumns {
       func open<Root, Value>(_ column: some TableColumnExpression<Root, Value>) {
         let column = column as! any TableColumnExpression<T, Value>
-        let value = Value.init(queryOutput: row[keyPath: column.keyPath])
+        let value = Value(queryOutput: row[keyPath: column.keyPath])
         switch value.queryBinding {
         case .blob(let value):
           encryptedValues[column.name] = Data(value)
@@ -64,6 +64,11 @@ extension CKRecord {
       }
       open(column)
     }
+  }
+
+  var userModificationDate: Date? {
+    get { encryptedValues[Self.userModificationDateKey] as? Date }
+    set { encryptedValues[Self.userModificationDateKey] = newValue }
   }
 
   private static let userModificationDateKey = "sharing_grdb_cloudkit_userModificationDate"

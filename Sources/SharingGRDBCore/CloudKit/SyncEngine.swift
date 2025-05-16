@@ -379,10 +379,12 @@ extension SyncEngine: CKSyncEngineDelegate {
           return nil
         }
 
-        let ckRecord = record?.lastKnownServerRecord ?? CKRecord(
-                  recordType: recordID.zoneID.zoneName,
-                  recordID: recordID
-                )
+        let ckRecord =
+          record?.lastKnownServerRecord
+          ?? CKRecord(
+            recordType: recordID.zoneID.zoneName,
+            recordID: recordID
+          )
         ckRecord.update(
           with: T(queryOutput: row),
           userModificationDate: record?.localModificationDate
@@ -515,10 +517,9 @@ extension SyncEngine: CKSyncEngineDelegate {
         )
         return
       }
-      // TODO: should be use userModificationDate here instead of record.modificationDate
       guard
         let localModificationDate,
-        localModificationDate > record.modificationDate ?? .distantPast
+        localModificationDate > record.userModificationDate ?? .distantPast
       else {
         let columnNames = try database.read { db in
           try SQLQueryExpression(
@@ -587,11 +588,9 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func lastKnownServerRecord(recordID: CKRecord.ID) -> Record? {
-
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       try metadatabase.read { db in
-        try Record.for(recordID)
-          .fetchOne(db)
+        try Record.for(recordID).fetchOne(db)
       }
     }
       ?? nil
