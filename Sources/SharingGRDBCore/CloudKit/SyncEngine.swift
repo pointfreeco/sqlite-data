@@ -47,7 +47,7 @@ public final actor SyncEngine {
     migrator.registerMigration("Create Metadata Tables") { db in
       try SQLQueryExpression(
         """
-        CREATE TABLE "sharing_grdb_cloudkit_records" (
+        CREATE TABLE "sharing_grdb_cloudkit_metadata" (
           "zoneName" TEXT NOT NULL,
           "recordName" TEXT NOT NULL,
           "lastKnownServerRecord" BLOB,
@@ -146,7 +146,7 @@ public final actor SyncEngine {
             CREATE TEMPORARY TRIGGER
               "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
             AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
-              INSERT INTO \(Record.self)
+              INSERT INTO \(Metadata.self)
                 ("zoneName", "recordName", "localModificationDate")
               SELECT
                 '\(raw: table.tableName)',
@@ -163,7 +163,7 @@ public final actor SyncEngine {
             CREATE TEMPORARY TRIGGER
               "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
             AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
-              INSERT INTO \(Record.self)
+              INSERT INTO \(Metadata.self)
                 ("zoneName", "recordName")
               SELECT '\(raw: table.tableName)', "new".\(quote: T.columns.primaryKey.name)
               WHERE areTriggersEnabled()
@@ -507,7 +507,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       let localModificationDate =
         try metadatabase.read { db in
-          try Record.for(record.recordID).select(\.localModificationDate).fetchOne(db)
+          try Metadata.for(record.recordID).select(\.localModificationDate).fetchOne(db)
         }
         ?? nil
       guard let table = tables[record.recordID.zoneID.zoneName]
@@ -575,7 +575,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     func updateLastKnownServerRecord() {
       withErrorReporting(.sharingGRDBCloudKitFailure) {
         try database.write { db in
-          try Record.for(record.recordID)
+          try Metadata.for(record.recordID)
             .update { $0.lastKnownServerRecord = record }
             .execute(db)
         }
@@ -591,10 +591,10 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  private func lastKnownServerRecord(recordID: CKRecord.ID) -> Record? {
+  private func lastKnownServerRecord(recordID: CKRecord.ID) -> Metadata? {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       try metadatabase.read { db in
-        try Record.for(recordID).fetchOne(db)
+        try Metadata.for(recordID).fetchOne(db)
       }
     }
       ?? nil
@@ -723,7 +723,7 @@ extension __CKRecordObjCValue {
 private struct Unbindable: Error {}
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension Record {
+extension Metadata {
   static func `for`(_ recordID: CKRecord.ID) -> Where<Self> {
     Self.where {
       $0.zoneName.eq(recordID.zoneID.zoneName)
