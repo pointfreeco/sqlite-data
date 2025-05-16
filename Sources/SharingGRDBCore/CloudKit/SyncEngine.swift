@@ -177,6 +177,58 @@ public final actor SyncEngine {
             """
           )
           .execute(db)
+          let foreignKeys = try SQLQueryExpression(
+            """
+            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: table.tableName))
+            """,
+            as: ForeignKey.self
+          )
+          .fetchAll(db)
+          for foreignKey in foreignKeys {
+            switch foreignKey.onDelete {
+            case .cascade:
+              try SQLQueryExpression(
+                """
+                CREATE TEMPORARY TRIGGER
+                  "foreign_key_\(raw: table.tableName)_belongsTo_\(raw: foreignKey.table)"
+                AFTER DELETE ON \(quote: foreignKey.table)
+                FOR EACH ROW BEGIN
+                  DELETE FROM \(table)
+                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+                END
+                """
+              )
+              .execute(db)
+            case .restrict:
+              // TODO: Report issue?
+              continue
+
+            case .setDefault:
+              // TODO: Report issue?
+              continue
+
+            case .setNull:
+              try SQLQueryExpression(
+                """
+                CREATE TEMPORARY TRIGGER
+                  "foreign_key_\(raw: table.tableName)_belongsTo_\(raw: foreignKey.table)"
+                AFTER DELETE ON \(quote: foreignKey.table)
+                FOR EACH ROW BEGIN
+                  UPDATE \(table)
+                  SET \(quote: foreignKey.from) = NULL
+                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+                END
+                """
+              )
+              .execute(db)
+            case .noAction:
+              continue
+            }
+
+            // TODO: Create foreign key update triggers.
+            // switch foreignKey.onUpdate {
+            // }
+          }
         }
         try open(table)
       }
@@ -186,19 +238,60 @@ public final actor SyncEngine {
   func tearDownSyncEngine() throws {
     try database.write { db in
       for table in tables.values {
-        try SQLQueryExpression(
-          """
-          DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_metadataUpdates"
-          """
-        )
-        .execute(db)
-        try SQLQueryExpression(
-          """
-          DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_metadataInserts"
-          """
-        )
-        .execute(db)
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
+          let foreignKeys = try SQLQueryExpression(
+            """
+            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: table.tableName))
+            """,
+            as: ForeignKey.self
+          )
+          .fetchAll(db)
+          for foreignKey in foreignKeys {
+            switch foreignKey.onDelete {
+            case .cascade:
+              try SQLQueryExpression(
+                """
+                DROP TRIGGER
+                  "foreign_key_\(raw: table.tableName)_belongsTo_\(raw: foreignKey.table)"
+                """
+              )
+              .execute(db)
+            case .restrict:
+              // TODO: Report issue?
+              continue
+
+            case .setDefault:
+              // TODO: Report issue?
+              continue
+
+            case .setNull:
+              try SQLQueryExpression(
+                """
+                DROP TRIGGER
+                  "foreign_key_\(raw: table.tableName)_belongsTo_\(raw: foreignKey.table)"
+                """
+              )
+              .execute(db)
+            case .noAction:
+              continue
+            }
+
+            // TODO: Drop foreign key update triggers.
+            // switch foreignKey.onUpdate {
+            // }
+          }
+          try SQLQueryExpression(
+            """
+            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_metadataUpdates"
+            """
+          )
+          .execute(db)
+          try SQLQueryExpression(
+            """
+            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_metadataInserts"
+            """
+          )
+          .execute(db)
           try SQLQueryExpression(
             Trigger(on: T.self, .before, .delete, select: .willDelete).drop
           )
@@ -693,6 +786,47 @@ extension DatabaseFunction {
       Task { await function(tableName, id) }
       return nil
     }
+  }
+}
+
+private struct ForeignKey: QueryDecodable, QueryRepresentable {
+  enum Action: String, QueryBindable {
+    case cascade = "CASCADE"
+    case restrict = "RESTRICT"
+    case setDefault = "SET DEFAULT"
+    case setNull = "SET NULL"
+    case noAction = "NO ACTION"
+  }
+
+  typealias QueryValue = Self
+
+  let table: String
+  let from: String
+  let to: String
+  let onUpdate: Action
+  let onDelete: Action
+
+  init(decoder: inout some QueryDecoder) throws {
+    guard
+      let table = try decoder.decode(String.self),
+      let from = try decoder.decode(String.self),
+      let to = try decoder.decode(String.self),
+      let onUpdate = try decoder.decode(Action.self),
+      let onDelete = try decoder.decode(Action.self)
+    else {
+      throw QueryDecodingError.missingRequiredColumn
+    }
+    self.table = table
+    self.from = from
+    self.to = to
+    self.onUpdate = onUpdate
+    self.onDelete = onDelete
+  }
+
+  static var columns: QueryFragment {
+    """
+    "table", "from", "to", "on_update", "on_delete"
+    """
   }
 }
 
