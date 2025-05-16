@@ -373,7 +373,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
         return nil
       }
-      func open<T: PrimaryKeyedTable>(_ table: T.Type) async -> CKRecord? {
+      func open<T: PrimaryKeyedTable>(_: T.Type) async -> CKRecord? {
         let row =
           withErrorReporting {
             try database.read { db in
@@ -493,20 +493,54 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func handleSentRecordZoneChanges(_ event: CKSyncEngine.Event.SentRecordZoneChanges) {
+    for savedRecord in event.savedRecords {
+      refreshLastKnownServerRecord(savedRecord)
+    }
+
     var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
     var newPendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] = []
     defer {
       underlyingSyncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
       underlyingSyncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
     }
-
-    for savedRecord in event.savedRecords {
-      refreshLastKnownServerRecord(savedRecord)
-    }
-
     for failedRecordSave in event.failedRecordSaves {
-      // switch failedRecordSave.error.code {
-      // }
+      let failedRecord = failedRecordSave.record
+
+      func clearServerRecord() {
+        withErrorReporting {
+          try database.write { db in
+            try Metadata
+              .find(recordID: failedRecord.recordID)
+              .update { $0.lastKnownServerRecord = nil }
+              .execute(db)
+          }
+        }
+      }
+
+      switch failedRecordSave.error.code {
+      case .serverRecordChanged:
+        guard let serverRecord = failedRecordSave.error.serverRecord else { continue }
+        mergeFromServerRecord(serverRecord)
+        refreshLastKnownServerRecord(serverRecord)
+        newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
+
+      case .zoneNotFound:
+        let zone = CKRecordZone(zoneID: failedRecord.recordID.zoneID)
+        newPendingDatabaseChanges.append(.saveZone(zone))
+        newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
+        clearServerRecord()
+
+      case .unknownItem:
+        newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
+        clearServerRecord()
+
+      case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable, .notAuthenticated,
+        .operationCancelled:
+        continue
+
+      default:
+        continue
+      }
     }
   }
 
@@ -514,7 +548,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       let userModificationDate =
         try metadatabase.read { db in
-          try Metadata.for(record.recordID).select(\.userModificationDate).fetchOne(db)
+          try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(db)
         }
         ?? nil
       guard let table = tables[record.recordID.zoneID.zoneName]
@@ -582,7 +616,8 @@ extension SyncEngine: CKSyncEngineDelegate {
     func updateLastKnownServerRecord() {
       withErrorReporting(.sharingGRDBCloudKitFailure) {
         try database.write { db in
-          try Metadata.for(record.recordID)
+          try Metadata
+            .find(recordID: record.recordID)
             .update { $0.lastKnownServerRecord = record }
             .execute(db)
         }
@@ -601,7 +636,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func lastKnownServerRecord(recordID: CKRecord.ID) -> Metadata? {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       try metadatabase.read { db in
-        try Metadata.for(recordID).fetchOne(db)
+        try Metadata.find(recordID: recordID).fetchOne(db)
       }
     }
       ?? nil
@@ -731,7 +766,7 @@ private struct Unbindable: Error {}
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Metadata {
-  static func `for`(_ recordID: CKRecord.ID) -> Where<Self> {
+  static func find(recordID: CKRecord.ID) -> Where<Self> {
     Self.where {
       $0.zoneName.eq(recordID.zoneID.zoneName)
         && $0.recordName.eq(recordID.recordName)
