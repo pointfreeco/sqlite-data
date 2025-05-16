@@ -182,8 +182,8 @@ public struct FetchOne<Value: Sendable>: Sendable {
     database: (any DatabaseReader)? = nil
   )
   where
-  Value: QueryRepresentable,
-  Value == S.QueryValue.QueryOutput
+    Value: QueryRepresentable,
+    Value == S.QueryValue.QueryOutput
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
@@ -424,8 +424,8 @@ extension FetchOne {
     scheduler: some ValueObservationScheduler & Hashable
   )
   where
-  Value: QueryRepresentable,
-  Value == S.QueryValue.QueryOutput
+    Value: QueryRepresentable,
+    Value == S.QueryValue.QueryOutput
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
@@ -698,8 +698,8 @@ extension FetchOne: Equatable where Value: Equatable {
       animation: Animation
     )
     where
-    Value: QueryRepresentable,
-    Value == S.QueryValue.QueryOutput
+      Value: QueryRepresentable,
+      Value == S.QueryValue.QueryOutput
     {
       sharedReader = SharedReader(
         wrappedValue: wrappedValue,

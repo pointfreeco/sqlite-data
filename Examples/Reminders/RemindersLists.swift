@@ -41,8 +41,8 @@ struct RemindersListsView: View {
   @State private var remindersDetailType: RemindersDetailView.DetailType?
   @State private var searchText = ""
 
-  @Dependency(\.cloudKitDatabase) var cloudKitDatabase
   @Dependency(\.defaultDatabase) private var database
+  @Dependency(\.defaultSyncEngine) private var syncEngine
 
   @Selection
   fileprivate struct ReminderListState: Identifiable {
@@ -177,9 +177,7 @@ struct RemindersListsView: View {
           Menu {
             Button {
               Task {
-                await withErrorReporting {
-                  try await cloudKitDatabase.deleteAllRecords()
-                }
+                try await syncEngine.deleteLocalData()
               }
             } label: {
               Text("Clear data")

@@ -51,7 +51,7 @@ public final actor SyncEngine {
           "zoneName" TEXT NOT NULL,
           "recordName" TEXT NOT NULL,
           "lastKnownServerRecord" BLOB,
-          "localModificationDate" TEXT,
+          "userModificationDate" TEXT,
           PRIMARY KEY("zoneName", "recordName")
         ) STRICT
         """
@@ -147,7 +147,7 @@ public final actor SyncEngine {
               "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
             AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
               INSERT INTO \(Metadata.self)
-                ("zoneName", "recordName", "localModificationDate")
+                ("zoneName", "recordName", "userModificationDate")
               SELECT
                 '\(raw: table.tableName)',
                 "new".\(quote: T.columns.primaryKey.name),
@@ -168,7 +168,7 @@ public final actor SyncEngine {
               SELECT '\(raw: table.tableName)', "new".\(quote: T.columns.primaryKey.name)
               WHERE areTriggersEnabled()
               ON CONFLICT("zoneName", "recordName") DO UPDATE SET
-                "localModificationDate" = datetime('subsec');
+                "userModificationDate" = datetime('subsec');
             END
             """
           )
@@ -224,7 +224,7 @@ public final actor SyncEngine {
     try FileManager.default.removeItem(at: metadatabaseURL)
   }
 
-  func deleteLocalData() throws {
+  public func deleteLocalData() throws {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       try database.write { db in
         for table in tables.values {
@@ -391,7 +391,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           )
         ckRecord.update(
           with: T(queryOutput: row),
-          userModificationDate: record?.localModificationDate
+          userModificationDate: record?.userModificationDate
         )
         await refreshLastKnownServerRecord(ckRecord)
         return ckRecord
@@ -500,14 +500,17 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
 
     for failedRecordSave in event.failedRecordSaves {
+//      switch failedRecordSave.error.code {
+//        
+//      }
     }
   }
 
   private func mergeFromServerRecord(_ record: CKRecord) {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
-      let localModificationDate =
+      let userModificationDate =
         try metadatabase.read { db in
-          try Metadata.for(record.recordID).select(\.localModificationDate).fetchOne(db)
+          try Metadata.for(record.recordID).select(\.userModificationDate).fetchOne(db)
         }
         ?? nil
       guard let table = tables[record.recordID.zoneID.zoneName]
@@ -522,8 +525,8 @@ extension SyncEngine: CKSyncEngineDelegate {
         return
       }
       guard
-        let localModificationDate,
-        localModificationDate > record.userModificationDate ?? .distantPast
+        let userModificationDate,
+        userModificationDate > record.userModificationDate ?? .distantPast
       else {
         let columnNames = try database.read { db in
           try SQLQueryExpression(
@@ -612,22 +615,22 @@ extension SyncEngine: TestDependencyKey {
 extension DatabaseFunction {
   fileprivate static var didInsert: Self {
     Self("didInsert") {
-      @Dependency(\.defaultSyncEngine) var defaultSyncEngine
-      await defaultSyncEngine.didInsert(recordName: $0, zoneName: $1)
+      @Dependency(\.defaultSyncEngine) var syncEngine
+      await syncEngine.didInsert(recordName: $0, zoneName: $1)
     }
   }
 
   fileprivate static var didUpdate: Self {
     Self("didUpdate") {
-      @Dependency(\.defaultSyncEngine) var defaultSyncEngine
-      await defaultSyncEngine.didUpdate(recordName: $0, zoneName: $1)
+      @Dependency(\.defaultSyncEngine) var syncEngine
+      await syncEngine.didUpdate(recordName: $0, zoneName: $1)
     }
   }
 
   fileprivate static var willDelete: Self {
     Self("willDelete") {
-      @Dependency(\.defaultSyncEngine) var defaultSyncEngine
-      await defaultSyncEngine.willDelete(recordName: $0, zoneName: $1)
+      @Dependency(\.defaultSyncEngine) var syncEngine
+      await syncEngine.willDelete(recordName: $0, zoneName: $1)
     }
   }
 

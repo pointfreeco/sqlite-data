@@ -442,8 +442,8 @@ extension FetchAll {
     scheduler: some ValueObservationScheduler & Hashable
   )
   where
-  Element: QueryRepresentable,
-  Element == S.QueryValue.QueryOutput
+    Element: QueryRepresentable,
+    Element == S.QueryValue.QueryOutput
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
@@ -739,8 +739,8 @@ extension FetchAll: Equatable where Element: Equatable {
       animation: Animation
     )
     where
-    Element: QueryRepresentable,
-    Element == S.QueryValue.QueryOutput
+      Element: QueryRepresentable,
+      Element == S.QueryValue.QueryOutput
     {
       sharedReader = SharedReader(
         wrappedValue: wrappedValue,

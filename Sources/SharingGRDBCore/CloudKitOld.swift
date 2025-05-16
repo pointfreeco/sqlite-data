@@ -112,7 +112,7 @@
     }
 
     func restartSyncEngine() throws {
-          try tearDownSyncEngine()
+      try tearDownSyncEngine()
       //    setUpSyncEngine()
 
       // delete triggers
@@ -705,7 +705,7 @@
         """,
         as: PragmaForeignKey.self
       )
-        .fetchAll(db)
+      .fetchAll(db)
       for foreignKey in foreignKeys {
         switch foreignKey.onDelete {
         case .cascade:
@@ -878,7 +878,7 @@
     }
   }
 
-  fileprivate struct Trigger {
+  private struct Trigger {
     let idColumn: String
     let function: String
     let tableName: String
