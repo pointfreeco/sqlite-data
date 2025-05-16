@@ -285,6 +285,7 @@ public final actor SyncEngine {
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine: CKSyncEngineDelegate {
   public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
+    logger.debug("handleEvent: \(event)")
     switch event {
     case .accountChange(let event):
       handleAccountChange(event)
@@ -323,7 +324,6 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) {
-    logger.debug("handleAccountChange: \(event)")
     switch event.changeType {
     case .signIn:
       for table in tables.values {
@@ -332,12 +332,10 @@ extension SyncEngine: CKSyncEngineDelegate {
         )
         withErrorReporting(.sharingGRDBCloudKitFailure) {
           let names: [String] = try database.read { db in
-            func open<T: PrimaryKeyedTable>(_ table: T.Type) throws -> [String] {
-              try SQLQueryExpression(
-                "SELECT \(table.columns.primaryKey) FROM \(table)",
-                as: String.self
-              )
-              .fetchAll(db)
+            func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String] {
+              try T
+                .select { SQLQueryExpression("\($0.primaryKey)", as: String.self) }
+                .fetchAll(db)
             }
             return try open(table)
           }
@@ -382,6 +380,36 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func handleFetchedRecordZoneChanges(
     _ event: CKSyncEngine.Event.FetchedRecordZoneChanges
   ) {
+    for modification in event.modifications {
+      mergeFromServerRecord(modification.record)
+      refreshLastKnownServerRecord(modification.record)
+    }
+
+    for deletion in event.deletions {
+      if let table = tables[deletion.recordID.zoneID.zoneName] {
+        func open<T: PrimaryKeyedTable>(_: T.Type) {
+          withErrorReporting(.sharingGRDBCloudKitFailure) {
+            try database.write { db in
+              try T
+                .where {
+                  SQLQueryExpression("\($0.primaryKey) = \(bind: deletion.recordID.recordName)")
+                }
+                .delete()
+                .execute(db)
+            }
+          }
+        }
+        open(table)
+      } else {
+        reportIssue(
+          .sharingGRDBCloudKitFailure.appending(
+          """
+          : No table to delete from: "\(deletion.recordID.zoneID.zoneName)"
+          """
+          )
+        )
+      }
+    }
   }
 
   private func handleSentRecordZoneChanges(_ event: CKSyncEngine.Event.SentRecordZoneChanges) {
@@ -393,48 +421,111 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
 
     for savedRecord in event.savedRecords {
-      let query = Record.where {
-        $0.zoneName.eq(savedRecord.recordID.zoneID.zoneName)
-          && $0.recordName.eq(savedRecord.recordID.recordName)
-      }
-      let lastKnownServerRecord =
-        withErrorReporting {
-          try database.read { db in
-            try query
-            .select(\.lastKnownServerRecord)
-            .fetchOne(db)
-          }
-            ?? nil
-        }
-        ?? nil
-
-      let localRecord =
-        lastKnownServerRecord
-        ?? CKRecord(
-          recordType: savedRecord.recordID.zoneID.zoneName,
-          recordID: savedRecord.recordID
-        )
-
-      func updateLastKnownServerRecord() {
-        withErrorReporting {
-          try database.write { db in
-            try query
-              .update { $0.lastKnownServerRecord = savedRecord }
-              .execute(db)
-          }
-        }
-      }
-
-      if let lastKnownDate = localRecord.modificationDate {
-        if let savedDate = savedRecord.modificationDate, lastKnownDate < savedDate {
-          updateLastKnownServerRecord()
-        }
-      } else {
-        updateLastKnownServerRecord()
-      }
+      refreshLastKnownServerRecord(savedRecord)
     }
 
     for failedRecordSave in event.failedRecordSaves {
+    }
+  }
+
+  private func mergeFromServerRecord(_ record: CKRecord) {
+    withErrorReporting(.sharingGRDBCloudKitFailure) {
+      let localModificationDate = try database.read { db in
+        try Record.for(record).select(\.localModificationDate).fetchOne(db)
+      }
+      guard let table = tables[record.recordID.zoneID.zoneName]
+      else {
+        reportIssue(
+          .sharingGRDBCloudKitFailure.appending(
+            """
+            : No table to merge from: "\(record.recordID.zoneID.zoneName)"
+            """
+          )
+        )
+        return
+      }
+      guard
+        let localModificationDate,
+        localModificationDate > record.modificationDate ?? .distantPast
+      else {
+        let columnNames = try database.read { db in
+          try SQLQueryExpression(
+            """
+            SELECT "name" 
+            FROM pragma_table_info(\(bind: table.tableName))    
+            """,
+            as: String.self
+          )
+          .fetchAll(db)
+        }
+        var query: QueryFragment = "INSERT INTO \(table) ("
+        query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+        query.append(") VALUES (")
+        let encryptedValues = record.encryptedValues
+        query.append(
+          columnNames
+            .map { columnName in
+              encryptedValues[columnName]?.queryFragment ?? "NULL"
+            }
+            .joined(separator: ", ")
+        )
+        func open<T: PrimaryKeyedTable>(_: T.Type) {
+          query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET")
+        }
+        open(table)
+        query.append(
+          columnNames
+            .map {
+              """
+              \(quote: $0) = "excluded".\(quote: $0)
+              """
+            }
+            .joined(separator: ",")
+        )
+        try database.write { db in
+          try SQLQueryExpression(query).execute(db)
+        }
+        return
+      }
+    }
+  }
+
+  private func refreshLastKnownServerRecord(_ record: CKRecord) {
+    let query = Record.for(record)
+    let lastKnownServerRecord =
+      withErrorReporting(.sharingGRDBCloudKitFailure) {
+        try database.read { db in
+          try query
+            .select(\.lastKnownServerRecord)
+            .fetchOne(db)
+        }
+          ?? nil
+      }
+      ?? nil
+
+    let localRecord =
+      lastKnownServerRecord
+      ?? CKRecord(
+        recordType: record.recordID.zoneID.zoneName,
+        recordID: record.recordID
+      )
+
+    func updateLastKnownServerRecord() {
+      withErrorReporting(.sharingGRDBCloudKitFailure) {
+        try database.write { db in
+          try query
+            .update { $0.lastKnownServerRecord = record }
+            .execute(db)
+        }
+      }
+    }
+
+    if let lastKnownDate = localRecord.modificationDate {
+      if let recordDate = record.modificationDate, lastKnownDate < recordDate {
+        updateLastKnownServerRecord()
+      }
+    } else {
+      updateLastKnownServerRecord()
     }
   }
 }
@@ -469,7 +560,7 @@ extension DatabaseFunction {
     }
   }
 
-  fileprivate convenience init(
+  private convenience init(
     _ name: String,
     function: @escaping @Sendable (String, String) async -> Void
   ) {
@@ -530,6 +621,18 @@ private struct Trigger<Base: PrimaryKeyedTable> {
     case after = "AFTER"
   }
 }
+
+extension __CKRecordObjCValue {
+  fileprivate var queryFragment: QueryFragment {
+    if let queryBindable = self as? any QueryBindable {
+      return queryBindable.queryFragment
+    } else {
+      return "\(.invalid(Unbindable()))"
+    }
+  }
+}
+
+private struct Unbindable: Error {}
 
 extension String {
   fileprivate static let sharingGRDBCloudKitSchemaName = "sharing_grdb_icloud"
