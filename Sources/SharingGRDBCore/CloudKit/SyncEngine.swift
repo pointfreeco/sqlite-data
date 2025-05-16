@@ -14,6 +14,7 @@ public final actor SyncEngine {
   nonisolated let container: CKContainer
   nonisolated let database: any DatabaseWriter
   nonisolated let tables: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  lazy var metadatabase: any DatabaseWriter = try! DatabaseQueue()
   var stateSerialization: CKSyncEngine.State.Serialization?
   lazy var underlyingSyncEngine: CKSyncEngine = defaultSyncEngine
 
@@ -33,22 +34,7 @@ public final actor SyncEngine {
   }
 
   func setUpSyncEngine() throws {
-    let metadatabaseURL = try URL.metadatabase(container: container)
-    var configuration = Configuration()
-    configuration.prepareDatabase { db in
-      db.trace {
-        logger.debug("\($0.expandedDescription)")
-      }
-    }
-    let metadatabase = try DatabaseQueue(
-      path: metadatabaseURL.path(percentEncoded: false),
-      configuration: configuration
-    )
-    logger.info(
-      """
-      open "\(metadatabaseURL.path(percentEncoded: false))"
-      """
-    )
+    metadatabase = try defaultMetadatabase
     var migrator = DatabaseMigrator()
     #if DEBUG
       migrator.eraseDatabaseOnSchemaChange = true
@@ -60,7 +46,7 @@ public final actor SyncEngine {
           "zoneName" TEXT NOT NULL,
           "recordName" TEXT NOT NULL,
           "lastKnownServerRecord" BLOB,
-          "localModificationDate" TEXT NOT NULL,
+          "localModificationDate" TEXT,
           PRIMARY KEY("zoneName", "recordName")
         ) STRICT
         """
@@ -156,13 +142,9 @@ public final actor SyncEngine {
               "sharing_grdb_cloudkit_\(raw: T.tableName)_localModifications"
             AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
               INSERT INTO \(Record.self)
-                ("zoneName", "recordName", "localModificationDate")
+                ("zoneName", "recordName")
               VALUES 
-                (
-                  '\(raw: table.tableName)',
-                  "new".\(quote: T.columns.primaryKey.name),
-                  datetime('subsec')
-                )
+                ('\(raw: table.tableName)', "new".\(quote: T.columns.primaryKey.name))
               ON CONFLICT("zoneName", "recordName") DO UPDATE SET
                 "localModificationDate" = "excluded"."localModificationDate";
             END
@@ -204,7 +186,6 @@ public final actor SyncEngine {
       db.remove(function: .didUpdate)
       db.remove(function: .didInsert)
     }
-    let metadatabaseURL = try URL.metadatabase(container: container)
     try database.write { db in
       try SQLQueryExpression(
         "DETACH DATABASE \(quote: .sharingGRDBCloudKitSchemaName)"
@@ -269,6 +250,34 @@ public final actor SyncEngine {
         )
       ]
     )
+  }
+
+  private var metadatabaseURL: URL {
+    URL.metadatabase(container: container)
+  }
+
+  private var defaultMetadatabase: any DatabaseWriter {
+    get throws {
+      var configuration = Configuration()
+      configuration.prepareDatabase { db in
+        db.trace {
+          logger.debug("\($0.expandedDescription)")
+        }
+      }
+      logger.info(
+        """
+        open "\(self.metadatabaseURL.path(percentEncoded: false))"
+        """
+      )
+      try FileManager.default.createDirectory(
+        at: .applicationSupportDirectory,
+        withIntermediateDirectories: true
+      )
+      return try DatabaseQueue(
+        path: metadatabaseURL.path(percentEncoded: false),
+        configuration: configuration
+      )
+    }
   }
 
   private var defaultSyncEngine: CKSyncEngine {
@@ -403,9 +412,9 @@ extension SyncEngine: CKSyncEngineDelegate {
       } else {
         reportIssue(
           .sharingGRDBCloudKitFailure.appending(
-          """
-          : No table to delete from: "\(deletion.recordID.zoneID.zoneName)"
-          """
+            """
+            : No table to delete from: "\(deletion.recordID.zoneID.zoneName)"
+            """
           )
         )
       }
@@ -430,9 +439,10 @@ extension SyncEngine: CKSyncEngineDelegate {
 
   private func mergeFromServerRecord(_ record: CKRecord) {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
-      let localModificationDate = try database.read { db in
-        try Record.for(record).select(\.localModificationDate).fetchOne(db)
+      let localModificationDate = try metadatabase.read { db in
+        try Record.for(record.recordID).select(\.localModificationDate).fetchOne(db)
       }
+      ?? nil
       guard let table = tables[record.recordID.zoneID.zoneName]
       else {
         reportIssue(
@@ -483,7 +493,9 @@ extension SyncEngine: CKSyncEngineDelegate {
             .joined(separator: ",")
         )
         try database.write { db in
-          try SQLQueryExpression(query).execute(db)
+          try $areTriggersEnabled.withValue(false) {
+            try SQLQueryExpression(query).execute(db)
+          }
         }
         return
       }
@@ -491,10 +503,10 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func refreshLastKnownServerRecord(_ record: CKRecord) {
-    let query = Record.for(record)
+    let query = Record.for(record.recordID)
     let lastKnownServerRecord =
       withErrorReporting(.sharingGRDBCloudKitFailure) {
-        try database.read { db in
+        try metadatabase.read { db in
           try query
             .select(\.lastKnownServerRecord)
             .fetchOne(db)
@@ -541,6 +553,9 @@ extension SyncEngine: TestDependencyKey {
 extension DatabaseFunction {
   fileprivate static var didInsert: Self {
     Self("didInsert") {
+      guard areTriggersEnabled else {
+        return
+      }
       @Dependency(\.defaultSyncEngine) var defaultSyncEngine
       await defaultSyncEngine.didInsert(recordName: $0, zoneName: $1)
     }
@@ -548,6 +563,9 @@ extension DatabaseFunction {
 
   fileprivate static var didUpdate: Self {
     Self("didUpdate") {
+      guard areTriggersEnabled else {
+        return
+      }
       @Dependency(\.defaultSyncEngine) var defaultSyncEngine
       await defaultSyncEngine.didUpdate(recordName: $0, zoneName: $1)
     }
@@ -555,6 +573,9 @@ extension DatabaseFunction {
 
   fileprivate static var willDelete: Self {
     Self("willDelete") {
+      guard areTriggersEnabled else {
+        return
+      }
       @Dependency(\.defaultSyncEngine) var defaultSyncEngine
       await defaultSyncEngine.willDelete(recordName: $0, zoneName: $1)
     }
@@ -576,6 +597,8 @@ extension DatabaseFunction {
     }
   }
 }
+
+@TaskLocal fileprivate var areTriggersEnabled = true
 
 private struct Trigger<Base: PrimaryKeyedTable> {
   typealias QueryValue = Void
@@ -624,8 +647,16 @@ private struct Trigger<Base: PrimaryKeyedTable> {
 
 extension __CKRecordObjCValue {
   fileprivate var queryFragment: QueryFragment {
-    if let queryBindable = self as? any QueryBindable {
-      return queryBindable.queryFragment
+    if let value = self as? Int64 {
+      return value.queryFragment
+    } else if let value = self as? Double {
+      return value.queryFragment
+    } else if let value = self as? String {
+      return value.queryFragment
+    } else if let value = self as? Data {
+      return value.queryFragment
+    } else if let value = self as? Date {
+      return value.queryFragment
     } else {
       return "\(.invalid(Unbindable()))"
     }
@@ -634,6 +665,16 @@ extension __CKRecordObjCValue {
 
 private struct Unbindable: Error {}
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension Record {
+  static func `for`(_ recordID: CKRecord.ID) -> Where<Self> {
+    Self.where {
+      $0.zoneName.eq(recordID.zoneID.zoneName)
+        && $0.recordName.eq(recordID.recordName)
+    }
+  }
+}
+
 extension String {
   fileprivate static let sharingGRDBCloudKitSchemaName = "sharing_grdb_icloud"
   fileprivate static let sharingGRDBCloudKitFailure = "SharingGRDB CloudKit Failure"
@@ -641,12 +682,8 @@ extension String {
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
 extension URL {
-  fileprivate static func metadatabase(container: CKContainer) throws -> Self {
-    try FileManager.default.createDirectory(
-      at: applicationSupportDirectory,
-      withIntermediateDirectories: true
-    )
-    return applicationSupportDirectory.appending(
+  fileprivate static func metadatabase(container: CKContainer) -> Self {
+    applicationSupportDirectory.appending(
       component: "\(container.containerIdentifier.map { "\($0)." } ?? "")sharing-grdb-icloud.sqlite"
     )
   }

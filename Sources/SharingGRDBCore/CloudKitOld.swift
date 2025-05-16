@@ -537,7 +537,7 @@
             \(bind: newRecord.recordID.tableName),
             \(bind: newRecord.recordID.primaryKey),
             \(archiver.encodedData),
-            \(bind: Date.ISO8601Representation(queryOutput: newRecord.modificationDate ?? Date()))
+            \(bind: Date.ISO8601Representation(queryOutput: .distantPast))
           )
           ON CONFLICT("tableName", "primaryKey") DO UPDATE SET
           "recordData" = \(archiver.encodedData)
