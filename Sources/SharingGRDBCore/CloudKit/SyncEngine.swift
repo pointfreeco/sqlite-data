@@ -148,7 +148,10 @@ public final actor SyncEngine {
             AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
               INSERT INTO \(Record.self)
                 ("zoneName", "recordName", "localModificationDate")
-              SELECT '\(raw: table.tableName)', "new".\(quote: T.columns.primaryKey.name), datetime('subsec')
+              SELECT
+                '\(raw: table.tableName)',
+                "new".\(quote: T.columns.primaryKey.name),
+                datetime('subsec')
               WHERE areTriggersEnabled()
               ON CONFLICT("zoneName", "recordName") DO NOTHING;
             END
@@ -321,6 +324,7 @@ public final actor SyncEngine {
 extension SyncEngine: CKSyncEngineDelegate {
   public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
     logger.debug("handleEvent: \(event)")
+
     switch event {
     case .accountChange(let event):
       handleAccountChange(event)
