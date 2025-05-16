@@ -190,7 +190,7 @@ public final actor SyncEngine {
               try SQLQueryExpression(
                 """
                 CREATE TEMPORARY TRIGGER
-                  "foreign_key_\(raw: table.tableName)_belongsTo_\(raw: foreignKey.table)"
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
                 AFTER DELETE ON \(quote: foreignKey.table)
                 FOR EACH ROW BEGIN
                   DELETE FROM \(table)
@@ -199,6 +199,7 @@ public final actor SyncEngine {
                 """
               )
               .execute(db)
+
             case .restrict:
               // TODO: Report issue?
               continue
@@ -211,7 +212,7 @@ public final actor SyncEngine {
               try SQLQueryExpression(
                 """
                 CREATE TEMPORARY TRIGGER
-                  "foreign_key_\(raw: table.tableName)_belongsTo_\(raw: foreignKey.table)"
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
                 AFTER DELETE ON \(quote: foreignKey.table)
                 FOR EACH ROW BEGIN
                   UPDATE \(table)
@@ -221,13 +222,53 @@ public final actor SyncEngine {
                 """
               )
               .execute(db)
+
             case .noAction:
               continue
             }
 
-            // TODO: Create foreign key update triggers.
-            // switch foreignKey.onUpdate {
-            // }
+            switch foreignKey.onUpdate {
+            case .cascade:
+              try SQLQueryExpression(
+                """
+                CREATE TEMPORARY TRIGGER
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
+                AFTER UPDATE ON \(quote: foreignKey.table)
+                FOR EACH ROW BEGIN
+                  UPDATE \(T.self)
+                  SET \(quote: foreignKey.from) = "new".\(quote: foreignKey.to)
+                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+                END
+                """
+              )
+              .execute(db)
+
+            case .restrict:
+              // TODO: Report issue?
+              continue
+
+            case .setDefault:
+              // TODO: Report issue?
+              continue
+
+            case .setNull:
+              try SQLQueryExpression(
+                """
+                CREATE TEMPORARY TRIGGER
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
+                AFTER UPDATE ON \(quote: foreignKey.table)
+                FOR EACH ROW BEGIN
+                  UPDATE \(T.self)
+                  SET \(quote: foreignKey.from) = NULL
+                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+                END
+                """
+              )
+              .execute(db)
+
+            case .noAction:
+              continue
+            }
           }
         }
         try open(table)
@@ -252,33 +293,58 @@ public final actor SyncEngine {
               try SQLQueryExpression(
                 """
                 DROP TRIGGER
-                  "foreign_key_\(raw: table.tableName)_belongsTo_\(raw: foreignKey.table)"
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
                 """
               )
               .execute(db)
+
             case .restrict:
-              // TODO: Report issue?
               continue
 
             case .setDefault:
-              // TODO: Report issue?
               continue
 
             case .setNull:
               try SQLQueryExpression(
                 """
                 DROP TRIGGER
-                  "foreign_key_\(raw: table.tableName)_belongsTo_\(raw: foreignKey.table)"
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
                 """
               )
               .execute(db)
+
             case .noAction:
               continue
             }
 
-            // TODO: Drop foreign key update triggers.
-            // switch foreignKey.onUpdate {
-            // }
+            switch foreignKey.onDelete {
+            case .cascade:
+              try SQLQueryExpression(
+                """
+                DROP TRIGGER
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
+                """
+              )
+              .execute(db)
+
+            case .restrict:
+              continue
+
+            case .setDefault:
+              continue
+
+            case .setNull:
+              try SQLQueryExpression(
+                """
+                DROP TRIGGER
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
+                """
+              )
+              .execute(db)
+
+            case .noAction:
+              continue
+            }
           }
           try SQLQueryExpression(
             """
