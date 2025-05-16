@@ -503,29 +503,12 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func refreshLastKnownServerRecord(_ record: CKRecord) {
-    let query = Record.for(record.recordID)
-    let lastKnownServerRecord =
-      withErrorReporting(.sharingGRDBCloudKitFailure) {
-        try metadatabase.read { db in
-          try query
-            .select(\.lastKnownServerRecord)
-            .fetchOne(db)
-        }
-          ?? nil
-      }
-      ?? nil
-
-    let localRecord =
-      lastKnownServerRecord
-      ?? CKRecord(
-        recordType: record.recordID.zoneID.zoneName,
-        recordID: record.recordID
-      )
+    let localRecord = lastKnownServerOrLocalRecord(recordID: record.recordID)
 
     func updateLastKnownServerRecord() {
       withErrorReporting(.sharingGRDBCloudKitFailure) {
         try database.write { db in
-          try query
+          try Record.for(record.recordID)
             .update { $0.lastKnownServerRecord = record }
             .execute(db)
         }
@@ -539,6 +522,24 @@ extension SyncEngine: CKSyncEngineDelegate {
     } else {
       updateLastKnownServerRecord()
     }
+  }
+
+  private func lastKnownServerOrLocalRecord(recordID: CKRecord.ID) -> CKRecord {
+    let lastKnownServerRecord =
+      withErrorReporting(.sharingGRDBCloudKitFailure) {
+        try metadatabase.read { db in
+          try Record.for(recordID)
+            .select(\.lastKnownServerRecord)
+            .fetchOne(db)
+        }
+          ?? nil
+      }
+      ?? nil
+    return lastKnownServerRecord
+    ?? CKRecord(
+      recordType: recordID.zoneID.zoneName,
+      recordID: recordID
+    )
   }
 }
 
