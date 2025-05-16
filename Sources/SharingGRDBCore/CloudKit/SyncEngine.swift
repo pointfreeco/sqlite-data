@@ -509,7 +509,7 @@ extension SyncEngine: CKSyncEngineDelegate {
 
     let changes = syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
     let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
-      let record = await lastKnownServerRecord(recordID: recordID)
+      let metadata = await metadataFor(recordID: recordID)
       guard let table = tables[recordID.zoneID.zoneName]
       else {
         reportIssue("")
@@ -530,18 +530,18 @@ extension SyncEngine: CKSyncEngineDelegate {
           return nil
         }
 
-        let ckRecord =
-          record?.lastKnownServerRecord
+        let record =
+          metadata?.lastKnownServerRecord
           ?? CKRecord(
             recordType: recordID.zoneID.zoneName,
             recordID: recordID
           )
-        ckRecord.update(
+        record.update(
           with: T(queryOutput: row),
-          userModificationDate: record?.userModificationDate
+          userModificationDate: metadata?.userModificationDate
         )
-        await refreshLastKnownServerRecord(ckRecord)
-        return ckRecord
+        await refreshLastKnownServerRecord(record)
+        return record
       }
       return await open(table)
     }
@@ -556,7 +556,6 @@ extension SyncEngine: CKSyncEngineDelegate {
           pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneName: table.tableName))]
         )
         withErrorReporting(.sharingGRDBCloudKitFailure) {
-          // TODO: Should this work be batched?
           let names: [String] = try database.read { db in
             func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String] {
               try T
@@ -754,7 +753,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func refreshLastKnownServerRecord(_ record: CKRecord) {
-    let localRecord = lastKnownServerRecord(recordID: record.recordID)
+    let localRecord = metadataFor(recordID: record.recordID)
 
     func updateLastKnownServerRecord() {
       withErrorReporting(.sharingGRDBCloudKitFailure) {
@@ -776,7 +775,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  private func lastKnownServerRecord(recordID: CKRecord.ID) -> Metadata? {
+  private func metadataFor(recordID: CKRecord.ID) -> Metadata? {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       try metadatabase.read { db in
         try Metadata.find(recordID: recordID).fetchOne(db)
