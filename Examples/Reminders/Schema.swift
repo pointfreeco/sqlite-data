@@ -250,117 +250,121 @@ let logger = Logger(subsystem: "Reminders", category: "Database")
 #if DEBUG
   extension Database {
     func seedSampleData() throws {
+      // TODO: If we figure out the reverting problem I think this can go back to using UUID(1), ...
+      let remindersListIDs = (1...3).map { _ in UUID() }
+      let reminderIDs = (1...10).map { _ in UUID() }
+      let tagIDs = (1...7).map { _ in UUID() }
       try seed {
         RemindersList(
-          id: UUID(1),
+          id: remindersListIDs[0],
           color: Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255),
           title: "Personal"
         )
         RemindersList(
-          id: UUID(2),
+          id: remindersListIDs[1],
           color: Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255),
           title: "Family"
         )
         RemindersList(
-          id: UUID(3),
+          id: remindersListIDs[2],
           color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
           title: "Business"
         )
 
         Reminder(
-          id: UUID(1),
+          id: reminderIDs[0],
           notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
-          remindersListID: UUID(1),
+          remindersListID: remindersListIDs[0],
           title: "Groceries"
         )
         Reminder(
-          id: UUID(2),
+          id: reminderIDs[1],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isFlagged: true,
-          remindersListID: UUID(1),
+          remindersListID: remindersListIDs[0],
           title: "Haircut"
         )
         Reminder(
-          id: UUID(3),
+          id: reminderIDs[2],
           dueDate: Date(),
           notes: "Ask about diet",
           priority: .high,
-          remindersListID: UUID(1),
+          remindersListID: remindersListIDs[0],
           title: "Doctor appointment"
         )
         Reminder(
-          id: UUID(4),
+          id: reminderIDs[3],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 190),
           isCompleted: true,
-          remindersListID: UUID(1),
+          remindersListID: remindersListIDs[0],
           title: "Take a walk"
         )
         Reminder(
-          id: UUID(5),
+          id: reminderIDs[4],
           dueDate: Date(),
-          remindersListID: UUID(1),
+          remindersListID: remindersListIDs[0],
           title: "Buy concert tickets"
         )
         Reminder(
-          id: UUID(6),
+          id: reminderIDs[5],
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           isFlagged: true,
           priority: .high,
-          remindersListID: UUID(2),
+          remindersListID: remindersListIDs[1],
           title: "Pick up kids from school"
         )
         Reminder(
-          id: UUID(7),
+          id: reminderIDs[6],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .low,
-          remindersListID: UUID(2),
+          remindersListID: remindersListIDs[1],
           title: "Get laundry"
         )
         Reminder(
-          id: UUID(8),
+          id: reminderIDs[7],
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 4),
           isCompleted: false,
           priority: .high,
-          remindersListID: UUID(2),
+          remindersListID: remindersListIDs[1],
           title: "Take out trash"
         )
         Reminder(
-          id: UUID(9),
+          id: reminderIDs[8],
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           notes: """
             Status of tax return
             Expenses for next year
             Changing payroll company
             """,
-          remindersListID: UUID(3),
+          remindersListID: remindersListIDs[2],
           title: "Call accountant"
         )
         Reminder(
-          id: UUID(10),
+          id: reminderIDs[9],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .medium,
-          remindersListID: UUID(3),
+          remindersListID: remindersListIDs[2],
           title: "Send weekly emails"
         )
 
-        Tag(id: UUID(1), title: "car")
-        Tag(id: UUID(2), title: "kids")
-        Tag(id: UUID(3), title: "someday")
-        Tag(id: UUID(4), title: "optional")
-        Tag(id: UUID(5), title: "social")
-        Tag(id: UUID(6), title: "night")
-        Tag(id: UUID(7), title: "adulting")
+        Tag(id: tagIDs[0], title: "car")
+        Tag(id: tagIDs[1], title: "kids")
+        Tag(id: tagIDs[2], title: "someday")
+        Tag(id: tagIDs[3], title: "optional")
+        Tag(id: tagIDs[4], title: "social")
+        Tag(id: tagIDs[5], title: "night")
+        Tag(id: tagIDs[6], title: "adulting")
 
-        ReminderTag(id: UUID(), reminderID: UUID(1), tagID: UUID(3))
-        ReminderTag(id: UUID(), reminderID: UUID(1), tagID: UUID(4))
-        ReminderTag(id: UUID(), reminderID: UUID(1), tagID: UUID(7))
-        ReminderTag(id: UUID(), reminderID: UUID(2), tagID: UUID(3))
-        ReminderTag(id: UUID(), reminderID: UUID(2), tagID: UUID(4))
-        ReminderTag(id: UUID(), reminderID: UUID(3), tagID: UUID(7))
-        ReminderTag(id: UUID(), reminderID: UUID(4), tagID: UUID(1))
-        ReminderTag(id: UUID(), reminderID: UUID(4), tagID: UUID(2))
+        ReminderTag(id: UUID(), reminderID: reminderIDs[0], tagID: tagIDs[2])
+        ReminderTag(id: UUID(), reminderID: reminderIDs[0], tagID: tagIDs[3])
+        ReminderTag(id: UUID(), reminderID: reminderIDs[0], tagID: tagIDs[6])
+        ReminderTag(id: UUID(), reminderID: reminderIDs[1], tagID: tagIDs[2])
+        ReminderTag(id: UUID(), reminderID: reminderIDs[1], tagID: tagIDs[3])
+        ReminderTag(id: UUID(), reminderID: reminderIDs[2], tagID: tagIDs[6])
+        ReminderTag(id: UUID(), reminderID: reminderIDs[3], tagID: tagIDs[0])
+        ReminderTag(id: UUID(), reminderID: reminderIDs[3], tagID: tagIDs[1])
       }
     }
   }

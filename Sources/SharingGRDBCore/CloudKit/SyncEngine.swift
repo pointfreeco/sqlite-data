@@ -385,6 +385,10 @@ public final actor SyncEngine {
     try FileManager.default.removeItem(at: metadatabaseURL)
   }
 
+  public func fetchChanges() async throws {
+    try await underlyingSyncEngine.fetchChanges()
+  }
+
   public func deleteLocalData() throws {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       try database.write { db in
@@ -677,7 +681,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         clearServerRecord()
 
       case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable, .notAuthenticated,
-        .operationCancelled:
+        .operationCancelled, .batchRequestFailed:
         continue
 
       default:
@@ -744,6 +748,10 @@ extension SyncEngine: CKSyncEngineDelegate {
         )
         try database.write { db in
           try $areTriggersEnabled.withValue(false) {
+            try Metadata
+              .find(recordID: record.recordID)
+              .update { $0.userModificationDate = record.userModificationDate }
+              .execute(db)
             try SQLQueryExpression(query).execute(db)
           }
         }

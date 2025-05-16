@@ -194,7 +194,7 @@ struct RemindersDetailView: View {
       .order { $0.isCompleted }
       .order {
         switch ordering {
-        case .dueDate: $0.dueDate
+        case .dueDate: $0.dueDate.asc(nulls: .last)
         case .manual: $0.position
         case .priority: ($0.priority.desc(), $0.isFlagged.desc())
         case .title: $0.title

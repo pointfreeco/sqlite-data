@@ -184,6 +184,14 @@ struct RemindersListsView: View {
               Image(systemName: "xmark")
             }
             Button {
+              Task {
+                try await syncEngine.fetchChanges()
+              }
+            } label: {
+              Text("Fetch changes")
+              Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
+            }
+            Button {
               withErrorReporting {
                 try database.write { db in
                   try db.seedSampleData()
