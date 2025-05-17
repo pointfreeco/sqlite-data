@@ -35,7 +35,7 @@ extension CKRecord? {
   typealias DataRepresentation = CKRecord.DataRepresentation?
 }
 
-@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 extension CKRecord {
   func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date?) {
     self.userModificationDate = userModificationDate
