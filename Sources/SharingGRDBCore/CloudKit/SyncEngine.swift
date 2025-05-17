@@ -13,7 +13,7 @@ extension DependencyValues {
 public final actor SyncEngine {
   nonisolated let container: CKContainer
   nonisolated let database: any DatabaseWriter
-  nonisolated let tables: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  nonisolated let tables: [String: any PrimaryKeyedTable.Type]
   lazy var metadatabase: any DatabaseWriter = try! DatabaseQueue()
   var stateSerialization: CKSyncEngine.State.Serialization?
   lazy var underlyingSyncEngine: CKSyncEngine = defaultSyncEngine
@@ -21,7 +21,7 @@ public final actor SyncEngine {
   public init(
     container: CKContainer,
     database: any DatabaseWriter,
-    tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
+    tables: [any PrimaryKeyedTable.Type]
   ) {
     // TODO: Explain why / link to documentation?
     precondition(
@@ -152,7 +152,7 @@ public final actor SyncEngine {
               INSERT INTO \(Metadata.self)
                 ("zoneName", "recordName", "userModificationDate")
               SELECT
-                '\(raw: table.tableName)',
+                \(quote: T.tableName, delimiter: .text),
                 "new".\(quote: T.columns.primaryKey.name),
                 datetime('subsec')
               WHERE areTriggersEnabled()
@@ -168,7 +168,9 @@ public final actor SyncEngine {
             AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
               INSERT INTO \(Metadata.self)
                 ("zoneName", "recordName")
-              SELECT '\(raw: table.tableName)', "new".\(quote: T.columns.primaryKey.name)
+              SELECT
+                \(quote: T.tableName, delimiter: .text),
+                "new".\(quote: T.columns.primaryKey.name)
               WHERE areTriggersEnabled()
               ON CONFLICT("zoneName", "recordName") DO UPDATE SET
                 "userModificationDate" = datetime('subsec');
@@ -178,7 +180,7 @@ public final actor SyncEngine {
           .execute(db)
           let foreignKeys = try SQLQueryExpression(
             """
-            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: table.tableName))
+            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: T.tableName))
             """,
             as: ForeignKey.self
           )
@@ -204,19 +206,20 @@ public final actor SyncEngine {
               continue
 
             case .setDefault:
-              let defaultValue = try SQLQueryExpression(
-                """
-                SELECT "dflt_value" 
-                FROM pragma_table_info(\(bind: table.tableName))
-                WHERE "name" = \(bind: foreignKey.from)
-                """,
-                as: String?.self
-              )
-              .fetchOne(db) ?? nil
+              let defaultValue =
+                try SQLQueryExpression(
+                  """
+                  SELECT "dflt_value"
+                  FROM pragma_table_info(\(bind: T.tableName))
+                  WHERE "name" = \(bind: foreignKey.from)
+                  """,
+                  as: String?.self
+                )
+                .fetchOne(db) ?? nil
 
               guard let defaultValue
               else {
-                // TODO: report issue
+                // TODO: Report issue?
                 continue
               }
               try SQLQueryExpression(
@@ -226,7 +229,7 @@ public final actor SyncEngine {
                 AFTER DELETE ON \(quote: foreignKey.table)
                 FOR EACH ROW BEGIN
                   UPDATE \(table)
-                  SET \(quote: foreignKey.from) = '\(raw: defaultValue)'
+                  SET \(quote: foreignKey.from) = \(raw: defaultValue)
                   WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
                 END
                 """
@@ -307,7 +310,7 @@ public final actor SyncEngine {
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
           let foreignKeys = try SQLQueryExpression(
             """
-            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: table.tableName))
+            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: T.tableName))
             """,
             as: ForeignKey.self
           )
@@ -373,13 +376,13 @@ public final actor SyncEngine {
           }
           try SQLQueryExpression(
             """
-            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_metadataUpdates"
+            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
             """
           )
           .execute(db)
           try SQLQueryExpression(
             """
-            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_metadataInserts"
+            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
             """
           )
           .execute(db)
