@@ -748,11 +748,13 @@ extension SyncEngine: CKSyncEngineDelegate {
         )
         try database.write { db in
           try $areTriggersEnabled.withValue(false) {
-            try Metadata
-              .find(recordID: record.recordID)
-              .update { $0.userModificationDate = record.userModificationDate }
-              .execute(db)
             try SQLQueryExpression(query).execute(db)
+            try Metadata
+              .insert(Metadata(record: record)) {
+                $0.lastKnownServerRecord = record
+                $0.userModificationDate = record.userModificationDate
+              }
+              .execute(db)
           }
         }
         return
@@ -955,6 +957,15 @@ extension Metadata {
       $0.zoneName.eq(recordID.zoneID.zoneName)
         && $0.recordName.eq(recordID.recordName)
     }
+  }
+
+  init(record: CKRecord) {
+    self.init(
+      zoneName: record.recordID.zoneID.zoneName,
+      recordName: record.recordID.recordName,
+      lastKnownServerRecord: record,
+      userModificationDate: record.userModificationDate
+    )
   }
 }
 
