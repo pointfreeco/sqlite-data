@@ -72,7 +72,7 @@ struct SearchRemindersView: View {
       Reminder
         .searching(searchText)
         .where { showCompletedInSearchResults || !$0.isCompleted }
-        .order { ($0.isCompleted, $0.dueDate) }
+        .order { ($0.isCompleted, $0.dueDate.asc(nulls: .last)) }
         .withTags
         .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
         .select {

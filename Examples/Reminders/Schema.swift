@@ -150,7 +150,7 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "tags" (
         "id" TEXT PRIMARY KEY DEFAULT (uuid()),
-        "title" TEXT NOT NULL COLLATE NOCASE UNIQUE
+        "title" TEXT NOT NULL COLLATE NOCASE
       ) STRICT
       """
     )

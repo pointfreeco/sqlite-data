@@ -204,8 +204,34 @@ public final actor SyncEngine {
               continue
 
             case .setDefault:
-              // TODO: Report issue?
-              continue
+              let defaultValue = try SQLQueryExpression(
+                """
+                SELECT "dflt_value" 
+                FROM pragma_table_info(\(bind: table.tableName))
+                WHERE "name" = \(bind: foreignKey.from)
+                """,
+                as: String?.self
+              )
+              .fetchOne(db) ?? nil
+
+              guard let defaultValue
+              else {
+                // TODO: report issue
+                continue
+              }
+              try SQLQueryExpression(
+                """
+                CREATE TEMPORARY TRIGGER
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
+                AFTER DELETE ON \(quote: foreignKey.table)
+                FOR EACH ROW BEGIN
+                  UPDATE \(table)
+                  SET \(quote: foreignKey.from) = '\(raw: defaultValue)'
+                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+                END
+                """
+              )
+              .execute(db)
 
             case .setNull:
               try SQLQueryExpression(
