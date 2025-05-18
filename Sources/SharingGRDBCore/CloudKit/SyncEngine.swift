@@ -14,10 +14,11 @@ extension DependencyValues {
 public final actor SyncEngine {
   nonisolated let container: CKContainer
   nonisolated let database: any DatabaseWriter
-  nonisolated let tables: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
   lazy var metadatabase: any DatabaseWriter = try! DatabaseQueue()
-  var stateSerialization: CKSyncEngine.State.Serialization?
-  lazy var underlyingSyncEngine: CKSyncEngine = defaultSyncEngine
+  private var metadatabaseURL: URL
+  //var stateSerialization: CKSyncEngine.State.Serialization?
+  nonisolated let tables: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  lazy var underlyingSyncEngine: any CKSyncEngineProtocol = defaultSyncEngine
 
   public init(
     container: CKContainer,
@@ -33,6 +34,7 @@ public final actor SyncEngine {
     )
     self.container = container
     self.database = database
+    self.metadatabaseURL = URL.metadatabase(container: container)
     self.tables = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
     Task {
       await withErrorReporting(.sharingGRDBCloudKitFailure) {
@@ -42,7 +44,7 @@ public final actor SyncEngine {
   }
 
   func setUpSyncEngine() throws {
-    defer { underlyingSyncEngine = defaultSyncEngine }
+    defer { _ = underlyingSyncEngine }
 
     metadatabase = try defaultMetadatabase
     var migrator = DatabaseMigrator()
@@ -83,7 +85,7 @@ public final actor SyncEngine {
     }
     try migrator.migrate(metadatabase)
     let previousZones = try metadatabase.read { db in
-      stateSerialization = try StateSerialization.all.fetchOne(db)?.data
+      //stateSerialization = try StateSerialization.all.fetchOne(db)?.data
       return try Zone.all.fetchAll(db)
     }
     let currentZones = try database.read { db in
@@ -414,7 +416,7 @@ public final actor SyncEngine {
   }
 
   public func fetchChanges() async throws {
-    try await underlyingSyncEngine.fetchChanges(.init(scope: .all, operationGroup: nil))
+    try await underlyingSyncEngine.fetchChanges()
   }
 
   public func deleteLocalData() throws {
@@ -435,7 +437,7 @@ public final actor SyncEngine {
   }
 
   func didUpdate(recordName: String, zoneName: String) {
-    underlyingSyncEngine.state.add(
+    underlyingSyncEngine.engineState.add(
       pendingRecordZoneChanges: [
         .saveRecord(
           CKRecord.ID(
@@ -448,7 +450,7 @@ public final actor SyncEngine {
   }
 
   func willDelete(recordName: String, zoneName: String) {
-    underlyingSyncEngine.state.add(
+    underlyingSyncEngine.engineState.add(
       pendingRecordZoneChanges: [
         .deleteRecord(
           CKRecord.ID(
@@ -458,10 +460,6 @@ public final actor SyncEngine {
         )
       ]
     )
-  }
-
-  private var metadatabaseURL: URL {
-    URL.metadatabase(container: container)
   }
 
   private var defaultMetadatabase: any DatabaseWriter {
@@ -493,7 +491,9 @@ public final actor SyncEngine {
     CKSyncEngine(
       CKSyncEngine.Configuration(
         database: container.privateCloudDatabase,
-        stateSerialization: stateSerialization,
+        stateSerialization: try? database.read { db in
+          try StateSerialization.all.fetchOne(db)?.data
+        },
         delegate: self
       )
     )
@@ -509,7 +509,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     case .accountChange(let event):
       handleAccountChange(event)
     case .stateUpdate(let event):
-      stateSerialization = event.stateSerialization
+      //stateSerialization = event.stateSerialization
       withErrorReporting(.sharingGRDBCloudKitFailure) {
         try database.write { db in
           try StateSerialization.insert(
@@ -543,55 +543,55 @@ extension SyncEngine: CKSyncEngineDelegate {
     else { return nil }
 
     #if DEBUG
-    struct State {
-      var missingTables: [CKRecord.ID] = []
-      var missingRecords: [CKRecord.ID] = []
-      var sentRecords: [CKRecord.ID] = []
-    }
-    let state = LockIsolated(State())
-    defer {
-      let state = state.withValue(\.self)
-      let missingTables = Dictionary(grouping: state.missingTables, by: \.zoneID.zoneName)
-        .reduce(into: [String]()) {
-          strings,
-          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-        }
-        .joined(separator: ", ")
-      let missingRecords = Dictionary(grouping: state.missingRecords, by: \.zoneID.zoneName)
-        .reduce(into: [String]()) {
-          strings,
-          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-        }
-        .joined(separator: ", ")
-      let sentRecords = Dictionary(grouping: state.sentRecords, by: \.zoneID.zoneName)
-        .reduce(into: [String]()) {
-          strings,
-          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-        }
-        .joined(separator: ", ")
-      logger.debug(
-        """
-        SharingGRDB: nextRecordZoneChangeBatch: \(context.reason)
-          \(state.missingTables.isEmpty ? "⚪️ No missing tables" : "⚠️ Missing tables: \(missingTables)")
-          \(state.missingRecords.isEmpty ? "⚪️ No missing records" : "⚠️ Missing records: \(missingRecords)")
-          \(state.sentRecords.isEmpty ? "⚪️ No sent records" : "✅ Sent records: \(sentRecords)")
-        """
-      )
-    }
+      struct State {
+        var missingTables: [CKRecord.ID] = []
+        var missingRecords: [CKRecord.ID] = []
+        var sentRecords: [CKRecord.ID] = []
+      }
+      let state = LockIsolated(State())
+      defer {
+        let state = state.withValue(\.self)
+        let missingTables = Dictionary(grouping: state.missingTables, by: \.zoneID.zoneName)
+          .reduce(into: [String]()) {
+            strings,
+            keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+          }
+          .joined(separator: ", ")
+        let missingRecords = Dictionary(grouping: state.missingRecords, by: \.zoneID.zoneName)
+          .reduce(into: [String]()) {
+            strings,
+            keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+          }
+          .joined(separator: ", ")
+        let sentRecords = Dictionary(grouping: state.sentRecords, by: \.zoneID.zoneName)
+          .reduce(into: [String]()) {
+            strings,
+            keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+          }
+          .joined(separator: ", ")
+        logger.debug(
+          """
+          SharingGRDB: nextRecordZoneChangeBatch: \(context.reason)
+            \(state.missingTables.isEmpty ? "⚪️ No missing tables" : "⚠️ Missing tables: \(missingTables)")
+            \(state.missingRecords.isEmpty ? "⚪️ No missing records" : "⚠️ Missing records: \(missingRecords)")
+            \(state.sentRecords.isEmpty ? "⚪️ No sent records" : "✅ Sent records: \(sentRecords)")
+          """
+        )
+      }
     #endif
 
     let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
       #if DEBUG
-      var missingTable: CKRecord.ID?
-      var missingRecord: CKRecord.ID?
-      var sentRecord: CKRecord.ID?
-      defer {
-        state.withValue { [missingTable, missingRecord, sentRecord] in
-          if let missingTable { $0.missingTables.append(missingTable) }
-          if let missingRecord { $0.missingRecords.append(missingRecord) }
-          if let sentRecord { $0.sentRecords.append(sentRecord) }
+        var missingTable: CKRecord.ID?
+        var missingRecord: CKRecord.ID?
+        var sentRecord: CKRecord.ID?
+        defer {
+          state.withValue { [missingTable, missingRecord, sentRecord] in
+            if let missingTable { $0.missingTables.append(missingTable) }
+            if let missingRecord { $0.missingRecords.append(missingRecord) }
+            if let sentRecord { $0.sentRecords.append(sentRecord) }
+          }
         }
-      }
       #endif
 
       let metadata = await metadataFor(recordID: recordID)
@@ -640,7 +640,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     switch event.changeType {
     case .signIn:
       for table in tables.values {
-        underlyingSyncEngine.state.add(
+        underlyingSyncEngine.engineState.add(
           pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneName: table.tableName))]
         )
         withErrorReporting(.sharingGRDBCloudKitFailure) {
@@ -652,7 +652,7 @@ extension SyncEngine: CKSyncEngineDelegate {
             }
             return try open(table)
           }
-          underlyingSyncEngine.state.add(
+          underlyingSyncEngine.engineState.add(
             pendingRecordZoneChanges: names.map {
               .saveRecord(
                 CKRecord.ID(
@@ -733,8 +733,8 @@ extension SyncEngine: CKSyncEngineDelegate {
     var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
     var newPendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] = []
     defer {
-      underlyingSyncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
-      underlyingSyncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
+      underlyingSyncEngine.engineState.add(pendingDatabaseChanges: newPendingDatabaseChanges)
+      underlyingSyncEngine.engineState.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
     }
     for failedRecordSave in event.failedRecordSaves {
       let failedRecord = failedRecordSave.record
@@ -1109,13 +1109,13 @@ extension Logger {
       }
     case .fetchedDatabaseChanges(let event):
       let deletions =
-      event.deletions.isEmpty
-      ? "⚪️ No deletions"
-      : "✅ Zones deleted (\(event.deletions.count): "
-      + event.deletions
-        .map { $0.zoneID.zoneName }
-        .sorted()
-        .joined(separator: ", ")
+        event.deletions.isEmpty
+        ? "⚪️ No deletions"
+        : "✅ Zones deleted (\(event.deletions.count): "
+          + event.deletions
+          .map { $0.zoneID.zoneName }
+          .sorted()
+          .joined(separator: ", ")
       debug(
         """
         \(prefix) fetchedDatabaseChanges
@@ -1131,8 +1131,8 @@ extension Logger {
         .map { zoneName in "\(zoneName) (\(deletionsByZoneName[zoneName]!.count))" }
         .joined(separator: ", ")
       let deletions =
-      event.deletions.isEmpty
-      ? "⚪️ No deletions" : "✅ Records deleted (\(event.deletions.count)): \(zoneDeletions)"
+        event.deletions.isEmpty
+        ? "⚪️ No deletions" : "✅ Records deleted (\(event.deletions.count)): \(zoneDeletions)"
 
       let modificationsByZoneName = Dictionary(
         grouping: event.modifications,
@@ -1142,9 +1142,9 @@ extension Logger {
         .map { zoneName in "\(zoneName) (\(modificationsByZoneName[zoneName]!.count))" }
         .joined(separator: ", ")
       let modifications =
-      event.modifications.isEmpty
-      ? "⚪️ No modifications"
-      : "✅ Records modified (\(event.modifications.count)): \(zoneModifications)"
+        event.modifications.isEmpty
+        ? "⚪️ No modifications"
+        : "✅ Records modified (\(event.modifications.count)): \(zoneModifications)"
 
       debug(
         """
@@ -1159,26 +1159,26 @@ extension Logger {
         .sorted()
         .joined(separator: ", ")
       let savedZones =
-      event.savedZones.isEmpty
-      ? "⚪️ No saved zones" : "✅ Saved zones (\(event.savedZones.count)): \(savedZoneNames)"
+        event.savedZones.isEmpty
+        ? "⚪️ No saved zones" : "✅ Saved zones (\(event.savedZones.count)): \(savedZoneNames)"
 
       let deletedZoneNames = event.deletedZoneIDs
         .map { $0.zoneName }
         .sorted()
         .joined(separator: ", ")
       let deletedZones =
-      event.deletedZoneIDs.isEmpty
-      ? "⚪️ No deleted zones"
-      : "✅ Deleted zones (\(event.deletedZoneIDs.count)): \(deletedZoneNames)"
+        event.deletedZoneIDs.isEmpty
+        ? "⚪️ No deleted zones"
+        : "✅ Deleted zones (\(event.deletedZoneIDs.count)): \(deletedZoneNames)"
 
       let failedZoneSaveNames = event.failedZoneSaves
         .map { $0.zone.zoneID.zoneName }
         .sorted()
         .joined(separator: ", ")
       let failedZoneSaves =
-      event.failedZoneSaves.isEmpty
-      ? "⚪️ No failed saved zones"
-      : "🛑 Failed zone saves (\(event.failedZoneSaves.count)): \(failedZoneSaveNames)"
+        event.failedZoneSaves.isEmpty
+        ? "⚪️ No failed saved zones"
+        : "🛑 Failed zone saves (\(event.failedZoneSaves.count)): \(failedZoneSaveNames)"
 
       let failedZoneDeleteNames = event.failedZoneDeletes
         .keys
@@ -1186,9 +1186,9 @@ extension Logger {
         .sorted()
         .joined(separator: ", ")
       let failedZoneDeletes =
-      event.failedZoneDeletes.isEmpty
-      ? "⚪️ No failed saved zones"
-      : "🛑 Failed zone saves (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
+        event.failedZoneDeletes.isEmpty
+        ? "⚪️ No failed saved zones"
+        : "🛑 Failed zone saves (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
 
       debug(
         """
@@ -1316,4 +1316,32 @@ extension Logger {
       warning("\(prefix) ⚠️ unknown event: \(event.description)")
     }
   }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+package protocol CKSyncEngineProtocol: Sendable {
+  func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws
+  var engineState: any CKSyncEngineStateProtocol { get }
+}
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension CKSyncEngineProtocol {
+  package func fetchChanges() async throws {
+    try await fetchChanges(CKSyncEngine.FetchChangesOptions())
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+package protocol CKSyncEngineStateProtocol: Sendable {
+  func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange])
+  func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange])
+  func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange])
+  func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange])
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension CKSyncEngine: CKSyncEngineProtocol {
+  package var engineState: any CKSyncEngineStateProtocol { state }
+}
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension CKSyncEngine.State: CKSyncEngineStateProtocol {
 }
