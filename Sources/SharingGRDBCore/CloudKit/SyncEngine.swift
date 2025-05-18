@@ -12,17 +12,53 @@ extension DependencyValues {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 public final actor SyncEngine {
-  nonisolated let container: CKContainer
   nonisolated let database: any DatabaseWriter
   lazy var metadatabase: any DatabaseWriter = try! DatabaseQueue()
-  private var metadatabaseURL: URL
-  //var stateSerialization: CKSyncEngine.State.Serialization?
+  private var metadatabaseURL: URL?
   nonisolated let tables: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
-  lazy var underlyingSyncEngine: any CKSyncEngineProtocol = defaultSyncEngine
+  var underlyingSyncEngine: (any CKSyncEngineProtocol)! // = defaultSyncEngine
+  let defaultSyncEngine: (SyncEngine) -> any CKSyncEngineProtocol
 
   public init(
     container: CKContainer,
     database: any DatabaseWriter,
+    tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  ) {
+    self.init(
+      defaultSyncEngine: { syncEngine in
+        CKSyncEngine(
+          CKSyncEngine.Configuration(
+            database: container.privateCloudDatabase,
+            stateSerialization: try? database.read { db in
+              try StateSerialization.all.fetchOne(db)?.data
+            },
+            delegate: syncEngine
+          )
+        )
+      },
+      database: database,
+      metadatabaseURL: URL.metadatabase(container: container),
+      tables: tables
+    )
+  }
+
+  package init(
+    defaultSyncEngine: any CKSyncEngineProtocol,
+    database: any DatabaseWriter,
+    tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  ) {
+    self.init(
+      defaultSyncEngine: { _ in defaultSyncEngine },
+      database: database,
+      metadatabaseURL: nil,
+      tables: tables
+    )
+  }
+
+  private init(
+    defaultSyncEngine: @escaping (SyncEngine) -> any CKSyncEngineProtocol,
+    database: any DatabaseWriter,
+    metadatabaseURL: URL?,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) {
     // TODO: Explain why / link to documentation?
@@ -32,9 +68,9 @@ public final actor SyncEngine {
       Foreign key support must be disabled to synchronize with CloudKit.
       """
     )
-    self.container = container
+    self.defaultSyncEngine = defaultSyncEngine
     self.database = database
-    self.metadatabaseURL = URL.metadatabase(container: container)
+    self.metadatabaseURL = metadatabaseURL
     self.tables = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
     Task {
       await withErrorReporting(.sharingGRDBCloudKitFailure) {
@@ -44,7 +80,7 @@ public final actor SyncEngine {
   }
 
   func setUpSyncEngine() throws {
-    defer { _ = underlyingSyncEngine }
+    defer { underlyingSyncEngine = defaultSyncEngine(self) }
 
     metadatabase = try defaultMetadatabase
     var migrator = DatabaseMigrator()
@@ -126,10 +162,17 @@ public final actor SyncEngine {
       }
     }
     try database.write { db in
-      try SQLQueryExpression(
-        "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitSchemaName)"
-      )
-      .execute(db)
+      if let metadatabaseURL {
+        try SQLQueryExpression(
+          "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitSchemaName)"
+        )
+        .execute(db)
+      } else {
+        try SQLQueryExpression(
+          "ATTACH DATABASE 'file:metadatabase?mode=memory&cache=shared' AS \(quote: .sharingGRDBCloudKitSchemaName)"
+        )
+        .execute(db)
+      }
       db.add(function: .areTriggersEnabled)
       db.add(function: .didUpdate)
       db.add(function: .willDelete)
@@ -305,7 +348,7 @@ public final actor SyncEngine {
     }
   }
 
-  func tearDownSyncEngine() throws {
+  package func tearDownSyncEngine() throws {
     try database.write { db in
       for table in tables.values {
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
@@ -346,7 +389,7 @@ public final actor SyncEngine {
               continue
             }
 
-            switch foreignKey.onDelete {
+            switch foreignKey.onUpdate {
             case .cascade:
               try SQLQueryExpression(
                 """
@@ -406,13 +449,15 @@ public final actor SyncEngine {
       db.remove(function: .didUpdate)
       db.remove(function: .areTriggersEnabled)
     }
-    try database.write { db in
+    try database.read { db in
       try SQLQueryExpression(
         "DETACH DATABASE \(quote: .sharingGRDBCloudKitSchemaName)"
       )
       .execute(db)
     }
-    try FileManager.default.removeItem(at: metadatabaseURL)
+    if let metadatabaseURL {
+      try FileManager.default.removeItem(at: metadatabaseURL)
+    }
   }
 
   public func fetchChanges() async throws {
@@ -470,33 +515,25 @@ public final actor SyncEngine {
           logger.trace("\($0.expandedDescription)")
         }
       }
-      logger.debug(
+      if let metadatabaseURL {
+        logger.debug(
         """
         SharingGRDB: Metadatabase connection:
-        open "\(self.metadatabaseURL.path(percentEncoded: false))"
+        open "\(metadatabaseURL.path(percentEncoded: false))"
         """
-      )
-      try FileManager.default.createDirectory(
-        at: .applicationSupportDirectory,
-        withIntermediateDirectories: true
-      )
-      return try DatabaseQueue(
-        path: metadatabaseURL.path(percentEncoded: false),
-        configuration: configuration
-      )
+        )
+        try FileManager.default.createDirectory(
+          at: .applicationSupportDirectory,
+          withIntermediateDirectories: true
+        )
+        return try DatabaseQueue(
+          path: metadatabaseURL.path(percentEncoded: false),
+          configuration: configuration
+        )
+      } else {
+        return try DatabaseQueue(named: "metadatabase", configuration: configuration)
+      }
     }
-  }
-
-  private var defaultSyncEngine: CKSyncEngine {
-    CKSyncEngine(
-      CKSyncEngine.Configuration(
-        database: container.privateCloudDatabase,
-        stateSerialization: try? database.read { db in
-          try StateSerialization.all.fetchOne(db)?.data
-        },
-        delegate: self
-      )
-    )
   }
 }
 
