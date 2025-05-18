@@ -1,4 +1,5 @@
 import CloudKit
+import ConcurrencyExtras
 import OSLog
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -204,15 +205,16 @@ public final actor SyncEngine {
               continue
 
             case .setDefault:
-              let defaultValue = try SQLQueryExpression(
-                """
-                SELECT "dflt_value" 
-                FROM pragma_table_info(\(bind: table.tableName))
-                WHERE "name" = \(bind: foreignKey.from)
-                """,
-                as: String?.self
-              )
-              .fetchOne(db) ?? nil
+              let defaultValue =
+                try SQLQueryExpression(
+                  """
+                  SELECT "dflt_value" 
+                  FROM pragma_table_info(\(bind: table.tableName))
+                  WHERE "name" = \(bind: foreignKey.from)
+                  """,
+                  as: String?.self
+                )
+                .fetchOne(db) ?? nil
 
               guard let defaultValue
               else {
@@ -412,7 +414,7 @@ public final actor SyncEngine {
   }
 
   public func fetchChanges() async throws {
-    try await underlyingSyncEngine.fetchChanges()
+    try await underlyingSyncEngine.fetchChanges(.init(scope: .all, operationGroup: nil))
   }
 
   public func deleteLocalData() throws {
@@ -467,11 +469,12 @@ public final actor SyncEngine {
       var configuration = Configuration()
       configuration.prepareDatabase { db in
         db.trace {
-          logger.debug("\($0.expandedDescription)")
+          logger.trace("\($0.expandedDescription)")
         }
       }
-      logger.info(
+      logger.debug(
         """
+        SharingGRDB: Metadatabase connection:
         open "\(self.metadatabaseURL.path(percentEncoded: false))"
         """
       )
@@ -500,7 +503,7 @@ public final actor SyncEngine {
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine: CKSyncEngineDelegate {
   public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
-    logger.debug("handleEvent: \(event)")
+    logger.log(event)
 
     switch event {
     case .accountChange(let event):
@@ -527,7 +530,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       .didFetchChanges, .willSendChanges, .didSendChanges:
       break
     @unknown default:
-      logger.warning("Sync engine received unknown event: \(event)")
+      break
     }
   }
 
@@ -535,15 +538,68 @@ extension SyncEngine: CKSyncEngineDelegate {
     _ context: CKSyncEngine.SendChangesContext,
     syncEngine: CKSyncEngine
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-    logger.debug("nextRecordZoneChangeBatch: \(context)")
-
     let changes = syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
+    guard !changes.isEmpty
+    else { return nil }
+
+    #if DEBUG
+    struct State {
+      var missingTables: [CKRecord.ID] = []
+      var missingRecords: [CKRecord.ID] = []
+      var sentRecords: [CKRecord.ID] = []
+    }
+    let state = LockIsolated(State())
+    defer {
+      let state = state.withValue(\.self)
+      let missingTables = Dictionary(grouping: state.missingTables, by: \.zoneID.zoneName)
+        .reduce(into: [String]()) {
+          strings,
+          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+        }
+        .joined(separator: ", ")
+      let missingRecords = Dictionary(grouping: state.missingRecords, by: \.zoneID.zoneName)
+        .reduce(into: [String]()) {
+          strings,
+          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+        }
+        .joined(separator: ", ")
+      let sentRecords = Dictionary(grouping: state.sentRecords, by: \.zoneID.zoneName)
+        .reduce(into: [String]()) {
+          strings,
+          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+        }
+        .joined(separator: ", ")
+      logger.debug(
+        """
+        SharingGRDB: nextRecordZoneChangeBatch: \(context.reason)
+          \(state.missingTables.isEmpty ? "⚪️ No missing tables" : "⚠️ Missing tables: \(missingTables)")
+          \(state.missingRecords.isEmpty ? "⚪️ No missing records" : "⚠️ Missing records: \(missingRecords)")
+          \(state.sentRecords.isEmpty ? "⚪️ No sent records" : "✅ Sent records: \(sentRecords)")
+        """
+      )
+    }
+    #endif
+
     let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
+      #if DEBUG
+      var missingTable: CKRecord.ID?
+      var missingRecord: CKRecord.ID?
+      var sentRecord: CKRecord.ID?
+      defer {
+        state.withValue { [missingTable, missingRecord, sentRecord] in
+          if let missingTable { $0.missingTables.append(missingTable) }
+          if let missingRecord { $0.missingRecords.append(missingRecord) }
+          if let sentRecord { $0.sentRecords.append(sentRecord) }
+        }
+      }
+      #endif
+
       let metadata = await metadataFor(recordID: recordID)
       guard let table = tables[recordID.zoneID.zoneName]
       else {
         reportIssue("")
         syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+        missingTable = recordID
         return nil
       }
       func open<T: PrimaryKeyedTable>(_: T.Type) async -> CKRecord? {
@@ -557,6 +613,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         guard let row
         else {
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+          missingRecord = recordID
           return nil
         }
 
@@ -571,6 +628,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           userModificationDate: metadata?.userModificationDate
         )
         await refreshLastKnownServerRecord(record)
+        sentRecord = recordID
         return record
       }
       return await open(table)
@@ -628,6 +686,9 @@ extension SyncEngine: CKSyncEngineDelegate {
             open(table)
           }
         }
+
+        // TODO: Deal with modifications?
+        _ = event.modifications
       }
     }
   }
@@ -1011,3 +1072,248 @@ extension URL {
 
 @available(iOS 14, macOS 11, tvOS 14, watchOS 7, *)
 private let logger = Logger(subsystem: "SharingGRDB", category: "CloudKit")
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension Logger {
+  func log(_ event: CKSyncEngine.Event) {
+    let prefix = "SharingGRDB: handleEvent:"
+    switch event {
+    case .stateUpdate:
+      debug("\(prefix) stateUpdate")
+    case .accountChange(let event):
+      switch event.changeType {
+      case .signIn(let currentUser):
+        debug(
+          """
+          \(prefix) signIn
+            Current user: \(currentUser.recordName).\(currentUser.zoneID.ownerName).\(currentUser.zoneID.zoneName)
+          """
+        )
+      case .signOut(let previousUser):
+        debug(
+          """
+          \(prefix) signOut
+            Previous user: \(previousUser.recordName).\(previousUser.zoneID.ownerName).\(previousUser.zoneID.zoneName)
+          """
+        )
+      case .switchAccounts(let previousUser, let currentUser):
+        debug(
+          """
+          \(prefix) switchAccounts:
+            Previous user: \(previousUser.recordName).\(previousUser.zoneID.ownerName).\(previousUser.zoneID.zoneName)
+            Current user:  \(currentUser.recordName).\(currentUser.zoneID.ownerName).\(currentUser.zoneID.zoneName)
+          """
+        )
+      @unknown default:
+        debug("unknown")
+      }
+    case .fetchedDatabaseChanges(let event):
+      let deletions =
+      event.deletions.isEmpty
+      ? "⚪️ No deletions"
+      : "✅ Zones deleted (\(event.deletions.count): "
+      + event.deletions
+        .map { $0.zoneID.zoneName }
+        .sorted()
+        .joined(separator: ", ")
+      debug(
+        """
+        \(prefix) fetchedDatabaseChanges
+          \(deletions)
+        """
+      )
+    case .fetchedRecordZoneChanges(let event):
+      let deletionsByZoneName = Dictionary(
+        grouping: event.deletions,
+        by: \.recordID.zoneID.zoneName
+      )
+      let zoneDeletions = deletionsByZoneName.keys.sorted()
+        .map { zoneName in "\(zoneName) (\(deletionsByZoneName[zoneName]!.count))" }
+        .joined(separator: ", ")
+      let deletions =
+      event.deletions.isEmpty
+      ? "⚪️ No deletions" : "✅ Records deleted (\(event.deletions.count)): \(zoneDeletions)"
+
+      let modificationsByZoneName = Dictionary(
+        grouping: event.modifications,
+        by: \.record.recordID.zoneID.zoneName
+      )
+      let zoneModifications = modificationsByZoneName.keys.sorted()
+        .map { zoneName in "\(zoneName) (\(modificationsByZoneName[zoneName]!.count))" }
+        .joined(separator: ", ")
+      let modifications =
+      event.modifications.isEmpty
+      ? "⚪️ No modifications"
+      : "✅ Records modified (\(event.modifications.count)): \(zoneModifications)"
+
+      debug(
+        """
+        \(prefix) fetchedRecordZoneChanges
+          \(modifications)
+          \(deletions)
+        """
+      )
+    case .sentDatabaseChanges(let event):
+      let savedZoneNames = event.savedZones
+        .map { $0.zoneID.zoneName }
+        .sorted()
+        .joined(separator: ", ")
+      let savedZones =
+      event.savedZones.isEmpty
+      ? "⚪️ No saved zones" : "✅ Saved zones (\(event.savedZones.count)): \(savedZoneNames)"
+
+      let deletedZoneNames = event.deletedZoneIDs
+        .map { $0.zoneName }
+        .sorted()
+        .joined(separator: ", ")
+      let deletedZones =
+      event.deletedZoneIDs.isEmpty
+      ? "⚪️ No deleted zones"
+      : "✅ Deleted zones (\(event.deletedZoneIDs.count)): \(deletedZoneNames)"
+
+      let failedZoneSaveNames = event.failedZoneSaves
+        .map { $0.zone.zoneID.zoneName }
+        .sorted()
+        .joined(separator: ", ")
+      let failedZoneSaves =
+      event.failedZoneSaves.isEmpty
+      ? "⚪️ No failed saved zones"
+      : "🛑 Failed zone saves (\(event.failedZoneSaves.count)): \(failedZoneSaveNames)"
+
+      let failedZoneDeleteNames = event.failedZoneDeletes
+        .keys
+        .map { $0.zoneName }
+        .sorted()
+        .joined(separator: ", ")
+      let failedZoneDeletes =
+      event.failedZoneDeletes.isEmpty
+      ? "⚪️ No failed saved zones"
+      : "🛑 Failed zone saves (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
+
+      debug(
+        """
+        \(prefix) sentDatabaseChanges
+          \(savedZones)
+          \(deletedZones) 
+          \(failedZoneSaves)
+          \(failedZoneDeletes)
+        """
+      )
+    case .sentRecordZoneChanges(let event):
+      let savedRecordsByZoneName = Dictionary(
+        grouping: event.savedRecords,
+        by: \.recordID.zoneID.zoneName
+      )
+      let savedRecords = savedRecordsByZoneName.keys
+        .sorted()
+        .map { "\($0) (\(savedRecordsByZoneName[$0]!.count))" }
+        .joined(separator: ",")
+
+      let deletedRecordsByZoneName = Dictionary(
+        grouping: event.deletedRecordIDs,
+        by: \.zoneID.zoneName
+      )
+      let deletedRecords = deletedRecordsByZoneName.keys
+        .sorted()
+        .map { "\($0) (\(deletedRecordsByZoneName[$0]!.count))" }
+        .joined(separator: ",")
+
+      let failedRecordSavesByZoneName = Dictionary(
+        grouping: event.failedRecordSaves,
+        by: \.record.recordID.zoneID.zoneName
+      )
+      let failedRecordSaves = failedRecordSavesByZoneName.keys
+        .sorted()
+        .map { "\($0) (\(failedRecordSavesByZoneName[$0]!.count))" }
+        .joined(separator: ", ")
+
+      let failedRecordDeletesByZoneName = Dictionary(
+        grouping: event.failedRecordDeletes.keys,
+        by: \.zoneID.zoneName
+      )
+      let failedRecordDeletes = failedRecordDeletesByZoneName.keys
+        .sorted()
+        .map { "\($0) (\(failedRecordDeletesByZoneName[$0]!.count))" }
+        .joined(separator: ", ")
+
+      debug(
+        """
+        \(prefix) sentRecordZoneChanges
+          \(savedRecordsByZoneName.isEmpty ? "⚪️ No records saved" : "✅ Saved records: \(savedRecords)")
+          \(deletedRecordsByZoneName.isEmpty ? "⚪️ No records deleted" : "✅ Deleted records: \(deletedRecords)")
+          \(failedRecordSavesByZoneName.isEmpty ? "⚪️ No records failed save" : "🛑 Records failed save: \(failedRecordSaves)")
+          \(failedRecordDeletesByZoneName.isEmpty ? "⚪️ No records failed delete" : "🛑 Records failed delete: \(failedRecordDeletes)")
+        """
+      )
+    case .willFetchChanges(let event):
+      if #available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *) {
+        debug("\(prefix) willFetchChanges: \(event.context.reason.description)")
+      } else {
+        debug("\(prefix) willFetchChanges")
+      }
+    case .willFetchRecordZoneChanges(let event):
+      debug("\(prefix) willFetchRecordZoneChanges: \(event.zoneID.zoneName)")
+    case .didFetchRecordZoneChanges(let event):
+      let errorType = event.error.map {
+        switch $0.code {
+        case .internalError: "internalError"
+        case .partialFailure: "partialFailure"
+        case .networkUnavailable: "networkUnavailable"
+        case .networkFailure: "networkFailure"
+        case .badContainer: "badContainer"
+        case .serviceUnavailable: "serviceUnavailable"
+        case .requestRateLimited: "requestRateLimited"
+        case .missingEntitlement: "missingEntitlement"
+        case .notAuthenticated: "notAuthenticated"
+        case .permissionFailure: "permissionFailure"
+        case .unknownItem: "unknownItem"
+        case .invalidArguments: "invalidArguments"
+        case .resultsTruncated: "resultsTruncated"
+        case .serverRecordChanged: "serverRecordChanged"
+        case .serverRejectedRequest: "serverRejectedRequest"
+        case .assetFileNotFound: "assetFileNotFound"
+        case .assetFileModified: "assetFileModified"
+        case .incompatibleVersion: "incompatibleVersion"
+        case .constraintViolation: "constraintViolation"
+        case .operationCancelled: "operationCancelled"
+        case .changeTokenExpired: "changeTokenExpired"
+        case .batchRequestFailed: "batchRequestFailed"
+        case .zoneBusy: "zoneBusy"
+        case .badDatabase: "badDatabase"
+        case .quotaExceeded: "quotaExceeded"
+        case .zoneNotFound: "zoneNotFound"
+        case .limitExceeded: "limitExceeded"
+        case .userDeletedZone: "userDeletedZone"
+        case .tooManyParticipants: "tooManyParticipants"
+        case .alreadyShared: "alreadyShared"
+        case .referenceViolation: "referenceViolation"
+        case .managedAccountRestricted: "managedAccountRestricted"
+        case .participantMayNeedVerification: "participantMayNeedVerification"
+        case .serverResponseLost: "serverResponseLost"
+        case .assetNotAvailable: "assetNotAvailable"
+        case .accountTemporarilyUnavailable: "accountTemporarilyUnavailable"
+        @unknown default: "unknown"
+        }
+      }
+      let error = errorType.map { "\n  ❌ \($0)" } ?? ""
+      debug(
+        """
+        \(prefix) willFetchRecordZoneChanges
+          ✅ Zone: \(event.zoneID.zoneName)\(error)
+        """
+      )
+    case .didFetchChanges(let event):
+      if #available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *) {
+        debug("\(prefix) didFetchChanges: \(event.context.reason.description)")
+      } else {
+        debug("\(prefix) didFetchChanges")
+      }
+    case .willSendChanges(let event):
+      debug("\(prefix) willSendChanges: \(event.context.reason.description)")
+    case .didSendChanges(let event):
+      debug("\(prefix) didSendChanges: \(event.context.reason.description)")
+    @unknown default:
+      warning("\(prefix) ⚠️ unknown event: \(event.description)")
+    }
+  }
+}

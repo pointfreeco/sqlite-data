@@ -97,15 +97,16 @@ func appDatabase() throws -> any DatabaseWriter {
         if context == .preview {
           print("\($0.expandedDescription)")
         } else {
-          logger.debug("\($0.expandedDescription)")
+          logger.trace("\($0.expandedDescription)")
         }
       }
     #endif
   }
   if context == .live {
     let path = URL.documentsDirectory.appending(component: "db.sqlite").path(percentEncoded: false)
-    logger.info(
+    logger.debug(
       """
+      App database
       open "\(path)"
       """
     )
