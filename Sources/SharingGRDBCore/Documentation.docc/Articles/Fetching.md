@@ -66,9 +66,7 @@ var completedReminders
 ```
 
 This is only the basics of what you can do with the query building tools of this library. To
-learn more, be sure to check out the [documentation][sq-getting-started] of StructuredQueries.
-
-[sq-docs]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore
+learn more, be sure to check out the [documentation][structured-queries-docs] of StructuredQueries.
 
 You can even execute a SQL string to populate the data in your features:
 
