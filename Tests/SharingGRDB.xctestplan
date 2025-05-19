@@ -1,0 +1,31 @@
+{
+  "configurations" : [
+    {
+      "id" : "B0A22F73-0252-40F2-892F-A609B4DFBBCA",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SharingGRDBTests",
+        "name" : "SharingGRDBTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "StructuredQueriesGRDBTests",
+        "name" : "StructuredQueriesGRDBTests"
+      }
+    }
+  ],
+  "version" : 1
+}

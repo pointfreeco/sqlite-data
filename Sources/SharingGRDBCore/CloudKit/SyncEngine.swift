@@ -14,9 +14,10 @@ extension DependencyValues {
 public final actor SyncEngine {
   nonisolated let database: any DatabaseWriter
   lazy var metadatabase: any DatabaseWriter = try! DatabaseQueue()
-  private var metadatabaseURL: URL?
-  nonisolated let tables: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
-  var underlyingSyncEngine: (any CKSyncEngineProtocol)! // = defaultSyncEngine
+  private let metadatabaseURL: URL
+  nonisolated let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  nonisolated let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  var underlyingSyncEngine: (any CKSyncEngineProtocol)!
   let defaultSyncEngine: (SyncEngine) -> any CKSyncEngineProtocol
 
   public init(
@@ -24,6 +25,7 @@ public final actor SyncEngine {
     database: any DatabaseWriter,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) {
+    fatalError()
     self.init(
       defaultSyncEngine: { syncEngine in
         CKSyncEngine(
@@ -45,12 +47,13 @@ public final actor SyncEngine {
   package init(
     defaultSyncEngine: any CKSyncEngineProtocol,
     database: any DatabaseWriter,
+    metadatabaseURL: URL,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) {
     self.init(
       defaultSyncEngine: { _ in defaultSyncEngine },
       database: database,
-      metadatabaseURL: nil,
+      metadatabaseURL: metadatabaseURL,
       tables: tables
     )
   }
@@ -58,7 +61,7 @@ public final actor SyncEngine {
   private init(
     defaultSyncEngine: @escaping (SyncEngine) -> any CKSyncEngineProtocol,
     database: any DatabaseWriter,
-    metadatabaseURL: URL?,
+    metadatabaseURL: URL,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) {
     // TODO: Explain why / link to documentation?
@@ -71,7 +74,8 @@ public final actor SyncEngine {
     self.defaultSyncEngine = defaultSyncEngine
     self.database = database
     self.metadatabaseURL = metadatabaseURL
-    self.tables = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
+    self.tables = tables
+    self.tablesByName = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
     Task {
       await withErrorReporting(.sharingGRDBCloudKitFailure) {
         try await setUpSyncEngine()
@@ -130,7 +134,7 @@ public final actor SyncEngine {
         SELECT "name", "sql" 
         FROM "sqlite_master" 
         WHERE "type" = 'table'
-        AND "name" IN (\(tables.keys.map(\.queryFragment).joined(separator: ", ")))
+        AND "name" IN (\(tablesByName.keys.map(\.queryFragment).joined(separator: ", ")))
         """,
         as: Zone.self
       )
@@ -162,32 +166,25 @@ public final actor SyncEngine {
       }
     }
     try database.write { db in
-      if let metadatabaseURL {
-        try SQLQueryExpression(
-          "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitSchemaName)"
-        )
-        .execute(db)
-      } else {
-        try SQLQueryExpression(
-          "ATTACH DATABASE 'file:metadatabase?mode=memory&cache=shared' AS \(quote: .sharingGRDBCloudKitSchemaName)"
-        )
-        .execute(db)
-      }
+      try SQLQueryExpression(
+        "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitSchemaName)"
+      )
+      .execute(db)
       db.add(function: .areTriggersEnabled)
-      db.add(function: .didUpdate)
-      db.add(function: .willDelete)
-      for table in tables.values {
+      db.add(function: .didUpdate(syncEngine: self))
+      db.add(function: .willDelete(syncEngine: self))
+      for table in tables {
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
           try SQLQueryExpression(
-            Trigger(on: T.self, .after, .insert, select: .didUpdate).create
+            Trigger(on: T.self, .after, .insert, select: .didUpdate(syncEngine: self)).create
           )
           .execute(db)
           try SQLQueryExpression(
-            Trigger(on: T.self, .after, .update, select: .didUpdate).create
+            Trigger(on: T.self, .after, .update, select: .didUpdate(syncEngine: self)).create
           )
           .execute(db)
           try SQLQueryExpression(
-            Trigger(on: T.self, .before, .delete, select: .willDelete).create
+            Trigger(on: T.self, .before, .delete, select: .willDelete(syncEngine: self)).create
           )
           .execute(db)
           try SQLQueryExpression(
@@ -350,7 +347,7 @@ public final actor SyncEngine {
 
   package func tearDownSyncEngine() throws {
     try database.write { db in
-      for table in tables.values {
+      for table in tables {
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
           let foreignKeys = try SQLQueryExpression(
             """
@@ -431,33 +428,31 @@ public final actor SyncEngine {
           )
           .execute(db)
           try SQLQueryExpression(
-            Trigger(on: T.self, .before, .delete, select: .willDelete).drop
+            Trigger(on: T.self, .before, .delete, select: .willDelete(syncEngine: self)).drop
           )
           .execute(db)
           try SQLQueryExpression(
-            Trigger(on: T.self, .after, .update, select: .didUpdate).drop
+            Trigger(on: T.self, .after, .update, select: .didUpdate(syncEngine: self)).drop
           )
           .execute(db)
           try SQLQueryExpression(
-            Trigger(on: T.self, .after, .insert, select: .didUpdate).drop
+            Trigger(on: T.self, .after, .insert, select: .didUpdate(syncEngine: self)).drop
           )
           .execute(db)
         }
         try open(table)
       }
-      db.remove(function: .willDelete)
-      db.remove(function: .didUpdate)
+      db.remove(function: .willDelete(syncEngine: self))
+      db.remove(function: .didUpdate(syncEngine: self))
       db.remove(function: .areTriggersEnabled)
     }
-    try database.read { db in
+    try database.writeWithoutTransaction { db in
       try SQLQueryExpression(
         "DETACH DATABASE \(quote: .sharingGRDBCloudKitSchemaName)"
       )
       .execute(db)
     }
-    if let metadatabaseURL {
-      try FileManager.default.removeItem(at: metadatabaseURL)
-    }
+    try FileManager.default.removeItem(at: metadatabaseURL)
   }
 
   public func fetchChanges() async throws {
@@ -467,7 +462,7 @@ public final actor SyncEngine {
   public func deleteLocalData() throws {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       try database.write { db in
-        for table in tables.values {
+        for table in tables {
           func open<T: PrimaryKeyedTable>(_: T.Type) {
             withErrorReporting(.sharingGRDBCloudKitFailure) {
               try T.delete().execute(db)
@@ -515,24 +510,20 @@ public final actor SyncEngine {
           logger.trace("\($0.expandedDescription)")
         }
       }
-      if let metadatabaseURL {
-        logger.debug(
+      logger.debug(
         """
         SharingGRDB: Metadatabase connection:
-        open "\(metadatabaseURL.path(percentEncoded: false))"
+        open "\(self.metadatabaseURL.path(percentEncoded: false))"
         """
-        )
-        try FileManager.default.createDirectory(
-          at: .applicationSupportDirectory,
-          withIntermediateDirectories: true
-        )
-        return try DatabaseQueue(
-          path: metadatabaseURL.path(percentEncoded: false),
-          configuration: configuration
-        )
-      } else {
-        return try DatabaseQueue(named: "metadatabase", configuration: configuration)
-      }
+      )
+      try FileManager.default.createDirectory(
+        at: .applicationSupportDirectory,
+        withIntermediateDirectories: true
+      )
+      return try DatabaseQueue(
+        path: metadatabaseURL.path(percentEncoded: false),
+        configuration: configuration
+      )
     }
   }
 }
@@ -560,7 +551,10 @@ extension SyncEngine: CKSyncEngineDelegate {
     case .sentDatabaseChanges:
       break
     case .fetchedRecordZoneChanges(let event):
-      handleFetchedRecordZoneChanges(event)
+      handleFetchedRecordZoneChanges(
+        modifications: event.modifications.map(\.record),
+        deletions: event.deletions.map { ($0.recordID, $0.recordType) }
+      )
     case .sentRecordZoneChanges(let event):
       handleSentRecordZoneChanges(event)
     case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
@@ -632,7 +626,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       #endif
 
       let metadata = await metadataFor(recordID: recordID)
-      guard let table = tables[recordID.zoneID.zoneName]
+      guard let table = tablesByName[recordID.zoneID.zoneName]
       else {
         reportIssue("")
         syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
@@ -676,7 +670,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) {
     switch event.changeType {
     case .signIn:
-      for table in tables.values {
+      for table in tables {
         underlyingSyncEngine.engineState.add(
           pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneName: table.tableName))]
         )
@@ -714,7 +708,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       try database.write { db in
         for deletion in event.deletions {
-          if let table = tables[deletion.zoneID.zoneName] {
+          if let table = tablesByName[deletion.zoneID.zoneName] {
             func open<T: PrimaryKeyedTable>(_: T.Type) {
               withErrorReporting(.sharingGRDBCloudKitFailure) {
                 try T.delete().execute(db)
@@ -730,20 +724,21 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  private func handleFetchedRecordZoneChanges(
-    _ event: CKSyncEngine.Event.FetchedRecordZoneChanges
+  package func handleFetchedRecordZoneChanges(
+    modifications: [CKRecord],
+    deletions: [(CKRecord.ID, CKRecord.RecordType)]
   ) {
-    for modification in event.modifications {
-      mergeFromServerRecord(modification.record)
-      refreshLastKnownServerRecord(modification.record)
+    for modifiedRecord in modifications {
+      mergeFromServerRecord(modifiedRecord)
+      refreshLastKnownServerRecord(modifiedRecord)
     }
 
-    for deletion in event.deletions {
-      if let table = tables[deletion.recordID.zoneID.zoneName] {
+    for (recordID, _) in deletions {
+      if let table = tablesByName[recordID.zoneID.zoneName] {
         func open<T: PrimaryKeyedTable>(_: T.Type) {
           withErrorReporting(.sharingGRDBCloudKitFailure) {
             try database.write { db in
-              try T.find(recordID: deletion.recordID)
+              try T.find(recordID: recordID)
                 .delete()
                 .execute(db)
             }
@@ -754,7 +749,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         reportIssue(
           .sharingGRDBCloudKitFailure.appending(
             """
-            : No table to delete from: "\(deletion.recordID.zoneID.zoneName)"
+            : No table to delete from: "\(recordID.zoneID.zoneName)"
             """
           )
         )
@@ -821,7 +816,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(db)
         }
         ?? nil
-      guard let table = tables[record.recordID.zoneID.zoneName]
+      guard let table = tablesByName[record.recordID.zoneID.zoneName]
       else {
         reportIssue(
           .sharingGRDBCloudKitFailure.appending(
@@ -928,16 +923,14 @@ extension SyncEngine: TestDependencyKey {
 
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension DatabaseFunction {
-  fileprivate static var didUpdate: Self {
+  fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
     Self("didUpdate") {
-      @Dependency(\.defaultSyncEngine) var syncEngine
       await syncEngine.didUpdate(recordName: $0, zoneName: $1)
     }
   }
 
-  fileprivate static var willDelete: Self {
-    Self("willDelete") {
-      @Dependency(\.defaultSyncEngine) var syncEngine
+  fileprivate static func willDelete(syncEngine: SyncEngine) -> Self {
+    return Self("willDelete") {
       await syncEngine.willDelete(recordName: $0, zoneName: $1)
     }
   }
@@ -1076,7 +1069,7 @@ private struct Unbindable: Error {}
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Metadata {
-  static func find(recordID: CKRecord.ID) -> Where<Self> {
+  package static func find(recordID: CKRecord.ID) -> Where<Self> {
     Self.where {
       $0.zoneName.eq(recordID.zoneID.zoneName)
         && $0.recordName.eq(recordID.recordName)

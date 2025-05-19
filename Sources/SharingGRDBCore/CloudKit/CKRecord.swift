@@ -2,20 +2,20 @@ import CloudKit
 import StructuredQueriesCore
 
 extension CKRecord {
-  struct DataRepresentation: QueryBindable, QueryRepresentable {
-    let queryOutput: CKRecord
+  package struct DataRepresentation: QueryBindable, QueryRepresentable {
+    package let queryOutput: CKRecord
 
-    var queryBinding: QueryBinding {
+    package var queryBinding: QueryBinding {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encodeSystemFields(with: archiver)
       return archiver.encodedData.queryBinding
     }
 
-    init(queryOutput: CKRecord) {
+    package init(queryOutput: CKRecord) {
       self.queryOutput = queryOutput
     }
 
-    init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    package init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       guard let data = try Data?(decoder: &decoder) else {
         throw QueryDecodingError.missingRequiredColumn
       }
@@ -32,7 +32,7 @@ extension CKRecord {
 }
 
 extension CKRecord? {
-  typealias DataRepresentation = CKRecord.DataRepresentation?
+  package typealias DataRepresentation = CKRecord.DataRepresentation?
 }
 
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
@@ -66,7 +66,7 @@ extension CKRecord {
     }
   }
 
-  var userModificationDate: Date? {
+  package var userModificationDate: Date? {
     get { encryptedValues[Self.userModificationDateKey] as? Date }
     set { encryptedValues[Self.userModificationDateKey] = newValue }
   }
