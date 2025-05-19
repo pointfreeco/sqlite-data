@@ -2,12 +2,15 @@ import CloudKit
 import InlineSnapshotTesting
 import SharingGRDB
 import SnapshotTestingCustomDump
+import ConcurrencyExtras
 import Testing
 
 @Suite(.snapshots(record: .failed))
 struct CloudKitTests {
   let database: any DatabaseWriter
-  let _syncEngine: Any
+  let _syncEngine: any Sendable
+  let underlyingSyncEngine: MockSyncEngine
+  let underlyingSyncState: MockSyncEngineState
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   var syncEngine: SyncEngine {
@@ -15,13 +18,16 @@ struct CloudKitTests {
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  init() throws {
+  init() async throws {
+    underlyingSyncState = MockSyncEngineState()
+    underlyingSyncEngine = MockSyncEngine(engineState: underlyingSyncState)
     self.database = try SharingGRDBTests.database()
     _syncEngine = SyncEngine(
-      defaultSyncEngine: MockSyncEngine(engineState: MockSyncEngineState()),
+      defaultSyncEngine: underlyingSyncEngine,
       database: database,
       tables: [Reminder.self, RemindersList.self]
     )
+    try await Task.sleep(for: .seconds(0.1))
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -169,6 +175,17 @@ struct CloudKitTests {
     }
   }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func insert() async throws {
+    try await database.write { db in
+      try RemindersList
+        .insert(RemindersList.Draft(title: "Personal"))
+        .execute(db)
+    }
+    try await Task.sleep(for: .seconds(1))
+    #expect(underlyingSyncState.pendingRecordZoneChanges == [])
+  }
+
   @Test func inMemoryAttachment() throws {
     print(#function)
     let d1 = try DatabaseQueue(named: "d1")
@@ -263,19 +280,47 @@ private func database() throws -> any DatabaseWriter {
   return database
 }
 
-struct MockSyncEngine: CKSyncEngineProtocol {
-  var engineState: any SharingGRDBCore.CKSyncEngineStateProtocol
+final class MockSyncEngine: CKSyncEngineProtocol {
+  let _engineState: LockIsolated<any CKSyncEngineStateProtocol>
+  init(engineState: any CKSyncEngineStateProtocol) {
+    self._engineState = LockIsolated(engineState)
+  }
+  var engineState: any CKSyncEngineStateProtocol {
+    _engineState.withValue(\.self)
+  }
   func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws {
   }
 }
 
-struct MockSyncEngineState: CKSyncEngineStateProtocol {
+final class MockSyncEngineState: CKSyncEngineStateProtocol {
+  private let _pendingRecordZoneChanges = LockIsolated<[CKSyncEngine.PendingRecordZoneChange]>([])
+  private let _pendingDatabaseChanges = LockIsolated<[CKSyncEngine.PendingDatabaseChange]>([])
+
+  var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] {
+    _pendingRecordZoneChanges.withValue(\.self)
+  }
+  var pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] {
+    _pendingDatabaseChanges.withValue(\.self)
+  }
+
   func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
+    self._pendingRecordZoneChanges.withValue {
+      $0.append(contentsOf: pendingRecordZoneChanges)
+    }
   }
   func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
+    self._pendingRecordZoneChanges.withValue {
+      $0.removeAll(where: pendingRecordZoneChanges.contains)
+    }
   }
   func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
+    self._pendingDatabaseChanges.withValue {
+      $0.append(contentsOf: pendingDatabaseChanges)
+    }
   }
   func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
+    self._pendingDatabaseChanges.withValue {
+      $0.removeAll(where: pendingDatabaseChanges.contains)
+    }
   }
 }
