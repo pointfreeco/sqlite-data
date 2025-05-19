@@ -455,7 +455,7 @@ public final actor SyncEngine {
   }
 
   public func fetchChanges() async throws {
-    try await underlyingSyncEngine.fetchChanges(.init(scope: .all, operationGroup: nil))
+    try await underlyingSyncEngine.fetchChanges()
   }
 
   public func deleteLocalData() throws {
@@ -1228,8 +1228,8 @@ extension Logger {
         .joined(separator: ", ")
       let failedZoneDeletes =
       event.failedZoneDeletes.isEmpty
-      ? "⚪️ No failed saved zones"
-      : "🛑 Failed zone saves (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
+      ? "⚪️ No failed deleted zones"
+      : "🛑 Failed zone delete (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
 
       debug(
         """
@@ -1248,7 +1248,7 @@ extension Logger {
       let savedRecords = savedRecordsByZoneName.keys
         .sorted()
         .map { "\($0) (\(savedRecordsByZoneName[$0]!.count))" }
-        .joined(separator: ",")
+        .joined(separator: ", ")
 
       let deletedRecordsByZoneName = Dictionary(
         grouping: event.deletedRecordIDs,
@@ -1257,7 +1257,7 @@ extension Logger {
       let deletedRecords = deletedRecordsByZoneName.keys
         .sorted()
         .map { "\($0) (\(deletedRecordsByZoneName[$0]!.count))" }
-        .joined(separator: ",")
+        .joined(separator: ", ")
 
       let failedRecordSavesByZoneName = Dictionary(
         grouping: event.failedRecordSaves,
