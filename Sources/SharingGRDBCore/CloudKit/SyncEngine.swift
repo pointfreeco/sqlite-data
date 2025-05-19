@@ -44,7 +44,7 @@ public final actor SyncEngine {
   func setUpSyncEngine() throws {
     defer { underlyingSyncEngine = defaultSyncEngine }
 
-    metadatabase = try defaultMetadatabase
+    metadatabase = try DatabasePool(container: container)
     var migrator = DatabaseMigrator()
     #if DEBUG
       migrator.eraseDatabaseOnSchemaChange = true
@@ -124,6 +124,7 @@ public final actor SyncEngine {
       }
     }
     try database.write { db in
+      let metadatabaseURL: URL = .metadatabase(container: container)
       try SQLQueryExpression(
         "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitSchemaName)"
       )
@@ -451,7 +452,7 @@ public final actor SyncEngine {
       )
       .execute(db)
     }
-    try FileManager.default.removeItem(at: metadatabaseURL)
+    try FileManager.default.removeItem(at: .metadatabase(container: container))
   }
 
   public func fetchChanges() async throws {
@@ -499,35 +500,6 @@ public final actor SyncEngine {
         )
       ]
     )
-  }
-
-  private var metadatabaseURL: URL {
-    URL.metadatabase(container: container)
-  }
-
-  private var defaultMetadatabase: any DatabaseWriter {
-    get throws {
-      var configuration = Configuration()
-      configuration.prepareDatabase { db in
-        db.trace {
-          logger.trace("\($0.expandedDescription)")
-        }
-      }
-      logger.debug(
-        """
-        SharingGRDB: Metadatabase connection:
-        open "\(self.metadatabaseURL.path(percentEncoded: false))"
-        """
-      )
-      try FileManager.default.createDirectory(
-        at: .applicationSupportDirectory,
-        withIntermediateDirectories: true
-      )
-      return try DatabaseQueue(
-        path: metadatabaseURL.path(percentEncoded: false),
-        configuration: configuration
-      )
-    }
   }
 
   private var defaultSyncEngine: CKSyncEngine {
@@ -891,7 +863,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func refreshLastKnownServerRecord(_ record: CKRecord) {
-    let localRecord = metadataFor(recordID: record.recordID)
+    let metadata = metadataFor(recordID: record.recordID)
 
     func updateLastKnownServerRecord() {
       withErrorReporting(.sharingGRDBCloudKitFailure) {
@@ -904,7 +876,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
     }
 
-    if let lastKnownDate = localRecord?.lastKnownServerRecord?.modificationDate {
+    if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
       if let recordDate = record.modificationDate, lastKnownDate < recordDate {
         updateLastKnownServerRecord()
       }
@@ -1100,6 +1072,33 @@ extension Metadata {
 extension String {
   fileprivate static let sharingGRDBCloudKitSchemaName = "sharing_grdb_icloud"
   fileprivate static let sharingGRDBCloudKitFailure = "SharingGRDB CloudKit Failure"
+}
+
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
+extension DatabaseWriter where Self == DatabasePool {
+  init(container: CKContainer) throws {
+    let path = URL.metadatabase(container: container).path(percentEncoded: false)
+    var configuration = Configuration()
+    configuration.prepareDatabase { db in
+      db.trace {
+        logger.debug("\($0.expandedDescription)")
+      }
+    }
+    logger.debug(
+      """
+      SharingGRDB: Metadatabase connection:
+      open "\(path)"
+      """
+    )
+    try FileManager.default.createDirectory(
+      at: .applicationSupportDirectory,
+      withIntermediateDirectories: true
+    )
+    try self.init(
+      path: path,
+      configuration: configuration
+    )
+  }
 }
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
