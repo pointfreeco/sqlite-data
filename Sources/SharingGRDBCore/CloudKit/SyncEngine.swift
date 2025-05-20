@@ -25,7 +25,7 @@ public final actor SyncEngine {
     container: CKContainer,
     database: any DatabaseWriter,
     logger: Logger = Logger(subsystem: "SharingGRDB", category: "CloudKit"),
-    tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
+    tables: [any PrimaryKeyedTable.Type]
   ) {
     self.init(
       defaultSyncEngine: { syncEngine in
@@ -91,7 +91,7 @@ public final actor SyncEngine {
   package func setUpSyncEngine() throws {
     defer { underlyingSyncEngine = defaultSyncEngine(self) }
 
-    metadatabase = try defaultMetadatabase
+    metadatabase = try DatabasePool(container: container)
     var migrator = DatabaseMigrator()
     #if DEBUG
       migrator.eraseDatabaseOnSchemaChange = true
@@ -171,6 +171,7 @@ public final actor SyncEngine {
       }
     }
     try database.write { db in
+      let metadatabaseURL: URL = .metadatabase(container: container)
       try SQLQueryExpression(
         "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitSchemaName)"
       )
@@ -200,7 +201,7 @@ public final actor SyncEngine {
               INSERT INTO \(Metadata.self)
                 ("zoneName", "recordName", "userModificationDate")
               SELECT
-                '\(raw: table.tableName)',
+                \(quote: T.tableName, delimiter: .text),
                 "new".\(quote: T.columns.primaryKey.name),
                 datetime('subsec')
               WHERE areTriggersEnabled()
@@ -216,7 +217,9 @@ public final actor SyncEngine {
             AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
               INSERT INTO \(Metadata.self)
                 ("zoneName", "recordName")
-              SELECT '\(raw: table.tableName)', "new".\(quote: T.columns.primaryKey.name)
+              SELECT
+                \(quote: T.tableName, delimiter: .text),
+                "new".\(quote: T.columns.primaryKey.name)
               WHERE areTriggersEnabled()
               ON CONFLICT("zoneName", "recordName") DO UPDATE SET
                 "userModificationDate" = datetime('subsec');
@@ -240,7 +243,7 @@ public final actor SyncEngine {
 
           let foreignKeys = try SQLQueryExpression(
             """
-            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: table.tableName))
+            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: T.tableName))
             """,
             as: ForeignKey.self
           )
@@ -269,8 +272,8 @@ public final actor SyncEngine {
               let defaultValue =
                 try SQLQueryExpression(
                   """
-                  SELECT "dflt_value" 
-                  FROM pragma_table_info(\(bind: table.tableName))
+                  SELECT "dflt_value"
+                  FROM pragma_table_info(\(bind: T.tableName))
                   WHERE "name" = \(bind: foreignKey.from)
                   """,
                   as: String?.self
@@ -279,7 +282,7 @@ public final actor SyncEngine {
 
               guard let defaultValue
               else {
-                // TODO: report issue
+                // TODO: Report issue?
                 continue
               }
               try SQLQueryExpression(
@@ -289,7 +292,7 @@ public final actor SyncEngine {
                 AFTER DELETE ON \(quote: foreignKey.table)
                 FOR EACH ROW BEGIN
                   UPDATE \(table)
-                  SET \(quote: foreignKey.from) = '\(raw: defaultValue)'
+                  SET \(quote: foreignKey.from) = \(raw: defaultValue)
                   WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
                 END
                 """
@@ -336,8 +339,35 @@ public final actor SyncEngine {
               continue
 
             case .setDefault:
-              // TODO: Report issue?
-              continue
+              let defaultValue =
+                try SQLQueryExpression(
+                  """
+                  SELECT "dflt_value"
+                  FROM pragma_table_info(\(bind: T.tableName))
+                  WHERE "name" = \(bind: foreignKey.from)
+                  """,
+                  as: String?.self
+                )
+                .fetchOne(db) ?? nil
+
+              guard let defaultValue
+              else {
+                // TODO: Report issue?
+                continue
+              }
+              try SQLQueryExpression(
+                """
+                CREATE TEMPORARY TRIGGER
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
+                AFTER UPDATE ON \(quote: foreignKey.table)
+                FOR EACH ROW BEGIN
+                  UPDATE \(table)
+                  SET \(quote: foreignKey.from) = \(raw: defaultValue)
+                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+                END
+                """
+              )
+              .execute(db)
 
             case .setNull:
               try SQLQueryExpression(
@@ -370,7 +400,7 @@ public final actor SyncEngine {
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
           let foreignKeys = try SQLQueryExpression(
             """
-            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: table.tableName))
+            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: T.tableName))
             """,
             as: ForeignKey.self
           )
@@ -390,7 +420,13 @@ public final actor SyncEngine {
               continue
 
             case .setDefault:
-              continue
+              try SQLQueryExpression(
+                """
+                DROP TRIGGER
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
+                """
+              )
+              .execute(db)
 
             case .setNull:
               try SQLQueryExpression(
@@ -419,7 +455,13 @@ public final actor SyncEngine {
               continue
 
             case .setDefault:
-              continue
+              try SQLQueryExpression(
+                """
+                DROP TRIGGER
+                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
+                """
+              )
+              .execute(db)
 
             case .setNull:
               try SQLQueryExpression(
@@ -442,13 +484,13 @@ public final actor SyncEngine {
           .execute(db)
           try SQLQueryExpression(
             """
-            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_metadataUpdates"
+            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
             """
           )
           .execute(db)
           try SQLQueryExpression(
             """
-            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_metadataInserts"
+            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
             """
           )
           .execute(db)
@@ -526,31 +568,6 @@ public final actor SyncEngine {
         )
       ]
     )
-  }
-
-  private var defaultMetadatabase: any DatabaseWriter {
-    get throws {
-      var configuration = Configuration()
-      configuration.prepareDatabase { [logger] db in
-        db.trace {
-          logger.trace("\($0.expandedDescription)")
-        }
-      }
-      logger.debug(
-        """
-        Metadatabase connection:
-        open "\(self.metadatabaseURL.path(percentEncoded: false))"
-        """
-      )
-      try FileManager.default.createDirectory(
-        at: .applicationSupportDirectory,
-        withIntermediateDirectories: true
-      )
-      return try DatabaseQueue(
-        path: metadatabaseURL.path(percentEncoded: false),
-        configuration: configuration
-      )
-    }
   }
 }
 
@@ -641,6 +658,7 @@ extension SyncEngine: CKSyncEngineDelegate {
             if let sentRecord { $0.sentRecords.append(sentRecord) }
           }
         }
+      }
       #endif
 
       let metadata = await metadataFor(recordID: recordID)
@@ -911,7 +929,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func refreshLastKnownServerRecord(_ record: CKRecord) {
-    let localRecord = metadataFor(recordID: record.recordID)
+    let metadata = metadataFor(recordID: record.recordID)
 
     func updateLastKnownServerRecord() {
       withErrorReporting(.sharingGRDBCloudKitFailure) {
@@ -924,7 +942,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
     }
 
-    if let lastKnownDate = localRecord?.lastKnownServerRecord?.modificationDate {
+    if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
       if let recordDate = record.modificationDate, lastKnownDate < recordDate {
         updateLastKnownServerRecord()
       }
@@ -1121,6 +1139,33 @@ extension String {
 }
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
+extension DatabaseWriter where Self == DatabasePool {
+  init(container: CKContainer) throws {
+    let path = URL.metadatabase(container: container).path(percentEncoded: false)
+    var configuration = Configuration()
+    configuration.prepareDatabase { db in
+      db.trace {
+        logger.debug("\($0.expandedDescription)")
+      }
+    }
+    logger.debug(
+      """
+      SharingGRDB: Metadatabase connection:
+      open "\(path)"
+      """
+    )
+    try FileManager.default.createDirectory(
+      at: .applicationSupportDirectory,
+      withIntermediateDirectories: true
+    )
+    try self.init(
+      path: path,
+      configuration: configuration
+    )
+  }
+}
+
+@available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
 extension URL {
   fileprivate static func metadatabase(container: CKContainer) -> Self {
     applicationSupportDirectory.appending(
@@ -1128,6 +1173,9 @@ extension URL {
     )
   }
 }
+
+@available(iOS 14, macOS 11, tvOS 14, watchOS 7, *)
+private let logger = Logger(subsystem: "SharingGRDB", category: "CloudKit")
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Logger {
@@ -1242,9 +1290,9 @@ extension Logger {
         .sorted()
         .joined(separator: ", ")
       let failedZoneDeletes =
-        event.failedZoneDeletes.isEmpty
-        ? "⚪️ No failed saved zones"
-        : "🛑 Failed zone saves (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
+      event.failedZoneDeletes.isEmpty
+      ? "⚪️ No failed deleted zones"
+      : "🛑 Failed zone delete (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
 
       debug(
         """
@@ -1263,7 +1311,7 @@ extension Logger {
       let savedRecords = savedRecordsByZoneName.keys
         .sorted()
         .map { "\($0) (\(savedRecordsByZoneName[$0]!.count))" }
-        .joined(separator: ",")
+        .joined(separator: ", ")
 
       let deletedRecordsByZoneName = Dictionary(
         grouping: event.deletedRecordIDs,
@@ -1272,7 +1320,7 @@ extension Logger {
       let deletedRecords = deletedRecordsByZoneName.keys
         .sorted()
         .map { "\($0) (\(deletedRecordsByZoneName[$0]!.count))" }
-        .joined(separator: ",")
+        .joined(separator: ", ")
 
       let failedRecordSavesByZoneName = Dictionary(
         grouping: event.failedRecordSaves,

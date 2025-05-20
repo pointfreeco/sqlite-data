@@ -14,8 +14,8 @@ struct RemindersApp: App {
           container: CKContainer(identifier: "iCloud.co.pointfree.sharing-grdb.Reminders"),
           database: $0.defaultDatabase,
           tables: [
-            Reminder.self,
             RemindersList.self,
+            Reminder.self,
             Tag.self,
             ReminderTag.self,
           ]
