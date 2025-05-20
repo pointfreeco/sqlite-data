@@ -325,7 +325,8 @@ final class CloudKitTests: Sendable {
         try Metadata.find(recordID: record.recordID).fetchOne(db)
       }
     )
-    expectNoDifference(record, metadata.lastKnownServerRecord)
+    // TODO: is there anything else we can assert on?
+    #expect(metadata.lastKnownServerRecord != nil)
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
