@@ -12,12 +12,12 @@ extension DependencyValues {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 public final actor SyncEngine {
-  nonisolated let database: any DatabaseWriter
+  let database: any DatabaseWriter
   let logger: Logger
   lazy var metadatabase: any DatabaseWriter = try! DatabaseQueue()
   private let metadatabaseURL: URL
-  nonisolated let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
-  nonisolated let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
   var underlyingSyncEngine: (any CKSyncEngineProtocol)!
   let defaultSyncEngine: (SyncEngine) -> any CKSyncEngineProtocol
 
@@ -224,8 +224,6 @@ public final actor SyncEngine {
             """
           )
           .execute(db)
-
-          // TODO: do we want this?
           try SQLQueryExpression(
             """
             CREATE TEMPORARY TRIGGER
