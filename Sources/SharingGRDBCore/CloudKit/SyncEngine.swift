@@ -91,7 +91,7 @@ public final actor SyncEngine {
   package func setUpSyncEngine() throws {
     defer { underlyingSyncEngine = defaultSyncEngine(self) }
 
-    metadatabase = try DatabasePool(container: container)
+    metadatabase = try defaultMetadatabase
     var migrator = DatabaseMigrator()
     #if DEBUG
       migrator.eraseDatabaseOnSchemaChange = true
@@ -171,7 +171,6 @@ public final actor SyncEngine {
       }
     }
     try database.write { db in
-      let metadatabaseURL: URL = .metadatabase(container: container)
       try SQLQueryExpression(
         "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitSchemaName)"
       )
@@ -569,6 +568,31 @@ public final actor SyncEngine {
       ]
     )
   }
+
+  private var defaultMetadatabase: any DatabaseWriter {
+    get throws {
+      var configuration = Configuration()
+      configuration.prepareDatabase { [logger] db in
+        db.trace {
+          logger.trace("\($0.expandedDescription)")
+        }
+      }
+      logger.debug(
+        """
+        Metadatabase connection:
+        open "\(self.metadatabaseURL.path(percentEncoded: false))"
+        """
+      )
+      try FileManager.default.createDirectory(
+        at: .applicationSupportDirectory,
+        withIntermediateDirectories: true
+      )
+      return try DatabaseQueue(
+        path: metadatabaseURL.path(percentEncoded: false),
+        configuration: configuration
+      )
+    }
+  }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -658,7 +682,6 @@ extension SyncEngine: CKSyncEngineDelegate {
             if let sentRecord { $0.sentRecords.append(sentRecord) }
           }
         }
-      }
       #endif
 
       let metadata = await metadataFor(recordID: recordID)

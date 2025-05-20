@@ -36,37 +36,6 @@ extension CKRecord? {
   package typealias DataRepresentation = CKRecord.DataRepresentation?
 }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension CKRecord {
-  static func `for`<T: PrimaryKeyedTable & Sendable>(_ row: T) -> CKRecord? {
-    @Dependency(\.defaultSyncEngine) var defaultSyncEngine
-    guard let metadatabase = try? DatabasePool(container: defaultSyncEngine.container)
-    else { return nil }
-    let record =
-      withErrorReporting {
-        try metadatabase.read { db in
-          try Metadata
-            .where {
-              $0.zoneName.eq(T.tableName)
-                && $0.recordName.eq(
-                  SQLQueryExpression(
-                    T.TableColumns.PrimaryKey(
-                      queryOutput: row[keyPath: T.columns.primaryKey.keyPath]
-                    )
-                    .queryFragment
-                  )
-                )
-            }
-            .select(\.lastKnownServerRecord)
-            .fetchOne(db)
-        }
-      }
-      ?? nil
-    guard let record else { return nil }
-    return record
-  }
-}
-
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 extension CKRecord {
   func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date?) {

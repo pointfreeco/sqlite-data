@@ -98,7 +98,9 @@ final class CloudKitTests: Sendable {
         AFTER UPDATE ON "reminders" FOR EACH ROW BEGIN
           INSERT INTO "sharing_grdb_cloudkit_metadata"
             ("zoneName", "recordName")
-          SELECT 'reminders', "new"."id"
+          SELECT
+            'reminders',
+            "new"."id"
           WHERE areTriggersEnabled()
           ON CONFLICT("zoneName", "recordName") DO UPDATE SET
             "userModificationDate" = datetime('subsec');
@@ -169,7 +171,9 @@ final class CloudKitTests: Sendable {
         AFTER UPDATE ON "remindersLists" FOR EACH ROW BEGIN
           INSERT INTO "sharing_grdb_cloudkit_metadata"
             ("zoneName", "recordName")
-          SELECT 'remindersLists', "new"."id"
+          SELECT
+            'remindersLists',
+            "new"."id"
           WHERE areTriggersEnabled()
           ON CONFLICT("zoneName", "recordName") DO UPDATE SET
             "userModificationDate" = datetime('subsec');
