@@ -225,7 +225,6 @@ public final actor SyncEngine {
           )
           .execute(db)
 
-
           // TODO: do we want this?
           try SQLQueryExpression(
             """
@@ -240,8 +239,6 @@ public final actor SyncEngine {
             """
           )
           .execute(db)
-
-
 
           let foreignKeys = try SQLQueryExpression(
             """
