@@ -259,16 +259,19 @@ let logger = Logger(subsystem: "Reminders", category: "Database")
         RemindersList(
           id: remindersListIDs[0],
           color: Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255),
+          position: 0,
           title: "Personal"
         )
         RemindersList(
           id: remindersListIDs[1],
           color: Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255),
+          position: 1,
           title: "Family"
         )
         RemindersList(
           id: remindersListIDs[2],
           color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
+          position: 2,
           title: "Business"
         )
 
