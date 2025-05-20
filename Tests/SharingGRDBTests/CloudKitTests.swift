@@ -105,6 +105,15 @@ final class CloudKitTests: Sendable {
         END
         """,
         [5]: """
+        CREATE TRIGGER "sharing_grdb_cloudkit_reminders_metadataDeletes"
+        AFTER DELETE ON "reminders" FOR EACH ROW BEGIN
+          DELETE FROM "sharing_grdb_cloudkit_metadata"
+          WHERE areTriggersEnabled()
+          AND "zoneName" = 'reminders'
+          AND "recordName" = "old"."id";
+        END
+        """,
+        [6]: """
         CREATE TRIGGER "sharing_grdb_cloudkit_reminders_belongsTo_remindersLists_onDeleteCascade"
         AFTER DELETE ON "remindersLists"
         FOR EACH ROW BEGIN
@@ -112,7 +121,7 @@ final class CloudKitTests: Sendable {
           WHERE "remindersListID" = "old"."id";
         END
         """,
-        [6]: """
+        [7]: """
         CREATE TRIGGER "sharing_grdb_cloudkit_insert_remindersLists"
         AFTER INSERT ON "remindersLists" FOR EACH ROW BEGIN
           SELECT didUpdate(
@@ -122,7 +131,7 @@ final class CloudKitTests: Sendable {
           WHERE areTriggersEnabled();
         END
         """,
-        [7]: """
+        [8]: """
         CREATE TRIGGER "sharing_grdb_cloudkit_update_remindersLists"
         AFTER UPDATE ON "remindersLists" FOR EACH ROW BEGIN
           SELECT didUpdate(
@@ -132,7 +141,7 @@ final class CloudKitTests: Sendable {
           WHERE areTriggersEnabled();
         END
         """,
-        [8]: """
+        [9]: """
         CREATE TRIGGER "sharing_grdb_cloudkit_delete_remindersLists"
         BEFORE DELETE ON "remindersLists" FOR EACH ROW BEGIN
           SELECT willDelete(
@@ -142,7 +151,7 @@ final class CloudKitTests: Sendable {
           WHERE areTriggersEnabled();
         END
         """,
-        [9]: """
+        [10]: """
         CREATE TRIGGER "sharing_grdb_cloudkit_remindersLists_metadataInserts"
         AFTER INSERT ON "remindersLists" FOR EACH ROW BEGIN
           INSERT INTO "sharing_grdb_cloudkit_metadata"
@@ -155,7 +164,7 @@ final class CloudKitTests: Sendable {
           ON CONFLICT("zoneName", "recordName") DO NOTHING;
         END
         """,
-        [10]: """
+        [11]: """
         CREATE TRIGGER "sharing_grdb_cloudkit_remindersLists_metadataUpdates"
         AFTER UPDATE ON "remindersLists" FOR EACH ROW BEGIN
           INSERT INTO "sharing_grdb_cloudkit_metadata"
@@ -164,6 +173,15 @@ final class CloudKitTests: Sendable {
           WHERE areTriggersEnabled()
           ON CONFLICT("zoneName", "recordName") DO UPDATE SET
             "userModificationDate" = datetime('subsec');
+        END
+        """,
+        [12]: """
+        CREATE TRIGGER "sharing_grdb_cloudkit_remindersLists_metadataDeletes"
+        AFTER DELETE ON "remindersLists" FOR EACH ROW BEGIN
+          DELETE FROM "sharing_grdb_cloudkit_metadata"
+          WHERE areTriggersEnabled()
+          AND "zoneName" = 'remindersLists'
+          AND "recordName" = "old"."id";
         END
         """
       ]
@@ -189,7 +207,7 @@ final class CloudKitTests: Sendable {
         .execute(db)
     }
     underlyingSyncState.assertPendingRecordZoneChanges([
-      .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self)),
+      .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
     ])
     try database.write { db in
       try RemindersList
@@ -198,7 +216,7 @@ final class CloudKitTests: Sendable {
         .execute(db)
     }
     underlyingSyncState.assertPendingRecordZoneChanges([
-      .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self)),
+      .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
     ])
     try database.write { db in
       try RemindersList
@@ -207,7 +225,7 @@ final class CloudKitTests: Sendable {
         .execute(db)
     }
     underlyingSyncState.assertPendingRecordZoneChanges([
-      .deleteRecord(CKRecord.ID(UUID(1), in: RemindersList.self)),
+      .deleteRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
     ])
   }
 
@@ -246,13 +264,12 @@ final class CloudKitTests: Sendable {
       }
     }
     underlyingSyncState.assertPendingRecordZoneChanges([
-      .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self)),
+      .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
     ])
 
-    let recordID = CKRecord.ID(UUID(1), in: RemindersList.self)
     let record = CKRecord(
       recordType: "remindersLists",
-      recordID: recordID
+      recordID: CKRecord.ID(UUID(1), in: RemindersList.self)
     )
     // TODO: Should we omit primary key from `encryptedValues` since it already exists on recordName?
     record.encryptedValues[RemindersList.columns.id.name] = UUID(1).uuidString
@@ -267,10 +284,46 @@ final class CloudKitTests: Sendable {
       RemindersList(id: UUID(1), title: "Work")
     )
 
-    let metadata = try await database.write { db in
-      try Metadata.find(recordID: recordID).fetchOne(db)
+    let metadata = try #require(
+      try await database.write { db in
+        try Metadata.find(recordID: record.recordID).fetchOne(db)
+      }
+    )
+    expectNoDifference(record, metadata.lastKnownServerRecord)
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func remoteServerRecordDeleted() async throws {
+    try await database.write { db in
+      try db.seed {
+        RemindersList(id: UUID(1), title: "Personal")
+      }
     }
-    #expect(record == metadata?.lastKnownServerRecord)
+    underlyingSyncState.assertPendingRecordZoneChanges([
+      .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
+    ])
+
+    let record = CKRecord(
+      recordType: "remindersLists",
+      recordID: CKRecord.ID(UUID(1), in: RemindersList.self)
+    )
+    await syncEngine.handleFetchedRecordZoneChanges(
+      modifications: [],
+      deletions: [(record.recordID, record.recordType)]
+    )
+    #expect(
+      try { try database.read { db in try RemindersList.find(UUID(1)).fetchCount(db) } }()
+        == 0
+    )
+    let metadata = try await database.write { db in
+      try Metadata.find(recordID: record.recordID).fetchOne(db)
+    }
+    #expect(metadata == nil)
+
+    // TODO: Do not enqueue a pending zone change when the delete came the server
+    withKnownIssue {
+      underlyingSyncState.assertPendingRecordZoneChanges([])
+    }
   }
 }
 

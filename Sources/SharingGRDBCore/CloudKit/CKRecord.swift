@@ -1,4 +1,5 @@
 import CloudKit
+import CustomDump
 import StructuredQueriesCore
 
 extension CKRecord {
@@ -79,5 +80,18 @@ extension PrimaryKeyedTable {
     Self.where {
       SQLQueryExpression("\($0.primaryKey) = \(bind: recordID.recordName)")
     }
+  }
+}
+
+@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
+extension CKRecord: @retroactive CustomDumpReflectable {
+  public var customDumpMirror: Mirror {
+    return Mirror(
+      self,
+      children: self.allKeys().map {
+        ($0, self.encryptedValues[$0] as Any)
+      },
+      displayStyle: .struct
+    )
   }
 }

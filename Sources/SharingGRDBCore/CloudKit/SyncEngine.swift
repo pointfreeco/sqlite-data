@@ -25,7 +25,6 @@ public final actor SyncEngine {
     database: any DatabaseWriter,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) {
-    fatalError()
     self.init(
       defaultSyncEngine: { syncEngine in
         CKSyncEngine(
@@ -219,6 +218,25 @@ public final actor SyncEngine {
             """
           )
           .execute(db)
+
+
+          // TODO: do we want this?
+          try SQLQueryExpression(
+            """
+            CREATE TEMPORARY TRIGGER
+              "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataDeletes"
+            AFTER DELETE ON \(T.self) FOR EACH ROW BEGIN
+              DELETE FROM \(Metadata.self)
+              WHERE areTriggersEnabled()
+              AND "zoneName" = '\(raw: table.tableName)'
+              AND "recordName" = "old".\(quote: T.columns.primaryKey.name);
+            END
+            """
+          )
+          .execute(db)
+
+
+
           let foreignKeys = try SQLQueryExpression(
             """
             SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: table.tableName))
@@ -417,6 +435,12 @@ public final actor SyncEngine {
           }
           try SQLQueryExpression(
             """
+            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataDeletes"
+            """
+          )
+          .execute(db)
+          try SQLQueryExpression(
+            """
             DROP TRIGGER "sharing_grdb_cloudkit_\(raw: table.tableName)_metadataUpdates"
             """
           )
@@ -512,7 +536,7 @@ public final actor SyncEngine {
       }
       logger.debug(
         """
-        SharingGRDB: Metadatabase connection:
+        Metadatabase connection:
         open "\(self.metadatabaseURL.path(percentEncoded: false))"
         """
       )
@@ -537,15 +561,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     case .accountChange(let event):
       handleAccountChange(event)
     case .stateUpdate(let event):
-      //stateSerialization = event.stateSerialization
-      withErrorReporting(.sharingGRDBCloudKitFailure) {
-        try database.write { db in
-          try StateSerialization.insert(
-            StateSerialization(data: event.stateSerialization)
-          )
-          .execute(db)
-        }
-      }
+      handleStateUpdate(event)
     case .fetchedDatabaseChanges(let event):
       handleFetchedDatabaseChanges(event)
     case .sentDatabaseChanges:
@@ -602,7 +618,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           .joined(separator: ", ")
         logger.debug(
           """
-          SharingGRDB: nextRecordZoneChangeBatch: \(context.reason)
+          nextRecordZoneChangeBatch: \(context.reason)
             \(state.missingTables.isEmpty ? "⚪️ No missing tables" : "⚠️ Missing tables: \(missingTables)")
             \(state.missingRecords.isEmpty ? "⚪️ No missing records" : "⚠️ Missing records: \(missingRecords)")
             \(state.sentRecords.isEmpty ? "⚪️ No sent records" : "✅ Sent records: \(sentRecords)")
@@ -701,6 +717,17 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
     @unknown default:
       break
+    }
+  }
+
+  private func handleStateUpdate(_ event: CKSyncEngine.Event.StateUpdate) {
+    withErrorReporting(.sharingGRDBCloudKitFailure) {
+      try database.write { db in
+        try StateSerialization.insert(
+          StateSerialization(data: event.stateSerialization)
+        )
+        .execute(db)
+      }
     }
   }
 
@@ -1106,7 +1133,7 @@ private let logger = Logger(subsystem: "SharingGRDB", category: "CloudKit")
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Logger {
   func log(_ event: CKSyncEngine.Event) {
-    let prefix = "SharingGRDB: handleEvent:"
+    let prefix = "handleEvent:"
     switch event {
     case .stateUpdate:
       debug("\(prefix) stateUpdate")
