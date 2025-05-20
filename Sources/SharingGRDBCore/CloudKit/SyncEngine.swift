@@ -130,7 +130,6 @@ public final actor SyncEngine {
     }
     try migrator.migrate(metadatabase)
     let previousZones = try metadatabase.read { db in
-      //stateSerialization = try StateSerialization.all.fetchOne(db)?.data
       return try Zone.all.fetchAll(db)
     }
     let currentZones = try database.read { db in
@@ -233,7 +232,7 @@ public final actor SyncEngine {
             AFTER DELETE ON \(T.self) FOR EACH ROW BEGIN
               DELETE FROM \(Metadata.self)
               WHERE areTriggersEnabled()
-              AND "zoneName" = '\(raw: table.tableName)'
+              AND "zoneName" = \(quote: T.tableName, delimiter: .text)
               AND "recordName" = "old".\(quote: T.columns.primaryKey.name);
             END
             """
@@ -544,7 +543,7 @@ public final actor SyncEngine {
   }
 
   func didUpdate(recordName: String, zoneName: String) {
-    underlyingSyncEngine.engineState.add(
+    underlyingSyncEngine.state.add(
       pendingRecordZoneChanges: [
         .saveRecord(
           CKRecord.ID(
@@ -557,7 +556,7 @@ public final actor SyncEngine {
   }
 
   func willDelete(recordName: String, zoneName: String) {
-    underlyingSyncEngine.engineState.add(
+    underlyingSyncEngine.state.add(
       pendingRecordZoneChanges: [
         .deleteRecord(
           CKRecord.ID(
@@ -730,7 +729,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     switch event.changeType {
     case .signIn:
       for table in tables {
-        underlyingSyncEngine.engineState.add(
+        underlyingSyncEngine.state.add(
           pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneName: table.tableName))]
         )
         withErrorReporting(.sharingGRDBCloudKitFailure) {
@@ -742,7 +741,7 @@ extension SyncEngine: CKSyncEngineDelegate {
             }
             return try open(table)
           }
-          underlyingSyncEngine.engineState.add(
+          underlyingSyncEngine.state.add(
             pendingRecordZoneChanges: names.map {
               .saveRecord(
                 CKRecord.ID(
@@ -835,8 +834,8 @@ extension SyncEngine: CKSyncEngineDelegate {
     var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
     var newPendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] = []
     defer {
-      underlyingSyncEngine.engineState.add(pendingDatabaseChanges: newPendingDatabaseChanges)
-      underlyingSyncEngine.engineState.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
+      underlyingSyncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
+      underlyingSyncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
     }
     for failedRecordSave in event.failedRecordSaves {
       let failedRecord = failedRecordSave.record
@@ -1446,9 +1445,10 @@ extension Logger {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-package protocol CKSyncEngineProtocol: Sendable {
+package protocol CKSyncEngineProtocol<State>: Sendable {
+  associatedtype State: CKSyncEngineStateProtocol
   func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws
-  var engineState: any CKSyncEngineStateProtocol { get }
+  var state: State { get }
 }
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension CKSyncEngineProtocol {
@@ -1467,7 +1467,6 @@ package protocol CKSyncEngineStateProtocol: Sendable {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension CKSyncEngine: CKSyncEngineProtocol {
-  package var engineState: any CKSyncEngineStateProtocol { state }
 }
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension CKSyncEngine.State: CKSyncEngineStateProtocol {

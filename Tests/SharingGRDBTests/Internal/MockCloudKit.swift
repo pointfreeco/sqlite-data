@@ -4,12 +4,12 @@ import CustomDump
 import SharingGRDBCore
 
 final class MockSyncEngine: CKSyncEngineProtocol {
-  let _engineState: LockIsolated<any CKSyncEngineStateProtocol>
-  init(engineState: any CKSyncEngineStateProtocol) {
-    self._engineState = LockIsolated(engineState)
+  let _state: LockIsolated<MockSyncEngineState>
+  init(state: MockSyncEngineState) {
+    self._state = LockIsolated(state)
   }
-  var engineState: any CKSyncEngineStateProtocol {
-    _engineState.withValue(\.self)
+  var state: MockSyncEngineState {
+    _state.withValue(\.self)
   }
   func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws {
   }

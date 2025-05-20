@@ -11,7 +11,6 @@ final class CloudKitTests: Sendable {
   let database: any DatabaseWriter
   let _syncEngine: any Sendable
   let underlyingSyncEngine: MockSyncEngine
-  let underlyingSyncState: MockSyncEngineState
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   var syncEngine: SyncEngine {
@@ -21,10 +20,8 @@ final class CloudKitTests: Sendable {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   init() async throws {
     let database = try SharingGRDBTests.database()
-    let underlyingSyncState = MockSyncEngineState()
-    let underlyingSyncEngine = MockSyncEngine(engineState: underlyingSyncState)
+    let underlyingSyncEngine = MockSyncEngine(state: MockSyncEngineState())
     self.database = database
-    self.underlyingSyncState = underlyingSyncState
     self.underlyingSyncEngine = underlyingSyncEngine
     _syncEngine = SyncEngine(
       defaultSyncEngine: underlyingSyncEngine,
@@ -38,8 +35,8 @@ final class CloudKitTests: Sendable {
   }
 
   deinit {
-    underlyingSyncState.assertPendingDatabaseChanges([])
-    underlyingSyncState.assertPendingRecordZoneChanges([])
+    underlyingSyncEngine.state.assertPendingDatabaseChanges([])
+    underlyingSyncEngine.state.assertPendingRecordZoneChanges([])
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -215,7 +212,7 @@ final class CloudKitTests: Sendable {
         RemindersList(id: UUID(1), title: "Personal")
       }
     }
-    underlyingSyncState.assertPendingRecordZoneChanges([
+    underlyingSyncEngine.state.assertPendingRecordZoneChanges([
       .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
     ])
 
@@ -246,7 +243,7 @@ final class CloudKitTests: Sendable {
         .insert(RemindersList(id: UUID(1), title: "Personal"))
         .execute(db)
     }
-    underlyingSyncState.assertPendingRecordZoneChanges([
+    underlyingSyncEngine.state.assertPendingRecordZoneChanges([
       .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
     ])
     try database.write { db in
@@ -255,7 +252,7 @@ final class CloudKitTests: Sendable {
         .update { $0.title = "Work" }
         .execute(db)
     }
-    underlyingSyncState.assertPendingRecordZoneChanges([
+    underlyingSyncEngine.state.assertPendingRecordZoneChanges([
       .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
     ])
     try database.write { db in
@@ -264,7 +261,7 @@ final class CloudKitTests: Sendable {
         .delete()
         .execute(db)
     }
-    underlyingSyncState.assertPendingRecordZoneChanges([
+    underlyingSyncEngine.state.assertPendingRecordZoneChanges([
       .deleteRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
     ])
   }
@@ -279,7 +276,7 @@ final class CloudKitTests: Sendable {
         Reminder(id: UUID(3), title: "Haircut", remindersListID: UUID(1))
       }
     }
-    underlyingSyncState.assertPendingRecordZoneChanges([
+    underlyingSyncEngine.state.assertPendingRecordZoneChanges([
       .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self)),
       .saveRecord(CKRecord.ID(UUID(1), in: Reminder.self)),
       .saveRecord(CKRecord.ID(UUID(2), in: Reminder.self)),
@@ -288,7 +285,11 @@ final class CloudKitTests: Sendable {
     try database.write { db in
       try RemindersList.find(UUID(1)).delete().execute(db)
     }
-    underlyingSyncState.assertPendingRecordZoneChanges([
+    let reminders = try database.read { db in
+      try Reminder.all.fetchAll(db)
+    }
+    #expect(reminders == [])
+    underlyingSyncEngine.state.assertPendingRecordZoneChanges([
       .deleteRecord(CKRecord.ID(UUID(1), in: RemindersList.self)),
       .deleteRecord(CKRecord.ID(UUID(1), in: Reminder.self)),
       .deleteRecord(CKRecord.ID(UUID(2), in: Reminder.self)),
@@ -303,7 +304,7 @@ final class CloudKitTests: Sendable {
         RemindersList(id: UUID(1), title: "Personal")
       }
     }
-    underlyingSyncState.assertPendingRecordZoneChanges([
+    underlyingSyncEngine.state.assertPendingRecordZoneChanges([
       .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
     ])
 
@@ -340,7 +341,7 @@ final class CloudKitTests: Sendable {
         RemindersList(id: UUID(1), title: "Personal")
       }
     }
-    underlyingSyncState.assertPendingRecordZoneChanges([
+    underlyingSyncEngine.state.assertPendingRecordZoneChanges([
       .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
     ])
 
@@ -363,7 +364,7 @@ final class CloudKitTests: Sendable {
 
     // TODO: Do not enqueue a pending zone change when the delete came the server
     withKnownIssue {
-      underlyingSyncState.assertPendingRecordZoneChanges([])
+      underlyingSyncEngine.state.assertPendingRecordZoneChanges([])
     }
   }
 }
