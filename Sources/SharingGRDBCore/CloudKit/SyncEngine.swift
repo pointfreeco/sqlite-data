@@ -13,6 +13,7 @@ extension DependencyValues {
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 public final actor SyncEngine {
   nonisolated let database: any DatabaseWriter
+  let logger: Logger
   lazy var metadatabase: any DatabaseWriter = try! DatabaseQueue()
   private let metadatabaseURL: URL
   nonisolated let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
@@ -23,6 +24,7 @@ public final actor SyncEngine {
   public init(
     container: CKContainer,
     database: any DatabaseWriter,
+    logger: Logger = Logger(subsystem: "SharingGRDB", category: "CloudKit"),
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) {
     self.init(
@@ -38,6 +40,7 @@ public final actor SyncEngine {
         )
       },
       database: database,
+      logger: logger,
       metadatabaseURL: URL.metadatabase(container: container),
       tables: tables
     )
@@ -52,6 +55,7 @@ public final actor SyncEngine {
     self.init(
       defaultSyncEngine: { _ in defaultSyncEngine },
       database: database,
+      logger: Logger(.disabled),
       metadatabaseURL: metadatabaseURL,
       tables: tables
     )
@@ -60,6 +64,7 @@ public final actor SyncEngine {
   private init(
     defaultSyncEngine: @escaping (SyncEngine) -> any CKSyncEngineProtocol,
     database: any DatabaseWriter,
+    logger: Logger,
     metadatabaseURL: URL,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) {
@@ -72,6 +77,7 @@ public final actor SyncEngine {
     )
     self.defaultSyncEngine = defaultSyncEngine
     self.database = database
+    self.logger = logger
     self.metadatabaseURL = metadatabaseURL
     self.tables = tables
     self.tablesByName = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
@@ -82,7 +88,7 @@ public final actor SyncEngine {
     }
   }
 
-  func setUpSyncEngine() throws {
+  package func setUpSyncEngine() throws {
     defer { underlyingSyncEngine = defaultSyncEngine(self) }
 
     metadatabase = try defaultMetadatabase
@@ -476,6 +482,7 @@ public final actor SyncEngine {
       )
       .execute(db)
     }
+    try metadatabase.close()
     try FileManager.default.removeItem(at: metadatabaseURL)
   }
 
@@ -529,7 +536,7 @@ public final actor SyncEngine {
   private var defaultMetadatabase: any DatabaseWriter {
     get throws {
       var configuration = Configuration()
-      configuration.prepareDatabase { db in
+      configuration.prepareDatabase { [logger] db in
         db.trace {
           logger.trace("\($0.expandedDescription)")
         }
@@ -1126,9 +1133,6 @@ extension URL {
     )
   }
 }
-
-@available(iOS 14, macOS 11, tvOS 14, watchOS 7, *)
-private let logger = Logger(subsystem: "SharingGRDB", category: "CloudKit")
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Logger {

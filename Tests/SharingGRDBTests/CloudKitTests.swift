@@ -200,6 +200,42 @@ final class CloudKitTests: Sendable {
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func tearDownAndReSetUp() async throws {
+    try await syncEngine.tearDownSyncEngine()
+    try await syncEngine.setUpSyncEngine()
+    // TODO: it would be nice if `setUpSyncEngine` was async
+    try await Task.sleep(for: .seconds(0.1))
+
+    try await database.write { db in
+      try db.seed {
+        RemindersList(id: UUID(1), title: "Personal")
+      }
+    }
+    underlyingSyncState.assertPendingRecordZoneChanges([
+      .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
+    ])
+
+    let record = CKRecord(
+      recordType: "remindersLists",
+      recordID: CKRecord.ID(UUID(1), in: RemindersList.self)
+    )
+    await syncEngine.handleFetchedRecordZoneChanges(
+      modifications: [record],
+      deletions: []
+    )
+    expectNoDifference(
+      try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
+      RemindersList(id: UUID(1), title: "Personal")
+    )
+
+    let metadata =
+      try await database.write { db in
+        try Metadata.find(recordID: record.recordID).fetchOne(db)
+      }
+    #expect(metadata != nil)
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func insertUpdateDelete() throws {
     try database.write { db in
       try RemindersList
@@ -353,9 +389,6 @@ extension CKRecord.ID {
 private func database() throws -> DatabasePool {
   var configuration = Configuration()
   configuration.foreignKeysEnabled = false
-  configuration.prepareDatabase { db in
-    db.trace { print($0.expandedDescription) }
-  }
   let url = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite")
   let database = try DatabasePool(path: url.path(), configuration: configuration)
   var migrator = DatabaseMigrator()
