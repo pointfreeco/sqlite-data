@@ -9,11 +9,50 @@ import Testing
 extension BaseCloudKitTests {
   final class CloudKitTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func setUp() throws {
+      let zones = try database.write { db in
+        try Zone.all.fetchAll(db)
+      }
+      assertInlineSnapshot(of: zones, as: .customDump) {
+        #"""
+        [
+          [0]: Zone(
+            zoneName: "remindersLists",
+            schema: """
+              CREATE TABLE "remindersLists" (
+                "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+                "title" TEXT NOT NULL
+              ) STRICT
+              """
+          ),
+          [1]: Zone(
+            zoneName: "reminders",
+            schema: """
+              CREATE TABLE "reminders" (
+                "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+                "title" TEXT NOT NULL,
+                "parentReminderID" TEXT REFERENCES "reminders"("id") ON DELETE SET NULL,
+                "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
+              ) STRICT
+              """
+          )
+        ]
+        """#
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tearDownAndReSetUp() async throws {
       try await syncEngine.tearDownSyncEngine()
       try await syncEngine.setUpSyncEngine()
       // TODO: it would be nice if `setUpSyncEngine` was async
       try await Task.sleep(for: .seconds(0.1))
+      underlyingSyncEngine.assertFetchChangesScopes([
+        .zoneIDs([
+          CKRecordZone.ID(RemindersList.self),
+          CKRecordZone.ID(Reminder.self),
+        ])
+      ])
 
       try await database.write { db in
         try db.seed {
@@ -42,6 +81,11 @@ extension BaseCloudKitTests {
         try Metadata.find(recordID: record.recordID).fetchOne(db)
       }
       #expect(metadata != nil)
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func migration() async throws {
+      // TODO: how to test what happens after a migration? need to assert that zones are fetched.
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

@@ -6,8 +6,8 @@ import Testing
 @Suite(.snapshots(record: .failed))
 class BaseCloudKitTests: @unchecked Sendable {
   let database: any DatabaseWriter
-  let _syncEngine: any Sendable
-  let underlyingSyncEngine: MockSyncEngine
+  private let _syncEngine: any Sendable
+  private let _underlyingSyncEngine: any Sendable
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   var syncEngine: SyncEngine {
@@ -15,11 +15,16 @@ class BaseCloudKitTests: @unchecked Sendable {
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  var underlyingSyncEngine: MockSyncEngine {
+    _underlyingSyncEngine as! MockSyncEngine
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   init() async throws {
     let database = try SharingGRDBTests.database()
     let underlyingSyncEngine = MockSyncEngine(state: MockSyncEngineState())
     self.database = database
-    self.underlyingSyncEngine = underlyingSyncEngine
+    self._underlyingSyncEngine = underlyingSyncEngine
     _syncEngine = SyncEngine(
       defaultSyncEngine: underlyingSyncEngine,
       database: database,
@@ -29,10 +34,21 @@ class BaseCloudKitTests: @unchecked Sendable {
       tables: [Reminder.self, RemindersList.self]
     )
     try await Task.sleep(for: .seconds(0.1))
+    underlyingSyncEngine.assertFetchChangesScopes([
+      .zoneIDs([
+        CKRecordZone.ID(RemindersList.self),
+        CKRecordZone.ID(Reminder.self),
+      ])
+    ])
   }
 
   deinit {
-    underlyingSyncEngine.state.assertPendingDatabaseChanges([])
-    underlyingSyncEngine.state.assertPendingRecordZoneChanges([])
+    if #available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) {
+      underlyingSyncEngine.assertFetchChangesScopes([])
+      underlyingSyncEngine.state.assertPendingDatabaseChanges([])
+      underlyingSyncEngine.state.assertPendingRecordZoneChanges([])
+    } else {
+      Issue.record("Tests must be run on iOS 17+,m macOS 14+, tvOS 17+ and watchOS 10+.")
+    }
   }
 }

@@ -12,6 +12,7 @@ import SharingGRDB
   var title = ""
 }
 
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 func database() throws -> DatabasePool {
   var configuration = Configuration()
   configuration.foreignKeysEnabled = false
