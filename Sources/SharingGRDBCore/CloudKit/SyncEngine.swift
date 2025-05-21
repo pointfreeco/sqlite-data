@@ -19,7 +19,7 @@ public final actor SyncEngine {
   let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
   var underlyingSyncEngine: (any CKSyncEngineProtocol)!
-  let defaultSyncEngine: (SyncEngine) -> any CKSyncEngineProtocol
+  let defaultSyncEngine: (any DatabaseReader, SyncEngine) -> any CKSyncEngineProtocol
 
   public init(
     container: CKContainer,
@@ -28,11 +28,11 @@ public final actor SyncEngine {
     tables: [any PrimaryKeyedTable.Type]
   ) {
     self.init(
-      defaultSyncEngine: { syncEngine in
+      defaultSyncEngine: { database, syncEngine in
         CKSyncEngine(
           CKSyncEngine.Configuration(
             database: container.privateCloudDatabase,
-            stateSerialization: try? database.read { db in
+            stateSerialization: try? database.read { db in  // TODO: write test for this
               try StateSerialization.all.fetchOne(db)?.data
             },
             delegate: syncEngine
@@ -53,7 +53,7 @@ public final actor SyncEngine {
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) {
     self.init(
-      defaultSyncEngine: { _ in defaultSyncEngine },
+      defaultSyncEngine: { _, _ in defaultSyncEngine },
       database: database,
       logger: Logger(.disabled),
       metadatabaseURL: metadatabaseURL,
@@ -62,7 +62,7 @@ public final actor SyncEngine {
   }
 
   private init(
-    defaultSyncEngine: @escaping (SyncEngine) -> any CKSyncEngineProtocol,
+    defaultSyncEngine: @escaping (any DatabaseReader, SyncEngine) -> any CKSyncEngineProtocol,
     database: any DatabaseWriter,
     logger: Logger,
     metadatabaseURL: URL,
@@ -89,7 +89,7 @@ public final actor SyncEngine {
   }
 
   package func setUpSyncEngine() throws {
-    defer { underlyingSyncEngine = defaultSyncEngine(self) }
+    defer { underlyingSyncEngine = defaultSyncEngine(metadatabase, self) }
 
     metadatabase = try defaultMetadatabase
     var migrator = DatabaseMigrator()
@@ -523,6 +523,7 @@ public final actor SyncEngine {
   }
 
   public func deleteLocalData() throws {
+    try tearDownSyncEngine()
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       try database.write { db in
         for table in tables {
@@ -535,7 +536,6 @@ public final actor SyncEngine {
         }
       }
     }
-    try tearDownSyncEngine()
     try setUpSyncEngine()
   }
 
@@ -763,7 +763,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       try database.write { db in
         try StateSerialization.insert(
-          StateSerialization(data: event.stateSerialization)
+          StateSerialization(data: dump(event.stateSerialization, name: "2.StateSerialization"))
         )
         .execute(db)
       }
