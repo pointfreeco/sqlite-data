@@ -174,7 +174,7 @@ public final actor SyncEngine {
         "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitSchemaName)"
       )
       .execute(db)
-      db.add(function: .areTriggersEnabled)
+      db.add(function: .isUpdatingWithServerRecord)
       db.add(function: .didUpdate(syncEngine: self))
       db.add(function: .willDelete(syncEngine: self))
       for table in tables {
@@ -202,7 +202,6 @@ public final actor SyncEngine {
                 \(quote: T.tableName, delimiter: .text),
                 "new".\(quote: T.columns.primaryKey.name),
                 datetime('subsec')
-              WHERE areTriggersEnabled()
               ON CONFLICT("zoneName", "recordName") DO NOTHING;
             END
             """
@@ -218,7 +217,6 @@ public final actor SyncEngine {
               SELECT
                 \(quote: T.tableName, delimiter: .text),
                 "new".\(quote: T.columns.primaryKey.name)
-              WHERE areTriggersEnabled()
               ON CONFLICT("zoneName", "recordName") DO UPDATE SET
                 "userModificationDate" = datetime('subsec');
             END
@@ -231,8 +229,7 @@ public final actor SyncEngine {
               "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataDeletes"
             AFTER DELETE ON \(T.self) FOR EACH ROW BEGIN
               DELETE FROM \(Metadata.self)
-              WHERE areTriggersEnabled()
-              AND "zoneName" = \(quote: T.tableName, delimiter: .text)
+              WHERE "zoneName" = \(quote: T.tableName, delimiter: .text)
               AND "recordName" = "old".\(quote: T.columns.primaryKey.name);
             END
             """
@@ -509,7 +506,7 @@ public final actor SyncEngine {
       }
       db.remove(function: .willDelete(syncEngine: self))
       db.remove(function: .didUpdate(syncEngine: self))
-      db.remove(function: .areTriggersEnabled)
+      db.remove(function: .isUpdatingWithServerRecord)
     }
     try database.writeWithoutTransaction { db in
       try SQLQueryExpression(
@@ -802,26 +799,28 @@ extension SyncEngine: CKSyncEngineDelegate {
       refreshLastKnownServerRecord(modifiedRecord)
     }
 
-    for (recordID, _) in deletions {
-      if let table = tablesByName[recordID.zoneID.zoneName] {
-        func open<T: PrimaryKeyedTable>(_: T.Type) {
-          withErrorReporting(.sharingGRDBCloudKitFailure) {
-            try database.write { db in
-              try T.find(recordID: recordID)
-                .delete()
-                .execute(db)
+    $isUpdatingWithServerRecord.withValue(true) {
+      for (recordID, _) in deletions {
+        if let table = tablesByName[recordID.zoneID.zoneName] {
+          func open<T: PrimaryKeyedTable>(_: T.Type) {
+            withErrorReporting(.sharingGRDBCloudKitFailure) {
+              try database.write { db in
+                try T.find(recordID: recordID)
+                  .delete()
+                  .execute(db)
+              }
             }
           }
-        }
-        open(table)
-      } else {
-        reportIssue(
-          .sharingGRDBCloudKitFailure.appending(
+          open(table)
+        } else {
+          reportIssue(
+            .sharingGRDBCloudKitFailure.appending(
             """
             : No table to delete from: "\(recordID.zoneID.zoneName)"
             """
+            )
           )
-        )
+        }
       }
     }
   }
@@ -935,7 +934,7 @@ extension SyncEngine: CKSyncEngineDelegate {
             .joined(separator: ",")
         )
         try database.write { db in
-          try $areTriggersEnabled.withValue(false) {
+          try $isUpdatingWithServerRecord.withValue(true) {
             try SQLQueryExpression(query).execute(db)
             try Metadata
               .insert(Metadata(record: record)) {
@@ -1004,9 +1003,9 @@ extension DatabaseFunction {
     }
   }
 
-  fileprivate static var areTriggersEnabled: Self {
-    Self("areTriggersEnabled", argumentCount: 0) { _ in
-      SharingGRDBCore.areTriggersEnabled
+  fileprivate static var isUpdatingWithServerRecord: Self {
+    Self("isUpdatingWithServerRecord", argumentCount: 0) { _ in
+      SharingGRDBCore.isUpdatingWithServerRecord
     }
   }
 
@@ -1068,7 +1067,7 @@ private struct ForeignKey: QueryDecodable, QueryRepresentable {
   }
 }
 
-@TaskLocal private var areTriggersEnabled = true
+@TaskLocal private var isUpdatingWithServerRecord = false
 
 private struct Trigger<Base: PrimaryKeyedTable> {
   typealias QueryValue = Void
@@ -1095,7 +1094,7 @@ private struct Trigger<Base: PrimaryKeyedTable> {
         \(quote: operation == .delete ? "old" : "new").\(quote: Base.columns.primaryKey.name),
         \(quote: Base.tableName, delimiter: .text)
       )
-      WHERE areTriggersEnabled();
+      WHERE NOT isUpdatingWithServerRecord();
     END
     """
   }

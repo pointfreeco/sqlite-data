@@ -95,3 +95,27 @@ extension CKRecord: @retroactive CustomDumpReflectable {
     )
   }
 }
+extension CKRecord.ID: @retroactive CustomDumpReflectable {
+  public var customDumpMirror: Mirror {
+    Mirror(
+      self,
+      children: [
+        "recordName": recordName,
+        "zoneID": zoneID
+      ],
+      displayStyle: .struct
+    )
+  }
+}
+extension CKRecordZone.ID: @retroactive CustomDumpReflectable {
+  public var customDumpMirror: Mirror {
+    Mirror(
+      self,
+      children: [
+        "zoneName": zoneName,
+        "ownerName": ownerName
+      ],
+      displayStyle: .struct
+    )
+  }
+}
