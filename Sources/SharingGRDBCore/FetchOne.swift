@@ -107,7 +107,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
     S.QueryValue == (),
     S.Joins == ()
   {
-    let statement = statement.selectStar()
+    let statement = statement.selectStar().asSelect().limit(1)
     self.init(wrappedValue: wrappedValue, statement, database: database)
   }
 
@@ -160,6 +160,47 @@ public struct FetchOne<Value: Sendable>: Sendable {
     )
   }
 
+  /// Initializes this property with a query associated with an optional value.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public init<S: SelectStatement>(
+    _ statement: S,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+  Value == S.From.QueryOutput?,
+  S.QueryValue == (),
+  S.Joins == ()
+  {
+    let statement = statement.selectStar().asSelect().limit(1)
+    self.init(statement, database: database)
+  }
+
+  /// Initializes this property with a query associated with an optional value.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public init<S: StructuredQueriesCore.Statement>(
+    _ statement: S,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+  S.QueryValue: QueryRepresentable,
+  Value == S.QueryValue.QueryOutput?
+  {
+    self.init(
+      wrappedValue: nil,
+      SQLQueryExpression(statement.query, as: S.QueryValue?.self),
+      database: database
+    )
+  }
+
   /// Replaces the wrapped value with data from the given query.
   ///
   /// - Parameters:
@@ -175,7 +216,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
     S.QueryValue == (),
     S.Joins == ()
   {
-    let statement = statement.selectStar()
+    let statement = statement.selectStar().asSelect().limit(1)
     try await load(statement, database: database)
   }
 
@@ -222,7 +263,7 @@ extension FetchOne {
     S.QueryValue == (),
     S.Joins == ()
   {
-    let statement = statement.selectStar()
+    let statement = statement.selectStar().asSelect().limit(1)
     self.init(wrappedValue: wrappedValue, statement, database: database, scheduler: scheduler)
   }
 
@@ -283,6 +324,54 @@ extension FetchOne {
     )
   }
 
+  /// Initializes this property with a query associated with an optional value.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  public init<S: SelectStatement>(
+    _ statement: S,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+  Value == S.From.QueryOutput?,
+  S.QueryValue == (),
+  S.Joins == ()
+  {
+    let statement = statement.selectStar().asSelect().limit(1)
+    self.init(statement, database: database, scheduler: scheduler)
+  }
+
+  /// Initializes this property with a query associated with an optional value.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  public init<S: StructuredQueriesCore.Statement>(
+    _ statement: S,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+  S.QueryValue: QueryRepresentable,
+  Value == S.QueryValue.QueryOutput?
+  {
+    self.init(
+      wrappedValue: nil,
+      SQLQueryExpression(statement.query, as: S.QueryValue?.self),
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
   /// Replaces the wrapped value with data from the given query.
   ///
   /// - Parameters:
@@ -301,7 +390,7 @@ extension FetchOne {
     S.QueryValue == (),
     S.Joins == ()
   {
-    let statement = statement.selectStar()
+    let statement = statement.selectStar().asSelect().limit(1)
     try await load(statement, database: database, scheduler: scheduler)
   }
 
@@ -421,6 +510,55 @@ extension FetchOne: Equatable where Value: Equatable {
         statement,
         database: database,
         scheduler: .animation(animation)
+      )
+    }
+
+
+    /// Initializes this property with a query associated with an optional value.
+    ///
+    /// - Parameters:
+    ///   - statement: A query associated with the wrapped value.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    public init<S: SelectStatement>(
+      _ statement: S,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+    Value == S.From.QueryOutput?,
+    S.QueryValue == (),
+    S.Joins == ()
+    {
+      let statement = statement.selectStar().asSelect().limit(1)
+      self.init(statement, database: database, animation: animation)
+    }
+
+    /// Initializes this property with a query associated with an optional value.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: A default value to associate with this property.
+    ///   - statement: A query associated with the wrapped value.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    public init<S: StructuredQueriesCore.Statement>(
+      _ statement: S,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+    S.QueryValue: QueryRepresentable,
+    Value == S.QueryValue.QueryOutput?
+    {
+      self.init(
+        wrappedValue: nil,
+        SQLQueryExpression(statement.query, as: S.QueryValue?.self),
+        database: database,
+        animation: animation
       )
     }
 
