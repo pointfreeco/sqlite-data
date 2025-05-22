@@ -31,6 +31,13 @@ public class QueryCursor<Element>: DatabaseCursor {
 final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryValue.QueryOutput> {
   public typealias Element = QueryValue.QueryOutput
 
+  // NB: Required to workaround a "Legacy previews execution" bug
+  //     https://github.com/pointfreeco/sharing-grdb/pull/60
+  @usableFromInline
+  override init(db: Database, query: QueryFragment) throws {
+    try super.init(db: db, query: query)
+  }
+
   @inlinable
   public override func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
     let element = try QueryValue(decoder: &decoder).queryOutput
@@ -46,6 +53,13 @@ final class QueryPackCursor<
 >: QueryCursor<(repeat (each QueryValue).QueryOutput)> {
   public typealias Element = (repeat (each QueryValue).QueryOutput)
 
+  // NB: Required to workaround a "Legacy previews execution" bug
+  //     https://github.com/pointfreeco/sharing-grdb/pull/60
+  @usableFromInline
+  override init(db: Database, query: QueryFragment) throws {
+    try super.init(db: db, query: query)
+  }
+
   @inlinable
   public override func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
     let element = try decoder.decodeColumns((repeat each QueryValue).self)
@@ -57,6 +71,13 @@ final class QueryPackCursor<
 @usableFromInline
 final class QueryVoidCursor: QueryCursor<Void> {
   typealias Element = ()
+
+  // NB: Required to workaround a "Legacy previews execution" bug
+  //     https://github.com/pointfreeco/sharing-grdb/pull/60
+  @usableFromInline
+  override init(db: Database, query: QueryFragment) throws {
+    try super.init(db: db, query: query)
+  }
 
   @inlinable
   override func _element(sqliteStatement _: SQLiteStatement) throws {
