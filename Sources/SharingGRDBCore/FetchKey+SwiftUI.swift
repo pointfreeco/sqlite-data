@@ -111,10 +111,10 @@
     }
   }
 
-  private struct AnimatedScheduler: ValueObservationScheduler, Hashable {
+  package struct AnimatedScheduler: ValueObservationScheduler, Hashable {
     let animation: Animation
-    func immediateInitialValue() -> Bool { true }
-    func schedule(_ action: @escaping @Sendable () -> Void) {
+    package func immediateInitialValue() -> Bool { true }
+    package func schedule(_ action: @escaping @Sendable () -> Void) {
       DispatchQueue.main.async {
         withAnimation(animation) {
           action()
@@ -124,7 +124,7 @@
   }
 
   extension ValueObservationScheduler where Self == AnimatedScheduler {
-    fileprivate static func animation(_ animation: Animation) -> Self {
+    package static func animation(_ animation: Animation) -> Self {
       AnimatedScheduler(animation: animation)
     }
   }

@@ -50,3 +50,10 @@ extension DatabaseWriter where Self == DatabaseQueue {
     return database
   }
 }
+
+func compileTimeTests() {
+  @FetchAll(#sql("SELECT * FROM records")) var records: [Record]
+  @FetchOne(#sql("SELECT count(*) FROM records")) var count = 0
+  // TODO: Add overload to allow omission of '= nil'
+  @FetchOne(#sql("SELECT * FROM records LIMIT 1")) var record: Record? = nil
+}

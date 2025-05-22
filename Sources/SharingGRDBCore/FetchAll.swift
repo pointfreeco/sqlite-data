@@ -104,14 +104,8 @@ public struct FetchAll<Element: Sendable>: Sendable {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    sharedReader = SharedReader(
-      wrappedValue: wrappedValue,
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database
-      )
-    )
+    let statement = statement.selectStar()
+    self.init(wrappedValue: wrappedValue, statement, database: database)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -178,13 +172,8 @@ public struct FetchAll<Element: Sendable>: Sendable {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    try await sharedReader.load(
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database
-      )
-    )
+    let statement = statement.selectStar()
+    try await load(statement, database: database)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -248,15 +237,8 @@ extension FetchAll {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    sharedReader = SharedReader(
-      wrappedValue: wrappedValue,
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
-    )
+    let statement = statement.selectStar()
+    self.init(wrappedValue: wrappedValue, statement, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -334,14 +316,8 @@ extension FetchAll {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    try await sharedReader.load(
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
-    )
+    let statement = statement.selectStar()
+    try await load(statement, database: database, scheduler: scheduler)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -396,8 +372,7 @@ extension FetchAll: Equatable where Element: Equatable {
       animation: Animation
     )
     where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
-      let statement = Element.all.selectStar().asSelect()
-      self.init(wrappedValue: wrappedValue, statement, database: database, animation: animation)
+      self.init(wrappedValue: wrappedValue, database: database, scheduler: .animation(animation))
     }
 
     /// Initializes this property with a query associated with the wrapped value.
@@ -420,14 +395,11 @@ extension FetchAll: Equatable where Element: Equatable {
       S.From.QueryOutput: Sendable,
       S.Joins == ()
     {
-      let statement = statement.selectStar().asSelect()
-      sharedReader = SharedReader(
+      self.init(
         wrappedValue: wrappedValue,
-        .fetch(
-          FetchAllStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
+        statement,
+        database: database,
+        scheduler: .animation(animation)
       )
     }
 
@@ -449,13 +421,11 @@ extension FetchAll: Equatable where Element: Equatable {
       Element == V.QueryOutput,
       V.QueryOutput: Sendable
     {
-      sharedReader = SharedReader(
+      self.init(
         wrappedValue: wrappedValue,
-        .fetch(
-          FetchAllStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
+        statement,
+        database: database,
+        scheduler: .animation(animation)
       )
     }
 
@@ -477,13 +447,11 @@ extension FetchAll: Equatable where Element: Equatable {
       Element: QueryRepresentable,
       Element == S.QueryValue.QueryOutput
     {
-      sharedReader = SharedReader(
+      self.init(
         wrappedValue: wrappedValue,
-        .fetch(
-          FetchAllStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
+        statement,
+        database: database,
+        scheduler: .animation(animation)
       )
     }
 
@@ -506,14 +474,8 @@ extension FetchAll: Equatable where Element: Equatable {
       S.From.QueryOutput: Sendable,
       S.Joins == ()
     {
-      let statement = statement.selectStar().asSelect()
-      try await sharedReader.load(
-        .fetch(
-          FetchAllStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
-      )
+      let statement = statement.selectStar()
+      try await load(statement, database: database, animation: animation)
     }
 
     /// Replaces the wrapped value with data from the given query.

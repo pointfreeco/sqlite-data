@@ -5,6 +5,8 @@
   import SwiftUI
 #endif
 
+// NB: Deprecated after 0.2.2
+
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 @available(
   *,
@@ -25,7 +27,7 @@ extension FetchAll {
     S.Joins == (repeat each J),
     repeat (each J).QueryOutput: Sendable
   {
-    let statement = statement.selectStar().asSelect()
+    let statement = statement.selectStar()
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
       .fetch(FetchAllStatementPackRequest(statement: statement), database: database)
@@ -64,7 +66,7 @@ extension FetchAll {
     S.Joins == (repeat each J),
     repeat (each J).QueryOutput: Sendable
   {
-    let statement = statement.selectStar().asSelect()
+    let statement = statement.selectStar()
     try await sharedReader.load(
       .fetch(
         FetchAllStatementPackRequest(statement: statement),
@@ -105,7 +107,7 @@ extension FetchAll {
     S.Joins == (repeat each J),
     repeat (each J).QueryOutput: Sendable
   {
-    let statement = statement.selectStar().asSelect()
+    let statement = statement.selectStar()
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
       .fetch(
@@ -151,7 +153,7 @@ extension FetchAll {
     S.Joins == (repeat each J),
     repeat (each J).QueryOutput: Sendable
   {
-    let statement = statement.selectStar().asSelect()
+    let statement = statement.selectStar()
     try await sharedReader.load(
       .fetch(
         FetchAllStatementPackRequest(statement: statement),
@@ -194,7 +196,7 @@ extension FetchAll {
       S.Joins == (repeat each J),
       repeat (each J).QueryOutput: Sendable
     {
-      let statement = statement.selectStar().asSelect()
+      let statement = statement.selectStar()
       sharedReader = SharedReader(
         wrappedValue: wrappedValue,
         .fetch(
@@ -240,7 +242,7 @@ extension FetchAll {
       S.Joins == (repeat each J),
       repeat (each J).QueryOutput: Sendable
     {
-      let statement = statement.selectStar().asSelect()
+      let statement = statement.selectStar()
       try await sharedReader.load(
         .fetch(
           FetchAllStatementPackRequest(statement: statement),
@@ -298,7 +300,7 @@ extension FetchOne {
     S.QueryValue == (),
     S.Joins == (repeat each J)
   {
-    let statement = statement.selectStar().asSelect()
+    let statement = statement.selectStar()
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
       .fetch(
@@ -336,7 +338,7 @@ extension FetchOne {
     S.QueryValue == (),
     S.Joins == (repeat each J)
   {
-    let statement = statement.selectStar().asSelect()
+    let statement = statement.selectStar()
     try await sharedReader.load(
       .fetch(
         FetchOneStatementPackRequest(statement: statement),
@@ -379,7 +381,7 @@ extension FetchOne {
     S.QueryValue == (),
     S.Joins == (repeat each J)
   {
-    let statement = statement.selectStar().asSelect()
+    let statement = statement.selectStar()
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
       .fetch(
@@ -421,7 +423,7 @@ extension FetchOne {
     S.QueryValue == (),
     S.Joins == (repeat each J)
   {
-    let statement = statement.selectStar().asSelect()
+    let statement = statement.selectStar()
     try await sharedReader.load(
       .fetch(
         FetchOneStatementPackRequest(statement: statement),
@@ -462,7 +464,7 @@ extension FetchOne {
       S.QueryValue == (),
       S.Joins == (repeat each J)
     {
-      let statement = statement.selectStar().asSelect()
+      let statement = statement.selectStar()
       sharedReader = SharedReader(
         wrappedValue: wrappedValue,
         .fetch(
@@ -504,7 +506,7 @@ extension FetchOne {
       S.QueryValue == (),
       S.Joins == (repeat each J)
     {
-      let statement = statement.selectStar().asSelect()
+      let statement = statement.selectStar()
       try await sharedReader.load(
         .fetch(
           FetchOneStatementPackRequest(statement: statement),

@@ -107,14 +107,8 @@ public struct FetchOne<Value: Sendable>: Sendable {
     S.QueryValue == (),
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    sharedReader = SharedReader(
-      wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database
-      )
-    )
+    let statement = statement.selectStar()
+    self.init(wrappedValue: wrappedValue, statement, database: database)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -181,13 +175,8 @@ public struct FetchOne<Value: Sendable>: Sendable {
     S.QueryValue == (),
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    try await sharedReader.load(
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database
-      )
-    )
+    let statement = statement.selectStar()
+    try await load(statement, database: database)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -233,15 +222,8 @@ extension FetchOne {
     S.QueryValue == (),
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    sharedReader = SharedReader(
-      wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
-    )
+    let statement = statement.selectStar()
+    self.init(wrappedValue: wrappedValue, statement, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -319,14 +301,8 @@ extension FetchOne {
     S.QueryValue == (),
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    try await sharedReader.load(
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
-    )
+    let statement = statement.selectStar()
+    try await load(statement, database: database, scheduler: scheduler)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -387,14 +363,11 @@ extension FetchOne: Equatable where Value: Equatable {
       S.QueryValue == (),
       S.Joins == ()
     {
-      let statement = statement.selectStar().asSelect()
-      sharedReader = SharedReader(
+      self.init(
         wrappedValue: wrappedValue,
-        .fetch(
-          FetchOneStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
+        statement,
+        database: database,
+        scheduler: .animation(animation)
       )
     }
 
@@ -416,13 +389,11 @@ extension FetchOne: Equatable where Value: Equatable {
     where
       Value == V.QueryOutput
     {
-      sharedReader = SharedReader(
+      self.init(
         wrappedValue: wrappedValue,
-        .fetch(
-          FetchOneStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
+        statement,
+        database: database,
+        scheduler: .animation(animation)
       )
     }
 
@@ -445,13 +416,11 @@ extension FetchOne: Equatable where Value: Equatable {
       Value: QueryRepresentable,
       Value == S.QueryValue.QueryOutput
     {
-      sharedReader = SharedReader(
+      self.init(
         wrappedValue: wrappedValue,
-        .fetch(
-          FetchOneStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
+        statement,
+        database: database,
+        scheduler: .animation(animation)
       )
     }
 
@@ -473,14 +442,7 @@ extension FetchOne: Equatable where Value: Equatable {
       S.QueryValue == (),
       S.Joins == ()
     {
-      let statement = statement.selectStar().asSelect()
-      try await sharedReader.load(
-        .fetch(
-          FetchOneStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
-      )
+      try await load(statement, database: database, scheduler: .animation(animation))
     }
 
     /// Replaces the wrapped value with data from the given query.
@@ -499,13 +461,7 @@ extension FetchOne: Equatable where Value: Equatable {
     where
       Value == V.QueryOutput
     {
-      try await sharedReader.load(
-        .fetch(
-          FetchOneStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
-      )
+      try await load(statement, database: database, scheduler: .animation(animation))
     }
   }
 #endif
