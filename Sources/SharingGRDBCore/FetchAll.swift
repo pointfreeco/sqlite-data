@@ -104,41 +104,8 @@ public struct FetchAll<Element: Sendable>: Sendable {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    sharedReader = SharedReader(
-      wrappedValue: wrappedValue,
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database
-      )
-    )
-  }
-
-  /// Initializes this property with a query associated with the wrapped value.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  @_disfavoredOverload
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public init<S: SelectStatement, each J: StructuredQueriesCore.Table>(
-    wrappedValue: [Element] = [],
-    _ statement: S,
-    database: (any DatabaseReader)? = nil
-  )
-  where
-    Element == (S.From.QueryOutput, repeat (each J).QueryOutput),
-    S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == (repeat each J),
-    repeat (each J).QueryOutput: Sendable
-  {
-    let statement = statement.selectStar().asSelect()
-    sharedReader = SharedReader(
-      wrappedValue: wrappedValue,
-      .fetch(FetchAllStatementPackRequest(statement: statement), database: database)
-    )
+    let statement = statement.selectStar()
+    self.init(wrappedValue: wrappedValue, statement, database: database)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -189,33 +156,6 @@ public struct FetchAll<Element: Sendable>: Sendable {
     )
   }
 
-  /// Initializes this property with a query associated with the wrapped value.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  @_disfavoredOverload
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public init<V1: QueryRepresentable, each V2: QueryRepresentable>(
-    wrappedValue: [Element] = [],
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
-    database: (any DatabaseReader)? = nil
-  )
-  where
-    Element == (V1.QueryOutput, repeat (each V2).QueryOutput),
-    V1.QueryOutput: Sendable,
-    repeat (each V2).QueryOutput: Sendable
-  {
-    sharedReader = SharedReader(
-      wrappedValue: wrappedValue,
-      .fetch(
-        FetchAllStatementPackRequest(statement: statement),
-        database: database
-      )
-    )
-  }
-
   /// Replaces the wrapped value with data from the given query.
   ///
   /// - Parameters:
@@ -232,41 +172,8 @@ public struct FetchAll<Element: Sendable>: Sendable {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    try await sharedReader.load(
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database
-      )
-    )
-  }
-
-  /// Replaces the wrapped value with data from the given query.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  @_disfavoredOverload
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public func load<S: SelectStatement, each J: StructuredQueriesCore.Table>(
-    _ statement: S,
-    database: (any DatabaseReader)? = nil
-  ) async throws
-  where
-    Element == (S.From.QueryOutput, repeat (each J).QueryOutput),
-    S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == (repeat each J),
-    repeat (each J).QueryOutput: Sendable
-  {
-    let statement = statement.selectStar().asSelect()
-    try await sharedReader.load(
-      .fetch(
-        FetchAllStatementPackRequest(statement: statement),
-        database: database
-      )
-    )
+    let statement = statement.selectStar()
+    try await load(statement, database: database)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -286,31 +193,6 @@ public struct FetchAll<Element: Sendable>: Sendable {
     try await sharedReader.load(
       .fetch(
         FetchAllStatementValueRequest(statement: statement),
-        database: database
-      )
-    )
-  }
-
-  /// Replaces the wrapped value with data from the given query.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  @_disfavoredOverload
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public func load<V1: QueryRepresentable, each V2: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
-    database: (any DatabaseReader)? = nil
-  ) async throws
-  where
-    Element == (V1.QueryOutput, repeat (each V2).QueryOutput),
-    V1.QueryOutput: Sendable,
-    repeat (each V2).QueryOutput: Sendable
-  {
-    try await sharedReader.load(
-      .fetch(
-        FetchAllStatementPackRequest(statement: statement),
         database: database
       )
     )
@@ -355,49 +237,8 @@ extension FetchAll {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    sharedReader = SharedReader(
-      wrappedValue: wrappedValue,
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
-    )
-  }
-
-  /// Initializes this property with a query associated with the wrapped value.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
-  ///     asynchronously on the main queue.
-  @_disfavoredOverload
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public init<S: SelectStatement, each J: StructuredQueriesCore.Table>(
-    wrappedValue: [Element] = [],
-    _ statement: S,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  )
-  where
-    Element == (S.From.QueryOutput, repeat (each J).QueryOutput),
-    S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == (repeat each J),
-    repeat (each J).QueryOutput: Sendable
-  {
-    let statement = statement.selectStar().asSelect()
-    sharedReader = SharedReader(
-      wrappedValue: wrappedValue,
-      .fetch(
-        FetchAllStatementPackRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
-    )
+    let statement = statement.selectStar()
+    self.init(wrappedValue: wrappedValue, statement, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -443,44 +284,13 @@ extension FetchAll {
     scheduler: some ValueObservationScheduler & Hashable
   )
   where
-  Element: QueryRepresentable,
-  Element == S.QueryValue.QueryOutput
+    Element: QueryRepresentable,
+    Element == S.QueryValue.QueryOutput
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
       .fetch(
         FetchAllStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
-    )
-  }
-
-  /// Initializes this property with a query associated with the wrapped value.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
-  ///     asynchronously on the main queue.
-  @_disfavoredOverload
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public init<V1: QueryRepresentable, each V2: QueryRepresentable>(
-    wrappedValue: [Element] = [],
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  )
-  where
-    Element == (V1.QueryOutput, repeat (each V2).QueryOutput),
-    V1.QueryOutput: Sendable,
-    repeat (each V2).QueryOutput: Sendable
-  {
-    sharedReader = SharedReader(
-      wrappedValue: wrappedValue,
-      .fetch(
-        FetchAllStatementPackRequest(statement: statement),
         database: database,
         scheduler: scheduler
       )
@@ -506,46 +316,8 @@ extension FetchAll {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar().asSelect()
-    try await sharedReader.load(
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
-    )
-  }
-
-  /// Replaces the wrapped value with data from the given query.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
-  ///     asynchronously on the main queue.
-  @_disfavoredOverload
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public func load<S: SelectStatement, each J: StructuredQueriesCore.Table>(
-    _ statement: S,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  ) async throws
-  where
-    Element == (S.From.QueryOutput, repeat (each J).QueryOutput),
-    S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == (repeat each J),
-    repeat (each J).QueryOutput: Sendable
-  {
-    let statement = statement.selectStar().asSelect()
-    try await sharedReader.load(
-      .fetch(
-        FetchAllStatementPackRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
-    )
+    let statement = statement.selectStar()
+    try await load(statement, database: database, scheduler: scheduler)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -570,34 +342,6 @@ extension FetchAll {
         FetchAllStatementValueRequest(statement: statement),
         database: database,
         scheduler: scheduler
-      )
-    )
-  }
-
-  /// Replaces the wrapped value with data from the given query.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
-  ///     asynchronously on the main queue.
-  @_disfavoredOverload
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public func load<V1: QueryRepresentable, each V2: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  ) async throws
-  where
-    Element == (V1.QueryOutput, repeat (each V2).QueryOutput),
-    V1.QueryOutput: Sendable,
-    repeat (each V2).QueryOutput: Sendable
-  {
-    try await sharedReader.load(
-      .fetch(
-        FetchAllStatementPackRequest(statement: statement),
-        database: database
       )
     )
   }
@@ -628,8 +372,7 @@ extension FetchAll: Equatable where Element: Equatable {
       animation: Animation
     )
     where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
-      let statement = Element.all.selectStar().asSelect()
-      self.init(wrappedValue: wrappedValue, statement, database: database, animation: animation)
+      self.init(wrappedValue: wrappedValue, database: database, scheduler: .animation(animation))
     }
 
     /// Initializes this property with a query associated with the wrapped value.
@@ -652,48 +395,11 @@ extension FetchAll: Equatable where Element: Equatable {
       S.From.QueryOutput: Sendable,
       S.Joins == ()
     {
-      let statement = statement.selectStar().asSelect()
-      sharedReader = SharedReader(
+      self.init(
         wrappedValue: wrappedValue,
-        .fetch(
-          FetchAllStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
-      )
-    }
-
-    /// Initializes this property with a query associated with the wrapped value.
-    ///
-    /// - Parameters:
-    ///   - statement: A query associated with the wrapped value.
-    ///   - database: The database to read from. A value of `nil` will use the default database
-    ///     (`@Dependency(\.defaultDatabase)`).
-    ///   - animation: The animation to use for user interface changes that result from changes to
-    ///     the fetched results.
-    @_disfavoredOverload
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    public init<S: SelectStatement, each J: StructuredQueriesCore.Table>(
-      wrappedValue: [Element] = [],
-      _ statement: S,
-      database: (any DatabaseReader)? = nil,
-      animation: Animation
-    )
-    where
-      Element == (S.From.QueryOutput, repeat (each J).QueryOutput),
-      S.QueryValue == (),
-      S.From.QueryOutput: Sendable,
-      S.Joins == (repeat each J),
-      repeat (each J).QueryOutput: Sendable
-    {
-      let statement = statement.selectStar().asSelect()
-      sharedReader = SharedReader(
-        wrappedValue: wrappedValue,
-        .fetch(
-          FetchAllStatementPackRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
+        statement,
+        database: database,
+        scheduler: .animation(animation)
       )
     }
 
@@ -715,13 +421,11 @@ extension FetchAll: Equatable where Element: Equatable {
       Element == V.QueryOutput,
       V.QueryOutput: Sendable
     {
-      sharedReader = SharedReader(
+      self.init(
         wrappedValue: wrappedValue,
-        .fetch(
-          FetchAllStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
+        statement,
+        database: database,
+        scheduler: .animation(animation)
       )
     }
 
@@ -740,47 +444,14 @@ extension FetchAll: Equatable where Element: Equatable {
       animation: Animation
     )
     where
-    Element: QueryRepresentable,
-    Element == S.QueryValue.QueryOutput
+      Element: QueryRepresentable,
+      Element == S.QueryValue.QueryOutput
     {
-      sharedReader = SharedReader(
+      self.init(
         wrappedValue: wrappedValue,
-        .fetch(
-          FetchAllStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
-      )
-    }
-
-    /// Initializes this property with a query associated with the wrapped value.
-    ///
-    /// - Parameters:
-    ///   - statement: A query associated with the wrapped value.
-    ///   - database: The database to read from. A value of `nil` will use the default database
-    ///     (`@Dependency(\.defaultDatabase)`).
-    ///   - animation: The animation to use for user interface changes that result from changes to
-    ///     the fetched results.
-    @_disfavoredOverload
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    public init<V1: QueryRepresentable, each V2: QueryRepresentable>(
-      wrappedValue: [Element] = [],
-      _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
-      database: (any DatabaseReader)? = nil,
-      animation: Animation
-    )
-    where
-      Element == (V1.QueryOutput, repeat (each V2).QueryOutput),
-      V1.QueryOutput: Sendable,
-      repeat (each V2).QueryOutput: Sendable
-    {
-      sharedReader = SharedReader(
-        wrappedValue: wrappedValue,
-        .fetch(
-          FetchAllStatementPackRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
+        statement,
+        database: database,
+        scheduler: .animation(animation)
       )
     }
 
@@ -803,46 +474,8 @@ extension FetchAll: Equatable where Element: Equatable {
       S.From.QueryOutput: Sendable,
       S.Joins == ()
     {
-      let statement = statement.selectStar().asSelect()
-      try await sharedReader.load(
-        .fetch(
-          FetchAllStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
-      )
-    }
-
-    /// Replaces the wrapped value with data from the given query.
-    ///
-    /// - Parameters:
-    ///   - statement: A query associated with the wrapped value.
-    ///   - database: The database to read from. A value of `nil` will use the default database
-    ///     (`@Dependency(\.defaultDatabase)`).
-    ///   - animation: The animation to use for user interface changes that result from changes to
-    ///     the fetched results.
-    @_disfavoredOverload
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    public func load<S: SelectStatement, each J: StructuredQueriesCore.Table>(
-      _ statement: S,
-      database: (any DatabaseReader)? = nil,
-      animation: Animation
-    ) async throws
-    where
-      Element == (S.From.QueryOutput, repeat (each J).QueryOutput),
-      S.QueryValue == (),
-      S.From.QueryOutput: Sendable,
-      S.Joins == (repeat each J),
-      repeat (each J).QueryOutput: Sendable
-    {
-      let statement = statement.selectStar().asSelect()
-      try await sharedReader.load(
-        .fetch(
-          FetchAllStatementPackRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
-      )
+      let statement = statement.selectStar()
+      try await load(statement, database: database, animation: animation)
     }
 
     /// Replaces the wrapped value with data from the given query.
@@ -870,49 +503,12 @@ extension FetchAll: Equatable where Element: Equatable {
         )
       )
     }
-
-    /// Replaces the wrapped value with data from the given query.
-    ///
-    /// - Parameters:
-    ///   - statement: A query associated with the wrapped value.
-    ///   - database: The database to read from. A value of `nil` will use the default database
-    ///     (`@Dependency(\.defaultDatabase)`).
-    ///   - animation: The animation to use for user interface changes that result from changes to
-    ///     the fetched results.
-    @_disfavoredOverload
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    public func load<V1: QueryRepresentable, each V2: QueryRepresentable>(
-      _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
-      database: (any DatabaseReader)? = nil,
-      animation: Animation
-    ) async throws
-    where
-      Element == (V1.QueryOutput, repeat (each V2).QueryOutput),
-      V1.QueryOutput: Sendable,
-      repeat (each V2).QueryOutput: Sendable
-    {
-      try await sharedReader.load(
-        .fetch(
-          FetchAllStatementPackRequest(statement: statement),
-          database: database,
-          animation: animation
-        )
-      )
-    }
   }
 #endif
 
 private struct FetchAllStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
   let statement: any StructuredQueriesCore.Statement<Value>
   func fetch(_ db: Database) throws -> [Value.QueryOutput] {
-    try statement.fetchAll(db)
-  }
-}
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private struct FetchAllStatementPackRequest<each Value: QueryRepresentable>: StatementKeyRequest {
-  let statement: any StructuredQueriesCore.Statement<(repeat each Value)>
-  func fetch(_ db: Database) throws -> [(repeat (each Value).QueryOutput)] {
     try statement.fetchAll(db)
   }
 }
