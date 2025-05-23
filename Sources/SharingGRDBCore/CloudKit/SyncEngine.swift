@@ -93,6 +93,7 @@ public final actor SyncEngine {
 
     metadatabase = try defaultMetadatabase
     var migrator = DatabaseMigrator()
+    // TODO: do we want this?
     #if DEBUG
       migrator.eraseDatabaseOnSchemaChange = true
     #endif
@@ -130,7 +131,7 @@ public final actor SyncEngine {
     }
     try migrator.migrate(metadatabase)
     let previousZones = try metadatabase.read { db in
-      return try Zone.all.fetchAll(db)
+      try Zone.all.fetchAll(db)
     }
     let currentZones = try database.read { db in
       try SQLQueryExpression(
@@ -179,210 +180,7 @@ public final actor SyncEngine {
       db.add(function: .willDelete(syncEngine: self))
       for table in tables {
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-          try SQLQueryExpression(
-            Trigger(on: T.self, .after, .insert, select: .didUpdate(syncEngine: self)).create
-          )
-          .execute(db)
-          try SQLQueryExpression(
-            Trigger(on: T.self, .after, .update, select: .didUpdate(syncEngine: self)).create
-          )
-          .execute(db)
-          try SQLQueryExpression(
-            Trigger(on: T.self, .before, .delete, select: .willDelete(syncEngine: self)).create
-          )
-          .execute(db)
-          try SQLQueryExpression(
-            """
-            CREATE TEMPORARY TRIGGER
-              "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
-            AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
-              INSERT INTO \(Metadata.self)
-                ("zoneName", "recordName", "userModificationDate")
-              SELECT
-                \(quote: T.tableName, delimiter: .text),
-                "new".\(quote: T.columns.primaryKey.name),
-                datetime('subsec')
-              ON CONFLICT("zoneName", "recordName") DO NOTHING;
-            END
-            """
-          )
-          .execute(db)
-          try SQLQueryExpression(
-            """
-            CREATE TEMPORARY TRIGGER
-              "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
-            AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
-              INSERT INTO \(Metadata.self)
-                ("zoneName", "recordName")
-              SELECT
-                \(quote: T.tableName, delimiter: .text),
-                "new".\(quote: T.columns.primaryKey.name)
-              ON CONFLICT("zoneName", "recordName") DO UPDATE SET
-                "userModificationDate" = datetime('subsec');
-            END
-            """
-          )
-          .execute(db)
-          try SQLQueryExpression(
-            """
-            CREATE TEMPORARY TRIGGER
-              "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataDeletes"
-            AFTER DELETE ON \(T.self) FOR EACH ROW BEGIN
-              DELETE FROM \(Metadata.self)
-              WHERE "zoneName" = \(quote: T.tableName, delimiter: .text)
-              AND "recordName" = "old".\(quote: T.columns.primaryKey.name);
-            END
-            """
-          )
-          .execute(db)
-
-          let foreignKeys = try SQLQueryExpression(
-            """
-            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: T.tableName))
-            """,
-            as: ForeignKey.self
-          )
-          .fetchAll(db)
-          for foreignKey in foreignKeys {
-            switch foreignKey.onDelete {
-            case .cascade:
-              try SQLQueryExpression(
-                """
-                CREATE TEMPORARY TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
-                AFTER DELETE ON \(quote: foreignKey.table)
-                FOR EACH ROW BEGIN
-                  DELETE FROM \(table)
-                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-                END
-                """
-              )
-              .execute(db)
-
-            case .restrict:
-              // TODO: Report issue?
-              continue
-
-            case .setDefault:
-              let defaultValue =
-                try SQLQueryExpression(
-                  """
-                  SELECT "dflt_value"
-                  FROM pragma_table_info(\(bind: T.tableName))
-                  WHERE "name" = \(bind: foreignKey.from)
-                  """,
-                  as: String?.self
-                )
-                .fetchOne(db) ?? nil
-
-              guard let defaultValue
-              else {
-                // TODO: Report issue?
-                continue
-              }
-              try SQLQueryExpression(
-                """
-                CREATE TEMPORARY TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
-                AFTER DELETE ON \(quote: foreignKey.table)
-                FOR EACH ROW BEGIN
-                  UPDATE \(table)
-                  SET \(quote: foreignKey.from) = \(raw: defaultValue)
-                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-                END
-                """
-              )
-              .execute(db)
-
-            case .setNull:
-              try SQLQueryExpression(
-                """
-                CREATE TEMPORARY TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
-                AFTER DELETE ON \(quote: foreignKey.table)
-                FOR EACH ROW BEGIN
-                  UPDATE \(table)
-                  SET \(quote: foreignKey.from) = NULL
-                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-                END
-                """
-              )
-              .execute(db)
-
-            case .noAction:
-              continue
-            }
-
-            switch foreignKey.onUpdate {
-            case .cascade:
-              try SQLQueryExpression(
-                """
-                CREATE TEMPORARY TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
-                AFTER UPDATE ON \(quote: foreignKey.table)
-                FOR EACH ROW BEGIN
-                  UPDATE \(T.self)
-                  SET \(quote: foreignKey.from) = "new".\(quote: foreignKey.to)
-                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-                END
-                """
-              )
-              .execute(db)
-
-            case .restrict:
-              // TODO: Report issue?
-              continue
-
-            case .setDefault:
-              let defaultValue =
-                try SQLQueryExpression(
-                  """
-                  SELECT "dflt_value"
-                  FROM pragma_table_info(\(bind: T.tableName))
-                  WHERE "name" = \(bind: foreignKey.from)
-                  """,
-                  as: String?.self
-                )
-                .fetchOne(db) ?? nil
-
-              guard let defaultValue
-              else {
-                // TODO: Report issue?
-                continue
-              }
-              try SQLQueryExpression(
-                """
-                CREATE TEMPORARY TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
-                AFTER UPDATE ON \(quote: foreignKey.table)
-                FOR EACH ROW BEGIN
-                  UPDATE \(table)
-                  SET \(quote: foreignKey.from) = \(raw: defaultValue)
-                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-                END
-                """
-              )
-              .execute(db)
-
-            case .setNull:
-              try SQLQueryExpression(
-                """
-                CREATE TEMPORARY TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
-                AFTER UPDATE ON \(quote: foreignKey.table)
-                FOR EACH ROW BEGIN
-                  UPDATE \(T.self)
-                  SET \(quote: foreignKey.from) = NULL
-                  WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-                END
-                """
-              )
-              .execute(db)
-
-            case .noAction:
-              continue
-            }
-          }
+          try createTriggers(table: table, db: db)
         }
         try open(table)
       }
@@ -393,114 +191,7 @@ public final actor SyncEngine {
     try database.write { db in
       for table in tables {
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-          let foreignKeys = try SQLQueryExpression(
-            """
-            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: T.tableName))
-            """,
-            as: ForeignKey.self
-          )
-          .fetchAll(db)
-          for foreignKey in foreignKeys {
-            switch foreignKey.onDelete {
-            case .cascade:
-              try SQLQueryExpression(
-                """
-                DROP TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
-                """
-              )
-              .execute(db)
-
-            case .restrict:
-              continue
-
-            case .setDefault:
-              try SQLQueryExpression(
-                """
-                DROP TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
-                """
-              )
-              .execute(db)
-
-            case .setNull:
-              try SQLQueryExpression(
-                """
-                DROP TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
-                """
-              )
-              .execute(db)
-
-            case .noAction:
-              continue
-            }
-
-            switch foreignKey.onUpdate {
-            case .cascade:
-              try SQLQueryExpression(
-                """
-                DROP TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
-                """
-              )
-              .execute(db)
-
-            case .restrict:
-              continue
-
-            case .setDefault:
-              try SQLQueryExpression(
-                """
-                DROP TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
-                """
-              )
-              .execute(db)
-
-            case .setNull:
-              try SQLQueryExpression(
-                """
-                DROP TRIGGER
-                  "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
-                """
-              )
-              .execute(db)
-
-            case .noAction:
-              continue
-            }
-          }
-          try SQLQueryExpression(
-            """
-            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataDeletes"
-            """
-          )
-          .execute(db)
-          try SQLQueryExpression(
-            """
-            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
-            """
-          )
-          .execute(db)
-          try SQLQueryExpression(
-            """
-            DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
-            """
-          )
-          .execute(db)
-          try SQLQueryExpression(
-            Trigger(on: T.self, .before, .delete, select: .willDelete(syncEngine: self)).drop
-          )
-          .execute(db)
-          try SQLQueryExpression(
-            Trigger(on: T.self, .after, .update, select: .didUpdate(syncEngine: self)).drop
-          )
-          .execute(db)
-          try SQLQueryExpression(
-            Trigger(on: T.self, .after, .insert, select: .didUpdate(syncEngine: self)).drop
-          )
-          .execute(db)
+          try dropTriggers(table: table, db: db)
         }
         try open(table)
       }
@@ -588,6 +279,318 @@ public final actor SyncEngine {
         configuration: configuration
       )
     }
+  }
+
+  private func createTriggers<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
+    try Trigger(on: T.self, .after, .insert, select: .didUpdate(syncEngine: self)).create
+      .execute(db)
+    try Trigger(on: T.self, .after, .update, select: .didUpdate(syncEngine: self)).create
+      .execute(db)
+    try Trigger(on: T.self, .before, .delete, select: .willDelete(syncEngine: self)).create
+      .execute(db)
+    try SQLQueryExpression(
+      """
+      CREATE TEMPORARY TRIGGER
+        "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
+      AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
+        INSERT INTO \(Metadata.self)
+          ("zoneName", "recordName", "userModificationDate")
+        SELECT
+          \(quote: T.tableName, delimiter: .text),
+          "new".\(quote: T.columns.primaryKey.name),
+          datetime('subsec')
+        ON CONFLICT("zoneName", "recordName") DO NOTHING;
+      END
+      """
+    )
+    .execute(db)
+    try SQLQueryExpression(
+      """
+      CREATE TEMPORARY TRIGGER
+        "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
+      AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
+        INSERT INTO \(Metadata.self)
+          ("zoneName", "recordName")
+        SELECT
+          \(quote: T.tableName, delimiter: .text),
+          "new".\(quote: T.columns.primaryKey.name)
+        ON CONFLICT("zoneName", "recordName") DO UPDATE SET
+          "userModificationDate" = datetime('subsec');
+      END
+      """
+    )
+    .execute(db)
+    try SQLQueryExpression(
+      """
+      CREATE TEMPORARY TRIGGER
+        "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataDeletes"
+      AFTER DELETE ON \(T.self) FOR EACH ROW BEGIN
+        DELETE FROM \(Metadata.self)
+        WHERE "zoneName" = \(quote: T.tableName, delimiter: .text)
+        AND "recordName" = "old".\(quote: T.columns.primaryKey.name);
+      END
+      """
+    )
+    .execute(db)
+
+    let foreignKeys = try SQLQueryExpression(
+      """
+      SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: T.tableName))
+      """,
+      as: ForeignKey.self
+    )
+    .fetchAll(db)
+    for foreignKey in foreignKeys {
+      switch foreignKey.onDelete {
+      case .cascade:
+        try SQLQueryExpression(
+          """
+          CREATE TEMPORARY TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
+          AFTER DELETE ON \(quote: foreignKey.table)
+          FOR EACH ROW BEGIN
+            DELETE FROM \(table)
+            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+          END
+          """
+        )
+        .execute(db)
+
+      case .restrict:
+        // TODO: Report issue?
+        continue
+
+      case .setDefault:
+        let defaultValue =
+          try SQLQueryExpression(
+            """
+            SELECT "dflt_value"
+            FROM pragma_table_info(\(bind: T.tableName))
+            WHERE "name" = \(bind: foreignKey.from)
+            """,
+            as: String?.self
+          )
+          .fetchOne(db) ?? nil
+
+        guard let defaultValue
+        else {
+          // TODO: Report issue?
+          continue
+        }
+        try SQLQueryExpression(
+          """
+          CREATE TEMPORARY TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
+          AFTER DELETE ON \(quote: foreignKey.table)
+          FOR EACH ROW BEGIN
+            UPDATE \(table)
+            SET \(quote: foreignKey.from) = \(raw: defaultValue)
+            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+          END
+          """
+        )
+        .execute(db)
+
+      case .setNull:
+        try SQLQueryExpression(
+          """
+          CREATE TEMPORARY TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
+          AFTER DELETE ON \(quote: foreignKey.table)
+          FOR EACH ROW BEGIN
+            UPDATE \(table)
+            SET \(quote: foreignKey.from) = NULL
+            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+          END
+          """
+        )
+        .execute(db)
+
+      case .noAction:
+        continue
+      }
+
+      switch foreignKey.onUpdate {
+      case .cascade:
+        try SQLQueryExpression(
+          """
+          CREATE TEMPORARY TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
+          AFTER UPDATE ON \(quote: foreignKey.table)
+          FOR EACH ROW BEGIN
+            UPDATE \(T.self)
+            SET \(quote: foreignKey.from) = "new".\(quote: foreignKey.to)
+            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+          END
+          """
+        )
+        .execute(db)
+
+      case .restrict:
+        // TODO: Report issue?
+        continue
+
+      case .setDefault:
+        let defaultValue =
+          try SQLQueryExpression(
+            """
+            SELECT "dflt_value"
+            FROM pragma_table_info(\(bind: T.tableName))
+            WHERE "name" = \(bind: foreignKey.from)
+            """,
+            as: String?.self
+          )
+          .fetchOne(db) ?? nil
+
+        guard let defaultValue
+        else {
+          // TODO: Report issue?
+          continue
+        }
+        try SQLQueryExpression(
+          """
+          CREATE TEMPORARY TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
+          AFTER UPDATE ON \(quote: foreignKey.table)
+          FOR EACH ROW BEGIN
+            UPDATE \(table)
+            SET \(quote: foreignKey.from) = \(raw: defaultValue)
+            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+          END
+          """
+        )
+        .execute(db)
+
+      case .setNull:
+        try SQLQueryExpression(
+          """
+          CREATE TEMPORARY TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
+          AFTER UPDATE ON \(quote: foreignKey.table)
+          FOR EACH ROW BEGIN
+            UPDATE \(T.self)
+            SET \(quote: foreignKey.from) = NULL
+            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
+          END
+          """
+        )
+        .execute(db)
+
+      case .noAction:
+        continue
+      }
+    }
+  }
+
+  private func dropTriggers<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
+    let foreignKeys = try SQLQueryExpression(
+      """
+      SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: T.tableName))
+      """,
+      as: ForeignKey.self
+    )
+    .fetchAll(db)
+    for foreignKey in foreignKeys {
+      switch foreignKey.onDelete {
+      case .cascade:
+        try SQLQueryExpression(
+          """
+          DROP TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
+          """
+        )
+        .execute(db)
+
+      case .restrict:
+        continue
+
+      case .setDefault:
+        try SQLQueryExpression(
+          """
+          DROP TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
+          """
+        )
+        .execute(db)
+
+      case .setNull:
+        try SQLQueryExpression(
+          """
+          DROP TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
+          """
+        )
+        .execute(db)
+
+      case .noAction:
+        continue
+      }
+
+      switch foreignKey.onUpdate {
+      case .cascade:
+        try SQLQueryExpression(
+          """
+          DROP TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
+          """
+        )
+        .execute(db)
+
+      case .restrict:
+        continue
+
+      case .setDefault:
+        try SQLQueryExpression(
+          """
+          DROP TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
+          """
+        )
+        .execute(db)
+
+      case .setNull:
+        try SQLQueryExpression(
+          """
+          DROP TRIGGER
+            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
+          """
+        )
+        .execute(db)
+
+      case .noAction:
+        continue
+      }
+    }
+    try SQLQueryExpression(
+      """
+      DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataDeletes"
+      """
+    )
+    .execute(db)
+    try SQLQueryExpression(
+      """
+      DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
+      """
+    )
+    .execute(db)
+    try SQLQueryExpression(
+      """
+      DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
+      """
+    )
+    .execute(db)
+    try SQLQueryExpression(
+      Trigger(on: T.self, .before, .delete, select: .willDelete(syncEngine: self)).drop
+    )
+    .execute(db)
+    try SQLQueryExpression(
+      Trigger(on: T.self, .after, .update, select: .didUpdate(syncEngine: self)).drop
+    )
+    .execute(db)
+    try SQLQueryExpression(
+      Trigger(on: T.self, .after, .insert, select: .didUpdate(syncEngine: self)).drop
+    )
+    .execute(db)
   }
 }
 
@@ -815,9 +818,9 @@ extension SyncEngine: CKSyncEngineDelegate {
         } else {
           reportIssue(
             .sharingGRDBCloudKitFailure.appending(
-            """
-            : No table to delete from: "\(recordID.zoneID.zoneName)"
-            """
+              """
+              : No table to delete from: "\(recordID.zoneID.zoneName)"
+              """
             )
           )
         }
@@ -1086,17 +1089,19 @@ private struct Trigger<Base: PrimaryKeyedTable> {
     "\(quote: "sharing_grdb_cloudkit_\(operation.rawValue.string.lowercased())_\(Base.tableName)")"
   }
 
-  var create: QueryFragment {
-    """
-    CREATE TEMPORARY TRIGGER \(name)
-    \(when.rawValue) \(operation.rawValue) ON \(quote: Base.tableName) FOR EACH ROW BEGIN
-      SELECT \(raw: function.name)(
-        \(quote: operation == .delete ? "old" : "new").\(quote: Base.columns.primaryKey.name),
-        \(quote: Base.tableName, delimiter: .text)
-      )
-      WHERE NOT isUpdatingWithServerRecord();
-    END
-    """
+  var create: some StructuredQueriesCore.Statement<Void> {
+    SQLQueryExpression(
+      """
+      CREATE TEMPORARY TRIGGER \(name)
+      \(when.rawValue) \(operation.rawValue) ON \(quote: Base.tableName) FOR EACH ROW BEGIN
+        SELECT \(raw: function.name)(
+          \(quote: operation == .delete ? "old" : "new").\(quote: Base.columns.primaryKey.name),
+          \(quote: Base.tableName, delimiter: .text)
+        )
+        WHERE NOT isUpdatingWithServerRecord();
+      END
+      """
+    )
   }
 
   var drop: QueryFragment {
@@ -1311,9 +1316,9 @@ extension Logger {
         .sorted()
         .joined(separator: ", ")
       let failedZoneDeletes =
-      event.failedZoneDeletes.isEmpty
-      ? "⚪️ No failed deleted zones"
-      : "🛑 Failed zone delete (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
+        event.failedZoneDeletes.isEmpty
+        ? "⚪️ No failed deleted zones"
+        : "🛑 Failed zone delete (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
 
       debug(
         """
