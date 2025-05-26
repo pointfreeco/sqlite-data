@@ -109,6 +109,8 @@ extension QueryBinding {
       switch self {
       case let .blob(blob):
         return Data(blob).databaseValue
+      case let .date(date):
+        return date.iso8601String.databaseValue
       case let .double(double):
         return double.databaseValue
       case let .int(int):
@@ -117,6 +119,8 @@ extension QueryBinding {
         return .null
       case let .text(text):
         return text.databaseValue
+      case let .uuid(uuid):
+        return uuid.uuidString.lowercased().databaseValue
       case let .invalid(error):
         throw error
       }

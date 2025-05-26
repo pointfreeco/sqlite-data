@@ -36,6 +36,5 @@ import Testing
 
 @available(iOS 15, *)
 @Table private struct Model {
-  @Column(as: Date.ISO8601Representation.self)
   var date: Date
 }
