@@ -45,11 +45,11 @@ view's body is computed, but could also be more.
 
 This kind of data processing is exactly what SQLite excels at, and so we can offload this work by
 modifying the query itself. One can do this with SharingGRDB by using the `load` method on
-`SharedReader` in order to load a new key, and hence execute a new query:
+``FetchAll``, ``FetchOne`` or ``Fetch`` in order to load a new key, and hence execute a new query:
 
 ```swift
 struct ContentView: View {
-  @State.SharedReader(value: []) var items: [Item]
+  @FetchAll var items: [Item]
   @State var filterDate: Date?
   @State var order: SortOrder = .reverse
 
@@ -65,18 +65,16 @@ struct ContentView: View {
   private func updateQuery() async {
     do {
       try await $items.load(
-        .fetchAll(
-          Items
-            .where { $0.timestamp > #bind(filterDate ?? .distantPast) }
-            .order {
-              if order == .forward {
-                $0.timestamp
-              } else {
-                $0.timestamp.desc()
-              }
+        Items
+          .where { $0.timestamp > #bind(filterDate ?? .distantPast) }
+          .order {
+            if order == .forward {
+              $0.timestamp
+            } else {
+              $0.timestamp.desc()
             }
-            .limit(10)
-        )
+          }
+          .limit(10)
       )
     } catch {
       // Handle error...
@@ -91,6 +89,3 @@ struct ContentView: View {
 > initial `@FetchAll`'s value, taken from the parent. To manage the state of this dynamic query
 > locally to this view, we use `@State @FetchAll`, instead, and to access the underlying 
 > `FetchAll` value you can use `wrappedValue`.
-
-> Note: We are using the ``Sharing/SharedReaderKey/fetchAll(_:database:)`` style of 
-> querying the database. See <doc:Fetching> for more APIs that can be used.

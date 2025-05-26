@@ -58,7 +58,6 @@ struct SwiftDataTemplateView: SwiftUICaseStudy {
 @Table
 private struct Item: Identifiable {
   let id: Int
-  @Column(as: Date.ISO8601Representation.self)
   var timestamp: Date
 }
 

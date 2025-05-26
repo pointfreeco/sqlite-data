@@ -33,10 +33,25 @@ struct SQLiteQueryDecoder: QueryDecoder {
   }
 
   @inlinable
+  mutating func decode(_ columnType: Bool.Type) throws -> Bool? {
+    try decode(Int64.self).map { $0 != 0 }
+  }
+
+  @inlinable
+  mutating func decode(_ columnType: Date.Type) throws -> Date? {
+    try decode(String.self).map { try Date(iso8601String: $0) }
+  }
+
+  @inlinable
   mutating func decode(_ columnType: Double.Type) throws -> Double? {
     defer { currentIndex += 1 }
     guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
     return sqlite3_column_double(statement, currentIndex)
+  }
+
+  @inlinable
+  mutating func decode(_ columnType: Int.Type) throws -> Int? {
+    try decode(Int64.self).map(Int.init)
   }
 
   @inlinable
@@ -54,13 +69,10 @@ struct SQLiteQueryDecoder: QueryDecoder {
   }
 
   @inlinable
-  mutating func decode(_ columnType: Bool.Type) throws -> Bool? {
-    try decode(Int64.self).map { $0 != 0 }
-  }
-
-  @inlinable
-  mutating func decode(_ columnType: Int.Type) throws -> Int? {
-    try decode(Int64.self).map(Int.init)
+  mutating func decode(_ columnType: UUID.Type) throws -> UUID? {
+    guard let uuidString = try decode(String.self) else { return nil }
+    guard let uuid = UUID(uuidString: uuidString) else { throw InvalidUUID() }
+    return uuid
   }
 
   @inlinable
@@ -74,6 +86,12 @@ struct SQLiteQueryDecoder: QueryDecoder {
     guard let uuid = UUID(uuidString: uuidString) else { throw InvalidUUID() }
     return uuid
   }
+}
+
+@usableFromInline
+struct InvalidUUID: Error {
+  @usableFromInline
+  init() {}
 }
 
 @usableFromInline
