@@ -28,17 +28,10 @@ your table:
 struct Reminder {
   let id: Int 
   var title = ""
-  @Column(as: Date.ISO8601Representation?.self)
   var dueAt: Date?
   var isCompleted = false
 }
 ```
-
-> Note: The `@Column` macro determines how to store the date in SQLite, which does not have a native
-> date data type. The `Date.ISO8601Representation` strategy stores dates as text formatted with the
-> ISO-8601 standard. See [Defining your schema] for more info.
-
-[Defining your schema]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/definingyourschema
 
 With that done you can already fetch all records from the `Reminder` table in their default order by
 simply doing:
@@ -106,7 +99,6 @@ exactly one list:
 struct Reminder {
   let id: Int 
   var title = ""
-  @Column(as: Date.ISO8601Representation?.self)
   var dueAt: Date?
   var isCompleted = false
   var remindersListID: RemindersList.ID

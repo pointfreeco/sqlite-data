@@ -16,7 +16,6 @@ struct RemindersList: Hashable, Identifiable {
 @Table
 struct Reminder: Equatable, Identifiable {
   var id: Int
-  @Column(as: Date.ISO8601Representation?.self)
   var dueDate: Date?
   var isCompleted = false
   var isFlagged = false

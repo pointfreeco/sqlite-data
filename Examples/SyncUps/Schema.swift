@@ -20,7 +20,6 @@ struct Attendee: Hashable, Identifiable {
 @Table
 struct Meeting: Hashable, Identifiable {
   let id: Int
-  @Column(as: Date.ISO8601Representation.self)
   var date: Date
   var syncUpID: SyncUp.ID
   var transcript: String
