@@ -10,9 +10,10 @@ macro from SwiftData.
 
 ### SwiftUI
 
-The `@FetchAll`, `@FetchOne`, and `@Fetch` property wrappers work in SwiftUI views similarly to how
-the `@Query` macro does from SwiftData. You simply add a property to the view that is annotated with
-one of the various ways of [querying your database](<doc:Fetching>):
+The [`@FetchAll`](<doc:FetchAll>), [`@FetchOne`](<doc:FetchOne>), and [`@Fetch`](<doc:Fetch>) 
+property wrappers work in SwiftUI views similarly to how the `@Query` macro does from SwiftData. 
+You simply add a property to the view that is annotated with one of the various ways of 
+ [querying your database](<doc:Fetching>):
 
 ```swift
 struct ItemsView: View {
