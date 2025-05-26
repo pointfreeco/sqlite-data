@@ -324,7 +324,7 @@ simple as adding it to your `Package.swift`:
 
 ``` swift
 dependencies: [
-  .package(url: "https://github.com/pointfreeco/sharing-grdb", from: "0.2.0")
+  .package(url: "https://github.com/pointfreeco/sharing-grdb", from: "0.4.0")
 ]
 ```
 
