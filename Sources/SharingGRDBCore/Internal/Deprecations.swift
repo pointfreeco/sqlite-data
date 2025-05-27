@@ -183,6 +183,7 @@ extension FetchAll {
   }
 
   #if canImport(SwiftUI)
+    @_disfavoredOverload
     public init<S: SelectStatement, each J: StructuredQueriesCore.Table>(
       wrappedValue: [Element] = [],
       _ statement: S,
