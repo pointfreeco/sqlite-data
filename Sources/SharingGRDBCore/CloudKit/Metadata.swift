@@ -3,7 +3,7 @@ import CloudKit
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 // @Table("sharing_grdb_cloudkit_metadata")
 package struct Metadata {
-  package var zoneName: String
+  package var recordType: String
   package var recordName: String
   // @Column(as: CKRecord?.DataRepresentation.self)
   package var lastKnownServerRecord: CKRecord?
@@ -15,9 +15,9 @@ package struct Metadata {
 extension Metadata: StructuredQueriesCore.Table {
   public struct TableColumns: StructuredQueriesCore.TableDefinition {
     public typealias QueryValue = Metadata
-    public let zoneName = StructuredQueriesCore.TableColumn<QueryValue, String>(
-      "zoneName",
-      keyPath: \QueryValue.zoneName
+    public let recordType = StructuredQueriesCore.TableColumn<QueryValue, String>(
+      "recordType",
+      keyPath: \QueryValue.recordType
     )
     public let recordName = StructuredQueriesCore.TableColumn<QueryValue, String>(
       "recordName",
@@ -32,7 +32,7 @@ extension Metadata: StructuredQueriesCore.Table {
     )
     public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
       [
-        QueryValue.columns.zoneName, QueryValue.columns.recordName,
+        QueryValue.columns.recordType, QueryValue.columns.recordName,
         QueryValue.columns.lastKnownServerRecord, QueryValue.columns.userModificationDate,
       ]
     }
@@ -40,11 +40,11 @@ extension Metadata: StructuredQueriesCore.Table {
   public static let columns = TableColumns()
   public static let tableName = "sharing_grdb_cloudkit_metadata"
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-    let zoneName = try decoder.decode(String.self)
+    let recordType = try decoder.decode(String.self)
     let recordName = try decoder.decode(String.self)
     let lastKnownServerRecord = try decoder.decode(CKRecord?.DataRepresentation.self)
     self.userModificationDate = try decoder.decode(Date.self)
-    guard let zoneName else {
+    guard let recordType else {
       throw QueryDecodingError.missingRequiredColumn
     }
     guard let recordName else {
@@ -53,7 +53,7 @@ extension Metadata: StructuredQueriesCore.Table {
     guard let lastKnownServerRecord else {
       throw QueryDecodingError.missingRequiredColumn
     }
-    self.zoneName = zoneName
+    self.recordType = recordType
     self.recordName = recordName
     self.lastKnownServerRecord = lastKnownServerRecord
   }

@@ -102,11 +102,10 @@ public final actor SyncEngine {
       try SQLQueryExpression(
         """
         CREATE TABLE IF NOT EXISTS "sharing_grdb_cloudkit_metadata" (
-          "zoneName" TEXT NOT NULL,
-          "recordName" TEXT NOT NULL,
+          "recordType" TEXT NOT NULL,
+          "recordName" TEXT NOT NULL PRIMARY KEY,
           "lastKnownServerRecord" BLOB,
-          "userModificationDate" TEXT,
-          PRIMARY KEY("zoneName", "recordName")
+          "userModificationDate" TEXT
         ) STRICT
         """
       )
@@ -114,7 +113,7 @@ public final actor SyncEngine {
       try SQLQueryExpression(
         """
         CREATE TABLE IF NOT EXISTS "sharing_grdb_cloudkit_recordTypes" (
-          "tableName" TEXT PRIMARY KEY NOT NULL,
+          "tableName" TEXT NOT NULL PRIMARY KEY,
           "schema" TEXT NOT NULL
         ) STRICT
         """
@@ -123,7 +122,7 @@ public final actor SyncEngine {
       try SQLQueryExpression(
         """
         CREATE TABLE IF NOT EXISTS "sharing_grdb_cloudkit_stateSerialization" (
-          "id" INTEGER PRIMARY KEY ON CONFLICT REPLACE CHECK ("id" = 1),
+          "id" INTEGER NOT NULL PRIMARY KEY ON CONFLICT REPLACE CHECK ("id" = 1),
           "data" TEXT NOT NULL
         ) STRICT
         """
@@ -293,12 +292,12 @@ public final actor SyncEngine {
         "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
       AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
         INSERT INTO \(Metadata.self)
-          ("zoneName", "recordName", "userModificationDate")
+          ("recordType", "recordName", "userModificationDate")
         SELECT
           \(quote: T.tableName, delimiter: .text),
           "new".\(quote: T.columns.primaryKey.name),
           datetime('subsec')
-        ON CONFLICT("zoneName", "recordName") DO NOTHING;
+        ON CONFLICT("recordType", "recordName") DO NOTHING;
       END
       """
     )
@@ -309,11 +308,11 @@ public final actor SyncEngine {
         "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
       AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
         INSERT INTO \(Metadata.self)
-          ("zoneName", "recordName")
+          ("recordType", "recordName")
         SELECT
           \(quote: T.tableName, delimiter: .text),
           "new".\(quote: T.columns.primaryKey.name)
-        ON CONFLICT("zoneName", "recordName") DO UPDATE SET
+        ON CONFLICT("recordType", "recordName") DO UPDATE SET
           "userModificationDate" = datetime('subsec');
       END
       """
@@ -325,7 +324,7 @@ public final actor SyncEngine {
         "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataDeletes"
       AFTER DELETE ON \(T.self) FOR EACH ROW BEGIN
         DELETE FROM \(Metadata.self)
-        WHERE "zoneName" = \(quote: T.tableName, delimiter: .text)
+        WHERE "recordType" = \(quote: T.tableName, delimiter: .text)
         AND "recordName" = "old".\(quote: T.columns.primaryKey.name);
       END
       """
@@ -1143,14 +1142,13 @@ private struct Unbindable: Error {}
 extension Metadata {
   package static func find(recordID: CKRecord.ID) -> Where<Self> {
     Self.where {
-      $0.zoneName.eq(recordID.zoneID.zoneName)
-        && $0.recordName.eq(recordID.recordName)
+      $0.recordName.eq(recordID.recordName)
     }
   }
 
   init(record: CKRecord) {
     self.init(
-      zoneName: record.recordID.zoneID.zoneName,
+      recordType: record.recordType,
       recordName: record.recordID.recordName,
       lastKnownServerRecord: record,
       userModificationDate: record.userModificationDate
