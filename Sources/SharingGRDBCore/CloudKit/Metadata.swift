@@ -7,6 +7,7 @@ package struct Metadata {
   package var recordName: String
   package var zoneName: String
   package var ownerName: String
+  package var parentRecordName: String?
   // @Column(as: CKRecord?.DataRepresentation.self)
   package var lastKnownServerRecord: CKRecord?
   package var userModificationDate: Date?
@@ -20,10 +21,11 @@ package struct Metadata {
     public let recordName = StructuredQueriesCore.TableColumn<QueryValue, String>("recordName", keyPath: \QueryValue.recordName)
     public let zoneName = StructuredQueriesCore.TableColumn<QueryValue, String>("zoneName", keyPath: \QueryValue.zoneName)
     public let ownerName = StructuredQueriesCore.TableColumn<QueryValue, String>("ownerName", keyPath: \QueryValue.ownerName)
+    public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, String?>("parentRecordName", keyPath: \QueryValue.parentRecordName)
     public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<QueryValue, CKRecord?.DataRepresentation>("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
     public let userModificationDate = StructuredQueriesCore.TableColumn<QueryValue, Date?>("userModificationDate", keyPath: \QueryValue.userModificationDate)
     public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
-      [QueryValue.columns.recordType, QueryValue.columns.recordName, QueryValue.columns.zoneName, QueryValue.columns.ownerName, QueryValue.columns.lastKnownServerRecord, QueryValue.columns.userModificationDate]
+      [QueryValue.columns.recordType, QueryValue.columns.recordName, QueryValue.columns.zoneName, QueryValue.columns.ownerName, QueryValue.columns.parentRecordName, QueryValue.columns.lastKnownServerRecord, QueryValue.columns.userModificationDate]
     }
   }
   public static let columns = TableColumns()
@@ -33,6 +35,7 @@ package struct Metadata {
     let recordName = try decoder.decode(String.self)
     let zoneName = try decoder.decode(String.self)
     let ownerName = try decoder.decode(String.self)
+    self.parentRecordName = try decoder.decode(String.self)
     let lastKnownServerRecord = try decoder.decode(CKRecord?.DataRepresentation.self)
     self.userModificationDate = try decoder.decode(Date.self)
     guard let recordType else {
@@ -57,3 +60,4 @@ package struct Metadata {
     self.lastKnownServerRecord = lastKnownServerRecord
   }
 }
+

@@ -12,7 +12,9 @@ extension DependencyValues {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 public final actor SyncEngine {
-  public static nonisolated let defaultZone = CKRecordZone(zoneName: "co.pointfree.SharingGRDB.defaultZone")
+  public static nonisolated let defaultZone = CKRecordZone(
+    zoneName: "co.pointfree.SharingGRDB.defaultZone"
+  )
 
   let database: any DatabaseWriter
   let logger: Logger
@@ -20,6 +22,7 @@ public final actor SyncEngine {
   private let metadatabaseURL: URL
   let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  fileprivate let parentKeyByTableName: [String: ForeignKey]
   var underlyingSyncEngine: (any CKSyncEngineProtocol)!
   let defaultSyncEngine: (any DatabaseReader, SyncEngine) -> any CKSyncEngineProtocol
 
@@ -28,8 +31,8 @@ public final actor SyncEngine {
     database: any DatabaseWriter,
     logger: Logger = Logger(subsystem: "SharingGRDB", category: "CloudKit"),
     tables: [any PrimaryKeyedTable.Type]
-  ) {
-    self.init(
+  ) throws {
+    try self.init(
       defaultSyncEngine: { database, syncEngine in
         CKSyncEngine(
           CKSyncEngine.Configuration(
@@ -53,8 +56,8 @@ public final actor SyncEngine {
     database: any DatabaseWriter,
     metadatabaseURL: URL,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
-  ) {
-    self.init(
+  ) throws {
+    try self.init(
       defaultSyncEngine: { _, _ in defaultSyncEngine },
       database: database,
       logger: Logger(.disabled),
@@ -69,7 +72,7 @@ public final actor SyncEngine {
     logger: Logger,
     metadatabaseURL: URL,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
-  ) {
+  ) throws {
     // TODO: Explain why / link to documentation?
     precondition(
       !database.configuration.foreignKeysEnabled,
@@ -83,6 +86,22 @@ public final actor SyncEngine {
     self.metadatabaseURL = metadatabaseURL
     self.tables = tables
     self.tablesByName = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
+    self.parentKeyByTableName = Dictionary(
+      uniqueKeysWithValues: try database.read { db in
+        try tables.compactMap { table -> (String, ForeignKey)? in
+          let foreignKeys = try SQLQueryExpression(
+            """
+            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: table.tableName)) 
+            """,
+            as: ForeignKey.self
+          )
+          .fetchAll(db)
+          guard foreignKeys.count == 1, let foreignKey = foreignKeys.first
+          else { return nil }
+          return (table.tableName, foreignKey)
+        }
+      }
+    )
     Task {
       await withErrorReporting(.sharingGRDBCloudKitFailure) {
         try await setUpSyncEngine()
@@ -108,16 +127,21 @@ public final actor SyncEngine {
           "recordName" TEXT NOT NULL PRIMARY KEY,
           "zoneName" TEXT NOT NULL,
           "ownerName" TEXT NOT NULL,
+          "parentRecordName" TEXT,
           "lastKnownServerRecord" BLOB,
           "userModificationDate" TEXT
         ) STRICT
         """
       )
       .execute(db)
-      try SQLQueryExpression("""
+      // TODO: Should we have "parentRecordName TEXT REFERENCES metadata(recordName) ON DELETE CASCADE" ?
+      // TODO: Do we ever query for "parentRecordName"? should we add an index?
+      try SQLQueryExpression(
+        """
         CREATE INDEX IF NOT EXISTS "sharing_grdb_cloudkit_metadata_zoneName_ownerName"
         ON "sharing_grdb_cloudkit_metadata" ("zoneName", "ownerName")
-        """)
+        """
+      )
       .execute(db)
       try SQLQueryExpression(
         """
@@ -295,18 +319,22 @@ public final actor SyncEngine {
       .execute(db)
     try Trigger(on: T.self, .before, .delete, select: .willDelete(syncEngine: self)).create
       .execute(db)
+
+    let from = parentKeyByTableName[T.tableName]?.from
+
     try SQLQueryExpression(
       """
       CREATE TEMPORARY TRIGGER
         "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
       AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
         INSERT INTO \(Metadata.self)
-          ("recordType", "recordName", "zoneName", "ownerName", "userModificationDate")
+          ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName", "userModificationDate")
         SELECT
           \(quote: T.tableName, delimiter: .text),
           "new".\(quote: T.columns.primaryKey.name),
           \(quote: Self.defaultZone.zoneID.zoneName, delimiter: .text),
           \(quote: Self.defaultZone.zoneID.ownerName, delimiter: .text),
+          \(raw: from.map { #""new"."\#($0)""# } ?? "NULL"),
           datetime('subsec')
         ON CONFLICT("recordName") DO NOTHING;
       END
@@ -1005,7 +1033,7 @@ extension SyncEngine: CKSyncEngineDelegate {
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine: TestDependencyKey {
   public static var testValue: SyncEngine {
-    SyncEngine(container: .default(), database: try! DatabaseQueue(), tables: [])
+    try! SyncEngine(container: .default(), database: DatabaseQueue(), tables: [])
   }
 }
 
