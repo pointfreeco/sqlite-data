@@ -12,7 +12,7 @@ extension DependencyValues {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 public final actor SyncEngine {
-  public static let defaultZone = CKRecordZone(zoneName: "co.pointfree.SharingGRDB.defaultZone")
+  public static nonisolated let defaultZone = CKRecordZone(zoneName: "co.pointfree.SharingGRDB.defaultZone")
 
   let database: any DatabaseWriter
   let logger: Logger
@@ -106,11 +106,18 @@ public final actor SyncEngine {
         CREATE TABLE IF NOT EXISTS "sharing_grdb_cloudkit_metadata" (
           "recordType" TEXT NOT NULL,
           "recordName" TEXT NOT NULL PRIMARY KEY,
+          "zoneName" TEXT NOT NULL,
+          "ownerName" TEXT NOT NULL,
           "lastKnownServerRecord" BLOB,
           "userModificationDate" TEXT
         ) STRICT
         """
       )
+      .execute(db)
+      try SQLQueryExpression("""
+        CREATE INDEX IF NOT EXISTS "sharing_grdb_cloudkit_metadata_zoneName_ownerName"
+        ON "sharing_grdb_cloudkit_metadata" ("zoneName", "ownerName")
+        """)
       .execute(db)
       try SQLQueryExpression(
         """
@@ -294,10 +301,12 @@ public final actor SyncEngine {
         "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
       AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
         INSERT INTO \(Metadata.self)
-          ("recordType", "recordName", "userModificationDate")
+          ("recordType", "recordName", "zoneName", "ownerName", "userModificationDate")
         SELECT
           \(quote: T.tableName, delimiter: .text),
           "new".\(quote: T.columns.primaryKey.name),
+          \(quote: Self.defaultZone.zoneID.zoneName, delimiter: .text),
+          \(quote: Self.defaultZone.zoneID.ownerName, delimiter: .text),
           datetime('subsec')
         ON CONFLICT("recordName") DO NOTHING;
       END
@@ -310,10 +319,12 @@ public final actor SyncEngine {
         "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
       AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
         INSERT INTO \(Metadata.self)
-          ("recordType", "recordName")
+          ("recordType", "recordName", "zoneName", "ownerName")
         SELECT
           \(quote: T.tableName, delimiter: .text),
-          "new".\(quote: T.columns.primaryKey.name)
+          "new".\(quote: T.columns.primaryKey.name),
+          \(quote: Self.defaultZone.zoneID.zoneName, delimiter: .text),
+          \(quote: Self.defaultZone.zoneID.ownerName, delimiter: .text)
         ON CONFLICT("recordName") DO UPDATE SET
           "userModificationDate" = datetime('subsec');
       END
@@ -1166,6 +1177,8 @@ extension Metadata {
     self.init(
       recordType: record.recordType,
       recordName: record.recordID.recordName,
+      zoneName: record.recordID.zoneID.zoneName,
+      ownerName: record.recordID.zoneID.ownerName,
       lastKnownServerRecord: record,
       userModificationDate: record.userModificationDate
     )
