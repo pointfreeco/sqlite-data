@@ -2,6 +2,7 @@ import CasePaths
 import CloudKit
 import SharingGRDB
 import SwiftUI
+import SwiftUINavigation
 
 struct RemindersDetailView: View {
   @FetchAll private var reminderStates: [ReminderState]
@@ -12,7 +13,7 @@ struct RemindersDetailView: View {
   @State var isNewReminderSheetPresented = false
   @State var isNavigationTitleVisible = false
   @State var navigationTitleHeight: CGFloat = 36
-  @State var isSharePresented = false
+  @State var presentedShare: CKShare?
 
   @Dependency(\.defaultDatabase) private var database
 
@@ -52,11 +53,11 @@ struct RemindersDetailView: View {
         move(from: indexSet, to: index)
       }
     }
-    .onScrollGeometryChange(for: Bool.self) { geometry in
-      geometry.contentOffset.y + geometry.contentInsets.top > navigationTitleHeight
-    } action: {
-      isNavigationTitleVisible = $1
-    }
+//    .onScrollGeometryChange(for: Bool.self) { geometry in
+//      geometry.contentOffset.y + geometry.contentInsets.top > navigationTitleHeight
+//    } action: {
+//      isNavigationTitleVisible = $1
+//    }
     .listStyle(.plain)
     .sheet(isPresented: $isNewReminderSheetPresented) {
       if let remindersList = detailType.list {
@@ -71,14 +72,14 @@ struct RemindersDetailView: View {
         try await updateQuery()
       }
     }
-    .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text(detailType.navigationTitle)
-          .font(.headline)
-          .opacity(isNavigationTitleVisible ? 1 : 0)
-          .animation(.default.speed(2), value: isNavigationTitleVisible)
-      }
-    }
+//    .toolbar {
+//      ToolbarItem(placement: .principal) {
+//        Text(detailType.navigationTitle)
+//          .font(.headline)
+//          .opacity(isNavigationTitleVisible ? 1 : 0)
+//          .animation(.default.speed(2), value: isNavigationTitleVisible)
+//      }
+//    }
     .toolbarTitleDisplayMode(.inline)
     .toolbar {
       if detailType.is(\.list) {
@@ -99,45 +100,59 @@ struct RemindersDetailView: View {
           .tint(detailType.color)
         }
       }
-      ToolbarItem(placement: .primaryAction) {
-        Menu {
-          Group {
-            Menu {
-              ForEach(Ordering.allCases, id: \.self) { ordering in
-                Button {
-                  self.ordering = ordering
-                } label: {
-                  Text(ordering.rawValue)
-                  ordering.icon
-                }
-              }
-            } label: {
-              Text("Sort By")
-              Text(ordering.rawValue)
-              Image(systemName: "arrow.up.arrow.down")
-            }
-            Button {
-              showCompleted.toggle()
-            } label: {
-              Text(showCompleted ? "Hide Completed" : "Show Completed")
-              Image(systemName: showCompleted ? "eye.slash.fill" : "eye")
-            }
-          }
-          .tint(detailType.color)
-        } label: {
-          Image(systemName: "ellipsis.circle")
-        }
-      }
+//      ToolbarItem(placement: .primaryAction) {
+//        Menu {
+//          Group {
+//            Menu {
+//              ForEach(Ordering.allCases, id: \.self) { ordering in
+//                Button {
+//                  self.ordering = ordering
+//                } label: {
+//                  Text(ordering.rawValue)
+//                  ordering.icon
+//                }
+//              }
+//            } label: {
+//              Text("Sort By")
+//              Text(ordering.rawValue)
+//              Image(systemName: "arrow.up.arrow.down")
+//            }
+//            Button {
+//              showCompleted.toggle()
+//            } label: {
+//              Text(showCompleted ? "Hide Completed" : "Show Completed")
+//              Image(systemName: showCompleted ? "eye.slash.fill" : "eye")
+//            }
+//          }
+//          .tint(detailType.color)
+//        } label: {
+//          Image(systemName: "ellipsis.circle")
+//        }
+//      }
       if let remindersList = detailType.list {
         ToolbarItem {
           Button {
-            isSharePresented = true
+            shareButtonTapped(remindersList: remindersList)
           } label: {
             Image(systemName: "square.and.arrow.up")
           }
-          .sheet(isPresented: $isSharePresented) {
-            CloudSharingView(remindersList)
+          .sheet(item: $presentedShare, id: \.self) { share in
+            CloudSharingView2(share: share)
           }
+//          .sheet(isPresented: $isSharePresented) {
+//            //CloudSharingView(remindersList)
+//          }
+        }
+      }
+    }
+  }
+
+  @Dependency(\.defaultSyncEngine) var syncEngine
+  private func shareButtonTapped(remindersList: RemindersList) {
+    Task {
+      await withErrorReporting {
+        presentedShare = try await syncEngine.share(record: remindersList) {
+          $0[CKShare.SystemFieldKey.title] = remindersList.title as CKRecordValue
         }
       }
     }

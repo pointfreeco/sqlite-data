@@ -1529,6 +1529,57 @@ extension CKSyncEngine: CKSyncEngineProtocol {
 extension CKSyncEngine.State: CKSyncEngineStateProtocol {
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncEngine {
+  public func share<T: PrimaryKeyedTable>(
+    record: T,
+    configure: @Sendable (CKShare) -> Void
+  ) async throws -> CKShare
+  where T.TableColumns.PrimaryKey == UUID {
+    let recordName = record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased()
+    let lastKnownServerRecord = try await database.write { db in
+      try Metadata
+        .find(recordID: CKRecord.ID(recordName: recordName))
+        .select(\.lastKnownServerRecord)
+        .fetchOne(db)
+    } ?? nil
+
+    guard let lastKnownServerRecord
+    else {
+      throw NoCKRecordFound()
+    }
+
+    let shareID = CKRecord.ID(
+      recordName: UUID().uuidString,
+      zoneID: lastKnownServerRecord.recordID.zoneID
+    )
+    let share = CKShare.init(rootRecord: lastKnownServerRecord, shareID: shareID)
+    configure(share)
+
+    let modifyOperation = CKModifyRecordsOperation(
+      recordsToSave: [share, lastKnownServerRecord],
+      recordIDsToDelete: nil
+    )
+    try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, any Error>) in
+      modifyOperation.modifyRecordsCompletionBlock = { records, recordIDs, error in
+        if let error = error {
+          continuation.resume(throwing: error)
+        } else {
+          continuation.resume()
+        }
+      }
+
+      modifyOperation.database = container.privateCloudDatabase
+      let operationQueue = OperationQueue()
+      operationQueue.maxConcurrentOperationCount = 1
+      operationQueue.addOperation(modifyOperation)
+    }
+
+    return share
+  }
+}
+
+struct NoCKRecordFound: Error {}
 
 import UIKit
 extension UICloudSharingController {
@@ -1567,6 +1618,25 @@ public struct CloudSharingView<T: PrimaryKeyedTable>: UIViewControllerRepresenta
 
   public func makeUIViewController(context: Context) -> UICloudSharingController {
     UICloudSharingController(record)
+  }
+
+  public func updateUIViewController(
+    _ uiViewController: UICloudSharingController,
+    context: Context
+  ) {
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+public struct CloudSharingView2: UIViewControllerRepresentable {
+  let share: CKShare
+  public init(share: CKShare) {
+    self.share = share
+  }
+
+  public func makeUIViewController(context: Context) -> UICloudSharingController {
+    @Dependency(\.defaultSyncEngine) var syncEngine
+    return UICloudSharingController.init(share: share, container: syncEngine.container)
   }
 
   public func updateUIViewController(
