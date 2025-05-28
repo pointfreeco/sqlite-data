@@ -251,120 +251,128 @@ let logger = Logger(subsystem: "Reminders", category: "Database")
 #if DEBUG
   extension Database {
     func seedSampleData() throws {
+      let remindersListsIDs = (1...3).map { _ in UUID() }
+      let remindersIDs = (1...10).map { _ in UUID() }
+      let tagsIDs = (1...7).map { _ in UUID() }
       try seed {
         RemindersList(
-          id: UUID(0),
+          id: remindersListsIDs[0],
           color: Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255),
           position: 0,
           title: "Personal"
         )
         RemindersList(
-          id: UUID(1),
+          id: remindersListsIDs[1],
           color: Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255),
           position: 1,
           title: "Family"
         )
         RemindersList(
-          id: UUID(2),
+          id: remindersListsIDs[2],
           color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
           position: 2,
           title: "Business"
         )
 
         Reminder(
-          id: UUID(0),
+          id: remindersIDs[0],
           notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
-          remindersListID: UUID(0),
+          remindersListID: remindersListsIDs[0],
           title: "Groceries"
         )
         Reminder(
-          id: UUID(1),
+          id: remindersIDs[1],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isFlagged: true,
-          remindersListID: UUID(0),
+          remindersListID: remindersListsIDs[0],
           title: "Haircut"
         )
         Reminder(
-          id: UUID(2),
+          id: remindersIDs[2],
           dueDate: Date(),
           notes: "Ask about diet",
           priority: .high,
-          remindersListID: UUID(0),
+          remindersListID: remindersListsIDs[0],
           title: "Doctor appointment"
         )
         Reminder(
-          id: UUID(3),
+          id: remindersIDs[3],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 190),
           isCompleted: true,
-          remindersListID: UUID(0),
+          remindersListID: remindersListsIDs[0],
           title: "Take a walk"
         )
         Reminder(
-          id: UUID(4),
+          id: remindersIDs[4],
           dueDate: Date(),
-          remindersListID: UUID(0),
+          remindersListID: remindersListsIDs[0],
           title: "Buy concert tickets"
         )
         Reminder(
-          id: UUID(5),
+          id: remindersIDs[5],
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           isFlagged: true,
           priority: .high,
-          remindersListID: UUID(1),
+          remindersListID: remindersListsIDs[1],
           title: "Pick up kids from school"
         )
         Reminder(
-          id: UUID(6),
+          id: remindersIDs[6],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .low,
-          remindersListID: UUID(1),
+          remindersListID: remindersListsIDs[1],
           title: "Get laundry"
         )
         Reminder(
-          id: UUID(7),
+          id: remindersIDs[7],
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 4),
           isCompleted: false,
           priority: .high,
-          remindersListID: UUID(1),
+          remindersListID: remindersListsIDs[1],
           title: "Take out trash"
         )
         Reminder(
-          id: UUID(8),
+          id: remindersIDs[8],
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           notes: """
             Status of tax return
             Expenses for next year
             Changing payroll company
             """,
-          remindersListID: UUID(2),
+          remindersListID: remindersListsIDs[2],
           title: "Call accountant"
         )
         Reminder(
-          id: UUID(9),
+          id: remindersIDs[9],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .medium,
-          remindersListID: UUID(2),
+          remindersListID: remindersListsIDs[2],
           title: "Send weekly emails"
         )
 
-        Tag(id: UUID(0), title: "car")
-        Tag(id: UUID(1), title: "kids")
-        Tag(id: UUID(2), title: "someday")
-        Tag(id: UUID(3), title: "optional")
-        Tag(id: UUID(4), title: "social")
-        Tag(id: UUID(5), title: "night")
-        Tag(id: UUID(6), title: "adulting")
+        Tag(id: tagsIDs[0], title: "car")
+        Tag(id: tagsIDs[1], title: "kids")
+        Tag(id: tagsIDs[2], title: "someday")
+        Tag(id: tagsIDs[3], title: "optional")
+        Tag(id: tagsIDs[4], title: "social")
+        Tag(id: tagsIDs[5], title: "night")
+        Tag(id: tagsIDs[6], title: "adulting")
 
-        ReminderTag(id: UUID(), reminderID: UUID(0), tagID: UUID(2))
-        ReminderTag(id: UUID(), reminderID: UUID(0), tagID: UUID(3))
-        ReminderTag(id: UUID(), reminderID: UUID(0), tagID: UUID(6))
-        ReminderTag(id: UUID(), reminderID: UUID(1), tagID: UUID(2))
-        ReminderTag(id: UUID(), reminderID: UUID(1), tagID: UUID(3))
-        ReminderTag(id: UUID(), reminderID: UUID(2), tagID: UUID(6))
-        ReminderTag(id: UUID(), reminderID: UUID(3), tagID: UUID(0))
-        ReminderTag(id: UUID(), reminderID: UUID(3), tagID: UUID(1))
+        ReminderTag(id: UUID(), reminderID: remindersIDs[0], tagID: tagsIDs[2])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[0], tagID: tagsIDs[3])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[0], tagID: tagsIDs[6])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[1], tagID: tagsIDs[2])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[1], tagID: tagsIDs[3])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[2], tagID: tagsIDs[6])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[3], tagID: tagsIDs[0])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[3], tagID: tagsIDs[1])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[9], tagID: tagsIDs[3])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[8], tagID: tagsIDs[6])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[7], tagID: tagsIDs[6])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[4], tagID: tagsIDs[4])
+        ReminderTag(id: UUID(), reminderID: remindersIDs[4], tagID: tagsIDs[5])
       }
     }
   }

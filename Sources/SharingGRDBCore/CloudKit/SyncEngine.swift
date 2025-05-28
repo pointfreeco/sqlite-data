@@ -674,9 +674,28 @@ extension SyncEngine: CKSyncEngineDelegate {
     _ context: CKSyncEngine.SendChangesContext,
     syncEngine: CKSyncEngine
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-    let changes = Array( syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
-      .reversed()
-                         )
+//    [u,d,u,u,d,d,u,d,u]
+//    [u,u,u,u,d,d,d,d]
+
+    let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
+    var allChangesByIsDeleted = Dictionary.init(grouping: allChanges) {
+      switch $0 {
+      case .deleteRecord: true
+      case .saveRecord: false
+      @unknown default: false
+      }
+    }
+    allChangesByIsDeleted[true]?.reverse()
+    let changes = allChangesByIsDeleted.reduce(into: []) { changes, keyValue in
+      changes += keyValue.value
+    }
+
+//    let changes = Array(syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
+//      .sorted {
+//        switch ($0, $1) {
+//        case (.saveRecord, .deleteRecord)
+//        }
+//      }
     guard !changes.isEmpty
     else {
       return nil
