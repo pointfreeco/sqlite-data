@@ -34,12 +34,7 @@ class BaseCloudKitTests: @unchecked Sendable {
       tables: [Reminder.self, RemindersList.self]
     )
     try await Task.sleep(for: .seconds(0.1))
-    underlyingSyncEngine.assertFetchChangesScopes([
-      .zoneIDs([
-        CKRecordZone.ID(RemindersList.self),
-        CKRecordZone.ID(Reminder.self),
-      ])
-    ])
+    underlyingSyncEngine.assertFetchChangesScopes([.all])
   }
 
   deinit {

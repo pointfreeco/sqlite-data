@@ -19,10 +19,10 @@ extension BaseCloudKitTests {
         }
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self)),
-        .saveRecord(CKRecord.ID(UUID(1), in: Reminder.self)),
-        .saveRecord(CKRecord.ID(UUID(2), in: Reminder.self)),
-        .saveRecord(CKRecord.ID(UUID(3), in: Reminder.self)),
+        .saveRecord(CKRecord.ID(UUID(1))),
+        .saveRecord(CKRecord.ID(UUID(1))),
+        .saveRecord(CKRecord.ID(UUID(2))),
+        .saveRecord(CKRecord.ID(UUID(3))),
       ])
       try database.write { db in
         try RemindersList.find(UUID(1)).delete().execute(db)
@@ -31,10 +31,10 @@ extension BaseCloudKitTests {
         try #expect(Reminder.all.fetchAll(db) == [])
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .deleteRecord(CKRecord.ID(UUID(1), in: RemindersList.self)),
-        .deleteRecord(CKRecord.ID(UUID(1), in: Reminder.self)),
-        .deleteRecord(CKRecord.ID(UUID(2), in: Reminder.self)),
-        .deleteRecord(CKRecord.ID(UUID(3), in: Reminder.self)),
+        .deleteRecord(CKRecord.ID(UUID(1))),
+        .deleteRecord(CKRecord.ID(UUID(1))),
+        .deleteRecord(CKRecord.ID(UUID(2))),
+        .deleteRecord(CKRecord.ID(UUID(3))),
       ])
     }
 
@@ -49,10 +49,10 @@ extension BaseCloudKitTests {
         }
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self)),
-        .saveRecord(CKRecord.ID(UUID(1), in: Reminder.self)),
-        .saveRecord(CKRecord.ID(UUID(2), in: Reminder.self)),
-        .saveRecord(CKRecord.ID(UUID(3), in: Reminder.self)),
+        .saveRecord(CKRecord.ID(UUID(1))),
+        .saveRecord(CKRecord.ID(UUID(1))),
+        .saveRecord(CKRecord.ID(UUID(2))),
+        .saveRecord(CKRecord.ID(UUID(3))),
       ])
       try database.write { db in
         try Reminder.find(UUID(1)).delete().execute(db)
@@ -67,8 +67,8 @@ extension BaseCloudKitTests {
         )
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .deleteRecord(CKRecord.ID(UUID(1), in: Reminder.self)),
-        .saveRecord(CKRecord.ID(UUID(2), in: Reminder.self)),
+        .deleteRecord(CKRecord.ID(UUID(1))),
+        .saveRecord(CKRecord.ID(UUID(2))),
       ])
     }
 
@@ -83,10 +83,10 @@ extension BaseCloudKitTests {
         }
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self)),
-        .saveRecord(CKRecord.ID(UUID(1), in: Reminder.self)),
-        .saveRecord(CKRecord.ID(UUID(2), in: Reminder.self)),
-        .saveRecord(CKRecord.ID(UUID(3), in: Reminder.self)),
+        .saveRecord(CKRecord.ID(UUID(1))),
+        .saveRecord(CKRecord.ID(UUID(1))),
+        .saveRecord(CKRecord.ID(UUID(2))),
+        .saveRecord(CKRecord.ID(UUID(3))),
       ])
       let newID = try database.write { db in
         try RemindersList.find(UUID(1)).update { $0.id = UUID() }.returning(\.id).fetchOne(db)!
@@ -102,10 +102,10 @@ extension BaseCloudKitTests {
         )
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(newID, in: RemindersList.self)),
-        .saveRecord(CKRecord.ID(UUID(1), in: Reminder.self)),
-        .saveRecord(CKRecord.ID(UUID(2), in: Reminder.self)),
-        .saveRecord(CKRecord.ID(UUID(3), in: Reminder.self)),
+        .saveRecord(CKRecord.ID(newID)),
+        .saveRecord(CKRecord.ID(UUID(1))),
+        .saveRecord(CKRecord.ID(UUID(2))),
+        .saveRecord(CKRecord.ID(UUID(3))),
       ])
     }
   }

@@ -49,23 +49,23 @@ extension BaseCloudKitTests {
           CREATE TRIGGER "sharing_grdb_cloudkit_reminders_metadataInserts"
           AFTER INSERT ON "reminders" FOR EACH ROW BEGIN
             INSERT INTO "sharing_grdb_cloudkit_metadata"
-              ("zoneName", "recordName", "userModificationDate")
+              ("recordType", "recordName", "userModificationDate")
             SELECT
               'reminders',
               "new"."id",
               datetime('subsec')
-            ON CONFLICT("zoneName", "recordName") DO NOTHING;
+            ON CONFLICT("recordName") DO NOTHING;
           END
           """,
           [4]: """
           CREATE TRIGGER "sharing_grdb_cloudkit_reminders_metadataUpdates"
           AFTER UPDATE ON "reminders" FOR EACH ROW BEGIN
             INSERT INTO "sharing_grdb_cloudkit_metadata"
-              ("zoneName", "recordName")
+              ("recordType", "recordName")
             SELECT
               'reminders',
               "new"."id"
-            ON CONFLICT("zoneName", "recordName") DO UPDATE SET
+            ON CONFLICT("recordName") DO UPDATE SET
               "userModificationDate" = datetime('subsec');
           END
           """,
@@ -73,7 +73,7 @@ extension BaseCloudKitTests {
           CREATE TRIGGER "sharing_grdb_cloudkit_reminders_metadataDeletes"
           AFTER DELETE ON "reminders" FOR EACH ROW BEGIN
             DELETE FROM "sharing_grdb_cloudkit_metadata"
-            WHERE "zoneName" = 'reminders'
+            WHERE "recordType" = 'reminders'
             AND "recordName" = "old"."id";
           END
           """,
@@ -137,23 +137,23 @@ extension BaseCloudKitTests {
           CREATE TRIGGER "sharing_grdb_cloudkit_remindersLists_metadataInserts"
           AFTER INSERT ON "remindersLists" FOR EACH ROW BEGIN
             INSERT INTO "sharing_grdb_cloudkit_metadata"
-              ("zoneName", "recordName", "userModificationDate")
+              ("recordType", "recordName", "userModificationDate")
             SELECT
               'remindersLists',
               "new"."id",
               datetime('subsec')
-            ON CONFLICT("zoneName", "recordName") DO NOTHING;
+            ON CONFLICT("recordName") DO NOTHING;
           END
           """,
           [13]: """
           CREATE TRIGGER "sharing_grdb_cloudkit_remindersLists_metadataUpdates"
           AFTER UPDATE ON "remindersLists" FOR EACH ROW BEGIN
             INSERT INTO "sharing_grdb_cloudkit_metadata"
-              ("zoneName", "recordName")
+              ("recordType", "recordName")
             SELECT
               'remindersLists',
               "new"."id"
-            ON CONFLICT("zoneName", "recordName") DO UPDATE SET
+            ON CONFLICT("recordName") DO UPDATE SET
               "userModificationDate" = datetime('subsec');
           END
           """,
@@ -161,7 +161,7 @@ extension BaseCloudKitTests {
           CREATE TRIGGER "sharing_grdb_cloudkit_remindersLists_metadataDeletes"
           AFTER DELETE ON "remindersLists" FOR EACH ROW BEGIN
             DELETE FROM "sharing_grdb_cloudkit_metadata"
-            WHERE "zoneName" = 'remindersLists'
+            WHERE "recordType" = 'remindersLists'
             AND "recordName" = "old"."id";
           END
           """
@@ -181,12 +181,7 @@ extension BaseCloudKitTests {
 
       try await syncEngine.setUpSyncEngine()
       try await Task.sleep(for: .seconds(0.1))
-      underlyingSyncEngine.assertFetchChangesScopes([
-        .zoneIDs([
-          CKRecordZone.ID(RemindersList.self),
-          CKRecordZone.ID(Reminder.self),
-        ])
-      ])
+      underlyingSyncEngine.assertFetchChangesScopes([.all])
       let triggersAfterReSetUp = try await database.write { db in
         try #sql("SELECT sql FROM sqlite_temp_master", as: String?.self).fetchAll(db)
       }

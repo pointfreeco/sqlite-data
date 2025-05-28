@@ -16,8 +16,8 @@ extension BaseCloudKitTests {
       assertInlineSnapshot(of: zones, as: .customDump) {
         #"""
         [
-          [0]: Zone(
-            zoneName: "remindersLists",
+          [0]: RecordType(
+            tableName: "remindersLists",
             schema: """
               CREATE TABLE "remindersLists" (
                 "id" TEXT PRIMARY KEY DEFAULT (uuid()),
@@ -25,8 +25,8 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [1]: Zone(
-            zoneName: "reminders",
+          [1]: RecordType(
+            tableName: "reminders",
             schema: """
               CREATE TABLE "reminders" (
                 "id" TEXT PRIMARY KEY DEFAULT (uuid()),
@@ -47,12 +47,7 @@ extension BaseCloudKitTests {
       try await syncEngine.setUpSyncEngine()
       // TODO: it would be nice if `setUpSyncEngine` was async
       try await Task.sleep(for: .seconds(0.1))
-      underlyingSyncEngine.assertFetchChangesScopes([
-        .zoneIDs([
-          CKRecordZone.ID(RemindersList.self),
-          CKRecordZone.ID(Reminder.self),
-        ])
-      ])
+      underlyingSyncEngine.assertFetchChangesScopes([.all])
 
       try await database.write { db in
         try db.seed {
@@ -60,12 +55,12 @@ extension BaseCloudKitTests {
         }
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
+        .saveRecord(CKRecord.ID(UUID(1)))
       ])
 
       let record = CKRecord(
         recordType: "remindersLists",
-        recordID: CKRecord.ID(UUID(1), in: RemindersList.self)
+        recordID: CKRecord.ID(UUID(1))
       )
       await syncEngine.handleFetchedRecordZoneChanges(
         modifications: [record],
@@ -96,7 +91,7 @@ extension BaseCloudKitTests {
           .execute(db)
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
+        .saveRecord(CKRecord.ID(UUID(1)))
       ])
       try database.write { db in
         try RemindersList
@@ -105,7 +100,7 @@ extension BaseCloudKitTests {
           .execute(db)
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
+        .saveRecord(CKRecord.ID(UUID(1)))
       ])
       try database.write { db in
         try RemindersList
@@ -114,7 +109,7 @@ extension BaseCloudKitTests {
           .execute(db)
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .deleteRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
+        .deleteRecord(CKRecord.ID(UUID(1)))
       ])
     }
 
@@ -126,12 +121,12 @@ extension BaseCloudKitTests {
         }
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
+        .saveRecord(CKRecord.ID(UUID(1)))
       ])
 
       let record = CKRecord(
         recordType: "remindersLists",
-        recordID: CKRecord.ID(UUID(1), in: RemindersList.self)
+        recordID: CKRecord.ID(UUID(1))
       )
       let userModificationDate = try #require(
         try await database.write { db in
@@ -155,6 +150,7 @@ extension BaseCloudKitTests {
           try Metadata.find(recordID: record.recordID).fetchOne(db)
         }
       )
+      // TODO: Control dates in SQLite in order to get consistent passing on float comparison
       #expect(metadata.userModificationDate == serverModificationDate)
     }
 
@@ -166,11 +162,11 @@ extension BaseCloudKitTests {
         }
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
+        .saveRecord(CKRecord.ID(UUID(1)))
       ])
       let record = CKRecord(
         recordType: "remindersLists",
-        recordID: CKRecord.ID(UUID(1), in: RemindersList.self)
+        recordID: CKRecord.ID(UUID(1))
       )
       let userModificationDate = try #require(
         try await database.write { db in
@@ -205,12 +201,12 @@ extension BaseCloudKitTests {
         }
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1), in: RemindersList.self))
+        .saveRecord(CKRecord.ID(UUID(1)))
       ])
 
       let record = CKRecord(
         recordType: "remindersLists",
-        recordID: CKRecord.ID(UUID(1), in: RemindersList.self)
+        recordID: CKRecord.ID(UUID(1))
       )
       await syncEngine.handleFetchedRecordZoneChanges(
         modifications: [],

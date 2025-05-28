@@ -4,21 +4,11 @@ import CustomDump
 import SharingGRDBCore
 
 extension CKRecord.ID {
-  convenience init<T: PrimaryKeyedTable>(
-    _ id: T.TableColumns.PrimaryKey,
-    in table: T.Type
-  )
-  where T.TableColumns.PrimaryKey == UUID {
+  convenience init(_ id: UUID) {
     self.init(
       recordName: id.uuidString.lowercased(),
-      zoneID: CKRecordZone.ID(zoneName: T.tableName)
+      zoneID: SyncEngine.defaultZone.zoneID
     )
-  }
-}
-
-extension CKRecordZone.ID {
-  convenience init<T: PrimaryKeyedTable>(_ table: T.Type) {
-    self.init(zoneName: T.tableName)
   }
 }
 
