@@ -1,4 +1,5 @@
 import CasePaths
+import CloudKit
 import SharingGRDB
 import SwiftUI
 
@@ -11,6 +12,7 @@ struct RemindersDetailView: View {
   @State var isNewReminderSheetPresented = false
   @State var isNavigationTitleVisible = false
   @State var navigationTitleHeight: CGFloat = 36
+  @State var isSharePresented = false
 
   @Dependency(\.defaultDatabase) private var database
 
@@ -126,6 +128,18 @@ struct RemindersDetailView: View {
           Image(systemName: "ellipsis.circle")
         }
       }
+      if let remindersList = detailType.list {
+        ToolbarItem {
+          Button {
+            isSharePresented = true
+          } label: {
+            Image(systemName: "square.and.arrow.up")
+          }
+          .sheet(isPresented: $isSharePresented) {
+            CloudSharingView(remindersList)
+          }
+        }
+      }
     }
   }
 
@@ -140,7 +154,7 @@ struct RemindersDetailView: View {
             let ids = Array(ids.enumerated())
             let (first, rest) = (ids.first!, ids.dropFirst())
             $0.position =
-            rest
+              rest
               .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
                 cases.when(id.element, then: id.offset)
               }
@@ -185,7 +199,7 @@ struct RemindersDetailView: View {
 
   fileprivate var remindersQuery: some StructuredQueriesCore.Statement<ReminderState> {
     let query =
-    Reminder
+      Reminder
       .where {
         if !showCompleted {
           !$0.isCompleted

@@ -25,6 +25,9 @@ public final actor SyncEngine {
   fileprivate let parentKeyByTableName: [String: ForeignKey]
   var underlyingSyncEngine: (any CKSyncEngineProtocol)!
   let defaultSyncEngine: (any DatabaseReader, SyncEngine) -> any CKSyncEngineProtocol
+  let _container: any Sendable
+
+  nonisolated var container: CKContainer { _container as! CKContainer }
 
   public init(
     container: CKContainer,
@@ -33,6 +36,7 @@ public final actor SyncEngine {
     tables: [any PrimaryKeyedTable.Type]
   ) throws {
     try self.init(
+      container: container,
       defaultSyncEngine: { database, syncEngine in
         CKSyncEngine(
           CKSyncEngine.Configuration(
@@ -67,6 +71,7 @@ public final actor SyncEngine {
   }
 
   private init(
+    container: (any Sendable)? = Void?.none,
     defaultSyncEngine: @escaping (any DatabaseReader, SyncEngine) -> any CKSyncEngineProtocol,
     database: any DatabaseWriter,
     logger: Logger,
@@ -80,6 +85,7 @@ public final actor SyncEngine {
       Foreign key support must be disabled to synchronize with CloudKit.
       """
     )
+    self._container = container
     self.defaultSyncEngine = defaultSyncEngine
     self.database = database
     self.logger = logger
@@ -1521,4 +1527,51 @@ extension CKSyncEngine: CKSyncEngineProtocol {
 }
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension CKSyncEngine.State: CKSyncEngineStateProtocol {
+}
+
+
+import UIKit
+extension UICloudSharingController {
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public convenience init<T: PrimaryKeyedTable>(_ record: T)
+  where T.TableColumns.PrimaryKey == UUID
+  {
+    // TODO: Remove UUID constraint by reaching into metadata table
+    // TODO: verify that table has no foreign keys
+    @Dependency(\.defaultSyncEngine) var syncEngine
+    let record = try! syncEngine.database.write { db in
+      return try Metadata
+        .find(
+          recordID: CKRecord.ID.init(
+            recordName: record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased()
+          )
+        )
+        .select(\.lastKnownServerRecord)
+        .fetchOne(db)
+    }
+    self.init(
+      share: CKShare(rootRecord: record!!),
+      container: syncEngine.container
+    )
+  }
+}
+
+import SwiftUI
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+public struct CloudSharingView<T: PrimaryKeyedTable>: UIViewControllerRepresentable where T.TableColumns.PrimaryKey == UUID {
+  let record: T
+  public init(_ record: T) {
+    self.record = record
+  }
+
+  public func makeUIViewController(context: Context) -> UICloudSharingController {
+    UICloudSharingController(record)
+  }
+
+  public func updateUIViewController(
+    _ uiViewController: UICloudSharingController,
+    context: Context
+  ) {
+  }
 }
