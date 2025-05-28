@@ -12,6 +12,8 @@ extension DependencyValues {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 public final actor SyncEngine {
+  public static let defaultZone = CKRecordZone(zoneName: "co.pointfree.SharingGRDB.defaultZone")
+
   let database: any DatabaseWriter
   let logger: Logger
   lazy var metadatabase: any DatabaseWriter = try! DatabaseQueue()
@@ -145,13 +147,13 @@ public final actor SyncEngine {
       )
       .fetchAll(db)
     }
-    let recordTypesToFetch = currentRecordTypes.filter { currentZone in
+    let recordTypesToFetch = currentRecordTypes.filter { currentRecordType in
       guard
-        let existingZone = previousRecordTypes.first(where: { previousZone in
-          currentZone.tableName == previousZone.tableName
+        let existingRecordType = previousRecordTypes.first(where: { previousRecordType in
+          currentRecordType.tableName == previousRecordType.tableName
         })
       else { return true }
-      return existingZone.schema != currentZone.schema
+      return existingRecordType.schema != currentRecordType.schema
     }
     if !recordTypesToFetch.isEmpty {
       // TODO: Should we avoid this unstructured task by making 'setUpSyncEngine' async?
@@ -297,7 +299,7 @@ public final actor SyncEngine {
           \(quote: T.tableName, delimiter: .text),
           "new".\(quote: T.columns.primaryKey.name),
           datetime('subsec')
-        ON CONFLICT("recordType", "recordName") DO NOTHING;
+        ON CONFLICT("recordName") DO NOTHING;
       END
       """
     )
@@ -312,7 +314,7 @@ public final actor SyncEngine {
         SELECT
           \(quote: T.tableName, delimiter: .text),
           "new".\(quote: T.columns.primaryKey.name)
-        ON CONFLICT("recordType", "recordName") DO UPDATE SET
+        ON CONFLICT("recordName") DO UPDATE SET
           "userModificationDate" = datetime('subsec');
       END
       """
@@ -681,8 +683,12 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
       #endif
 
-      let metadata = await metadataFor(recordID: recordID)
-      guard let table = tablesByName[recordID.zoneID.zoneName]
+      guard let metadata = await metadataFor(recordID: recordID)
+      else {
+        syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+        return nil
+      }
+      guard let table = tablesByName[metadata.recordType]
       else {
         reportIssue("")
         syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
@@ -705,14 +711,14 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
 
         let record =
-          metadata?.lastKnownServerRecord
+          metadata.lastKnownServerRecord
           ?? CKRecord(
-            recordType: recordID.zoneID.zoneName,
+            recordType: metadata.recordType,
             recordID: recordID
           )
         record.update(
           with: T(queryOutput: row),
-          userModificationDate: metadata?.userModificationDate
+          userModificationDate: metadata.userModificationDate
         )
         await refreshLastKnownServerRecord(record)
         sentRecord = recordID
@@ -726,10 +732,8 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) {
     switch event.changeType {
     case .signIn:
+      underlyingSyncEngine.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
       for table in tables {
-        underlyingSyncEngine.state.add(
-          pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneName: table.tableName))]
-        )
         withErrorReporting(.sharingGRDBCloudKitFailure) {
           let names: [String] = try database.read { db in
             func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String] {
@@ -744,7 +748,7 @@ extension SyncEngine: CKSyncEngineDelegate {
               .saveRecord(
                 CKRecord.ID(
                   recordName: $0,
-                  zoneID: CKRecordZone(zoneName: table.tableName).zoneID
+                  zoneID: Self.defaultZone.zoneID
                 )
               )
             }
@@ -772,37 +776,40 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func handleFetchedDatabaseChanges(_ event: CKSyncEngine.Event.FetchedDatabaseChanges) {
-    withErrorReporting(.sharingGRDBCloudKitFailure) {
-      try database.write { db in
-        for deletion in event.deletions {
-          if let table = tablesByName[deletion.zoneID.zoneName] {
-            func open<T: PrimaryKeyedTable>(_: T.Type) {
-              withErrorReporting(.sharingGRDBCloudKitFailure) {
-                try T.delete().execute(db)
-              }
-            }
-            open(table)
-          }
-        }
-
-        // TODO: Deal with modifications?
-        _ = event.modifications
-      }
-    }
+    // TODO: Come back to this once we have zoneName in the metadata table.
+    //    $isUpdatingWithServerRecord.withValue(true) {
+    //      withErrorReporting(.sharingGRDBCloudKitFailure) {
+    //        try database.write { db in
+    //          for deletion in event.deletions {
+    //            if let table = tablesByName[deletion.zoneID.zoneName] {
+    //              func open<T: PrimaryKeyedTable>(_: T.Type) {
+    //                withErrorReporting(.sharingGRDBCloudKitFailure) {
+    //                  try T.delete().execute(db)
+    //                }
+    //              }
+    //              open(table)
+    //            }
+    //          }
+    //
+    //          // TODO: Deal with modifications?
+    //          _ = event.modifications
+    //        }
+    //      }
+    //    }
   }
 
   package func handleFetchedRecordZoneChanges(
     modifications: [CKRecord],
     deletions: [(CKRecord.ID, CKRecord.RecordType)]
   ) {
-    for modifiedRecord in modifications {
-      mergeFromServerRecord(modifiedRecord)
-      refreshLastKnownServerRecord(modifiedRecord)
-    }
-
     $isUpdatingWithServerRecord.withValue(true) {
-      for (recordID, _) in deletions {
-        if let table = tablesByName[recordID.zoneID.zoneName] {
+      for modifiedRecord in modifications {
+        mergeFromServerRecord(modifiedRecord)
+        refreshLastKnownServerRecord(modifiedRecord)
+      }
+
+      for (recordID, recordType) in deletions {
+        if let table = tablesByName[recordType] {
           func open<T: PrimaryKeyedTable>(_: T.Type) {
             withErrorReporting(.sharingGRDBCloudKitFailure) {
               try database.write { db in
@@ -817,7 +824,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           reportIssue(
             .sharingGRDBCloudKitFailure.appending(
               """
-              : No table to delete from: "\(recordID.zoneID.zoneName)"
+              : No table to delete from: "\(recordType)"
               """
             )
           )
@@ -876,6 +883,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         continue
       }
     }
+    // TODO: handle event.failedRecordDeletes ? look at apple sample code
   }
 
   private func mergeFromServerRecord(_ record: CKRecord) {
@@ -885,12 +893,12 @@ extension SyncEngine: CKSyncEngineDelegate {
           try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(db)
         }
         ?? nil
-      guard let table = tablesByName[record.recordID.zoneID.zoneName]
+      guard let table = tablesByName[record.recordType]
       else {
         reportIssue(
           .sharingGRDBCloudKitFailure.appending(
             """
-            : No table to merge from: "\(record.recordID.zoneID.zoneName)"
+            : No table to merge from: "\(record.recordType)"
             """
           )
         )
@@ -993,14 +1001,21 @@ extension SyncEngine: TestDependencyKey {
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension DatabaseFunction {
   fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
-    Self("didUpdate") {
-      await syncEngine.didUpdate(recordName: $0, zoneName: $1)
+    Self("didUpdate") { recordName, _ in
+      await syncEngine
+        .didUpdate(
+          recordName: recordName,
+          zoneName: SyncEngine.defaultZone.zoneID.zoneName
+        )
     }
   }
 
   fileprivate static func willDelete(syncEngine: SyncEngine) -> Self {
-    return Self("willDelete") {
-      await syncEngine.willDelete(recordName: $0, zoneName: $1)
+    return Self("willDelete") { recordName, _ in
+      await syncEngine.willDelete(
+        recordName: recordName,
+        zoneName: SyncEngine.defaultZone.zoneID.zoneName
+      )
     }
   }
 
@@ -1068,6 +1083,7 @@ private struct ForeignKey: QueryDecodable, QueryRepresentable {
   }
 }
 
+// TODO: Rename to isUpdatingFromServer / isHandlingServerUpdates
 @TaskLocal private var isUpdatingWithServerRecord = false
 
 private struct Trigger<Base: PrimaryKeyedTable> {
@@ -1250,28 +1266,28 @@ extension Logger {
         """
       )
     case .fetchedRecordZoneChanges(let event):
-      let deletionsByZoneName = Dictionary(
+      let deletionsByRecordType = Dictionary(
         grouping: event.deletions,
-        by: \.recordID.zoneID.zoneName
+        by: \.recordType
       )
-      let zoneDeletions = deletionsByZoneName.keys.sorted()
-        .map { zoneName in "\(zoneName) (\(deletionsByZoneName[zoneName]!.count))" }
+      let recordTypeDeletions = deletionsByRecordType.keys.sorted()
+        .map { recordType in "\(recordType) (\(deletionsByRecordType[recordType]!.count))" }
         .joined(separator: ", ")
       let deletions =
         event.deletions.isEmpty
-        ? "⚪️ No deletions" : "✅ Records deleted (\(event.deletions.count)): \(zoneDeletions)"
+        ? "⚪️ No deletions" : "✅ Records deleted (\(event.deletions.count)): \(recordTypeDeletions)"
 
-      let modificationsByZoneName = Dictionary(
+      let modificationsByRecordType = Dictionary(
         grouping: event.modifications,
-        by: \.record.recordID.zoneID.zoneName
+        by: \.record.recordType
       )
-      let zoneModifications = modificationsByZoneName.keys.sorted()
-        .map { zoneName in "\(zoneName) (\(modificationsByZoneName[zoneName]!.count))" }
+      let recordTypeModifications = modificationsByRecordType.keys.sorted()
+        .map { recordType in "\(recordType) (\(modificationsByRecordType[recordType]!.count))" }
         .joined(separator: ", ")
       let modifications =
         event.modifications.isEmpty
         ? "⚪️ No modifications"
-        : "✅ Records modified (\(event.modifications.count)): \(zoneModifications)"
+        : "✅ Records modified (\(event.modifications.count)): \(recordTypeModifications)"
 
       debug(
         """
@@ -1327,22 +1343,13 @@ extension Logger {
         """
       )
     case .sentRecordZoneChanges(let event):
-      let savedRecordsByZoneName = Dictionary(
+      let savedRecordsByRecordType = Dictionary(
         grouping: event.savedRecords,
-        by: \.recordID.zoneID.zoneName
+        by: \.recordType
       )
-      let savedRecords = savedRecordsByZoneName.keys
+      let savedRecords = savedRecordsByRecordType.keys
         .sorted()
-        .map { "\($0) (\(savedRecordsByZoneName[$0]!.count))" }
-        .joined(separator: ", ")
-
-      let deletedRecordsByZoneName = Dictionary(
-        grouping: event.deletedRecordIDs,
-        by: \.zoneID.zoneName
-      )
-      let deletedRecords = deletedRecordsByZoneName.keys
-        .sorted()
-        .map { "\($0) (\(deletedRecordsByZoneName[$0]!.count))" }
+        .map { "\($0) (\(savedRecordsByRecordType[$0]!.count))" }
         .joined(separator: ", ")
 
       let failedRecordSavesByZoneName = Dictionary(
@@ -1354,22 +1361,13 @@ extension Logger {
         .map { "\($0) (\(failedRecordSavesByZoneName[$0]!.count))" }
         .joined(separator: ", ")
 
-      let failedRecordDeletesByZoneName = Dictionary(
-        grouping: event.failedRecordDeletes.keys,
-        by: \.zoneID.zoneName
-      )
-      let failedRecordDeletes = failedRecordDeletesByZoneName.keys
-        .sorted()
-        .map { "\($0) (\(failedRecordDeletesByZoneName[$0]!.count))" }
-        .joined(separator: ", ")
-
       debug(
         """
         \(prefix) sentRecordZoneChanges
-          \(savedRecordsByZoneName.isEmpty ? "⚪️ No records saved" : "✅ Saved records: \(savedRecords)")
-          \(deletedRecordsByZoneName.isEmpty ? "⚪️ No records deleted" : "✅ Deleted records: \(deletedRecords)")
+          \(savedRecordsByRecordType.isEmpty ? "⚪️ No records saved" : "✅ Saved records: \(savedRecords)")
+          \(event.deletedRecordIDs.isEmpty ? "⚪️ No records deleted" : "✅ Deleted records (\(event.deletedRecordIDs.count))")
           \(failedRecordSavesByZoneName.isEmpty ? "⚪️ No records failed save" : "🛑 Records failed save: \(failedRecordSaves)")
-          \(failedRecordDeletesByZoneName.isEmpty ? "⚪️ No records failed delete" : "🛑 Records failed delete: \(failedRecordDeletes)")
+          \(event.failedRecordDeletes.isEmpty ? "⚪️ No records failed delete" : "🛑 Records failed delete (\(event.failedRecordDeletes.count))")
         """
       )
     case .willFetchChanges(let event):
