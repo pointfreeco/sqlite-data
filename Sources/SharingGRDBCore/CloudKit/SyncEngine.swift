@@ -92,6 +92,7 @@ public final actor SyncEngine {
     defer { underlyingSyncEngine = defaultSyncEngine(metadatabase, self) }
 
     metadatabase = try defaultMetadatabase
+    // TODO: go towards idempotent migrations instead of GRDB migrator by the end of all of this
     var migrator = DatabaseMigrator()
     // TODO: do we want this?
     #if DEBUG
@@ -100,7 +101,7 @@ public final actor SyncEngine {
     migrator.registerMigration("Create Metadata Tables") { db in
       try SQLQueryExpression(
         """
-        CREATE TABLE "sharing_grdb_cloudkit_metadata" (
+        CREATE TABLE IF NOT EXISTS "sharing_grdb_cloudkit_metadata" (
           "zoneName" TEXT NOT NULL,
           "recordName" TEXT NOT NULL,
           "lastKnownServerRecord" BLOB,
@@ -112,8 +113,8 @@ public final actor SyncEngine {
       .execute(db)
       try SQLQueryExpression(
         """
-        CREATE TABLE "sharing_grdb_cloudkit_zones" (
-          "zoneName" TEXT PRIMARY KEY NOT NULL,
+        CREATE TABLE IF NOT EXISTS "sharing_grdb_cloudkit_recordTypes" (
+          "tableName" TEXT PRIMARY KEY NOT NULL,
           "schema" TEXT NOT NULL
         ) STRICT
         """
@@ -121,7 +122,7 @@ public final actor SyncEngine {
       .execute(db)
       try SQLQueryExpression(
         """
-        CREATE TABLE "sharing_grdb_cloudkit_stateSerialization" (
+        CREATE TABLE IF NOT EXISTS "sharing_grdb_cloudkit_stateSerialization" (
           "id" INTEGER PRIMARY KEY ON CONFLICT REPLACE CHECK ("id" = 1),
           "data" TEXT NOT NULL
         ) STRICT
@@ -130,10 +131,10 @@ public final actor SyncEngine {
       .execute(db)
     }
     try migrator.migrate(metadatabase)
-    let previousZones = try metadatabase.read { db in
-      try Zone.all.fetchAll(db)
+    let previousRecordTypes = try metadatabase.read { db in
+      try RecordType.all.fetchAll(db)
     }
-    let currentZones = try database.read { db in
+    let currentRecordTypes = try database.read { db in
       try SQLQueryExpression(
         """
         SELECT "name", "sql" 
@@ -141,32 +142,30 @@ public final actor SyncEngine {
         WHERE "type" = 'table'
         AND "name" IN (\(tablesByName.keys.map(\.queryFragment).joined(separator: ", ")))
         """,
-        as: Zone.self
+        as: RecordType.self
       )
       .fetchAll(db)
     }
-    let zonesToFetch = currentZones.filter { currentZone in
+    let recordTypesToFetch = currentRecordTypes.filter { currentZone in
       guard
-        let existingZone = previousZones.first(where: { previousZone in
-          currentZone.zoneName == previousZone.zoneName
+        let existingZone = previousRecordTypes.first(where: { previousZone in
+          currentZone.tableName == previousZone.tableName
         })
       else { return true }
       return existingZone.schema != currentZone.schema
     }
-    if !zonesToFetch.isEmpty {
+    if !recordTypesToFetch.isEmpty {
       // TODO: Should we avoid this unstructured task by making 'setUpSyncEngine' async?
       Task {
         await withErrorReporting(.sharingGRDBCloudKitFailure) {
-          try await underlyingSyncEngine.fetchChanges(
-            CKSyncEngine.FetchChangesOptions(
-              scope: .zoneIDs(zonesToFetch.map { CKRecordZone(zoneName: $0.zoneName).zoneID })
-            )
-          )
           try await metadatabase.write { db in
-            for zone in zonesToFetch {
-              try Zone.upsert(Zone.Draft(zone)).execute(db)
+            for recordType in recordTypesToFetch {
+              try RecordType.upsert(RecordType.Draft(recordType)).execute(db)
             }
           }
+        }
+        await withErrorReporting(.sharingGRDBCloudKitFailure) {
+          try await underlyingSyncEngine.fetchChanges()
         }
       }
     }
@@ -766,7 +765,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     withErrorReporting(.sharingGRDBCloudKitFailure) {
       try database.write { db in
         try StateSerialization.insert(
-          StateSerialization(data: dump(event.stateSerialization, name: "2.StateSerialization"))
+          StateSerialization(data: event.stateSerialization)
         )
         .execute(db)
       }

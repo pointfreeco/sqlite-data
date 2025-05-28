@@ -11,7 +11,7 @@ extension BaseCloudKitTests {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func setUp() throws {
       let zones = try database.write { db in
-        try Zone.all.fetchAll(db)
+        try RecordType.all.fetchAll(db)
       }
       assertInlineSnapshot(of: zones, as: .customDump) {
         #"""
