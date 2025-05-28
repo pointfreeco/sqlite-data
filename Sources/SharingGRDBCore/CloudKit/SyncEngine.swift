@@ -674,9 +674,13 @@ extension SyncEngine: CKSyncEngineDelegate {
     _ context: CKSyncEngine.SendChangesContext,
     syncEngine: CKSyncEngine
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-    let changes = syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
+    let changes = Array( syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
+      .reversed()
+                         )
     guard !changes.isEmpty
-    else { return nil }
+    else {
+      return nil
+    }
 
     #if DEBUG
       struct State {
