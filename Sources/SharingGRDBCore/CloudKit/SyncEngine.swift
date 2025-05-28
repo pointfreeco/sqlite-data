@@ -347,14 +347,16 @@ public final actor SyncEngine {
         "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
       AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
         INSERT INTO \(Metadata.self)
-          ("recordType", "recordName", "zoneName", "ownerName")
+          ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName")
         SELECT
           \(quote: T.tableName, delimiter: .text),
           "new".\(quote: T.columns.primaryKey.name),
           \(quote: Self.defaultZone.zoneID.zoneName, delimiter: .text),
-          \(quote: Self.defaultZone.zoneID.ownerName, delimiter: .text)
+          \(quote: Self.defaultZone.zoneID.ownerName, delimiter: .text),
+          \(raw: from.map { #""new"."\#($0)""# } ?? "NULL")
         ON CONFLICT("recordName") DO UPDATE SET
-          "userModificationDate" = datetime('subsec');
+          "userModificationDate" = datetime('subsec'),
+          "parentRecordName" = "excluded"."parentRecordName";
       END
       """
     )
