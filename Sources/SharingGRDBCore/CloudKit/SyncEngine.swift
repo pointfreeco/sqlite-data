@@ -757,6 +757,15 @@ extension SyncEngine: CKSyncEngineDelegate {
             recordType: metadata.recordType,
             recordID: recordID
           )
+        record.parent = metadata.parentRecordName.map { parentRecordName in
+          CKRecord.Reference(
+            recordID: CKRecord.ID(
+              recordName: parentRecordName,
+              zoneID: record.recordID.zoneID
+            ),
+            action: .none
+          )
+        }
         record.update(
           with: T(queryOutput: row),
           userModificationDate: metadata.userModificationDate
