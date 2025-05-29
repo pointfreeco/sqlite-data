@@ -124,7 +124,7 @@ public final actor SyncEngine {
     migrator.registerMigration("Create Metadata Tables") { db in
       try SQLQueryExpression(
         """
-        CREATE TABLE IF NOT EXISTS "sharing_grdb_cloudkit_metadata" (
+        CREATE TABLE IF NOT EXISTS "\(raw: .sharingGRDBCloudKitSchemaName)_metadata" (
           "recordType" TEXT NOT NULL,
           "recordName" TEXT NOT NULL PRIMARY KEY,
           "zoneName" TEXT NOT NULL,
@@ -140,14 +140,14 @@ public final actor SyncEngine {
       // TODO: Do we ever query for "parentRecordName"? should we add an index?
       try SQLQueryExpression(
         """
-        CREATE INDEX IF NOT EXISTS "sharing_grdb_cloudkit_metadata_zoneName_ownerName"
-        ON "sharing_grdb_cloudkit_metadata" ("zoneName", "ownerName")
+        CREATE INDEX IF NOT EXISTS "\(raw: .sharingGRDBCloudKitSchemaName)_metadata_zoneName_ownerName"
+        ON "\(raw: .sharingGRDBCloudKitSchemaName)_metadata" ("zoneName", "ownerName")
         """
       )
       .execute(db)
       try SQLQueryExpression(
         """
-        CREATE TABLE IF NOT EXISTS "sharing_grdb_cloudkit_recordTypes" (
+        CREATE TABLE IF NOT EXISTS "\(raw: .sharingGRDBCloudKitSchemaName)_recordTypes" (
           "tableName" TEXT NOT NULL PRIMARY KEY,
           "schema" TEXT NOT NULL
         ) STRICT
@@ -156,7 +156,7 @@ public final actor SyncEngine {
       .execute(db)
       try SQLQueryExpression(
         """
-        CREATE TABLE IF NOT EXISTS "sharing_grdb_cloudkit_stateSerialization" (
+        CREATE TABLE IF NOT EXISTS "\(raw: .sharingGRDBCloudKitSchemaName)_stateSerialization" (
           "id" INTEGER NOT NULL PRIMARY KEY ON CONFLICT REPLACE CHECK ("id" = 1),
           "data" TEXT NOT NULL
         ) STRICT
@@ -330,7 +330,7 @@ public final actor SyncEngine {
     try SQLQueryExpression(
       """
       CREATE TEMPORARY TRIGGER
-        "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
+        "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataInserts"
       AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
         INSERT INTO \(Metadata.self)
           ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName", "userModificationDate")
@@ -349,7 +349,7 @@ public final actor SyncEngine {
     try SQLQueryExpression(
       """
       CREATE TEMPORARY TRIGGER
-        "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
+        "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataUpdates"
       AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
         INSERT INTO \(Metadata.self)
           ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName")
@@ -369,7 +369,7 @@ public final actor SyncEngine {
     try SQLQueryExpression(
       """
       CREATE TEMPORARY TRIGGER
-        "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataDeletes"
+        "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataDeletes"
       AFTER DELETE ON \(T.self) FOR EACH ROW BEGIN
         DELETE FROM \(Metadata.self)
         WHERE "recordType" = \(quote: T.tableName, delimiter: .text)
@@ -386,7 +386,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           CREATE TEMPORARY TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
           AFTER DELETE ON \(quote: foreignKey.table)
           FOR EACH ROW BEGIN
             DELETE FROM \(table)
@@ -420,7 +420,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           CREATE TEMPORARY TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
           AFTER DELETE ON \(quote: foreignKey.table)
           FOR EACH ROW BEGIN
             UPDATE \(table)
@@ -435,7 +435,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           CREATE TEMPORARY TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
           AFTER DELETE ON \(quote: foreignKey.table)
           FOR EACH ROW BEGIN
             UPDATE \(table)
@@ -455,7 +455,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           CREATE TEMPORARY TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
           AFTER UPDATE ON \(quote: foreignKey.table)
           FOR EACH ROW BEGIN
             UPDATE \(T.self)
@@ -490,7 +490,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           CREATE TEMPORARY TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
           AFTER UPDATE ON \(quote: foreignKey.table)
           FOR EACH ROW BEGIN
             UPDATE \(table)
@@ -505,7 +505,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           CREATE TEMPORARY TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
           AFTER UPDATE ON \(quote: foreignKey.table)
           FOR EACH ROW BEGIN
             UPDATE \(T.self)
@@ -530,7 +530,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           DROP TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
           """
         )
         .execute(db)
@@ -542,7 +542,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           DROP TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
           """
         )
         .execute(db)
@@ -551,7 +551,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           DROP TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
           """
         )
         .execute(db)
@@ -565,7 +565,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           DROP TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
           """
         )
         .execute(db)
@@ -577,7 +577,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           DROP TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
           """
         )
         .execute(db)
@@ -586,7 +586,7 @@ public final actor SyncEngine {
         try SQLQueryExpression(
           """
           DROP TRIGGER
-            "sharing_grdb_cloudkit_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
+            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
           """
         )
         .execute(db)
@@ -597,19 +597,19 @@ public final actor SyncEngine {
     }
     try SQLQueryExpression(
       """
-      DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataDeletes"
+      DROP TRIGGER "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataDeletes"
       """
     )
     .execute(db)
     try SQLQueryExpression(
       """
-      DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataUpdates"
+      DROP TRIGGER "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataUpdates"
       """
     )
     .execute(db)
     try SQLQueryExpression(
       """
-      DROP TRIGGER "sharing_grdb_cloudkit_\(raw: T.tableName)_metadataInserts"
+      DROP TRIGGER "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataInserts"
       """
     )
     .execute(db)
@@ -1077,7 +1077,7 @@ extension DatabaseFunction {
   }
 
   fileprivate static var isUpdatingWithServerRecord: Self {
-    Self("isUpdatingWithServerRecord", argumentCount: 0) { _ in
+    Self(.sharingGRDBCloudKitSchemaName + "_" + "isUpdatingWithServerRecord", argumentCount: 0) { _ in
       SharingGRDBCore.isUpdatingWithServerRecord
     }
   }
@@ -1086,7 +1086,7 @@ extension DatabaseFunction {
     _ name: String,
     function: @escaping @Sendable (String, String) async -> Void
   ) {
-    self.init(name, argumentCount: 2) { arguments in
+    self.init(.sharingGRDBCloudKitSchemaName + "_" + name, argumentCount: 2) { arguments in
       guard
         let tableName = String.fromDatabaseValue(arguments[0]),
         let id = String.fromDatabaseValue(arguments[1])
@@ -1175,7 +1175,7 @@ private struct Trigger<Base: PrimaryKeyedTable> {
   }
 
   var name: QueryFragment {
-    "\(quote: "sharing_grdb_cloudkit_\(operation.rawValue.string.lowercased())_\(Base.tableName)")"
+    "\(quote: "\(String.sharingGRDBCloudKitSchemaName)_\(operation.rawValue.string.lowercased())_\(Base.tableName)")"
   }
 
   var create: some StructuredQueriesCore.Statement<Void> {
@@ -1187,7 +1187,7 @@ private struct Trigger<Base: PrimaryKeyedTable> {
           \(quote: operation == .delete ? "old" : "new").\(quote: Base.columns.primaryKey.name),
           \(quote: Base.tableName, delimiter: .text)
         )
-        WHERE NOT isUpdatingWithServerRecord();
+        WHERE NOT \(raw: String.sharingGRDBCloudKitSchemaName)_isUpdatingWithServerRecord();
       END
       """
     )
@@ -1250,7 +1250,7 @@ extension Metadata {
 }
 
 extension String {
-  fileprivate static let sharingGRDBCloudKitSchemaName = "sharing_grdb_icloud"
+  package static let sharingGRDBCloudKitSchemaName = "sqlitedata_icloud"
   fileprivate static let sharingGRDBCloudKitFailure = "SharingGRDB CloudKit Failure"
 }
 
@@ -1285,13 +1285,13 @@ extension DatabaseWriter where Self == DatabasePool {
 extension URL {
   fileprivate static func metadatabase(container: CKContainer) -> Self {
     applicationSupportDirectory.appending(
-      component: "\(container.containerIdentifier.map { "\($0)." } ?? "")sharing-grdb-icloud.sqlite"
+      component: "\(container.containerIdentifier.map { "\($0)." } ?? "")sqlite-data-icloud.sqlite"
     )
   }
 }
 
 @available(iOS 14, macOS 11, tvOS 14, watchOS 7, *)
-private let logger = Logger(subsystem: "SharingGRDB", category: "CloudKit")
+private let logger = Logger(subsystem: "SQLiteData", category: "CloudKit")
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Logger {

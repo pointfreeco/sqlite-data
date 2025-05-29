@@ -1,7 +1,7 @@
 import CloudKit
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-// @Table("sharing_grdb_cloudkit_metadata")
+// @Table("\(String.sharingGRDBCloudKitSchemaName)_metadata")
 package struct Metadata {
   package var recordType: String
   package var recordName: String
@@ -29,7 +29,7 @@ package struct Metadata {
     }
   }
   public static let columns = TableColumns()
-  public static let tableName = "sharing_grdb_cloudkit_metadata"
+  public static let tableName = "\(String.sharingGRDBCloudKitSchemaName)_metadata"
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
     let recordType = try decoder.decode(String.self)
     let recordName = try decoder.decode(String.self)

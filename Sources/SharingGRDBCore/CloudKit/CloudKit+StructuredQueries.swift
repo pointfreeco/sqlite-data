@@ -72,7 +72,8 @@ extension CKRecord {
     set { encryptedValues[Self.userModificationDateKey] = newValue }
   }
 
-  private static let userModificationDateKey = "sharing_grdb_cloudkit_userModificationDate"
+  private static let userModificationDateKey =
+    "\(String.sharingGRDBCloudKitSchemaName)_userModificationDate"
 }
 
 extension PrimaryKeyedTable {
@@ -102,7 +103,7 @@ extension CKRecord.ID: @retroactive CustomDumpReflectable {
       self,
       children: [
         "recordName": recordName,
-        "zoneID": zoneID
+        "zoneID": zoneID,
       ],
       displayStyle: .struct
     )
@@ -114,7 +115,7 @@ extension CKRecordZone.ID: @retroactive CustomDumpReflectable {
       self,
       children: [
         "zoneName": zoneName,
-        "ownerName": ownerName
+        "ownerName": ownerName,
       ],
       displayStyle: .struct
     )

@@ -83,30 +83,43 @@ extension BaseCloudKitTests {
       )
 
       let metadata =
-      try await database.write { db in
-        try Metadata.find(recordID: record.recordID).fetchOne(db)
-      }
+        try await database.write { db in
+          try Metadata.find(recordID: record.recordID).fetchOne(db)
+        }
       #expect(metadata != nil)
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func removeFunctionsOnTearDown() async throws {
+    @Test func addAndRemoveFunctions() async throws {
+      let query = #sql(
+        """
+        SELECT name
+        FROM pragma_function_list
+        WHERE name LIKE \(bind: String.sharingGRDBCloudKitSchemaName + "_%")
+        """,
+        as: String.self
+      )
+      assertInlineSnapshot(
+        of: try { try database.write { try query.fetchAll($0) } }(),
+        as: .customDump
+      ) {
+        """
+        [
+          [0]: "sqlitedata_icloud_didupdate",
+          [1]: "sqlitedata_icloud_willdelete",
+          [2]: "sqlitedata_icloud_isupdatingwithserverrecord"
+        ]
+        """
+      }
       try await syncEngine.tearDownSyncEngine()
-      
-      for (function, arguments) in [
-        ("isUpdatingWithServerRecord", ""),
-        ("didUpdate", "'test', 'test'"),
-        ("willUpdate", "'test', 'test'"),
-      ] {
-        let error = await #expect(throws: DatabaseError.self) {
-          try await self.database.write { db in
-            try #sql("SELECT \(raw: function)(\(raw: arguments))").execute(db)
-          }
-        }
-        #expect(
-          try #require(error).localizedDescription.contains("no such function: \(function)"),
-          "Function \(function) was not uninstalled in tear down."
-        )
+
+      assertInlineSnapshot(
+        of: try { try database.write { try query.fetchAll($0) } }(),
+        as: .customDump
+      ) {
+        """
+        []
+        """
       }
     }
 
@@ -162,7 +175,7 @@ extension BaseCloudKitTests {
       )
       let userModificationDate = try #require(
         try await database.write { db in
-          try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(db)!
+          try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(db) ?? nil
         }
       )
 
@@ -202,7 +215,10 @@ extension BaseCloudKitTests {
       )
       let userModificationDate = try #require(
         try await database.write { db in
-          try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(db)!
+          try Metadata
+            .find(recordID: record.recordID)
+            .select(\.userModificationDate)
+            .fetchOne(db) ?? nil
         }
       )
 
@@ -246,7 +262,7 @@ extension BaseCloudKitTests {
       )
       #expect(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchCount(db) } }()
-        == 0
+          == 0
       )
       let metadata = try await database.write { db in
         try Metadata.find(recordID: record.recordID).fetchOne(db)
