@@ -27,6 +27,12 @@ public final actor SyncEngine {
   let defaultSyncEngine: (any DatabaseReader, SyncEngine) -> any CKSyncEngineProtocol
   let _container: any Sendable
 
+  let operationQueue = {
+    let queue = OperationQueue()
+    queue.maxConcurrentOperationCount = 1
+    return queue
+  }()
+
   public init(
     container: CKContainer,
     database: any DatabaseWriter,
@@ -38,7 +44,7 @@ public final actor SyncEngine {
       defaultSyncEngine: { database, syncEngine in
         CKSyncEngine(
           CKSyncEngine.Configuration(
-            database: container.privateCloudDatabase,
+            database: container.sharedCloudDatabase,
             stateSerialization: try? database.read { db in  // TODO: write test for this
               try StateSerialization.all.fetchOne(db)?.data
             },
@@ -631,6 +637,7 @@ public final actor SyncEngine {
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine: CKSyncEngineDelegate {
   public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
+    print("!!!!!", event)
     logger.log(event)
 
     switch event {
@@ -1590,9 +1597,8 @@ extension SyncEngine {
         }
       }
 
-      modifyOperation.database = container.privateCloudDatabase
-      let operationQueue = OperationQueue()
-      operationQueue.maxConcurrentOperationCount = 1
+      modifyOperation.database = container.sharedCloudDatabase
+      // TODO: can this be container.add?
       operationQueue.addOperation(modifyOperation)
     }
 
@@ -1669,3 +1675,41 @@ struct NoCKRecordFound: Error {}
     }
   }
 #endif
+
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncEngine {
+  public nonisolated func userDidAcceptCloudKitShare(with metadata: CKShare.Metadata) {
+    let operation = CKAcceptSharesOperation(shareMetadatas: [metadata])
+    operation.perShareResultBlock = { metadata, result in
+      print(metadata.hierarchicalRootRecordID)
+    }
+    operation.acceptSharesResultBlock = { [weak self] result in
+      guard let self else { return }
+      Task {
+        await withErrorReporting {
+          try await self.underlyingSyncEngine
+            .fetchChanges(
+              .init(
+                scope: .zoneIDs([metadata.hierarchicalRootRecordID!.zoneID]),
+                operationGroup: nil
+              )
+            )
+        }
+      }
+    }
+
+
+    let metadataFetchOperation = CKFetchShareMetadataOperation(shareURLs: [metadata.share.url!])
+    metadataFetchOperation.shouldFetchRootRecord = true
+    metadataFetchOperation.perShareMetadataResultBlock = { url, result in
+      print("!!!")
+    }
+    container.add(metadataFetchOperation)
+
+
+    //operationQueue.addOperation(operation)
+    operation.qualityOfService = .utility
+    container.add(operation)
+  }
+}

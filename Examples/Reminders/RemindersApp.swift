@@ -4,6 +4,7 @@ import SwiftUI
 
 @main
 struct RemindersApp: App {
+  @UIApplicationDelegateAdaptor var delegate: AppDelegate
   @Dependency(\.context) var context
 
   init() {
@@ -32,5 +33,41 @@ struct RemindersApp: App {
         }
       }
     }
+  }
+}
+
+
+import UIKit
+
+class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
+  func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  ) -> Bool {
+    return true
+  }
+
+  func application(
+    _ application: UIApplication,
+    configurationForConnecting connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    let configuration = UISceneConfiguration(
+      name: "Default Configuration",
+      sessionRole: connectingSceneSession.role
+    )
+    configuration.delegateClass = SceneDelegate.self
+    return configuration
+  }
+}
+
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+  var window: UIWindow?
+  func windowScene(
+    _ windowScene: UIWindowScene,
+    userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
+  ) {
+    @Dependency(\.defaultSyncEngine) var syncEngine
+    syncEngine.userDidAcceptCloudKitShare(with: cloudKitShareMetadata)
   }
 }
