@@ -54,6 +54,7 @@ extension BaseCloudKitTests {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tearDownAndReSetUp() async throws {
       try await syncEngine.tearDownSyncEngine()
+
       try await syncEngine.setUpSyncEngine()
       // TODO: it would be nice if `setUpSyncEngine` was async
       try await Task.sleep(for: .seconds(0.1))
@@ -86,6 +87,27 @@ extension BaseCloudKitTests {
         try Metadata.find(recordID: record.recordID).fetchOne(db)
       }
       #expect(metadata != nil)
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func removeFunctionsOnTearDown() async throws {
+      try await syncEngine.tearDownSyncEngine()
+      
+      for (function, arguments) in [
+        ("isUpdatingWithServerRecord", ""),
+        ("didUpdate", "'test', 'test'"),
+        ("willUpdate", "'test', 'test'"),
+      ] {
+        let error = await #expect(throws: DatabaseError.self) {
+          try await self.database.write { db in
+            try #sql("SELECT \(raw: function)(\(raw: arguments))").execute(db)
+          }
+        }
+        #expect(
+          try #require(error).localizedDescription.contains("no such function: \(function)"),
+          "Function \(function) was not uninstalled in tear down."
+        )
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
