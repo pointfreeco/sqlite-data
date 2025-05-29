@@ -22,12 +22,10 @@ public final actor SyncEngine {
   private let metadatabaseURL: URL
   let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
-  fileprivate let parentKeyByTableName: [String: ForeignKey]
+  fileprivate let foreignKeysByTableName: [String: [ForeignKey]]
   var underlyingSyncEngine: (any CKSyncEngineProtocol)!
   let defaultSyncEngine: (any DatabaseReader, SyncEngine) -> any CKSyncEngineProtocol
   let _container: any Sendable
-
-  nonisolated var container: CKContainer { _container as! CKContainer }
 
   public init(
     container: CKContainer,
@@ -92,19 +90,13 @@ public final actor SyncEngine {
     self.metadatabaseURL = metadatabaseURL
     self.tables = tables
     self.tablesByName = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
-    self.parentKeyByTableName = Dictionary(
+    self.foreignKeysByTableName = Dictionary(
       uniqueKeysWithValues: try database.read { db in
-        try tables.compactMap { table -> (String, ForeignKey)? in
-          let foreignKeys = try SQLQueryExpression(
-            """
-            SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: table.tableName)) 
-            """,
-            as: ForeignKey.self
+        try tables.map { table -> (String, [ForeignKey]) in
+          (
+            table.tableName,
+            try ForeignKey.all(table).fetchAll(db)
           )
-          .fetchAll(db)
-          guard foreignKeys.count == 1, let foreignKey = foreignKeys.first
-          else { return nil }
-          return (table.tableName, foreignKey)
         }
       }
     )
@@ -113,6 +105,10 @@ public final actor SyncEngine {
         try await setUpSyncEngine()
       }
     }
+  }
+
+  nonisolated var container: CKContainer {
+    _container as! CKContainer
   }
 
   package func setUpSyncEngine() throws {
@@ -326,7 +322,10 @@ public final actor SyncEngine {
     try Trigger(on: T.self, .before, .delete, select: .willDelete(syncEngine: self)).create
       .execute(db)
 
-    let from = parentKeyByTableName[T.tableName]?.from
+    let from =
+      foreignKeysByTableName[T.tableName]?.count(where: \.notnull) == 1
+    ? foreignKeysByTableName[T.tableName]?.first(where: \.notnull)?.from
+      : nil
 
     try SQLQueryExpression(
       """
@@ -380,13 +379,7 @@ public final actor SyncEngine {
     )
     .execute(db)
 
-    let foreignKeys = try SQLQueryExpression(
-      """
-      SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: T.tableName))
-      """,
-      as: ForeignKey.self
-    )
-    .fetchAll(db)
+    let foreignKeys = foreignKeysByTableName[T.tableName] ?? []
     for foreignKey in foreignKeys {
       switch foreignKey.onDelete {
       case .cascade:
@@ -530,13 +523,7 @@ public final actor SyncEngine {
   }
 
   private func dropTriggers<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
-    let foreignKeys = try SQLQueryExpression(
-      """
-      SELECT \(ForeignKey.columns) FROM pragma_foreign_key_list(\(bind: T.tableName))
-      """,
-      as: ForeignKey.self
-    )
-    .fetchAll(db)
+    let foreignKeys = foreignKeysByTableName[T.tableName] ?? []
     for foreignKey in foreignKeys {
       switch foreignKey.onDelete {
       case .cascade:
@@ -674,11 +661,13 @@ extension SyncEngine: CKSyncEngineDelegate {
     _ context: CKSyncEngine.SendChangesContext,
     syncEngine: CKSyncEngine
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-//    [u,d,u,u,d,d,u,d,u]
-//    [u,u,u,u,d,d,d,d]
+    let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(
+      context.options.scope.contains
+    )
+    guard !allChanges.isEmpty
+    else { return nil }
 
-    let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
-    var allChangesByIsDeleted = Dictionary.init(grouping: allChanges) {
+    var allChangesByIsDeleted = Dictionary(grouping: allChanges) {
       switch $0 {
       case .deleteRecord: true
       case .saveRecord: false
@@ -688,17 +677,6 @@ extension SyncEngine: CKSyncEngineDelegate {
     allChangesByIsDeleted[true]?.reverse()
     let changes = allChangesByIsDeleted.reduce(into: []) { changes, keyValue in
       changes += keyValue.value
-    }
-
-//    let changes = Array(syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
-//      .sorted {
-//        switch ($0, $1) {
-//        case (.saveRecord, .deleteRecord)
-//        }
-//      }
-    guard !changes.isEmpty
-    else {
-      return nil
     }
 
     #if DEBUG
@@ -1130,6 +1108,21 @@ private struct ForeignKey: QueryDecodable, QueryRepresentable {
     case noAction = "NO ACTION"
   }
 
+  static func all<T: StructuredQueriesCore.Table>(
+    _ table: T.Type
+  ) -> some StructuredQueriesCore.Statement<Self>
+  {
+    SQLQueryExpression(
+      """
+      SELECT \(ForeignKey.columns) 
+      FROM pragma_foreign_key_list(\(bind: table.tableName)) AS "foreign_keys"
+      JOIN pragma_table_info(\(bind: table.tableName)) AS "table_info" 
+        ON "foreign_keys"."from" = "table_info"."name"
+      """,
+      as: ForeignKey.self
+    )
+  }
+
   typealias QueryValue = Self
 
   let table: String
@@ -1137,6 +1130,7 @@ private struct ForeignKey: QueryDecodable, QueryRepresentable {
   let to: String
   let onUpdate: Action
   let onDelete: Action
+  let notnull: Bool
 
   init(decoder: inout some QueryDecoder) throws {
     guard
@@ -1144,7 +1138,8 @@ private struct ForeignKey: QueryDecodable, QueryRepresentable {
       let from = try decoder.decode(String.self),
       let to = try decoder.decode(String.self),
       let onUpdate = try decoder.decode(Action.self),
-      let onDelete = try decoder.decode(Action.self)
+      let onDelete = try decoder.decode(Action.self),
+      let notnull = try decoder.decode(Bool.self)
     else {
       throw QueryDecodingError.missingRequiredColumn
     }
@@ -1153,11 +1148,12 @@ private struct ForeignKey: QueryDecodable, QueryRepresentable {
     self.to = to
     self.onUpdate = onUpdate
     self.onDelete = onDelete
+    self.notnull = notnull
   }
 
   static var columns: QueryFragment {
     """
-    "table", "from", "to", "on_update", "on_delete"
+    "table", "from", "to", "on_update", "on_delete", "notnull"
     """
   }
 }
@@ -1560,12 +1556,13 @@ extension SyncEngine {
   ) async throws -> CKShare
   where T.TableColumns.PrimaryKey == UUID {
     let recordName = record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased()
-    let lastKnownServerRecord = try await database.write { db in
-      try Metadata
-        .find(recordID: CKRecord.ID(recordName: recordName))
-        .select(\.lastKnownServerRecord)
-        .fetchOne(db)
-    } ?? nil
+    let lastKnownServerRecord =
+      try await database.write { db in
+        try Metadata
+          .find(recordID: CKRecord.ID(recordName: recordName))
+          .select(\.lastKnownServerRecord)
+          .fetchOne(db)
+      } ?? nil
 
     guard let lastKnownServerRecord
     else {
@@ -1583,7 +1580,8 @@ extension SyncEngine {
       recordsToSave: [share, lastKnownServerRecord],
       recordIDsToDelete: nil
     )
-    try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, any Error>) in
+    try await withUnsafeThrowingContinuation {
+      (continuation: UnsafeContinuation<Void, any Error>) in
       modifyOperation.modifyRecordsCompletionBlock = { records, recordIDs, error in
         if let error = error {
           continuation.resume(throwing: error)
@@ -1604,67 +1602,70 @@ extension SyncEngine {
 
 struct NoCKRecordFound: Error {}
 
-import UIKit
-extension UICloudSharingController {
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public convenience init<T: PrimaryKeyedTable>(_ record: T)
-  where T.TableColumns.PrimaryKey == UUID
-  {
-    // TODO: Remove UUID constraint by reaching into metadata table
-    // TODO: verify that table has no foreign keys
-    @Dependency(\.defaultSyncEngine) var syncEngine
-    let record = try! syncEngine.database.write { db in
-      return try Metadata
-        .find(
-          recordID: CKRecord.ID.init(
-            recordName: record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased()
+#if canImport(UIKit)
+  import UIKit
+  extension UICloudSharingController {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    public convenience init<T: PrimaryKeyedTable>(_ record: T)
+    where T.TableColumns.PrimaryKey == UUID {
+      // TODO: Remove UUID constraint by reaching into metadata table
+      // TODO: verify that table has no foreign keys
+      @Dependency(\.defaultSyncEngine) var syncEngine
+      let record = try! syncEngine.database.write { db in
+        return
+          try Metadata
+          .find(
+            recordID: CKRecord.ID.init(
+              recordName: record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased()
+            )
           )
-        )
-        .select(\.lastKnownServerRecord)
-        .fetchOne(db)
+          .select(\.lastKnownServerRecord)
+          .fetchOne(db)
+      }
+      self.init(
+        share: CKShare(rootRecord: record!!),
+        container: syncEngine.container
+      )
     }
-    self.init(
-      share: CKShare(rootRecord: record!!),
-      container: syncEngine.container
-    )
-  }
-}
-
-import SwiftUI
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-public struct CloudSharingView<T: PrimaryKeyedTable>: UIViewControllerRepresentable where T.TableColumns.PrimaryKey == UUID {
-  let record: T
-  public init(_ record: T) {
-    self.record = record
   }
 
-  public func makeUIViewController(context: Context) -> UICloudSharingController {
-    UICloudSharingController(record)
+  import SwiftUI
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public struct CloudSharingView<T: PrimaryKeyedTable>: UIViewControllerRepresentable
+  where T.TableColumns.PrimaryKey == UUID {
+    let record: T
+    public init(_ record: T) {
+      self.record = record
+    }
+
+    public func makeUIViewController(context: Context) -> UICloudSharingController {
+      UICloudSharingController(record)
+    }
+
+    public func updateUIViewController(
+      _ uiViewController: UICloudSharingController,
+      context: Context
+    ) {
+    }
   }
 
-  public func updateUIViewController(
-    _ uiViewController: UICloudSharingController,
-    context: Context
-  ) {
-  }
-}
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public struct CloudSharingView2: UIViewControllerRepresentable {
+    let share: CKShare
+    public init(share: CKShare) {
+      self.share = share
+    }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-public struct CloudSharingView2: UIViewControllerRepresentable {
-  let share: CKShare
-  public init(share: CKShare) {
-    self.share = share
-  }
+    public func makeUIViewController(context: Context) -> UICloudSharingController {
+      @Dependency(\.defaultSyncEngine) var syncEngine
+      return UICloudSharingController.init(share: share, container: syncEngine.container)
+    }
 
-  public func makeUIViewController(context: Context) -> UICloudSharingController {
-    @Dependency(\.defaultSyncEngine) var syncEngine
-    return UICloudSharingController.init(share: share, container: syncEngine.container)
+    public func updateUIViewController(
+      _ uiViewController: UICloudSharingController,
+      context: Context
+    ) {
+    }
   }
-
-  public func updateUIViewController(
-    _ uiViewController: UICloudSharingController,
-    context: Context
-  ) {
-  }
-}
+#endif

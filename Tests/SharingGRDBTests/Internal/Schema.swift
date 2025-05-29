@@ -3,13 +3,18 @@ import SharingGRDB
 
 @Table struct Reminder: Equatable, Identifiable {
   let id: UUID
+  var assignedUserID: User.ID?
   var title = ""
-  var parentReminderID: Reminder.ID?
+  var parentReminderID: ID?
   var remindersListID: RemindersList.ID
 }
 @Table struct RemindersList: Equatable, Identifiable {
   let id: UUID
   var title = ""
+}
+@Table struct User: Equatable, Identifiable {
+  let id: UUID
+  var name = ""
 }
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
@@ -22,7 +27,7 @@ func database() throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "remindersLists" (
-        "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
         "title" TEXT NOT NULL
       ) STRICT
       """
@@ -30,10 +35,20 @@ func database() throws -> DatabasePool {
     .execute(db)
     try #sql(
       """
+      CREATE TABLE "users" (
+        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+        "name" TEXT NOT NULL
+      ) STRICT
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
       CREATE TABLE "reminders" (
-        "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+        "assignedUserID" TEXT REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE,
         "title" TEXT NOT NULL,
-        "parentReminderID" TEXT REFERENCES "reminders"("id") ON DELETE SET NULL,
+        "parentReminderID" TEXT REFERENCES "reminders"("id") ON DELETE CASCADE ON UPDATE CASCADE, 
         "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT
       """

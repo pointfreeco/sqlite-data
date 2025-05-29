@@ -83,6 +83,7 @@ extension PrimaryKeyedTable {
   }
 }
 
+// TODO: Move to custom-dump?
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension CKRecord: @retroactive CustomDumpReflectable {
   public var customDumpMirror: Mirror {

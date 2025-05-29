@@ -3,7 +3,7 @@ import SharingGRDB
 import SnapshotTesting
 import Testing
 
-@Suite(.snapshots(record: .failed))
+@Suite(.serialized, .snapshots(record: .failed))
 class BaseCloudKitTests: @unchecked Sendable {
   let database: any DatabaseWriter
   private let _syncEngine: any Sendable
@@ -25,13 +25,13 @@ class BaseCloudKitTests: @unchecked Sendable {
     let underlyingSyncEngine = MockSyncEngine(state: MockSyncEngineState())
     self.database = database
     self._underlyingSyncEngine = underlyingSyncEngine
-    _syncEngine = SyncEngine(
+    _syncEngine = try SyncEngine(
       defaultSyncEngine: underlyingSyncEngine,
       database: database,
       metadatabaseURL: URL.temporaryDirectory.appending(
         path: "metadatabase.\(UUID().uuidString).sqlite"
       ),
-      tables: [Reminder.self, RemindersList.self]
+      tables: [Reminder.self, RemindersList.self, User.self]
     )
     try await Task.sleep(for: .seconds(0.1))
     underlyingSyncEngine.assertFetchChangesScopes([.all])

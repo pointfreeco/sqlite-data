@@ -20,18 +20,28 @@ extension BaseCloudKitTests {
             tableName: "remindersLists",
             schema: """
               CREATE TABLE "remindersLists" (
-                "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+                "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
                 "title" TEXT NOT NULL
               ) STRICT
               """
           ),
           [1]: RecordType(
+            tableName: "users",
+            schema: """
+              CREATE TABLE "users" (
+                "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+                "name" TEXT NOT NULL
+              ) STRICT
+              """
+          ),
+          [2]: RecordType(
             tableName: "reminders",
             schema: """
               CREATE TABLE "reminders" (
-                "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+                "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+                "assignedUserID" TEXT REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE,
                 "title" TEXT NOT NULL,
-                "parentReminderID" TEXT REFERENCES "reminders"("id") ON DELETE SET NULL,
+                "parentReminderID" TEXT REFERENCES "reminders"("id") ON DELETE CASCADE ON UPDATE CASCADE, 
                 "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
               ) STRICT
               """
@@ -151,7 +161,7 @@ extension BaseCloudKitTests {
         }
       )
       // TODO: Control dates in SQLite in order to get consistent passing on float comparison
-      #expect(metadata.userModificationDate == serverModificationDate)
+      #expect(abs(metadata.userModificationDate!.timeIntervalSince(serverModificationDate)) < 0.1)
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

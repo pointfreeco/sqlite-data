@@ -49,10 +49,13 @@ extension BaseCloudKitTests {
           CREATE TRIGGER "sharing_grdb_cloudkit_reminders_metadataInserts"
           AFTER INSERT ON "reminders" FOR EACH ROW BEGIN
             INSERT INTO "sharing_grdb_cloudkit_metadata"
-              ("recordType", "recordName", "userModificationDate")
+              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName", "userModificationDate")
             SELECT
               'reminders',
               "new"."id",
+              'co.pointfree.SharingGRDB.defaultZone',
+              '__defaultOwner__',
+              "new"."remindersListID",
               datetime('subsec')
             ON CONFLICT("recordName") DO NOTHING;
           END
@@ -61,12 +64,16 @@ extension BaseCloudKitTests {
           CREATE TRIGGER "sharing_grdb_cloudkit_reminders_metadataUpdates"
           AFTER UPDATE ON "reminders" FOR EACH ROW BEGIN
             INSERT INTO "sharing_grdb_cloudkit_metadata"
-              ("recordType", "recordName")
+              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName")
             SELECT
               'reminders',
-              "new"."id"
+              "new"."id",
+              'co.pointfree.SharingGRDB.defaultZone',
+              '__defaultOwner__',
+              "new"."remindersListID"
             ON CONFLICT("recordName") DO UPDATE SET
-              "userModificationDate" = datetime('subsec');
+              "userModificationDate" = datetime('subsec'),
+              "parentRecordName" = "excluded"."parentRecordName";
           END
           """,
           [5]: """
@@ -95,15 +102,41 @@ extension BaseCloudKitTests {
           END
           """,
           [8]: """
-          CREATE TRIGGER "sharing_grdb_cloudkit_reminders_belongsTo_reminders_onDeleteSetNull"
+          CREATE TRIGGER "sharing_grdb_cloudkit_reminders_belongsTo_reminders_onDeleteCascade"
           AFTER DELETE ON "reminders"
           FOR EACH ROW BEGIN
-            UPDATE "reminders"
-            SET "parentReminderID" = NULL
+            DELETE FROM "reminders"
             WHERE "parentReminderID" = "old"."id";
           END
           """,
           [9]: """
+          CREATE TRIGGER "sharing_grdb_cloudkit_reminders_belongsTo_reminders_onUpdateCascade"
+          AFTER UPDATE ON "reminders"
+          FOR EACH ROW BEGIN
+            UPDATE "reminders"
+            SET "parentReminderID" = "new"."id"
+            WHERE "parentReminderID" = "old"."id";
+          END
+          """,
+          [10]: """
+          CREATE TRIGGER "sharing_grdb_cloudkit_reminders_belongsTo_users_onDeleteSetNull"
+          AFTER DELETE ON "users"
+          FOR EACH ROW BEGIN
+            UPDATE "reminders"
+            SET "assignedUserID" = NULL
+            WHERE "assignedUserID" = "old"."id";
+          END
+          """,
+          [11]: """
+          CREATE TRIGGER "sharing_grdb_cloudkit_reminders_belongsTo_users_onUpdateCascade"
+          AFTER UPDATE ON "users"
+          FOR EACH ROW BEGIN
+            UPDATE "reminders"
+            SET "assignedUserID" = "new"."id"
+            WHERE "assignedUserID" = "old"."id";
+          END
+          """,
+          [12]: """
           CREATE TRIGGER "sharing_grdb_cloudkit_insert_remindersLists"
           AFTER INSERT ON "remindersLists" FOR EACH ROW BEGIN
             SELECT didUpdate(
@@ -113,7 +146,7 @@ extension BaseCloudKitTests {
             WHERE NOT isUpdatingWithServerRecord();
           END
           """,
-          [10]: """
+          [13]: """
           CREATE TRIGGER "sharing_grdb_cloudkit_update_remindersLists"
           AFTER UPDATE ON "remindersLists" FOR EACH ROW BEGIN
             SELECT didUpdate(
@@ -123,7 +156,7 @@ extension BaseCloudKitTests {
             WHERE NOT isUpdatingWithServerRecord();
           END
           """,
-          [11]: """
+          [14]: """
           CREATE TRIGGER "sharing_grdb_cloudkit_delete_remindersLists"
           BEFORE DELETE ON "remindersLists" FOR EACH ROW BEGIN
             SELECT willDelete(
@@ -133,35 +166,111 @@ extension BaseCloudKitTests {
             WHERE NOT isUpdatingWithServerRecord();
           END
           """,
-          [12]: """
+          [15]: """
           CREATE TRIGGER "sharing_grdb_cloudkit_remindersLists_metadataInserts"
           AFTER INSERT ON "remindersLists" FOR EACH ROW BEGIN
             INSERT INTO "sharing_grdb_cloudkit_metadata"
-              ("recordType", "recordName", "userModificationDate")
+              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName", "userModificationDate")
             SELECT
               'remindersLists',
               "new"."id",
+              'co.pointfree.SharingGRDB.defaultZone',
+              '__defaultOwner__',
+              NULL,
               datetime('subsec')
             ON CONFLICT("recordName") DO NOTHING;
           END
           """,
-          [13]: """
+          [16]: """
           CREATE TRIGGER "sharing_grdb_cloudkit_remindersLists_metadataUpdates"
           AFTER UPDATE ON "remindersLists" FOR EACH ROW BEGIN
             INSERT INTO "sharing_grdb_cloudkit_metadata"
-              ("recordType", "recordName")
+              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName")
             SELECT
               'remindersLists',
-              "new"."id"
+              "new"."id",
+              'co.pointfree.SharingGRDB.defaultZone',
+              '__defaultOwner__',
+              NULL
             ON CONFLICT("recordName") DO UPDATE SET
-              "userModificationDate" = datetime('subsec');
+              "userModificationDate" = datetime('subsec'),
+              "parentRecordName" = "excluded"."parentRecordName";
           END
           """,
-          [14]: """
+          [17]: """
           CREATE TRIGGER "sharing_grdb_cloudkit_remindersLists_metadataDeletes"
           AFTER DELETE ON "remindersLists" FOR EACH ROW BEGIN
             DELETE FROM "sharing_grdb_cloudkit_metadata"
             WHERE "recordType" = 'remindersLists'
+            AND "recordName" = "old"."id";
+          END
+          """,
+          [18]: """
+          CREATE TRIGGER "sharing_grdb_cloudkit_insert_users"
+          AFTER INSERT ON "users" FOR EACH ROW BEGIN
+            SELECT didUpdate(
+              "new"."id",
+              'users'
+            )
+            WHERE NOT isUpdatingWithServerRecord();
+          END
+          """,
+          [19]: """
+          CREATE TRIGGER "sharing_grdb_cloudkit_update_users"
+          AFTER UPDATE ON "users" FOR EACH ROW BEGIN
+            SELECT didUpdate(
+              "new"."id",
+              'users'
+            )
+            WHERE NOT isUpdatingWithServerRecord();
+          END
+          """,
+          [20]: """
+          CREATE TRIGGER "sharing_grdb_cloudkit_delete_users"
+          BEFORE DELETE ON "users" FOR EACH ROW BEGIN
+            SELECT willDelete(
+              "old"."id",
+              'users'
+            )
+            WHERE NOT isUpdatingWithServerRecord();
+          END
+          """,
+          [21]: """
+          CREATE TRIGGER "sharing_grdb_cloudkit_users_metadataInserts"
+          AFTER INSERT ON "users" FOR EACH ROW BEGIN
+            INSERT INTO "sharing_grdb_cloudkit_metadata"
+              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName", "userModificationDate")
+            SELECT
+              'users',
+              "new"."id",
+              'co.pointfree.SharingGRDB.defaultZone',
+              '__defaultOwner__',
+              NULL,
+              datetime('subsec')
+            ON CONFLICT("recordName") DO NOTHING;
+          END
+          """,
+          [22]: """
+          CREATE TRIGGER "sharing_grdb_cloudkit_users_metadataUpdates"
+          AFTER UPDATE ON "users" FOR EACH ROW BEGIN
+            INSERT INTO "sharing_grdb_cloudkit_metadata"
+              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName")
+            SELECT
+              'users',
+              "new"."id",
+              'co.pointfree.SharingGRDB.defaultZone',
+              '__defaultOwner__',
+              NULL
+            ON CONFLICT("recordName") DO UPDATE SET
+              "userModificationDate" = datetime('subsec'),
+              "parentRecordName" = "excluded"."parentRecordName";
+          END
+          """,
+          [23]: """
+          CREATE TRIGGER "sharing_grdb_cloudkit_users_metadataDeletes"
+          AFTER DELETE ON "users" FOR EACH ROW BEGIN
+            DELETE FROM "sharing_grdb_cloudkit_metadata"
+            WHERE "recordType" = 'users'
             AND "recordName" = "old"."id";
           END
           """

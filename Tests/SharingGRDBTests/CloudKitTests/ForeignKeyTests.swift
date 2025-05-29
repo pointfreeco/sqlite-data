@@ -42,33 +42,35 @@ extension BaseCloudKitTests {
     @Test func deleteSetNull() throws {
       try database.write { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
-          Reminder(id: UUID(2), title: "Dairy", parentReminderID: UUID(1), remindersListID: UUID(1))
-          Reminder(id: UUID(3), title: "Milk", parentReminderID: UUID(2), remindersListID: UUID(1))
+          User(id: UUID(1), name: "Blob")
+          RemindersList(id: UUID(2), title: "Personal")
+          Reminder(
+            id: UUID(3),
+            assignedUserID: UUID(1),
+            title: "Groceries",
+            remindersListID: UUID(2)
+          )
         }
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1))),
         .saveRecord(CKRecord.ID(UUID(1))),
         .saveRecord(CKRecord.ID(UUID(2))),
         .saveRecord(CKRecord.ID(UUID(3))),
       ])
       try database.write { db in
-        try Reminder.find(UUID(1)).delete().execute(db)
+        try User.find(UUID(1)).delete().execute(db)
       }
       try database.read { db in
         try expectNoDifference(
           Reminder.all.fetchAll(db),
           [
-            Reminder(id: UUID(2), title: "Dairy", parentReminderID: nil, remindersListID: UUID(1)),
-            Reminder(id: UUID(3), title: "Milk", parentReminderID: UUID(2), remindersListID: UUID(1)),
+            Reminder(id: UUID(3), assignedUserID: nil, title: "Groceries", remindersListID: UUID(2)),
           ]
         )
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
         .deleteRecord(CKRecord.ID(UUID(1))),
-        .saveRecord(CKRecord.ID(UUID(2))),
+        .saveRecord(CKRecord.ID(UUID(3))),
       ])
     }
 
