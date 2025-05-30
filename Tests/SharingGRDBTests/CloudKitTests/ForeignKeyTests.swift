@@ -79,35 +79,35 @@ extension BaseCloudKitTests {
       try database.write { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
-          Reminder(id: UUID(2), title: "Walk", remindersListID: UUID(1))
-          Reminder(id: UUID(3), title: "Haircut", remindersListID: UUID(1))
+          Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
+          Reminder(id: UUID(3), title: "Walk", remindersListID: UUID(1))
+          Reminder(id: UUID(4), title: "Haircut", remindersListID: UUID(1))
         }
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1))),
-        .saveRecord(CKRecord.ID(UUID(1))),
         .saveRecord(CKRecord.ID(UUID(2))),
         .saveRecord(CKRecord.ID(UUID(3))),
+        .saveRecord(CKRecord.ID(UUID(4))),
       ])
-      let newID = try database.write { db in
-        try RemindersList.find(UUID(1)).update { $0.id = UUID() }.returning(\.id).fetchOne(db)!
+      try database.write { db in
+        try RemindersList.find(UUID(1)).update { $0.id = UUID(9) }.execute(db)
       }
       try database.read { db in
         try expectNoDifference(
           Reminder.all.fetchAll(db),
           [
-            Reminder(id: UUID(1), title: "Groceries", remindersListID: newID),
-            Reminder(id: UUID(2), title: "Walk", remindersListID: newID),
-            Reminder(id: UUID(3), title: "Haircut", remindersListID: newID)
+            Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(9)),
+            Reminder(id: UUID(3), title: "Walk", remindersListID: UUID(9)),
+            Reminder(id: UUID(4), title: "Haircut", remindersListID: UUID(9))
           ]
         )
       }
       underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(newID)),
-        .saveRecord(CKRecord.ID(UUID(1))),
+        .saveRecord(CKRecord.ID(UUID(9))),
         .saveRecord(CKRecord.ID(UUID(2))),
         .saveRecord(CKRecord.ID(UUID(3))),
+        .saveRecord(CKRecord.ID(UUID(4))),
       ])
     }
   }

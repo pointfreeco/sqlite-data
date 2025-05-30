@@ -3,7 +3,7 @@ import SharingGRDB
 import SnapshotTesting
 import Testing
 
-@Suite(.serialized, .snapshots(record: .failed))
+@Suite(.snapshots(record: .failed))
 class BaseCloudKitTests: @unchecked Sendable {
   let database: any DatabaseWriter
   private let _syncEngine: any Sendable

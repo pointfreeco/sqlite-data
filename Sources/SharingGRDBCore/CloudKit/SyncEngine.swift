@@ -36,7 +36,7 @@ public final actor SyncEngine {
   public init(
     container: CKContainer,
     database: any DatabaseWriter,
-    logger: Logger = Logger(subsystem: "SharingGRDB", category: "CloudKit"),
+    logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit"),
     tables: [any PrimaryKeyedTable.Type]
   ) throws {
     try self.init(
@@ -215,8 +215,65 @@ public final actor SyncEngine {
       )
       .execute(db)
       db.add(function: .isUpdatingWithServerRecord)
+      db.add(function: .getZoneName)
+      db.add(function: .getOwnerName)
       db.add(function: .didUpdate(syncEngine: self))
       db.add(function: .willDelete(syncEngine: self))
+
+      try SQLQueryExpression(
+        """
+        CREATE TEMPORARY TRIGGER IF NOT EXISTS "metadata_inserts"
+        AFTER INSERT ON \(Metadata.self)
+        FOR EACH ROW 
+        BEGIN
+          SELECT 
+            \(raw: String.sharingGRDBCloudKitSchemaName)_didUpdate(
+              "new"."recordName",
+              "new"."zoneName",
+              "new"."ownerName"
+            )
+          WHERE NOT \(raw: String.sharingGRDBCloudKitSchemaName)_isUpdatingWithServerRecord();
+        END
+        """
+      )
+      .execute(db)
+
+      try SQLQueryExpression(
+        """
+        CREATE TEMPORARY TRIGGER IF NOT EXISTS "metadata_updates"
+        AFTER UPDATE ON \(Metadata.self)
+        FOR EACH ROW 
+        BEGIN
+          SELECT 
+            \(raw: String.sharingGRDBCloudKitSchemaName)_didUpdate(
+              "new"."recordName",
+              "new"."zoneName",
+              "new"."ownerName"
+            )
+          WHERE NOT \(raw: String.sharingGRDBCloudKitSchemaName)_isUpdatingWithServerRecord()
+        ;
+        END
+        """
+      )
+      .execute(db)
+      try SQLQueryExpression(
+        """
+        CREATE TEMPORARY TRIGGER IF NOT EXISTS "metadata_deletes"
+        BEFORE DELETE ON \(Metadata.self)
+        FOR EACH ROW 
+        BEGIN
+          SELECT 
+            \(raw: String.sharingGRDBCloudKitSchemaName)_willDelete(
+              "old"."recordName",
+              "old"."zoneName",
+              "old"."ownerName"
+            )
+          WHERE NOT \(raw: String.sharingGRDBCloudKitSchemaName)_isUpdatingWithServerRecord();
+        END
+        """
+      )
+      .execute(db)
+
       for table in tables {
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
           try createTriggers(table: table, db: db)
@@ -234,8 +291,25 @@ public final actor SyncEngine {
         }
         try open(table)
       }
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER "metadata_deletes"
+        """
+      ).execute(db)
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER "metadata_updates"
+        """
+      ).execute(db)
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER "metadata_inserts"
+        """
+      ).execute(db)
       db.remove(function: .willDelete(syncEngine: self))
       db.remove(function: .didUpdate(syncEngine: self))
+      db.remove(function: .getOwnerName)
+      db.remove(function: .getZoneName)
       db.remove(function: .isUpdatingWithServerRecord)
     }
     try database.writeWithoutTransaction { db in
@@ -269,26 +343,32 @@ public final actor SyncEngine {
     try setUpSyncEngine()
   }
 
-  func didUpdate(recordName: String, zoneName: String) {
+  func didUpdate(recordName: String, zoneName: String, ownerName: String) {
     underlyingSyncEngine.state.add(
       pendingRecordZoneChanges: [
         .saveRecord(
           CKRecord.ID(
             recordName: recordName,
-            zoneID: CKRecordZone(zoneName: zoneName).zoneID
+            zoneID: CKRecordZone.ID(
+              zoneName: zoneName,
+              ownerName: ownerName
+            )
           )
         )
       ]
     )
   }
 
-  func willDelete(recordName: String, zoneName: String) {
+  func willDelete(recordName: String, zoneName: String, ownerName: String) {
     underlyingSyncEngine.state.add(
       pendingRecordZoneChanges: [
         .deleteRecord(
           CKRecord.ID(
             recordName: recordName,
-            zoneID: CKRecordZone(zoneName: zoneName).zoneID
+            zoneID: CKRecordZone.ID(
+              zoneName: zoneName,
+              ownerName: ownerName
+            )
           )
         )
       ]
@@ -321,16 +401,9 @@ public final actor SyncEngine {
   }
 
   private func createTriggers<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
-    try Trigger(on: T.self, .after, .insert, select: .didUpdate(syncEngine: self)).create
-      .execute(db)
-    try Trigger(on: T.self, .after, .update, select: .didUpdate(syncEngine: self)).create
-      .execute(db)
-    try Trigger(on: T.self, .before, .delete, select: .willDelete(syncEngine: self)).create
-      .execute(db)
-
     let from =
       foreignKeysByTableName[T.tableName]?.count(where: \.notnull) == 1
-    ? foreignKeysByTableName[T.tableName]?.first(where: \.notnull)?.from
+      ? foreignKeysByTableName[T.tableName]?.first(where: \.notnull)?.from
       : nil
 
     try SQLQueryExpression(
@@ -343,10 +416,20 @@ public final actor SyncEngine {
         SELECT
           \(quote: T.tableName, delimiter: .text),
           "new".\(quote: T.columns.primaryKey.name),
-          \(quote: Self.defaultZone.zoneID.zoneName, delimiter: .text),
-          \(quote: Self.defaultZone.zoneID.ownerName, delimiter: .text),
-          \(raw: from.map { #""new"."\#($0)""# } ?? "NULL"),
+          coalesce(
+            "zoneName", 
+            \(raw: String.sharingGRDBCloudKitSchemaName)_getZoneName(), 
+            \(quote: Self.defaultZone.zoneID.zoneName, delimiter: .text)
+          ),
+          coalesce(
+            "ownerName", 
+            \(raw: String.sharingGRDBCloudKitSchemaName)_getOwnerName(), 
+            \(quote: Self.defaultZone.zoneID.ownerName, delimiter: .text)
+          ),
+          \(raw: from.map { #""new"."\#($0)""# } ?? "NULL") AS "foreignKeyName",
           datetime('subsec')
+        FROM (SELECT 1) 
+        LEFT JOIN "\(raw: String.sharingGRDBCloudKitSchemaName)_metadata" ON "recordName" = "foreignKeyName"
         ON CONFLICT("recordName") DO NOTHING;
       END
       """
@@ -357,17 +440,13 @@ public final actor SyncEngine {
       CREATE TEMPORARY TRIGGER
         "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataUpdates"
       AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
-        INSERT INTO \(Metadata.self)
-          ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName")
-        SELECT
-          \(quote: T.tableName, delimiter: .text),
-          "new".\(quote: T.columns.primaryKey.name),
-          \(quote: Self.defaultZone.zoneID.zoneName, delimiter: .text),
-          \(quote: Self.defaultZone.zoneID.ownerName, delimiter: .text),
-          \(raw: from.map { #""new"."\#($0)""# } ?? "NULL")
-        ON CONFLICT("recordName") DO UPDATE SET
+        UPDATE \(Metadata.self)
+        SET
+          "recordName" = "new".\(quote: T.columns.primaryKey.name),
           "userModificationDate" = datetime('subsec'),
-          "parentRecordName" = "excluded"."parentRecordName";
+          "parentRecordName" = \(raw: from.map { #""new"."\#($0)""# } ?? "NULL")
+        WHERE "recordName" = "old".\(quote: T.columns.primaryKey.name)
+        ;
       END
       """
     )
@@ -378,8 +457,7 @@ public final actor SyncEngine {
         "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataDeletes"
       AFTER DELETE ON \(T.self) FOR EACH ROW BEGIN
         DELETE FROM \(Metadata.self)
-        WHERE "recordType" = \(quote: T.tableName, delimiter: .text)
-        AND "recordName" = "old".\(quote: T.columns.primaryKey.name);
+        WHERE "recordName" = "old".\(quote: T.columns.primaryKey.name);
       END
       """
     )
@@ -619,25 +697,12 @@ public final actor SyncEngine {
       """
     )
     .execute(db)
-    try SQLQueryExpression(
-      Trigger(on: T.self, .before, .delete, select: .willDelete(syncEngine: self)).drop
-    )
-    .execute(db)
-    try SQLQueryExpression(
-      Trigger(on: T.self, .after, .update, select: .didUpdate(syncEngine: self)).drop
-    )
-    .execute(db)
-    try SQLQueryExpression(
-      Trigger(on: T.self, .after, .insert, select: .didUpdate(syncEngine: self)).drop
-    )
-    .execute(db)
   }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine: CKSyncEngineDelegate {
   public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
-    print("!!!!!", event)
     logger.log(event)
 
     switch event {
@@ -796,7 +861,8 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) {
     switch event.changeType {
     case .signIn:
-      underlyingSyncEngine.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
+      // TODO: handle this
+      //underlyingSyncEngine.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
       for table in tables {
         withErrorReporting(.sharingGRDBCloudKitFailure) {
           let names: [String] = try database.read { db in
@@ -913,11 +979,13 @@ extension SyncEngine: CKSyncEngineDelegate {
 
       func clearServerRecord() {
         withErrorReporting {
-          try database.write { db in
-            try Metadata
-              .find(recordID: failedRecord.recordID)
-              .update { $0.lastKnownServerRecord = nil }
-              .execute(db)
+          try $isUpdatingWithServerRecord.withValue(true) {
+            try database.write { db in
+              try Metadata
+                .find(recordID: failedRecord.recordID)
+                .update { $0.lastKnownServerRecord = nil }
+                .execute(db)
+            }
           }
         }
       }
@@ -931,7 +999,8 @@ extension SyncEngine: CKSyncEngineDelegate {
 
       case .zoneNotFound:
         let zone = CKRecordZone(zoneID: failedRecord.recordID.zoneID)
-        newPendingDatabaseChanges.append(.saveZone(zone))
+        // TODO: handle this
+        //newPendingDatabaseChanges.append(.saveZone(zone))
         newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
         clearServerRecord()
 
@@ -951,97 +1020,105 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func mergeFromServerRecord(_ record: CKRecord) {
-    withErrorReporting(.sharingGRDBCloudKitFailure) {
-      let userModificationDate =
-        try metadatabase.read { db in
-          try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(db)
-        }
-        ?? nil
-      guard let table = tablesByName[record.recordType]
-      else {
-        reportIssue(
-          .sharingGRDBCloudKitFailure.appending(
-            """
-            : No table to merge from: "\(record.recordType)"
-            """
-          )
-        )
-        return
-      }
-      guard
-        let userModificationDate,
-        userModificationDate > record.userModificationDate ?? .distantPast
-      else {
-        let columnNames = try database.read { db in
-          try SQLQueryExpression(
-            """
-            SELECT "name" 
-            FROM pragma_table_info(\(bind: table.tableName))    
-            """,
-            as: String.self
-          )
-          .fetchAll(db)
-        }
-        var query: QueryFragment = "INSERT INTO \(table) ("
-        query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
-        query.append(") VALUES (")
-        let encryptedValues = record.encryptedValues
-        query.append(
-          columnNames
-            .map { columnName in
-              encryptedValues[columnName]?.queryFragment ?? "NULL"
+    $isUpdatingWithServerRecord.withValue(true) {
+      $currentZoneID.withValue(record.recordID.zoneID) {
+        withErrorReporting(.sharingGRDBCloudKitFailure) {
+          let userModificationDate =
+            try metadatabase.read { db in
+              try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(
+                db
+              )
             }
-            .joined(separator: ", ")
-        )
-        func open<T: PrimaryKeyedTable>(_: T.Type) {
-          query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET")
-        }
-        open(table)
-        query.append(
-          columnNames
-            .map {
-              """
-              \(quote: $0) = "excluded".\(quote: $0)
-              """
+            ?? nil
+          guard let table = tablesByName[record.recordType]
+          else {
+            reportIssue(
+              .sharingGRDBCloudKitFailure.appending(
+                """
+                : No table to merge from: "\(record.recordType)"
+                """
+              )
+            )
+            return
+          }
+          guard
+            let userModificationDate,
+            userModificationDate > record.userModificationDate ?? .distantPast
+          else {
+            let columnNames = try database.read { db in
+              try SQLQueryExpression(
+                """
+                SELECT "name" 
+                FROM pragma_table_info(\(bind: table.tableName))    
+                """,
+                as: String.self
+              )
+              .fetchAll(db)
             }
-            .joined(separator: ",")
-        )
-        try database.write { db in
-          try $isUpdatingWithServerRecord.withValue(true) {
-            try SQLQueryExpression(query).execute(db)
-            try Metadata
-              .insert(Metadata(record: record)) {
-                $0.lastKnownServerRecord = record
-                $0.userModificationDate = record.userModificationDate
-              }
-              .execute(db)
+            var query: QueryFragment = "INSERT INTO \(table) ("
+            query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+            query.append(") VALUES (")
+            let encryptedValues = record.encryptedValues
+            query.append(
+              columnNames
+                .map { columnName in
+                  encryptedValues[columnName]?.queryFragment ?? "NULL"
+                }
+                .joined(separator: ", ")
+            )
+            func open<T: PrimaryKeyedTable>(_: T.Type) {
+              query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET")
+            }
+            open(table)
+            query.append(
+              columnNames
+                .map {
+                  """
+                  \(quote: $0) = "excluded".\(quote: $0)
+                  """
+                }
+                .joined(separator: ",")
+            )
+            try database.write { db in
+              try SQLQueryExpression(query).execute(db)
+              try Metadata
+                .insert(Metadata(record: record)) {
+                  $0.lastKnownServerRecord = record
+                  $0.userModificationDate = record.userModificationDate
+                }
+                .execute(db)
+            }
+            return
           }
         }
-        return
       }
     }
   }
 
   private func refreshLastKnownServerRecord(_ record: CKRecord) {
-    let metadata = metadataFor(recordID: record.recordID)
+    $currentZoneID.withValue(record.recordID.zoneID) {
+      $isUpdatingWithServerRecord.withValue(true) {
+        let metadata = metadataFor(recordID: record.recordID)
 
-    func updateLastKnownServerRecord() {
-      withErrorReporting(.sharingGRDBCloudKitFailure) {
-        try database.write { db in
-          try Metadata
-            .find(recordID: record.recordID)
-            .update { $0.lastKnownServerRecord = record }
-            .execute(db)
+        func updateLastKnownServerRecord() {
+          withErrorReporting(.sharingGRDBCloudKitFailure) {
+            try database.write { db in
+              try Metadata
+                .find(recordID: record.recordID)
+                .update { $0.lastKnownServerRecord = record }
+                .execute(db)
+            }
+          }
+        }
+
+        if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
+          if let recordDate = record.modificationDate, lastKnownDate < recordDate {
+            updateLastKnownServerRecord()
+          }
+        } else {
+          updateLastKnownServerRecord()
         }
       }
-    }
-
-    if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
-      if let recordDate = record.modificationDate, lastKnownDate < recordDate {
-        updateLastKnownServerRecord()
-      }
-    } else {
-      updateLastKnownServerRecord()
     }
   }
 
@@ -1065,42 +1142,59 @@ extension SyncEngine: TestDependencyKey {
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension DatabaseFunction {
   fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
-    Self("didUpdate") { recordName, _ in
+    Self("didUpdate") { recordName, zoneName, ownerName in
       await syncEngine
         .didUpdate(
           recordName: recordName,
-          zoneName: SyncEngine.defaultZone.zoneID.zoneName
+          zoneName: zoneName,
+          ownerName: ownerName
         )
     }
   }
 
   fileprivate static func willDelete(syncEngine: SyncEngine) -> Self {
-    return Self("willDelete") { recordName, _ in
+    return Self("willDelete") { recordName, zoneName, ownerName in
       await syncEngine.willDelete(
         recordName: recordName,
-        zoneName: SyncEngine.defaultZone.zoneID.zoneName
+        zoneName: zoneName,
+        ownerName: ownerName
       )
     }
   }
 
   fileprivate static var isUpdatingWithServerRecord: Self {
-    Self(.sharingGRDBCloudKitSchemaName + "_" + "isUpdatingWithServerRecord", argumentCount: 0) { _ in
+    Self(.sharingGRDBCloudKitSchemaName + "_" + "isUpdatingWithServerRecord", argumentCount: 0) {
+      _ in
       SharingGRDBCore.isUpdatingWithServerRecord
+    }
+  }
+
+  fileprivate static var getZoneName: Self {
+    Self(.sharingGRDBCloudKitSchemaName + "_" + "getZoneName", argumentCount: 0) { _ in
+      SharingGRDBCore.currentZoneID?.zoneName
+    }
+  }
+
+  fileprivate static var getOwnerName: Self {
+    Self(.sharingGRDBCloudKitSchemaName + "_" + "getOwnerName", argumentCount: 0) { _ in
+      SharingGRDBCore.currentZoneID?.ownerName
     }
   }
 
   private convenience init(
     _ name: String,
-    function: @escaping @Sendable (String, String) async -> Void
+    function: @escaping @Sendable (String, String, String) async -> Void
   ) {
-    self.init(.sharingGRDBCloudKitSchemaName + "_" + name, argumentCount: 2) { arguments in
+    self.init(.sharingGRDBCloudKitSchemaName + "_" + name, argumentCount: 3) { arguments in
       guard
-        let tableName = String.fromDatabaseValue(arguments[0]),
-        let id = String.fromDatabaseValue(arguments[1])
+        let recordName = String.fromDatabaseValue(arguments[0]),
+        let zoneName = String.fromDatabaseValue(arguments[1]),
+        let ownerName = String.fromDatabaseValue(arguments[2])
       else {
         return nil
       }
-      Task { await function(tableName, id) }
+      // TODO: can we get rid of task by making stuff in actor non-isolated?
+      Task { await function(recordName, zoneName, ownerName) }
       return nil
     }
   }
@@ -1117,8 +1211,7 @@ private struct ForeignKey: QueryDecodable, QueryRepresentable {
 
   static func all<T: StructuredQueriesCore.Table>(
     _ table: T.Type
-  ) -> some StructuredQueriesCore.Statement<Self>
-  {
+  ) -> some StructuredQueriesCore.Statement<Self> {
     SQLQueryExpression(
       """
       SELECT \(ForeignKey.columns) 
@@ -1167,54 +1260,7 @@ private struct ForeignKey: QueryDecodable, QueryRepresentable {
 
 // TODO: Rename to isUpdatingFromServer / isHandlingServerUpdates
 @TaskLocal private var isUpdatingWithServerRecord = false
-
-private struct Trigger<Base: PrimaryKeyedTable> {
-  typealias QueryValue = Void
-
-  let function: DatabaseFunction
-  let operation: Operation
-  let when: When
-
-  init(on _: Base.Type, _ when: When, _ operation: Operation, select function: DatabaseFunction) {
-    self.function = function
-    self.operation = operation
-    self.when = when
-  }
-
-  var name: QueryFragment {
-    "\(quote: "\(String.sharingGRDBCloudKitSchemaName)_\(operation.rawValue.string.lowercased())_\(Base.tableName)")"
-  }
-
-  var create: some StructuredQueriesCore.Statement<Void> {
-    SQLQueryExpression(
-      """
-      CREATE TEMPORARY TRIGGER \(name)
-      \(when.rawValue) \(operation.rawValue) ON \(quote: Base.tableName) FOR EACH ROW BEGIN
-        SELECT \(raw: function.name)(
-          \(quote: operation == .delete ? "old" : "new").\(quote: Base.columns.primaryKey.name),
-          \(quote: Base.tableName, delimiter: .text)
-        )
-        WHERE NOT \(raw: String.sharingGRDBCloudKitSchemaName)_isUpdatingWithServerRecord();
-      END
-      """
-    )
-  }
-
-  var drop: QueryFragment {
-    "DROP TRIGGER \(name)"
-  }
-
-  enum Operation: QueryFragment {
-    case insert = "INSERT"
-    case update = "UPDATE"
-    case delete = "DELETE"
-  }
-
-  enum When: QueryFragment {
-    case before = "BEFORE"
-    case after = "AFTER"
-  }
-}
+@TaskLocal private var currentZoneID: CKRecordZone.ID?
 
 extension __CKRecordObjCValue {
   fileprivate var queryFragment: QueryFragment {
@@ -1262,33 +1308,6 @@ extension String {
 }
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
-extension DatabaseWriter where Self == DatabasePool {
-  init(container: CKContainer) throws {
-    let path = URL.metadatabase(container: container).path(percentEncoded: false)
-    var configuration = Configuration()
-    configuration.prepareDatabase { db in
-      db.trace {
-        logger.debug("\($0.expandedDescription)")
-      }
-    }
-    logger.debug(
-      """
-      SharingGRDB: Metadatabase connection:
-      open "\(path)"
-      """
-    )
-    try FileManager.default.createDirectory(
-      at: .applicationSupportDirectory,
-      withIntermediateDirectories: true
-    )
-    try self.init(
-      path: path,
-      configuration: configuration
-    )
-  }
-}
-
-@available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
 extension URL {
   fileprivate static func metadatabase(container: CKContainer) -> Self {
     applicationSupportDirectory.appending(
@@ -1296,9 +1315,6 @@ extension URL {
     )
   }
 }
-
-@available(iOS 14, macOS 11, tvOS 14, watchOS 7, *)
-private let logger = Logger(subsystem: "SQLiteData", category: "CloudKit")
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Logger {
@@ -1340,7 +1356,7 @@ extension Logger {
         ? "⚪️ No deletions"
         : "✅ Zones deleted (\(event.deletions.count): "
           + event.deletions
-          .map { $0.zoneID.zoneName }
+          .map { $0.zoneID.zoneName + ":" + $0.zoneID.ownerName }
           .sorted()
           .joined(separator: ", ")
       debug(
@@ -1382,7 +1398,7 @@ extension Logger {
       )
     case .sentDatabaseChanges(let event):
       let savedZoneNames = event.savedZones
-        .map { $0.zoneID.zoneName }
+        .map { $0.zoneID.zoneName + ":" + $0.zoneID.ownerName }
         .sorted()
         .joined(separator: ", ")
       let savedZones =
@@ -1399,7 +1415,7 @@ extension Logger {
         : "✅ Deleted zones (\(event.deletedZoneIDs.count)): \(deletedZoneNames)"
 
       let failedZoneSaveNames = event.failedZoneSaves
-        .map { $0.zone.zoneID.zoneName }
+        .map { $0.zone.zoneID.zoneName + ":" + $0.zone.zoneID.ownerName }
         .sorted()
         .joined(separator: ", ")
       let failedZoneSaves =
@@ -1438,7 +1454,7 @@ extension Logger {
 
       let failedRecordSavesByZoneName = Dictionary(
         grouping: event.failedRecordSaves,
-        by: \.record.recordID.zoneID.zoneName
+        by: { $0.record.recordID.zoneID.zoneName + ":" + $0.record.recordID.zoneID.ownerName }
       )
       let failedRecordSaves = failedRecordSavesByZoneName.keys
         .sorted()
@@ -1508,7 +1524,7 @@ extension Logger {
       debug(
         """
         \(prefix) willFetchRecordZoneChanges
-          ✅ Zone: \(event.zoneID.zoneName)\(error)
+          ✅ Zone: \(event.zoneID.zoneName):\(event.zoneID.ownerName)\(error)
         """
       )
     case .didFetchChanges(let event):
@@ -1580,7 +1596,7 @@ extension SyncEngine {
       recordName: UUID().uuidString,
       zoneID: lastKnownServerRecord.recordID.zoneID
     )
-    let share = CKShare.init(rootRecord: lastKnownServerRecord, shareID: shareID)
+    let share = CKShare(rootRecord: lastKnownServerRecord, shareID: shareID)
     configure(share)
 
     let modifyOperation = CKModifyRecordsOperation(
@@ -1676,7 +1692,6 @@ struct NoCKRecordFound: Error {}
   }
 #endif
 
-
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
   public nonisolated func userDidAcceptCloudKitShare(with metadata: CKShare.Metadata) {
@@ -1699,14 +1714,12 @@ extension SyncEngine {
       }
     }
 
-
     let metadataFetchOperation = CKFetchShareMetadataOperation(shareURLs: [metadata.share.url!])
     metadataFetchOperation.shouldFetchRootRecord = true
     metadataFetchOperation.perShareMetadataResultBlock = { url, result in
-      print("!!!")
+      //print("!!!")
     }
     container.add(metadataFetchOperation)
-
 
     //operationQueue.addOperation(operation)
     operation.qualityOfService = .utility

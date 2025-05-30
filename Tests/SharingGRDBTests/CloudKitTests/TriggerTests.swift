@@ -8,7 +8,7 @@ import Testing
 extension BaseCloudKitTests {
   final class TriggerTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func setUpAndTearDown() async throws {
+    @Test func triggers() async throws {
       let triggersAfterSetUp = try await database.write { db in
         try #sql("SELECT sql FROM sqlite_temp_master", as: String?.self).fetchAll(db)
       }
@@ -16,32 +16,45 @@ extension BaseCloudKitTests {
         #"""
         [
           [0]: """
-          CREATE TRIGGER "sqlitedata_icloud_insert_reminders"
-          AFTER INSERT ON "reminders" FOR EACH ROW BEGIN
-            SELECT sqlitedata_icloud_didUpdate(
-              "new"."id",
-              'reminders'
-            )
+          CREATE TRIGGER "metadata_inserts"
+          AFTER INSERT ON "sqlitedata_icloud_metadata"
+          FOR EACH ROW 
+          BEGIN
+            SELECT 
+              sqlitedata_icloud_didUpdate(
+                "new"."recordName",
+                "new"."zoneName",
+                "new"."ownerName"
+              )
             WHERE NOT sqlitedata_icloud_isUpdatingWithServerRecord();
           END
           """,
           [1]: """
-          CREATE TRIGGER "sqlitedata_icloud_update_reminders"
-          AFTER UPDATE ON "reminders" FOR EACH ROW BEGIN
-            SELECT sqlitedata_icloud_didUpdate(
-              "new"."id",
-              'reminders'
-            )
-            WHERE NOT sqlitedata_icloud_isUpdatingWithServerRecord();
+          CREATE TRIGGER "metadata_updates"
+          AFTER UPDATE ON "sqlitedata_icloud_metadata"
+          FOR EACH ROW 
+          BEGIN
+            SELECT 
+              sqlitedata_icloud_didUpdate(
+                "new"."recordName",
+                "new"."zoneName",
+                "new"."ownerName"
+              )
+            WHERE NOT sqlitedata_icloud_isUpdatingWithServerRecord()
+          ;
           END
           """,
           [2]: """
-          CREATE TRIGGER "sqlitedata_icloud_delete_reminders"
-          BEFORE DELETE ON "reminders" FOR EACH ROW BEGIN
-            SELECT sqlitedata_icloud_willDelete(
-              "old"."id",
-              'reminders'
-            )
+          CREATE TRIGGER "metadata_deletes"
+          BEFORE DELETE ON "sqlitedata_icloud_metadata"
+          FOR EACH ROW 
+          BEGIN
+            SELECT 
+              sqlitedata_icloud_willDelete(
+                "old"."recordName",
+                "old"."zoneName",
+                "old"."ownerName"
+              )
             WHERE NOT sqlitedata_icloud_isUpdatingWithServerRecord();
           END
           """,
@@ -53,35 +66,40 @@ extension BaseCloudKitTests {
             SELECT
               'reminders',
               "new"."id",
-              'co.pointfree.SharingGRDB.defaultZone',
-              '__defaultOwner__',
-              "new"."remindersListID",
+              coalesce(
+                "zoneName", 
+                sqlitedata_icloud_getZoneName(), 
+                'co.pointfree.SharingGRDB.defaultZone'
+              ),
+              coalesce(
+                "ownerName", 
+                sqlitedata_icloud_getOwnerName(), 
+                '__defaultOwner__'
+              ),
+              "new"."remindersListID" AS "foreignKeyName",
               datetime('subsec')
+            FROM (SELECT 1) 
+            LEFT JOIN "sqlitedata_icloud_metadata" ON "recordName" = "foreignKeyName"
             ON CONFLICT("recordName") DO NOTHING;
           END
           """,
           [4]: """
           CREATE TRIGGER "sqlitedata_icloud_reminders_metadataUpdates"
           AFTER UPDATE ON "reminders" FOR EACH ROW BEGIN
-            INSERT INTO "sqlitedata_icloud_metadata"
-              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName")
-            SELECT
-              'reminders',
-              "new"."id",
-              'co.pointfree.SharingGRDB.defaultZone',
-              '__defaultOwner__',
-              "new"."remindersListID"
-            ON CONFLICT("recordName") DO UPDATE SET
+            UPDATE "sqlitedata_icloud_metadata"
+            SET
+              "recordName" = "new"."id",
               "userModificationDate" = datetime('subsec'),
-              "parentRecordName" = "excluded"."parentRecordName";
+              "parentRecordName" = "new"."remindersListID"
+            WHERE "recordName" = "old"."id"
+            ;
           END
           """,
           [5]: """
           CREATE TRIGGER "sqlitedata_icloud_reminders_metadataDeletes"
           AFTER DELETE ON "reminders" FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
-            WHERE "recordType" = 'reminders'
-            AND "recordName" = "old"."id";
+            WHERE "recordName" = "old"."id";
           END
           """,
           [6]: """
@@ -137,36 +155,6 @@ extension BaseCloudKitTests {
           END
           """,
           [12]: """
-          CREATE TRIGGER "sqlitedata_icloud_insert_remindersLists"
-          AFTER INSERT ON "remindersLists" FOR EACH ROW BEGIN
-            SELECT sqlitedata_icloud_didUpdate(
-              "new"."id",
-              'remindersLists'
-            )
-            WHERE NOT sqlitedata_icloud_isUpdatingWithServerRecord();
-          END
-          """,
-          [13]: """
-          CREATE TRIGGER "sqlitedata_icloud_update_remindersLists"
-          AFTER UPDATE ON "remindersLists" FOR EACH ROW BEGIN
-            SELECT sqlitedata_icloud_didUpdate(
-              "new"."id",
-              'remindersLists'
-            )
-            WHERE NOT sqlitedata_icloud_isUpdatingWithServerRecord();
-          END
-          """,
-          [14]: """
-          CREATE TRIGGER "sqlitedata_icloud_delete_remindersLists"
-          BEFORE DELETE ON "remindersLists" FOR EACH ROW BEGIN
-            SELECT sqlitedata_icloud_willDelete(
-              "old"."id",
-              'remindersLists'
-            )
-            WHERE NOT sqlitedata_icloud_isUpdatingWithServerRecord();
-          END
-          """,
-          [15]: """
           CREATE TRIGGER "sqlitedata_icloud_remindersLists_metadataInserts"
           AFTER INSERT ON "remindersLists" FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
@@ -174,68 +162,43 @@ extension BaseCloudKitTests {
             SELECT
               'remindersLists',
               "new"."id",
-              'co.pointfree.SharingGRDB.defaultZone',
-              '__defaultOwner__',
-              NULL,
+              coalesce(
+                "zoneName", 
+                sqlitedata_icloud_getZoneName(), 
+                'co.pointfree.SharingGRDB.defaultZone'
+              ),
+              coalesce(
+                "ownerName", 
+                sqlitedata_icloud_getOwnerName(), 
+                '__defaultOwner__'
+              ),
+              NULL AS "foreignKeyName",
               datetime('subsec')
+            FROM (SELECT 1) 
+            LEFT JOIN "sqlitedata_icloud_metadata" ON "recordName" = "foreignKeyName"
             ON CONFLICT("recordName") DO NOTHING;
           END
           """,
-          [16]: """
+          [13]: """
           CREATE TRIGGER "sqlitedata_icloud_remindersLists_metadataUpdates"
           AFTER UPDATE ON "remindersLists" FOR EACH ROW BEGIN
-            INSERT INTO "sqlitedata_icloud_metadata"
-              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName")
-            SELECT
-              'remindersLists',
-              "new"."id",
-              'co.pointfree.SharingGRDB.defaultZone',
-              '__defaultOwner__',
-              NULL
-            ON CONFLICT("recordName") DO UPDATE SET
+            UPDATE "sqlitedata_icloud_metadata"
+            SET
+              "recordName" = "new"."id",
               "userModificationDate" = datetime('subsec'),
-              "parentRecordName" = "excluded"."parentRecordName";
+              "parentRecordName" = NULL
+            WHERE "recordName" = "old"."id"
+            ;
           END
           """,
-          [17]: """
+          [14]: """
           CREATE TRIGGER "sqlitedata_icloud_remindersLists_metadataDeletes"
           AFTER DELETE ON "remindersLists" FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
-            WHERE "recordType" = 'remindersLists'
-            AND "recordName" = "old"."id";
+            WHERE "recordName" = "old"."id";
           END
           """,
-          [18]: """
-          CREATE TRIGGER "sqlitedata_icloud_insert_users"
-          AFTER INSERT ON "users" FOR EACH ROW BEGIN
-            SELECT sqlitedata_icloud_didUpdate(
-              "new"."id",
-              'users'
-            )
-            WHERE NOT sqlitedata_icloud_isUpdatingWithServerRecord();
-          END
-          """,
-          [19]: """
-          CREATE TRIGGER "sqlitedata_icloud_update_users"
-          AFTER UPDATE ON "users" FOR EACH ROW BEGIN
-            SELECT sqlitedata_icloud_didUpdate(
-              "new"."id",
-              'users'
-            )
-            WHERE NOT sqlitedata_icloud_isUpdatingWithServerRecord();
-          END
-          """,
-          [20]: """
-          CREATE TRIGGER "sqlitedata_icloud_delete_users"
-          BEFORE DELETE ON "users" FOR EACH ROW BEGIN
-            SELECT sqlitedata_icloud_willDelete(
-              "old"."id",
-              'users'
-            )
-            WHERE NOT sqlitedata_icloud_isUpdatingWithServerRecord();
-          END
-          """,
-          [21]: """
+          [15]: """
           CREATE TRIGGER "sqlitedata_icloud_users_metadataInserts"
           AFTER INSERT ON "users" FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
@@ -243,35 +206,40 @@ extension BaseCloudKitTests {
             SELECT
               'users',
               "new"."id",
-              'co.pointfree.SharingGRDB.defaultZone',
-              '__defaultOwner__',
-              NULL,
+              coalesce(
+                "zoneName", 
+                sqlitedata_icloud_getZoneName(), 
+                'co.pointfree.SharingGRDB.defaultZone'
+              ),
+              coalesce(
+                "ownerName", 
+                sqlitedata_icloud_getOwnerName(), 
+                '__defaultOwner__'
+              ),
+              NULL AS "foreignKeyName",
               datetime('subsec')
+            FROM (SELECT 1) 
+            LEFT JOIN "sqlitedata_icloud_metadata" ON "recordName" = "foreignKeyName"
             ON CONFLICT("recordName") DO NOTHING;
           END
           """,
-          [22]: """
+          [16]: """
           CREATE TRIGGER "sqlitedata_icloud_users_metadataUpdates"
           AFTER UPDATE ON "users" FOR EACH ROW BEGIN
-            INSERT INTO "sqlitedata_icloud_metadata"
-              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName")
-            SELECT
-              'users',
-              "new"."id",
-              'co.pointfree.SharingGRDB.defaultZone',
-              '__defaultOwner__',
-              NULL
-            ON CONFLICT("recordName") DO UPDATE SET
+            UPDATE "sqlitedata_icloud_metadata"
+            SET
+              "recordName" = "new"."id",
               "userModificationDate" = datetime('subsec'),
-              "parentRecordName" = "excluded"."parentRecordName";
+              "parentRecordName" = NULL
+            WHERE "recordName" = "old"."id"
+            ;
           END
           """,
-          [23]: """
+          [17]: """
           CREATE TRIGGER "sqlitedata_icloud_users_metadataDeletes"
           AFTER DELETE ON "users" FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
-            WHERE "recordType" = 'users'
-            AND "recordName" = "old"."id";
+            WHERE "recordName" = "old"."id";
           END
           """
         ]

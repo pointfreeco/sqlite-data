@@ -54,7 +54,6 @@ extension BaseCloudKitTests {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tearDownAndReSetUp() async throws {
       try await syncEngine.tearDownSyncEngine()
-
       try await syncEngine.setUpSyncEngine()
       // TODO: it would be nice if `setUpSyncEngine` was async
       try await Task.sleep(for: .seconds(0.1))
@@ -69,6 +68,7 @@ extension BaseCloudKitTests {
         .saveRecord(CKRecord.ID(UUID(1)))
       ])
 
+
       let record = CKRecord(
         recordType: "remindersLists",
         recordID: CKRecord.ID(UUID(1))
@@ -77,6 +77,7 @@ extension BaseCloudKitTests {
         modifications: [record],
         deletions: []
       )
+      try await Task.sleep(for: .seconds(1))
       expectNoDifference(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
         RemindersList(id: UUID(1), title: "Personal")
@@ -105,9 +106,11 @@ extension BaseCloudKitTests {
       ) {
         """
         [
-          [0]: "sqlitedata_icloud_didupdate",
-          [1]: "sqlitedata_icloud_willdelete",
-          [2]: "sqlitedata_icloud_isupdatingwithserverrecord"
+          [0]: "sqlitedata_icloud_getzonename",
+          [1]: "sqlitedata_icloud_didupdate",
+          [2]: "sqlitedata_icloud_getownername",
+          [3]: "sqlitedata_icloud_willdelete",
+          [4]: "sqlitedata_icloud_isupdatingwithserverrecord"
         ]
         """
       }
