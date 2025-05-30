@@ -922,8 +922,8 @@ extension SyncEngine {
         }
       }
 
-      modifyOperation.database = container.sharedCloudDatabase
-      container.add(modifyOperation)
+      modifyOperation.database = container.privateCloudDatabase
+      container.privateCloudDatabase.add(modifyOperation)
     }
 
     return share
