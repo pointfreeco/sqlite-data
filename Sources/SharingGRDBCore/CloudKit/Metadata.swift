@@ -9,17 +9,17 @@ extension Metadata {
   ) throws {
     try SQLQueryExpression(
       """
-      CREATE TEMPORARY TRIGGER IF NOT EXISTS "metadata_inserts"
+      CREATE TEMPORARY TRIGGER IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_inserts"
       AFTER INSERT ON \(Metadata.self)
       FOR EACH ROW 
       BEGIN
         SELECT 
-          \(raw: String.sqliteDataCloudKitSchemaName)_didUpdate(
+          \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(
             "new"."recordName",
             "new"."zoneName",
             "new"."ownerName"
           )
-        WHERE NOT \(raw: String.sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord();
+        WHERE NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord();
       END
       """
     )
@@ -27,17 +27,17 @@ extension Metadata {
 
     try SQLQueryExpression(
       """
-      CREATE TEMPORARY TRIGGER IF NOT EXISTS "metadata_updates"
+      CREATE TEMPORARY TRIGGER IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_updates"
       AFTER UPDATE ON \(Metadata.self)
       FOR EACH ROW 
       BEGIN
         SELECT 
-          \(raw: String.sqliteDataCloudKitSchemaName)_didUpdate(
+          \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(
             "new"."recordName",
             "new"."zoneName",
             "new"."ownerName"
           )
-        WHERE NOT \(raw: String.sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()
+        WHERE NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()
       ;
       END
       """
@@ -45,17 +45,17 @@ extension Metadata {
     .execute(db)
     try SQLQueryExpression(
       """
-      CREATE TEMPORARY TRIGGER IF NOT EXISTS "metadata_deletes"
+      CREATE TEMPORARY TRIGGER IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_deletes"
       BEFORE DELETE ON \(Metadata.self)
       FOR EACH ROW 
       BEGIN
         SELECT 
-          \(raw: String.sqliteDataCloudKitSchemaName)_willDelete(
+          \(raw: .sqliteDataCloudKitSchemaName)_willDelete(
             "old"."recordName",
             "old"."zoneName",
             "old"."ownerName"
           )
-        WHERE NOT \(raw: String.sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord();
+        WHERE NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord();
       END
       """
     )
@@ -63,9 +63,9 @@ extension Metadata {
   }
 
   static func dropTriggers(db: Database) throws {
-    try SQLQueryExpression(#"DROP TRIGGER "metadata_deletes""#).execute(db)
-    try SQLQueryExpression(#"DROP TRIGGER "metadata_updates""#).execute(db)
-    try SQLQueryExpression(#"DROP TRIGGER "metadata_inserts""#).execute(db)
+    try SQLQueryExpression(#"DROP TRIGGER "\#(raw: String.sqliteDataCloudKitSchemaName)_metadata_deletes""#).execute(db)
+    try SQLQueryExpression(#"DROP TRIGGER "\#(raw: String.sqliteDataCloudKitSchemaName)_metadata_updates""#).execute(db)
+    try SQLQueryExpression(#"DROP TRIGGER "\#(raw: String.sqliteDataCloudKitSchemaName)_metadata_inserts""#).execute(db)
   }
 
   static func createTriggers<T: PrimaryKeyedTable>(
@@ -93,12 +93,12 @@ extension Metadata {
           "new".\(quote: T.columns.primaryKey.name),
           coalesce(
             \(Metadata.zoneName), 
-            \(raw: String.sqliteDataCloudKitSchemaName)_getZoneName(), 
+            \(raw: .sqliteDataCloudKitSchemaName)_getZoneName(), 
             \(quote: SyncEngine.defaultZone.zoneID.zoneName, delimiter: .text)
           ),
           coalesce(
             \(Metadata.ownerName), 
-            \(raw: String.sqliteDataCloudKitSchemaName)_getOwnerName(), 
+            \(raw: .sqliteDataCloudKitSchemaName)_getOwnerName(), 
             \(quote: SyncEngine.defaultZone.zoneID.ownerName, delimiter: .text)
           ),
           \(raw: foreignKeyName) AS "foreignKeyName",

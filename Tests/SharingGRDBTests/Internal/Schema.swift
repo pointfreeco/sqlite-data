@@ -56,7 +56,7 @@ func database() throws -> DatabasePool {
         "remindersListID" TEXT NOT NULL, 
         
         FOREIGN KEY("assignedUserID") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE,
-        FOREIGN KEY("parentReminderID") REFERENCES "reminders"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+        FOREIGN KEY("parentReminderID") REFERENCES "reminders"("id") ON DELETE RESTRICT ON UPDATE RESTRICT,
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT
       """

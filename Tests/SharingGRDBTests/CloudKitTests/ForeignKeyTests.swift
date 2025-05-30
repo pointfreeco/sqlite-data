@@ -64,7 +64,7 @@ extension BaseCloudKitTests {
         try expectNoDifference(
           Reminder.all.fetchAll(db),
           [
-            Reminder(id: UUID(3), assignedUserID: nil, title: "Groceries", remindersListID: UUID(2)),
+            Reminder(id: UUID(3), assignedUserID: nil, title: "Groceries", remindersListID: UUID(2))
           ]
         )
       }
@@ -99,7 +99,7 @@ extension BaseCloudKitTests {
           [
             Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(9)),
             Reminder(id: UUID(3), title: "Walk", remindersListID: UUID(9)),
-            Reminder(id: UUID(4), title: "Haircut", remindersListID: UUID(9))
+            Reminder(id: UUID(4), title: "Haircut", remindersListID: UUID(9)),
           ]
         )
       }
@@ -109,6 +109,116 @@ extension BaseCloudKitTests {
         .saveRecord(CKRecord.ID(UUID(3))),
         .saveRecord(CKRecord.ID(UUID(4))),
       ])
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func deleteRestrict() throws {
+      try database.write { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "Personal")
+          Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
+          Reminder(id: UUID(3), title: "Milk", parentReminderID: UUID(2), remindersListID: UUID(1))
+        }
+      }
+      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+        .saveRecord(CKRecord.ID(UUID(1))),
+        .saveRecord(CKRecord.ID(UUID(2))),
+        .saveRecord(CKRecord.ID(UUID(3))),
+      ])
+      do {
+        let error = #expect(throws: DatabaseError.self) {
+          try self.database.write { db in
+            try Reminder.find(UUID(2)).delete().execute(db)
+          }
+        }
+        #expect(try #require(error).localizedDescription.contains("FOREIGN KEY constraint failed"))
+        try database.read { db in
+          try expectNoDifference(
+            Reminder.all.fetchAll(db),
+            [
+              Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1)),
+              Reminder(
+                id: UUID(3),
+                title: "Milk",
+                parentReminderID: UUID(2),
+                remindersListID: UUID(1)
+              ),
+            ]
+          )
+        }
+      }
+
+      do {
+        let error = #expect(throws: DatabaseError.self) {
+          try self.database.write { db in
+            try RemindersList.find(UUID(1)).delete().execute(db)
+          }
+        }
+        #expect(try #require(error).localizedDescription.contains("FOREIGN KEY constraint failed"))
+        try database.read { db in
+          try expectNoDifference(
+            Reminder.all.fetchAll(db),
+            [
+              Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1)),
+              Reminder(
+                id: UUID(3),
+                title: "Milk",
+                parentReminderID: UUID(2),
+                remindersListID: UUID(1)
+              ),
+            ]
+          )
+        }
+        try database.read { db in
+          try expectNoDifference(
+            RemindersList.all.fetchAll(db),
+            [RemindersList(id: UUID(1), title: "Personal")]
+          )
+        }
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func updateRestrict() throws {
+      try database.write { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "Personal")
+          Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
+          Reminder(id: UUID(3), title: "Milk", parentReminderID: UUID(2), remindersListID: UUID(1))
+        }
+      }
+      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+        .saveRecord(CKRecord.ID(UUID(1))),
+        .saveRecord(CKRecord.ID(UUID(2))),
+        .saveRecord(CKRecord.ID(UUID(3))),
+      ])
+
+      let error = #expect(throws: DatabaseError.self) {
+        try self.database.write { db in
+          try Reminder.find(UUID(2)).update { $0.id = UUID(9) }.execute(db)
+        }
+      }
+      #expect(try #require(error).localizedDescription.contains("FOREIGN KEY constraint failed"))
+      try database.read { db in
+        try expectNoDifference(
+          Reminder.all.fetchAll(db),
+          [
+            Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1)),
+            Reminder(
+              id: UUID(3),
+              title: "Milk",
+              parentReminderID: UUID(2),
+              remindersListID: UUID(1)
+            ),
+          ]
+        )
+      }
+
+      withKnownIssue("While this extra save is harmless, it would be nice to omit it.") {
+        underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+          .saveRecord(CKRecord.ID(UUID(2)))
+        ])
+      }
     }
   }
 }

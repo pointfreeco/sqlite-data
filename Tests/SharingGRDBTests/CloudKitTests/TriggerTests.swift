@@ -16,7 +16,7 @@ extension BaseCloudKitTests {
         #"""
         [
           [0]: """
-          CREATE TRIGGER "metadata_inserts"
+          CREATE TRIGGER "sqlitedata_icloud_metadata_inserts"
           AFTER INSERT ON "sqlitedata_icloud_metadata"
           FOR EACH ROW 
           BEGIN
@@ -30,7 +30,7 @@ extension BaseCloudKitTests {
           END
           """,
           [1]: """
-          CREATE TRIGGER "metadata_updates"
+          CREATE TRIGGER "sqlitedata_icloud_metadata_updates"
           AFTER UPDATE ON "sqlitedata_icloud_metadata"
           FOR EACH ROW 
           BEGIN
@@ -45,7 +45,7 @@ extension BaseCloudKitTests {
           END
           """,
           [2]: """
-          CREATE TRIGGER "metadata_deletes"
+          CREATE TRIGGER "sqlitedata_icloud_metadata_deletes"
           BEFORE DELETE ON "sqlitedata_icloud_metadata"
           FOR EACH ROW 
           BEGIN
@@ -127,19 +127,20 @@ extension BaseCloudKitTests {
           END
           """,
           [8]: """
-          CREATE TRIGGER "sqlitedata_icloud_reminders_belongsTo_reminders_onDeleteCascade"
+          CREATE TRIGGER "sqlitedata_icloud_reminders_belongsTo_reminders_onDeleteRestrict"
           AFTER DELETE ON "reminders"
           FOR EACH ROW BEGIN
-            DELETE FROM "reminders"
+            SELECT RAISE(ABORT, 'FOREIGN KEY constraint failed')
+            FROM "reminders"
             WHERE "parentReminderID" = "old"."id";
           END
           """,
           [9]: """
-          CREATE TRIGGER "sqlitedata_icloud_reminders_belongsTo_reminders_onUpdateCascade"
+          CREATE TRIGGER "sqlitedata_icloud_reminders_belongsTo_reminders_onUpdateRestrict"
           AFTER UPDATE ON "reminders"
           FOR EACH ROW BEGIN
-            UPDATE "reminders"
-            SET "parentReminderID" = "new"."id"
+            SELECT RAISE(ABORT, 'FOREIGN KEY constraint failed')
+            FROM "reminders"
             WHERE "parentReminderID" = "old"."id";
           END
           """,

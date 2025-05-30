@@ -72,9 +72,21 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
       )
       .execute(db)
+
     case .restrict:
-      // TODO: report issue
-      break
+      try SQLQueryExpression(
+        """
+        CREATE TEMPORARY TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteRestrict"
+        AFTER DELETE ON \(quote: table)
+        FOR EACH ROW BEGIN
+          SELECT RAISE(ABORT, 'FOREIGN KEY constraint failed')
+          FROM \(T.self)
+          WHERE \(quote: from) = "old".\(quote: to);
+        END
+        """
+      )
+      .execute(db)
 
     case .setDefault:
       let defaultValue =
@@ -86,13 +98,8 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
           """,
           as: String?.self
         )
-        .fetchOne(db) ?? "NULL"
+        .fetchOne(db) ?? nil
 
-      guard let defaultValue
-      else {
-        // TODO: Report issue?
-        break
-      }
       try SQLQueryExpression(
         """
         CREATE TEMPORARY TRIGGER
@@ -100,7 +107,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         AFTER DELETE ON \(quote: table)
         FOR EACH ROW BEGIN
           UPDATE \(T.self)
-          SET \(quote: from) = \(raw: defaultValue)
+          SET \(quote: from) = \(raw: defaultValue ?? "NULL")
           WHERE \(quote: from) = "old".\(quote: to);
         END
         """
@@ -140,9 +147,21 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
       )
       .execute(db)
+
     case .restrict:
-      // TODO: report issue
-      break
+      try SQLQueryExpression(
+        """
+        CREATE TEMPORARY TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateRestrict"
+        AFTER UPDATE ON \(quote: table)
+        FOR EACH ROW BEGIN
+          SELECT RAISE(ABORT, 'FOREIGN KEY constraint failed')
+          FROM \(T.self)
+          WHERE \(quote: from) = "old".\(quote: to);
+        END
+        """
+      )
+      .execute(db)
 
     case .setDefault:
       let defaultValue =
@@ -154,13 +173,8 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
           """,
           as: String?.self
         )
-        .fetchOne(db) ?? "NULL"
+        .fetchOne(db) ?? nil
 
-      guard let defaultValue
-      else {
-        // TODO: Report issue?
-        break
-      }
       try SQLQueryExpression(
         """
         CREATE TEMPORARY TRIGGER
@@ -168,7 +182,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         AFTER UPDATE ON \(quote: table)
         FOR EACH ROW BEGIN
           UPDATE \(T.self)
-          SET \(quote: from) = \(raw: defaultValue)
+          SET \(quote: from) = \(raw: defaultValue ?? "NULL")
           WHERE \(quote: from) = "old".\(quote: to);
         END
         """
@@ -223,7 +237,16 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       )
       .execute(db)
 
-    case .restrict, .noAction:
+    case .restrict:
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteRestrict"
+        """
+      )
+      .execute(db)
+
+    case .noAction:
       break
     }
 
@@ -255,7 +278,16 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       )
       .execute(db)
 
-    case .restrict, .noAction:
+    case .restrict:
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateRestrict"
+        """
+      )
+      .execute(db)
+
+    case .noAction:
       break
     }
   }
