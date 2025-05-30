@@ -1,4 +1,4 @@
-import StructuredQueries
+import StructuredQueriesCore
 
 struct ForeignKey: QueryDecodable, QueryRepresentable {
   typealias QueryValue = Self
