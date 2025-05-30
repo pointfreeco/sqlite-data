@@ -210,7 +210,7 @@ public final actor SyncEngine {
           }
         }
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await privateSyncEngine.fetchChanges()
+          try await fetchChanges()
         }
       }
     }
