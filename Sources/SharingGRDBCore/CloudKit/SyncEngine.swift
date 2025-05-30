@@ -943,7 +943,7 @@ extension SyncEngine {
       guard let self else { return }
       Task {
         await withErrorReporting {
-          try await self.privateSyncEngine
+          try await self.sharedSyncEngine
             .fetchChanges(
               .init(
                 scope: .zoneIDs([metadata.hierarchicalRootRecordID!.zoneID]),
