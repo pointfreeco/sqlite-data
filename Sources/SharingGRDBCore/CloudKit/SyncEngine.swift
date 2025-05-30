@@ -284,7 +284,10 @@ public final actor SyncEngine {
   }
 
   func didUpdate(recordName: String, zoneName: String, ownerName: String) {
-    privateSyncEngine.state.add(
+    let syncEngine = ownerName == Self.defaultZone.zoneID.ownerName
+      ? privateSyncEngine
+      : sharedSyncEngine
+    syncEngine?.state.add(
       pendingRecordZoneChanges: [
         .saveRecord(
           CKRecord.ID(
@@ -300,7 +303,10 @@ public final actor SyncEngine {
   }
 
   func willDelete(recordName: String, zoneName: String, ownerName: String) {
-    privateSyncEngine.state.add(
+    let syncEngine = ownerName == Self.defaultZone.zoneID.ownerName
+      ? privateSyncEngine
+      : sharedSyncEngine
+    syncEngine?.state.add(
       pendingRecordZoneChanges: [
         .deleteRecord(
           CKRecord.ID(
@@ -383,7 +389,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         deletions: event.deletions.map { ($0.recordID, $0.recordType) }
       )
     case .sentRecordZoneChanges(let event):
-      handleSentRecordZoneChanges(event)
+      handleSentRecordZoneChanges(event, syncEngine: syncEngine)
     case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
       .didFetchChanges, .willSendChanges, .didSendChanges:
       break
@@ -631,7 +637,10 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  private func handleSentRecordZoneChanges(_ event: CKSyncEngine.Event.SentRecordZoneChanges) {
+  private func handleSentRecordZoneChanges(
+    _ event: CKSyncEngine.Event.SentRecordZoneChanges,
+    syncEngine: CKSyncEngine
+  ) {
     for savedRecord in event.savedRecords {
       refreshLastKnownServerRecord(savedRecord)
     }
@@ -639,8 +648,8 @@ extension SyncEngine: CKSyncEngineDelegate {
     var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
     var newPendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] = []
     defer {
-      privateSyncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
-      privateSyncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
+      syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
+      syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
     }
     for failedRecordSave in event.failedRecordSaves {
       let failedRecord = failedRecordSave.record
