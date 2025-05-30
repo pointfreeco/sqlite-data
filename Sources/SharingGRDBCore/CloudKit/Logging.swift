@@ -3,8 +3,8 @@ import os
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Logger {
-  func log(_ event: CKSyncEngine.Event) {
-    let prefix = "handleEvent:"
+  func log(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) {
+    let prefix = "[\(syncEngine.database.databaseScope.label)] handleEvent:"
     switch event {
     case .stateUpdate:
       debug("\(prefix) stateUpdate")
@@ -224,6 +224,17 @@ extension Logger {
       debug("\(prefix) didSendChanges: \(event.context.reason.description)")
     @unknown default:
       warning("\(prefix) ⚠️ unknown event: \(event.description)")
+    }
+  }
+}
+
+extension CKDatabase.Scope {
+  var label: String {
+    switch self {
+    case .public: "public"
+    case .private: "private"
+    case .shared: "shared"
+    @unknown default: "unknown"
     }
   }
 }

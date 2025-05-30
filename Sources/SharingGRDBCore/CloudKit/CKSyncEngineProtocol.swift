@@ -1,10 +1,11 @@
 import CloudKit
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-package protocol CKSyncEngineProtocol<State>: Sendable {
+package protocol CKSyncEngineProtocol<State>: AnyObject, Sendable {
   associatedtype State: CKSyncEngineStateProtocol
   func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws
   var state: State { get }
+  var scope: CKDatabase.Scope { get }
 }
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension CKSyncEngineProtocol {
@@ -23,6 +24,9 @@ package protocol CKSyncEngineStateProtocol: Sendable {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension CKSyncEngine: CKSyncEngineProtocol {
+  package var scope: CKDatabase.Scope {
+    database.databaseScope
+  }
 }
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension CKSyncEngine.State: CKSyncEngineStateProtocol {

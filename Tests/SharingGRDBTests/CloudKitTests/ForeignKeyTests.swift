@@ -214,10 +214,10 @@ extension BaseCloudKitTests {
         )
       }
 
-      withKnownIssue("While this extra save is harmless, it would be nice to omit it.") {
-        underlyingSyncEngine.state.assertPendingRecordZoneChanges([
-          .saveRecord(CKRecord.ID(UUID(2)))
-        ])
+
+      withKnownIssue("We would prefer that no '.savedRecord's are appended.") {
+        // NB: A '.savedRecord(UUID(9))' is being enqueued.
+        underlyingSyncEngine.state.assertPendingRecordZoneChanges([])
       }
     }
   }

@@ -15,8 +15,11 @@ public final actor SyncEngine {
   let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
   fileprivate let foreignKeysByTableName: [String: [ForeignKey]]
-  var underlyingSyncEngine: (any CKSyncEngineProtocol)!
-  let defaultSyncEngine: (any DatabaseReader, SyncEngine) -> any CKSyncEngineProtocol
+  var privateSyncEngine: (any CKSyncEngineProtocol)!
+  var sharedSyncEngine: (any CKSyncEngineProtocol)!
+  let defaultSyncEngines:
+    (any DatabaseReader, SyncEngine)
+      -> (private: any CKSyncEngineProtocol, shared: any CKSyncEngineProtocol)
   let _container: any Sendable
 
   public init(
@@ -27,14 +30,25 @@ public final actor SyncEngine {
   ) throws {
     try self.init(
       container: container,
-      defaultSyncEngine: { database, syncEngine in
-        CKSyncEngine(
-          CKSyncEngine.Configuration(
-            database: container.sharedCloudDatabase,
-            stateSerialization: try? database.read { db in  // TODO: write test for this
-              try StateSerialization.select(\.data).fetchOne(db)
-            },
-            delegate: syncEngine
+      defaultSyncEngines: { database, syncEngine in
+        (
+          private: CKSyncEngine(
+            CKSyncEngine.Configuration(
+              database: container.privateCloudDatabase,
+              stateSerialization: try? database.read { db in  // TODO: write test for this
+                try StateSerialization.find(.private).select(\.data).fetchOne(db)
+              },
+              delegate: syncEngine
+            )
+          ),
+          shared: CKSyncEngine(
+            CKSyncEngine.Configuration(
+              database: container.sharedCloudDatabase,
+              stateSerialization: try? database.read { db in  // TODO: write test for this
+                try StateSerialization.find(.shared).select(\.data).fetchOne(db)
+              },
+              delegate: syncEngine
+            )
           )
         )
       },
@@ -52,7 +66,7 @@ public final actor SyncEngine {
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) throws {
     try self.init(
-      defaultSyncEngine: { _, _ in defaultSyncEngine },
+      defaultSyncEngines: { _, _ in (defaultSyncEngine, defaultSyncEngine) },
       database: database,
       logger: Logger(.disabled),
       metadatabaseURL: metadatabaseURL,
@@ -62,7 +76,10 @@ public final actor SyncEngine {
 
   private init(
     container: (any Sendable)? = Void?.none,
-    defaultSyncEngine: @escaping (any DatabaseReader, SyncEngine) -> any CKSyncEngineProtocol,
+    defaultSyncEngines: @escaping (
+      any DatabaseReader,
+      SyncEngine
+    ) -> (private: any CKSyncEngineProtocol, shared: any CKSyncEngineProtocol),
     database: any DatabaseWriter,
     logger: Logger,
     metadatabaseURL: URL,
@@ -76,7 +93,7 @@ public final actor SyncEngine {
       """
     )
     self._container = container
-    self.defaultSyncEngine = defaultSyncEngine
+    self.defaultSyncEngines = defaultSyncEngines
     self.database = database
     self.logger = logger
     self.metadatabaseURL = metadatabaseURL
@@ -104,7 +121,9 @@ public final actor SyncEngine {
   }
 
   package func setUpSyncEngine() throws {
-    defer { underlyingSyncEngine = defaultSyncEngine(metadatabase, self) }
+    defer {
+      (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
+    }
 
     metadatabase = try defaultMetadatabase
     // TODO: go towards idempotent migrations instead of GRDB migrator by the end of all of this
@@ -149,7 +168,7 @@ public final actor SyncEngine {
       try SQLQueryExpression(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_stateSerialization" (
-          "id" INTEGER NOT NULL PRIMARY KEY ON CONFLICT REPLACE CHECK ("id" = 1),
+          "scope" TEXT NOT NULL PRIMARY KEY,
           "data" TEXT NOT NULL
         ) STRICT
         """
@@ -191,7 +210,7 @@ public final actor SyncEngine {
           }
         }
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await underlyingSyncEngine.fetchChanges()
+          try await privateSyncEngine.fetchChanges()
         }
       }
     }
@@ -243,7 +262,8 @@ public final actor SyncEngine {
   }
 
   public func fetchChanges() async throws {
-    try await underlyingSyncEngine.fetchChanges()
+    try await privateSyncEngine.fetchChanges()
+    try await sharedSyncEngine.fetchChanges()
   }
 
   public func deleteLocalData() throws {
@@ -264,7 +284,7 @@ public final actor SyncEngine {
   }
 
   func didUpdate(recordName: String, zoneName: String, ownerName: String) {
-    underlyingSyncEngine.state.add(
+    privateSyncEngine.state.add(
       pendingRecordZoneChanges: [
         .saveRecord(
           CKRecord.ID(
@@ -280,7 +300,7 @@ public final actor SyncEngine {
   }
 
   func willDelete(recordName: String, zoneName: String, ownerName: String) {
-    underlyingSyncEngine.state.add(
+    privateSyncEngine.state.add(
       pendingRecordZoneChanges: [
         .deleteRecord(
           CKRecord.ID(
@@ -346,13 +366,13 @@ public final actor SyncEngine {
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine: CKSyncEngineDelegate {
   public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
-    logger.log(event)
+    logger.log(event, syncEngine: syncEngine)
 
     switch event {
     case .accountChange(let event):
       handleAccountChange(event)
     case .stateUpdate(let event):
-      handleStateUpdate(event)
+      handleStateUpdate(event, syncEngine: syncEngine)
     case .fetchedDatabaseChanges(let event):
       handleFetchedDatabaseChanges(event)
     case .sentDatabaseChanges:
@@ -423,7 +443,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           .joined(separator: ", ")
         logger.debug(
           """
-          nextRecordZoneChangeBatch: \(context.reason)
+          [\(syncEngine.scope.label)] nextRecordZoneChangeBatch: \(context.reason)
             \(state.missingTables.isEmpty ? "⚪️ No missing tables" : "⚠️ Missing tables: \(missingTables)")
             \(state.missingRecords.isEmpty ? "⚪️ No missing records" : "⚠️ Missing records: \(missingRecords)")
             \(state.sentRecords.isEmpty ? "⚪️ No sent records" : "✅ Sent records: \(sentRecords)")
@@ -504,8 +524,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) {
     switch event.changeType {
     case .signIn:
-      // TODO: handle this
-      //underlyingSyncEngine.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
+      privateSyncEngine.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
       for table in tables {
         withErrorReporting(.sqliteDataCloudKitFailure) {
           let names: [String] = try database.read { db in
@@ -516,7 +535,7 @@ extension SyncEngine: CKSyncEngineDelegate {
             }
             return try open(table)
           }
-          underlyingSyncEngine.state.add(
+          privateSyncEngine.state.add(
             pendingRecordZoneChanges: names.map {
               .saveRecord(
                 CKRecord.ID(
@@ -537,11 +556,17 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  private func handleStateUpdate(_ event: CKSyncEngine.Event.StateUpdate) {
+  private func handleStateUpdate(
+    _ event: CKSyncEngine.Event.StateUpdate,
+    syncEngine: CKSyncEngine
+  ) {
     withErrorReporting(.sqliteDataCloudKitFailure) {
       try database.write { db in
-        try StateSerialization.insert(
-          StateSerialization(data: event.stateSerialization)
+        try StateSerialization.upsert(
+          StateSerialization.Draft(
+            scope: syncEngine.database.databaseScope,
+            data: event.stateSerialization
+          )
         )
         .execute(db)
       }
@@ -614,8 +639,8 @@ extension SyncEngine: CKSyncEngineDelegate {
     var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
     var newPendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] = []
     defer {
-      underlyingSyncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
-      underlyingSyncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
+      privateSyncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
+      privateSyncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
     }
     for failedRecordSave in event.failedRecordSaves {
       let failedRecord = failedRecordSave.record
@@ -838,7 +863,7 @@ extension DatabaseFunction {
 
 // TODO: Rename to isUpdatingFromServer / isHandlingServerUpdates
 @TaskLocal private var isUpdatingWithServerRecord = false
-@available(iOS 16, macOS 13.3, tvOS 16, watchOS 9, *)
+@available(iOS 16.4, macOS 13.3, tvOS 16.4, watchOS 9, *)
 @TaskLocal private var currentZoneID: CKRecordZone.ID?
 
 extension String {
@@ -918,7 +943,7 @@ extension SyncEngine {
       guard let self else { return }
       Task {
         await withErrorReporting {
-          try await self.underlyingSyncEngine
+          try await self.privateSyncEngine
             .fetchChanges(
               .init(
                 scope: .zoneIDs([metadata.hierarchicalRootRecordID!.zoneID]),
