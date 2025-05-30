@@ -30,7 +30,10 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "users" (
                 "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-                "name" TEXT NOT NULL
+                "name" TEXT NOT NULL,
+                "parentUserID" TEXT DEFAULT NULL,
+              
+                FOREIGN KEY("parentUserID") REFERENCES "users"("id") ON DELETE SET DEFAULT ON UPDATE CASCADE 
               ) STRICT
               """
           ),
@@ -39,10 +42,14 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "reminders" (
                 "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-                "assignedUserID" TEXT REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE,
+                "assignedUserID" TEXT,
                 "title" TEXT NOT NULL,
-                "parentReminderID" TEXT REFERENCES "reminders"("id") ON DELETE CASCADE ON UPDATE CASCADE, 
-                "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
+                "parentReminderID" TEXT, 
+                "remindersListID" TEXT NOT NULL, 
+                
+                FOREIGN KEY("assignedUserID") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE,
+                FOREIGN KEY("parentReminderID") REFERENCES "reminders"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+                FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
               ) STRICT
               """
           )
@@ -96,7 +103,7 @@ extension BaseCloudKitTests {
         """
         SELECT name
         FROM pragma_function_list
-        WHERE name LIKE \(bind: String.sharingGRDBCloudKitSchemaName + "_%")
+        WHERE name LIKE \(bind: String.sqliteDataCloudKitSchemaName + "_%")
         """,
         as: String.self
       )
@@ -273,4 +280,6 @@ extension BaseCloudKitTests {
       #expect(metadata == nil)
     }
   }
+
+  // TODO: Test what happens when we delete locally and then an edit comes in from the server
 }

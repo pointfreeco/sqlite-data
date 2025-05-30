@@ -73,7 +73,7 @@ extension CKRecord {
   }
 
   private static let userModificationDateKey =
-    "\(String.sharingGRDBCloudKitSchemaName)_userModificationDate"
+    "\(String.sqliteDataCloudKitSchemaName)_userModificationDate"
 }
 
 extension PrimaryKeyedTable {

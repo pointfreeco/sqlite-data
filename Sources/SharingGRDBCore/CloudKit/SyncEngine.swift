@@ -5,7 +5,7 @@ import OSLog
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 public final actor SyncEngine {
   public static nonisolated let defaultZone = CKRecordZone(
-    zoneName: "co.pointfree.SharingGRDB.defaultZone"
+    zoneName: "co.pointfree.SQLiteData.defaultZone"
   )
 
   let database: any DatabaseWriter
@@ -18,12 +18,6 @@ public final actor SyncEngine {
   var underlyingSyncEngine: (any CKSyncEngineProtocol)!
   let defaultSyncEngine: (any DatabaseReader, SyncEngine) -> any CKSyncEngineProtocol
   let _container: any Sendable
-
-  let operationQueue = {
-    let queue = OperationQueue()
-    queue.maxConcurrentOperationCount = 1
-    return queue
-  }()
 
   public init(
     container: CKContainer,
@@ -99,7 +93,7 @@ public final actor SyncEngine {
       }
     )
     Task {
-      await withErrorReporting(.sharingGRDBCloudKitFailure) {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await setUpSyncEngine()
       }
     }
@@ -122,7 +116,7 @@ public final actor SyncEngine {
     migrator.registerMigration("Create Metadata Tables") { db in
       try SQLQueryExpression(
         """
-        CREATE TABLE IF NOT EXISTS "\(raw: .sharingGRDBCloudKitSchemaName)_metadata" (
+        CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
           "recordType" TEXT NOT NULL,
           "recordName" TEXT NOT NULL PRIMARY KEY,
           "zoneName" TEXT NOT NULL,
@@ -138,14 +132,14 @@ public final actor SyncEngine {
       // TODO: Do we ever query for "parentRecordName"? should we add an index?
       try SQLQueryExpression(
         """
-        CREATE INDEX IF NOT EXISTS "\(raw: .sharingGRDBCloudKitSchemaName)_metadata_zoneName_ownerName"
-        ON "\(raw: .sharingGRDBCloudKitSchemaName)_metadata" ("zoneName", "ownerName")
+        CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_zoneName_ownerName"
+        ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata" ("zoneName", "ownerName")
         """
       )
       .execute(db)
       try SQLQueryExpression(
         """
-        CREATE TABLE IF NOT EXISTS "\(raw: .sharingGRDBCloudKitSchemaName)_recordTypes" (
+        CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_recordTypes" (
           "tableName" TEXT NOT NULL PRIMARY KEY,
           "schema" TEXT NOT NULL
         ) STRICT
@@ -154,7 +148,7 @@ public final actor SyncEngine {
       .execute(db)
       try SQLQueryExpression(
         """
-        CREATE TABLE IF NOT EXISTS "\(raw: .sharingGRDBCloudKitSchemaName)_stateSerialization" (
+        CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_stateSerialization" (
           "id" INTEGER NOT NULL PRIMARY KEY ON CONFLICT REPLACE CHECK ("id" = 1),
           "data" TEXT NOT NULL
         ) STRICT
@@ -189,21 +183,21 @@ public final actor SyncEngine {
     if !recordTypesToFetch.isEmpty {
       // TODO: Should we avoid this unstructured task by making 'setUpSyncEngine' async?
       Task {
-        await withErrorReporting(.sharingGRDBCloudKitFailure) {
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await metadatabase.write { db in
             for recordType in recordTypesToFetch {
               try RecordType.upsert(RecordType.Draft(recordType)).execute(db)
             }
           }
         }
-        await withErrorReporting(.sharingGRDBCloudKitFailure) {
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await underlyingSyncEngine.fetchChanges()
         }
       }
     }
     try database.write { db in
       try SQLQueryExpression(
-        "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sharingGRDBCloudKitSchemaName)"
+        "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sqliteDataCloudKitSchemaName)"
       )
       .execute(db)
       db.add(function: .isUpdatingWithServerRecord)
@@ -212,59 +206,7 @@ public final actor SyncEngine {
       db.add(function: .didUpdate(syncEngine: self))
       db.add(function: .willDelete(syncEngine: self))
 
-      try SQLQueryExpression(
-        """
-        CREATE TEMPORARY TRIGGER IF NOT EXISTS "metadata_inserts"
-        AFTER INSERT ON \(Metadata.self)
-        FOR EACH ROW 
-        BEGIN
-          SELECT 
-            \(raw: String.sharingGRDBCloudKitSchemaName)_didUpdate(
-              "new"."recordName",
-              "new"."zoneName",
-              "new"."ownerName"
-            )
-          WHERE NOT \(raw: String.sharingGRDBCloudKitSchemaName)_isUpdatingWithServerRecord();
-        END
-        """
-      )
-      .execute(db)
-
-      try SQLQueryExpression(
-        """
-        CREATE TEMPORARY TRIGGER IF NOT EXISTS "metadata_updates"
-        AFTER UPDATE ON \(Metadata.self)
-        FOR EACH ROW 
-        BEGIN
-          SELECT 
-            \(raw: String.sharingGRDBCloudKitSchemaName)_didUpdate(
-              "new"."recordName",
-              "new"."zoneName",
-              "new"."ownerName"
-            )
-          WHERE NOT \(raw: String.sharingGRDBCloudKitSchemaName)_isUpdatingWithServerRecord()
-        ;
-        END
-        """
-      )
-      .execute(db)
-      try SQLQueryExpression(
-        """
-        CREATE TEMPORARY TRIGGER IF NOT EXISTS "metadata_deletes"
-        BEFORE DELETE ON \(Metadata.self)
-        FOR EACH ROW 
-        BEGIN
-          SELECT 
-            \(raw: String.sharingGRDBCloudKitSchemaName)_willDelete(
-              "old"."recordName",
-              "old"."zoneName",
-              "old"."ownerName"
-            )
-          WHERE NOT \(raw: String.sharingGRDBCloudKitSchemaName)_isUpdatingWithServerRecord();
-        END
-        """
-      )
-      .execute(db)
+      try Metadata.createTriggers(tables: tables, db: db)
 
       for table in tables {
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
@@ -283,21 +225,7 @@ public final actor SyncEngine {
         }
         try open(table)
       }
-      try SQLQueryExpression(
-        """
-        DROP TRIGGER "metadata_deletes"
-        """
-      ).execute(db)
-      try SQLQueryExpression(
-        """
-        DROP TRIGGER "metadata_updates"
-        """
-      ).execute(db)
-      try SQLQueryExpression(
-        """
-        DROP TRIGGER "metadata_inserts"
-        """
-      ).execute(db)
+      try Metadata.dropTriggers(db: db)
       db.remove(function: .willDelete(syncEngine: self))
       db.remove(function: .didUpdate(syncEngine: self))
       db.remove(function: .getOwnerName)
@@ -306,7 +234,7 @@ public final actor SyncEngine {
     }
     try database.writeWithoutTransaction { db in
       try SQLQueryExpression(
-        "DETACH DATABASE \(quote: .sharingGRDBCloudKitSchemaName)"
+        "DETACH DATABASE \(quote: .sqliteDataCloudKitSchemaName)"
       )
       .execute(db)
     }
@@ -320,11 +248,11 @@ public final actor SyncEngine {
 
   public func deleteLocalData() throws {
     try tearDownSyncEngine()
-    withErrorReporting(.sharingGRDBCloudKitFailure) {
+    withErrorReporting(.sqliteDataCloudKitFailure) {
       try database.write { db in
         for table in tables {
           func open<T: PrimaryKeyedTable>(_: T.Type) {
-            withErrorReporting(.sharingGRDBCloudKitFailure) {
+            withErrorReporting(.sqliteDataCloudKitFailure) {
               try T.delete().execute(db)
             }
           }
@@ -393,302 +321,25 @@ public final actor SyncEngine {
   }
 
   private func createTriggers<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
-    let from =
+    let foreignKey =
       foreignKeysByTableName[T.tableName]?.count(where: \.notnull) == 1
-      ? foreignKeysByTableName[T.tableName]?.first(where: \.notnull)?.from
+      ? foreignKeysByTableName[T.tableName]?.first(where: \.notnull)
       : nil
 
-    try SQLQueryExpression(
-      """
-      CREATE TEMPORARY TRIGGER
-        "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataInserts"
-      AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
-        INSERT INTO \(Metadata.self)
-          ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName", "userModificationDate")
-        SELECT
-          \(quote: T.tableName, delimiter: .text),
-          "new".\(quote: T.columns.primaryKey.name),
-          coalesce(
-            "zoneName", 
-            \(raw: String.sharingGRDBCloudKitSchemaName)_getZoneName(), 
-            \(quote: Self.defaultZone.zoneID.zoneName, delimiter: .text)
-          ),
-          coalesce(
-            "ownerName", 
-            \(raw: String.sharingGRDBCloudKitSchemaName)_getOwnerName(), 
-            \(quote: Self.defaultZone.zoneID.ownerName, delimiter: .text)
-          ),
-          \(raw: from.map { #""new"."\#($0)""# } ?? "NULL") AS "foreignKeyName",
-          datetime('subsec')
-        FROM (SELECT 1) 
-        LEFT JOIN "\(raw: String.sharingGRDBCloudKitSchemaName)_metadata" ON "recordName" = "foreignKeyName"
-        ON CONFLICT("recordName") DO NOTHING;
-      END
-      """
-    )
-    .execute(db)
-    try SQLQueryExpression(
-      """
-      CREATE TEMPORARY TRIGGER
-        "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataUpdates"
-      AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
-        UPDATE \(Metadata.self)
-        SET
-          "recordName" = "new".\(quote: T.columns.primaryKey.name),
-          "userModificationDate" = datetime('subsec'),
-          "parentRecordName" = \(raw: from.map { #""new"."\#($0)""# } ?? "NULL")
-        WHERE "recordName" = "old".\(quote: T.columns.primaryKey.name)
-        ;
-      END
-      """
-    )
-    .execute(db)
-    try SQLQueryExpression(
-      """
-      CREATE TEMPORARY TRIGGER
-        "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataDeletes"
-      AFTER DELETE ON \(T.self) FOR EACH ROW BEGIN
-        DELETE FROM \(Metadata.self)
-        WHERE "recordName" = "old".\(quote: T.columns.primaryKey.name);
-      END
-      """
-    )
-    .execute(db)
+    try Metadata.createTriggers(for: T.self, parentForeignKey: foreignKey, db: db)
 
     let foreignKeys = foreignKeysByTableName[T.tableName] ?? []
     for foreignKey in foreignKeys {
-      switch foreignKey.onDelete {
-      case .cascade:
-        try SQLQueryExpression(
-          """
-          CREATE TEMPORARY TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
-          AFTER DELETE ON \(quote: foreignKey.table)
-          FOR EACH ROW BEGIN
-            DELETE FROM \(table)
-            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-          END
-          """
-        )
-        .execute(db)
-
-      case .restrict:
-        // TODO: Report issue?
-        continue
-
-      case .setDefault:
-        let defaultValue =
-          try SQLQueryExpression(
-            """
-            SELECT "dflt_value"
-            FROM pragma_table_info(\(bind: T.tableName))
-            WHERE "name" = \(bind: foreignKey.from)
-            """,
-            as: String?.self
-          )
-          .fetchOne(db) ?? nil
-
-        guard let defaultValue
-        else {
-          // TODO: Report issue?
-          continue
-        }
-        try SQLQueryExpression(
-          """
-          CREATE TEMPORARY TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
-          AFTER DELETE ON \(quote: foreignKey.table)
-          FOR EACH ROW BEGIN
-            UPDATE \(table)
-            SET \(quote: foreignKey.from) = \(raw: defaultValue)
-            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-          END
-          """
-        )
-        .execute(db)
-
-      case .setNull:
-        try SQLQueryExpression(
-          """
-          CREATE TEMPORARY TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
-          AFTER DELETE ON \(quote: foreignKey.table)
-          FOR EACH ROW BEGIN
-            UPDATE \(table)
-            SET \(quote: foreignKey.from) = NULL
-            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-          END
-          """
-        )
-        .execute(db)
-
-      case .noAction:
-        continue
-      }
-
-      switch foreignKey.onUpdate {
-      case .cascade:
-        try SQLQueryExpression(
-          """
-          CREATE TEMPORARY TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
-          AFTER UPDATE ON \(quote: foreignKey.table)
-          FOR EACH ROW BEGIN
-            UPDATE \(T.self)
-            SET \(quote: foreignKey.from) = "new".\(quote: foreignKey.to)
-            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-          END
-          """
-        )
-        .execute(db)
-
-      case .restrict:
-        // TODO: Report issue?
-        continue
-
-      case .setDefault:
-        let defaultValue =
-          try SQLQueryExpression(
-            """
-            SELECT "dflt_value"
-            FROM pragma_table_info(\(bind: T.tableName))
-            WHERE "name" = \(bind: foreignKey.from)
-            """,
-            as: String?.self
-          )
-          .fetchOne(db) ?? nil
-
-        guard let defaultValue
-        else {
-          // TODO: Report issue?
-          continue
-        }
-        try SQLQueryExpression(
-          """
-          CREATE TEMPORARY TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
-          AFTER UPDATE ON \(quote: foreignKey.table)
-          FOR EACH ROW BEGIN
-            UPDATE \(table)
-            SET \(quote: foreignKey.from) = \(raw: defaultValue)
-            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-          END
-          """
-        )
-        .execute(db)
-
-      case .setNull:
-        try SQLQueryExpression(
-          """
-          CREATE TEMPORARY TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
-          AFTER UPDATE ON \(quote: foreignKey.table)
-          FOR EACH ROW BEGIN
-            UPDATE \(T.self)
-            SET \(quote: foreignKey.from) = NULL
-            WHERE \(quote: foreignKey.from) = "old".\(quote: foreignKey.to);
-          END
-          """
-        )
-        .execute(db)
-
-      case .noAction:
-        continue
-      }
+      try foreignKey.createTriggers(for: T.self, db: db)
     }
   }
 
   private func dropTriggers<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
     let foreignKeys = foreignKeysByTableName[T.tableName] ?? []
     for foreignKey in foreignKeys {
-      switch foreignKey.onDelete {
-      case .cascade:
-        try SQLQueryExpression(
-          """
-          DROP TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteCascade"
-          """
-        )
-        .execute(db)
-
-      case .restrict:
-        continue
-
-      case .setDefault:
-        try SQLQueryExpression(
-          """
-          DROP TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetDefault"
-          """
-        )
-        .execute(db)
-
-      case .setNull:
-        try SQLQueryExpression(
-          """
-          DROP TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onDeleteSetNull"
-          """
-        )
-        .execute(db)
-
-      case .noAction:
-        continue
-      }
-
-      switch foreignKey.onUpdate {
-      case .cascade:
-        try SQLQueryExpression(
-          """
-          DROP TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateCascade"
-          """
-        )
-        .execute(db)
-
-      case .restrict:
-        continue
-
-      case .setDefault:
-        try SQLQueryExpression(
-          """
-          DROP TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetDefault"
-          """
-        )
-        .execute(db)
-
-      case .setNull:
-        try SQLQueryExpression(
-          """
-          DROP TRIGGER
-            "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: foreignKey.table)_onUpdateSetNull"
-          """
-        )
-        .execute(db)
-
-      case .noAction:
-        continue
-      }
+      try foreignKey.dropTriggers(for: T.self, db: db)
     }
-    try SQLQueryExpression(
-      """
-      DROP TRIGGER "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataDeletes"
-      """
-    )
-    .execute(db)
-    try SQLQueryExpression(
-      """
-      DROP TRIGGER "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataUpdates"
-      """
-    )
-    .execute(db)
-    try SQLQueryExpression(
-      """
-      DROP TRIGGER "\(raw: .sharingGRDBCloudKitSchemaName)_\(raw: T.tableName)_metadataInserts"
-      """
-    )
-    .execute(db)
+    try Metadata.dropTriggers(for: T.self, db: db)
   }
 }
 
@@ -856,7 +507,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       // TODO: handle this
       //underlyingSyncEngine.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
       for table in tables {
-        withErrorReporting(.sharingGRDBCloudKitFailure) {
+        withErrorReporting(.sqliteDataCloudKitFailure) {
           let names: [String] = try database.read { db in
             func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String] {
               try T
@@ -878,7 +529,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
       }
     case .signOut, .switchAccounts:
-      withErrorReporting(.sharingGRDBCloudKitFailure) {
+      withErrorReporting(.sqliteDataCloudKitFailure) {
         try deleteLocalData()
       }
     @unknown default:
@@ -887,7 +538,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func handleStateUpdate(_ event: CKSyncEngine.Event.StateUpdate) {
-    withErrorReporting(.sharingGRDBCloudKitFailure) {
+    withErrorReporting(.sqliteDataCloudKitFailure) {
       try database.write { db in
         try StateSerialization.insert(
           StateSerialization(data: event.stateSerialization)
@@ -900,12 +551,12 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func handleFetchedDatabaseChanges(_ event: CKSyncEngine.Event.FetchedDatabaseChanges) {
     // TODO: Come back to this once we have zoneName in the metadata table.
     //    $isUpdatingWithServerRecord.withValue(true) {
-    //      withErrorReporting(.sharingGRDBCloudKitFailure) {
+    //      withErrorReporting(.sqliteDataCloudKitFailure) {
     //        try database.write { db in
     //          for deletion in event.deletions {
     //            if let table = tablesByName[deletion.zoneID.zoneName] {
     //              func open<T: PrimaryKeyedTable>(_: T.Type) {
-    //                withErrorReporting(.sharingGRDBCloudKitFailure) {
+    //                withErrorReporting(.sqliteDataCloudKitFailure) {
     //                  try T.delete().execute(db)
     //                }
     //              }
@@ -933,7 +584,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       for (recordID, recordType) in deletions {
         if let table = tablesByName[recordType] {
           func open<T: PrimaryKeyedTable>(_: T.Type) {
-            withErrorReporting(.sharingGRDBCloudKitFailure) {
+            withErrorReporting(.sqliteDataCloudKitFailure) {
               try database.write { db in
                 try T.find(recordID: recordID)
                   .delete()
@@ -944,7 +595,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           open(table)
         } else {
           reportIssue(
-            .sharingGRDBCloudKitFailure.appending(
+            .sqliteDataCloudKitFailure.appending(
               """
               : No table to delete from: "\(recordType)"
               """
@@ -1014,7 +665,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func mergeFromServerRecord(_ record: CKRecord) {
     $isUpdatingWithServerRecord.withValue(true) {
       $currentZoneID.withValue(record.recordID.zoneID) {
-        withErrorReporting(.sharingGRDBCloudKitFailure) {
+        withErrorReporting(.sqliteDataCloudKitFailure) {
           let userModificationDate =
             try metadatabase.read { db in
               try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(
@@ -1025,7 +676,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           guard let table = tablesByName[record.recordType]
           else {
             reportIssue(
-              .sharingGRDBCloudKitFailure.appending(
+              .sqliteDataCloudKitFailure.appending(
                 """
                 : No table to merge from: "\(record.recordType)"
                 """
@@ -1093,7 +744,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         let metadata = metadataFor(recordID: record.recordID)
 
         func updateLastKnownServerRecord() {
-          withErrorReporting(.sharingGRDBCloudKitFailure) {
+          withErrorReporting(.sqliteDataCloudKitFailure) {
             try database.write { db in
               try Metadata
                 .find(recordID: record.recordID)
@@ -1115,7 +766,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func metadataFor(recordID: CKRecord.ID) -> Metadata? {
-    withErrorReporting(.sharingGRDBCloudKitFailure) {
+    withErrorReporting(.sqliteDataCloudKitFailure) {
       try metadatabase.read { db in
         try Metadata.find(recordID: recordID).fetchOne(db)
       }
@@ -1148,20 +799,20 @@ extension DatabaseFunction {
   }
 
   fileprivate static var isUpdatingWithServerRecord: Self {
-    Self(.sharingGRDBCloudKitSchemaName + "_" + "isUpdatingWithServerRecord", argumentCount: 0) {
+    Self(.sqliteDataCloudKitSchemaName + "_" + "isUpdatingWithServerRecord", argumentCount: 0) {
       _ in
       SharingGRDBCore.isUpdatingWithServerRecord
     }
   }
 
   fileprivate static var getZoneName: Self {
-    Self(.sharingGRDBCloudKitSchemaName + "_" + "getZoneName", argumentCount: 0) { _ in
+    Self(.sqliteDataCloudKitSchemaName + "_" + "getZoneName", argumentCount: 0) { _ in
       SharingGRDBCore.currentZoneID?.zoneName
     }
   }
 
   fileprivate static var getOwnerName: Self {
-    Self(.sharingGRDBCloudKitSchemaName + "_" + "getOwnerName", argumentCount: 0) { _ in
+    Self(.sqliteDataCloudKitSchemaName + "_" + "getOwnerName", argumentCount: 0) { _ in
       SharingGRDBCore.currentZoneID?.ownerName
     }
   }
@@ -1170,7 +821,7 @@ extension DatabaseFunction {
     _ name: String,
     function: @escaping @Sendable (String, String, String) async -> Void
   ) {
-    self.init(.sharingGRDBCloudKitSchemaName + "_" + name, argumentCount: 3) { arguments in
+    self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 3) { arguments in
       guard
         let recordName = String.fromDatabaseValue(arguments[0]),
         let zoneName = String.fromDatabaseValue(arguments[1]),
@@ -1187,11 +838,12 @@ extension DatabaseFunction {
 
 // TODO: Rename to isUpdatingFromServer / isHandlingServerUpdates
 @TaskLocal private var isUpdatingWithServerRecord = false
+@available(iOS 16, macOS 13.3, tvOS 16, watchOS 9, *)
 @TaskLocal private var currentZoneID: CKRecordZone.ID?
 
 extension String {
-  package static let sharingGRDBCloudKitSchemaName = "sqlitedata_icloud"
-  fileprivate static let sharingGRDBCloudKitFailure = "SharingGRDB CloudKit Failure"
+  package static let sqliteDataCloudKitSchemaName = "sqlitedata_icloud"
+  fileprivate static let sqliteDataCloudKitFailure = "SharingGRDB CloudKit Failure"
 }
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
@@ -1246,8 +898,7 @@ extension SyncEngine {
       }
 
       modifyOperation.database = container.sharedCloudDatabase
-      // TODO: can this be container.add?
-      operationQueue.addOperation(modifyOperation)
+      container.add(modifyOperation)
     }
 
     return share
@@ -1353,7 +1004,6 @@ extension SyncEngine {
     }
     container.add(metadataFetchOperation)
 
-    //operationQueue.addOperation(operation)
     operation.qualityOfService = .utility
     container.add(operation)
   }

@@ -1,4 +1,4 @@
-// @Table("\(String.sharingGRDBCloudKitSchemaName)_recordTypes")
+// @Table("\(String.sqliteDataCloudKitSchemaName)_recordTypes")
 package struct RecordType {
   // @Column(primaryKey: true)
   package let tableName: String
@@ -59,7 +59,7 @@ extension RecordType: StructuredQueriesCore.Table, StructuredQueriesCore.Primary
     }
   }
   public static let columns = TableColumns()
-  public static let tableName = "\(String.sharingGRDBCloudKitSchemaName)_recordTypes"
+  public static let tableName = "\(String.sqliteDataCloudKitSchemaName)_recordTypes"
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
     let tableName = try decoder.decode(String.self)
     let schema = try decoder.decode(String.self)

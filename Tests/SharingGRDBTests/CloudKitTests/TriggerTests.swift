@@ -62,24 +62,31 @@ extension BaseCloudKitTests {
           CREATE TRIGGER "sqlitedata_icloud_reminders_metadataInserts"
           AFTER INSERT ON "reminders" FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
-              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName", "userModificationDate")
+              (
+                "recordType",
+                "recordName",
+                "zoneName",
+                "ownerName",
+                "parentRecordName",
+                "userModificationDate"
+              )
             SELECT
               'reminders',
               "new"."id",
               coalesce(
-                "zoneName", 
+                "sqlitedata_icloud_metadata"."zoneName", 
                 sqlitedata_icloud_getZoneName(), 
-                'co.pointfree.SharingGRDB.defaultZone'
+                'co.pointfree.SQLiteData.defaultZone'
               ),
               coalesce(
-                "ownerName", 
+                "sqlitedata_icloud_metadata"."ownerName", 
                 sqlitedata_icloud_getOwnerName(), 
                 '__defaultOwner__'
               ),
               "new"."remindersListID" AS "foreignKeyName",
               datetime('subsec')
             FROM (SELECT 1) 
-            LEFT JOIN "sqlitedata_icloud_metadata" ON "recordName" = "foreignKeyName"
+            LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKeyName"
             ON CONFLICT("recordName") DO NOTHING;
           END
           """,
@@ -158,24 +165,31 @@ extension BaseCloudKitTests {
           CREATE TRIGGER "sqlitedata_icloud_remindersLists_metadataInserts"
           AFTER INSERT ON "remindersLists" FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
-              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName", "userModificationDate")
+              (
+                "recordType",
+                "recordName",
+                "zoneName",
+                "ownerName",
+                "parentRecordName",
+                "userModificationDate"
+              )
             SELECT
               'remindersLists',
               "new"."id",
               coalesce(
-                "zoneName", 
+                "sqlitedata_icloud_metadata"."zoneName", 
                 sqlitedata_icloud_getZoneName(), 
-                'co.pointfree.SharingGRDB.defaultZone'
+                'co.pointfree.SQLiteData.defaultZone'
               ),
               coalesce(
-                "ownerName", 
+                "sqlitedata_icloud_metadata"."ownerName", 
                 sqlitedata_icloud_getOwnerName(), 
                 '__defaultOwner__'
               ),
               NULL AS "foreignKeyName",
               datetime('subsec')
             FROM (SELECT 1) 
-            LEFT JOIN "sqlitedata_icloud_metadata" ON "recordName" = "foreignKeyName"
+            LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKeyName"
             ON CONFLICT("recordName") DO NOTHING;
           END
           """,
@@ -202,24 +216,31 @@ extension BaseCloudKitTests {
           CREATE TRIGGER "sqlitedata_icloud_users_metadataInserts"
           AFTER INSERT ON "users" FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
-              ("recordType", "recordName", "zoneName", "ownerName", "parentRecordName", "userModificationDate")
+              (
+                "recordType",
+                "recordName",
+                "zoneName",
+                "ownerName",
+                "parentRecordName",
+                "userModificationDate"
+              )
             SELECT
               'users',
               "new"."id",
               coalesce(
-                "zoneName", 
+                "sqlitedata_icloud_metadata"."zoneName", 
                 sqlitedata_icloud_getZoneName(), 
-                'co.pointfree.SharingGRDB.defaultZone'
+                'co.pointfree.SQLiteData.defaultZone'
               ),
               coalesce(
-                "ownerName", 
+                "sqlitedata_icloud_metadata"."ownerName", 
                 sqlitedata_icloud_getOwnerName(), 
                 '__defaultOwner__'
               ),
               NULL AS "foreignKeyName",
               datetime('subsec')
             FROM (SELECT 1) 
-            LEFT JOIN "sqlitedata_icloud_metadata" ON "recordName" = "foreignKeyName"
+            LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKeyName"
             ON CONFLICT("recordName") DO NOTHING;
           END
           """,
@@ -240,6 +261,24 @@ extension BaseCloudKitTests {
           AFTER DELETE ON "users" FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
             WHERE "recordName" = "old"."id";
+          END
+          """,
+          [18]: """
+          CREATE TRIGGER "sqlitedata_icloud_users_belongsTo_users_onDeleteSetDefault"
+          AFTER DELETE ON "users"
+          FOR EACH ROW BEGIN
+            UPDATE "users"
+            SET "parentUserID" = NULL
+            WHERE "parentUserID" = "old"."id";
+          END
+          """,
+          [19]: """
+          CREATE TRIGGER "sqlitedata_icloud_users_belongsTo_users_onUpdateCascade"
+          AFTER UPDATE ON "users"
+          FOR EACH ROW BEGIN
+            UPDATE "users"
+            SET "parentUserID" = "new"."id"
+            WHERE "parentUserID" = "old"."id";
           END
           """
         ]
