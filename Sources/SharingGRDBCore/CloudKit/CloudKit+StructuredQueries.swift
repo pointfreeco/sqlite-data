@@ -84,6 +84,46 @@ extension PrimaryKeyedTable {
   }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension Metadata {
+  package static func find(recordID: CKRecord.ID) -> Where<Self> {
+    Self.where {
+      $0.recordName.eq(recordID.recordName)
+    }
+  }
+
+  init(record: CKRecord) {
+    self.init(
+      recordType: record.recordType,
+      recordName: record.recordID.recordName,
+      zoneName: record.recordID.zoneID.zoneName,
+      ownerName: record.recordID.zoneID.ownerName,
+      lastKnownServerRecord: record,
+      userModificationDate: record.userModificationDate
+    )
+  }
+}
+
+extension __CKRecordObjCValue {
+  var queryFragment: QueryFragment {
+    if let value = self as? Int64 {
+      return value.queryFragment
+    } else if let value = self as? Double {
+      return value.queryFragment
+    } else if let value = self as? String {
+      return value.queryFragment
+    } else if let value = self as? Data {
+      return value.queryFragment
+    } else if let value = self as? Date {
+      return value.queryFragment
+    } else {
+      return "\(.invalid(Unbindable()))"
+    }
+  }
+}
+
+private struct Unbindable: Error {}
+
 // TODO: Move to custom-dump?
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension CKRecord: @retroactive CustomDumpReflectable {
