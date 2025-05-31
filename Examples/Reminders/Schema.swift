@@ -6,7 +6,7 @@ import SwiftUI
 
 @Table
 struct RemindersList: Hashable, Identifiable {
-  let id: UUID
+  var id: UUID
   @Column(as: Color.HexRepresentation.self)
   var color = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
   var position = 0
@@ -14,14 +14,15 @@ struct RemindersList: Hashable, Identifiable {
 }
 
 @Table
-struct ReminderSection: Hashable, Identifiable {
-  let id: UUID
+struct RemindersSection: Hashable, Identifiable {
+  var id: UUID
+  var remindersListID: RemindersList.ID
   var title = ""
 }
 
 @Table
-struct Reminder: Equatable, Identifiable {
-  let id: UUID
+struct Reminder: Codable, Equatable, Identifiable {
+  var id: UUID
   var dueDate: Date?
   var isCompleted = false
   var isFlagged = false
@@ -29,7 +30,7 @@ struct Reminder: Equatable, Identifiable {
   var priority: Priority?
   var remindersListID: RemindersList.ID
   var position = 0
-  var sectionID: Section.ID?
+  var remindersSectionID: RemindersSection.ID?
   var title = ""
 }
 
@@ -61,7 +62,7 @@ extension Reminder.TableColumns {
   }
 }
 
-enum Priority: Int, QueryBindable {
+enum Priority: Int, Codable, QueryBindable {
   case low = 1
   case medium
   case high
@@ -69,7 +70,7 @@ enum Priority: Int, QueryBindable {
 
 @Table
 struct Tag: Hashable, Identifiable {
-  let id: UUID
+  var id: UUID
   var title = ""
 }
 
@@ -92,7 +93,7 @@ struct ReminderTag: Hashable, Identifiable {
   var id: Self { self }
 }
 
-func appDatabase() throws -> any DatabaseWriter {
+func appDatabase(seed: Bool = false) throws -> any DatabaseWriter {
   @Dependency(\.context) var context
   let database: any DatabaseWriter
   var configuration = Configuration()
@@ -133,9 +134,12 @@ func appDatabase() throws -> any DatabaseWriter {
     .execute(db)
     try #sql(
       """
-      CREATE TABLE "sections" (
+      CREATE TABLE "remindersSections" (
         "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-        "title" TEXT NOT NULL
+        "remindersListID" TEXT,
+        "title" TEXT NOT NULL,
+      
+        FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
       """
     )
@@ -150,12 +154,12 @@ func appDatabase() throws -> any DatabaseWriter {
         "notes" TEXT,
         "position" INTEGER NOT NULL DEFAULT 0,
         "priority" INTEGER,
-        "remindersListID" INTEGER NOT NULL,
-        "sectionID" TEXT,
+        "remindersListID" TEXT NOT NULL,
+        "remindersSectionID" TEXT,
         "title" TEXT NOT NULL,
 
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE,
-        FOREIGN KEY("sectionID") REFERENCES "sections"("id") ON DELETE CASCADE
+        FOREIGN KEY("remindersSectionID") REFERENCES "remindersSections"("id") ON DELETE SET NULL
       ) STRICT
       """
     )
@@ -182,6 +186,7 @@ func appDatabase() throws -> any DatabaseWriter {
     )
     .execute(db)
   }
+
   try database.write { db in
     try #sql(
       """
@@ -209,13 +214,12 @@ func appDatabase() throws -> any DatabaseWriter {
     .execute(db)
   }
 
-  #if DEBUG && targetEnvironment(simulator)
-    if context != .test {
-      migrator.registerMigration("Seed sample data") { db in
-        try db.seedSampleData()
-      }
+  if seed {
+    try database.write { db in
+      try db.seedSampleData()
     }
-  #endif
+  }
+
   try migrator.migrate(database)
 
   return database
@@ -226,9 +230,10 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
 #if DEBUG
   extension Database {
     func seedSampleData() throws {
-      let remindersListIDs = (1...3).map { _ in UUID() }
-      let reminderIDs = (1...10).map { _ in UUID() }
-      let tagIDs = (1...7).map { _ in UUID() }
+      let remindersListIDs = (0...2).map { _ in UUID() }
+      let remindersSectionsIDs = (0...1).map { _ in UUID() }
+      let reminderIDs = (0...10).map { _ in UUID() }
+      let tagIDs = (0...6).map { _ in UUID() }
       try seed {
         RemindersList(
           id: remindersListIDs[0],
@@ -244,6 +249,16 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
           id: remindersListIDs[2],
           color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
           title: "Business"
+        )
+        RemindersSection(
+          id: remindersSectionsIDs[0],
+          remindersListID: remindersListIDs[2],
+          title: "Phase 1"
+        )
+        RemindersSection(
+          id: remindersSectionsIDs[1],
+          remindersListID: remindersListIDs[2],
+          title: "Phase 2"
         )
         Reminder(
           id: reminderIDs[0],
@@ -312,6 +327,7 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
             Changing payroll company
             """,
           remindersListID: remindersListIDs[2],
+          remindersSectionID: remindersSectionsIDs[0],
           title: "Call accountant"
         )
         Reminder(
@@ -320,7 +336,15 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
           isCompleted: true,
           priority: .medium,
           remindersListID: remindersListIDs[2],
+          remindersSectionID: remindersSectionsIDs[1],
           title: "Send weekly emails"
+        )
+        Reminder(
+          id: reminderIDs[10],
+          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
+          isCompleted: false,
+          remindersListID: remindersListIDs[2],
+          title: "Prepare for WWDC"
         )
         Tag(id: tagIDs[0], title: "car")
         Tag(id: tagIDs[1], title: "kids")

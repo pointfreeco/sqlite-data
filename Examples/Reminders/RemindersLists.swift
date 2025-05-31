@@ -1,5 +1,6 @@
 import SharingGRDB
 import SwiftUI
+import TipKit
 
 struct RemindersListsView: View {
   @FetchAll(
@@ -39,6 +40,7 @@ struct RemindersListsView: View {
   @State private var destination: Destination?
   @State private var remindersDetailType: RemindersDetailView.DetailType?
   @State private var searchText = ""
+  @State private var seedDatabaseTip: SeedDatabaseTip?
 
   @Dependency(\.defaultDatabase) private var database
 
@@ -67,109 +69,133 @@ struct RemindersListsView: View {
   var body: some View {
     List {
       if searchText.isEmpty {
-//        Section {
-//          Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 16) {
-//            GridRow {
-//              ReminderGridCell(
-//                color: .blue,
-//                count: stats.todayCount,
-//                iconName: "calendar.circle.fill",
-//                title: "Today"
-//              ) {
-//                remindersDetailType = .today
-//              }
-//              ReminderGridCell(
-//                color: .red,
-//                count: stats.scheduledCount,
-//                iconName: "calendar.circle.fill",
-//                title: "Scheduled"
-//              ) {
-//                remindersDetailType = .scheduled
-//              }
-//            }
-//            GridRow {
-//              ReminderGridCell(
-//                color: .gray,
-//                count: stats.allCount,
-//                iconName: "tray.circle.fill",
-//                title: "All"
-//              ) {
-//                remindersDetailType = .all
-//              }
-//              ReminderGridCell(
-//                color: .orange,
-//                count: stats.flaggedCount,
-//                iconName: "flag.circle.fill",
-//                title: "Flagged"
-//              ) {
-//                remindersDetailType = .flagged
-//              }
-//            }
-//            GridRow {
-//              ReminderGridCell(
-//                color: .gray,
-//                count: nil,
-//                iconName: "checkmark.circle.fill",
-//                title: "Completed"
-//              ) {
-//                remindersDetailType = .completed
-//              }
-//            }
-//          }
-//          .buttonStyle(.plain)
-//          .listRowBackground(Color.clear)
-//          .padding([.leading, .trailing], -20)
-//        }
+        Section {
+          Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 16) {
+            GridRow {
+              ReminderGridCell(
+                color: .blue,
+                count: stats.todayCount,
+                iconName: "calendar.circle.fill",
+                title: "Today"
+              ) {
+                remindersDetailType = .today
+              }
+              ReminderGridCell(
+                color: .red,
+                count: stats.scheduledCount,
+                iconName: "calendar.circle.fill",
+                title: "Scheduled"
+              ) {
+                remindersDetailType = .scheduled
+              }
+            }
+            GridRow {
+              ReminderGridCell(
+                color: .gray,
+                count: stats.allCount,
+                iconName: "tray.circle.fill",
+                title: "All"
+              ) {
+                remindersDetailType = .all
+              }
+              ReminderGridCell(
+                color: .orange,
+                count: stats.flaggedCount,
+                iconName: "flag.circle.fill",
+                title: "Flagged"
+              ) {
+                remindersDetailType = .flagged
+              }
+            }
+            GridRow {
+              ReminderGridCell(
+                color: .gray,
+                count: nil,
+                iconName: "checkmark.circle.fill",
+                title: "Completed"
+              ) {
+                remindersDetailType = .completed
+              }
+            }
+          }
+          .buttonStyle(.plain)
+          .listRowBackground(Color.clear)
+          .padding([.leading, .trailing], -20)
+        }
 
-//        Section {
-//          ForEach(remindersLists) { state in
-//            NavigationLink {
-//              RemindersDetailView(detailType: .list(state.remindersList))
-//            } label: {
-//              RemindersListRow(
-//                remindersCount: state.remindersCount,
-//                remindersList: state.remindersList
-//              )
-//            }
-//          }
-//          .onMove { indexSet, index in
-//            move(from: indexSet, to: index)
-//          }
-//        } header: {
-//          Text("My Lists")
-//            .font(.system(.title2, design: .rounded, weight: .bold))
-//            .foregroundStyle(Color(.label))
-//            .textCase(nil)
-//            .padding(.top, -16)
-//            .padding([.leading, .trailing], 4)
-//        }
-//        .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+        Section {
+          ForEach(remindersLists) { state in
+            NavigationLink {
+              RemindersDetailView(detailType: .list(state.remindersList))
+            } label: {
+              RemindersListRow(
+                remindersCount: state.remindersCount,
+                remindersList: state.remindersList
+              )
+            }
+          }
+          .onMove { indexSet, index in
+            move(from: indexSet, to: index)
+          }
+        } header: {
+          Text("My Lists")
+            .font(.system(.title2, design: .rounded, weight: .bold))
+            .foregroundStyle(Color(.label))
+            .textCase(nil)
+            .padding(.top, -16)
+            .padding([.leading, .trailing], 4)
+        }
+        .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
 
-//        Section {
-//          ForEach(tags) { tag in
-//            NavigationLink {
-//              RemindersDetailView(detailType: .tags([tag]))
-//            } label: {
-//              TagRow(tag: tag)
-//            }
-//          }
-//        } header: {
-//          Text("Tags")
-//            .font(.system(.title2, design: .rounded, weight: .bold))
-//            .foregroundStyle(Color(.label))
-//            .textCase(nil)
-//            .padding(.top, -16)
-//            .padding([.leading, .trailing], 4)
-//        }
-//        .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+        Section {
+          ForEach(tags) { tag in
+            NavigationLink {
+              RemindersDetailView(detailType: .tags([tag]))
+            } label: {
+              TagRow(tag: tag)
+            }
+          }
+        } header: {
+          Text("Tags")
+            .font(.system(.title2, design: .rounded, weight: .bold))
+            .foregroundStyle(Color(.label))
+            .textCase(nil)
+            .padding(.top, -16)
+            .padding([.leading, .trailing], 4)
+        }
+        .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
       } else {
         SearchRemindersView(searchText: searchText)
+      }
+    }
+    .task {
+      if remindersLists.isEmpty {
+        seedDatabaseTip = SeedDatabaseTip()
       }
     }
     // NB: This explicit view identity works around a bug with 'List' view state not getting reset.
     .id(searchText)
     .listStyle(.insetGrouped)
     .toolbar {
+      #if DEBUG
+        ToolbarItem(placement: .primaryAction) {
+          Menu {
+            Button {
+              withErrorReporting {
+                try database.write { db in
+                  try db.seedSampleData()
+                }
+              }
+            } label: {
+              Text("Seed data")
+              Image(systemName: "leaf")
+            }
+          } label: {
+            Image(systemName: "ellipsis.circle")
+          }
+          .popoverTip(seedDatabaseTip)
+        }
+      #endif
       ToolbarItem(placement: .bottomBar) {
         HStack {
           Button {
@@ -275,6 +301,18 @@ private struct ReminderGridCell: View {
       .background(Color(.secondarySystemGroupedBackground))
       .cornerRadius(10)
     }
+  }
+}
+
+private struct SeedDatabaseTip: Tip {
+  var title: Text {
+    Text("Seed Sample Data")
+  }
+  var message: Text? {
+    Text("Tap here to quickly populate the app with test data.")
+  }
+  var image: Image? {
+    Image(systemName: "leaf")
   }
 }
 
