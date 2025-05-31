@@ -178,7 +178,7 @@ struct RemindersListsView: View {
     .listStyle(.insetGrouped)
     .toolbar {
       #if DEBUG
-        ToolbarItem(placement: .primaryAction) {
+      ToolbarItem(placement: .automatic) {
           Menu {
             Button {
               withErrorReporting {

@@ -14,7 +14,7 @@ struct ReminderFormView: View {
   @Environment(\.dismiss) var dismiss
 
   init(existingReminder: Reminder? = nil, remindersList: RemindersList) {
-    _remindersList = FetchOne()
+    _remindersList = FetchOne(RemindersList.find(remindersList.id))
     if let existingReminder {
       reminder = Reminder.Draft(existingReminder)
     } else {
@@ -109,22 +109,25 @@ struct ReminderFormView: View {
           }
         }
 
-        Picker(selection: $remindersList) {
+        Picker(selection: $reminder.remindersListID) {
           ForEach(remindersLists) { remindersList in
             Text(remindersList.title)
               .tag(remindersList)
               .buttonStyle(.plain)
+              .tag(remindersList.id)
           }
         } label: {
           HStack {
             Image(systemName: "list.bullet.circle.fill")
               .font(.title)
-              .foregroundStyle(remindersList.color)
+              .foregroundStyle(remindersList?.color ?? Color.blue)
             Text("List")
           }
         }
-        .onChange(of: remindersList) {
-          reminder.remindersListID = remindersList.id
+        .task(id: reminder.remindersListID) {
+          await withErrorReporting {
+            try await $remindersList.load(RemindersList?.find(reminder.remindersListID))
+          }
         }
       }
     }

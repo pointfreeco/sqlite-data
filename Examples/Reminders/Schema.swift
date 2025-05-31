@@ -6,7 +6,7 @@ import SwiftUI
 
 @Table
 struct RemindersList: Hashable, Identifiable {
-  var id: UUID
+  let id: UUID
   @Column(as: Color.HexRepresentation.self)
   var color = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
   var position = 0
@@ -15,7 +15,7 @@ struct RemindersList: Hashable, Identifiable {
 
 @Table
 struct Reminder: Codable, Equatable, Identifiable {
-  var id: UUID
+  let id: UUID
   var dueDate: Date?
   var isCompleted = false
   var isFlagged = false
@@ -24,6 +24,18 @@ struct Reminder: Codable, Equatable, Identifiable {
   var remindersListID: RemindersList.ID
   var position = 0
   var title = ""
+}
+
+@Table
+struct Tag: Hashable, Identifiable {
+  let id: UUID
+  var title = ""
+}
+
+enum Priority: Int, Codable, QueryBindable {
+  case low = 1
+  case medium
+  case high
 }
 
 extension Reminder {
@@ -52,18 +64,6 @@ extension Reminder.TableColumns {
   var inlineNotes: some QueryExpression<String> {
     notes.replace("\n", " ")
   }
-}
-
-enum Priority: Int, Codable, QueryBindable {
-  case low = 1
-  case medium
-  case high
-}
-
-@Table
-struct Tag: Hashable, Identifiable {
-  var id: UUID
-  var title = ""
 }
 
 extension Tag {
@@ -116,7 +116,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "remindersLists" (
-        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99_ef00),
         "position" INTEGER NOT NULL DEFAULT 0,
         "title" TEXT NOT NULL
@@ -127,7 +127,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "reminders" (
-        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "dueDate" TEXT,
         "isCompleted" INTEGER NOT NULL DEFAULT 0,
         "isFlagged" INTEGER NOT NULL DEFAULT 0,
@@ -145,7 +145,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "tags" (
-        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "title" TEXT NOT NULL COLLATE NOCASE UNIQUE
       ) STRICT
       """
@@ -163,6 +163,14 @@ func appDatabase() throws -> any DatabaseWriter {
       """
     )
     .execute(db)
+  }
+
+  try migrator.migrate(database)
+
+  if context == .preview {
+    try database.write { db in
+      try db.seedSampleData()
+    }
   }
 
   try database.write { db in
@@ -191,14 +199,6 @@ func appDatabase() throws -> any DatabaseWriter {
     )
     .execute(db)
   }
-
-  if context == .preview {
-    try database.write { db in
-      try db.seedSampleData()
-    }
-  }
-
-  try migrator.migrate(database)
 
   return database
 }
