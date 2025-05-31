@@ -1,20 +1,16 @@
 import SharingGRDB
 import SwiftUI
-import TipKit
 
 @main
 struct RemindersApp: App {
   @Dependency(\.context) var context
+  static let model = RemindersListsModel()
 
   init() {
-    guard context == .live
-    else { return }
-
-    try! prepareDependencies {
-      $0.defaultDatabase = try Reminders.appDatabase()
-    }
-    withErrorReporting {
-      try Tips.configure()
+    if context == .live {
+      try! prepareDependencies {
+        $0.defaultDatabase = try Reminders.appDatabase()
+      }
     }
   }
 
@@ -22,7 +18,7 @@ struct RemindersApp: App {
     WindowGroup {
       if context == .live {
         NavigationStack {
-          RemindersListsView()
+          RemindersListsView(model: Self.model)
         }
       }
     }

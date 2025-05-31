@@ -13,6 +13,8 @@ struct RemindersList: Hashable, Identifiable {
   var title = ""
 }
 
+extension RemindersList.Draft: Identifiable {}
+
 @Table
 struct Reminder: Codable, Equatable, Identifiable {
   let id: UUID
@@ -25,6 +27,8 @@ struct Reminder: Codable, Equatable, Identifiable {
   var position = 0
   var title = ""
 }
+
+extension Reminder.Draft: Identifiable {}
 
 @Table
 struct Tag: Hashable, Identifiable {
@@ -146,7 +150,7 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "tags" (
         "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "title" TEXT NOT NULL COLLATE NOCASE UNIQUE
+        "title" TEXT NOT NULL COLLATE NOCASE
       ) STRICT
       """
     )
@@ -194,6 +198,19 @@ func appDatabase() throws -> any DatabaseWriter {
         UPDATE "reminders"
         SET "position" = (SELECT max("position") + 1 FROM "reminders")
         WHERE "id" = NEW."id";
+      END
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TEMPORARY TRIGGER "non_empty_reminders_lists" 
+      AFTER DELETE ON "remindersLists"
+      FOR EACH ROW BEGIN
+        INSERT INTO "remindersLists"
+        ("title", "color")
+        SELECT 'Personal', \(raw: 0x4a99ef)
+        WHERE (SELECT count(*) FROM "remindersLists") = 0;
       END
       """
     )
@@ -326,6 +343,10 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
         ReminderTag(reminderID: reminderIDs[2], tagID: tagIDs[6])
         ReminderTag(reminderID: reminderIDs[3], tagID: tagIDs[0])
         ReminderTag(reminderID: reminderIDs[3], tagID: tagIDs[1])
+        ReminderTag(reminderID: reminderIDs[4], tagID: tagIDs[4])
+        ReminderTag(reminderID: reminderIDs[3], tagID: tagIDs[4])
+        ReminderTag(reminderID: reminderIDs[10], tagID: tagIDs[4])
+        ReminderTag(reminderID: reminderIDs[4], tagID: tagIDs[5])
       }
     }
   }

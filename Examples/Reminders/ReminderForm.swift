@@ -13,13 +13,9 @@ struct ReminderFormView: View {
   @Dependency(\.defaultDatabase) private var database
   @Environment(\.dismiss) var dismiss
 
-  init(existingReminder: Reminder? = nil, remindersList: RemindersList) {
+  init(reminder: Reminder.Draft, remindersList: RemindersList) {
     _remindersList = FetchOne(wrappedValue: remindersList, RemindersList.find(remindersList.id))
-    if let existingReminder {
-      reminder = Reminder.Draft(existingReminder)
-    } else {
-      reminder = Reminder.Draft(remindersListID: remindersList.id)
-    }
+    self.reminder = reminder
   }
 
   var body: some View {
@@ -218,7 +214,7 @@ struct ReminderFormPreview: PreviewProvider {
       }
     }
     NavigationStack {
-      ReminderFormView(existingReminder: reminder, remindersList: remindersList)
+      ReminderFormView(reminder: Reminder.Draft(reminder), remindersList: remindersList)
         .navigationTitle("Detail")
     }
   }

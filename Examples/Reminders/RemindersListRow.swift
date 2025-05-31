@@ -42,7 +42,7 @@ struct RemindersListRow: View {
     }
     .sheet(item: $editList) { list in
       NavigationStack {
-        RemindersListForm(existingList: RemindersList.Draft(list))
+        RemindersListForm(remindersList: RemindersList.Draft(list))
           .navigationTitle("Edit list")
       }
       .presentationDetents([.medium])

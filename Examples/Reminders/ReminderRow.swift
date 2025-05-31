@@ -10,7 +10,7 @@ struct ReminderRow: View {
   let showCompleted: Bool
   let tags: [String]
 
-  @State var editReminder: Reminder?
+  @State var editReminder: Reminder.Draft?
   @State var isCompleted: Bool
 
   @Dependency(\.defaultDatabase) private var database
@@ -22,8 +22,7 @@ struct ReminderRow: View {
     reminder: Reminder,
     remindersList: RemindersList,
     showCompleted: Bool,
-    tags: [String],
-    editReminder: Reminder? = nil
+    tags: [String]
   ) {
     self.color = color
     self.isPastDue = isPastDue
@@ -32,7 +31,6 @@ struct ReminderRow: View {
     self.remindersList = remindersList
     self.showCompleted = showCompleted
     self.tags = tags
-    self.editReminder = editReminder
     self.isCompleted = reminder.isCompleted
   }
 
@@ -65,7 +63,7 @@ struct ReminderRow: View {
               .foregroundStyle(.orange)
           }
           Button {
-            editReminder = reminder
+            editReminder = Reminder.Draft(reminder)
           } label: {
             Image(systemName: "info.circle")
           }
@@ -94,12 +92,12 @@ struct ReminderRow: View {
       }
       .tint(.orange)
       Button("Details") {
-        editReminder = reminder
+        editReminder = Reminder.Draft(reminder)
       }
     }
     .sheet(item: $editReminder) { reminder in
       NavigationStack {
-        ReminderFormView(existingReminder: reminder, remindersList: remindersList)
+        ReminderFormView(reminder: reminder, remindersList: remindersList)
           .navigationTitle("Details")
       }
     }

@@ -1,132 +1,38 @@
 import CasePaths
 import SharingGRDB
 import SwiftUI
+import SwiftUINavigation
 
-struct RemindersDetailView: View {
-  @FetchAll private var reminderStates: [ReminderState]
-  @AppStorage private var ordering: Ordering
-  @AppStorage private var showCompleted: Bool
+@MainActor
+@Observable
+class RemindersDetailModel: HashableObject {
+  @ObservationIgnored @FetchAll var reminderStates: [Row]
+  @ObservationIgnored @Shared var ordering: Ordering
+  @ObservationIgnored @Shared var showCompleted: Bool
 
   let detailType: DetailType
-  @State var isNewReminderSheetPresented = false
-  @State var isNavigationTitleVisible = false
-  @State var navigationTitleHeight: CGFloat = 36
+  var isNewReminderSheetPresented = false
 
-  @Dependency(\.defaultDatabase) private var database
+  @ObservationIgnored @Dependency(\.defaultDatabase) private var database
 
   init(detailType: DetailType) {
     self.detailType = detailType
-    _ordering = AppStorage(wrappedValue: .dueDate, "ordering_list_\(detailType.id)")
-    _showCompleted = AppStorage(
+    _ordering = Shared(wrappedValue: .dueDate, .appStorage("ordering_list_\(detailType.id)"))
+    _showCompleted = Shared(
       wrappedValue: detailType == .completed,
-      "show_completed_list_\(detailType.id)"
+      .appStorage("show_completed_list_\(detailType.id)")
     )
-    _reminderStates = FetchAll(remindersQuery, animation: .default)
+    _reminderStates = FetchAll(remindersQuery)
   }
 
-  var body: some View {
-    List {
-      VStack(alignment: .leading) {
-        GeometryReader { proxy in
-          Text(detailType.navigationTitle)
-            .font(.system(.largeTitle, design: .rounded, weight: .bold))
-            .foregroundStyle(detailType.color)
-            .onAppear { navigationTitleHeight = proxy.size.height }
-        }
-      }
-      .listRowSeparator(.hidden)
-      ForEach(reminderStates) { reminderState in
-        ReminderRow(
-          color: detailType.color,
-          isPastDue: reminderState.isPastDue,
-          notes: reminderState.notes,
-          reminder: reminderState.reminder,
-          remindersList: reminderState.remindersList,
-          showCompleted: showCompleted,
-          tags: reminderState.tags
-        )
-      }
-      .onMove { indexSet, index in
-        move(from: indexSet, to: index)
-      }
-    }
-    .onScrollGeometryChange(for: Bool.self) { geometry in
-      geometry.contentOffset.y + geometry.contentInsets.top > navigationTitleHeight
-    } action: {
-      isNavigationTitleVisible = $1
-    }
-    .listStyle(.plain)
-    .sheet(isPresented: $isNewReminderSheetPresented) {
-      if let remindersList = detailType.list {
-        NavigationStack {
-          ReminderFormView(remindersList: remindersList)
-            .navigationTitle("New Reminder")
-        }
-      }
-    }
-    .task(id: [ordering, showCompleted] as [AnyHashable]) {
-      await withErrorReporting {
-        try await updateQuery()
-      }
-    }
-    .toolbar {
-      ToolbarItem(placement: .principal) {
-        Text(detailType.navigationTitle)
-          .font(.headline)
-          .opacity(isNavigationTitleVisible ? 1 : 0)
-          .animation(.default.speed(2), value: isNavigationTitleVisible)
-      }
-    }
-    .toolbarTitleDisplayMode(.inline)
-    .toolbar {
-      if detailType.is(\.list) {
-        ToolbarItem(placement: .bottomBar) {
-          HStack {
-            Button {
-              isNewReminderSheetPresented = true
-            } label: {
-              HStack {
-                Image(systemName: "plus.circle.fill")
-                Text("New Reminder")
-              }
-              .bold()
-              .font(.title3)
-            }
-            Spacer()
-          }
-          .tint(detailType.color)
-        }
-      }
-      ToolbarItem(placement: .primaryAction) {
-        Menu {
-          Group {
-            Menu {
-              ForEach(Ordering.allCases, id: \.self) { ordering in
-                Button {
-                  self.ordering = ordering
-                } label: {
-                  Text(ordering.rawValue)
-                  ordering.icon
-                }
-              }
-            } label: {
-              Text("Sort By")
-              Text(ordering.rawValue)
-              Image(systemName: "arrow.up.arrow.down")
-            }
-            Button {
-              showCompleted.toggle()
-            } label: {
-              Text(showCompleted ? "Hide Completed" : "Show Completed")
-              Image(systemName: showCompleted ? "eye.slash.fill" : "eye")
-            }
-          }
-          .tint(detailType.color)
-        } label: {
-          Image(systemName: "ellipsis.circle")
-        }
-      }
-    }
+  func orderingButtonTapped(_ ordering: Ordering) async {
+    $ordering.withLock { $0 = ordering }
+    await updateQuery()
+  }
+
+  func showCompletedButtonTapped() async {
+    $showCompleted.withLock { $0.toggle() }
+    await updateQuery()
   }
 
   func move(from source: IndexSet, to destination: Int) {
@@ -149,41 +55,16 @@ struct RemindersDetailView: View {
           .execute(db)
       }
     }
-    ordering = .manual
+    $ordering.withLock { $0 = .manual }
   }
-
-  private enum Ordering: String, CaseIterable {
-    case dueDate = "Due Date"
-    case manual = "Manual"
-    case priority = "Priority"
-    case title = "Title"
-    var icon: Image {
-      switch self {
-      case .dueDate: Image(systemName: "calendar")
-      case .manual: Image(systemName: "hand.draw")
-      case .priority: Image(systemName: "chart.bar.fill")
-      case .title: Image(systemName: "textformat.characters")
-      }
+  
+  private func updateQuery() async {
+    await withErrorReporting {
+      try await $reminderStates.load(remindersQuery, animation: .default)
     }
   }
 
-  @CasePathable
-  @dynamicMemberLookup
-  enum DetailType: Hashable {
-    case all
-    case completed
-    case flagged
-    case list(RemindersList)
-    case scheduled
-    case tags([Tag])
-    case today
-  }
-
-  private func updateQuery() async throws {
-    try await $reminderStates.load(remindersQuery)
-  }
-
-  fileprivate var remindersQuery: some StructuredQueriesCore.Statement<ReminderState> {
+  private var remindersQuery: some StructuredQueriesCore.Statement<Row> {
     let query =
     Reminder
       .where {
@@ -206,7 +87,7 @@ struct RemindersDetailView: View {
         case .all: !reminder.isCompleted
         case .completed: reminder.isCompleted
         case .flagged: reminder.isFlagged
-        case .list(let list): reminder.remindersListID.eq(list.id)
+        case .remindersList(let list): reminder.remindersListID.eq(list.id)
         case .scheduled: reminder.isScheduled
         case .tags(let tags): tag.id.ifnull(UUID(0)).in(tags.map(\.id))
         case .today: reminder.isToday
@@ -214,7 +95,7 @@ struct RemindersDetailView: View {
       }
       .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
       .select {
-        ReminderState.Columns(
+        Row.Columns(
           reminder: $0,
           remindersList: $3,
           isPastDue: $0.isPastDue,
@@ -225,8 +106,35 @@ struct RemindersDetailView: View {
     return query
   }
 
+  enum Ordering: String, CaseIterable {
+    case dueDate = "Due Date"
+    case manual = "Manual"
+    case priority = "Priority"
+    case title = "Title"
+    var icon: Image {
+      switch self {
+      case .dueDate: Image(systemName: "calendar")
+      case .manual: Image(systemName: "hand.draw")
+      case .priority: Image(systemName: "chart.bar.fill")
+      case .title: Image(systemName: "textformat.characters")
+      }
+    }
+  }
+
+  @CasePathable
+  @dynamicMemberLookup
+  enum DetailType: Hashable {
+    case all
+    case completed
+    case flagged
+    case remindersList(RemindersList)
+    case scheduled
+    case tags([Tag])
+    case today
+  }
+
   @Selection
-  fileprivate struct ReminderState: Identifiable {
+  struct Row: Identifiable {
     var id: Reminder.ID { reminder.id }
     let reminder: Reminder
     let remindersList: RemindersList
@@ -237,13 +145,119 @@ struct RemindersDetailView: View {
   }
 }
 
-extension RemindersDetailView.DetailType {
+struct RemindersDetailView: View {
+  @Bindable var model: RemindersDetailModel
+
+  @State var isNavigationTitleVisible = false
+  @State var navigationTitleHeight: CGFloat = 36
+
+  var body: some View {
+    List {
+      VStack(alignment: .leading) {
+        GeometryReader { proxy in
+          Text(model.detailType.navigationTitle)
+            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+            .foregroundStyle(model.detailType.color)
+            .onAppear { navigationTitleHeight = proxy.size.height }
+        }
+      }
+      .listRowSeparator(.hidden)
+      ForEach(model.reminderStates) { reminderState in
+        ReminderRow(
+          color: model.detailType.color,
+          isPastDue: reminderState.isPastDue,
+          notes: reminderState.notes,
+          reminder: reminderState.reminder,
+          remindersList: reminderState.remindersList,
+          showCompleted: model.showCompleted,
+          tags: reminderState.tags
+        )
+      }
+      .onMove(perform: model.move(from:to:))
+    }
+    .onScrollGeometryChange(for: Bool.self) { geometry in
+      geometry.contentOffset.y + geometry.contentInsets.top > navigationTitleHeight
+    } action: {
+      isNavigationTitleVisible = $1
+    }
+    .listStyle(.plain)
+    .sheet(isPresented: $model.isNewReminderSheetPresented) {
+      if let remindersList = model.detailType.remindersList {
+        NavigationStack {
+          ReminderFormView(
+            reminder: Reminder.Draft(remindersListID: remindersList.id),
+            remindersList: remindersList
+          )
+            .navigationTitle("New Reminder")
+        }
+      }
+    }
+    .toolbar {
+      ToolbarItem(placement: .principal) {
+        Text(model.detailType.navigationTitle)
+          .font(.headline)
+          .opacity(isNavigationTitleVisible ? 1 : 0)
+          .animation(.default.speed(2), value: isNavigationTitleVisible)
+      }
+      if model.detailType.is(\.remindersList) {
+        ToolbarItem(placement: .bottomBar) {
+          HStack {
+            Button {
+              model.isNewReminderSheetPresented = true
+            } label: {
+              HStack {
+                Image(systemName: "plus.circle.fill")
+                Text("New Reminder")
+              }
+              .bold()
+              .font(.title3)
+            }
+            Spacer()
+          }
+          .tint(model.detailType.color)
+        }
+      }
+      ToolbarItem(placement: .primaryAction) {
+        Menu {
+          Group {
+            Menu {
+              ForEach(RemindersDetailModel.Ordering.allCases, id: \.self) { ordering in
+                Button {
+                  Task { await model.orderingButtonTapped(ordering) }
+                } label: {
+                  Text(ordering.rawValue)
+                  ordering.icon
+                }
+              }
+            } label: {
+              Text("Sort By")
+              Text(model.ordering.rawValue)
+              Image(systemName: "arrow.up.arrow.down")
+            }
+            Button {
+              Task { await model.showCompletedButtonTapped() }
+            } label: {
+              Text(model.showCompleted ? "Hide Completed" : "Show Completed")
+              Image(systemName: model.showCompleted ? "eye.slash.fill" : "eye")
+            }
+          }
+          .tint(model.detailType.color)
+        } label: {
+          Image(systemName: "ellipsis.circle")
+        }
+      }
+    }
+    .toolbarTitleDisplayMode(.inline)
+  }
+}
+
+extension RemindersDetailModel.DetailType {
   fileprivate var id: String {
     switch self {
     case .all: "all"
     case .completed: "completed"
     case .flagged: "flagged"
-    case .list(let list): "list_\(list.id)"
+    case .remindersList(let list): "list_\(list.id)"
     case .scheduled: "scheduled"
     case .tags: "tags"
     case .today: "today"
@@ -254,7 +268,7 @@ extension RemindersDetailView.DetailType {
     case .all: "All"
     case .completed: "Completed"
     case .flagged: "Flagged"
-    case .list(let list): list.title
+    case .remindersList(let list): list.title
     case .scheduled: "Scheduled"
     case .tags(let tags):
       switch tags.count {
@@ -270,7 +284,7 @@ extension RemindersDetailView.DetailType {
     case .all: .black
     case .completed: .gray
     case .flagged: .orange
-    case .list(let list): list.color
+    case .remindersList(let list): list.color
     case .scheduled: .red
     case .tags: .blue
     case .today: .blue
@@ -289,14 +303,14 @@ struct RemindersDetailPreview: PreviewProvider {
         )
       }
     }
-    let detailTypes: [RemindersDetailView.DetailType] = [
+    let detailTypes: [RemindersDetailModel.DetailType] = [
       .all,
-      .list(remindersList),
+      .remindersList(remindersList),
       .tags([tag]),
     ]
     ForEach(detailTypes, id: \.self) { detailType in
       NavigationStack {
-        RemindersDetailView(detailType: detailType)
+        RemindersDetailView(model: RemindersDetailModel(detailType: detailType))
       }
       .previewDisplayName(detailType.navigationTitle)
     }
