@@ -3,7 +3,7 @@ import SharingGRDB
 import SwiftUI
 
 struct RemindersDetailView: View {
-  @FetchAll private var sectionRows: [SectionState]
+  @FetchAll private var reminderStates: [ReminderState]
   @AppStorage private var ordering: Ordering
   @AppStorage private var showCompleted: Bool
 
@@ -21,7 +21,7 @@ struct RemindersDetailView: View {
       wrappedValue: detailType == .completed,
       "show_completed_list_\(detailType.id)"
     )
-    _sectionRows = FetchAll(sectionsQuery, animation: .default)
+    _reminderStates = FetchAll(remindersQuery, animation: .default)
   }
 
   var body: some View {
@@ -35,28 +35,16 @@ struct RemindersDetailView: View {
         }
       }
       .listRowSeparator(.hidden)
-      ForEach(sectionRows) { sectionRow in
-        Section {
-          ForEach(sectionRow.reminders) { reminder in
-            ReminderRow(
-              color: detailType.color,
-              isPastDue: false,
-              //reminderState.isPastDue,
-              notes: "",
-              //reminderState.notes,
-              reminder: reminder,
-              //reminderState.reminder,
-              remindersList: sectionRow.remindersList ?? RemindersList(id: UUID()),// reminderState.remindersList,
-              showCompleted: showCompleted,
-              tags: [] //reminderState.tags
-            )
-          }
-        } header: {
-          Text(sectionRow.remindersSection?.title ?? "Others")
-            .font(.system(.title, design: .rounded, weight: .bold))
-            .foregroundStyle(sectionRow.remindersSection == nil ? Color.secondary : Color.primary)
-            .padding([.top, .bottom], 6)
-        }
+      ForEach(reminderStates) { reminderState in
+        ReminderRow(
+          color: detailType.color,
+          isPastDue: reminderState.isPastDue,
+          notes: reminderState.notes,
+          reminder: reminderState.reminder,
+          remindersList: reminderState.remindersList,
+          showCompleted: showCompleted,
+          tags: reminderState.tags
+        )
       }
       .onMove { indexSet, index in
         move(from: indexSet, to: index)
@@ -142,25 +130,25 @@ struct RemindersDetailView: View {
   }
 
   func move(from source: IndexSet, to destination: Int) {
-//    withErrorReporting {
-//      try database.write { db in
-//        var ids = reminderStates.map(\.reminder.id)
-//        ids.move(fromOffsets: source, toOffset: destination)
-//        try Reminder
-//          .where { $0.id.in(ids) }
-//          .update {
-//            let ids = Array(ids.enumerated())
-//            let (first, rest) = (ids.first!, ids.dropFirst())
-//            $0.position =
-//            rest
-//              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
-//                cases.when(id.element, then: id.offset)
-//              }
-//              .else($0.position)
-//          }
-//          .execute(db)
-//      }
-//    }
+    withErrorReporting {
+      try database.write { db in
+        var ids = reminderStates.map(\.reminder.id)
+        ids.move(fromOffsets: source, toOffset: destination)
+        try Reminder
+          .where { $0.id.in(ids) }
+          .update {
+            let ids = Array(ids.enumerated())
+            let (first, rest) = (ids.first!, ids.dropFirst())
+            $0.position =
+            rest
+              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
+                cases.when(id.element, then: id.offset)
+              }
+              .else($0.position)
+          }
+          .execute(db)
+      }
+    }
     ordering = .manual
   }
 
@@ -192,44 +180,11 @@ struct RemindersDetailView: View {
   }
 
   private func updateQuery() async throws {
-    try await $sectionRows.load(sectionsQuery)
+    try await $reminderStates.load(remindersQuery)
   }
 
-  fileprivate var sectionsQuery: some StructuredQueries.Statement<SectionState> {
-    let query = RemindersSection
-    // TODO: eq is not defined on (_, ?) ?
-      .fullJoin(remindersQuery) {
-//        (showCompleted || !$1.isCompleted)
-//        &&
-        $1.remindersSectionID.eq($0.id)
-      }
-      .leftJoin(ReminderTag.all) { $1.id.eq($2.reminderID) }
-      .leftJoin(Tag.all) { $2.tagID.eq($3.id) }
-      .where { _, reminder, _, tag in
-        switch detailType {
-        case .all: #sql("NOT \(reminder.isCompleted)")
-        case .completed: #sql("\(reminder.isCompleted)")
-        case .flagged: #sql("\(reminder.isFlagged)")
-        case .list(let list):
-          #sql("\(reminder.remindersListID.eq(list.id)) OR \(reminder.remindersListID) IS NULL")
-        case .scheduled: #sql("\(reminder.isScheduled)")
-        case .tags(let tags): tag.id.ifnull(UUID(0)).in(tags.map(\.id))
-        case .today: #sql("\(reminder.isToday)")
-        }
-      }
-      .leftJoin(RemindersList.all) { $1.remindersListID.eq($4.id) }
-      .select { remindersSection, reminder, _, tag, remindersList in
-        SectionState.Columns(
-          remindersList: remindersList,
-          remindersSection: remindersSection,
-          reminders: #sql("\(reminder.jsonGroupArray(filter: reminder.id.isNot(nil)))")
-        )
-      }
-      .group { _, reminder, _, _, _ in reminder.remindersSectionID }
-    return query
-  }
-
-  fileprivate var remindersQuery: some StructuredQueries.SelectStatementOf<Reminder> {
+  fileprivate var remindersQuery: some StructuredQueriesCore.Statement<ReminderState> {
+    let query =
     Reminder
       .where {
         if !showCompleted {
@@ -239,21 +194,35 @@ struct RemindersDetailView: View {
       .order { $0.isCompleted }
       .order {
         switch ordering {
-        case .dueDate: $0.dueDate.asc(nulls: .last)
+        case .dueDate: $0.dueDate
         case .manual: $0.position
         case .priority: ($0.priority.desc(), $0.isFlagged.desc())
         case .title: $0.title
         }
       }
-  }
-
-  @Selection
-  fileprivate struct SectionState: Identifiable {
-    var id: RemindersSection.ID? { remindersSection?.id }
-    let remindersList: RemindersList?
-    let remindersSection: RemindersSection?
-    @Column(as: [Reminder].JSONRepresentation.self)
-    let reminders: [Reminder]
+      .withTags
+      .where { reminder, _, tag in
+        switch detailType {
+        case .all: !reminder.isCompleted
+        case .completed: reminder.isCompleted
+        case .flagged: reminder.isFlagged
+        case .list(let list): reminder.remindersListID.eq(list.id)
+        case .scheduled: reminder.isScheduled
+        case .tags(let tags): tag.id.ifnull(UUID(0)).in(tags.map(\.id))
+        case .today: reminder.isToday
+        }
+      }
+      .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
+      .select {
+        ReminderState.Columns(
+          reminder: $0,
+          remindersList: $3,
+          isPastDue: $0.isPastDue,
+          notes: $0.inlineNotes.substr(0, 200),
+          tags: #sql("\($2.jsonNames)")
+        )
+      }
+    return query
   }
 
   @Selection
@@ -312,18 +281,18 @@ extension RemindersDetailView.DetailType {
 struct RemindersDetailPreview: PreviewProvider {
   static var previews: some View {
     let (remindersList, tag) = try! prepareDependencies {
-      $0.defaultDatabase = try Reminders.appDatabase(seed: true)
+      $0.defaultDatabase = try Reminders.appDatabase()
       return try $0.defaultDatabase.read { db in
         (
-          try RemindersList.limit(1, offset: 2).fetchOne(db)!,
+          try RemindersList.all.fetchOne(db)!,
           try Tag.all.fetchOne(db)!
         )
       }
     }
     let detailTypes: [RemindersDetailView.DetailType] = [
-//      .all,
+      .all,
       .list(remindersList),
-//      .tags([tag]),
+      .tags([tag]),
     ]
     ForEach(detailTypes, id: \.self) { detailType in
       NavigationStack {

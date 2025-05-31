@@ -4,7 +4,6 @@ import SwiftUI
 
 struct ReminderFormView: View {
   @FetchAll(RemindersList.order(by: \.title)) var remindersLists
-  @FetchAll var remindersSections: [RemindersSection]
 
   @State var isPresentingTagsPopover = false
   @State var remindersList: RemindersList
@@ -21,11 +20,6 @@ struct ReminderFormView: View {
     } else {
       reminder = Reminder.Draft(remindersListID: remindersList.id)
     }
-    _remindersSections = FetchAll(
-      RemindersSection
-        .where { $0.remindersListID.eq(remindersList.id) }
-        .order(by: \.title)
-    )
   }
 
   var body: some View {
@@ -123,7 +117,7 @@ struct ReminderFormView: View {
           }
         } label: {
           HStack {
-            Image(systemName: "arrowtriangle.up.circle.fill")
+            Image(systemName: "list.bullet.circle.fill")
               .font(.title)
               .foregroundStyle(remindersList.color)
             Text("List")
@@ -131,22 +125,6 @@ struct ReminderFormView: View {
         }
         .onChange(of: remindersList) {
           reminder.remindersListID = remindersList.id
-        }
-
-        Picker(selection: $reminder.remindersSectionID) {
-          Text("None").tag(RemindersSection.ID?.none)
-          Divider()
-          ForEach(remindersSections) { remindersSection in
-            Text(remindersSection.title)
-              .tag(remindersSection.id)
-          }
-        } label: {
-          HStack {
-            Image(systemName: "list.bullet.circle.fill")
-              .font(.title)
-              .foregroundStyle(Color.blue)
-            Text("Section")
-          }
         }
       }
     }
@@ -193,11 +171,7 @@ struct ReminderFormView: View {
   private func saveButtonTapped() {
     withErrorReporting {
       try database.write { db in
-        var reminder = reminder
-        reminder.id = reminder.id ?? UUID()
-        let q = Reminder.upsert(reminder).returning(\.id)
-        print(q.queryFragment.debugDescription)
-        let reminderID = try q.fetchOne(db)!
+        let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)!
         try ReminderTag
           .where { $0.reminderID.eq(reminderID) }
           .delete()

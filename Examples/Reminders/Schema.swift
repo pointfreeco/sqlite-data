@@ -14,13 +14,6 @@ struct RemindersList: Hashable, Identifiable {
 }
 
 @Table
-struct RemindersSection: Hashable, Identifiable {
-  var id: UUID
-  var remindersListID: RemindersList.ID
-  var title = ""
-}
-
-@Table
 struct Reminder: Codable, Equatable, Identifiable {
   var id: UUID
   var dueDate: Date?
@@ -30,7 +23,6 @@ struct Reminder: Codable, Equatable, Identifiable {
   var priority: Priority?
   var remindersListID: RemindersList.ID
   var position = 0
-  var remindersSectionID: RemindersSection.ID?
   var title = ""
 }
 
@@ -93,7 +85,7 @@ struct ReminderTag: Hashable, Identifiable {
   var id: Self { self }
 }
 
-func appDatabase(seed: Bool = false) throws -> any DatabaseWriter {
+func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
   let database: any DatabaseWriter
   var configuration = Configuration()
@@ -134,18 +126,6 @@ func appDatabase(seed: Bool = false) throws -> any DatabaseWriter {
     .execute(db)
     try #sql(
       """
-      CREATE TABLE "remindersSections" (
-        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-        "remindersListID" TEXT,
-        "title" TEXT NOT NULL,
-      
-        FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
-      ) STRICT
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
       CREATE TABLE "reminders" (
         "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
         "dueDate" TEXT,
@@ -155,11 +135,9 @@ func appDatabase(seed: Bool = false) throws -> any DatabaseWriter {
         "position" INTEGER NOT NULL DEFAULT 0,
         "priority" INTEGER,
         "remindersListID" TEXT NOT NULL,
-        "remindersSectionID" TEXT,
         "title" TEXT NOT NULL,
 
-        FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE,
-        FOREIGN KEY("remindersSectionID") REFERENCES "remindersSections"("id") ON DELETE SET NULL
+        FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
       """
     )
@@ -214,7 +192,7 @@ func appDatabase(seed: Bool = false) throws -> any DatabaseWriter {
     .execute(db)
   }
 
-  if seed {
+  if context == .preview {
     try database.write { db in
       try db.seedSampleData()
     }
@@ -231,7 +209,6 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
   extension Database {
     func seedSampleData() throws {
       let remindersListIDs = (0...2).map { _ in UUID() }
-      let remindersSectionsIDs = (0...1).map { _ in UUID() }
       let reminderIDs = (0...10).map { _ in UUID() }
       let tagIDs = (0...6).map { _ in UUID() }
       try seed {
@@ -249,16 +226,6 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
           id: remindersListIDs[2],
           color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
           title: "Business"
-        )
-        RemindersSection(
-          id: remindersSectionsIDs[0],
-          remindersListID: remindersListIDs[2],
-          title: "Phase 1"
-        )
-        RemindersSection(
-          id: remindersSectionsIDs[1],
-          remindersListID: remindersListIDs[2],
-          title: "Phase 2"
         )
         Reminder(
           id: reminderIDs[0],
@@ -327,7 +294,6 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
             Changing payroll company
             """,
           remindersListID: remindersListIDs[2],
-          remindersSectionID: remindersSectionsIDs[0],
           title: "Call accountant"
         )
         Reminder(
@@ -336,7 +302,6 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
           isCompleted: true,
           priority: .medium,
           remindersListID: remindersListIDs[2],
-          remindersSectionID: remindersSectionsIDs[1],
           title: "Send weekly emails"
         )
         Reminder(
