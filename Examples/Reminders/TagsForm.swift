@@ -11,26 +11,26 @@ struct TagsView: View {
     Form {
       let selectedTagIDs = Set(selectedTags.map(\.id))
       if !tags.top.isEmpty {
-        Section {
-          ForEach(tags.top, id: \.id) { tag in
-            TagView(
-              isSelected: selectedTagIDs.contains(tag.id),
-              selectedTags: $selectedTags,
-              tag: tag
-            )
-          }
-        } header: {
-          Text("Top tags")
-        }
+//        Section {
+//          ForEach(tags.top, id: \.id) { tag in
+//            TagView(
+//              isSelected: selectedTagIDs.contains(tag.id),
+//              selectedTags: $selectedTags,
+//              tag: tag
+//            )
+//          }
+//        } header: {
+//          Text("Top tags")
+//        }
       }
       if !tags.rest.isEmpty {
         Section {
-          ForEach(tags.rest, id: \.id) { tag in
-            TagView(
-              isSelected: selectedTagIDs.contains(tag.id),
-              selectedTags: $selectedTags,
-              tag: tag
-            )
+          ForEach(tags.rest) { tag in
+//            TagView(
+//              isSelected: selectedTagIDs.contains(tag.id),
+//              selectedTags: $selectedTags,
+//              tag: tag
+//            )
           }
         }
       }

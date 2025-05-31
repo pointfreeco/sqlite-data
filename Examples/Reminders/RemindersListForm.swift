@@ -14,39 +14,39 @@ struct RemindersListForm: View {
 
   var body: some View {
     Form {
-      Section {
-        VStack {
-          TextField("List Name", text: $remindersList.title)
-            .font(.system(.title2, design: .rounded, weight: .bold))
-            .foregroundStyle(remindersList.color)
-            .multilineTextAlignment(.center)
-            .padding()
-            .textFieldStyle(.plain)
-        }
-        .background(Color(.secondarySystemBackground))
-        .clipShape(.buttonBorder)
-      }
-      ColorPicker("Color", selection: $remindersList.color)
+//      Section {
+//        VStack {
+//          TextField("List Name", text: $remindersList.title)
+//            .font(.system(.title2, design: .rounded, weight: .bold))
+//            .foregroundStyle(remindersList.color)
+//            .multilineTextAlignment(.center)
+//            .padding()
+//            .textFieldStyle(.plain)
+//        }
+//        .background(Color(.secondarySystemBackground))
+//        .clipShape(.buttonBorder)
+//      }
+//      ColorPicker("Color", selection: $remindersList.color)
     }
-    .navigationBarTitleDisplayMode(.inline)
-    .toolbar {
-      ToolbarItem {
-        Button("Save") {
-          withErrorReporting {
-            try database.write { db in
-              try RemindersList.upsert(remindersList)
-                .execute(db)
-            }
-          }
-          dismiss()
-        }
-      }
-      ToolbarItem(placement: .cancellationAction) {
-        Button("Cancel") {
-          dismiss()
-        }
-      }
-    }
+//    .navigationBarTitleDisplayMode(.inline)
+//    .toolbar {
+//      ToolbarItem {
+//        Button("Save") {
+//          withErrorReporting {
+//            try database.write { db in
+//              try RemindersList.upsert(remindersList)
+//                .execute(db)
+//            }
+//          }
+//          dismiss()
+//        }
+//      }
+//      ToolbarItem(placement: .cancellationAction) {
+//        Button("Cancel") {
+//          dismiss()
+//        }
+//      }
+//    }
   }
 }
 

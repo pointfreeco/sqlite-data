@@ -184,45 +184,54 @@ struct RemindersDetailView: View {
   }
 
   fileprivate var remindersQuery: some StructuredQueriesCore.Statement<ReminderState> {
-    let query =
-    Reminder
-      .where {
-        if !showCompleted {
-          !$0.isCompleted
-        }
-      }
-      .order { $0.isCompleted }
-      .order {
-        switch ordering {
-        case .dueDate: $0.dueDate
-        case .manual: $0.position
-        case .priority: ($0.priority.desc(), $0.isFlagged.desc())
-        case .title: $0.title
-        }
-      }
-      .withTags
-      .where { reminder, _, tag in
-        switch detailType {
-        case .all: !reminder.isCompleted
-        case .completed: reminder.isCompleted
-        case .flagged: reminder.isFlagged
-        case .list(let list): reminder.remindersListID.eq(list.id)
-        case .scheduled: reminder.isScheduled
-        case .tags(let tags): tag.id.ifnull(0).in(tags.map(\.id))
-        case .today: reminder.isToday
-        }
-      }
-      .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
-      .select {
-        ReminderState.Columns(
-          reminder: $0,
-          remindersList: $3,
-          isPastDue: $0.isPastDue,
-          notes: $0.inlineNotes.substr(0, 200),
-          tags: #sql("\($2.jsonNames)")
-        )
-      }
-    return query
+    Reminder.select {
+      ReminderState.Columns.init(
+        reminder: $0,
+        remindersList: #sql(""),
+        isPastDue: #sql(""),
+        notes: #sql(""),
+        tags: #sql("")
+      )
+    }
+//    let query =
+//    Reminder
+//      .where {
+//        if !showCompleted {
+//          !$0.isCompleted
+//        }
+//      }
+//      .order { $0.isCompleted }
+//      .order {
+//        switch ordering {
+//        case .dueDate: $0.dueDate.asc(nulls: .last)
+//        case .manual: $0.position
+//        case .priority: ($0.priority.desc(), $0.isFlagged.desc())
+//        case .title: $0.title
+//        }
+//      }
+//      .withTags
+//      .where { reminder, _, tag in
+//        switch detailType {
+//        case .all: !reminder.isCompleted
+//        case .completed: reminder.isCompleted
+//        case .flagged: reminder.isFlagged
+//        case .list(let list): reminder.remindersListID.eq(list.id)
+//        case .scheduled: reminder.isScheduled
+//        case .tags(let tags): tag.id.ifnull(0).in(tags.map(\.id))
+//        case .today: reminder.isToday
+//        }
+//      }
+//      .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
+//      .select {
+//        ReminderState.Columns(
+//          reminder: $0,
+//          remindersList: $3,
+//          isPastDue: $0.isPastDue,
+//          notes: $0.inlineNotes.substr(0, 200),
+//          tags: #sql("\($2.jsonNames)")
+//        )
+//      }
+//    return query
   }
 
   @Selection

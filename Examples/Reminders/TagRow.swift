@@ -34,7 +34,7 @@ struct TagRow: View {
 #Preview {
   NavigationStack {
     List {
-      TagRow(tag: Tag(id: 1, title: "optional"))
+      TagRow(tag: Tag(id: UUID(1), title: "optional"))
     }
   }
 }

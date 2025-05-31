@@ -56,7 +56,7 @@ struct RemindersListRow: View {
       RemindersListRow(
         remindersCount: 10,
         remindersList: RemindersList(
-          id: 1,
+          id: UUID(),
           title: "Personal"
         )
       )
