@@ -116,6 +116,7 @@ func appDatabase() throws -> any DatabaseWriter {
   }
   var migrator = DatabaseMigrator()
   #if DEBUG
+    // TODO: should we warn against this for CK apps?
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
 
@@ -228,10 +229,6 @@ func appDatabase() throws -> any DatabaseWriter {
       """
     )
     .execute(db)
-  }
-
-  migrator.registerMigration("foo") { db in
-    try #sql("alter table tags add column hello text").execute(db)
   }
 
   #if DEBUG && targetEnvironment(simulator)

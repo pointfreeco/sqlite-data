@@ -261,6 +261,8 @@ public final actor SyncEngine {
     try FileManager.default.removeItem(at: metadatabaseURL)
   }
 
+  // TODO: resendAll() ?
+
   public func fetchChanges() async throws {
     try await privateSyncEngine.fetchChanges()
     try await sharedSyncEngine.fetchChanges()
@@ -891,11 +893,18 @@ extension URL {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
+  public struct CantShareRecordWithParent: Error {}
+
   public func share<T: PrimaryKeyedTable>(
     record: T,
     configure: @Sendable (CKShare) -> Void
   ) async throws -> CKShare
   where T.TableColumns.PrimaryKey == UUID {
+    guard foreignKeysByTableName[T.tableName]?.count(where: \.notnull) ?? 0 == 0
+    else {
+      throw CantShareRecordWithParent()
+    }
+
     let recordName = record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased()
     let lastKnownServerRecord =
       try await database.write { db in
@@ -943,11 +952,8 @@ struct NoCKRecordFound: Error {}
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
-  public nonisolated func userDidAcceptCloudKitShare(with metadata: CKShare.Metadata) {
+  public nonisolated func acceptShare(metadata: CKShare.Metadata) {
     let operation = CKAcceptSharesOperation(shareMetadatas: [metadata])
-    operation.perShareResultBlock = { metadata, result in
-      print(metadata.hierarchicalRootRecordID)
-    }
     operation.acceptSharesResultBlock = { [weak self] result in
       guard let self else { return }
       Task {
@@ -962,15 +968,10 @@ extension SyncEngine {
         }
       }
     }
-
-    let metadataFetchOperation = CKFetchShareMetadataOperation(shareURLs: [metadata.share.url!])
-    metadataFetchOperation.shouldFetchRootRecord = true
-    metadataFetchOperation.perShareMetadataResultBlock = { url, result in
-      //print("!!!")
-    }
-    container.add(metadataFetchOperation)
-
     operation.qualityOfService = .utility
     container.add(operation)
   }
 }
+
+// TODO: Handle: SharingGRDB CloudKit Failure: No table to delete from: "cloudkit.share"
+// TODO: what kind of APIs do we need to expose for people to query for shared info? participants
