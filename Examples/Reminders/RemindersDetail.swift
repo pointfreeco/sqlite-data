@@ -100,35 +100,35 @@ struct RemindersDetailView: View {
           .tint(detailType.color)
         }
       }
-//      ToolbarItem(placement: .primaryAction) {
-//        Menu {
-//          Group {
-//            Menu {
-//              ForEach(Ordering.allCases, id: \.self) { ordering in
-//                Button {
-//                  self.ordering = ordering
-//                } label: {
-//                  Text(ordering.rawValue)
-//                  ordering.icon
-//                }
-//              }
-//            } label: {
-//              Text("Sort By")
-//              Text(ordering.rawValue)
-//              Image(systemName: "arrow.up.arrow.down")
-//            }
-//            Button {
-//              showCompleted.toggle()
-//            } label: {
-//              Text(showCompleted ? "Hide Completed" : "Show Completed")
-//              Image(systemName: showCompleted ? "eye.slash.fill" : "eye")
-//            }
-//          }
-//          .tint(detailType.color)
-//        } label: {
-//          Image(systemName: "ellipsis.circle")
-//        }
-//      }
+      ToolbarItem(placement: .primaryAction) {
+        Menu {
+          Group {
+            Menu {
+              ForEach(Ordering.allCases, id: \.self) { ordering in
+                Button {
+                  self.ordering = ordering
+                } label: {
+                  Text(ordering.rawValue)
+                  ordering.icon
+                }
+              }
+            } label: {
+              Text("Sort By")
+              Text(ordering.rawValue)
+              Image(systemName: "arrow.up.arrow.down")
+            }
+            Button {
+              showCompleted.toggle()
+            } label: {
+              Text(showCompleted ? "Hide Completed" : "Show Completed")
+              Image(systemName: showCompleted ? "eye.slash.fill" : "eye")
+            }
+          }
+          .tint(detailType.color)
+        } label: {
+          Image(systemName: "ellipsis.circle")
+        }
+      }
       if let remindersList = detailType.list {
         ToolbarItem {
           Button {
@@ -139,9 +139,6 @@ struct RemindersDetailView: View {
           .sheet(item: $presentedShare, id: \.self) { share in
             CloudSharingView2(share: share)
           }
-//          .sheet(isPresented: $isSharePresented) {
-//            //CloudSharingView(remindersList)
-//          }
         }
       }
     }
