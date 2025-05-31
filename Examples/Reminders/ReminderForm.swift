@@ -4,7 +4,7 @@ import SwiftUI
 
 struct ReminderFormView: View {
   @FetchAll(RemindersList.order(by: \.title)) var remindersLists
-  @FetchOne var remindersList: RemindersList?
+  @FetchOne var remindersList: RemindersList
 
   @State var isPresentingTagsPopover = false
   @State var reminder: Reminder.Draft
@@ -14,7 +14,7 @@ struct ReminderFormView: View {
   @Environment(\.dismiss) var dismiss
 
   init(existingReminder: Reminder? = nil, remindersList: RemindersList) {
-    _remindersList = FetchOne(RemindersList.find(remindersList.id))
+    _remindersList = FetchOne(wrappedValue: remindersList, RemindersList.find(remindersList.id))
     if let existingReminder {
       reminder = Reminder.Draft(existingReminder)
     } else {
@@ -120,13 +120,13 @@ struct ReminderFormView: View {
           HStack {
             Image(systemName: "list.bullet.circle.fill")
               .font(.title)
-              .foregroundStyle(remindersList?.color ?? Color.blue)
+              .foregroundStyle(remindersList.color)
             Text("List")
           }
         }
         .task(id: reminder.remindersListID) {
           await withErrorReporting {
-            try await $remindersList.load(RemindersList?.find(reminder.remindersListID))
+            try await $remindersList.load(RemindersList.find(reminder.remindersListID))
           }
         }
       }
