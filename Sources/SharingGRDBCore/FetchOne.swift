@@ -79,6 +79,22 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ) {
     sharedReader = SharedReader(value: wrappedValue)
   }
+  
+  /// Initializes this property with a query that fetches a single row from a table.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil
+  ) where Value: StructuredQueriesCore.Table,
+        Value.QueryOutput == Value
+  {
+    let statement = Value.all.selectStar().asSelect().limit(1)
+    self.init(wrappedValue: wrappedValue, statement, database: database)
+  }
 
   /// Initializes this property with a wrapped value.
   ///
