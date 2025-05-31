@@ -13,17 +13,26 @@ extension CKRecord.ID {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-final class MockSyncEngine: CKSyncEngineProtocol {
+final class MockSyncEngine: SyncEngineProtocol {
   private let _state: LockIsolated<MockSyncEngineState>
   private let _fetchChangesScopes = LockIsolated<Set<CKSyncEngine.FetchChangesOptions.Scope>>([])
-  init(state: MockSyncEngineState) {
+  private let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
+
+  let scope: CKDatabase.Scope
+  init(scope: CKDatabase.Scope, state: MockSyncEngineState) {
+    self.scope = scope
     self._state = LockIsolated(state)
   }
   var state: MockSyncEngineState {
     _state.withValue(\.self)
   }
+
   func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws {
     _ = _fetchChangesScopes.withValue { $0.insert(options.scope) }
+  }
+
+  func acceptShare(metadata: ShareMetadata) {
+    _ = _acceptedShareMetadata.withValue { $0.insert(metadata) }
   }
 
   func assertFetchChangesScopes(
@@ -36,6 +45,26 @@ final class MockSyncEngine: CKSyncEngineProtocol {
     _fetchChangesScopes.withValue {
       expectNoDifference(
         scopes,
+        $0,
+        fileID: fileID,
+        filePath: filePath,
+        line: line,
+        column: column
+      )
+      $0.removeAll()
+    }
+  }
+
+  func assertAcceptedShareMetadata(
+    _ sharedMetadata: Set<ShareMetadata>,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+  ) {
+    _acceptedShareMetadata.withValue {
+      expectNoDifference(
+        sharedMetadata,
         $0,
         fileID: fileID,
         filePath: filePath,

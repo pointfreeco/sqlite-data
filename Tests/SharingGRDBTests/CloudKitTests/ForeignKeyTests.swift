@@ -18,7 +18,7 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(3), title: "Haircut", remindersListID: UUID(1))
         }
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1))),
         .saveRecord(CKRecord.ID(UUID(1))),
         .saveRecord(CKRecord.ID(UUID(2))),
@@ -30,7 +30,7 @@ extension BaseCloudKitTests {
       try database.read { db in
         try #expect(Reminder.all.fetchAll(db) == [])
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .deleteRecord(CKRecord.ID(UUID(1))),
         .deleteRecord(CKRecord.ID(UUID(1))),
         .deleteRecord(CKRecord.ID(UUID(2))),
@@ -52,7 +52,7 @@ extension BaseCloudKitTests {
           )
         }
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1))),
         .saveRecord(CKRecord.ID(UUID(2))),
         .saveRecord(CKRecord.ID(UUID(3))),
@@ -68,7 +68,7 @@ extension BaseCloudKitTests {
           ]
         )
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .deleteRecord(CKRecord.ID(UUID(1))),
         .saveRecord(CKRecord.ID(UUID(3))),
       ])
@@ -84,7 +84,7 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(4), title: "Haircut", remindersListID: UUID(1))
         }
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1))),
         .saveRecord(CKRecord.ID(UUID(2))),
         .saveRecord(CKRecord.ID(UUID(3))),
@@ -103,7 +103,7 @@ extension BaseCloudKitTests {
           ]
         )
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(9))),
         .saveRecord(CKRecord.ID(UUID(2))),
         .saveRecord(CKRecord.ID(UUID(3))),
@@ -120,7 +120,7 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(3), title: "Milk", parentReminderID: UUID(2), remindersListID: UUID(1))
         }
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1))),
         .saveRecord(CKRecord.ID(UUID(2))),
         .saveRecord(CKRecord.ID(UUID(3))),
@@ -187,7 +187,7 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(3), title: "Milk", parentReminderID: UUID(2), remindersListID: UUID(1))
         }
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1))),
         .saveRecord(CKRecord.ID(UUID(2))),
         .saveRecord(CKRecord.ID(UUID(3))),
@@ -217,7 +217,7 @@ extension BaseCloudKitTests {
 
       withKnownIssue("We would prefer that no '.savedRecord's are appended.") {
         // NB: A '.savedRecord(UUID(9))' is being enqueued.
-        underlyingSyncEngine.state.assertPendingRecordZoneChanges([])
+        privateSyncEngine.state.assertPendingRecordZoneChanges([])
       }
     }
   }

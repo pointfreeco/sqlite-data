@@ -7,7 +7,8 @@ import Testing
 class BaseCloudKitTests: @unchecked Sendable {
   let database: any DatabaseWriter
   private let _syncEngine: any Sendable
-  private let _underlyingSyncEngine: any Sendable
+  private let _privateSyncEngine: any Sendable
+  private let _sharedSyncEngine: any Sendable
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   var syncEngine: SyncEngine {
@@ -15,18 +16,26 @@ class BaseCloudKitTests: @unchecked Sendable {
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  var underlyingSyncEngine: MockSyncEngine {
-    _underlyingSyncEngine as! MockSyncEngine
+  var privateSyncEngine: MockSyncEngine {
+    _privateSyncEngine as! MockSyncEngine
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  var sharedSyncEngine: MockSyncEngine {
+    _sharedSyncEngine as! MockSyncEngine
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   init() async throws {
     let database = try SharingGRDBTests.database()
-    let underlyingSyncEngine = MockSyncEngine(state: MockSyncEngineState())
+    let privateSyncEngine = MockSyncEngine(scope: .private, state: MockSyncEngineState())
+    let sharedSyncEngine = MockSyncEngine(scope: .shared, state: MockSyncEngineState())
     self.database = database
-    self._underlyingSyncEngine = underlyingSyncEngine
+    _privateSyncEngine = privateSyncEngine
+    _sharedSyncEngine = sharedSyncEngine
     _syncEngine = try SyncEngine(
-      defaultSyncEngine: underlyingSyncEngine,
+      privateSyncEngine: privateSyncEngine,
+      sharedSyncEngine: sharedSyncEngine,
       database: database,
       metadatabaseURL: URL.temporaryDirectory.appending(
         path: "metadatabase.\(UUID().uuidString).sqlite"
@@ -34,14 +43,20 @@ class BaseCloudKitTests: @unchecked Sendable {
       tables: [Reminder.self, RemindersList.self, User.self]
     )
     try await Task.sleep(for: .seconds(0.1))
-    underlyingSyncEngine.assertFetchChangesScopes([.all])
+    privateSyncEngine.assertFetchChangesScopes([.all])
+    sharedSyncEngine.assertFetchChangesScopes([.all])
   }
 
   deinit {
     if #available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) {
-      underlyingSyncEngine.assertFetchChangesScopes([])
-      underlyingSyncEngine.state.assertPendingDatabaseChanges([])
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([])
+      sharedSyncEngine.assertFetchChangesScopes([])
+      sharedSyncEngine.state.assertPendingDatabaseChanges([])
+      sharedSyncEngine.state.assertPendingRecordZoneChanges([])
+      sharedSyncEngine.assertAcceptedShareMetadata([])
+      privateSyncEngine.assertFetchChangesScopes([])
+      privateSyncEngine.state.assertPendingDatabaseChanges([])
+      privateSyncEngine.state.assertPendingRecordZoneChanges([])
+      privateSyncEngine.assertAcceptedShareMetadata([])
     } else {
       Issue.record("Tests must be run on iOS 17+,m macOS 14+, tvOS 17+ and watchOS 10+.")
     }

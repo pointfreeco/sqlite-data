@@ -15,11 +15,11 @@ public final actor SyncEngine {
   let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
   fileprivate let foreignKeysByTableName: [String: [ForeignKey]]
-  var privateSyncEngine: (any CKSyncEngineProtocol)!
-  var sharedSyncEngine: (any CKSyncEngineProtocol)!
+  var privateSyncEngine: (any SyncEngineProtocol)!
+  var sharedSyncEngine: (any SyncEngineProtocol)!
   let defaultSyncEngines:
     (any DatabaseReader, SyncEngine)
-      -> (private: any CKSyncEngineProtocol, shared: any CKSyncEngineProtocol)
+      -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
   let _container: any Sendable
 
   public init(
@@ -60,13 +60,14 @@ public final actor SyncEngine {
   }
 
   package init(
-    defaultSyncEngine: any CKSyncEngineProtocol,
+    privateSyncEngine: any SyncEngineProtocol,
+    sharedSyncEngine: any SyncEngineProtocol,
     database: any DatabaseWriter,
     metadatabaseURL: URL,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   ) throws {
     try self.init(
-      defaultSyncEngines: { _, _ in (defaultSyncEngine, defaultSyncEngine) },
+      defaultSyncEngines: { _, _ in (privateSyncEngine, sharedSyncEngine) },
       database: database,
       logger: Logger(.disabled),
       metadatabaseURL: metadatabaseURL,
@@ -79,7 +80,7 @@ public final actor SyncEngine {
     defaultSyncEngines: @escaping (
       any DatabaseReader,
       SyncEngine
-    ) -> (private: any CKSyncEngineProtocol, shared: any CKSyncEngineProtocol),
+    ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
     database: any DatabaseWriter,
     logger: Logger,
     metadatabaseURL: URL,
@@ -133,6 +134,7 @@ public final actor SyncEngine {
       migrator.eraseDatabaseOnSchemaChange = true
     #endif
     migrator.registerMigration("Create Metadata Tables") { db in
+      // TODO: Should "recordName" be "collate no case"?
       try SQLQueryExpression(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
@@ -286,7 +288,8 @@ public final actor SyncEngine {
   }
 
   func didUpdate(recordName: String, zoneName: String, ownerName: String) {
-    let syncEngine = ownerName == Self.defaultZone.zoneID.ownerName
+    let syncEngine =
+      ownerName == Self.defaultZone.zoneID.ownerName
       ? privateSyncEngine
       : sharedSyncEngine
     syncEngine?.state.add(
@@ -305,7 +308,8 @@ public final actor SyncEngine {
   }
 
   func willDelete(recordName: String, zoneName: String, ownerName: String) {
-    let syncEngine = ownerName == Self.defaultZone.zoneID.ownerName
+    let syncEngine =
+      ownerName == Self.defaultZone.zoneID.ownerName
       ? privateSyncEngine
       : sharedSyncEngine
     syncEngine?.state.add(
@@ -894,8 +898,9 @@ extension URL {
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
   public struct CantShareRecordWithParent: Error {}
+  public struct NoCKRecordFound: Error {}
 
-  public func share<T: PrimaryKeyedTable>(
+  public func createShare<T: PrimaryKeyedTable>(
     record: T,
     configure: @Sendable (CKShare) -> Void
   ) async throws -> CKShare
@@ -907,12 +912,12 @@ extension SyncEngine {
 
     let recordName = record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased()
     let lastKnownServerRecord =
-      try await database.write { db in
-        try Metadata
-          .find(recordID: CKRecord.ID(recordName: recordName))
-          .select(\.lastKnownServerRecord)
-          .fetchOne(db)
-      } ?? nil
+    try await database.write { db in
+      try Metadata
+        .find(recordID: CKRecord.ID(recordName: recordName))
+        .select(\.lastKnownServerRecord)
+        .fetchOne(db)
+    } ?? nil
 
     guard let lastKnownServerRecord
     else {
@@ -925,51 +930,16 @@ extension SyncEngine {
     )
     let share = CKShare(rootRecord: lastKnownServerRecord, shareID: shareID)
     configure(share)
-
-    let modifyOperation = CKModifyRecordsOperation(
-      recordsToSave: [share, lastKnownServerRecord],
-      recordIDsToDelete: nil
+    _ = try await container.privateCloudDatabase.modifyRecords(
+      saving: [share, lastKnownServerRecord],
+      deleting: []
     )
-    try await withUnsafeThrowingContinuation {
-      (continuation: UnsafeContinuation<Void, any Error>) in
-      modifyOperation.modifyRecordsCompletionBlock = { records, recordIDs, error in
-        if let error = error {
-          continuation.resume(throwing: error)
-        } else {
-          continuation.resume()
-        }
-      }
-
-      modifyOperation.database = container.privateCloudDatabase
-      container.privateCloudDatabase.add(modifyOperation)
-    }
 
     return share
   }
-}
 
-struct NoCKRecordFound: Error {}
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension SyncEngine {
-  public nonisolated func acceptShare(metadata: CKShare.Metadata) {
-    let operation = CKAcceptSharesOperation(shareMetadatas: [metadata])
-    operation.acceptSharesResultBlock = { [weak self] result in
-      guard let self else { return }
-      Task {
-        await withErrorReporting {
-          try await self.sharedSyncEngine
-            .fetchChanges(
-              .init(
-                scope: .zoneIDs([metadata.hierarchicalRootRecordID!.zoneID]),
-                operationGroup: nil
-              )
-            )
-        }
-      }
-    }
-    operation.qualityOfService = .utility
-    container.add(operation)
+  public func acceptShare(metadata: CKShare.Metadata) async throws {
+    try await sharedSyncEngine.acceptShare(metadata: ShareMetadata(rawValue: metadata))
   }
 }
 

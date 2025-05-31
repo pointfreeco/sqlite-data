@@ -64,14 +64,15 @@ extension BaseCloudKitTests {
       try await syncEngine.setUpSyncEngine()
       // TODO: it would be nice if `setUpSyncEngine` was async
       try await Task.sleep(for: .seconds(0.1))
-      underlyingSyncEngine.assertFetchChangesScopes([.all])
+      privateSyncEngine.assertFetchChangesScopes([.all])
+      sharedSyncEngine.assertFetchChangesScopes([.all])
 
       try await database.write { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1)))
       ])
 
@@ -145,7 +146,7 @@ extension BaseCloudKitTests {
           .insert(RemindersList(id: UUID(1), title: "Personal"))
           .execute(db)
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1)))
       ])
       try database.write { db in
@@ -154,7 +155,7 @@ extension BaseCloudKitTests {
           .update { $0.title = "Work" }
           .execute(db)
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1)))
       ])
       try database.write { db in
@@ -163,7 +164,7 @@ extension BaseCloudKitTests {
           .delete()
           .execute(db)
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .deleteRecord(CKRecord.ID(UUID(1)))
       ])
     }
@@ -175,7 +176,7 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1)))
       ])
 
@@ -216,7 +217,7 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1)))
       ])
       let record = CKRecord(
@@ -258,7 +259,7 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      underlyingSyncEngine.state.assertPendingRecordZoneChanges([
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(1)))
       ])
 

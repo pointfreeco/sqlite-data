@@ -68,6 +68,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
   ) {
     @Dependency(\.defaultSyncEngine) var syncEngine
-    syncEngine.acceptShare(metadata: cloudKitShareMetadata)
+    Task {
+      try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
+    }
   }
 }

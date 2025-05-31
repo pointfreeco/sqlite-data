@@ -298,7 +298,8 @@ extension BaseCloudKitTests {
 
       try await syncEngine.setUpSyncEngine()
       try await Task.sleep(for: .seconds(0.1))
-      underlyingSyncEngine.assertFetchChangesScopes([.all])
+      privateSyncEngine.assertFetchChangesScopes([.all])
+      sharedSyncEngine.assertFetchChangesScopes([.all])
       let triggersAfterReSetUp = try await database.write { db in
         try #sql("SELECT sql FROM sqlite_temp_master", as: String?.self).fetchAll(db)
       }
