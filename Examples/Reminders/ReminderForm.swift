@@ -4,9 +4,9 @@ import SwiftUI
 
 struct ReminderFormView: View {
   @FetchAll(RemindersList.order(by: \.title)) var remindersLists
+  @FetchOne var remindersList: RemindersList?
 
   @State var isPresentingTagsPopover = false
-  @State var remindersList: RemindersList
   @State var reminder: Reminder.Draft
   @State var selectedTags: [Tag] = []
 
@@ -14,7 +14,7 @@ struct ReminderFormView: View {
   @Environment(\.dismiss) var dismiss
 
   init(existingReminder: Reminder? = nil, remindersList: RemindersList) {
-    self.remindersList = remindersList
+    _remindersList = FetchOne()
     if let existingReminder {
       reminder = Reminder.Draft(existingReminder)
     } else {
