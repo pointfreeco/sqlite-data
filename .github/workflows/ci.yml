@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Select Xcode ${{ matrix.xcode }}
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
-      - name: Build ${{ matrix.scheme }}
+      - name: xcodebuild ${{ matrix.scheme }}
         run: make DERIVED_DATA_PATH=~/.derivedData SCHEME="${{ matrix.scheme }}" xcodebuild-raw
 
   linux:
