@@ -8,40 +8,66 @@ import Testing
 
 @Suite(.dependency(\.defaultDatabase, try .database()))
 struct FetchTests {
+  @Dependency(\.defaultDatabase) var database
+
   @Test func bareFetchAll() async throws {
     @FetchAll var records: [Record]
     try await $records.load()
     #expect(records == [Record(id: 1), Record(id: 2), Record(id: 3)])
+
+    try await database.write { try Record.delete().execute($0) }
+    try await $records.load()
+    #expect(records == [])
   }
 
   @Test func fetchAllWithQuery() async throws {
     @FetchAll(Record.where { $0.id > 1 }) var records: [Record]
     try await $records.load()
     #expect(records == [Record(id: 2), Record(id: 3)])
+
+    try await database.write { try Record.delete().execute($0) }
+    try await $records.load()
+    #expect(records == [])
   }
 
   @Test func fetchOneCountWithQuery() async throws {
     @FetchOne(Record.where { $0.id > 1 }.count()) var recordsCount = 0
     try await $recordsCount.load()
     #expect(recordsCount == 2)
+
+    try await database.write { try Record.delete().execute($0) }
+    try await $recordsCount.load()
+    #expect(recordsCount == 0)
   }
 
   @Test func fetchOneOptional() async throws {
     @FetchOne var record: Record?
     try await $record.load()
     #expect(record == Record(id: 1))
+
+    try await database.write { try Record.delete().execute($0) }
+    try await $record.load()
+    #expect(record == nil)
   }
 
   @Test func fetchOneWithDefault() async throws {
     @FetchOne var record = Record(id: 0)
     try await $record.load()
     #expect(record == Record(id: 1))
+
+    try await database.write { try Record.delete().execute($0) }
+    try await $record.load()
+    #expect(record == Record(id: 0))
   }
 
   @Test func fetchOneOptional_SQL() async throws {
     @FetchOne(#sql("SELECT * FROM records LIMIT 1")) var record: Record?
     try await $record.load()
     #expect(record == Record(id: 1))
+
+    try await database.write { try Record.delete().execute($0) }
+    try await $record.load()
+    #expect(record == nil)
   }
 }
 
