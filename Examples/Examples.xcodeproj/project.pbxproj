@@ -20,6 +20,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		CA5E469A2DEBFE410069E0F8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CAF836902D4735620047AEB5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CAF836D72D4735AB0047AEB5;
+			remoteInfo = Reminders;
+		};
 		CAD001812D874E6F00FA977A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CAF836902D4735620047AEB5 /* Project object */;
@@ -37,6 +44,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemindersTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA5F37542D5AFBBC002E1A9E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAF836982D4735620047AEB5 /* CaseStudies.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CaseStudies.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -71,6 +79,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		CA5E46972DEBFE410069E0F8 /* RemindersTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = RemindersTests;
+			sourceTree = "<group>";
+		};
 		CAD0017E2D874E6F00FA977A /* SyncUpTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = SyncUpTests;
@@ -108,6 +121,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CA5E46932DEBFE410069E0F8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CAD0017A2D874E6F00FA977A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -163,6 +183,7 @@
 				CAF8369A2D4735620047AEB5 /* CaseStudies */,
 				CAF836AB2D4735640047AEB5 /* CaseStudiesTests */,
 				CAF836D92D4735AB0047AEB5 /* Reminders */,
+				CA5E46972DEBFE410069E0F8 /* RemindersTests */,
 				DCBE89CD2D483FB90071F499 /* SyncUps */,
 				CAD0017E2D874E6F00FA977A /* SyncUpTests */,
 				CAF837022D4735C00047AEB5 /* Frameworks */,
@@ -178,6 +199,7 @@
 				CAF836D82D4735AB0047AEB5 /* Reminders.app */,
 				DCBE89CC2D483FB90071F499 /* SyncUps.app */,
 				CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */,
+				CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -192,6 +214,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		CA5E46952DEBFE410069E0F8 /* RemindersTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA5E469C2DEBFE420069E0F8 /* Build configuration list for PBXNativeTarget "RemindersTests" */;
+			buildPhases = (
+				CA5E46922DEBFE410069E0F8 /* Sources */,
+				CA5E46932DEBFE410069E0F8 /* Frameworks */,
+				CA5E46942DEBFE410069E0F8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CA5E469B2DEBFE410069E0F8 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CA5E46972DEBFE410069E0F8 /* RemindersTests */,
+			);
+			name = RemindersTests;
+			packageProductDependencies = (
+			);
+			productName = RemindersTests;
+			productReference = CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		CAD0017C2D874E6F00FA977A /* SyncUpTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CAD001852D874E6F00FA977A /* Build configuration list for PBXNativeTarget "SyncUpTests" */;
@@ -321,9 +366,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1630;
+				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					CA5E46952DEBFE410069E0F8 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = CAF836D72D4735AB0047AEB5;
+					};
 					CAD0017C2D874E6F00FA977A = {
 						CreatedOnToolsVersion = 16.3;
 						TestTargetID = DCBE89CB2D483FB90071F499;
@@ -365,6 +414,7 @@
 				CAF836972D4735620047AEB5 /* CaseStudies */,
 				CAF836A72D4735640047AEB5 /* CaseStudiesTests */,
 				CAF836D72D4735AB0047AEB5 /* Reminders */,
+				CA5E46952DEBFE410069E0F8 /* RemindersTests */,
 				DCBE89CB2D483FB90071F499 /* SyncUps */,
 				CAD0017C2D874E6F00FA977A /* SyncUpTests */,
 			);
@@ -372,6 +422,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		CA5E46942DEBFE410069E0F8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CAD0017B2D874E6F00FA977A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -410,6 +467,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		CA5E46922DEBFE410069E0F8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CAD001792D874E6F00FA977A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -448,6 +512,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CA5E469B2DEBFE410069E0F8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CAF836D72D4735AB0047AEB5 /* Reminders */;
+			targetProxy = CA5E469A2DEBFE410069E0F8 /* PBXContainerItemProxy */;
+		};
 		CAD001822D874E6F00FA977A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = DCBE89CB2D483FB90071F499 /* SyncUps */;
@@ -461,6 +530,40 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		CA5E469D2DEBFE420069E0F8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.RemindersTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reminders.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Reminders";
+			};
+			name = Debug;
+		};
+		CA5E469E2DEBFE420069E0F8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.RemindersTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reminders.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Reminders";
+			};
+			name = Release;
+		};
 		CAD001832D874E6F00FA977A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -468,7 +571,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SyncUpTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -486,7 +588,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SyncUpTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -681,7 +782,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CaseStudiesTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -698,7 +798,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CaseStudiesTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -821,6 +920,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CA5E469C2DEBFE420069E0F8 /* Build configuration list for PBXNativeTarget "RemindersTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA5E469D2DEBFE420069E0F8 /* Debug */,
+				CA5E469E2DEBFE420069E0F8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CAD001852D874E6F00FA977A /* Build configuration list for PBXNativeTarget "SyncUpTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
