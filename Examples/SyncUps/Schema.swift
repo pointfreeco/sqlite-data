@@ -91,12 +91,15 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     #endif
   }
-  if context == .live {
-    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
+  if context == .preview {
+    database = try DatabaseQueue(configuration: configuration)
+  } else {
+    let path =
+    context == .live
+    ? URL.documentsDirectory.appending(component: "db.sqlite").path()
+    : URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
     logger.info("open \(path)")
     database = try DatabasePool(path: path, configuration: configuration)
-  } else {
-    database = try DatabaseQueue(configuration: configuration)
   }
   var migrator = DatabaseMigrator()
   #if DEBUG

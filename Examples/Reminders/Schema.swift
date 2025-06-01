@@ -84,9 +84,9 @@ extension Tag.TableColumns {
 
 @Table("remindersTags")
 struct ReminderTag: Hashable, Identifiable {
+  let id: UUID
   var reminderID: Reminder.ID
   var tagID: Tag.ID
-  var id: Self { self }
 }
 
 func appDatabase() throws -> any DatabaseWriter {
@@ -171,6 +171,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "remindersTags" (
+        "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "reminderID" TEXT NOT NULL,
         "tagID" TEXT NOT NULL,
 
@@ -348,18 +349,18 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
         Tag(id: tagIDs[4], title: "social")
         Tag(id: tagIDs[5], title: "night")
         Tag(id: tagIDs[6], title: "adulting")
-        ReminderTag(reminderID: reminderIDs[0], tagID: tagIDs[2])
-        ReminderTag(reminderID: reminderIDs[0], tagID: tagIDs[3])
-        ReminderTag(reminderID: reminderIDs[0], tagID: tagIDs[6])
-        ReminderTag(reminderID: reminderIDs[1], tagID: tagIDs[2])
-        ReminderTag(reminderID: reminderIDs[1], tagID: tagIDs[3])
-        ReminderTag(reminderID: reminderIDs[2], tagID: tagIDs[6])
-        ReminderTag(reminderID: reminderIDs[3], tagID: tagIDs[0])
-        ReminderTag(reminderID: reminderIDs[3], tagID: tagIDs[1])
-        ReminderTag(reminderID: reminderIDs[4], tagID: tagIDs[4])
-        ReminderTag(reminderID: reminderIDs[3], tagID: tagIDs[4])
-        ReminderTag(reminderID: reminderIDs[10], tagID: tagIDs[4])
-        ReminderTag(reminderID: reminderIDs[4], tagID: tagIDs[5])
+        ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[2])
+        ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[3])
+        ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[6])
+        ReminderTag.Draft(reminderID: reminderIDs[1], tagID: tagIDs[2])
+        ReminderTag.Draft(reminderID: reminderIDs[1], tagID: tagIDs[3])
+        ReminderTag.Draft(reminderID: reminderIDs[2], tagID: tagIDs[6])
+        ReminderTag.Draft(reminderID: reminderIDs[3], tagID: tagIDs[0])
+        ReminderTag.Draft(reminderID: reminderIDs[3], tagID: tagIDs[1])
+        ReminderTag.Draft(reminderID: reminderIDs[4], tagID: tagIDs[4])
+        ReminderTag.Draft(reminderID: reminderIDs[3], tagID: tagIDs[4])
+        ReminderTag.Draft(reminderID: reminderIDs[10], tagID: tagIDs[4])
+        ReminderTag.Draft(reminderID: reminderIDs[4], tagID: tagIDs[5])
       }
     }
   }
