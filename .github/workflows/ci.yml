@@ -34,7 +34,7 @@ jobs:
       matrix:
         xcode: ['16.3']
         config: ['debug']
-        schemes: ['Reminders', 'CaseStudies', 'SyncUps']
+        scheme: ['Reminders', 'CaseStudies', 'SyncUps']
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
