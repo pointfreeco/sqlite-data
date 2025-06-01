@@ -79,13 +79,13 @@ public struct FetchAll<Element: Sendable>: Sendable {
     self.init(wrappedValue: wrappedValue, statement, database: database)
   }
 
-  /// Initializes this property with a default value.
-  @_disfavoredOverload
-  public init(
-    wrappedValue: [Element] = []
-  ) {
-    sharedReader = SharedReader(value: wrappedValue)
-  }
+//  /// Initializes this property with a default value.
+//  @_disfavoredOverload
+//  public init(
+//    wrappedValue: [Element] = []
+//  ) {
+//    sharedReader = SharedReader(value: wrappedValue)
+//  }
 
   /// Initializes this property with a query associated with the wrapped value.
   ///

@@ -67,18 +67,18 @@ public struct FetchOne<Value: Sendable>: Sendable {
     }
   #endif
 
-  /// Initializes this property with a wrapped value.
-  ///
-  /// - Parameters:
-  ///   - wrappedValue: A default value to associate with this property.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  public init(
-    wrappedValue: sending Value,
-    database: (any DatabaseReader)? = nil
-  ) {
-    sharedReader = SharedReader(value: wrappedValue)
-  }
+//  /// Initializes this property with a wrapped value.
+//  ///
+//  /// - Parameters:
+//  ///   - wrappedValue: A default value to associate with this property.
+//  ///   - database: The database to read from. A value of `nil` will use the default database
+//  ///     (`@Dependency(\.defaultDatabase)`).
+//  public init(
+//    wrappedValue: sending Value,
+//    database: (any DatabaseReader)? = nil
+//  ) {
+//    sharedReader = SharedReader(value: wrappedValue)
+//  }
   
   /// Initializes this property with a query that fetches a single row from a table.
   ///
@@ -100,11 +100,11 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///
   /// - Parameters database: The database to read from. A value of `nil` will use the default
   ///   database (`@Dependency(\.defaultDatabase)`).
-  public init<Wrapped>(
-    database: (any DatabaseReader)? = nil
-  ) where Value == Wrapped? {
-    self.init(wrappedValue: nil, database: database)
-  }
+//  public init<Wrapped>(
+//    database: (any DatabaseReader)? = nil
+//  ) where Value == Wrapped? {
+//    self.init(wrappedValue: nil, database: database)
+//  }
 
   /// Initializes this property with a query associated with the wrapped value.
   ///

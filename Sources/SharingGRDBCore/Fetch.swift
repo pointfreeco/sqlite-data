@@ -67,12 +67,12 @@ public struct Fetch<Value: Sendable>: Sendable {
     }
   #endif
 
-  /// Initializes this property with an initial value.
-  ///
-  /// - Parameter wrappedValue: A default value to associate with this property.
-  public init(wrappedValue: sending Value) {
-    sharedReader = SharedReader(value: wrappedValue)
-  }
+//  /// Initializes this property with an initial value.
+//  ///
+//  /// - Parameter wrappedValue: A default value to associate with this property.
+//  public init(wrappedValue: sending Value) {
+//    sharedReader = SharedReader(value: wrappedValue)
+//  }
 
   /// Initializes this property with a request associated with the wrapped value.
   ///
