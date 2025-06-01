@@ -22,9 +22,9 @@ struct Reminder: Codable, Equatable, Identifiable {
   var isCompleted = false
   var isFlagged = false
   var notes = ""
+  var position = 0
   var priority: Priority?
   var remindersListID: RemindersList.ID
-  var position = 0
   var title = ""
 }
 
@@ -57,10 +57,10 @@ extension Reminder {
 
 extension Reminder.TableColumns {
   var isPastDue: some QueryExpression<Bool> {
-    !isCompleted && #sql("coalesce(date(\(dueDate)) < date('now'), 0)")
+    !isCompleted && #sql("coalesce(date(\(dueDate)) < now(), 0)")
   }
   var isToday: some QueryExpression<Bool> {
-    !isCompleted && #sql("coalesce(date(\(dueDate)) = date('now'), 0)")
+    !isCompleted && #sql("coalesce(date(\(dueDate)) = now(), 0)")
   }
   var isScheduled: some QueryExpression<Bool> {
     !isCompleted && dueDate.isNot(nil)
@@ -104,13 +104,26 @@ func appDatabase() throws -> any DatabaseWriter {
         }
       }
     #endif
+    db.add(
+      function: DatabaseFunction("now", argumentCount: 0) { _ in
+        @Dependency(\.date.now) var now
+        return now.formatted(
+          .iso8601.year().month().day()
+            .dateTimeSeparator(.space)
+            .time(includingFractionalSeconds: true)
+        )
+      }
+    )
   }
-  if context == .live {
-    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
+  if context == .preview {
+    database = try DatabaseQueue(configuration: configuration)
+  } else {
+    let path =
+      context == .live
+      ? URL.documentsDirectory.appending(component: "db.sqlite").path()
+      : URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
     logger.info("open \(path)")
     database = try DatabasePool(path: path, configuration: configuration)
-  } else {
-    database = try DatabaseQueue(configuration: configuration)
   }
   var migrator = DatabaseMigrator()
   #if DEBUG

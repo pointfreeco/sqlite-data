@@ -6,7 +6,7 @@ import SwiftUINavigation
 @MainActor
 @Observable
 class RemindersDetailModel: HashableObject {
-  @ObservationIgnored @FetchAll var reminderStates: [Row]
+  @ObservationIgnored @FetchAll var reminderRows: [Row]
   @ObservationIgnored @Shared var ordering: Ordering
   @ObservationIgnored @Shared var showCompleted: Bool
 
@@ -22,7 +22,7 @@ class RemindersDetailModel: HashableObject {
       wrappedValue: detailType == .completed,
       .appStorage("show_completed_list_\(detailType.id)")
     )
-    _reminderStates = FetchAll(remindersQuery)
+    _reminderRows = FetchAll(remindersQuery)
   }
 
   func orderingButtonTapped(_ ordering: Ordering) async {
@@ -35,10 +35,10 @@ class RemindersDetailModel: HashableObject {
     await updateQuery()
   }
 
-  func move(from source: IndexSet, to destination: Int) {
+  func move(from source: IndexSet, to destination: Int) async {
     withErrorReporting {
       try database.write { db in
-        var ids = reminderStates.map(\.reminder.id)
+        var ids = reminderRows.map(\.reminder.id)
         ids.move(fromOffsets: source, toOffset: destination)
         try Reminder
           .where { $0.id.in(ids) }
@@ -56,11 +56,12 @@ class RemindersDetailModel: HashableObject {
       }
     }
     $ordering.withLock { $0 = .manual }
+    await updateQuery()
   }
   
   private func updateQuery() async {
     await withErrorReporting {
-      try await $reminderStates.load(remindersQuery, animation: .default)
+      try await $reminderRows.load(remindersQuery, animation: .default)
     }
   }
 
@@ -162,18 +163,20 @@ struct RemindersDetailView: View {
         }
       }
       .listRowSeparator(.hidden)
-      ForEach(model.reminderStates) { reminderState in
+      ForEach(model.reminderRows) { row in
         ReminderRow(
           color: model.detailType.color,
-          isPastDue: reminderState.isPastDue,
-          notes: reminderState.notes,
-          reminder: reminderState.reminder,
-          remindersList: reminderState.remindersList,
+          isPastDue: row.isPastDue,
+          notes: row.notes,
+          reminder: row.reminder,
+          remindersList: row.remindersList,
           showCompleted: model.showCompleted,
-          tags: reminderState.tags
+          tags: row.tags
         )
       }
-      .onMove(perform: model.move(from:to:))
+      .onMove { source, destination in
+        Task { await model.move(from: source, to: destination) }
+      }
     }
     .onScrollGeometryChange(for: Bool.self) { geometry in
       geometry.contentOffset.y + geometry.contentInsets.top > navigationTitleHeight
