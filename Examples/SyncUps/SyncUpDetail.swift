@@ -135,7 +135,7 @@ struct SyncUpDetailView: View {
 
       if !model.meetings.isEmpty {
         Section {
-          ForEach(model.meetings, id: \.id) { meeting in
+          ForEach(model.meetings) { meeting in
             NavigationLink(
               value: AppModel.Path.meeting(meeting, attendees: model.attendees)
             ) {
