@@ -170,6 +170,7 @@ struct ReminderFormView: View {
   private func saveButtonTapped() {
     withErrorReporting {
       try database.write { db in
+        var reminder = reminder
         let reminderID = try Reminder.upsert(reminder).returning(\.id).fetchOne(db)!
         try ReminderTag
           .where { $0.reminderID.eq(reminderID) }

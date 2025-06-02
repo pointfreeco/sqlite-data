@@ -83,7 +83,7 @@ extension BaseTestSuite {
               position: 1,
               title: "Personal"
             ),
-            isPastDue: true,
+            isPastDue: false,
             notes: "Ask about diet",
             tags: [
               [0]: "adulting"
@@ -118,7 +118,7 @@ extension BaseTestSuite {
               position: 1,
               title: "Personal"
             ),
-            isPastDue: true,
+            isPastDue: false,
             notes: "",
             tags: [
               [0]: "social",
@@ -366,7 +366,10 @@ extension BaseTestSuite {
       try await model.$reminderRows.load()
       assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
         """
-        []
+        [
+          [0]: "Doctor appointment",
+          [1]: "Buy concert tickets"
+        ]
         """
       }
     }

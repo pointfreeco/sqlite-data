@@ -1,3 +1,4 @@
+import Dependencies
 import Foundation
 import IssueReporting
 import OSLog
@@ -57,10 +58,12 @@ extension Reminder {
 
 extension Reminder.TableColumns {
   var isPastDue: some QueryExpression<Bool> {
-    !isCompleted && #sql("coalesce(date(\(dueDate)) < now(), 0)")
+    @Dependency(\.date.now) var now
+    return !isCompleted && #sql("coalesce(date(\(dueDate)) < date(\(now)), 0)")
   }
   var isToday: some QueryExpression<Bool> {
-    !isCompleted && #sql("coalesce(date(\(dueDate)) = now(), 0)")
+    @Dependency(\.date.now) var now
+    return !isCompleted && #sql("coalesce(date(\(dueDate)) = date(\(now)), 0)")
   }
   var isScheduled: some QueryExpression<Bool> {
     !isCompleted && dueDate.isNot(nil)
@@ -104,16 +107,6 @@ func appDatabase() throws -> any DatabaseWriter {
         }
       }
     #endif
-    db.add(
-      function: DatabaseFunction("now", argumentCount: 0) { _ in
-        @Dependency(\.date.now) var now
-        return now.formatted(
-          .iso8601.year().month().day()
-            .dateTimeSeparator(.space)
-            .time(includingFractionalSeconds: true)
-        )
-      }
-    )
   }
   if context == .preview {
     database = try DatabaseQueue(configuration: configuration)
@@ -133,7 +126,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "remindersLists" (
-        "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99_ef00),
         "position" INTEGER NOT NULL DEFAULT 0,
         "title" TEXT NOT NULL
@@ -144,7 +137,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "reminders" (
-        "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "dueDate" TEXT,
         "isCompleted" INTEGER NOT NULL DEFAULT 0,
         "isFlagged" INTEGER NOT NULL DEFAULT 0,
@@ -162,7 +155,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "tags" (
-        "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "title" TEXT NOT NULL COLLATE NOCASE
       ) STRICT
       """
@@ -171,7 +164,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "remindersTags" (
-        "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "reminderID" TEXT NOT NULL,
         "tagID" TEXT NOT NULL,
 

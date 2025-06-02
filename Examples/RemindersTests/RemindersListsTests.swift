@@ -86,7 +86,7 @@ extension BaseTestSuite {
           allCount: 8,
           flaggedCount: 2,
           scheduledCount: 7,
-          todayCount: 0
+          todayCount: 2
         )
         """
       }

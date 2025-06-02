@@ -109,7 +109,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "syncUps" (
-        "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "seconds" INTEGER NOT NULL DEFAULT 300,
         "theme" TEXT NOT NULL DEFAULT \(raw: Theme.bubblegum.rawValue),
         "title" TEXT NOT NULL
@@ -120,7 +120,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "attendees" (
-        "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "name" TEXT NOT NULL,
         "syncUpID" INTEGER NOT NULL,
         
@@ -132,7 +132,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "meetings" (
-        "id" TEXT UNIQUE NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "date" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP UNIQUE,
         "syncUpID" INTEGER NOT NULL,
         "transcript" TEXT NOT NULL,

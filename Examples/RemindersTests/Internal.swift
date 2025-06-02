@@ -7,7 +7,7 @@ import Testing
 
 @Suite(
   .dependencies {
-    $0.date.now = Date(timeIntervalSince1970: 1234567890)
+    $0.date.now = baseDate
     $0.defaultDatabase = try Reminders.appDatabase()
     try $0.defaultDatabase.write { try $0.seedTestData() }
   },
@@ -17,7 +17,7 @@ struct BaseTestSuite {}
 
 extension Database {
   func seedTestData() throws {
-    let baseDate = Date(timeIntervalSince1970: 1234567890)
+    let baseDate = baseDate
     try seed {
       RemindersList(
         id: UUID(0),
@@ -154,3 +154,5 @@ extension Database {
     }
   }
 }
+
+private let baseDate = Date(timeIntervalSince1970: 1234567890)
