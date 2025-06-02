@@ -1,6 +1,9 @@
 import CloudKit
 import SwiftUI
+
+#if canImport(UIKit)
 import UIKit
+#endif
 
 public struct SharedRecord: Hashable, Identifiable, Sendable {
   public let container: CKContainer
@@ -53,8 +56,6 @@ extension SyncEngine {
       saving: [sharedRecord, lastKnownServerRecord],
       deleting: []
     )
-
-    sharedRecord.recordType
 
     return SharedRecord(container: container, share: sharedRecord)
   }
