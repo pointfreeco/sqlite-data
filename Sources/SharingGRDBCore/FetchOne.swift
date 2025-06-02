@@ -86,6 +86,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - wrappedValue: A default value to associate with this property.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
+  @_disfavoredOverload
   public init(
     wrappedValue: sending Value,
     database: (any DatabaseReader)? = nil
@@ -158,6 +159,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
+  @_disfavoredOverload
   public init<S: StructuredQueriesCore.Statement<Value>>(
     wrappedValue: Value,
     _ statement: S,
@@ -210,13 +212,15 @@ public struct FetchOne<Value: Sendable>: Sendable {
     S.QueryValue: QueryRepresentable,
     Value == S.QueryValue.QueryOutput?
   {
-    self.init(
+    sharedReader = SharedReader(
       wrappedValue: nil,
-      SQLQueryExpression(statement.query, as: S.QueryValue?.self),
-      database: database
+      .fetch(
+        FetchOneOptionalStatementValueRequest(statement: SQLQueryExpression(statement.query, as: S.QueryValue?.self)),
+        database: database
+      )
     )
   }
-
+  
   /// Initializes this property with a query associated with an optional value.
   ///
   /// - Parameters:
@@ -402,11 +406,13 @@ extension FetchOne {
     S.QueryValue: QueryRepresentable,
     Value == S.QueryValue.QueryOutput?
   {
-    self.init(
+    sharedReader = SharedReader(
       wrappedValue: nil,
-      SQLQueryExpression(statement.query, as: S.QueryValue?.self),
-      database: database,
-      scheduler: scheduler
+      .fetch(
+        FetchOneOptionalStatementValueRequest(statement: SQLQueryExpression(statement.query, as: S.QueryValue?.self)),
+        database: database,
+        scheduler: scheduler
+      )
     )
   }
 
@@ -617,11 +623,13 @@ extension FetchOne: Equatable where Value: Equatable {
       S.QueryValue: QueryRepresentable,
       Value == S.QueryValue.QueryOutput?
     {
-      self.init(
+      sharedReader = SharedReader(
         wrappedValue: nil,
-        SQLQueryExpression(statement.query, as: S.QueryValue?.self),
-        database: database,
-        animation: animation
+        .fetch(
+          FetchOneOptionalStatementValueRequest(statement: SQLQueryExpression(statement.query, as: S.QueryValue?.self)),
+          database: database,
+          scheduler: .animation(animation)
+        )
       )
     }
 
@@ -695,9 +703,19 @@ extension FetchOne: Equatable where Value: Equatable {
 
 private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
   let statement: any StructuredQueriesCore.Statement<Value>
+  init(statement: any StructuredQueriesCore.Statement<Value>) {
+    self.statement = statement
+  }
   func fetch(_ db: Database) throws -> Value.QueryOutput {
     guard let result = try statement.fetchOne(db)
     else { throw NotFound() }
     return result
+  }
+}
+
+private struct FetchOneOptionalStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
+  let statement: any StructuredQueriesCore.Statement<Value?>
+  func fetch(_ db: Database) throws -> Value.QueryOutput? {
+    try statement.fetchOne(db) ?? nil
   }
 }

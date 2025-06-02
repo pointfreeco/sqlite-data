@@ -1,0 +1,31 @@
+{
+  "configurations" : [
+    {
+      "id" : "9F7953D8-4923-4115-83AD-41CA939B3A8D",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SharingGRDBTests",
+        "name" : "SharingGRDBTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "StructuredQueriesGRDBTests",
+        "name" : "StructuredQueriesGRDBTests"
+      }
+    }
+  ],
+  "version" : 1
+}

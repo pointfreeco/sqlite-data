@@ -40,10 +40,14 @@ struct FetchTests {
     #expect(recordsCount == 0)
   }
 
+  @FetchOne fileprivate var record: Record?
   @Test func fetchOneOptional() async throws {
-    @FetchOne var record: Record?
+    print(#line)
+    print(#line)
     try await $record.load()
+    print(#line)
     #expect(record == Record(id: 1))
+    print(#line)
 
     try await database.write { try Record.delete().execute($0) }
     try await $record.load()
@@ -56,8 +60,11 @@ struct FetchTests {
     #expect(record == Record(id: 1))
 
     try await database.write { try Record.delete().execute($0) }
-    try await $record.load()
-    #expect(record == Record(id: 0))
+    await #expect(throws: NotFound.self) {
+      try await $record.load()
+    }
+    #expect($record.loadError is NotFound)
+    #expect(record == Record(id: 1))
   }
 
   @Test func fetchOneOptional_SQL() async throws {
