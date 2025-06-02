@@ -30,7 +30,41 @@ extension BaseTestSuite {
       #expect(model.completedCount == 1)
       assertInlineSnapshot(of: model.reminders, as: .customDump) {
         """
-        []
+        [
+          [0]: SearchRemindersModel.Row(
+            isPastDue: false,
+            notes: "",
+            reminder: Reminder(
+              id: UUID(00000000-0000-0000-0000-000000000007),
+              dueDate: Date(2009-02-17T23:31:30.000Z),
+              isCompleted: false,
+              isFlagged: false,
+              notes: "",
+              position: 8,
+              priority: .high,
+              remindersListID: UUID(00000000-0000-0000-0000-000000000001),
+              title: "Take out trash"
+            ),
+            remindersList: RemindersList(
+              id: UUID(00000000-0000-0000-0000-000000000001),
+              color: Color(
+                provider: ColorBox(
+                  base: ResolvedColorProvider(
+                    color: Color.Resolved(
+                      linearRed: 0.8468733,
+                      linearGreen: 0.25015837,
+                      linearBlue: 0.0343398,
+                      opacity: 1.0
+                    )
+                  )
+                )
+              ),
+              position: 2,
+              title: "Family"
+            ),
+            tags: []
+          )
+        ]
         """
       }
     }
