@@ -14,7 +14,7 @@ public final actor SyncEngine {
   private let metadatabaseURL: URL
   let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
-  fileprivate let foreignKeysByTableName: [String: [ForeignKey]]
+  let foreignKeysByTableName: [String: [ForeignKey]]
   var privateSyncEngine: (any SyncEngineProtocol)!
   var sharedSyncEngine: (any SyncEngineProtocol)!
   let defaultSyncEngines:
@@ -894,54 +894,3 @@ extension URL {
     )
   }
 }
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension SyncEngine {
-  public struct CantShareRecordWithParent: Error {}
-  public struct NoCKRecordFound: Error {}
-
-  public func createShare<T: PrimaryKeyedTable>(
-    record: T,
-    configure: @Sendable (CKShare) -> Void
-  ) async throws -> CKShare
-  where T.TableColumns.PrimaryKey == UUID {
-    guard foreignKeysByTableName[T.tableName]?.count(where: \.notnull) ?? 0 == 0
-    else {
-      throw CantShareRecordWithParent()
-    }
-
-    let recordName = record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased()
-    let lastKnownServerRecord =
-    try await database.write { db in
-      try Metadata
-        .find(recordID: CKRecord.ID(recordName: recordName))
-        .select(\.lastKnownServerRecord)
-        .fetchOne(db)
-    } ?? nil
-
-    guard let lastKnownServerRecord
-    else {
-      throw NoCKRecordFound()
-    }
-
-    let shareID = CKRecord.ID(
-      recordName: UUID().uuidString,
-      zoneID: lastKnownServerRecord.recordID.zoneID
-    )
-    let share = CKShare(rootRecord: lastKnownServerRecord, shareID: shareID)
-    configure(share)
-    _ = try await container.privateCloudDatabase.modifyRecords(
-      saving: [share, lastKnownServerRecord],
-      deleting: []
-    )
-
-    return share
-  }
-
-  public func acceptShare(metadata: CKShare.Metadata) async throws {
-    try await sharedSyncEngine.acceptShare(metadata: ShareMetadata(rawValue: metadata))
-  }
-}
-
-// TODO: Handle: SharingGRDB CloudKit Failure: No table to delete from: "cloudkit.share"
-// TODO: what kind of APIs do we need to expose for people to query for shared info? participants

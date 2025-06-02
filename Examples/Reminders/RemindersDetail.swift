@@ -13,7 +13,7 @@ struct RemindersDetailView: View {
   @State var isNewReminderSheetPresented = false
   @State var isNavigationTitleVisible = false
   @State var navigationTitleHeight: CGFloat = 36
-  @State var presentedShare: CKShare?
+  @State var sharedRecord: SharedRecord?
 
   @Dependency(\.defaultDatabase) private var database
 
@@ -136,8 +136,8 @@ struct RemindersDetailView: View {
           } label: {
             Image(systemName: "square.and.arrow.up")
           }
-          .sheet(item: $presentedShare, id: \.self) { share in
-            CloudSharingView2(share: share)
+          .sheet(item: $sharedRecord) { sharedRecord in
+            CloudSharingView(sharedRecord: sharedRecord)
           }
         }
       }
@@ -148,7 +148,7 @@ struct RemindersDetailView: View {
   private func shareButtonTapped(remindersList: RemindersList) {
     Task {
       await withErrorReporting {
-        presentedShare = try await syncEngine.createShare(record: remindersList) {
+        sharedRecord = try await syncEngine.createShare(record: remindersList) {
           $0[CKShare.SystemFieldKey.title] = remindersList.title as CKRecordValue
         }
       }
