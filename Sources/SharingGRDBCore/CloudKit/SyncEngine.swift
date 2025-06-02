@@ -703,6 +703,22 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func mergeFromServerRecord(_ record: CKRecord) {
+
+//    Task {
+//      guard
+//        let share = record as? CKShare,
+//        let url = share.url
+//      else { return }
+//      let operation = CKFetchShareMetadataOperation(shareURLs: [url])
+//      operation.shouldFetchRootRecord = true
+//      operation.perShareMetadataResultBlock = { url, result in
+//        // TODO: Upsert metadata
+//        print(try? result.get().rootRecord)
+//        print("!!!!")
+//      }
+//      container.add(operation)
+//    }
+
     $isUpdatingWithServerRecord.withValue(true) {
       $currentZoneID.withValue(record.recordID.zoneID) {
         withErrorReporting(.sqliteDataCloudKitFailure) {

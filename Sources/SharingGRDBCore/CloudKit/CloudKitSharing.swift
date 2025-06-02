@@ -2,7 +2,7 @@ import CloudKit
 import SwiftUI
 
 #if canImport(UIKit)
-import UIKit
+  import UIKit
 #endif
 
 public struct SharedRecord: Hashable, Identifiable, Sendable {
@@ -17,6 +17,24 @@ extension SyncEngine {
   public struct CantShareRecordWithParent: Error {}
   public struct NoCKRecordFound: Error {}
 
+  // syncEngine.record(remindersList)
+  public func records<T: PrimaryKeyedTable>(for _: T.Type) async throws -> [CKRecord] {
+    []
+  }
+
+  public func record<T: PrimaryKeyedTable>(for record: T) async throws -> CKRecord? {
+    nil
+  }
+
+  public func shares<T: PrimaryKeyedTable>(for _: T.Type) async throws -> [CKShare] {
+    []
+  }
+
+  public func share<T: PrimaryKeyedTable>(_ record: T) async throws -> CKShare? {
+    nil
+  }
+
+  // TODO: upsertShare / share
   public func createShare<T: PrimaryKeyedTable>(
     record: T,
     configure: @Sendable (CKShare) -> Void
@@ -29,12 +47,12 @@ extension SyncEngine {
 
     let recordName = record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased()
     let lastKnownServerRecord =
-    try await database.write { db in
-      try Metadata
-        .find(recordID: CKRecord.ID(recordName: recordName))
-        .select(\.lastKnownServerRecord)
-        .fetchOne(db)
-    } ?? nil
+      try await database.write { db in
+        try Metadata
+          .find(recordID: CKRecord.ID(recordName: recordName))
+          .select(\.lastKnownServerRecord)
+          .fetchOne(db)
+      } ?? nil
 
     guard let lastKnownServerRecord
     else {
@@ -43,14 +61,18 @@ extension SyncEngine {
 
     let sharedRecord: CKShare
     if let existingShareRecordID = lastKnownServerRecord.share?.recordID,
-       let existingShare = try await container.privateCloudDatabase.record(
+      let existingShare = try await container.privateCloudDatabase.record(
         for: existingShareRecordID
-       ) as? CKShare
+      ) as? CKShare
     {
       sharedRecord = existingShare
     } else {
       sharedRecord = CKShare(rootRecord: lastKnownServerRecord)
     }
+
+    // TODO: upsert "metadata" and store the sharedID and/or the full serialized CKShare?
+    // TODO: where we currently have purple warnings about cloudkit.share we should upsert that info into Metadata
+
     configure(sharedRecord)
     _ = try await container.privateCloudDatabase.modifyRecords(
       saving: [sharedRecord, lastKnownServerRecord],
@@ -69,24 +91,24 @@ extension SyncEngine {
 // TODO: what kind of APIs do we need to expose for people to query for shared info? participants
 
 #if canImport(UIKit)
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-public struct CloudSharingView: UIViewControllerRepresentable {
-  let sharedRecord: SharedRecord
-  public init(sharedRecord: SharedRecord) {
-    self.sharedRecord = sharedRecord
-  }
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public struct CloudSharingView: UIViewControllerRepresentable {
+    let sharedRecord: SharedRecord
+    public init(sharedRecord: SharedRecord) {
+      self.sharedRecord = sharedRecord
+    }
 
-  public func makeUIViewController(context: Context) -> UICloudSharingController {
-    UICloudSharingController(
-      share: sharedRecord.share,
-      container: sharedRecord.container
-    )
-  }
+    public func makeUIViewController(context: Context) -> UICloudSharingController {
+      UICloudSharingController(
+        share: sharedRecord.share,
+        container: sharedRecord.container
+      )
+    }
 
-  public func updateUIViewController(
-    _ uiViewController: UICloudSharingController,
-    context: Context
-  ) {
+    public func updateUIViewController(
+      _ uiViewController: UICloudSharingController,
+      context: Context
+    ) {
+    }
   }
-}
 #endif
