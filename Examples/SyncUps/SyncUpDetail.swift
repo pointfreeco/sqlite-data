@@ -155,7 +155,7 @@ struct SyncUpDetailView: View {
       }
 
       Section {
-        ForEach(model.attendees, id: \.id) { attendee in
+        ForEach(model.attendees) { attendee in
           Label(attendee.name, systemImage: "person")
         }
       } header: {
