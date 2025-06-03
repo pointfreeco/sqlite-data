@@ -61,10 +61,8 @@ struct RemindersListRow: View {
       await withErrorReporting {
         guard let share = try await syncEngine.share(for: remindersList)
         else { return }
-        let currentUserRecordID = try await CKContainer.default().userRecordID()
         participantNames = share.participants
-          .dropFirst()
-          .filter { $0.userIdentity.userRecordID != currentUserRecordID }
+          .filter { $0 != share.currentUserParticipant }
           .compactMap { $0.userIdentity.nameComponents?.formatted() }
           .joined(separator: ", ")
       }

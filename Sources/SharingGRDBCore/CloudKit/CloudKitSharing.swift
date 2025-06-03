@@ -59,7 +59,8 @@ extension SyncEngine {
     }
     guard let share
     else { return nil }
-    return (try await container.sharedCloudDatabase.record(for: share.recordID) as? CKShare)
+    // TODO: figure out if this share belongs to us or someone else so that we can choose between privateCloudDatabase and sharedCloudDatabase
+    return (try await container.privateCloudDatabase.record(for: share.recordID) as? CKShare)
     ?? share
   }
 
