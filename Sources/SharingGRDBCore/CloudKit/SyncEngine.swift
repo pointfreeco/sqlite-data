@@ -135,6 +135,8 @@ public final actor SyncEngine {
     #endif
     migrator.registerMigration("Create Metadata Tables") { db in
       // TODO: Should "recordName" be "collate no case"?
+      // TODO: should primary key be (recordType, recordName) so that we can use autoincrementing
+      //       UUIDs in tests?
       try SQLQueryExpression(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
@@ -144,6 +146,7 @@ public final actor SyncEngine {
           "ownerName" TEXT NOT NULL,
           "parentRecordName" TEXT,
           "lastKnownServerRecord" BLOB,
+          "share" BLOB,
           "userModificationDate" TEXT
         ) STRICT
         """
@@ -390,7 +393,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     case .sentDatabaseChanges:
       break
     case .fetchedRecordZoneChanges(let event):
-      handleFetchedRecordZoneChanges(
+      await handleFetchedRecordZoneChanges(
         modifications: event.modifications.map(\.record),
         deletions: event.deletions.map { ($0.recordID, $0.recordType) }
       )
@@ -611,11 +614,21 @@ extension SyncEngine: CKSyncEngineDelegate {
   package func handleFetchedRecordZoneChanges(
     modifications: [CKRecord],
     deletions: [(CKRecord.ID, CKRecord.RecordType)]
-  ) {
-    $isUpdatingWithServerRecord.withValue(true) {
-      for modifiedRecord in modifications {
-        mergeFromServerRecord(modifiedRecord)
-        refreshLastKnownServerRecord(modifiedRecord)
+  ) async {
+    await $isUpdatingWithServerRecord.withValue(true) {
+      await withTaskGroup { group in
+        for record in modifications {
+          group.addTask {
+            if let share = record as? CKShare {
+              await withErrorReporting {
+                try await self.cacheShare(share)
+              }
+            } else {
+              await self.upsertFromServerRecord(record)
+              await self.refreshLastKnownServerRecord(record)
+            }
+          }
+        }
       }
 
       for (recordID, recordType) in deletions {
@@ -630,6 +643,8 @@ extension SyncEngine: CKSyncEngineDelegate {
             }
           }
           open(table)
+        } else if recordType == CKRecord.SystemType.share {
+          // TODO: When we get a CKShare here do we delete it from the metadata and then delete it from the user database?
         } else {
           reportIssue(
             .sqliteDataCloudKitFailure.appending(
@@ -676,7 +691,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       switch failedRecordSave.error.code {
       case .serverRecordChanged:
         guard let serverRecord = failedRecordSave.error.serverRecord else { continue }
-        mergeFromServerRecord(serverRecord)
+        upsertFromServerRecord(serverRecord)
         refreshLastKnownServerRecord(serverRecord)
         newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
 
@@ -702,23 +717,24 @@ extension SyncEngine: CKSyncEngineDelegate {
     // TODO: handle event.failedRecordDeletes ? look at apple sample code
   }
 
-  private func mergeFromServerRecord(_ record: CKRecord) {
+  private func cacheShare(_ share: CKShare) async throws {
+    guard let url = share.url
+    else { return }
 
-//    Task {
-//      guard
-//        let share = record as? CKShare,
-//        let url = share.url
-//      else { return }
-//      let operation = CKFetchShareMetadataOperation(shareURLs: [url])
-//      operation.shouldFetchRootRecord = true
-//      operation.perShareMetadataResultBlock = { url, result in
-//        // TODO: Upsert metadata
-//        print(try? result.get().rootRecord)
-//        print("!!!!")
-//      }
-//      container.add(operation)
-//    }
+    let metadata = try await self.container.shareMetadata(for: url, shouldFetchRootRecord: true)
 
+    guard let rootRecord = metadata.rootRecord
+    else { return }
+
+    try await database.write { db in
+      try Metadata
+        .find(recordID: rootRecord.recordID)
+        .update { $0.share = share }
+        .execute(db)
+    }
+  }
+
+  private func upsertFromServerRecord(_ record: CKRecord) {
     $isUpdatingWithServerRecord.withValue(true) {
       $currentZoneID.withValue(record.recordID.zoneID) {
         withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -908,5 +924,22 @@ extension URL {
     applicationSupportDirectory.appending(
       component: "\(container.containerIdentifier.map { "\($0)." } ?? "")sqlite-data-icloud.sqlite"
     )
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension CKContainer {
+  func shareMetadata(
+    for url: URL,
+    shouldFetchRootRecord: Bool = false
+  ) async throws -> CKShare.Metadata {
+    try await withUnsafeThrowingContinuation { continuation in
+      let operation = CKFetchShareMetadataOperation(shareURLs: [url])
+      operation.shouldFetchRootRecord = true
+      operation.perShareMetadataResultBlock = { url, result in
+        continuation.resume(with: result)
+      }
+      add(operation)
+    }
   }
 }

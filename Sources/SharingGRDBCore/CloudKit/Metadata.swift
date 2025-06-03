@@ -73,7 +73,7 @@ extension Metadata {
     parentForeignKey: ForeignKey?,
     db: Database
   ) throws {
-    let foreignKeyName = (parentForeignKey?.from).map { #""new"."\#($0)""# } ?? "NULL"
+    let foreignKey = (parentForeignKey?.from).map { #""new"."\#($0)""# } ?? "NULL"
 
     try SQLQueryExpression(
       """
@@ -101,10 +101,10 @@ extension Metadata {
             \(raw: .sqliteDataCloudKitSchemaName)_getOwnerName(), 
             \(quote: SyncEngine.defaultZone.zoneID.ownerName, delimiter: .text)
           ),
-          \(raw: foreignKeyName) AS "foreignKeyName",
+          \(raw: foreignKey) AS "foreignKey",
           datetime('subsec')
         FROM (SELECT 1) 
-        LEFT JOIN \(Metadata.self) ON \(Metadata.recordName) = "foreignKeyName"
+        LEFT JOIN \(Metadata.self) ON \(Metadata.recordName) = "foreignKey"
         ON CONFLICT("recordName") DO NOTHING;
       END
       """
@@ -118,9 +118,8 @@ extension Metadata {
         SET
           "recordName" = "new".\(quote: T.columns.primaryKey.name),
           "userModificationDate" = datetime('subsec'),
-          "parentRecordName" = \(raw: foreignKeyName)
-        WHERE "recordName" = "old".\(quote: T.columns.primaryKey.name)
-        ;
+          "parentRecordName" = \(raw: foreignKey)
+        WHERE "recordName" = "old".\(quote: T.columns.primaryKey.name);
       END
       """
     )

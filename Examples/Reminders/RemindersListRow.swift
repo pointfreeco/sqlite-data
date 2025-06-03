@@ -1,3 +1,4 @@
+import CloudKit
 import SharingGRDB
 import SwiftUI
 
@@ -6,8 +7,10 @@ struct RemindersListRow: View {
   let remindersList: RemindersList
 
   @State var editList: RemindersList?
+  @State var participantNames: String?
 
   @Dependency(\.defaultDatabase) private var database
+  @Dependency(\.defaultSyncEngine) private var syncEngine
 
   var body: some View {
     HStack {
@@ -17,7 +20,13 @@ struct RemindersListRow: View {
         .background(
           Color.white.clipShape(Circle()).padding(4)
         )
-      Text(remindersList.title)
+      VStack(alignment: .leading, spacing: 4) {
+        Text(remindersList.title)
+        if let participantNames {
+          Text("Shared with \(participantNames)")
+            .foregroundStyle(Color.secondary)
+        }
+      }
       Spacer()
       Text("\(remindersCount)")
         .foregroundStyle(.gray)
@@ -46,6 +55,17 @@ struct RemindersListRow: View {
           .navigationTitle("Edit list")
       }
       .presentationDetents([.medium])
+    }
+    .task {
+      await withErrorReporting {
+        guard let share = try await syncEngine.share(for: remindersList)
+        else { return }
+        participantNames = share.participants
+          .dropFirst()
+          //.filter { $0.userIdentity. != CKCurrentUserDefaultName }
+          .compactMap { $0.userIdentity.nameComponents?.formatted() }
+          .joined(separator: ", ")
+      }
     }
   }
 }

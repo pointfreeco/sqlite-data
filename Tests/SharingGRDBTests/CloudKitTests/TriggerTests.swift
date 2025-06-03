@@ -83,10 +83,10 @@ extension BaseCloudKitTests {
                 sqlitedata_icloud_getOwnerName(), 
                 '__defaultOwner__'
               ),
-              "new"."remindersListID" AS "foreignKeyName",
+              "new"."remindersListID" AS "foreignKey",
               datetime('subsec')
             FROM (SELECT 1) 
-            LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKeyName"
+            LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKey"
             ON CONFLICT("recordName") DO NOTHING;
           END
           """,
@@ -98,8 +98,7 @@ extension BaseCloudKitTests {
               "recordName" = "new"."id",
               "userModificationDate" = datetime('subsec'),
               "parentRecordName" = "new"."remindersListID"
-            WHERE "recordName" = "old"."id"
-            ;
+            WHERE "recordName" = "old"."id";
           END
           """,
           [5]: """
@@ -187,10 +186,10 @@ extension BaseCloudKitTests {
                 sqlitedata_icloud_getOwnerName(), 
                 '__defaultOwner__'
               ),
-              NULL AS "foreignKeyName",
+              NULL AS "foreignKey",
               datetime('subsec')
             FROM (SELECT 1) 
-            LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKeyName"
+            LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKey"
             ON CONFLICT("recordName") DO NOTHING;
           END
           """,
@@ -202,8 +201,7 @@ extension BaseCloudKitTests {
               "recordName" = "new"."id",
               "userModificationDate" = datetime('subsec'),
               "parentRecordName" = NULL
-            WHERE "recordName" = "old"."id"
-            ;
+            WHERE "recordName" = "old"."id";
           END
           """,
           [14]: """
@@ -238,10 +236,10 @@ extension BaseCloudKitTests {
                 sqlitedata_icloud_getOwnerName(), 
                 '__defaultOwner__'
               ),
-              NULL AS "foreignKeyName",
+              NULL AS "foreignKey",
               datetime('subsec')
             FROM (SELECT 1) 
-            LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKeyName"
+            LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKey"
             ON CONFLICT("recordName") DO NOTHING;
           END
           """,
@@ -253,8 +251,7 @@ extension BaseCloudKitTests {
               "recordName" = "new"."id",
               "userModificationDate" = datetime('subsec'),
               "parentRecordName" = NULL
-            WHERE "recordName" = "old"."id"
-            ;
+            WHERE "recordName" = "old"."id";
           END
           """,
           [17]: """

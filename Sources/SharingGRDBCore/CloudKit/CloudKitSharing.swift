@@ -17,21 +17,38 @@ extension SyncEngine {
   public struct CantShareRecordWithParent: Error {}
   public struct NoCKRecordFound: Error {}
 
-  // syncEngine.record(remindersList)
-  public func records<T: PrimaryKeyedTable>(for _: T.Type) async throws -> [CKRecord] {
-    []
-  }
+//  public func records<T: PrimaryKeyedTable>(for _: T.Type) async throws -> [CKRecord] {
+//    []
+//  }
 
   public func record<T: PrimaryKeyedTable>(for record: T) async throws -> CKRecord? {
     nil
   }
 
-  public func shares<T: PrimaryKeyedTable>(for _: T.Type) async throws -> [CKShare] {
-    []
+  public func shares<T: PrimaryKeyedTable>(for _: T.Type) throws -> [CKShare] {
+    try metadatabase.read { db in
+      try Metadata
+        .where { $0.recordType.eq(T.tableName) && $0.share.isNot(nil) }
+        .select { $0.share }
+        .fetchAll(db)
+        .compactMap(\.self)
+    }
   }
 
-  public func share<T: PrimaryKeyedTable>(_ record: T) async throws -> CKShare? {
-    nil
+  public func share<T: PrimaryKeyedTable>(
+    for record: T
+  ) throws -> CKShare?
+  where T.TableColumns.PrimaryKey == UUID
+  {
+    try metadatabase.read { db in
+      try Metadata
+        .where {
+          $0.recordName.eq(record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased())
+          && $0.recordType.eq(T.tableName)
+        }
+        .select { $0.share }
+        .fetchOne(db) ?? nil
+    }
   }
 
   // TODO: upsertShare / share

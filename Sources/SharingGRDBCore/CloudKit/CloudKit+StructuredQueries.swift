@@ -32,8 +32,39 @@ extension CKRecord {
   }
 }
 
+extension CKShare {
+  package struct ShareDataRepresentation: QueryBindable, QueryRepresentable {
+    package let queryOutput: CKShare
+
+    package var queryBinding: QueryBinding {
+      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
+      queryOutput.encodeSystemFields(with: archiver)
+      return archiver.encodedData.queryBinding
+    }
+
+    package init(queryOutput: CKShare) {
+      self.queryOutput = queryOutput
+    }
+
+    package init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+      guard let data = try Data?(decoder: &decoder) else {
+        throw QueryDecodingError.missingRequiredColumn
+      }
+      let coder = try NSKeyedUnarchiver(forReadingFrom: data)
+      coder.requiresSecureCoding = true
+      self.init(queryOutput: CKShare(coder: coder))
+    }
+
+    private struct DecodingError: Error {}
+  }
+}
+
 extension CKRecord? {
   package typealias DataRepresentation = CKRecord.DataRepresentation?
+}
+
+extension CKShare? {
+  package typealias ShareDataRepresentation = CKShare.ShareDataRepresentation?
 }
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
