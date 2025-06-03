@@ -22,14 +22,21 @@ extension SyncEngine {
 //  }
 
   public func record<T: PrimaryKeyedTable>(for record: T) async throws -> CKRecord? {
-    nil
+    let lastKnownServerRecord = try await metadatabase.read { db in
+      try Metadata
+        .where { $0.recordType.eq(T.tableName) }
+        .select(\.lastKnownServerRecord)
+        .fetchOne(db) ?? nil
+    }
+
+    return lastKnownServerRecord
   }
 
   public func shares<T: PrimaryKeyedTable>(for _: T.Type) throws -> [CKShare] {
     try metadatabase.read { db in
       try Metadata
-        .where { $0.recordType.eq(T.tableName) && $0.share.isNot(nil) }
-        .select { $0.share }
+        .where { $0.recordType.eq(T.tableName) }
+        .select(\.share)
         .fetchAll(db)
         .compactMap(\.self)
     }
@@ -37,21 +44,27 @@ extension SyncEngine {
 
   public func share<T: PrimaryKeyedTable>(
     for record: T
-  ) throws -> CKShare?
+  ) async throws -> CKShare?
   where T.TableColumns.PrimaryKey == UUID
   {
-    try metadatabase.read { db in
+    let primaryKey = record[keyPath: T.columns.primaryKey.keyPath]
+    let share = try await metadatabase.read { db in
       try Metadata
         .where {
-          $0.recordName.eq(record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased())
+          $0.recordName.eq(primaryKey.uuidString.lowercased())
           && $0.recordType.eq(T.tableName)
         }
-        .select { $0.share }
+        .select(\.share)
         .fetchOne(db) ?? nil
     }
+    guard let share
+    else { return nil }
+    return (try await container.sharedCloudDatabase.record(for: share.recordID) as? CKShare)
+    ?? share
   }
 
-  // TODO: upsertShare / share
+  // TODO: upsertShare / share.
+  //       share(record:) is very similar to share(for:)
   public func createShare<T: PrimaryKeyedTable>(
     record: T,
     configure: @Sendable (CKShare) -> Void

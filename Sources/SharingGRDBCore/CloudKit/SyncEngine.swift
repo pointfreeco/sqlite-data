@@ -644,7 +644,9 @@ extension SyncEngine: CKSyncEngineDelegate {
           }
           open(table)
         } else if recordType == CKRecord.SystemType.share {
-          // TODO: When we get a CKShare here do we delete it from the metadata and then delete it from the user database?
+          await withErrorReporting {
+            try deleteShare(recordID: recordID, recordType: recordType)
+          }
         } else {
           reportIssue(
             .sqliteDataCloudKitFailure.appending(
@@ -730,6 +732,14 @@ extension SyncEngine: CKSyncEngineDelegate {
       try Metadata
         .find(recordID: rootRecord.recordID)
         .update { $0.share = share }
+        .execute(db)
+    }
+  }
+
+  private func deleteShare(recordID: CKRecord.ID, recordType: String) throws {
+    try metadatabase.write { db in
+      try Metadata.find(recordID: recordID)
+        .update { $0.share = nil }
         .execute(db)
     }
   }

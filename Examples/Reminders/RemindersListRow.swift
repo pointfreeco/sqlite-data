@@ -24,6 +24,7 @@ struct RemindersListRow: View {
         Text(remindersList.title)
         if let participantNames {
           Text("Shared with \(participantNames)")
+            .font(.footnote)
             .foregroundStyle(Color.secondary)
         }
       }
@@ -60,9 +61,10 @@ struct RemindersListRow: View {
       await withErrorReporting {
         guard let share = try await syncEngine.share(for: remindersList)
         else { return }
+        let currentUserRecordID = try await CKContainer.default().userRecordID()
         participantNames = share.participants
           .dropFirst()
-          //.filter { $0.userIdentity. != CKCurrentUserDefaultName }
+          .filter { $0.userIdentity.userRecordID != currentUserRecordID }
           .compactMap { $0.userIdentity.nameComponents?.formatted() }
           .joined(separator: ", ")
       }
