@@ -2,6 +2,7 @@ import Dependencies
 import DependenciesTestSupport
 import GRDB
 import Sharing
+import Combine
 import SharingGRDB
 import StructuredQueries
 import Testing
@@ -18,87 +19,93 @@ struct FetchOneTests {
 
   @Test func tableInit() async throws {
     @FetchOne var record: Record = Record(id: 0)
-    try await $record.load()
+    try await Task.sleep(for: .seconds(0.1))
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
     try await database.write { try Record.delete().execute($0) }
-    await #expect(throws: NotFound.self) {
-      try await $record.load()
-    }
+    try await Task.sleep(for: .seconds(0.1))
     #expect(record == Record(id: 1))
     #expect($record.loadError is NotFound)
   }
 
   @Test func optionalTableInit() async throws {
     @FetchOne var record: Record?
-    try await $record.load()
+    try await Task.sleep(for: .seconds(0.1))
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
     try await database.write { try Record.delete().execute($0) }
-    try await $record.load()
+    try await Task.sleep(for: .seconds(0.1))
     #expect(record == nil)
     #expect($record.loadError == nil)
   }
 
   @Test func optionalTableInit_WithDefault() async throws {
     @FetchOne var record: Record? = Record(id: 0)
-    try await $record.load()
+    try await Task.sleep(for: .seconds(0.1))
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
     try await database.write { try Record.delete().execute($0) }
-    try await $record.load()
+    try await Task.sleep(for: .seconds(0.1))
     #expect(record == nil)
     #expect($record.loadError == nil)
   }
 
   @Test func selectStatementInit() async throws {
     @FetchOne(Record.order(by: \.id)) var record = Record(id: 0)
-    try await $record.load()
+    try await Task.sleep(for: .seconds(0.1))
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
     try await database.write { try Record.delete().execute($0) }
-    await #expect(throws: NotFound.self) {
-      try await $record.load()
-    }
+    try await Task.sleep(for: .seconds(0.1))
     #expect(record == Record(id: 1))
     #expect($record.loadError is NotFound)
   }
 
-  @Test func statementInit() async throws {
+  @Test func statementInit_Representable() async throws {
     @FetchOne(Record.select(\.date)) var recordDate = Date(timeIntervalSince1970: 1729)
-    try await $recordDate.load()
+    try await Task.sleep(for: .seconds(0.1))
     #expect(recordDate.timeIntervalSince1970 == 42)
     #expect($recordDate.loadError == nil)
     try await database.write { try Record.delete().execute($0) }
-    await #expect(throws: NotFound.self) {
-      try await $recordDate.load()
-    }
+    try await Task.sleep(for: .seconds(0.1))
     #expect(recordDate.timeIntervalSince1970 == 42)
     #expect($recordDate.loadError is NotFound)
   }
 
-  @Test func statementInit_Optional() async throws {
+  @Test func statementInit_OptionalRepresentable() async throws {
     @FetchOne(Record.select(\.date)) var recordDate: Date?
-    try await $recordDate.load()
+    try await Task.sleep(for: .seconds(0.1))
     #expect(recordDate?.timeIntervalSince1970 == 42)
     #expect($recordDate.loadError == nil)
+    var dates: [Date?] = []
+    let cancellable = $recordDate.publisher.sink { dates.append($0) }
     try await database.write { try Record.delete().execute($0) }
-    try await $recordDate.load()
+    try await Task.sleep(for: .seconds(0.1))
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
   }
 
-  @Test func statementInit_DoubleOptional() async throws {
+  @Test func statementInit_DoubleOptionalRepresentable() async throws {
     @FetchOne(Record.select(\.optionalDate)) var recordDate: Date?
-    try await $recordDate.load()
+    try await Task.sleep(for: .seconds(0.1))
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
     try await database.write { try Record.delete().execute($0) }
-    try await $recordDate.load()
+    try await Task.sleep(for: .seconds(0.1))
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
   }
 
+  @Test func statementInit() async throws {
+    @FetchOne(Record.select(\.id)) var recordID = 0
+    try await Task.sleep(for: .seconds(0.1))
+    #expect(recordID == 1)
+    #expect($recordID.loadError == nil)
+    try await database.write { try Record.delete().execute($0) }
+    try await Task.sleep(for: .seconds(0.1))
+    #expect(recordID == 1)
+    #expect($recordID.loadError is NotFound)
+  }
 }
 
 import Foundation

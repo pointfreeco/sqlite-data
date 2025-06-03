@@ -69,8 +69,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
 
   /// Initializes this property with a wrapped value.
   ///
-  /// - Parameters:
-  ///   - wrappedValue: A default value to associate with this property.
+  /// - Parameter wrappedValue: A default value to associate with this property.
   @_disfavoredOverload
   public init(
     wrappedValue: sending Value
@@ -114,7 +113,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
     let statement = Value.all.selectStar().asSelect().limit(1)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneOptionalStatementValueRequest(statement: statement), database: database)
+      .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
     )
   }
 
@@ -156,30 +155,28 @@ public struct FetchOne<Value: Sendable>: Sendable {
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database
-      )
+      .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
     )
   }
 
-  // TODO: docs
+  /// Initializes this property with a query associated with the wrapped value.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   public init<V: QueryRepresentable>(
     wrappedValue: Value = nil,
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
   )
   where
-  Value == V.QueryOutput?
+    Value == V.QueryOutput?
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        _FetchOneOptionalStatementValueRequest<V>(
-          statement: statement
-        ),
-        database: database
-      )
+      .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
     )
   }
 
@@ -201,10 +198,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database
-      )
+      .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
     )
   }
 
@@ -255,7 +249,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
     sharedReader = SharedReader(
       wrappedValue: .none,
       .fetch(
-        FetchOneOptionalStatementValueRequest(
+        FetchOneStatementOptionalProtocolRequest(
           statement: SQLQueryExpression(statement.query, as: S.QueryValue.self)
         ),
         database: database
@@ -758,20 +752,20 @@ private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: Stateme
   }
 }
 
-private struct FetchOneOptionalStatementValueRequest<
+private struct FetchOneStatementOptionalValueRequest<Value: QueryRepresentable>:
+  StatementKeyRequest
+{
+  let statement: any StructuredQueriesCore.Statement<Value>
+  func fetch(_ db: Database) throws -> Value.QueryOutput? {
+    try statement.fetchOne(db)
+  }
+}
+
+private struct FetchOneStatementOptionalProtocolRequest<
   Value: QueryRepresentable & _OptionalProtocol
 >: StatementKeyRequest where Value.QueryOutput: _OptionalProtocol {
   let statement: any StructuredQueriesCore.Statement<Value>
   func fetch(_ db: Database) throws -> Value.QueryOutput {
     try statement.fetchOne(db) ?? .none
-  }
-}
-
-private struct _FetchOneOptionalStatementValueRequest<
-  Value: QueryRepresentable
->: StatementKeyRequest {
-  let statement: any StructuredQueriesCore.Statement<Value>
-  func fetch(_ db: Database) throws -> Value.QueryOutput? {
-    try statement.fetchOne(db)
   }
 }

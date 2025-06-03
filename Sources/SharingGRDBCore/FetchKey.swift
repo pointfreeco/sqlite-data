@@ -325,8 +325,6 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
         switch result {
         case let .success(value):
           continuation.resume(returning: value)
-        case let .failure(error) where error is NotFound:
-          continuation.resumeReturningInitialValue()
         case let .failure(error):
           continuation.resume(throwing: error)
         }
@@ -365,8 +363,6 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
           switch newValue {
           case let .success(value):
             subscriber.yield(value)
-          case let .failure(error) where error is NotFound:
-            subscriber.yieldReturningInitialValue()
           case let .failure(error):
             subscriber.yield(throwing: error)
           }
@@ -381,8 +377,6 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
         switch newValue {
         case let .success(value):
           subscriber.yield(value)
-        case let .failure(error) where error is NotFound:
-          subscriber.yieldReturningInitialValue()
         case let .failure(error):
           subscriber.yield(throwing: error)
         }
