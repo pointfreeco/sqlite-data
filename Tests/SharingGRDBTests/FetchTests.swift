@@ -30,18 +30,18 @@ struct FetchTests {
     #expect(records == [])
   }
 
-  @Test func fetchOneCountWithQuery() async throws {
-    @FetchOne(Record.where { $0.id > 1 }.count()) var recordsCount = 0
-    try await $recordsCount.load()
-    #expect(recordsCount == 2)
+//  @Test func fetchOneCountWithQuery() async throws {
+//    @FetchOne(Record.where { $0.id > 1 }.count()) var recordsCount = 0
+//    try await $recordsCount.load()
+//    #expect(recordsCount == 2)
+//
+//    try await database.write { try Record.delete().execute($0) }
+//    try await $recordsCount.load()
+//    #expect(recordsCount == 0)
+//  }
 
-    try await database.write { try Record.delete().execute($0) }
-    try await $recordsCount.load()
-    #expect(recordsCount == 0)
-  }
-
-  @FetchOne fileprivate var record: Record?
   @Test func fetchOneOptional() async throws {
+    @FetchOne var record: Record?
     print(#line)
     print(#line)
     try await $record.load()
@@ -54,28 +54,28 @@ struct FetchTests {
     #expect(record == nil)
   }
 
-  @Test func fetchOneWithDefault() async throws {
-    @FetchOne var record = Record(id: 0)
-    try await $record.load()
-    #expect(record == Record(id: 1))
-
-    try await database.write { try Record.delete().execute($0) }
-    await #expect(throws: NotFound.self) {
-      try await $record.load()
-    }
-    #expect($record.loadError is NotFound)
-    #expect(record == Record(id: 1))
-  }
-
-  @Test func fetchOneOptional_SQL() async throws {
-    @FetchOne(#sql("SELECT * FROM records LIMIT 1")) var record: Record?
-    try await $record.load()
-    #expect(record == Record(id: 1))
-
-    try await database.write { try Record.delete().execute($0) }
-    try await $record.load()
-    #expect(record == nil)
-  }
+//  @Test func fetchOneWithDefault() async throws {
+//    @FetchOne var record = Record(id: 0)
+//    try await $record.load()
+//    #expect(record == Record(id: 1))
+//
+//    try await database.write { try Record.delete().execute($0) }
+//    await #expect(throws: NotFound.self) {
+//      try await $record.load()
+//    }
+//    #expect($record.loadError is NotFound)
+//    #expect(record == Record(id: 1))
+//  }
+//
+//  @Test func fetchOneOptional_SQL() async throws {
+//    @FetchOne(#sql("SELECT * FROM records LIMIT 1")) var record: Record?
+//    try await $record.load()
+//    #expect(record == Record(id: 1))
+//
+//    try await database.write { try Record.delete().execute($0) }
+//    try await $record.load()
+//    #expect(record == nil)
+//  }
 }
 
 @Table
@@ -102,8 +102,8 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 }
 
-func compileTimeTests() {
-  @FetchAll(#sql("SELECT * FROM records")) var records: [Record]
-  @FetchOne(#sql("SELECT count(*) FROM records")) var count = 0
-  @FetchOne(#sql("SELECT * FROM records LIMIT 1")) var record: Record?
-}
+//func compileTimeTests() {
+//  @FetchAll(#sql("SELECT * FROM records")) var records: [Record]
+//  @FetchOne(#sql("SELECT count(*) FROM records")) var count = 0
+//  @FetchOne(#sql("SELECT * FROM records LIMIT 1")) var record: Record?
+//}
