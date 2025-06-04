@@ -1,5 +1,6 @@
 import Dependencies
 import Dispatch
+import Foundation
 import GRDB
 import Sharing
 import StructuredQueriesGRDBCore
@@ -435,13 +436,13 @@ public struct NotFound: Error {
   public init() {}
 }
 
-
-
 package struct TestImmediateScheduler: ValueObservationScheduler, Hashable {
   package func immediateInitialValue() -> Bool { true }
   package func schedule(_ action: @escaping @Sendable () -> Void) {
     if Thread.isMainThread {
-      DispatchQueue.main.sync { action() }
+      DispatchQueue.main.sync {
+        action()
+      }
     } else {
       DispatchQueue.main.async {
         action()
@@ -449,4 +450,3 @@ package struct TestImmediateScheduler: ValueObservationScheduler, Hashable {
     }
   }
 }
-import Foundation
