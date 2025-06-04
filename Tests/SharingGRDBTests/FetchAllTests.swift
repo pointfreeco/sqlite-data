@@ -13,6 +13,7 @@ struct FetchAllTests {
   @Dependency(\.defaultDatabase) var database
 
   @Test func concurrency() async throws {
+    let count = 1_000
     try await database.write { db in
       try Record.delete().execute(db)
     }
@@ -20,7 +21,7 @@ struct FetchAllTests {
     @FetchAll var records: [Record]
 
     await withThrowingTaskGroup { group in
-      for index in 1...1_000 {
+      for index in 1...count {
         group.addTask {
           try await database.write { db in
             try Record.insert(Record(id: index)).execute(db)
@@ -30,10 +31,10 @@ struct FetchAllTests {
     }
 
     try await $records.load()
-    #expect(records == (1...1_000).map { Record(id: $0) })
+    #expect(records == (1...count).map { Record(id: $0) })
 
     await withThrowingTaskGroup { group in
-      for index in 1...500 {
+      for index in 1...(count/2) {
         group.addTask {
           try await database.write { db in
             try Record.find(index * 2).delete().execute(db)
@@ -43,7 +44,7 @@ struct FetchAllTests {
     }
 
     try await $records.load()
-    #expect(records == (0...499).map { Record(id: $0 * 2 + 1) })
+    #expect(records == (0...(count/2-1)).map { Record(id: $0 * 2 + 1) })
   }
 }
 

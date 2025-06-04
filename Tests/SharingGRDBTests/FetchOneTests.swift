@@ -85,11 +85,8 @@ struct FetchOneTests {
     #expect(recordDate?.timeIntervalSince1970 == 42)
     #expect($recordDate.loadError == nil)
     var dates: [Date?] = []
-    let cancellable = $recordDate.publisher.sink { dates.append($0) }
     try await database.write { try Record.delete().execute($0) }
-    //    await #expect(throws: NotFound.self) {
     try await $recordDate.load()
-    //    }
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
   }
@@ -100,9 +97,7 @@ struct FetchOneTests {
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
     try await database.write { try Record.delete().execute($0) }
-    //    await #expect(throws: NotFound.self) {
     try await $recordDate.load()
-    //    }
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
   }
