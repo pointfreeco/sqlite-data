@@ -20,10 +20,22 @@ struct FetchTests {
     #expect(records == [Record(id: 2), Record(id: 3)])
   }
 
-  @Test func fetchCountWithQuery() async throws {
+  @Test func fetchOneCountWithQuery() async throws {
     @FetchOne(Record.where { $0.id > 1 }.count()) var recordsCount = 0
     try await Task.sleep(nanoseconds: 100_000_000)
     #expect(recordsCount == 2)
+  }
+  
+  @Test func bareFetchOneOptional() async throws {
+    @FetchOne var record: Record?
+    try await Task.sleep(nanoseconds: 100_000_000)
+    #expect(record != nil)
+  }
+  
+  @Test func fetchOneOptionalWithQuery() async throws {
+    @FetchOne(#sql("SELECT * FROM records LIMIT 1")) var record: Record?
+    try await Task.sleep(nanoseconds: 100_000_000)
+    #expect(record != nil)
   }
 }
 
