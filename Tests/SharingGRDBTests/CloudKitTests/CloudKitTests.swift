@@ -65,7 +65,7 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.tearDownSyncEngine()
       await #expect(throws: DatabaseError.self) {
-        try await database.write { db in
+        try await self.database.write { db in
           try Metadata.count().fetchOne(db) ?? 0
         }
       }

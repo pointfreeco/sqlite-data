@@ -74,6 +74,9 @@ final class MockSyncEngine: SyncEngineProtocol {
       $0.removeAll()
     }
   }
+
+  func cancelOperations() async {
+  }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

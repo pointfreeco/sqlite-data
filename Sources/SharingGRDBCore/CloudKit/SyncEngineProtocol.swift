@@ -7,6 +7,7 @@ package protocol SyncEngineProtocol<State>: AnyObject, Sendable {
   var state: State { get }
   var scope: CKDatabase.Scope { get }
   func acceptShare(metadata: ShareMetadata) async throws
+  func cancelOperations() async
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

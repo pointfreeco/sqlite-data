@@ -15,8 +15,7 @@ public final actor SyncEngine {
   let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
   let foreignKeysByTableName: [String: [ForeignKey]]
-  var privateSyncEngine: (any SyncEngineProtocol)!
-  var sharedSyncEngine: (any SyncEngineProtocol)!
+  let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
   let defaultSyncEngines:
     (any DatabaseReader, SyncEngine)
       -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
@@ -204,14 +203,17 @@ public final actor SyncEngine {
       try Metadata.createTriggers(tables: self.tables, db: db)
 
       for table in self.tables {
-        func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-          try T.createTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
-        }
-        try open(table)
+        try table.createTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
       }
     }
 
-    (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
+    let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
+    self.syncEngines.withValue {
+      $0 = SyncEngines(
+        private: privateSyncEngine,
+        shared: sharedSyncEngine
+      )
+    }
 
     let previousRecordTypes = try await metadatabase.read { db in
       try RecordType.all.fetchAll(db)
@@ -237,29 +239,27 @@ public final actor SyncEngine {
       return existingRecordType.schema != currentRecordType.schema
     }
     if !recordTypesToFetch.isEmpty {
-      // TODO: Should we avoid this unstructured task by making 'setUpSyncEngine' async?
-//      Task {
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await metadatabase.write { db in
-            for recordType in recordTypesToFetch {
-              try RecordType.upsert(RecordType.Draft(recordType)).execute(db)
-            }
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await metadatabase.write { db in
+          for recordType in recordTypesToFetch {
+            try RecordType.upsert(RecordType.Draft(recordType)).execute(db)
           }
         }
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await fetchChanges()
-        }
-//      }
+      }
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await fetchChanges()
+      }
     }
   }
 
-  package func tearDownSyncEngine() throws {
-    try database.write { db in
-      for table in tables {
-        func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-          try dropTriggers(table: table, db: db)
-        }
-        try open(table)
+  package func tearDownSyncEngine() async throws {
+    let syncEngines = syncEngines.withValue(\.self)
+    await syncEngines.private?.cancelOperations()
+    await syncEngines.shared?.cancelOperations()
+
+    try await database.write { db in
+      for table in self.tables {
+        try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
       }
       try Metadata.dropTriggers(db: db)
       db.remove(function: .willDelete(syncEngine: self))
@@ -268,29 +268,19 @@ public final actor SyncEngine {
       db.remove(function: .getZoneName)
       db.remove(function: .isUpdatingWithServerRecord)
     }
-    //    try database.writeWithoutTransaction { db in
-    //      try SQLQueryExpression(
-    //        "DETACH DATABASE \(quote: .sqliteDataCloudKitSchemaName)"
-    //      )
-    //      .execute(db)
-    //    }
-
-    //    // TODO: Instead of deleting let's just empty the database.
-    //    try metadatabase.close()
-    //    try FileManager.default.removeItem(at: metadatabaseURL)
-
-    try metadatabase.erase()
+    try await metadatabase.erase()
   }
 
   // TODO: resendAll() ?
 
   public func fetchChanges() async throws {
-    try await privateSyncEngine.fetchChanges()
-    try await sharedSyncEngine.fetchChanges()
+    let syncEngines = syncEngines.withValue(\.self)
+    try await syncEngines.private?.fetchChanges()
+    try await syncEngines.shared?.fetchChanges()
   }
 
   public func deleteLocalData() async throws {
-    try tearDownSyncEngine()
+    try await tearDownSyncEngine()
     withErrorReporting(.sqliteDataCloudKitFailure) {
       try database.write { db in
         for table in tables {
@@ -306,11 +296,10 @@ public final actor SyncEngine {
     try await setUpSyncEngine()
   }
 
-  func didUpdate(recordName: String, zoneName: String, ownerName: String) {
-    let syncEngine =
-      ownerName == Self.defaultZone.zoneID.ownerName
-      ? privateSyncEngine
-      : sharedSyncEngine
+  nonisolated func didUpdate(recordName: String, zoneName: String, ownerName: String) {
+    let syncEngine = syncEngines.withValue {
+      ownerName == Self.defaultZone.zoneID.ownerName ? $0.private : $0.shared
+    }
     syncEngine?.state.add(
       pendingRecordZoneChanges: [
         .saveRecord(
@@ -326,11 +315,10 @@ public final actor SyncEngine {
     )
   }
 
-  func willDelete(recordName: String, zoneName: String, ownerName: String) {
-    let syncEngine =
-      ownerName == Self.defaultZone.zoneID.ownerName
-      ? privateSyncEngine
-      : sharedSyncEngine
+  nonisolated func willDelete(recordName: String, zoneName: String, ownerName: String) {
+    let syncEngine = syncEngines.withValue {
+      ownerName == Self.defaultZone.zoneID.ownerName ? $0.private : $0.shared
+    }
     syncEngine?.state.add(
       pendingRecordZoneChanges: [
         .deleteRecord(
@@ -370,16 +358,7 @@ public final actor SyncEngine {
       )
     }
   }
-
-  private func dropTriggers<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
-    let foreignKeys = foreignKeysByTableName[T.tableName] ?? []
-    for foreignKey in foreignKeys {
-      try foreignKey.dropTriggers(for: T.self, db: db)
-    }
-    try Metadata.dropTriggers(for: T.self, db: db)
-  }
 }
-
 
 extension PrimaryKeyedTable {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -388,9 +367,9 @@ extension PrimaryKeyedTable {
     db: Database
   ) throws {
     let foreignKey =
-    foreignKeysByTableName[Self.tableName]?.count(where: \.notnull) == 1
-    ? foreignKeysByTableName[Self.tableName]?.first(where: \.notnull)
-    : nil
+      foreignKeysByTableName[Self.tableName]?.count(where: \.notnull) == 1
+      ? foreignKeysByTableName[Self.tableName]?.first(where: \.notnull)
+      : nil
 
     try Metadata.createTriggers(for: Self.self, parentForeignKey: foreignKey, db: db)
 
@@ -398,6 +377,18 @@ extension PrimaryKeyedTable {
     for foreignKey in foreignKeys {
       try foreignKey.createTriggers(for: Self.self, db: db)
     }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  fileprivate static func dropTriggers(
+    foreignKeysByTableName: [String: [ForeignKey]],
+    db: Database
+  ) throws {
+    let foreignKeys = foreignKeysByTableName[Self.tableName] ?? []
+    for foreignKey in foreignKeys {
+      try foreignKey.dropTriggers(for: Self.self, db: db)
+    }
+    try Metadata.dropTriggers(for: Self.self, db: db)
   }
 }
 
@@ -562,7 +553,9 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) async {
     switch event.changeType {
     case .signIn:
-      privateSyncEngine.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
+      syncEngines.withValue {
+        $0.private?.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
+      }
       for table in tables {
         withErrorReporting(.sqliteDataCloudKitFailure) {
           let names: [String] = try database.read { db in
@@ -573,16 +566,18 @@ extension SyncEngine: CKSyncEngineDelegate {
             }
             return try open(table)
           }
-          privateSyncEngine.state.add(
-            pendingRecordZoneChanges: names.map {
-              .saveRecord(
-                CKRecord.ID(
-                  recordName: $0,
-                  zoneID: Self.defaultZone.zoneID
+          syncEngines.withValue {
+            $0.private?.state.add(
+              pendingRecordZoneChanges: names.map {
+                .saveRecord(
+                  CKRecord.ID(
+                    recordName: $0,
+                    zoneID: Self.defaultZone.zoneID
+                  )
                 )
-              )
-            }
-          )
+              }
+            )
+          }
         }
       }
     case .signOut, .switchAccounts:
@@ -884,7 +879,7 @@ extension SyncEngine: CKSyncEngineDelegate {
 extension DatabaseFunction {
   fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
     Self("didUpdate") { recordName, zoneName, ownerName in
-      await syncEngine
+      syncEngine
         .didUpdate(
           recordName: recordName,
           zoneName: zoneName,
@@ -895,7 +890,7 @@ extension DatabaseFunction {
 
   fileprivate static func willDelete(syncEngine: SyncEngine) -> Self {
     return Self("willDelete") { recordName, zoneName, ownerName in
-      await syncEngine.willDelete(
+      syncEngine.willDelete(
         recordName: recordName,
         zoneName: zoneName,
         ownerName: ownerName
@@ -924,7 +919,7 @@ extension DatabaseFunction {
 
   private convenience init(
     _ name: String,
-    function: @escaping @Sendable (String, String, String) async -> Void
+    function: @escaping @Sendable (String, String, String) -> Void
   ) {
     self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 3) { arguments in
       guard
@@ -934,8 +929,7 @@ extension DatabaseFunction {
       else {
         return nil
       }
-      // TODO: can we get rid of task by making stuff in actor non-isolated?
-      Task { await function(recordName, zoneName, ownerName) }
+      function(recordName, zoneName, ownerName)
       return nil
     }
   }
@@ -961,18 +955,31 @@ extension URL {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension CKContainer {
-  func shareMetadata(
-    for url: URL,
-    shouldFetchRootRecord: Bool = false
-  ) async throws -> CKShare.Metadata {
-    try await withUnsafeThrowingContinuation { continuation in
-      let operation = CKFetchShareMetadataOperation(shareURLs: [url])
-      operation.shouldFetchRootRecord = true
-      operation.perShareMetadataResultBlock = { url, result in
-        continuation.resume(with: result)
-      }
-      add(operation)
+struct SyncEngines {
+  let _private: (any SyncEngineProtocol)?
+  let _shared: (any SyncEngineProtocol)?
+  init() {
+    _private = nil
+    _shared = nil
+  }
+  init(private: any SyncEngineProtocol, shared: any SyncEngineProtocol) {
+    self._private = `private`
+    self._shared = shared
+  }
+  var `private`: (any SyncEngineProtocol)? {
+    guard let _private
+    else {
+      reportIssue("Private sync engine has not been set.")
+      return nil
     }
+    return _private
+  }
+  var `shared`: (any SyncEngineProtocol)? {
+    guard let _shared
+    else {
+      reportIssue("Shared sync engine has not been set.")
+      return nil
+    }
+    return _shared
   }
 }

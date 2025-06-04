@@ -120,7 +120,9 @@ extension SyncEngine {
   }
 
   public func acceptShare(metadata: CKShare.Metadata) async throws {
-    try await sharedSyncEngine.acceptShare(metadata: ShareMetadata(rawValue: metadata))
+    try await syncEngines
+      .withValue(\.shared)?
+      .acceptShare(metadata: ShareMetadata(rawValue: metadata))
   }
 }
 
