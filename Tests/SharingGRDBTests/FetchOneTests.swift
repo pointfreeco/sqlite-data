@@ -1,8 +1,9 @@
+import Combine
 import Dependencies
 import DependenciesTestSupport
+import Foundation
 import GRDB
 import Sharing
-import Combine
 import SharingGRDB
 import StructuredQueries
 import Testing
@@ -39,9 +40,9 @@ struct FetchOneTests {
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
     try await database.write { try Record.delete().execute($0) }
-//    await #expect(throws: NotFound.self) {
-      try await $record.load()
-//    }
+    //    await #expect(throws: NotFound.self) {
+    try await $record.load()
+    //    }
     #expect(record == nil)
     #expect($record.loadError == nil)
   }
@@ -53,9 +54,9 @@ struct FetchOneTests {
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
     try await database.write { try Record.delete().execute($0) }
-//    await #expect(throws: NotFound.self) {
-      try await $record.load()
-//    }
+    //    await #expect(throws: NotFound.self) {
+    try await $record.load()
+    //    }
     #expect(record == nil)
     #expect($record.loadError == nil)
   }
@@ -97,9 +98,9 @@ struct FetchOneTests {
     var dates: [Date?] = []
     let cancellable = $recordDate.publisher.sink { dates.append($0) }
     try await database.write { try Record.delete().execute($0) }
-//    await #expect(throws: NotFound.self) {
-      try await $recordDate.load()
-//    }
+    //    await #expect(throws: NotFound.self) {
+    try await $recordDate.load()
+    //    }
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
   }
@@ -111,9 +112,9 @@ struct FetchOneTests {
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
     try await database.write { try Record.delete().execute($0) }
-//    await #expect(throws: NotFound.self) {
-      try await $recordDate.load()
-//    }
+    //    await #expect(throws: NotFound.self) {
+    try await $recordDate.load()
+    //    }
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
   }
@@ -133,7 +134,6 @@ struct FetchOneTests {
   }
 }
 
-import Foundation
 @Table
 private struct Record: Equatable {
   let id: Int
