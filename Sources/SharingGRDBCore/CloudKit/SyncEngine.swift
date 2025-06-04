@@ -121,11 +121,7 @@ public final actor SyncEngine {
     _container as! CKContainer
   }
 
-  package func setUpSyncEngine() throws {
-    defer {
-      (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
-    }
-
+  package func setUpSyncEngine() async throws {
     metadatabase = try defaultMetadatabase
     // TODO: go towards idempotent migrations instead of GRDB migrator by the end of all of this
     var migrator = DatabaseMigrator()
@@ -181,16 +177,52 @@ public final actor SyncEngine {
       .execute(db)
     }
     try migrator.migrate(metadatabase)
-    let previousRecordTypes = try metadatabase.read { db in
+
+    try await database.write { db in
+      let hasAttachedMetadatabase: Bool =
+        try SQLQueryExpression(
+          """
+          SELECT count(*) 
+          FROM pragma_database_list 
+          WHERE "name" = \(bind: String.sqliteDataCloudKitSchemaName)
+          """,
+          as: Int.self
+        )
+        .fetchOne(db) == 1
+      if !hasAttachedMetadatabase {
+        try SQLQueryExpression(
+          "ATTACH DATABASE \(self.metadatabaseURL) AS \(quote: .sqliteDataCloudKitSchemaName)"
+        )
+        .execute(db)
+      }
+      db.add(function: .isUpdatingWithServerRecord)
+      db.add(function: .getZoneName)
+      db.add(function: .getOwnerName)
+      db.add(function: .didUpdate(syncEngine: self))
+      db.add(function: .willDelete(syncEngine: self))
+
+      try Metadata.createTriggers(tables: self.tables, db: db)
+
+      for table in self.tables {
+        func open<T: PrimaryKeyedTable>(_: T.Type) throws {
+          try T.createTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
+        }
+        try open(table)
+      }
+    }
+
+    (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
+
+    let previousRecordTypes = try await metadatabase.read { db in
       try RecordType.all.fetchAll(db)
     }
-    let currentRecordTypes = try database.read { db in
+    let currentRecordTypes = try await database.read { db in
       try SQLQueryExpression(
         """
         SELECT "name", "sql" 
         FROM "sqlite_master" 
         WHERE "type" = 'table'
-        AND "name" IN (\(tablesByName.keys.map(\.queryFragment).joined(separator: ", ")))
+        AND "name" IN (\(self.tablesByName.keys.map(\.queryFragment).joined(separator: ", ")))
         """,
         as: RecordType.self
       )
@@ -206,7 +238,7 @@ public final actor SyncEngine {
     }
     if !recordTypesToFetch.isEmpty {
       // TODO: Should we avoid this unstructured task by making 'setUpSyncEngine' async?
-      Task {
+//      Task {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await metadatabase.write { db in
             for recordType in recordTypesToFetch {
@@ -217,27 +249,7 @@ public final actor SyncEngine {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await fetchChanges()
         }
-      }
-    }
-    try database.write { db in
-      try SQLQueryExpression(
-        "ATTACH DATABASE \(metadatabaseURL) AS \(quote: .sqliteDataCloudKitSchemaName)"
-      )
-      .execute(db)
-      db.add(function: .isUpdatingWithServerRecord)
-      db.add(function: .getZoneName)
-      db.add(function: .getOwnerName)
-      db.add(function: .didUpdate(syncEngine: self))
-      db.add(function: .willDelete(syncEngine: self))
-
-      try Metadata.createTriggers(tables: tables, db: db)
-
-      for table in tables {
-        func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-          try createTriggers(table: table, db: db)
-        }
-        try open(table)
-      }
+//      }
     }
   }
 
@@ -256,15 +268,18 @@ public final actor SyncEngine {
       db.remove(function: .getZoneName)
       db.remove(function: .isUpdatingWithServerRecord)
     }
-    try database.writeWithoutTransaction { db in
-      try SQLQueryExpression(
-        "DETACH DATABASE \(quote: .sqliteDataCloudKitSchemaName)"
-      )
-      .execute(db)
-    }
-    // TODO: Instead of deleting let's just empty the database.
-    try metadatabase.close()
-    try FileManager.default.removeItem(at: metadatabaseURL)
+    //    try database.writeWithoutTransaction { db in
+    //      try SQLQueryExpression(
+    //        "DETACH DATABASE \(quote: .sqliteDataCloudKitSchemaName)"
+    //      )
+    //      .execute(db)
+    //    }
+
+    //    // TODO: Instead of deleting let's just empty the database.
+    //    try metadatabase.close()
+    //    try FileManager.default.removeItem(at: metadatabaseURL)
+
+    try metadatabase.erase()
   }
 
   // TODO: resendAll() ?
@@ -274,7 +289,7 @@ public final actor SyncEngine {
     try await sharedSyncEngine.fetchChanges()
   }
 
-  public func deleteLocalData() throws {
+  public func deleteLocalData() async throws {
     try tearDownSyncEngine()
     withErrorReporting(.sqliteDataCloudKitFailure) {
       try database.write { db in
@@ -288,7 +303,7 @@ public final actor SyncEngine {
         }
       }
     }
-    try setUpSyncEngine()
+    try await setUpSyncEngine()
   }
 
   func didUpdate(recordName: String, zoneName: String, ownerName: String) {
@@ -356,26 +371,33 @@ public final actor SyncEngine {
     }
   }
 
-  private func createTriggers<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
-    let foreignKey =
-      foreignKeysByTableName[T.tableName]?.count(where: \.notnull) == 1
-      ? foreignKeysByTableName[T.tableName]?.first(where: \.notnull)
-      : nil
-
-    try Metadata.createTriggers(for: T.self, parentForeignKey: foreignKey, db: db)
-
-    let foreignKeys = foreignKeysByTableName[T.tableName] ?? []
-    for foreignKey in foreignKeys {
-      try foreignKey.createTriggers(for: T.self, db: db)
-    }
-  }
-
   private func dropTriggers<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
     let foreignKeys = foreignKeysByTableName[T.tableName] ?? []
     for foreignKey in foreignKeys {
       try foreignKey.dropTriggers(for: T.self, db: db)
     }
     try Metadata.dropTriggers(for: T.self, db: db)
+  }
+}
+
+
+extension PrimaryKeyedTable {
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  fileprivate static func createTriggers(
+    foreignKeysByTableName: [String: [ForeignKey]],
+    db: Database
+  ) throws {
+    let foreignKey =
+    foreignKeysByTableName[Self.tableName]?.count(where: \.notnull) == 1
+    ? foreignKeysByTableName[Self.tableName]?.first(where: \.notnull)
+    : nil
+
+    try Metadata.createTriggers(for: Self.self, parentForeignKey: foreignKey, db: db)
+
+    let foreignKeys = foreignKeysByTableName[Self.tableName] ?? []
+    for foreignKey in foreignKeys {
+      try foreignKey.createTriggers(for: Self.self, db: db)
+    }
   }
 }
 
@@ -386,7 +408,7 @@ extension SyncEngine: CKSyncEngineDelegate {
 
     switch event {
     case .accountChange(let event):
-      handleAccountChange(event)
+      await handleAccountChange(event)
     case .stateUpdate(let event):
       handleStateUpdate(event, syncEngine: syncEngine)
     case .fetchedDatabaseChanges(let event):
@@ -537,7 +559,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     return batch
   }
 
-  private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) {
+  private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) async {
     switch event.changeType {
     case .signIn:
       privateSyncEngine.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
@@ -564,8 +586,8 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
       }
     case .signOut, .switchAccounts:
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try deleteLocalData()
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await deleteLocalData()
       }
     @unknown default:
       break
@@ -645,7 +667,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           }
           open(table)
         } else if recordType == CKRecord.SystemType.share {
-          await withErrorReporting {
+          withErrorReporting {
             try deleteShare(recordID: recordID, recordType: recordType)
           }
         } else {

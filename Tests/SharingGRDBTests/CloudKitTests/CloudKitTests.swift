@@ -59,11 +59,22 @@ extension BaseCloudKitTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func tearDown() async throws {
+      _ = try await database.write { db in
+        try Metadata.count().fetchOne(db) ?? 0
+      }
+      try await syncEngine.tearDownSyncEngine()
+      await #expect(throws: DatabaseError.self) {
+        try await database.write { db in
+          try Metadata.count().fetchOne(db) ?? 0
+        }
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tearDownAndReSetUp() async throws {
       try await syncEngine.tearDownSyncEngine()
       try await syncEngine.setUpSyncEngine()
-      // TODO: it would be nice if `setUpSyncEngine` was async
-      try await Task.sleep(for: .seconds(0.1))
       privateSyncEngine.assertFetchChangesScopes([.all])
       sharedSyncEngine.assertFetchChangesScopes([.all])
 
@@ -85,7 +96,6 @@ extension BaseCloudKitTests {
         modifications: [record],
         deletions: []
       )
-      try await Task.sleep(for: .seconds(1))
       expectNoDifference(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
         RemindersList(id: UUID(1), title: "Personal")

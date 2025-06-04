@@ -294,7 +294,6 @@ extension BaseCloudKitTests {
       }
 
       try await syncEngine.setUpSyncEngine()
-      try await Task.sleep(for: .seconds(0.1))
       privateSyncEngine.assertFetchChangesScopes([.all])
       sharedSyncEngine.assertFetchChangesScopes([.all])
       let triggersAfterReSetUp = try await database.write { db in
