@@ -24,9 +24,9 @@ extension BaseTestSuite {
       }
 
       model.searchText = "Take"
-      try await Task.sleep(for: .seconds(0.1))
       try await model.$reminders.load()
       try await model.$completedCount.load()
+      try await Task.sleep(for: .seconds(0.1))
       #expect(model.completedCount == 1)
       assertInlineSnapshot(of: model.reminders, as: .customDump) {
         """
