@@ -93,6 +93,7 @@ func appDatabase() throws -> any DatabaseWriter {
   configuration.foreignKeysEnabled = context != .live
   configuration.prepareDatabase { db in
     #if DEBUG
+      //db.attachMetadatabase()
       db.trace(options: .profile) {
         if context == .preview {
           print("\($0.expandedDescription)")

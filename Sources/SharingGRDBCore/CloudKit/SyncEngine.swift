@@ -262,6 +262,7 @@ public final actor SyncEngine {
       )
       .execute(db)
     }
+    // TODO: Instead of deleting let's just empty the database.
     try metadatabase.close()
     try FileManager.default.removeItem(at: metadatabaseURL)
   }

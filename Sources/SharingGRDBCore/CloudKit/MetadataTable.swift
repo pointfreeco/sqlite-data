@@ -13,24 +13,6 @@ package struct Metadata: Hashable {
   // @Column(as: CKShare?.ShareDataRepresentation.self)
   package var share: CKShare?
   package var userModificationDate: Date?
-
-  package init(
-    recordType: String,
-    recordName: String,
-    zoneName: String,
-    ownerName: String,
-    parentRecordName: String? = nil,
-    lastKnownServerRecord: CKRecord? = nil,
-    userModificationDate: Date? = nil
-  ) {
-    self.recordType = recordType
-    self.recordName = recordName
-    self.zoneName = zoneName
-    self.ownerName = ownerName
-    self.parentRecordName = parentRecordName
-    self.lastKnownServerRecord = lastKnownServerRecord
-    self.userModificationDate = userModificationDate
-  }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) extension Metadata: StructuredQueriesCore.Table {

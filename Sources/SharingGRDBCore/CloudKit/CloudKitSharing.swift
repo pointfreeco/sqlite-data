@@ -17,6 +17,7 @@ extension SyncEngine {
   public struct CantShareRecordWithParent: Error {}
   public struct NoCKRecordFound: Error {}
 
+  // TODO: beef up to take query and bundle into @Selection?
 //  public func records<T: PrimaryKeyedTable>(for _: T.Type) async throws -> [CKRecord] {
 //    []
 //  }
@@ -29,7 +30,10 @@ extension SyncEngine {
         .fetchOne(db) ?? nil
     }
 
-    return lastKnownServerRecord
+    guard let lastKnownServerRecord
+    else { return nil }
+    // TODO: Add logic to determine privateCloudDatabase vs sharedCloudDatabase
+    return try await container.privateCloudDatabase.record(for: lastKnownServerRecord.recordID)
   }
 
   public func shares<T: PrimaryKeyedTable>(for _: T.Type) throws -> [CKShare] {
@@ -59,7 +63,9 @@ extension SyncEngine {
     }
     guard let share
     else { return nil }
+    // TODO: If we feel confident that our CKShares are always up to date, let's not even refresh
     // TODO: figure out if this share belongs to us or someone else so that we can choose between privateCloudDatabase and sharedCloudDatabase
+    //    TODO: figure out how to expose private/shared database to outside world
     return (try await container.privateCloudDatabase.record(for: share.recordID) as? CKShare)
     ?? share
   }
