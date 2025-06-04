@@ -8,8 +8,7 @@ import SharingGRDB
 import StructuredQueries
 import Testing
 
-@Suite(.dependency(\.defaultDatabase, try .database()))
-struct FetchOneTests {
+@Suite(.dependency(\.defaultDatabase, try .database())) struct FetchOneTests {
   @Dependency(\.defaultDatabase) var database
 
   @Test func nonTableInit() {
@@ -19,7 +18,7 @@ struct FetchOneTests {
   }
 
   @Test func tableInit() async throws {
-    @FetchOne var record: Record = Record(id: 0)
+    @FetchOne var record = Record(id: 0)
     try await $record.load()
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
@@ -64,6 +63,12 @@ struct FetchOneTests {
     }
     #expect(record == Record(id: 1))
     #expect($record.loadError is NotFound)
+
+    await #expect(throws: NotFound.self) {
+      try await $record.load(Record.order(by: \.id))
+    }
+    #expect(record == Record(id: 1))
+    #expect($record.loadError is NotFound)
   }
 
   @Test func statementInit_Representable() async throws {
@@ -77,6 +82,12 @@ struct FetchOneTests {
     }
     #expect(recordDate.timeIntervalSince1970 == 42)
     #expect($recordDate.loadError is NotFound)
+
+    await #expect(throws: NotFound.self) {
+      try await $recordDate.load(Record.select(\.date))
+    }
+    #expect(recordDate.timeIntervalSince1970 == 42)
+    #expect($recordDate.loadError is NotFound)
   }
 
   @Test func statementInit_OptionalRepresentable() async throws {
@@ -84,9 +95,12 @@ struct FetchOneTests {
     try await $recordDate.load()
     #expect(recordDate?.timeIntervalSince1970 == 42)
     #expect($recordDate.loadError == nil)
-    var dates: [Date?] = []
     try await database.write { try Record.delete().execute($0) }
     try await $recordDate.load()
+    #expect(recordDate?.timeIntervalSince1970 == nil)
+    #expect($recordDate.loadError == nil)
+
+    try await $recordDate.load(Record.select(\.date))
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
   }
@@ -98,6 +112,10 @@ struct FetchOneTests {
     #expect($recordDate.loadError == nil)
     try await database.write { try Record.delete().execute($0) }
     try await $recordDate.load()
+    #expect(recordDate?.timeIntervalSince1970 == nil)
+    #expect($recordDate.loadError == nil)
+
+    try await $recordDate.load(Record.select(\.optionalDate))
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
   }
@@ -113,12 +131,49 @@ struct FetchOneTests {
     }
     #expect(recordID == 1)
     #expect($recordID.loadError is NotFound)
+
+    await #expect(throws: NotFound.self) {
+      try await $recordID.load(Record.select(\.id))
+    }
+    #expect(recordID == 1)
+    #expect($recordID.loadError is NotFound)
+  }
+
+  @Test func optionalStatementInit() async throws {
+    @FetchOne(Record?.all) var record
+    try await $record.load()
+    #expect(record == Record(id: 1))
+    #expect($record.loadError == nil)
+    try await database.write { try Record.delete().execute($0) }
+    try await $record.load()
+    #expect(record == nil)
+    #expect($record.loadError == nil)
+
+    try await $record.load(Record?.all)
+    #expect(record == nil)
+    #expect($record.loadError == nil)
+  }
+
+  @Test func optionalStatementInit_Selection() async throws {
+    @FetchOne(Record.select(\.parentID)) var id: Int?
+    try await $id.load()
+    #expect(id == nil)
+    #expect($id.loadError == nil)
+    try await database.write { try Record.delete().execute($0) }
+    try await $id.load()
+    #expect(id == nil)
+    #expect($id.loadError == nil)
+
+    try await $id.load(Record.select(\.parentID))
+    #expect(id == nil)
+    #expect($id.loadError == nil)
   }
 }
 
 @Table
 private struct Record: Equatable {
   let id: Int
+  var parentID: Int?
   @Column(as: Date.UnixTimeRepresentation.self)
   var date = Date(timeIntervalSince1970: 42)
   @Column(as: Date?.UnixTimeRepresentation.self)
@@ -131,9 +186,10 @@ extension DatabaseWriter where Self == DatabaseQueue {
       try #sql(
         """
         CREATE TABLE "records" (
-          "id" INTEGER PRIMARY KEY AUTOINCREMENT
-          , "date" INTEGER NOT NULL DEFAULT 42
-          , "optionalDate" INTEGER
+          "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          "parentID" INTEGER,
+          "date" INTEGER NOT NULL DEFAULT 42,
+          "optionalDate" INTEGER
         )
         """
       )
