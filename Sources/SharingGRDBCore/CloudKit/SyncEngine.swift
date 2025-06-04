@@ -10,8 +10,7 @@ public final actor SyncEngine {
 
   let database: any DatabaseWriter
   let logger: Logger
-  lazy var metadatabase: any DatabaseWriter = try! DatabaseQueue()
-  private let metadatabaseURL: URL
+  let metadatabase: any DatabaseWriter
   let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
   let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
   let foreignKeysByTableName: [String: [ForeignKey]]
@@ -96,7 +95,7 @@ public final actor SyncEngine {
     self.defaultSyncEngines = defaultSyncEngines
     self.database = database
     self.logger = logger
-    self.metadatabaseURL = metadatabaseURL
+    self.metadatabase = try defaultMetadatabase(logger: logger, url: metadatabaseURL)
     self.tables = tables
     self.tablesByName = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
     self.foreignKeysByTableName = Dictionary(
@@ -121,62 +120,6 @@ public final actor SyncEngine {
   }
 
   package func setUpSyncEngine() async throws {
-    metadatabase = try defaultMetadatabase
-    // TODO: go towards idempotent migrations instead of GRDB migrator by the end of all of this
-    var migrator = DatabaseMigrator()
-    // TODO: do we want this?
-    #if DEBUG
-      migrator.eraseDatabaseOnSchemaChange = true
-    #endif
-    migrator.registerMigration("Create Metadata Tables") { db in
-      // TODO: Should "recordName" be "collate no case"?
-      // TODO: should primary key be (recordType, recordName) so that we can use autoincrementing
-      //       UUIDs in tests?
-      try SQLQueryExpression(
-        """
-        CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
-          "recordType" TEXT NOT NULL,
-          "recordName" TEXT NOT NULL PRIMARY KEY,
-          "zoneName" TEXT NOT NULL,
-          "ownerName" TEXT NOT NULL,
-          "parentRecordName" TEXT,
-          "lastKnownServerRecord" BLOB,
-          "share" BLOB,
-          "userModificationDate" TEXT
-        ) STRICT
-        """
-      )
-      .execute(db)
-      // TODO: Should we have "parentRecordName TEXT REFERENCES metadata(recordName) ON DELETE CASCADE" ?
-      // TODO: Do we ever query for "parentRecordName"? should we add an index?
-      try SQLQueryExpression(
-        """
-        CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_zoneName_ownerName"
-        ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata" ("zoneName", "ownerName")
-        """
-      )
-      .execute(db)
-      try SQLQueryExpression(
-        """
-        CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_recordTypes" (
-          "tableName" TEXT NOT NULL PRIMARY KEY,
-          "schema" TEXT NOT NULL
-        ) STRICT
-        """
-      )
-      .execute(db)
-      try SQLQueryExpression(
-        """
-        CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_stateSerialization" (
-          "scope" TEXT NOT NULL PRIMARY KEY,
-          "data" TEXT NOT NULL
-        ) STRICT
-        """
-      )
-      .execute(db)
-    }
-    try migrator.migrate(metadatabase)
-
     try await database.write { db in
       let hasAttachedMetadatabase: Bool =
         try SQLQueryExpression(
@@ -190,7 +133,9 @@ public final actor SyncEngine {
         .fetchOne(db) == 1
       if !hasAttachedMetadatabase {
         try SQLQueryExpression(
-          "ATTACH DATABASE \(self.metadatabaseURL) AS \(quote: .sqliteDataCloudKitSchemaName)"
+          """
+          ATTACH DATABASE \(bind: self.metadatabase.path) AS \(quote: .sqliteDataCloudKitSchemaName)
+          """
         )
         .execute(db)
       }
@@ -214,6 +159,11 @@ public final actor SyncEngine {
         shared: sharedSyncEngine
       )
     }
+
+    /*
+     TODO: When we detect a change in schema should save records?
+     TODO: Should we save records for everything in a table that is not in metadata?
+    */
 
     let previousRecordTypes = try await metadatabase.read { db in
       try RecordType.all.fetchAll(db)
@@ -268,7 +218,13 @@ public final actor SyncEngine {
       db.remove(function: .getZoneName)
       db.remove(function: .isUpdatingWithServerRecord)
     }
-    try await metadatabase.erase()
+    try await metadatabase.write { db in
+      // TODO: should we just loop through all tables and delete?
+      //       We don't want to drop tables because then we have to re-migrate
+      try Metadata.delete().execute(db)
+      try RecordType.delete().execute(db)
+      try StateSerialization.delete().execute(db)
+    }
   }
 
   // TODO: resendAll() ?
@@ -332,31 +288,6 @@ public final actor SyncEngine {
         )
       ]
     )
-  }
-
-  private var defaultMetadatabase: any DatabaseWriter {
-    get throws {
-      var configuration = Configuration()
-      configuration.prepareDatabase { [logger] db in
-        db.trace {
-          logger.trace("\($0.expandedDescription)")
-        }
-      }
-      logger.debug(
-        """
-        Metadatabase connection:
-        open "\(self.metadatabaseURL.path(percentEncoded: false))"
-        """
-      )
-      try FileManager.default.createDirectory(
-        at: .applicationSupportDirectory,
-        withIntermediateDirectories: true
-      )
-      return try DatabaseQueue(
-        path: metadatabaseURL.path(percentEncoded: false),
-        configuration: configuration
-      )
-    }
   }
 }
 
@@ -558,7 +489,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
       for table in tables {
         withErrorReporting(.sqliteDataCloudKitFailure) {
-          let names: [String] = try database.read { db in
+          let names = try database.read { db in
             func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String] {
               try T
                 .select { SQLQueryExpression("\($0.primaryKey)", as: String.self) }

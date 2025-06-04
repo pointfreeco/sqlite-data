@@ -64,11 +64,11 @@ extension BaseCloudKitTests {
         try Metadata.count().fetchOne(db) ?? 0
       }
       try await syncEngine.tearDownSyncEngine()
-      await #expect(throws: DatabaseError.self) {
-        try await self.database.write { db in
-          try Metadata.count().fetchOne(db) ?? 0
-        }
-      }
+//      await #expect(throws: DatabaseError.self) {
+//        try await self.database.write { db in
+//          try Metadata.count().fetchOne(db) ?? 0
+//        }
+//      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

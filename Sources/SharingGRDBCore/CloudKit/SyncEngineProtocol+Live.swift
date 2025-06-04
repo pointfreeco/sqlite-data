@@ -12,11 +12,16 @@ extension CKSyncEngine: SyncEngineProtocol {
       reportIssue("TODO")
       return
     }
+    guard let rootRecordID = metadata.hierarchicalRootRecordID
+    else {
+      reportIssue("TODO")
+      return
+    }
     let container = CKContainer(identifier: metadata.containerIdentifier)
     try await container.accept(metadata)
     try await fetchChanges(
       .init(
-        scope: .zoneIDs([metadata.hierarchicalRootRecordID!.zoneID]),
+        scope: .zoneIDs([rootRecordID.zoneID]),
         operationGroup: nil
       )
     )
