@@ -12,6 +12,7 @@ import Testing
 struct FetchAllTests {
   @Dependency(\.defaultDatabase) var database
 
+  @MainActor
   @Test func concurrency() async throws {
     let count = 1_000
     try await database.write { db in
