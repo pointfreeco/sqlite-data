@@ -8,8 +8,8 @@ struct RemindersListForm: View {
   @State var remindersList: RemindersList.Draft
   @Environment(\.dismiss) var dismiss
 
-  init(existingList: RemindersList.Draft? = nil) {
-    remindersList = existingList ?? RemindersList.Draft()
+  init(remindersList: RemindersList.Draft) {
+    self.remindersList = remindersList
   }
 
   var body: some View {
@@ -50,12 +50,14 @@ struct RemindersListForm: View {
   }
 }
 
-#Preview {
-  let _ = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase()
-  }
-  NavigationStack {
-    RemindersListForm()
-      .navigationTitle("New List")
+struct RemindersListFormPreviews: PreviewProvider {
+  static var previews: some View {
+    let _ = try! prepareDependencies {
+      $0.defaultDatabase = try Reminders.appDatabase()
+    }
+    NavigationStack {
+      RemindersListForm(remindersList: RemindersList.Draft())
+        .navigationTitle("New List")
+    }
   }
 }

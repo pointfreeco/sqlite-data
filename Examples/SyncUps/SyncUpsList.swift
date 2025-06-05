@@ -1,6 +1,7 @@
 import SharingGRDB
 import SwiftUI
 import SwiftUINavigation
+import TipKit
 
 @MainActor
 @Observable
@@ -11,10 +12,10 @@ final class SyncUpsListModel {
     SyncUp
       .group(by: \.id)
       .leftJoin(Attendee.all) { $0.id.eq($1.syncUpID) }
-      .select { Record.Columns(attendeeCount: $1.count(), syncUp: $0) },
+      .select { Row.Columns(attendeeCount: $1.count(), syncUp: $0) },
     animation: .default
   )
-  var syncUps: [Record]
+  var syncUps: [Row]
   @ObservationIgnored @Dependency(\.uuid) var uuid
   @ObservationIgnored @Dependency(\.defaultDatabase) var database
 
@@ -30,8 +31,18 @@ final class SyncUpsListModel {
     }
   }
 
+  #if DEBUG
+  func seedDatabase() {
+    withErrorReporting {
+      try database.write { db in
+        try db.seedSampleData()
+      }
+    }
+  }
+  #endif
+
   @Selection
-  struct Record {
+  struct Row {
     let attendeeCount: Int
     let syncUp: SyncUp
   }
@@ -39,6 +50,7 @@ final class SyncUpsListModel {
 
 struct SyncUpsList: View {
   @State var model = SyncUpsListModel()
+  @State private var seedDatabaseTip: SeedDatabaseTip?
 
   var body: some View {
     List {
@@ -50,11 +62,37 @@ struct SyncUpsList: View {
       }
     }
     .toolbar {
-      Button {
-        model.addSyncUpButtonTapped()
-      } label: {
-        Image(systemName: "plus")
+      ToolbarItem(placement: .primaryAction) {
+        Button {
+          model.addSyncUpButtonTapped()
+        } label: {
+          Image(systemName: "plus")
+        }
       }
+#if DEBUG
+      ToolbarItem(placement: .automatic) {
+        Menu {
+          Button {
+            model.seedDatabase()
+          } label: {
+            Text("Seed data")
+            Image(systemName: "leaf")
+          }
+        } label: {
+          Image(systemName: "ellipsis.circle")
+        }
+        .popoverTip(seedDatabaseTip)
+        .task {
+          await withErrorReporting {
+            try Tips.configure()
+            try await model.$syncUps.load()
+            if model.syncUps.isEmpty {
+              seedDatabaseTip = SeedDatabaseTip()
+            }
+          }
+        }
+      }
+#endif
     }
     .navigationTitle("Daily Sync-ups")
     .sheet(item: $model.addSyncUp) { syncUpFormModel in
@@ -99,6 +137,18 @@ struct TrailingIconLabelStyle: LabelStyle {
 
 extension LabelStyle where Self == TrailingIconLabelStyle {
   static var trailingIcon: Self { Self() }
+}
+
+private struct SeedDatabaseTip: Tip {
+  var title: Text {
+    Text("Seed Sample Data")
+  }
+  var message: Text? {
+    Text("Tap here to quickly populate the app with test data.")
+  }
+  var image: Image? {
+    Image(systemName: "leaf")
+  }
 }
 
 #Preview {
