@@ -3,7 +3,7 @@ import ConcurrencyExtras
 import OSLog
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-public final actor SyncEngine {
+public final class SyncEngine: Sendable {
   public static nonisolated let defaultZone = CKRecordZone(
     zoneName: "co.pointfree.SQLiteData.defaultZone"
   )
@@ -16,11 +16,11 @@ public final actor SyncEngine {
   let foreignKeysByTableName: [String: [ForeignKey]]
   let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
   let defaultSyncEngines:
-    (any DatabaseReader, SyncEngine)
+    @Sendable (any DatabaseReader, SyncEngine)
       -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
   let _container: any Sendable
 
-  public init(
+  public convenience init(
     container: CKContainer,
     database: any DatabaseWriter,
     logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit"),
@@ -57,7 +57,7 @@ public final actor SyncEngine {
     )
   }
 
-  package init(
+  package convenience init(
     privateSyncEngine: any SyncEngineProtocol,
     sharedSyncEngine: any SyncEngineProtocol,
     database: any DatabaseWriter,
@@ -75,7 +75,7 @@ public final actor SyncEngine {
 
   private init(
     container: (any Sendable)? = Void?.none,
-    defaultSyncEngines: @escaping (
+    defaultSyncEngines: @escaping @Sendable (
       any DatabaseReader,
       SyncEngine
     ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
@@ -115,11 +115,12 @@ public final actor SyncEngine {
     }
   }
 
-  nonisolated var container: CKContainer {
+  var container: CKContainer {
     _container as! CKContainer
   }
 
   package func setUpSyncEngine() async throws {
+    // TODO: SHould we wrap these database calls in `{ … }()` to avoid await?
     try await database.write { db in
       let hasAttachedMetadatabase: Bool =
         try SQLQueryExpression(
@@ -204,8 +205,8 @@ public final actor SyncEngine {
 
   package func tearDownSyncEngine() async throws {
     let syncEngines = syncEngines.withValue(\.self)
-    await syncEngines.private?.cancelOperations()
-    await syncEngines.shared?.cancelOperations()
+    async let privateCancellation: Void? = syncEngines.private?.cancelOperations()
+    async let sharedCancellation: Void? = syncEngines.shared?.cancelOperations()
 
     try await database.write { db in
       for table in self.tables {
@@ -219,12 +220,13 @@ public final actor SyncEngine {
       db.remove(function: .isUpdatingWithServerRecord)
     }
     try await metadatabase.write { db in
-      // TODO: should we just loop through all tables and delete?
-      //       We don't want to drop tables because then we have to re-migrate
+      // TODO: Do an `.erase()` + re-migrate
       try Metadata.delete().execute(db)
       try RecordType.delete().execute(db)
       try StateSerialization.delete().execute(db)
     }
+
+    _ = await (privateCancellation, sharedCancellation)
   }
 
   // TODO: resendAll() ?
@@ -252,7 +254,7 @@ public final actor SyncEngine {
     try await setUpSyncEngine()
   }
 
-  nonisolated func didUpdate(recordName: String, zoneName: String, ownerName: String) {
+  func didUpdate(recordName: String, zoneName: String, ownerName: String) {
     let syncEngine = syncEngines.withValue {
       ownerName == Self.defaultZone.zoneID.ownerName ? $0.private : $0.shared
     }
@@ -271,7 +273,7 @@ public final actor SyncEngine {
     )
   }
 
-  nonisolated func willDelete(recordName: String, zoneName: String, ownerName: String) {
+  func willDelete(recordName: String, zoneName: String, ownerName: String) {
     let syncEngine = syncEngines.withValue {
       ownerName == Self.defaultZone.zoneID.ownerName ? $0.private : $0.shared
     }
