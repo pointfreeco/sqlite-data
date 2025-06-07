@@ -22,7 +22,7 @@ func defaultMetadatabase(
     at: .applicationSupportDirectory,
     withIntermediateDirectories: true
   )
-  let metadatabase = try DatabaseQueue(
+  let metadatabase = try DatabasePool(
     path: url.path(percentEncoded: false),
     configuration: configuration
   )
