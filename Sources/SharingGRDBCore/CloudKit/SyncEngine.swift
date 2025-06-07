@@ -428,7 +428,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
       #endif
 
-      guard let metadata = await metadataFor(recordID: recordID)
+      guard let metadata = metadataFor(recordID: recordID)
       else {
         syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
         return nil
@@ -474,7 +474,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           with: T(queryOutput: row),
           userModificationDate: metadata.userModificationDate
         )
-        await refreshLastKnownServerRecord(record)
+        refreshLastKnownServerRecord(record)
         sentRecord = recordID
         return record
       }
@@ -575,8 +575,8 @@ extension SyncEngine: CKSyncEngineDelegate {
                 try await self.cacheShare(share)
               }
             } else {
-              await self.upsertFromServerRecord(record)
-              await self.refreshLastKnownServerRecord(record)
+              self.upsertFromServerRecord(record)
+              self.refreshLastKnownServerRecord(record)
             }
           }
         }
