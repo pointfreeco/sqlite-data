@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CA1146CA2DF38D1D0054BA77 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA1146C92DF38D1D0054BA77 /* SharingGRDB */; };
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
 		CA5E42502DE7C4D50069E0F8 /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E424F2DE7C4D50069E0F8 /* SwiftUINavigation */; };
@@ -20,6 +21,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		CA1146AD2DF38D000054BA77 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CAF836902D4735620047AEB5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA11469E2DF38CFE0054BA77;
+			remoteInfo = CloudKitDemo;
+		};
 		CAD001812D874E6F00FA977A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CAF836902D4735620047AEB5 /* Project object */;
@@ -37,6 +45,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CA11469F2DF38CFE0054BA77 /* CloudKitDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudKitDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA1146AC2DF38D000054BA77 /* CloudKitDemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CloudKitDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA5F37542D5AFBBC002E1A9E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAF836982D4735620047AEB5 /* CaseStudies.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CaseStudies.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -46,6 +56,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CA1146CE2DF397DB0054BA77 /* Exceptions for "CloudKitDemo" folder in "CloudKitDemo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CA11469E2DF38CFE0054BA77 /* CloudKitDemo */;
+		};
 		CAD4819A2D584B510004799A /* Exceptions for "CaseStudies" folder in "CaseStudies" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -72,6 +89,19 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		CA1146A02DF38CFE0054BA77 /* CloudKitDemo */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CA1146CE2DF397DB0054BA77 /* Exceptions for "CloudKitDemo" folder in "CloudKitDemo" target */,
+			);
+			path = CloudKitDemo;
+			sourceTree = "<group>";
+		};
+		CA1146AF2DF38D000054BA77 /* CloudKitDemoTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CloudKitDemoTests;
+			sourceTree = "<group>";
+		};
 		CAD0017E2D874E6F00FA977A /* SyncUpTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = SyncUpTests;
@@ -109,6 +139,21 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CA11469C2DF38CFE0054BA77 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA1146CA2DF38D1D0054BA77 /* SharingGRDB in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA1146A92DF38D000054BA77 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CAD0017A2D874E6F00FA977A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -166,6 +211,8 @@
 				CAF836D92D4735AB0047AEB5 /* Reminders */,
 				DCBE89CD2D483FB90071F499 /* SyncUps */,
 				CAD0017E2D874E6F00FA977A /* SyncUpTests */,
+				CA1146A02DF38CFE0054BA77 /* CloudKitDemo */,
+				CA1146AF2DF38D000054BA77 /* CloudKitDemoTests */,
 				CAF837022D4735C00047AEB5 /* Frameworks */,
 				CAF836992D4735620047AEB5 /* Products */,
 			);
@@ -179,6 +226,8 @@
 				CAF836D82D4735AB0047AEB5 /* Reminders.app */,
 				DCBE89CC2D483FB90071F499 /* SyncUps.app */,
 				CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */,
+				CA11469F2DF38CFE0054BA77 /* CloudKitDemo.app */,
+				CA1146AC2DF38D000054BA77 /* CloudKitDemoTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -193,6 +242,52 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		CA11469E2DF38CFE0054BA77 /* CloudKitDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA1146C42DF38D000054BA77 /* Build configuration list for PBXNativeTarget "CloudKitDemo" */;
+			buildPhases = (
+				CA11469B2DF38CFE0054BA77 /* Sources */,
+				CA11469C2DF38CFE0054BA77 /* Frameworks */,
+				CA11469D2DF38CFE0054BA77 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CA1146A02DF38CFE0054BA77 /* CloudKitDemo */,
+			);
+			name = CloudKitDemo;
+			packageProductDependencies = (
+				CA1146C92DF38D1D0054BA77 /* SharingGRDB */,
+			);
+			productName = CloudKitDemo;
+			productReference = CA11469F2DF38CFE0054BA77 /* CloudKitDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CA1146AB2DF38D000054BA77 /* CloudKitDemoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA1146C52DF38D000054BA77 /* Build configuration list for PBXNativeTarget "CloudKitDemoTests" */;
+			buildPhases = (
+				CA1146A82DF38D000054BA77 /* Sources */,
+				CA1146A92DF38D000054BA77 /* Frameworks */,
+				CA1146AA2DF38D000054BA77 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CA1146AE2DF38D000054BA77 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CA1146AF2DF38D000054BA77 /* CloudKitDemoTests */,
+			);
+			name = CloudKitDemoTests;
+			packageProductDependencies = (
+			);
+			productName = CloudKitDemoTests;
+			productReference = CA1146AC2DF38D000054BA77 /* CloudKitDemoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		CAD0017C2D874E6F00FA977A /* SyncUpTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CAD001852D874E6F00FA977A /* Build configuration list for PBXNativeTarget "SyncUpTests" */;
@@ -322,9 +417,16 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1630;
+				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					CA11469E2DF38CFE0054BA77 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					CA1146AB2DF38D000054BA77 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = CA11469E2DF38CFE0054BA77;
+					};
 					CAD0017C2D874E6F00FA977A = {
 						CreatedOnToolsVersion = 16.3;
 						TestTargetID = DCBE89CB2D483FB90071F499;
@@ -368,11 +470,27 @@
 				CAF836D72D4735AB0047AEB5 /* Reminders */,
 				DCBE89CB2D483FB90071F499 /* SyncUps */,
 				CAD0017C2D874E6F00FA977A /* SyncUpTests */,
+				CA11469E2DF38CFE0054BA77 /* CloudKitDemo */,
+				CA1146AB2DF38D000054BA77 /* CloudKitDemoTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		CA11469D2DF38CFE0054BA77 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA1146AA2DF38D000054BA77 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CAD0017B2D874E6F00FA977A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -411,6 +529,20 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		CA11469B2DF38CFE0054BA77 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA1146A82DF38D000054BA77 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CAD001792D874E6F00FA977A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -449,6 +581,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CA1146AE2DF38D000054BA77 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA11469E2DF38CFE0054BA77 /* CloudKitDemo */;
+			targetProxy = CA1146AD2DF38D000054BA77 /* PBXContainerItemProxy */;
+		};
 		CAD001822D874E6F00FA977A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = DCBE89CB2D483FB90071F499 /* SyncUps */;
@@ -462,6 +599,130 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		CA1146BE2DF38D000054BA77 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CloudKitDemo/CloudKitDemo.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CloudKitDemo/Info.plist;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 2.5;
+			};
+			name = Debug;
+		};
+		CA1146BF2DF38D000054BA77 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CloudKitDemo/CloudKitDemo.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CloudKitDemo/Info.plist;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 2.5;
+			};
+			name = Release;
+		};
+		CA1146C02DF38D000054BA77 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitDemoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CloudKitDemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CloudKitDemo";
+				XROS_DEPLOYMENT_TARGET = 2.5;
+			};
+			name = Debug;
+		};
+		CA1146C12DF38D000054BA77 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitDemoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CloudKitDemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CloudKitDemo";
+				XROS_DEPLOYMENT_TARGET = 2.5;
+			};
+			name = Release;
+		};
 		CAD001832D874E6F00FA977A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -828,6 +1089,24 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CA1146C42DF38D000054BA77 /* Build configuration list for PBXNativeTarget "CloudKitDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA1146BE2DF38D000054BA77 /* Debug */,
+				CA1146BF2DF38D000054BA77 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CA1146C52DF38D000054BA77 /* Build configuration list for PBXNativeTarget "CloudKitDemoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA1146C02DF38D000054BA77 /* Debug */,
+				CA1146C12DF38D000054BA77 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CAD001852D874E6F00FA977A /* Build configuration list for PBXNativeTarget "SyncUpTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -912,6 +1191,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		CA1146C92DF38D1D0054BA77 /* SharingGRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SharingGRDB;
+		};
 		CA14DBC82DA884C400E36852 /* CasePaths */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
