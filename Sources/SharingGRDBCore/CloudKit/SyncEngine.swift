@@ -301,7 +301,9 @@ extension PrimaryKeyedTable {
   ) throws {
     let foreignKey =
       foreignKeysByTableName[Self.tableName]?.count(where: \.notnull) == 1
+    || foreignKeysByTableName[Self.tableName]?.count == 1
       ? foreignKeysByTableName[Self.tableName]?.first(where: \.notnull)
+    ?? foreignKeysByTableName[Self.tableName]?.first
       : nil
 
     try Metadata.createTriggers(for: Self.self, parentForeignKey: foreignKey, db: db)

@@ -8,39 +8,17 @@ struct CountersListView: View {
 
   init(parentCounter: Counter? = nil) {
     self.parentCounter = parentCounter
-    _counters = FetchAll(Counter.where { $0.parentCounterID.is(parentCounter?.id) })
+    _counters = FetchAll(
+      Counter
+        .where { $0.parentCounterID.is(parentCounter?.id) }
+        .order(by: \.name)
+    )
   }
 
   var body: some View {
     List {
       ForEach(counters) { counter in
-        HStack {
-          NavigationLink {
-            CountersListView(parentCounter: counter)
-          } label: {
-            Text("\(counter.count)")
-          }
-          Button("-") {
-            withErrorReporting {
-              try database.write { db in
-                try Counter.find(counter.id).update {
-                  $0.count -= 1
-                }
-                .execute(db)
-              }
-            }
-          }
-          Button("+") {
-            withErrorReporting {
-              try database.write { db in
-                try Counter.find(counter.id).update {
-                  $0.count += 1
-                }
-                .execute(db)
-              }
-            }
-          }
-        }
+        CounterRow(counter: counter)
         .buttonStyle(.borderless)
       }
       .onDelete { indexSet in
@@ -54,6 +32,7 @@ struct CountersListView: View {
         }
       }
     }
+    .navigationTitle(parentCounter?.name ?? "Root")
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
         Button("Add") {
@@ -64,6 +43,63 @@ struct CountersListView: View {
             }
           }
         }
+      }
+    }
+  }
+}
+
+struct CounterRow: View {
+  let counter: Counter
+  @State var editedName = ""
+  @FocusState var isFocused: Bool
+  @Dependency(\.defaultDatabase) var database
+  var body: some View {
+    HStack {
+      NavigationLink {
+        CountersListView(parentCounter: counter)
+      } label: {
+        HStack {
+          TextField("Name", text: $editedName)
+            .focused($isFocused)
+            .onSubmit { saveName() }
+            .onChange(of: isFocused) { saveName() }
+          Spacer()
+          Text("\(counter.count)")
+        }
+      }
+      Button("-") {
+        withErrorReporting {
+          try database.write { db in
+            try Counter.find(counter.id).update {
+              $0.count -= 1
+            }
+            .execute(db)
+          }
+        }
+      }
+      Button("+") {
+        withErrorReporting {
+          try database.write { db in
+            try Counter.find(counter.id).update {
+              $0.count += 1
+            }
+            .execute(db)
+          }
+        }
+      }
+    }
+    .onChange(of: counter.name, initial: true) {
+      editedName = counter.name
+    }
+  }
+
+  func saveName() {
+    withErrorReporting {
+      try database.write { db in
+        try Counter
+          .find(counter.id)
+          .update { $0.name = editedName }
+          .execute(db)
       }
     }
   }
