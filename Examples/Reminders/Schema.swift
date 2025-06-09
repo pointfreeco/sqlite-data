@@ -15,6 +15,13 @@ struct RemindersList: Hashable, Identifiable {
 }
 
 @Table
+struct RemindersListAsset: Hashable, Identifiable {
+  let id: UUID
+  var coverImage: Data?
+  let remindersListID: RemindersList.ID
+}
+
+@Table
 struct Reminder: Equatable, Identifiable {
   let id: UUID
   var dueDate: Date?
@@ -125,7 +132,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "remindersLists" (
-        "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99_ef00),
         "title" TEXT NOT NULL
       ) STRICT
@@ -134,8 +141,18 @@ func appDatabase() throws -> any DatabaseWriter {
     .execute(db)
     try #sql(
       """
+      CREATE TABLE "remindersListAssets" (
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "coverImage" BLOB,
+        "remindersListID" TEXT NOT NULL UNIQUE REFERENCES "remindersLists"("id") ON DELETE CASCADE
+      ) STRICT
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
       CREATE TABLE "reminders" (
-        "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "dueDate" TEXT,
         "isCompleted" INTEGER NOT NULL DEFAULT 0,
         "isFlagged" INTEGER NOT NULL DEFAULT 0,
@@ -152,7 +169,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "tags" (
-        "id" TEXT PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "title" TEXT NOT NULL COLLATE NOCASE
       ) STRICT
       """
@@ -161,7 +178,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "remindersTags" (
-        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "reminderID" TEXT NOT NULL,
         "tagID" TEXT NOT NULL,
 

@@ -2,17 +2,17 @@ import CloudKit
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 // @Table("\(String.sqliteDataCloudKitSchemaName)_metadata")
-package struct Metadata: Hashable {
-  package var recordType: String
-  package var recordName: String
-  package var zoneName: String
-  package var ownerName: String
-  package var parentRecordName: String?
+public struct Metadata: Hashable, Sendable {
+  public var recordType: String
+  public var recordName: String
+  public var zoneName: String
+  public var ownerName: String
+  public var parentRecordName: String?
   // @Column(as: CKRecord?.DataRepresentation.self)
-  package var lastKnownServerRecord: CKRecord?
+  public var lastKnownServerRecord: CKRecord?
   // @Column(as: CKShare?.ShareDataRepresentation.self)
-  package var share: CKShare?
-  package var userModificationDate: Date?
+  public var share: CKShare?
+  public var userModificationDate: Date?
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) extension Metadata: StructuredQueriesCore.Table {
@@ -67,4 +67,3 @@ package struct Metadata: Hashable {
     self.share = share
   }
 }
-

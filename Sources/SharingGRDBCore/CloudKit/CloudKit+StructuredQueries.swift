@@ -2,21 +2,36 @@ import CloudKit
 import CustomDump
 import StructuredQueriesCore
 
-extension CKRecord {
-  package struct DataRepresentation: QueryBindable, QueryRepresentable {
-    package let queryOutput: CKRecord
+//extension CKAsset {
+//  public struct DataRepresentation: QueryBindable, QueryRepresentable {
+//    public let queryOutput: CKAsset
+//    public var queryBinding: QueryBinding {
+//      fatalError()
+//    }
+//    public init(queryOutput: CKAsset) {
+//      self.queryOutput = queryOutput
+//    }
+//    public init(decoder: inout some QueryDecoder) throws {
+//      fatalError()
+//    }
+//  }
+//}
 
-    package var queryBinding: QueryBinding {
+extension CKRecord {
+  public struct DataRepresentation: QueryBindable, QueryRepresentable {
+    public let queryOutput: CKRecord
+
+    public var queryBinding: QueryBinding {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encodeSystemFields(with: archiver)
       return archiver.encodedData.queryBinding
     }
 
-    package init(queryOutput: CKRecord) {
+    public init(queryOutput: CKRecord) {
       self.queryOutput = queryOutput
     }
 
-    package init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       guard let data = try Data?(decoder: &decoder) else {
         throw QueryDecodingError.missingRequiredColumn
       }
@@ -33,20 +48,20 @@ extension CKRecord {
 }
 
 extension CKShare {
-  package struct ShareDataRepresentation: QueryBindable, QueryRepresentable {
-    package let queryOutput: CKShare
+  public struct ShareDataRepresentation: QueryBindable, QueryRepresentable {
+    public let queryOutput: CKShare
 
-    package var queryBinding: QueryBinding {
+    public var queryBinding: QueryBinding {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encodeSystemFields(with: archiver)
       return archiver.encodedData.queryBinding
     }
 
-    package init(queryOutput: CKShare) {
+    public init(queryOutput: CKShare) {
       self.queryOutput = queryOutput
     }
 
-    package init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       guard let data = try Data?(decoder: &decoder) else {
         throw QueryDecodingError.missingRequiredColumn
       }
@@ -60,11 +75,11 @@ extension CKShare {
 }
 
 extension CKRecord? {
-  package typealias DataRepresentation = CKRecord.DataRepresentation?
+  public typealias DataRepresentation = CKRecord.DataRepresentation?
 }
 
 extension CKShare? {
-  package typealias ShareDataRepresentation = CKShare.ShareDataRepresentation?
+  public typealias ShareDataRepresentation = CKShare.ShareDataRepresentation?
 }
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)

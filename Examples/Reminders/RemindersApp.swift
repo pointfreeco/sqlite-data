@@ -16,6 +16,7 @@ struct RemindersApp: App {
           database: $0.defaultDatabase,
           tables: [
             RemindersList.self,
+            RemindersListAsset.self,
             Reminder.self,
             Tag.self,
             ReminderTag.self,

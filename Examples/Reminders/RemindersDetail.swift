@@ -6,6 +6,7 @@ import SwiftUINavigation
 
 struct RemindersDetailView: View {
   @FetchAll private var reminderStates: [ReminderState]
+  @FetchOne private var coverImageData: Data?
   @AppStorage private var ordering: Ordering
   @AppStorage private var showCompleted: Bool
 
@@ -25,19 +26,19 @@ struct RemindersDetailView: View {
       "show_completed_list_\(detailType.id)"
     )
     _reminderStates = FetchAll(remindersQuery, animation: .default)
+    if let remindersListID = detailType.list?.id {
+      _coverImageData = FetchOne(
+        RemindersListAsset
+          .where { $0.remindersListID.eq(remindersListID) }
+          .select { #sql("\($0.coverImage)") }
+      )
+    }
   }
 
   var body: some View {
     List {
-      VStack(alignment: .leading) {
-        GeometryReader { proxy in
-          Text(detailType.navigationTitle)
-            .font(.system(.largeTitle, design: .rounded, weight: .bold))
-            .foregroundStyle(detailType.color)
-            .onAppear { navigationTitleHeight = proxy.size.height }
-        }
-      }
-      .listRowSeparator(.hidden)
+      header
+
       ForEach(reminderStates) { reminderState in
         ReminderRow(
           color: detailType.color,
@@ -141,6 +142,41 @@ struct RemindersDetailView: View {
           }
         }
       }
+    }
+  }
+
+  @ViewBuilder
+  var header: some View {
+    if let coverImageData, let image = UIImage(data: coverImageData) {
+      ZStack(alignment: .bottomLeading) {
+        Image(uiImage: image)
+          .resizable()
+          .scaledToFill()
+          .frame(height: 200)
+          .clipped()
+
+        GeometryReader { proxy in
+          Text(detailType.navigationTitle)
+            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+            .foregroundStyle(detailType.color)
+            .padding()
+            .background(Color.black.opacity(0.4))
+            .cornerRadius(10)
+            .padding()
+            .onAppear { navigationTitleHeight = proxy.size.height }
+        }
+      }
+      .listRowInsets(EdgeInsets())
+    } else {
+      VStack(alignment: .leading) {
+        GeometryReader { proxy in
+          Text(detailType.navigationTitle)
+            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+            .foregroundStyle(detailType.color)
+            .onAppear { navigationTitleHeight = proxy.size.height }
+        }
+      }
+      .listRowSeparator(.hidden)
     }
   }
 

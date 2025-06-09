@@ -52,7 +52,7 @@ public final class SyncEngine: Sendable {
       },
       database: database,
       logger: logger,
-      metadatabaseURL: URL.metadatabase(container: container),
+      metadatabaseURL: URL.metadatabase(containerIdentifier: container.containerIdentifier),
       tables: tables
     )
   }
@@ -301,9 +301,7 @@ extension PrimaryKeyedTable {
   ) throws {
     let foreignKey =
       foreignKeysByTableName[Self.tableName]?.count(where: \.notnull) == 1
-    || foreignKeysByTableName[Self.tableName]?.count == 1
       ? foreignKeysByTableName[Self.tableName]?.first(where: \.notnull)
-    ?? foreignKeysByTableName[Self.tableName]?.first
       : nil
 
     try Metadata.createTriggers(for: Self.self, parentForeignKey: foreignKey, db: db)
@@ -577,6 +575,7 @@ extension SyncEngine: CKSyncEngineDelegate {
                 try await self.cacheShare(share)
               }
             } else {
+              print(record)
               self.upsertFromServerRecord(record)
               self.refreshLastKnownServerRecord(record)
             }
@@ -882,9 +881,9 @@ extension String {
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
 extension URL {
-  fileprivate static func metadatabase(container: CKContainer) -> Self {
+  fileprivate static func metadatabase(containerIdentifier: String?) -> Self {
     applicationSupportDirectory.appending(
-      component: "\(container.containerIdentifier.map { "\($0)." } ?? "")sqlite-data-icloud.sqlite"
+      component: "\(containerIdentifier.map { "\($0)." } ?? "")sqlite-data-icloud.sqlite"
     )
   }
 }
@@ -916,5 +915,27 @@ struct SyncEngines {
       return nil
     }
     return _shared
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension Database {
+  public func attachMetadatabase(containerIdentifier: String) throws {
+    let url = URL.metadatabase(containerIdentifier: containerIdentifier)
+    let path = url.path(percentEncoded: false)
+    try FileManager.default.createDirectory(
+      at: .applicationSupportDirectory,
+      withIntermediateDirectories: true
+    )
+    _ = try DatabasePool(path: path).write { db in
+      try SQLQueryExpression("SELECT 1").execute(db)
+    }
+    // TODO: touch/create empty db.sqlite
+    try SQLQueryExpression(
+      """
+      ATTACH DATABASE \(bind: path) AS \(quote: .sqliteDataCloudKitSchemaName)
+      """
+    )
+    .execute(self)
   }
 }

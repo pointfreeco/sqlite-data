@@ -34,8 +34,7 @@ func defaultMetadatabase(
   #endif
   migrator.registerMigration("Create Metadata Tables") { db in
     // TODO: Should "recordName" be "collate no case"?
-    // TODO: should primary key be (recordType, recordName) so that we can use autoincrementing
-    //       UUIDs in tests?
+    // TODO: Should we have an index of "share" so that we can efficiently find non-nil rows?
     try SQLQueryExpression(
       """
       CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
@@ -57,6 +56,13 @@ func defaultMetadatabase(
       """
       CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_zoneName_ownerName"
       ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata" ("zoneName", "ownerName")
+      """
+    )
+    .execute(db)
+    try SQLQueryExpression(
+      """
+      CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_share"
+      ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("share")
       """
     )
     .execute(db)
