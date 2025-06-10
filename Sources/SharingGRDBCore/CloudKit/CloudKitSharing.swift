@@ -60,7 +60,13 @@ extension SyncEngine {
     {
       sharedRecord = existingShare
     } else {
-      sharedRecord = CKShare(rootRecord: rootRecord)
+      sharedRecord = CKShare(
+        rootRecord: rootRecord,
+        shareID: CKRecord.ID.init(
+          recordName: UUID().uuidString,
+          zoneID: rootRecord.recordID.zoneID
+        )
+      )
     }
 
     configure(sharedRecord)

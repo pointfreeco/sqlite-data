@@ -5,9 +5,9 @@ import SwiftUI
 struct RemindersListRow: View {
   let remindersCount: Int
   let remindersList: RemindersList
+  let share: CKShare?
 
   @State var editList: RemindersList?
-  @State var shareMessage: String?
 
   @Dependency(\.defaultDatabase) private var database
   @Dependency(\.defaultSyncEngine) private var syncEngine
@@ -57,31 +57,25 @@ struct RemindersListRow: View {
       }
       .presentationDetents([.medium])
     }
-    .task {
-      await withErrorReporting {
-        let share =
-          try await database.read { db in
-            try Metadata
-              .where { #sql("\($0.recordName) = \(remindersList.id)") }
-              .select(\.share)
-              .fetchOne(db)
-          } ?? nil
-        guard let share
-        else { return }
-        if share.owner == share.currentUserParticipant {
-          let participantNames = share.participants
-            .filter { $0 != share.currentUserParticipant }
-            .compactMap { $0.userIdentity.nameComponents?.formatted() }
-            .joined(separator: ", ")
-          if participantNames.count > 0 {
-            shareMessage = "Shared with \(participantNames)"
-          } else {
-            shareMessage = "Shared"
-          }
-        } else if let ownerName = share.owner.userIdentity.nameComponents?.formatted() {
-          shareMessage = "Shared from \(ownerName)"
-        }
+  }
+
+  var shareMessage: String? {
+    guard let share
+    else { return nil }
+    if share.owner == share.currentUserParticipant {
+      let participantNames = share.participants
+        .filter { $0 != share.currentUserParticipant }
+        .compactMap { $0.userIdentity.nameComponents?.formatted() }
+        .joined(separator: ", ")
+      if participantNames.count > 0 {
+        return "Shared with \(participantNames)"
+      } else {
+        return "Shared"
       }
+    } else if let ownerName = share.owner.userIdentity.nameComponents?.formatted() {
+      return "Shared from \(ownerName)"
+    } else {
+      return nil
     }
   }
 }
@@ -94,7 +88,8 @@ struct RemindersListRow: View {
         remindersList: RemindersList(
           id: UUID(1),
           title: "Personal"
-        )
+        ),
+        share: nil
       )
     }
   }

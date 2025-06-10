@@ -708,8 +708,15 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func deleteShare(recordID: CKRecord.ID, recordType: String) throws {
+    // TODO: more efficient way to do this?
     try metadatabase.write { db in
-      try Metadata.find(recordID: recordID)
+      let metadata = try Metadata
+        .where { $0.share.isNot(nil) }
+        .fetchAll(db)
+        .first(where: { $0.share?.recordID == recordID }) ?? nil
+      guard let metadata
+      else { return }
+      try Metadata.find(metadata.recordName)
         .update { $0.share = nil }
         .execute(db)
     }
