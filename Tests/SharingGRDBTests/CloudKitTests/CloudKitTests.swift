@@ -103,7 +103,7 @@ extension BaseCloudKitTests {
 
       let metadata =
         try await database.write { db in
-          try Metadata.find(recordID: record.recordID).fetchOne(db)
+          try Metadata.find(UUID(1)).fetchOne(db)
         }
       #expect(metadata != nil)
     }
@@ -153,7 +153,7 @@ extension BaseCloudKitTests {
     @Test func insertUpdateDelete() throws {
       try database.write { db in
         try RemindersList
-          .insert(RemindersList(id: UUID(1), title: "Personal"))
+          .insert { RemindersList(id: UUID(1), title: "Personal") }
           .execute(db)
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
@@ -196,7 +196,7 @@ extension BaseCloudKitTests {
       )
       let userModificationDate = try #require(
         try await database.write { db in
-          try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(db) ?? nil
+          try Metadata.find(UUID(1)).select(\.userModificationDate).fetchOne(db) ?? nil
         }
       )
 
@@ -213,7 +213,7 @@ extension BaseCloudKitTests {
 
       let metadata = try #require(
         try await database.write { db in
-          try Metadata.find(recordID: record.recordID).fetchOne(db)
+          try Metadata.find(UUID(1)).fetchOne(db)
         }
       )
       // TODO: Control dates in SQLite in order to get consistent passing on float comparison
@@ -237,7 +237,7 @@ extension BaseCloudKitTests {
       let userModificationDate = try #require(
         try await database.write { db in
           try Metadata
-            .find(recordID: record.recordID)
+            .find(UUID(1))
             .select(\.userModificationDate)
             .fetchOne(db) ?? nil
         }
@@ -256,7 +256,7 @@ extension BaseCloudKitTests {
 
       let metadata = try #require(
         try await database.write { db in
-          try Metadata.find(recordID: record.recordID).fetchOne(db)
+          try Metadata.find(UUID(1)).fetchOne(db)
         }
       )
       #expect(metadata.userModificationDate == userModificationDate)
@@ -286,7 +286,7 @@ extension BaseCloudKitTests {
           == 0
       )
       let metadata = try await database.write { db in
-        try Metadata.find(recordID: record.recordID).fetchOne(db)
+        try Metadata.find(UUID(1)).fetchOne(db)
       }
       #expect(metadata == nil)
     }

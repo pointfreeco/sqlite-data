@@ -26,7 +26,7 @@ extension BaseCloudKitTests {
       try database.write { db in
         let reminderMetadata = try #require(
           try Metadata
-            .find(recordID: CKRecord.ID(UUID(3)))
+            .find(UUID(3))
             .fetchOne(db)
         )
         #expect(reminderMetadata.parentRecordName == UUID(1).uuidString)
@@ -40,7 +40,7 @@ extension BaseCloudKitTests {
       try database.write { db in
         let reminderMetadata = try #require(
           try Metadata
-            .find(recordID: CKRecord.ID(UUID(3)))
+            .find(UUID(3))
             .fetchOne(db)
         )
         #expect(reminderMetadata.parentRecordName == UUID(2).uuidString)

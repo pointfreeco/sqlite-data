@@ -11,8 +11,8 @@ public final class SyncEngine: Sendable {
   let database: any DatabaseWriter
   let logger: Logger
   let metadatabase: any DatabaseWriter
-  let tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
-  let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable.Type]
+  let tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
+  let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
   let foreignKeysByTableName: [String: [ForeignKey]]
   let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
   let defaultSyncEngines:
@@ -24,7 +24,7 @@ public final class SyncEngine: Sendable {
     container: CKContainer,
     database: any DatabaseWriter,
     logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit"),
-    tables: [any PrimaryKeyedTable.Type]
+    tables: [any PrimaryKeyedTable<UUID>.Type]
   ) throws {
     try self.init(
       container: container,
@@ -62,7 +62,7 @@ public final class SyncEngine: Sendable {
     sharedSyncEngine: any SyncEngineProtocol,
     database: any DatabaseWriter,
     metadatabaseURL: URL,
-    tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
+    tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
   ) throws {
     try self.init(
       defaultSyncEngines: { _, _ in (privateSyncEngine, sharedSyncEngine) },
@@ -82,7 +82,7 @@ public final class SyncEngine: Sendable {
     database: any DatabaseWriter,
     logger: Logger,
     metadatabaseURL: URL,
-    tables: [any StructuredQueriesCore.PrimaryKeyedTable.Type]
+    tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
   ) throws {
     // TODO: Explain why / link to documentation?
     precondition(
@@ -108,11 +108,11 @@ public final class SyncEngine: Sendable {
         }
       }
     )
-    Task {
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await setUpSyncEngine()
-      }
-    }
+    try setUpSyncEngine(
+      database: database,
+      metadatabase: metadatabase,
+      shouldFetchChanges: true
+    )
   }
 
   var container: CKContainer {
@@ -120,8 +120,22 @@ public final class SyncEngine: Sendable {
   }
 
   package func setUpSyncEngine() async throws {
-    // TODO: SHould we wrap these database calls in `{ … }()` to avoid await?
-    try await database.write { db in
+    try setUpSyncEngine(
+      database: database,
+      metadatabase: metadatabase,
+      shouldFetchChanges: false
+    )
+    await withErrorReporting(.sqliteDataCloudKitFailure) {
+      try await fetchChanges()
+    }
+  }
+
+  nonisolated func setUpSyncEngine(
+    database: any DatabaseWriter,
+    metadatabase: any DatabaseWriter,
+    shouldFetchChanges: Bool
+  ) throws {
+    try database.write { db in
       let hasAttachedMetadatabase: Bool =
         try SQLQueryExpression(
           """
@@ -160,16 +174,10 @@ public final class SyncEngine: Sendable {
         shared: sharedSyncEngine
       )
     }
-
-    /*
-     TODO: When we detect a change in schema should save records?
-     TODO: Should we save records for everything in a table that is not in metadata?
-    */
-
-    let previousRecordTypes = try await metadatabase.read { db in
+    let previousRecordTypes = try metadatabase.read { db in
       try RecordType.all.fetchAll(db)
     }
-    let currentRecordTypes = try await database.read { db in
+    let currentRecordTypes = try database.read { db in
       try SQLQueryExpression(
         """
         SELECT "name", "sql" 
@@ -189,9 +197,15 @@ public final class SyncEngine: Sendable {
       else { return true }
       return existingRecordType.schema != currentRecordType.schema
     }
+
+    /*
+     TODO: When we detect a change in schema should save records?
+     TODO: Should we save records for everything in a table that is not in metadata?
+     */
+
     if !recordTypesToFetch.isEmpty {
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await metadatabase.write { db in
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        try metadatabase.write { db in
           for recordType in recordTypesToFetch {
             try RecordType
               .upsert { RecordType.Draft(recordType) }
@@ -199,8 +213,12 @@ public final class SyncEngine: Sendable {
           }
         }
       }
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await fetchChanges()
+      if shouldFetchChanges {
+        Task {
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await fetchChanges()
+          }
+        }
       }
     }
   }
@@ -253,7 +271,11 @@ public final class SyncEngine: Sendable {
         }
       }
     }
-    try await setUpSyncEngine()
+    try setUpSyncEngine(
+      database: database,
+      metadatabase: metadatabase,
+      shouldFetchChanges: true
+    )
   }
 
   func didUpdate(recordName: String, zoneName: String, ownerName: String) {
@@ -442,7 +464,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         missingTable = recordID
         return nil
       }
-      func open<T: PrimaryKeyedTable>(_: T.Type) async -> CKRecord? {
+      func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) async -> CKRecord? {
         let row =
           withErrorReporting {
             try database.read { db in
@@ -494,9 +516,9 @@ extension SyncEngine: CKSyncEngineDelegate {
       for table in tables {
         withErrorReporting(.sqliteDataCloudKitFailure) {
           let names = try database.read { db in
-            func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String] {
+            func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws -> [UUID] {
               try T
-                .select { SQLQueryExpression("\($0.primaryKey)", as: String.self) }
+                .select(\.primaryKey)
                 .fetchAll(db)
             }
             return try open(table)
@@ -506,7 +528,7 @@ extension SyncEngine: CKSyncEngineDelegate {
               pendingRecordZoneChanges: names.map {
                 .saveRecord(
                   CKRecord.ID(
-                    recordName: $0,
+                    recordName: $0.uuidString,
                     zoneID: Self.defaultZone.zoneID
                   )
                 )
@@ -582,7 +604,7 @@ extension SyncEngine: CKSyncEngineDelegate {
 
       for (recordID, recordType) in deletions {
         if let table = tablesByName[recordType] {
-          func open<T: PrimaryKeyedTable>(_: T.Type) {
+          func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try database.write { db in
                 try T.find(recordID: recordID)

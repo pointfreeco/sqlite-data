@@ -93,7 +93,9 @@ extension CKRecord {
         switch value.queryBinding {
         case .blob(let value):
           let blobURL = URL.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).data")
-          try? Data(value).write(to: blobURL)
+          withErrorReporting {
+            try Data(value).write(to: blobURL)
+          }
           self[column.name] = CKAsset(fileURL: blobURL)
         case .double(let value):
           encryptedValues[column.name] = value
@@ -124,26 +126,32 @@ extension CKRecord {
     "\(String.sqliteDataCloudKitSchemaName)_userModificationDate"
 }
 
-extension PrimaryKeyedTable {
+extension PrimaryKeyedTable where TableColumns.PrimaryKey == UUID {
   static func find(recordID: CKRecord.ID) -> Where<Self> {
-    Self.where {
-      SQLQueryExpression("\($0.primaryKey) = \(bind: recordID.recordName)")
+    let recordName = UUID(uuidString: recordID.recordName)
+    if recordName == nil {
+      reportIssue("""
+        'recordName' ("\(recordID.recordName)") must be a UUID.
+        """)
+    }
+    return Self.where {
+      $0.primaryKey.eq(recordName ?? UUID())
     }
   }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Metadata {
-  package static func find(recordID: CKRecord.ID) -> Where<Self> {
-    Self.where {
-      $0.recordName.eq(recordID.recordName)
-    }
-  }
-
   init(record: CKRecord) {
+    let recordName = UUID(uuidString: record.recordID.recordName)
+    if recordName == nil {
+      reportIssue("""
+        'recordName' ("\(record.recordID.recordName)") must be a UUID.
+        """)
+    }
     self.init(
       recordType: record.recordType,
-      recordName: record.recordID.recordName,
+      recordName: recordName ?? UUID(),
       zoneName: record.recordID.zoneID.zoneName,
       ownerName: record.recordID.zoneID.ownerName,
       lastKnownServerRecord: record,

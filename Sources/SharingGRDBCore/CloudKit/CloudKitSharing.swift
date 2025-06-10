@@ -27,11 +27,11 @@ extension SyncEngine {
       throw CantShareRecordWithParent()
     }
 
-    let recordName = record[keyPath: T.columns.primaryKey.keyPath].uuidString.lowercased()
+    let recordName = record[keyPath: T.columns.primaryKey.keyPath]
     let metadata =
       try await metadatabase.read { db in
         try Metadata
-          .find(recordID: CKRecord.ID(recordName: recordName))
+          .find(recordName)
           .fetchOne(db)
       } ?? nil
 
@@ -45,7 +45,7 @@ extension SyncEngine {
       ?? CKRecord(
         recordType: metadata.recordType,
         recordID: CKRecord.ID(
-          recordName: metadata.recordName,
+          recordName: metadata.recordName.uuidString,
           zoneID: CKRecordZone.ID(
             zoneName: metadata.zoneName,
             ownerName: metadata.ownerName
@@ -72,7 +72,7 @@ extension SyncEngine {
     )
     try await database.write { db in
       try Metadata
-        .find(recordID: CKRecord.ID(recordName: recordName))
+        .find(recordName)
         .update { $0.share = sharedRecord }
         .execute(db)
     }
