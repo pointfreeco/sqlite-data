@@ -15,6 +15,7 @@ struct RemindersDetailView: View {
   @State var isNavigationTitleVisible = false
   @State var navigationTitleHeight: CGFloat = 36
   @State var sharedRecord: SharedRecord?
+  @State var remindersListForm: RemindersList.Draft?
 
   @Dependency(\.defaultDatabase) private var database
 
@@ -54,11 +55,11 @@ struct RemindersDetailView: View {
         move(from: indexSet, to: index)
       }
     }
-//    .onScrollGeometryChange(for: Bool.self) { geometry in
-//      geometry.contentOffset.y + geometry.contentInsets.top > navigationTitleHeight
-//    } action: {
-//      isNavigationTitleVisible = $1
-//    }
+    .onScrollGeometryChange(for: Bool.self) { geometry in
+      geometry.contentOffset.y + geometry.contentInsets.top > navigationTitleHeight
+    } action: {
+      isNavigationTitleVisible = $1
+    }
     .listStyle(.plain)
     .sheet(isPresented: $isNewReminderSheetPresented) {
       if let remindersList = detailType.list {
@@ -73,14 +74,14 @@ struct RemindersDetailView: View {
         try await updateQuery()
       }
     }
-//    .toolbar {
-//      ToolbarItem(placement: .principal) {
-//        Text(detailType.navigationTitle)
-//          .font(.headline)
-//          .opacity(isNavigationTitleVisible ? 1 : 0)
-//          .animation(.default.speed(2), value: isNavigationTitleVisible)
-//      }
-//    }
+    .toolbar {
+      ToolbarItem(placement: .principal) {
+        Text(detailType.navigationTitle)
+          .font(.headline)
+          .opacity(isNavigationTitleVisible ? 1 : 0)
+          .animation(.default.speed(2), value: isNavigationTitleVisible)
+      }
+    }
     .toolbarTitleDisplayMode(.inline)
     .toolbar {
       if detailType.is(\.list) {
@@ -104,6 +105,14 @@ struct RemindersDetailView: View {
       ToolbarItem(placement: .primaryAction) {
         Menu {
           Group {
+            if case .list(let remindersList) = detailType {
+              Button {
+                remindersListForm = RemindersList.Draft(remindersList)
+              } label: {
+                Text("Show List Info")
+                Image(systemName: "info.circle")
+              }
+            }
             Menu {
               ForEach(Ordering.allCases, id: \.self) { ordering in
                 Button {
@@ -143,16 +152,23 @@ struct RemindersDetailView: View {
         }
       }
     }
+    .sheet(item: $remindersListForm) { remindersListDraft in
+      NavigationStack {
+        RemindersListForm(existingList: remindersListDraft)
+      }
+      .presentationDetents([.medium])
+      .navigationTitle("Edit reminder")
+    }
   }
 
   @ViewBuilder
   var header: some View {
     if let coverImageData, let image = UIImage(data: coverImageData) {
-      ZStack(alignment: .bottomLeading) {
+      ZStack {
         Image(uiImage: image)
           .resizable()
           .scaledToFill()
-          .frame(height: 200)
+          .frame(maxHeight: 200)
           .clipped()
 
         GeometryReader { proxy in
@@ -160,7 +176,7 @@ struct RemindersDetailView: View {
             .font(.system(.largeTitle, design: .rounded, weight: .bold))
             .foregroundStyle(detailType.color)
             .padding()
-            .background(Color.black.opacity(0.4))
+            .background(Color.black.opacity(0.6))
             .cornerRadius(10)
             .padding()
             .onAppear { navigationTitleHeight = proxy.size.height }

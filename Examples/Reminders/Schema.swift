@@ -14,6 +14,8 @@ struct RemindersList: Hashable, Identifiable {
   var title = ""
 }
 
+extension RemindersList.Draft: Identifiable {}
+
 @Table
 struct RemindersListAsset: Hashable, Identifiable {
   let id: UUID

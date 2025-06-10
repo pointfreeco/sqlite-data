@@ -2,21 +2,6 @@ import CloudKit
 import CustomDump
 import StructuredQueriesCore
 
-//extension CKAsset {
-//  public struct DataRepresentation: QueryBindable, QueryRepresentable {
-//    public let queryOutput: CKAsset
-//    public var queryBinding: QueryBinding {
-//      fatalError()
-//    }
-//    public init(queryOutput: CKAsset) {
-//      self.queryOutput = queryOutput
-//    }
-//    public init(decoder: inout some QueryDecoder) throws {
-//      fatalError()
-//    }
-//  }
-//}
-
 extension CKRecord {
   public struct DataRepresentation: QueryBindable, QueryRepresentable {
     public let queryOutput: CKRecord
