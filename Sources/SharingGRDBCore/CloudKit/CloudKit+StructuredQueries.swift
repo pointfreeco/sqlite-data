@@ -92,7 +92,9 @@ extension CKRecord {
         let value = Value(queryOutput: row[keyPath: column.keyPath])
         switch value.queryBinding {
         case .blob(let value):
-          encryptedValues[column.name] = Data(value)
+          let blobURL = URL.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).data")
+          try? Data(value).write(to: blobURL)
+          self[column.name] = CKAsset(fileURL: blobURL)
         case .double(let value):
           encryptedValues[column.name] = value
         case .date(let value):

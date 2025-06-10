@@ -86,12 +86,11 @@ struct RemindersListForm: View {
                   reportIssue("No 'remindersListID'")
                   return
                 }
-                let remindersListAsset = RemindersListAsset.Draft(
-                  coverImage: coverImageData,
-                  remindersListID: remindersListID
-                )
                 try RemindersListAsset.insert {
-                  remindersListAsset
+                  RemindersListAsset.Draft(
+                    coverImage: coverImageData,
+                    remindersListID: remindersListID
+                  )
                 } onConflict: {
                   $0.remindersListID
                 } doUpdate: {

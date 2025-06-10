@@ -132,7 +132,7 @@ struct CounterRow: View {
         Button {
           Task {
             await withErrorReporting {
-              sharedRecord = try await syncEngine.createShare(record: counter) { share in
+              sharedRecord = try await syncEngine.share(record: counter) { share in
                 share[CKShare.SystemFieldKey.title] = "Join my counter!"
               }
             }

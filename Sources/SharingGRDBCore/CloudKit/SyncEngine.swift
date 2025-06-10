@@ -193,7 +193,9 @@ public final class SyncEngine: Sendable {
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await metadatabase.write { db in
           for recordType in recordTypesToFetch {
-            try RecordType.upsert(RecordType.Draft(recordType)).execute(db)
+            try RecordType
+              .upsert { RecordType.Draft(recordType) }
+              .execute(db)
           }
         }
       }
@@ -528,12 +530,12 @@ extension SyncEngine: CKSyncEngineDelegate {
   ) {
     withErrorReporting(.sqliteDataCloudKitFailure) {
       try database.write { db in
-        try StateSerialization.upsert(
+        try StateSerialization.upsert {
           StateSerialization.Draft(
             scope: syncEngine.database.databaseScope,
             data: event.stateSerialization
           )
-        )
+        }
         .execute(db)
       }
     }
@@ -567,19 +569,14 @@ extension SyncEngine: CKSyncEngineDelegate {
     deletions: [(CKRecord.ID, CKRecord.RecordType)]
   ) async {
     await $isUpdatingWithServerRecord.withValue(true) {
-      await withTaskGroup { group in
-        for record in modifications {
-          group.addTask {
-            if let share = record as? CKShare {
-              await withErrorReporting {
-                try await self.cacheShare(share)
-              }
-            } else {
-              print(record)
-              self.upsertFromServerRecord(record)
-              self.refreshLastKnownServerRecord(record)
-            }
+      for record in modifications {
+        if let share = record as? CKShare {
+          await withErrorReporting {
+            try await self.cacheShare(share)
           }
+        } else {
+          self.upsertFromServerRecord(record)
+          self.refreshLastKnownServerRecord(record)
         }
       }
 
@@ -739,7 +736,12 @@ extension SyncEngine: CKSyncEngineDelegate {
             query.append(
               columnNames
                 .map { columnName in
-                  encryptedValues[columnName]?.queryFragment ?? "NULL"
+                  if let asset = record[columnName] as? CKAsset {
+                    return (try? asset.fileURL.map { try Data(contentsOf: $0) })?
+                      .queryFragment ?? "NULL"
+                  } else {
+                    return encryptedValues[columnName]?.queryFragment ?? "NULL"
+                  }
                 }
                 .joined(separator: ", ")
             )
@@ -759,7 +761,9 @@ extension SyncEngine: CKSyncEngineDelegate {
             try database.write { db in
               try SQLQueryExpression(query).execute(db)
               try Metadata
-                .insert(Metadata(record: record)) {
+                .insert {
+                  Metadata(record: record)
+                } onConflictDoUpdate: {
                   $0.lastKnownServerRecord = record
                   $0.userModificationDate = record.userModificationDate
                 }
@@ -930,7 +934,6 @@ extension Database {
     _ = try DatabasePool(path: path).write { db in
       try SQLQueryExpression("SELECT 1").execute(db)
     }
-    // TODO: touch/create empty db.sqlite
     try SQLQueryExpression(
       """
       ATTACH DATABASE \(bind: path) AS \(quote: .sqliteDataCloudKitSchemaName)

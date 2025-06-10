@@ -100,7 +100,7 @@ func appDatabase() throws -> any DatabaseWriter {
   configuration.foreignKeysEnabled = context != .live
   configuration.prepareDatabase { db in
     #if DEBUG
-      //db.attachMetadatabase()
+    try db.attachMetadatabase(containerIdentifier: "iCloud.co.pointfree.sharing-grdb.Reminders")
       db.trace(options: .profile) {
         if context == .preview {
           print("\($0.expandedDescription)")

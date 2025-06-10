@@ -15,4 +15,10 @@ extension CKContainer {
       add(operation)
     }
   }
+
+  func database(for recordID: CKRecord.ID) -> CKDatabase {
+    recordID.zoneID.ownerName == CKCurrentUserDefaultName
+    ? privateCloudDatabase
+    : sharedCloudDatabase
+  }
 }

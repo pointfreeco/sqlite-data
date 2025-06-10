@@ -184,7 +184,7 @@ struct RemindersDetailView: View {
   private func shareButtonTapped(remindersList: RemindersList) {
     Task {
       await withErrorReporting {
-        sharedRecord = try await syncEngine.createShare(record: remindersList) {
+        sharedRecord = try await syncEngine.share(record: remindersList) {
           $0[CKShare.SystemFieldKey.title] = remindersList.title as CKRecordValue
         }
       }

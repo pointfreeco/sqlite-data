@@ -7,7 +7,7 @@ struct RemindersListRow: View {
   let remindersList: RemindersList
 
   @State var editList: RemindersList?
-  @State var participantNames: String?
+  @State var shareMessage: String?
 
   @Dependency(\.defaultDatabase) private var database
   @Dependency(\.defaultSyncEngine) private var syncEngine
@@ -22,8 +22,8 @@ struct RemindersListRow: View {
         )
       VStack(alignment: .leading, spacing: 4) {
         Text(remindersList.title)
-        if let participantNames {
-          Text("Shared with \(participantNames)")
+        if let shareMessage {
+          Text(shareMessage)
             .font(.footnote)
             .foregroundStyle(Color.secondary)
         }
@@ -59,12 +59,28 @@ struct RemindersListRow: View {
     }
     .task {
       await withErrorReporting {
-        guard let share = try await syncEngine.share(for: remindersList)
+        let share =
+          try await database.read { db in
+            try Metadata
+              .where { #sql("\($0.recordName) = \(remindersList.id)") }
+              .select(\.share)
+              .fetchOne(db)
+          } ?? nil
+        guard let share
         else { return }
-        participantNames = share.participants
-          .filter { $0 != share.currentUserParticipant }
-          .compactMap { $0.userIdentity.nameComponents?.formatted() }
-          .joined(separator: ", ")
+        if share.owner == share.currentUserParticipant {
+          let participantNames = share.participants
+            .filter { $0 != share.currentUserParticipant }
+            .compactMap { $0.userIdentity.nameComponents?.formatted() }
+            .joined(separator: ", ")
+          if participantNames.count > 0 {
+            shareMessage = "Shared with \(participantNames)"
+          } else {
+            shareMessage = "Shared"
+          }
+        } else if let ownerName = share.owner.userIdentity.nameComponents?.formatted() {
+          shareMessage = "Shared from \(ownerName)"
+        }
       }
     }
   }

@@ -17,61 +17,7 @@ extension SyncEngine {
   public struct CantShareRecordWithParent: Error {}
   public struct NoCKRecordFound: Error {}
 
-  // TODO: beef up to take query and bundle into @Selection?
-  //  public func records<T: PrimaryKeyedTable>(for _: T.Type) async throws -> [CKRecord] {
-  //    []
-  //  }
-
-  public func record<T: PrimaryKeyedTable>(for record: T) async throws -> CKRecord? {
-    let lastKnownServerRecord = try await metadatabase.read { db in
-      try Metadata
-        .where { $0.recordType.eq(T.tableName) }
-        .select(\.lastKnownServerRecord)
-        .fetchOne(db) ?? nil
-    }
-
-    guard let lastKnownServerRecord
-    else { return nil }
-    // TODO: Add logic to determine privateCloudDatabase vs sharedCloudDatabase
-    return try await container.privateCloudDatabase.record(for: lastKnownServerRecord.recordID)
-  }
-
-  public func shares<T: PrimaryKeyedTable>(for _: T.Type) throws -> [CKShare] {
-    try metadatabase.read { db in
-      try Metadata
-        .where { $0.recordType.eq(T.tableName) }
-        .select(\.share)
-        .fetchAll(db)
-        .compactMap(\.self)
-    }
-  }
-
   public func share<T: PrimaryKeyedTable>(
-    for record: T
-  ) async throws -> CKShare?
-  where T.TableColumns.PrimaryKey == UUID {
-    let primaryKey = record[keyPath: T.columns.primaryKey.keyPath]
-    let share = try await metadatabase.read { db in
-      try Metadata
-        .where {
-          $0.recordName.eq(primaryKey.uuidString.lowercased())
-            && $0.recordType.eq(T.tableName)
-        }
-        .select(\.share)
-        .fetchOne(db) ?? nil
-    }
-    guard let share
-    else { return nil }
-    // TODO: If we feel confident that our CKShares are always up to date, let's not even refresh
-    // TODO: figure out if this share belongs to us or someone else so that we can choose between privateCloudDatabase and sharedCloudDatabase
-    //    TODO: figure out how to expose private/shared database to outside world
-    return (try await container.privateCloudDatabase.record(for: share.recordID) as? CKShare)
-      ?? share
-  }
-
-  // TODO: upsertShare / share.
-  //       share(record:) is very similar to share(for:)
-  public func createShare<T: PrimaryKeyedTable>(
     record: T,
     configure: @Sendable (CKShare) -> Void
   ) async throws -> SharedRecord
@@ -109,8 +55,8 @@ extension SyncEngine {
 
     let sharedRecord: CKShare
     if let shareRecordID = rootRecord.share?.recordID,
-      let existingShare = try await container.privateCloudDatabase.record(for: shareRecordID)
-        as? CKShare
+      let existingShare = try await container.database(for: rootRecord.recordID)
+        .record(for: shareRecordID) as? CKShare
     {
       sharedRecord = existingShare
     } else {
@@ -141,8 +87,6 @@ extension SyncEngine {
   }
 }
 
-// TODO: what kind of APIs do we need to expose for people to query for shared info? participants
-
 #if canImport(UIKit)
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public struct CloudSharingView: UIViewControllerRepresentable {
@@ -150,7 +94,7 @@ extension SyncEngine {
     let didFinish: (Result<Void, Error>) -> Void
     let didStopSharing: () -> Void
     public init(sharedRecord: SharedRecord) {
-      self.init(sharedRecord: sharedRecord, didFinish: { _ in }, didStopSharing: { })
+      self.init(sharedRecord: sharedRecord, didFinish: { _ in }, didStopSharing: {})
     }
     public init(
       sharedRecord: SharedRecord,
