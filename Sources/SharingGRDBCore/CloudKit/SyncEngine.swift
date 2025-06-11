@@ -155,8 +155,6 @@ public final class SyncEngine: Sendable {
         .execute(db)
       }
       db.add(function: .isUpdatingWithServerRecord)
-      db.add(function: .getZoneName)
-      db.add(function: .getOwnerName)
       db.add(function: .didUpdate(syncEngine: self))
       db.add(function: .willDelete(syncEngine: self))
 
@@ -234,8 +232,6 @@ public final class SyncEngine: Sendable {
       }
       db.remove(function: .willDelete(syncEngine: self))
       db.remove(function: .didUpdate(syncEngine: self))
-      db.remove(function: .getOwnerName)
-      db.remove(function: .getZoneName)
       db.remove(function: .isUpdatingWithServerRecord)
     }
     try await metadatabase.write { db in
@@ -312,13 +308,14 @@ public final class SyncEngine: Sendable {
   }
 
   private func zoneID(for recordName: String) -> CKRecordZone.ID {
-    let metadata = withErrorReporting {
-      try metadatabase.read { db in
-        try Metadata
-          .find(UUID(uuidString: recordName)!)
-          .fetchOne(db)
-      }
-    } ?? nil
+    let metadata =
+      withErrorReporting {
+        try metadatabase.read { db in
+          try Metadata
+            .find(UUID(uuidString: recordName)!)
+            .fetchOne(db)
+        }
+      } ?? nil
     return metadata?.lastKnownServerRecord?.recordID.zoneID ?? Self.defaultZone.zoneID
   }
 }
@@ -702,12 +699,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     let metadata = try await self.container.shareMetadata(for: url, shouldFetchRootRecord: true)
 
     guard let rootRecord = metadata.rootRecord
-    else {
-      syncEngines
-        .withValue(\.private)?.state
-        .remove(pendingRecordZoneChanges: [.deleteRecord(share.recordID)])
-      return
-    }
+    else { return }
 
     try await database.write { db in
       try Metadata
@@ -720,7 +712,8 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func deleteShare(recordID: CKRecord.ID, recordType: String) throws {
     // TODO: more efficient way to do this?
     try metadatabase.write { db in
-      let metadata = try Metadata
+      let metadata =
+        try Metadata
         .where { $0.share.isNot(nil) }
         .fetchAll(db)
         .first(where: { $0.share?.recordID == recordID }) ?? nil
@@ -734,110 +727,106 @@ extension SyncEngine: CKSyncEngineDelegate {
 
   private func upsertFromServerRecord(_ record: CKRecord) {
     $isUpdatingWithServerRecord.withValue(true) {
-      $currentZoneID.withValue(record.recordID.zoneID) {
-        withErrorReporting(.sqliteDataCloudKitFailure) {
-          let userModificationDate =
-            try metadatabase.read { db in
-              try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(
-                db
-              )
-            }
-            ?? nil
-          guard let table = tablesByName[record.recordType]
-          else {
-            reportIssue(
-              .sqliteDataCloudKitFailure.appending(
-                """
-                : No table to merge from: "\(record.recordType)"
-                """
-              )
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        let userModificationDate =
+          try metadatabase.read { db in
+            try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(
+              db
             )
-            return
           }
-          guard
-            let userModificationDate,
-            userModificationDate > record.userModificationDate ?? .distantPast
-          else {
-            let columnNames = try database.read { db in
-              try SQLQueryExpression(
-                """
-                SELECT "name" 
-                FROM pragma_table_info(\(bind: table.tableName))    
-                """,
-                as: String.self
-              )
-              .fetchAll(db)
-            }
-            var query: QueryFragment = "INSERT INTO \(table) ("
-            query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
-            query.append(") VALUES (")
-            let encryptedValues = record.encryptedValues
-            query.append(
-              columnNames
-                .map { columnName in
-                  if let asset = record[columnName] as? CKAsset {
-                    return (try? asset.fileURL.map { try Data(contentsOf: $0) })?
-                      .queryFragment ?? "NULL"
-                  } else {
-                    return encryptedValues[columnName]?.queryFragment ?? "NULL"
-                  }
-                }
-                .joined(separator: ", ")
+          ?? nil
+        guard let table = tablesByName[record.recordType]
+        else {
+          reportIssue(
+            .sqliteDataCloudKitFailure.appending(
+              """
+              : No table to merge from: "\(record.recordType)"
+              """
             )
-            func open<T: PrimaryKeyedTable>(_: T.Type) {
-              query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET")
-            }
-            open(table)
-            query.append(
-              columnNames
-                .map {
-                  """
-                  \(quote: $0) = "excluded".\(quote: $0)
-                  """
-                }
-                .joined(separator: ",")
+          )
+          return
+        }
+        guard
+          let userModificationDate,
+          userModificationDate > record.userModificationDate ?? .distantPast
+        else {
+          let columnNames = try database.read { db in
+            try SQLQueryExpression(
+              """
+              SELECT "name" 
+              FROM pragma_table_info(\(bind: table.tableName))    
+              """,
+              as: String.self
             )
-            try database.write { db in
-              try SQLQueryExpression(query).execute(db)
-              try Metadata
-                .insert {
-                  Metadata(record: record)
-                } onConflictDoUpdate: {
-                  $0.lastKnownServerRecord = record
-                  $0.userModificationDate = record.userModificationDate
-                }
-                .execute(db)
-            }
-            return
+            .fetchAll(db)
           }
+          var query: QueryFragment = "INSERT INTO \(table) ("
+          query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+          query.append(") VALUES (")
+          let encryptedValues = record.encryptedValues
+          query.append(
+            columnNames
+              .map { columnName in
+                if let asset = record[columnName] as? CKAsset {
+                  return (try? asset.fileURL.map { try Data(contentsOf: $0) })?
+                    .queryFragment ?? "NULL"
+                } else {
+                  return encryptedValues[columnName]?.queryFragment ?? "NULL"
+                }
+              }
+              .joined(separator: ", ")
+          )
+          func open<T: PrimaryKeyedTable>(_: T.Type) {
+            query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET")
+          }
+          open(table)
+          query.append(
+            columnNames
+              .map {
+                """
+                \(quote: $0) = "excluded".\(quote: $0)
+                """
+              }
+              .joined(separator: ",")
+          )
+          try database.write { db in
+            try SQLQueryExpression(query).execute(db)
+            try Metadata
+              .insert {
+                Metadata(record: record)
+              } onConflictDoUpdate: {
+                $0.lastKnownServerRecord = record
+                $0.userModificationDate = record.userModificationDate
+              }
+              .execute(db)
+          }
+          return
         }
       }
     }
   }
 
   private func refreshLastKnownServerRecord(_ record: CKRecord) {
-    $currentZoneID.withValue(record.recordID.zoneID) {
-      $isUpdatingWithServerRecord.withValue(true) {
-        let metadata = metadataFor(recordID: record.recordID)
-
-        func updateLastKnownServerRecord() {
-          withErrorReporting(.sqliteDataCloudKitFailure) {
-            try database.write { db in
-              try Metadata
-                .find(recordID: record.recordID)
-                .update { $0.lastKnownServerRecord = record }
-                .execute(db)
-            }
+    $isUpdatingWithServerRecord.withValue(true) {
+      let metadata = metadataFor(recordID: record.recordID)
+      
+      func updateLastKnownServerRecord() {
+        withErrorReporting(.sqliteDataCloudKitFailure) {
+          try database.write { db in
+            try Metadata
+              .find(recordID: record.recordID)
+              .update { $0.lastKnownServerRecord = record }
+              .execute(db)
           }
         }
-
-        if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
-          if let recordDate = record.modificationDate, lastKnownDate < recordDate {
-            updateLastKnownServerRecord()
-          }
-        } else {
+      }
+      
+      if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
+        if let recordDate = record.modificationDate, lastKnownDate < recordDate {
           updateLastKnownServerRecord()
         }
+      } else {
+        updateLastKnownServerRecord()
       }
     }
   }
@@ -873,18 +862,6 @@ extension DatabaseFunction {
     }
   }
 
-  fileprivate static var getZoneName: Self {
-    Self(.sqliteDataCloudKitSchemaName + "_" + "getZoneName", argumentCount: 0) { _ in
-      SharingGRDBCore.currentZoneID?.zoneName
-    }
-  }
-
-  fileprivate static var getOwnerName: Self {
-    Self(.sqliteDataCloudKitSchemaName + "_" + "getOwnerName", argumentCount: 0) { _ in
-      SharingGRDBCore.currentZoneID?.ownerName
-    }
-  }
-
   private convenience init(
     _ name: String,
     function: @escaping @Sendable (String) -> Void
@@ -903,8 +880,6 @@ extension DatabaseFunction {
 
 // TODO: Rename to isUpdatingFromServer / isHandlingServerUpdates
 @TaskLocal private var isUpdatingWithServerRecord = false
-@available(iOS 16.4, macOS 13.3, tvOS 16.4, watchOS 9, *)
-@TaskLocal private var currentZoneID: CKRecordZone.ID?
 
 extension String {
   package static let sqliteDataCloudKitSchemaName = "sqlitedata_icloud"

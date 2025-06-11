@@ -8,6 +8,7 @@ import Testing
 
 extension BaseCloudKitTests {
   final class SharingTests: BaseCloudKitTests, @unchecked Sendable {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func basics() {
       
     }

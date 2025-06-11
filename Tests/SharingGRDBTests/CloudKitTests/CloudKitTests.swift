@@ -124,11 +124,9 @@ extension BaseCloudKitTests {
       ) {
         """
         [
-          [0]: "sqlitedata_icloud_getzonename",
-          [1]: "sqlitedata_icloud_didupdate",
-          [2]: "sqlitedata_icloud_getownername",
-          [3]: "sqlitedata_icloud_willdelete",
-          [4]: "sqlitedata_icloud_isupdatingwithserverrecord"
+          [0]: "sqlitedata_icloud_didupdate",
+          [1]: "sqlitedata_icloud_willdelete",
+          [2]: "sqlitedata_icloud_isupdatingwithserverrecord"
         ]
         """
       }
