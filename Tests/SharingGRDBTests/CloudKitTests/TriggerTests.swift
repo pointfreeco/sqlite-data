@@ -22,11 +22,7 @@ extension BaseCloudKitTests {
           WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord()
           BEGIN
             SELECT 
-              sqlitedata_icloud_didUpdate(
-                "new"."recordName",
-                "new"."zoneName",
-                "new"."ownerName"
-              );
+              sqlitedata_icloud_didUpdate("new"."recordName");
           END
           """,
           [1]: """
@@ -36,11 +32,7 @@ extension BaseCloudKitTests {
           WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord()
           BEGIN
             SELECT 
-              sqlitedata_icloud_didUpdate(
-                "new"."recordName",
-                "new"."zoneName",
-                "new"."ownerName"
-              );
+              sqlitedata_icloud_didUpdate("new"."recordName");
           END
           """,
           [2]: """
@@ -50,11 +42,7 @@ extension BaseCloudKitTests {
           WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord()
           BEGIN
             SELECT 
-              sqlitedata_icloud_willDelete(
-                "old"."recordName",
-                "old"."zoneName",
-                "old"."ownerName"
-              );
+              sqlitedata_icloud_willDelete("old"."recordName");
           END
           """,
           [3]: """
@@ -64,24 +52,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'reminders',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             "new"."remindersListID" AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -89,8 +65,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
@@ -103,24 +77,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'reminders',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             "new"."remindersListID" AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -128,8 +90,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
@@ -202,24 +162,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'remindersLists',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             NULL AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -227,8 +175,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
@@ -241,24 +187,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'remindersLists',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             NULL AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -266,8 +200,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
@@ -287,24 +219,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'users',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             NULL AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -312,8 +232,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
@@ -326,24 +244,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'users',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             NULL AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -351,8 +257,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
@@ -401,11 +305,7 @@ extension BaseCloudKitTests {
           WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord()
           BEGIN
             SELECT 
-              sqlitedata_icloud_didUpdate(
-                "new"."recordName",
-                "new"."zoneName",
-                "new"."ownerName"
-              );
+              sqlitedata_icloud_didUpdate("new"."recordName");
           END
           """,
           [1]: """
@@ -415,11 +315,7 @@ extension BaseCloudKitTests {
           WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord()
           BEGIN
             SELECT 
-              sqlitedata_icloud_didUpdate(
-                "new"."recordName",
-                "new"."zoneName",
-                "new"."ownerName"
-              );
+              sqlitedata_icloud_didUpdate("new"."recordName");
           END
           """,
           [2]: """
@@ -429,11 +325,7 @@ extension BaseCloudKitTests {
           WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord()
           BEGIN
             SELECT 
-              sqlitedata_icloud_willDelete(
-                "old"."recordName",
-                "old"."zoneName",
-                "old"."ownerName"
-              );
+              sqlitedata_icloud_willDelete("old"."recordName");
           END
           """,
           [3]: """
@@ -443,24 +335,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'reminders',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             "new"."remindersListID" AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -468,8 +348,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
@@ -482,24 +360,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'reminders',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             "new"."remindersListID" AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -507,8 +373,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
@@ -581,24 +445,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'remindersLists',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             NULL AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -606,8 +458,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
@@ -620,24 +470,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'remindersLists',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             NULL AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -645,8 +483,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
@@ -666,24 +502,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'users',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             NULL AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -691,8 +515,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
@@ -705,24 +527,12 @@ extension BaseCloudKitTests {
             (
               "recordType",
               "recordName",
-              "zoneName",
-              "ownerName",
               "parentRecordName",
               "userModificationDate"
             )
           SELECT
             'users',
             "new"."id",
-            coalesce(
-              "sqlitedata_icloud_metadata"."zoneName", 
-              sqlitedata_icloud_getZoneName(), 
-              'co.pointfree.SQLiteData.defaultZone'
-            ),
-            coalesce(
-              "sqlitedata_icloud_metadata"."ownerName", 
-              sqlitedata_icloud_getOwnerName(), 
-              '__defaultOwner__'
-            ),
             NULL AS "foreignKey",
             datetime('subsec')
           FROM (SELECT 1) 
@@ -730,8 +540,6 @@ extension BaseCloudKitTests {
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
-            "zoneName" = "excluded"."zoneName",
-            "ownerName" = "excluded"."ownerName",
             "parentRecordName" = "excluded"."parentRecordName",
             "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";

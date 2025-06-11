@@ -46,10 +46,7 @@ extension SyncEngine {
         recordType: metadata.recordType,
         recordID: CKRecord.ID(
           recordName: metadata.recordName.uuidString,
-          zoneID: CKRecordZone.ID(
-            zoneName: metadata.zoneName,
-            ownerName: metadata.ownerName
-          )
+          zoneID: Self.defaultZone.zoneID
         )
       )
 

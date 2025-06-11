@@ -40,8 +40,6 @@ func defaultMetadatabase(
       CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
         "recordType" TEXT NOT NULL,
         "recordName" TEXT NOT NULL PRIMARY KEY,
-        "zoneName" TEXT NOT NULL,
-        "ownerName" TEXT NOT NULL,
         "parentRecordName" TEXT,
         "lastKnownServerRecord" BLOB,
         "share" BLOB,
@@ -52,13 +50,6 @@ func defaultMetadatabase(
     .execute(db)
     // TODO: Should we have "parentRecordName TEXT REFERENCES metadata(recordName) ON DELETE CASCADE" ?
     // TODO: Do we ever query for "parentRecordName"? should we add an index?
-    try SQLQueryExpression(
-      """
-      CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_zoneName_ownerName"
-      ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata" ("zoneName", "ownerName")
-      """
-    )
-    .execute(db)
     try SQLQueryExpression(
       """
       CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_share"

@@ -14,7 +14,9 @@ struct Counter: Identifiable {
 
   static let nonShared = Counter
     .where { counter in
-      !counter.id.in(#sql("\(Metadata.where { $0.share.isNot(nil) }.select(\.recordName))"))
+      !counter.id.in(
+        #sql("\(Metadata.where { $0.share.isNot(nil) }.select(\.recordName))")
+      )
     }
 }
 
