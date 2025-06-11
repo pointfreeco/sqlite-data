@@ -137,8 +137,6 @@ extension Metadata {
     self.init(
       recordType: record.recordType,
       recordName: recordName ?? UUID(),
-      zoneName: record.recordID.zoneID.zoneName,
-      ownerName: record.recordID.zoneID.ownerName,
       lastKnownServerRecord: record,
       userModificationDate: record.userModificationDate
     )

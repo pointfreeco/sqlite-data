@@ -16,11 +16,7 @@ extension Metadata {
       WHEN NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()
       BEGIN
         SELECT 
-          \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(
-            "new"."recordName",
-            "new"."zoneName",
-            "new"."ownerName"
-          );
+          \(raw: .sqliteDataCloudKitSchemaName)_didUpdate("new"."recordName");
       END
       """
     )
@@ -35,11 +31,7 @@ extension Metadata {
       WHEN NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()
       BEGIN
         SELECT 
-          \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(
-            "new"."recordName",
-            "new"."zoneName",
-            "new"."ownerName"
-          );
+          \(raw: .sqliteDataCloudKitSchemaName)_didUpdate("new"."recordName");
       END
       """
     )
@@ -53,21 +45,11 @@ extension Metadata {
       WHEN NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()
       BEGIN
         SELECT 
-          \(raw: .sqliteDataCloudKitSchemaName)_willDelete(
-            "old"."recordName",
-            "old"."zoneName",
-            "old"."ownerName"
-          );
+          \(raw: .sqliteDataCloudKitSchemaName)_willDelete("old"."recordName");
       END
       """
     )
     .execute(db)
-  }
-
-  static func dropTriggers(db: Database) throws {
-//    try SQLQueryExpression(#"DROP TRIGGER "\#(raw: String.sqliteDataCloudKitSchemaName)_metadata_deletes""#).execute(db)
-//    try SQLQueryExpression(#"DROP TRIGGER "\#(raw: String.sqliteDataCloudKitSchemaName)_metadata_updates""#).execute(db)
-//    try SQLQueryExpression(#"DROP TRIGGER "\#(raw: String.sqliteDataCloudKitSchemaName)_metadata_inserts""#).execute(db)
   }
 
   static func createTriggers<T: PrimaryKeyedTable>(
@@ -82,24 +64,12 @@ extension Metadata {
         (
           \(quote: Metadata.recordType.name),
           \(quote: Metadata.recordName.name),
-          \(quote: Metadata.zoneName.name),
-          \(quote: Metadata.ownerName.name),
           \(quote: Metadata.parentRecordName.name),
           \(quote: Metadata.userModificationDate.name)
         )
       SELECT
         \(quote: T.tableName, delimiter: .text),
         "new".\(quote: T.columns.primaryKey.name),
-        coalesce(
-          \(Metadata.zoneName), 
-          \(raw: .sqliteDataCloudKitSchemaName)_getZoneName(), 
-          \(quote: SyncEngine.defaultZone.zoneID.zoneName, delimiter: .text)
-        ),
-        coalesce(
-          \(Metadata.ownerName), 
-          \(raw: .sqliteDataCloudKitSchemaName)_getOwnerName(), 
-          \(quote: SyncEngine.defaultZone.zoneID.ownerName, delimiter: .text)
-        ),
         \(raw: foreignKey) AS "foreignKey",
         datetime('subsec')
       FROM (SELECT 1) 
@@ -107,8 +77,6 @@ extension Metadata {
       ON CONFLICT(\(quote: Metadata.recordName.name)) DO UPDATE
       SET
         \(quote: Metadata.recordType.name) = "excluded".\(quote: Metadata.recordType.name),
-        \(quote: Metadata.zoneName.name) = "excluded".\(quote: Metadata.zoneName.name),
-        \(quote: Metadata.ownerName.name) = "excluded".\(quote: Metadata.ownerName.name),
         \(quote: Metadata.parentRecordName.name) = "excluded".\(quote: Metadata.parentRecordName.name),
         \(quote: Metadata.recordType.name) = "excluded".\(quote: Metadata.recordType.name),
         \(quote: Metadata.userModificationDate.name)  = "excluded".\(quote: Metadata.userModificationDate.name)
@@ -142,15 +110,6 @@ extension Metadata {
       """
     )
     .execute(db)
-  }
-
-  static func dropTriggers<T: PrimaryKeyedTable>(
-    for _: T.Type,
-    db: Database
-  ) throws {
-//    try SQLQueryExpression("DROP TRIGGER \(Self.deleteTriggerName(for: T.self))").execute(db)
-//    try SQLQueryExpression("DROP TRIGGER \(Self.updateTriggerName(for: T.self))").execute(db)
-//    try SQLQueryExpression("DROP TRIGGER \(Self.insertTriggerName(for: T.self))").execute(db)
   }
 
   private static func insertTriggerName<T: PrimaryKeyedTable>(

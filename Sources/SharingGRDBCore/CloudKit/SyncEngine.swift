@@ -232,7 +232,6 @@ public final class SyncEngine: Sendable {
       for table in self.tables {
         try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
       }
-      try Metadata.dropTriggers(db: db)
       db.remove(function: .willDelete(syncEngine: self))
       db.remove(function: .didUpdate(syncEngine: self))
       db.remove(function: .getOwnerName)
@@ -278,42 +277,49 @@ public final class SyncEngine: Sendable {
     )
   }
 
-  func didUpdate(recordName: String, zoneName: String, ownerName: String) {
+  func didUpdate(recordName: String) {
+    let zoneID = zoneID(for: recordName)
     let syncEngine = syncEngines.withValue {
-      ownerName == Self.defaultZone.zoneID.ownerName ? $0.private : $0.shared
+      zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
     }
     syncEngine?.state.add(
       pendingRecordZoneChanges: [
         .saveRecord(
           CKRecord.ID(
             recordName: recordName,
-            zoneID: CKRecordZone.ID(
-              zoneName: zoneName,
-              ownerName: ownerName
-            )
+            zoneID: zoneID
           )
         )
       ]
     )
   }
 
-  func willDelete(recordName: String, zoneName: String, ownerName: String) {
+  func willDelete(recordName: String) {
+    let zoneID = zoneID(for: recordName)
     let syncEngine = syncEngines.withValue {
-      ownerName == Self.defaultZone.zoneID.ownerName ? $0.private : $0.shared
+      zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
     }
     syncEngine?.state.add(
       pendingRecordZoneChanges: [
         .deleteRecord(
           CKRecord.ID(
             recordName: recordName,
-            zoneID: CKRecordZone.ID(
-              zoneName: zoneName,
-              ownerName: ownerName
-            )
+            zoneID: zoneID
           )
         )
       ]
     )
+  }
+
+  private func zoneID(for recordName: String) -> CKRecordZone.ID {
+    let metadata = withErrorReporting {
+      try metadatabase.read { db in
+        try Metadata
+          .find(UUID(uuidString: recordName)!)
+          .fetchOne(db)
+      }
+    } ?? nil
+    return metadata?.lastKnownServerRecord?.recordID.zoneID ?? Self.defaultZone.zoneID
   }
 }
 
@@ -345,7 +351,6 @@ extension PrimaryKeyedTable {
     for foreignKey in foreignKeys {
       try foreignKey.dropTriggers(for: Self.self, db: db)
     }
-    try Metadata.dropTriggers(for: Self.self, db: db)
   }
 }
 
@@ -697,7 +702,12 @@ extension SyncEngine: CKSyncEngineDelegate {
     let metadata = try await self.container.shareMetadata(for: url, shouldFetchRootRecord: true)
 
     guard let rootRecord = metadata.rootRecord
-    else { return }
+    else {
+      syncEngines
+        .withValue(\.private)?.state
+        .remove(pendingRecordZoneChanges: [.deleteRecord(share.recordID)])
+      return
+    }
 
     try await database.write { db in
       try Metadata
@@ -845,23 +855,14 @@ extension SyncEngine: CKSyncEngineDelegate {
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension DatabaseFunction {
   fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
-    Self("didUpdate") { recordName, zoneName, ownerName in
-      syncEngine
-        .didUpdate(
-          recordName: recordName,
-          zoneName: zoneName,
-          ownerName: ownerName
-        )
+    Self("didUpdate") { recordName in
+      syncEngine.didUpdate(recordName: recordName)
     }
   }
 
   fileprivate static func willDelete(syncEngine: SyncEngine) -> Self {
-    return Self("willDelete") { recordName, zoneName, ownerName in
-      syncEngine.willDelete(
-        recordName: recordName,
-        zoneName: zoneName,
-        ownerName: ownerName
-      )
+    return Self("willDelete") { recordName in
+      syncEngine.willDelete(recordName: recordName)
     }
   }
 
@@ -886,17 +887,15 @@ extension DatabaseFunction {
 
   private convenience init(
     _ name: String,
-    function: @escaping @Sendable (String, String, String) -> Void
+    function: @escaping @Sendable (String) -> Void
   ) {
-    self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 3) { arguments in
+    self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 1) { arguments in
       guard
-        let recordName = String.fromDatabaseValue(arguments[0]),
-        let zoneName = String.fromDatabaseValue(arguments[1]),
-        let ownerName = String.fromDatabaseValue(arguments[2])
+        let recordName = String.fromDatabaseValue(arguments[0])
       else {
         return nil
       }
-      function(recordName, zoneName, ownerName)
+      function(recordName)
       return nil
     }
   }
