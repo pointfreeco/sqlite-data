@@ -1,4 +1,5 @@
 import CloudKit
+import Dependencies
 import SwiftUI
 
 #if canImport(UIKit)
@@ -137,6 +138,7 @@ extension SyncEngine {
     }
   }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class CloudSharingDelegate: NSObject, UICloudSharingControllerDelegate {
     let share: CKShare
     let didFinish: (Result<Void, Error>) -> Void
@@ -164,6 +166,8 @@ extension SyncEngine {
     }
 
     public func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
+      @Dependency(\.defaultSyncEngine) var syncEngine
+      // TODO: eagerly clear out share data
       didStopSharing()
     }
 

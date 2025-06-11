@@ -10,7 +10,7 @@ public final class SyncEngine: Sendable {
 
   let database: any DatabaseWriter
   let logger: Logger
-  let metadatabase: any DatabaseWriter
+  let metadatabase: any DatabaseReader
   let tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
   let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
   let foreignKeysByTableName: [String: [ForeignKey]]
@@ -132,7 +132,7 @@ public final class SyncEngine: Sendable {
 
   nonisolated func setUpSyncEngine(
     database: any DatabaseWriter,
-    metadatabase: any DatabaseWriter,
+    metadatabase: any DatabaseReader,
     shouldFetchChanges: Bool
   ) throws {
     try database.write { db in
@@ -203,7 +203,7 @@ public final class SyncEngine: Sendable {
 
     if !recordTypesToFetch.isEmpty {
       withErrorReporting(.sqliteDataCloudKitFailure) {
-        try metadatabase.write { db in
+        try database.write { db in
           for recordType in recordTypesToFetch {
             try RecordType
               .upsert { RecordType.Draft(recordType) }
@@ -234,7 +234,7 @@ public final class SyncEngine: Sendable {
       db.remove(function: .didUpdate(syncEngine: self))
       db.remove(function: .isUpdatingWithServerRecord)
     }
-    try await metadatabase.write { db in
+    try await database.write { db in
       // TODO: Do an `.erase()` + re-migrate
       try Metadata.delete().execute(db)
       try RecordType.delete().execute(db)
@@ -711,17 +711,6 @@ extension SyncEngine: CKSyncEngineDelegate {
     guard let rootRecord = metadata.rootRecord
     else { return }
 
-    guard share.publicPermission != .none
-    else {
-      try await database.write { db in
-        try Metadata
-          .find(recordID: rootRecord.recordID)
-          .update { $0.share = nil }
-          .execute(db)
-      }
-      return
-    }
-    
     try await database.write { db in
       try Metadata
         .find(recordID: rootRecord.recordID)
@@ -732,7 +721,7 @@ extension SyncEngine: CKSyncEngineDelegate {
 
   private func deleteShare(recordID: CKRecord.ID, recordType: String) throws {
     // TODO: more efficient way to do this?
-    try metadatabase.write { db in
+    try database.write { db in
       let metadata =
         try Metadata
         .where { $0.share.isNot(nil) }
@@ -792,6 +781,9 @@ extension SyncEngine: CKSyncEngineDelegate {
                   return (try? asset.fileURL.map { try Data(contentsOf: $0) })?
                     .queryFragment ?? "NULL"
                 } else {
+                  if encryptedValues[columnName] == nil {
+                    print("!!!")
+                  }
                   return encryptedValues[columnName]?.queryFragment ?? "NULL"
                 }
               }

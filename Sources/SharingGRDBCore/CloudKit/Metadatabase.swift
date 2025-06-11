@@ -5,7 +5,7 @@ import os
 func defaultMetadatabase(
   logger: Logger,
   url: URL
-) throws -> any DatabaseWriter {
+) throws -> any DatabaseReader {
   var configuration = Configuration()
   configuration.prepareDatabase { [logger] db in
     db.trace {
