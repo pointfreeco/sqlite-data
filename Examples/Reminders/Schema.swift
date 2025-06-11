@@ -17,6 +17,13 @@ struct RemindersList: Hashable, Identifiable {
 extension RemindersList.Draft: Identifiable {}
 
 @Table
+struct RemindersListAsset: Hashable, Identifiable {
+  let id: UUID
+  var coverImage: Data?
+  let remindersListID: RemindersList.ID
+}
+
+@Table
 struct Reminder: Codable, Equatable, Identifiable {
   let id: UUID
   var dueDate: Date?
@@ -96,9 +103,10 @@ func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
   let database: any DatabaseWriter
   var configuration = Configuration()
-  configuration.foreignKeysEnabled = true
+  configuration.foreignKeysEnabled = context != .live
   configuration.prepareDatabase { db in
     #if DEBUG
+    try db.attachMetadatabase(containerIdentifier: "iCloud.co.pointfree.sharing-grdb.Reminders")
       db.trace(options: .profile) {
         if context == .live {
           logger.debug("\($0.expandedDescription)")
@@ -115,11 +123,17 @@ func appDatabase() throws -> any DatabaseWriter {
       context == .live
       ? URL.documentsDirectory.appending(component: "db.sqlite").path()
       : URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
-    logger.info("open \(path)")
+    logger.debug(
+      """
+      App database
+      open "\(path)"
+      """
+    )
     database = try DatabasePool(path: path, configuration: configuration)
   }
   var migrator = DatabaseMigrator()
   #if DEBUG
+  // TODO: should we warn against this for CK apps?
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Create initial tables") { db in
@@ -130,6 +144,16 @@ func appDatabase() throws -> any DatabaseWriter {
         "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99_ef00),
         "position" INTEGER NOT NULL DEFAULT 0,
         "title" TEXT NOT NULL
+      ) STRICT
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TABLE "remindersListAssets" (
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "coverImage" BLOB,
+        "remindersListID" TEXT NOT NULL UNIQUE REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
       """
     )
@@ -178,13 +202,11 @@ func appDatabase() throws -> any DatabaseWriter {
 
   try migrator.migrate(database)
 
-  if context == .preview {
-    try database.write { db in
+  try database.write { db in
+    if context == .preview {
       try db.seedSampleData()
     }
-  }
 
-  try database.write { db in
     try #sql(
       """
       CREATE TEMPORARY TRIGGER "default_position_reminders_lists" 
@@ -232,128 +254,128 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
 #if DEBUG
   extension Database {
     func seedSampleData() throws {
-      let remindersListIDs = (0...2).map { _ in UUID() }
-      let reminderIDs = (0...10).map { _ in UUID() }
-      let tagIDs = (0...6).map { _ in UUID() }
+      let remindersListsIDs = (0...2).map { _ in UUID() }
+      let remindersIDs = (0...10).map { _ in UUID() }
+      let tagsIDs = (0...6).map { _ in UUID() }
       try seed {
         RemindersList(
-          id: remindersListIDs[0],
+          id: remindersListsIDs[0],
           color: Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255),
           title: "Personal"
         )
         RemindersList(
-          id: remindersListIDs[1],
+          id: remindersListsIDs[1],
           color: Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255),
           title: "Family"
         )
         RemindersList(
-          id: remindersListIDs[2],
+          id: remindersListsIDs[2],
           color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
           title: "Business"
         )
         Reminder(
-          id: reminderIDs[0],
+          id: remindersIDs[0],
           notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
-          remindersListID: remindersListIDs[0],
+          remindersListID: remindersListsIDs[0],
           title: "Groceries"
         )
         Reminder(
-          id: reminderIDs[1],
+          id: remindersIDs[1],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isFlagged: true,
-          remindersListID: remindersListIDs[0],
+          remindersListID: remindersListsIDs[0],
           title: "Haircut"
         )
         Reminder(
-          id: reminderIDs[2],
+          id: remindersIDs[2],
           dueDate: Date(),
           notes: "Ask about diet",
           priority: .high,
-          remindersListID: remindersListIDs[0],
+          remindersListID: remindersListsIDs[0],
           title: "Doctor appointment"
         )
         Reminder(
-          id: reminderIDs[3],
+          id: remindersIDs[3],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 190),
           isCompleted: true,
-          remindersListID: remindersListIDs[0],
+          remindersListID: remindersListsIDs[0],
           title: "Take a walk"
         )
         Reminder(
-          id: reminderIDs[4],
+          id: remindersIDs[4],
           dueDate: Date(),
-          remindersListID: remindersListIDs[0],
+          remindersListID: remindersListsIDs[0],
           title: "Buy concert tickets"
         )
         Reminder(
-          id: reminderIDs[5],
+          id: remindersIDs[5],
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           isFlagged: true,
           priority: .high,
-          remindersListID: remindersListIDs[1],
+          remindersListID: remindersListsIDs[1],
           title: "Pick up kids from school"
         )
         Reminder(
-          id: reminderIDs[6],
+          id: remindersIDs[6],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .low,
-          remindersListID: remindersListIDs[1],
+          remindersListID: remindersListsIDs[1],
           title: "Get laundry"
         )
         Reminder(
-          id: reminderIDs[7],
+          id: remindersIDs[7],
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 4),
           isCompleted: false,
           priority: .high,
-          remindersListID: remindersListIDs[1],
+          remindersListID: remindersListsIDs[1],
           title: "Take out trash"
         )
         Reminder(
-          id: reminderIDs[8],
+          id: remindersIDs[8],
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           notes: """
             Status of tax return
             Expenses for next year
             Changing payroll company
             """,
-          remindersListID: remindersListIDs[2],
+          remindersListID: remindersListsIDs[2],
           title: "Call accountant"
         )
         Reminder(
-          id: reminderIDs[9],
+          id: remindersIDs[9],
           dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .medium,
-          remindersListID: remindersListIDs[2],
+          remindersListID: remindersListsIDs[2],
           title: "Send weekly emails"
         )
         Reminder(
-          id: reminderIDs[10],
+          id: remindersIDs[10],
           dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
           isCompleted: false,
-          remindersListID: remindersListIDs[2],
+          remindersListID: remindersListsIDs[2],
           title: "Prepare for WWDC"
         )
-        Tag(id: tagIDs[0], title: "car")
-        Tag(id: tagIDs[1], title: "kids")
-        Tag(id: tagIDs[2], title: "someday")
-        Tag(id: tagIDs[3], title: "optional")
-        Tag(id: tagIDs[4], title: "social")
-        Tag(id: tagIDs[5], title: "night")
-        Tag(id: tagIDs[6], title: "adulting")
-        ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[2])
-        ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[3])
-        ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[6])
-        ReminderTag.Draft(reminderID: reminderIDs[1], tagID: tagIDs[2])
-        ReminderTag.Draft(reminderID: reminderIDs[1], tagID: tagIDs[3])
-        ReminderTag.Draft(reminderID: reminderIDs[2], tagID: tagIDs[6])
-        ReminderTag.Draft(reminderID: reminderIDs[3], tagID: tagIDs[0])
-        ReminderTag.Draft(reminderID: reminderIDs[3], tagID: tagIDs[1])
-        ReminderTag.Draft(reminderID: reminderIDs[4], tagID: tagIDs[4])
-        ReminderTag.Draft(reminderID: reminderIDs[3], tagID: tagIDs[4])
-        ReminderTag.Draft(reminderID: reminderIDs[10], tagID: tagIDs[4])
-        ReminderTag.Draft(reminderID: reminderIDs[4], tagID: tagIDs[5])
+        Tag(id: tagsIDs[0], title: "car")
+        Tag(id: tagsIDs[1], title: "kids")
+        Tag(id: tagsIDs[2], title: "someday")
+        Tag(id: tagsIDs[3], title: "optional")
+        Tag(id: tagsIDs[4], title: "social")
+        Tag(id: tagsIDs[5], title: "night")
+        Tag(id: tagsIDs[6], title: "adulting")
+        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: tagsIDs[2])
+        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: tagsIDs[3])
+        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: tagsIDs[6])
+        ReminderTag.Draft(reminderID: remindersIDs[1], tagID: tagsIDs[2])
+        ReminderTag.Draft(reminderID: remindersIDs[1], tagID: tagsIDs[3])
+        ReminderTag.Draft(reminderID: remindersIDs[2], tagID: tagsIDs[6])
+        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: tagsIDs[0])
+        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: tagsIDs[1])
+        ReminderTag.Draft(reminderID: remindersIDs[4], tagID: tagsIDs[4])
+        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: tagsIDs[4])
+        ReminderTag.Draft(reminderID: remindersIDs[10], tagID: tagsIDs[4])
+        ReminderTag.Draft(reminderID: remindersIDs[4], tagID: tagsIDs[5])
       }
     }
   }

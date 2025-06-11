@@ -7,6 +7,7 @@ import SwiftUINavigation
 @Observable
 class RemindersDetailModel: HashableObject {
   @ObservationIgnored @FetchAll var reminderRows: [Row]
+  @ObservationIgnored @FetchOne var coverImageData: Data?
   @ObservationIgnored @Shared var ordering: Ordering
   @ObservationIgnored @Shared var showCompleted: Bool
 
@@ -22,7 +23,15 @@ class RemindersDetailModel: HashableObject {
       wrappedValue: detailType == .completed,
       .appStorage("show_completed_list_\(detailType.id)")
     )
-    _reminderRows = FetchAll(remindersQuery)
+    _reminderRows = FetchAll(remindersQuery, animation: .default)
+    if let remindersListID = detailType.remindersList?.id {
+      _coverImageData = FetchOne(
+        RemindersListAsset
+          .where { $0.remindersListID.eq(remindersListID) }
+          .select { #sql("\($0.coverImage)") },
+        animation: .default
+      )
+    }
   }
 
   func orderingButtonTapped(_ ordering: Ordering) async {
@@ -154,15 +163,8 @@ struct RemindersDetailView: View {
 
   var body: some View {
     List {
-      VStack(alignment: .leading) {
-        GeometryReader { proxy in
-          Text(model.detailType.navigationTitle)
-            .font(.system(.largeTitle, design: .rounded, weight: .bold))
-            .foregroundStyle(model.detailType.color)
-            .onAppear { navigationTitleHeight = proxy.size.height }
-        }
-      }
-      .listRowSeparator(.hidden)
+      header
+
       ForEach(model.reminderRows) { row in
         ReminderRow(
           color: model.detailType.color,
@@ -251,6 +253,41 @@ struct RemindersDetailView: View {
       }
     }
     .toolbarTitleDisplayMode(.inline)
+  }
+
+  @ViewBuilder
+  var header: some View {
+    if let coverImageData = model.coverImageData, let image = UIImage(data: coverImageData) {
+      ZStack {
+        Image(uiImage: image)
+          .resizable()
+          .scaledToFill()
+          .frame(maxHeight: 200)
+          .clipped()
+
+        GeometryReader { proxy in
+          Text(model.detailType.navigationTitle)
+            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+            .foregroundStyle(model.detailType.color)
+            .padding()
+            .background(Color.black.opacity(0.6))
+            .cornerRadius(10)
+            .padding()
+            .onAppear { navigationTitleHeight = proxy.size.height }
+        }
+      }
+      .listRowInsets(EdgeInsets())
+    } else {
+      VStack(alignment: .leading) {
+        GeometryReader { proxy in
+          Text(model.detailType.navigationTitle)
+            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+            .foregroundStyle(model.detailType.color)
+            .onAppear { navigationTitleHeight = proxy.size.height }
+        }
+      }
+      .listRowSeparator(.hidden)
+    }
   }
 }
 
