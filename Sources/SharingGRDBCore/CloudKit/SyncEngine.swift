@@ -602,6 +602,16 @@ extension SyncEngine: CKSyncEngineDelegate {
           self.upsertFromServerRecord(record)
           self.refreshLastKnownServerRecord(record)
         }
+        if
+          let shareReference = record.share,
+          let shareRecord = try? await container.database(for: shareReference.recordID)
+            .record(for: shareReference.recordID),
+          let share = shareRecord as? CKShare
+        {
+          await withErrorReporting {
+            try await cacheShare(share)
+          }
+        }
       }
 
       for (recordID, recordType) in deletions {
@@ -701,6 +711,17 @@ extension SyncEngine: CKSyncEngineDelegate {
     guard let rootRecord = metadata.rootRecord
     else { return }
 
+    guard share.publicPermission != .none
+    else {
+      try await database.write { db in
+        try Metadata
+          .find(recordID: rootRecord.recordID)
+          .update { $0.share = nil }
+          .execute(db)
+      }
+      return
+    }
+    
     try await database.write { db in
       try Metadata
         .find(recordID: rootRecord.recordID)
