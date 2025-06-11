@@ -6,6 +6,7 @@ import SwiftUI
 struct RemindersApp: App {
   @UIApplicationDelegateAdaptor var delegate: AppDelegate
   @Dependency(\.context) var context
+  static let model = RemindersListsModel()
 
   init() {
     if context == .live {
@@ -30,7 +31,7 @@ struct RemindersApp: App {
     WindowGroup {
       if context == .live {
         NavigationStack {
-          RemindersListsView()
+          RemindersListsView(model: Self.model)
         }
       }
     }

@@ -12,8 +12,8 @@ struct RemindersListForm: View {
   @State private var isPhotoPickerPresented = false
   @Environment(\.dismiss) var dismiss
 
-  init(existingList: RemindersList.Draft? = nil) {
-    remindersList = existingList ?? RemindersList.Draft(id: UUID())
+  init(remindersList: RemindersList.Draft) {
+    self.remindersList = remindersList
   }
 
   var body: some View {
@@ -152,12 +152,14 @@ func resizedAndOptimizedImageData(from data: Data, maxWidth: CGFloat = 1000) -> 
   return resizedImage?.jpegData(compressionQuality: 0.8)
 }
 
-#Preview {
-  let _ = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase()
-  }
-  NavigationStack {
-    RemindersListForm()
-      .navigationTitle("New List")
+struct RemindersListFormPreviews: PreviewProvider {
+  static var previews: some View {
+    let _ = try! prepareDependencies {
+      $0.defaultDatabase = try Reminders.appDatabase()
+    }
+    NavigationStack {
+      RemindersListForm(remindersList: RemindersList.Draft())
+        .navigationTitle("New List")
+    }
   }
 }

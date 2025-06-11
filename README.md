@@ -154,15 +154,53 @@ struct MyApp: App {
 > [Preparing a SQLite database][preparing-db-article].
 
 This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies, like 
-[`@FetchAll`][fetchall-docs] and [`@FetchOne`][fetchone-docs]:
+[`@FetchAll`][fetchall-docs] and [`@FetchOne`][fetchone-docs], which are similar to SwiftData's
+`@Query` macro, but more powerful:
+
+<table>
+<tr>
+<th>SharingGRDB</th>
+<th>SwiftData</th>
+</tr>
+<tr valign=top>
+<td width=415>
 
 ```swift
 @FetchAll
 var items: [Item]
 
-@FetchOne(Item.where(\.isInStock).count())
+@FetchAll(Item.sort(by: \.title))
+var items
+
+@FetchAll(Item.where(\.isInStock))
+var items
+
+@FetchOne(Item.count())
 var inStockItemsCount = 0
+
 ```
+
+</td>
+<td width=415>
+
+```swift
+@Query
+var items: [Item]
+
+@Query(sort: [SortDescriptor(\.title)])
+var items: [Item]
+
+// No @Query equivalent of filtering
+// by 'isInStock: Bool'
+
+// No @Query equivalent of counting
+// entries in database without loading
+// all entries.
+```
+
+</td>
+</tr>
+</table>
 
 And you can access this database throughout your application in a way similar to how one accesses
 a model context, via a property wrapper:
@@ -196,6 +234,7 @@ var modelContext
 let newItem = Item(/* ... */)
 modelContext.insert(newItem)
 try modelContext.save()
+
 ```
 
 </td>

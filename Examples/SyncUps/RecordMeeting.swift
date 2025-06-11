@@ -376,11 +376,11 @@ struct MeetingFooterView: View {
   NavigationStack {
     RecordMeetingView(
       model: RecordMeetingModel(
-        syncUp: SyncUp(id: 1, seconds: 60, theme: .bubblegum, title: "Engineering"),
+        syncUp: SyncUp(id: UUID(1), seconds: 60, theme: .bubblegum, title: "Engineering"),
         attendees: [
-          Attendee(id: 1, name: "Blob", syncUpID: 1),
-          Attendee(id: 2, name: "Blob Jr", syncUpID: 1),
-          Attendee(id: 3, name: "Blob Sr", syncUpID: 1),
+          Attendee(id: UUID(2), name: "Blob", syncUpID: UUID(1)),
+          Attendee(id: UUID(3), name: "Blob Jr", syncUpID: UUID(1)),
+          Attendee(id: UUID(4), name: "Blob Sr", syncUpID: UUID(1)),
         ]
       )
     )
