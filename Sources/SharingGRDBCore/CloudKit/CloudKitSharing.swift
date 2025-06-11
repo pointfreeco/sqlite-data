@@ -42,6 +42,10 @@ extension SyncEngine {
 
     let rootRecord =
       metadata.lastKnownServerRecord
+    // 1) create record
+    // 2) (before sync) you share
+    // 3) create a CKRecord down below
+    // 4) a moment later, sync engine creates a record
       ?? CKRecord(
         recordType: metadata.recordType,
         recordID: CKRecord.ID(
@@ -59,7 +63,7 @@ extension SyncEngine {
     } else {
       sharedRecord = CKShare(
         rootRecord: rootRecord,
-        shareID: CKRecord.ID.init(
+        shareID: CKRecord.ID(
           recordName: UUID().uuidString,
           zoneID: rootRecord.recordID.zoneID
         )
