@@ -320,7 +320,7 @@ public final class SyncEngine: Sendable {
   }
 }
 
-extension PrimaryKeyedTable {
+extension PrimaryKeyedTable<UUID> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   fileprivate static func createTriggers(
     foreignKeysByTableName: [String: [ForeignKey]],

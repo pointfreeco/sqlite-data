@@ -7,52 +7,44 @@ extension Metadata {
     tables: [any PrimaryKeyedTable.Type],
     db: Database
   ) throws {
-    try SQLQueryExpression(
-      """
-      CREATE TEMPORARY TRIGGER IF NOT EXISTS
-      "\(raw: .sqliteDataCloudKitSchemaName)_metadata_inserts"
-      AFTER INSERT ON \(Metadata.self)
-      FOR EACH ROW
-      WHEN NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()
-      BEGIN
-        SELECT 
-          \(raw: .sqliteDataCloudKitSchemaName)_didUpdate("new"."recordName");
-      END
-      """
+    try createTemporaryTrigger(
+      ifNotExists: true,
+      after: .insert {
+        SQLQueryExpression(
+          "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\($0.recordName))"
+        )
+      } when: { _ in
+        SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+      }
     )
     .execute(db)
 
-    try SQLQueryExpression(
-      """
-      CREATE TEMPORARY TRIGGER IF NOT EXISTS
-      "\(raw: .sqliteDataCloudKitSchemaName)_metadata_updates"
-      AFTER UPDATE ON \(Metadata.self)
-      FOR EACH ROW
-      WHEN NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()
-      BEGIN
-        SELECT 
-          \(raw: .sqliteDataCloudKitSchemaName)_didUpdate("new"."recordName");
-      END
-      """
+    try createTemporaryTrigger(
+      ifNotExists: true,
+      after: .update { _, new in
+        SQLQueryExpression(
+          "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(new.recordName))"
+        )
+      } when: { _, _ in
+        SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+      }
     )
     .execute(db)
-    try SQLQueryExpression(
-      """
-      CREATE TEMPORARY TRIGGER IF NOT EXISTS
-      "\(raw: .sqliteDataCloudKitSchemaName)_metadata_deletes"
-      BEFORE DELETE ON \(Metadata.self)
-      FOR EACH ROW
-      WHEN NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()
-      BEGIN
-        SELECT 
-          \(raw: .sqliteDataCloudKitSchemaName)_willDelete("old"."recordName");
-      END
-      """
+
+    try createTemporaryTrigger(
+      ifNotExists: true,
+      after: .delete {
+        SQLQueryExpression(
+          "SELECT \(raw: .sqliteDataCloudKitSchemaName)_willUpdate(\($0.recordName))"
+        )
+      } when: { _ in
+        SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+      }
     )
     .execute(db)
   }
 
-  static func createTriggers<T: PrimaryKeyedTable>(
+  static func createTriggers<T: PrimaryKeyedTable<UUID>>(
     for _: T.Type,
     parentForeignKey: ForeignKey?,
     db: Database
@@ -100,14 +92,14 @@ extension Metadata {
       """
     )
     .execute(db)
-    try SQLQueryExpression(
-      """
-      CREATE TEMPORARY TRIGGER IF NOT EXISTS \(Self.deleteTriggerName(for: T.self))
-      AFTER DELETE ON \(T.self) FOR EACH ROW BEGIN
-        DELETE FROM \(Metadata.self)
-        WHERE "recordName" = "old".\(quote: T.columns.primaryKey.name);
-      END
-      """
+
+    try T.createTemporaryTrigger(
+      ifNotExists: true,
+      after: .delete { old in
+        Metadata
+          .where { $0.recordName.eq(old.primaryKey) }
+          .delete()
+      }
     )
     .execute(db)
   }
