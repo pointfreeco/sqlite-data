@@ -9,7 +9,7 @@ import SwiftUI
 struct RemindersList: Hashable, Identifiable {
   let id: UUID
   @Column(as: Color.HexRepresentation.self)
-  var color = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
+  var color: Color = .blue
   var position = 0
   var title = ""
 }
@@ -207,41 +207,26 @@ func appDatabase() throws -> any DatabaseWriter {
       try db.seedSampleData()
     }
 
-    try #sql(
-      """
-      CREATE TEMPORARY TRIGGER "default_position_reminders_lists" 
-      AFTER INSERT ON "remindersLists"
-      FOR EACH ROW BEGIN
-        UPDATE "remindersLists"
-        SET "position" = (SELECT max("position") + 1 FROM "remindersLists")
-        WHERE "id" = NEW."id";
-      END
-      """
-    )
+    try RemindersList.createTemporaryTrigger(after: .insert { new in
+      RemindersList
+        .update { $0.position = RemindersList.select { ($0.position.max() ?? -1) + 1} }
+        .where { $0.id.eq(new.id) }
+    })
     .execute(db)
-    try #sql(
-      """
-      CREATE TEMPORARY TRIGGER "default_position_reminders" 
-      AFTER INSERT ON "reminders"
-      FOR EACH ROW BEGIN
-        UPDATE "reminders"
-        SET "position" = (SELECT max("position") + 1 FROM "reminders")
-        WHERE "id" = NEW."id";
-      END
-      """
-    )
+    try Reminder.createTemporaryTrigger(after: .insert { new in
+      Reminder
+        .update { $0.position = Reminder.select { ($0.position.max() ?? -1) + 1} }
+        .where { $0.id.eq(new.id) }
+    })
     .execute(db)
-    try #sql(
-      """
-      CREATE TEMPORARY TRIGGER "non_empty_reminders_lists" 
-      AFTER DELETE ON "remindersLists"
-      FOR EACH ROW BEGIN
-        INSERT INTO "remindersLists"
-        ("title", "color")
-        SELECT 'Personal', \(raw: 0x4a99ef)
-        WHERE (SELECT count(*) FROM "remindersLists") = 0;
-      END
-      """
+    try RemindersList.createTemporaryTrigger(
+      after: .delete { _ in
+        RemindersList.insert {
+          RemindersList.Draft(color: .blue, title: "Personal")
+        }
+      } when: { _ in
+        RemindersList.count().eq(0)
+      }
     )
     .execute(db)
   }

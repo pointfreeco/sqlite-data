@@ -248,6 +248,7 @@ struct RemindersListsView: View {
                 share: state.share
               )
             }
+            .buttonStyle(.borderless)
             .foregroundStyle(.primary)
           }
           .onMove(perform: model.move(from:to:))
