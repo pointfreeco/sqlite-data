@@ -35,7 +35,7 @@ func appDatabase() -> any DatabaseWriter {
 ### Step 2: Create configuration
 
 Inside this static variable we can create a [`Configuration`][config-docs] value that is used to
-configure the database. We highly recommend always turning on 
+configure the database. We recommend turning on 
 [foreign key](https://www.sqlite.org/foreignkeys.html) constraints to protect the integrity of your
 data:
 
@@ -45,6 +45,9 @@ data:
 +  configuration.foreignKeysEnabled = true
  }
 ```
+
+> Important: If you are synchronizing your database to CloudKit, then you must not enable
+> foreign keys. See <doc:CloudKit#Foreign-key-relationships> for more information. 
 
 This will prevent you from deleting rows that leave other rows with invalid associations. For 
 example, if a "teams" table had an association to a "sports" table, you would not be allowed to

@@ -1,6 +1,7 @@
 # SharingGRDB
 
-A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL.
+A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL and supporting 
+CloudKit synchronization.
 
 [![CI](https://github.com/pointfreeco/sharing-grdb/workflows/CI/badge.svg)](https://github.com/pointfreeco/sharing-grdb/actions?query=workflow%3ACI)
 [![Slack](https://img.shields.io/badge/slack-chat-informational.svg?label=Slack&logo=slack)](https://www.pointfree.co/slack-invite)

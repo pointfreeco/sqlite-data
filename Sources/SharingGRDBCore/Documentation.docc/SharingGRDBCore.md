@@ -1,9 +1,11 @@
 # ``SharingGRDBCore``
 
-A fast, lightweight replacement for SwiftData, powered by SQL. This module is automatically imported
-when you `import SharingGRDB`.
+A fast, lightweight replacement for SwiftData, powered by SQL and supporting CloudKit 
+synchronization.
 
 ## Overview
+
+> Important:  This module is automatically imported when you `import SharingGRDB`.
 
 SharingGRDB is a [fast](#Performance), lightweight replacement for SwiftData that deploys all the
 way back to the iOS 13 generation of targets.

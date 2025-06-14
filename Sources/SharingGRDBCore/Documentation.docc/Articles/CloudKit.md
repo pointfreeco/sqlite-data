@@ -6,12 +6,32 @@ application.
 ## Overview
 
 SharingGRDB allows you to seamlessly synchronize your SQLite database with CloudKit. After a few
-steps to set up your project and a ``SyncEngine`` your database can be automatically synchronized
+steps to set up your project and a ``SyncEngine``, your database can be automatically synchronized
 to CloudKit. However, distributing your app's schema across many devices is an impactful decision
 to make, and so an abundance of care must be taken to make sure all devices remain consistent
 and capable of communicating with each other. Please read the documentation closely and thoroughly
 to make sure you understand how to best prepare your app for cloud synchronization.
-
+    
+  - [Setting up your project](#Setting-up-your-project)  
+  - [Setting up a SyncEngine](#Setting-up-a-SyncEngine)  
+  - [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)  
+    - [UUID Primary keys](#UUID-Primary-keys)  
+    - [Primary keys on every table](#Primary-keys-on-every-table)  
+    - [Default values for columns](#Default-values-for-columns)  
+    - [Unique constraints](#Unique-constraints)  
+    - [Backwards compatible migrations](#Backwards-compatible-migrations)  
+    - [Foreign key relationships](#Foreign-key-relationships)  
+    - [Record conflicts](#Record-conflicts)  
+  - [Sharing records with other iCloud users](#Sharing-records-with-other-iCloud-users)  
+    - [Sharing root records](#Sharing-root-records)  
+    - [Sharing foreign key relationships](#Sharing-foreign-key-relationships)  
+      - [One-to-many relationships](#One-to-many-relationships)  
+      - [Many-to-many relationships](#Many-to-many-relationships)  
+  - [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)  
+  - [How SharingGRDB handles distributed schema scenarios](#How-SharingGRDB-handles-distributed-schema-scenarios)  
+  - [Preparing an existing schema for synchronization](#Preparing-an-existing-schema-for-synchronization)  
+    - [Convert Int primary keys to UUID](#Convert-Int-primary-keys-to-UUID)  
+    - [Add primary key to all tables](#Add-primary-key-to-all-tables)
 ## Setting up your project
 
 The steps to set up your SharingGRDB project for CloudKit synchronization are the 
@@ -20,11 +40,11 @@ The steps to set up your SharingGRDB project for CloudKit synchronization are th
 * Follow the [Configuring iCloud services] guide for enabling iCloud entitlements in your project.
 * Follow the [Configuring background execution modes] guide for adding the Background Modes
 capability to your project.
-* If you want enable sharing of records with other iCloud users, be sure to add a 
+* If you want to enable sharing of records with other iCloud users, be sure to add a 
 `CKSharingSupported` key to your Info.plist with a value of `true`. This is subtly documented 
 in [Apple's documentation for sharing].
 
-With those steps completed you are ready to configure a ``SyncEngine`` that will facilitate
+With those steps completed, you are ready to configure a ``SyncEngine`` that will facilitate
 synchronizing your database to and from CloudKit.
 
 [Apple's documentation for sharing]: https://developer.apple.com/documentation/cloudkit/sharing-cloudkit-data-with-other-icloud-users#Create-and-Share-a-Topic
@@ -71,14 +91,14 @@ struct MyApp: App {
 
 > Important: A few important things to note about this:
 > 
-> * The CloudKit container identifier must be explicitly provided and unfortuantely cannot be 
-> extracted from Entitlements.plist automatically. That priviledge is only afforded to SwiftData.
+> * The CloudKit container identifier must be explicitly provided and unfortunately cannot be 
+> extracted from Entitlements.plist automatically. That privilege is only afforded to SwiftData.
 > * You must explicitly provide all tables that you want to synchronize. We do this so that you can
 > have the option of having some local tables that are not synchronized to CloudKit.
 
 Once this work is done the app should work exactly as it did before, but now any changes made
 to the database will be synchronized to CloudKit. You will still interact with your local SQLite
-database in the same as you always do. You can use ``FetchAll`` to fetch data to be used in a view
+database the same way you always have. You can use ``FetchAll`` to fetch data to be used in a view
 or `@Observable` model, and you can use the `defaultDatabase` dependency to write to the database.
 
 ## Designing your schema with synchronization in mind
@@ -86,14 +106,14 @@ or `@Observable` model, and you can use the `defaultDatabase` dependency to writ
 Distributing your app's schema across many devices is a big decision to make for your app, and
 care must be taken. It is not true that you can simply take any existing schema, add a 
 ``SyncEngine`` to it, and have it magically synchronize data across all devices and across all
-versions of your app. There are a number of principals to keep in mind while designing and evolving
+versions of your app. There are a number of principles to keep in mind while designing and evolving
 your schema to make sure every device can synchronize changes to every other device, no matter the
 version.
 
-#### Primary keys
+#### UUID Primary keys
 
-> Important: Primary keys must be UUIDs with a default, and further we recommend specifying a "NOT NULL"
-> constraint with a "ON CONFLICT REPLACE" action.
+> Important: Primary keys must be UUIDs with a default, and further we recommend specifying a 
+> "NOT NULL" constraint with a "ON CONFLICT REPLACE" action.
 
 Primary keys are an important concept in SQL schema design, and SQLite makes it easy to add a 
 primary key by using an "autoincrement" integer. This makes it so that newly inserted rows get
@@ -102,8 +122,8 @@ with distributed schemas. That would make it possible for two devices to create 
 `id: 1`, and when those records synchronize there would be an irreconcilable conflict.
 
 For this reason, primary keys in SQLite tables should be globally unique, and so SharingGRDB
-requires that they be UUIDs. We recommend stores UUIDs in SQLite a "TEXT" column, adding a default
-with a freshly generated UUID, and further adding a "ON CONFLICT REPLACE" constraint:
+requires that they be UUIDs. We recommend storing UUIDs in SQLite as a "TEXT" column, adding a 
+default with a freshly generated UUID, and further adding a "ON CONFLICT REPLACE" constraint:
 
 ```sql
 CREATE TABLE "reminders" (
@@ -124,7 +144,7 @@ try database.write { db in
 
 #### Primary keys on every table
 
-> Important: Every table synchronized must have a single, non-compound primary key to aid in 
+> Important: Each synchronized table must have a single, non-compound primary key to aid in 
 > synchronization, even if it is not used by your app.
 
 _Every_ table being synchronized must have a single primary key and cannot have compound primary
@@ -140,17 +160,38 @@ CREATE TABLE "reminders" (
 )
 ```
 
-Note that the `id` column may not ever be used in your application code, but it is necessary to 
+Note that the `id` column may never be used in your application code, but it is necessary to 
 facilitate synchronizing to CloudKit.
+
+#### Default values for columns
+
+> Important: All columns must have a default in order to allow for multiple devices to run your
+> app with different versions of the schema.
+
+<!-- todo: finish -->
+
+#### Unique constraints
+
+> Important: SQLite tables cannot have "UNIQUE" constraints on their columns in order to allow
+> for distributed creation of records.
+
+<!-- todo: finish -->
+
+#### Backwards compatible migrations
+
+> Important: A database migrations should be done carefully and with full backwards compatibility
+> in mind in order to support multiple devices running with different schema versions.
+
+<!-- todo: finish -->
 
 #### Foreign key relationships
 
 > Important: Foreign key constraints must be disabled for your SQLite connection, but you can still
 > use references with "ON DELETE" and "ON UPDATE" actions.
 
-SharingGRDB can synchronize one-to-one, many-to-one and many-to-many to CloudKit, however one
-cannot _enforce_ foreign key constraints. Recall that foreign key constraints allow you to say
-when one table references a row from another table. For example, a reminder can belong to a 
+SharingGRDB can synchronize one-to-one, many-to-one, and many-to-many relationships to CloudKit, 
+however one cannot _enforce_ foreign key constraints. Recall that foreign key constraints define 
+when one table references a row in another table. For example, a reminder can belong to a 
 reminders list, and the following schema expresses this relationship:
 
 ```sql
@@ -167,13 +208,246 @@ with a `remindersListID` that does not exist in the database.
 However, this constraint does not play nicely with distributed schemas. We cannot guarantee the 
 order that reminders and lists are synchronized to the device, and so there will be times that a
 reminder is synchronized to the device without its associated list, and then a few moments later
-the list will also be synchronized.
+the list will also be synchronized. We must allow for this intermiedate period of inconsistency
+as we wait for the system to become eventually consistent.
+
+> Note: It is OK for foreign keys can be "NOT NULL" in your schema, but your queries and UI should
+> be built in a way that is resillient to there being times when the foreign key points to a row
+> that does not yet exist. This means that when performing a full join between tables you may
+> not get any results until all data has been synchronized, or when performing a left join
+> you will have to deal with optional values.
+
+So, when creating and migrating your database, you must disable foreign key checks. This is done
+in GRDB like so:
+
+```diff
+ func appDatabase() throws -> any DatabaseWriter {
+   let database: any DatabaseWriter
+   var configuration = Configuration()
++  configuration.foreignKeysEnabled = false
+   …
+ }
+```
+
+This unfortunately turns off _all_ functionality of foreign keys. But, there are two parts to 
+foreign keys: there is the constraint, which prevents creating rows that reference other rows
+that do not exist, and there's the action, which allows you to perform an action when a foreign
+key is updated (such as cascading deletions). The former is incompatible with distributed schemas,
+but the latter is perfectly fine.
+
+For this reason, SharingGRDB recreates foreign key actions so that you can still take advantage of
+"ON UPDATE" and "ON DELETE" clauses. This means that you can continue using foreign keys
+in your table schema:
+
+```sql
+CREATE TABLE "reminders" (
+  …
+  "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+)
+```
+
+…and while the constraint will not be enforced, the "ON DELETE CASCADE" will still be implemented,
+i.e. when a reminders list is deleted, all of its associated reminders will also be deleted, 
+and everything will be synchronized to all devices.
+
+#### Record conflicts
+
+> Important: Conflicts are handled automatically by letting most recently edited records overwrite
+> older records.
+
+Conflicts between record edits will inevitably happen, and it's just a fact of dealing with 
+distributed data. The library handles conflicts automatically, but does so in the most naive way
+possible (which is also the strategy of SwiftData). When a record is synchronized to a device,
+the ``SyncEngine`` checks a last modified timestamp on the new record and the record it currently
+has on device, and it chooses the one with the newest timestamp.
+
+There is no per-field synchronization, nor is there more advanced CRDT synchronization. We may
+allow for these kinds of strategies in the future, but for now "last edit wins" is the only
+strategy available and we feel serves the needs of the most number of people.
 
 ## Sharing records with other iCloud users
 
-#### Foreign key relationships
+SharingGRDB provides the tools necessary to share a record with another iCloud user so that 
+multiple users can collaborate on a single record. Sharing a record with another user brings
+extra complications to an app that go beyond the existing complications of sharing a schema
+across many devices. Please read the documentation carefully and thoroughly to understand
+how to best situate your app for sharing that does not cause problems down the road.
 
-Relationships between models 
+> Note: To enable sharing of records be sure to add a `CKSharingSupported` key to your Info.plist 
+with a value of `true`. This is subtly documented in [Apple's documentation for sharing].
+
+[Apple's documentation for sharing]: https://developer.apple.com/documentation/cloudkit/sharing-cloudkit-data-with-other-icloud-users#Create-and-Share-a-Topic
+
+To share a record with another user one must first create a `CKShare`. SharingGRDB provides
+a method ``SyncEngine/share(record:configure:)`` on ``SyncEngine`` for generating a `CKShare`
+for a record. Further, the value returned from this method can be stored in a view and be used
+to drive a sheet to display a ``CloudSharingView``, which is a wrapper around UIKit's
+`UICloudSharingController`:
+
+```swift
+struct RemindersListView: View {
+  let remindersList: RemindersList 
+  @State var sharedRecord: SharedRecord?
+
+  var body: some View {
+    Form {
+      …
+    }
+    .toolbar {
+      Button("Share") {
+        Task {
+          await withErrorReporting {
+            sharedRecord = try await syncEngine.share(record: remindersList) { share in
+              share[CKShare.SystemFieldKey.title] = "Join '\(remindersList.title)!'"
+            }
+          }
+        }
+      }
+    }
+    .sheet(item: $sharedRecord) { sharedRecord in
+      CloudSharingView(sharedRecord: sharedRecord)
+    }
+  }
+}
+```
+
+When the "Share" button is tapped, a ``SharedRecord`` will be generated and stored as local state
+in the view. That will cause a ``CloudSharingView`` sheet to be presented where the user can 
+configure how they want to share the record. A record can be _unshared_ by presenting the same
+``CloudSharingView`` to the user so that they can tap the "Stop sharing" button in the UI.
+
+#### Sharing root records
+
+> Important: It is only possible to share "root" records, that is, records with no
+> non-optional foreign keys.
+
+A record can be shared only if it is a "root" record. That means it cannot have any non-optional
+foreign keys. As an example, the following `RemindersList` table is a root record because it does
+not have any fields pointing to other tables:
+
+```swift
+@Table 
+struct RemindersList: Identifiable {
+  let id: UUID 
+  var title = ""
+}
+```
+
+On the other hand, a `Reminder` table with a foreign key pointing to the `RemindersList` is _not_
+a root record:
+
+```swift
+@Table 
+struct Reminder: Identifiable {
+  let id: UUID 
+  var title = ""
+  var isCompleted = false
+  var remindersListID: RemindersList.ID
+}
+```
+
+Such records cannot be shared because it is not appropriate to also share the parent record
+(i.e. the reminders list). For example, suppose you have a list named "Personal" with a reminder
+"Get milk". You share this reminder with someone, who then wants to rename the list to "Life". 
+Would you want your list to also be renamed even though you did not explicitly share the list?
+Or what if they delete the list? Would you want that to delete your list and all the reminders
+in the list?
+
+For those reasons it is not possible to share non-root records, like reminders. Instead, you can
+share root records, like reminders lists. If you do invoke ``SyncEngine/share(record:configure:)``
+with a non-root record, a ``SyncEngine/CantShareRecordWithParent`` error will be thrown.
+
+#### Sharing foreign key relationships
+
+> Important: Foreign key relationships are automatically synchronized, but only if the related
+> record has a single non-optional foreign key. Records with multiple foreign keys cannot be
+> synchronized.
+
+Relationships between models will automatically be shared when sharing a root record, but with
+some limitations. An associated record of a shared record will only be shared if it has exactly
+one non-optional foreign key pointing to the shared record.
+
+##### One-to-many relationships
+
+One-to-many relationships are the simplest to share with other users. As an example, 
+consider a `RemindersList` table that can have many `Reminder`s associated with it:
+
+```swift
+@Table 
+struct RemindersList: Identifiable {
+  let id: UUID 
+  var title = ""
+}
+
+@Table 
+struct Reminder: Identifiable {
+  let id: UUID 
+  var title = ""
+  var isCompleted = false
+  var remindersListID: RemindersList.ID
+}
+```
+
+Since `RemindersList` is a [root record](#Sharing-root-records) it can be shared, and since
+`Reminder` has only one non-optional foreign key pointing to `RemindersList`, it too will be
+shared.
+
+Further, suppose there was a `ChildReminder` table that had a single foreign key pointing to a 
+`Reminder`:
+
+```swift
+@Table 
+struct ChildReminder: Identifiable {
+  let id: UUID 
+  var title = ""
+  var isCompleted = false
+  var parentReminderID: Reminders.ID
+}
+```
+
+This too will be shared because it has one single foreign key pointing to a table that also has
+one single foreign key pointing to the root record being shared.
+
+##### Many-to-many relationships
+
+Many-to-many relationships pose a significant problem to sharing and cannot be supported. However, 
+if a table has multiple non-optional foreign keys, then it will not be shared even if one of those 
+foreign keys points to the shared record. 
+
+> Note: `CKShare` in CloudKit, which is what our tools are built on, does not support sharing 
+> many-to-many relationships.
+
+To see why many-to-many relationships can be problematic, suppose we had a many-to-many association 
+of a `Tag` table to `Reminder` via a `ReminderTag` join table:
+
+```swift
+@Table
+struct Tag: Identifiable {
+  let id: UUID 
+  var title = ""
+}
+@Table
+struct ReminderTag: Identifiable {
+  let id: UUID 
+  var reminderID: Reminder.ID
+  var tagID: Tag.ID
+}
+```
+
+The `ReminderTag` records will _not_ be shared, and as a consequence the `Tag` records will also
+not be shared, even though `ReminderTag` points to `Reminder` which is shared. Sharing these records 
+cannot be done in a consistent and logical manner. 
+
+For example, suppose you share a "Personal" list with someone, which holds a "Get milk" reminder, 
+and that reminder has a "weekend" tag associated with it. If the tag were shared with your friend, 
+then what happens when they delete the tag? Would it be appropriate to delete that tag from all of
+your reminders, even the ones that were not shared? For these reasons, and more, records 
+with multiple non-optional foreign keys cannot be shared with a record.
+
+
+
+
+## Accessing CloudKit metadata
 
 ## How SharingGRDB handles distributed schema scenarios
 
