@@ -112,7 +112,7 @@ version.
 
 #### UUID Primary keys
 
-> Important: Primary keys must be UUIDs with a default, and further we recommend specifying a 
+> Important: Primary keys must be UUIDs with a default, and further, we recommend specifying a 
 > "NOT NULL" constraint with a "ON CONFLICT REPLACE" action.
 
 Primary keys are an important concept in SQL schema design, and SQLite makes it easy to add a 
@@ -179,7 +179,7 @@ facilitate synchronizing to CloudKit.
 
 #### Backwards compatible migrations
 
-> Important: A database migrations should be done carefully and with full backwards compatibility
+> Important: Database migrations should be done carefully and with full backwards compatibility
 > in mind in order to support multiple devices running with different schema versions.
 
 <!-- todo: finish -->
@@ -208,13 +208,13 @@ with a `remindersListID` that does not exist in the database.
 However, this constraint does not play nicely with distributed schemas. We cannot guarantee the 
 order that reminders and lists are synchronized to the device, and so there will be times that a
 reminder is synchronized to the device without its associated list, and then a few moments later
-the list will also be synchronized. We must allow for this intermiedate period of inconsistency
+the list will also be synchronized. We must allow for this intermediate period of inconsistency
 as we wait for the system to become eventually consistent.
 
-> Note: It is OK for foreign keys can be "NOT NULL" in your schema, but your queries and UI should
-> be built in a way that is resillient to there being times when the foreign key points to a row
+> Note: It is OK for foreign keys to be "NOT NULL" in your schema, but your queries and UI should
+> be built in a way that is resilient to times when the foreign key points to a row
 > that does not yet exist. This means that when performing a full join between tables you may
-> not get any results until all data has been synchronized, or when performing a left join
+> not get any results until all data has been synchronized, or when performing a left join,
 > you will have to deal with optional values.
 
 So, when creating and migrating your database, you must disable foreign key checks. This is done
@@ -279,7 +279,7 @@ with a value of `true`. This is subtly documented in [Apple's documentation for 
 [Apple's documentation for sharing]: https://developer.apple.com/documentation/cloudkit/sharing-cloudkit-data-with-other-icloud-users#Create-and-Share-a-Topic
 
 To share a record with another user one must first create a `CKShare`. SharingGRDB provides
-a method ``SyncEngine/share(record:configure:)`` on ``SyncEngine`` for generating a `CKShare`
+the method ``SyncEngine/share(record:configure:)`` on ``SyncEngine`` for generating a `CKShare`
 for a record. Further, the value returned from this method can be stored in a view and be used
 to drive a sheet to display a ``CloudSharingView``, which is a wrapper around UIKit's
 `UICloudSharingController`:
