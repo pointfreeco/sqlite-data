@@ -121,7 +121,7 @@ This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies
     var items
 
     @FetchOne(Item.count())
-    var inStockItemsCount = 0
+    var itemsCount = 0
     ```
   }
   @Column {
@@ -258,6 +258,7 @@ with SQLite to take full advantage of GRDB and SharingGRDB.
 - <doc:Observing>
 - <doc:PreparingDatabase>
 - <doc:DynamicQueries>
+- <doc:CloudKit>
 - <doc:ComparisonWithSwiftData>
 - <doc:MigrationGuides>
 

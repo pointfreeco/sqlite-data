@@ -176,7 +176,7 @@ var items
 var items
 
 @FetchOne(Item.count())
-var inStockItemsCount = 0
+var itemsCount = 0
 
 ```
 
