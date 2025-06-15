@@ -11,7 +11,7 @@ to CloudKit. However, distributing your app's schema across many devices is an i
 to make, and so an abundance of care must be taken to make sure all devices remain consistent
 and capable of communicating with each other. Please read the documentation closely and thoroughly
 to make sure you understand how to best prepare your app for cloud synchronization.
-    
+  
   - [Setting up your project](#Setting-up-your-project)  
   - [Setting up a SyncEngine](#Setting-up-a-SyncEngine)  
   - [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)  
@@ -27,11 +27,14 @@ to make sure you understand how to best prepare your app for cloud synchronizati
     - [Sharing foreign key relationships](#Sharing-foreign-key-relationships)  
       - [One-to-many relationships](#One-to-many-relationships)  
       - [Many-to-many relationships](#Many-to-many-relationships)  
+      - [One-to-"at most one" relationships](#One-to-at-most-one-relationships)  
+  - [Assets](#Assets)  
   - [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)  
   - [How SharingGRDB handles distributed schema scenarios](#How-SharingGRDB-handles-distributed-schema-scenarios)  
   - [Preparing an existing schema for synchronization](#Preparing-an-existing-schema-for-synchronization)  
     - [Convert Int primary keys to UUID](#Convert-Int-primary-keys-to-UUID)  
     - [Add primary key to all tables](#Add-primary-key-to-all-tables)
+
 ## Setting up your project
 
 The steps to set up your SharingGRDB project for CloudKit synchronization are the 
