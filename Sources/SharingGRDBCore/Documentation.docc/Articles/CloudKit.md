@@ -137,7 +137,10 @@ keyed tables without needing to specify an `id`:
 
 ```swift
 try database.write { db in
-  try Reminder.upsert { Reminder.Draft(title: "Get milk") }
+  try Reminder.upsert {
+      // Do not provide 'id', let database initialize it for you.
+      Reminder.Draft(title: "Get milk") 
+    }
     .execute(db)
 }
 ```
@@ -357,15 +360,34 @@ For those reasons it is not possible to share non-root records, like reminders. 
 share root records, like reminders lists. If you do invoke ``SyncEngine/share(record:configure:)``
 with a non-root record, a ``SyncEngine/CantShareRecordWithParent`` error will be thrown.
 
+> Note: A reminder can still be shared as an association to a shared reminders list, as discussed
+> [in the next section](<doc:CloudKit#Sharing foreign key relationships>). However, a single 
+> reminder cannot be shared on its own.
+
+For a more complex example, consider the following diagrammatic schema for a reminders app:
+
+![Root record diagram](sync-diagram-root-record.png)
+
+In this schema, a `RemindersList` can have many `Reminder`s, can have a `CoverImage`, and a
+`Reminder` can have multiple `Tag`s, and vice-versa. The only table in this diagram that constitutes
+a "root" is `RemindersList`. It is the only one with no non-optional foreign key relationships.
+None of `Reminder`, `CoverImage`, `Tag` or `ReminderTag` can be directly shared on their own
+because they are not root tables.
+
 #### Sharing foreign key relationships
 
 > Important: Foreign key relationships are automatically synchronized, but only if the related
-> record has a single non-optional foreign key. Records with multiple foreign keys cannot be
-> synchronized.
+> record has a single non-optional foreign key without a uniqueness constraint. Records with 
+> multiple foreign keys or uniqueness constraints cannot be synchronized.
 
 Relationships between models will automatically be shared when sharing a root record, but with
 some limitations. An associated record of a shared record will only be shared if it has exactly
-one non-optional foreign key pointing to the shared record.
+one non-optional foreign key pointing to the root shared record, whether directly or indirectly
+through other records satisfying this property.
+
+Below we describe some of the most common types of relationships in SQL databases, as well as
+which are possible to synchronize, which cannot be synchronized, and which can be adapted to
+play nicely with synchronization.
 
 ##### One-to-many relationships
 
@@ -408,10 +430,20 @@ struct ChildReminder: Identifiable {
 This too will be shared because it has one single foreign key pointing to a table that also has
 one single foreign key pointing to the root record being shared.
 
+As a more complex example, consider the following diagrammatic schema:
+
+![Synchronizing one-to-many relationships](sync-diagram-one-to-many.png)
+
+In this schema, a `RemindersList` can have many `Reminder`s and a `CoverImage`, and a `Reminder`
+can have many `ChildReminder`s. Sharing a `RemindersList` will share all associated reminders,
+cover image, and even child reminderes. The child reminders are synchronized because it has a 
+single non-optional foreign key pointing to a table that also has a single non-optional foreign
+key pointing to the root record.
+
 ##### Many-to-many relationships
 
-Many-to-many relationships pose a significant problem to sharing and cannot be supported. However, 
-if a table has multiple non-optional foreign keys, then it will not be shared even if one of those 
+Many-to-many relationships pose a significant problem to sharing and cannot be supported. If a 
+table has multiple non-optional foreign keys, then it will not be shared even if one of those 
 foreign keys points to the shared record. 
 
 > Note: `CKShare` in CloudKit, which is what our tools are built on, does not support sharing 
@@ -434,27 +466,91 @@ struct ReminderTag: Identifiable {
 }
 ```
 
-The `ReminderTag` records will _not_ be shared, and as a consequence the `Tag` records will also
-not be shared, even though `ReminderTag` points to `Reminder` which is shared. Sharing these records 
-cannot be done in a consistent and logical manner. 
+In diagrammatic form, this schema looks like the following:
 
-For example, suppose you share a "Personal" list with someone, which holds a "Get milk" reminder, 
-and that reminder has a "weekend" tag associated with it. If the tag were shared with your friend, 
-then what happens when they delete the tag? Would it be appropriate to delete that tag from all of
-your reminders, even the ones that were not shared? For these reasons, and more, records 
+![Synchronizing many-to-many relationships](sync-diagram-many-to-many.png)
+
+The `ReminderTag` records will _not_ be shared because it has two non-optional foreign key 
+relationships, represented by the two arrows leaving the `ReminderTag` node. As a consequence,
+the `Tag` records will also not be shared. Sharing these records cannot be done in a consistent and 
+logical manner. 
+
+To see the problem, suppose you share a "Personal" list with someone, which holds a "Get milk" 
+reminder, and that reminder has a "weekend" tag associated with it. If the tag were shared with your 
+friend, then what happens when they delete the tag? Would it be appropriate to delete that tag from 
+all of your reminders, even the ones that were not shared? For these reasons, and more, records 
 with multiple non-optional foreign keys cannot be shared with a record.
 
+If you want to support many tags associated with a single reminder, you will have no choice
+but to turn it into a one-to-many relationship so that each tag belongs to exactly one reminder:
 
+```swift
+@Table
+struct Tag: Identifiable {
+  let id: UUID 
+  var title = "" 
+  var reminderID: Reminder.ID
+}
+```
 
+In diagrammatic form this schema now looks like the following:
+
+![Many-to-many refactor into a one-to-many relationship](sync-diagram-many-to-many-refactor.png)
+
+This kind of relationship will now be synchronized automatically. Sharing a `RemindersList` will
+automatically share all of its `Reminder`s, which will subsequently also share all of their
+`Tag`s. But, this does put responsibility on your application code to properly aggregate 
+multiple tags together with the same titles. Luckily this is something that SQL excels at.
+
+##### One-to-"at most one" relationships
+
+One-to-"at most one" relationships in SQLite allow you to associate zero or one records with
+another record. For an example of this, suppose we wanted to hold onto a cover image for reminders 
+lists (see <doc:CloudKit#Assets> for more information on synchronizing assets such as images). It 
+is perfectly fine to hold onto large binary data in SQLite, such as image data, but typically one 
+should put this data in a separate table.
+
+This kind of relationship can be modeled in SQLite as a foreign key pointing from image record 
+to reminders list record, and with a uniqueness constraint on the key. That enforces that at 
+most one image is associated with a reminders list.
+
+In diagrammatic form, it looks like this:
+
+![One-to-"at most one" relationship with uniqueness](sync-diagram-one-to-at-most-one-unique.png)
+
+Here the `CoverImage` table has a foreign key pointing to the root table `RemindersList`, but 
+with a uniqueness constraint to enforce that at most one cover image belongs to a list.
+
+However, due to what is discussed in <doc:CloudKit#Unique-constraints>, this kind of relationship
+cannot be synchronized to CloudKit since uniqueness constraints do not play nicely with 
+distributed data. But, one can still model this kind of relationship by not enforcing the 
+uniqueness constraint in SQL and instead enforcing it in your application logic. This means
+you will model the relationship as a one-to-many (as described in 
+<doc:CloudKit#One-to-many-relationships>) and making sure that in your feature's logic you never
+create multiple cover images pointing to the same reminders list.
+
+## Assets
+
+<!-- todo: finish -->
 
 ## Accessing CloudKit metadata
 
+<!-- todo: finish -->
+
 ## How SharingGRDB handles distributed schema scenarios
+
+<!-- todo: finish -->
 
 ## Preparing an existing schema for synchronization
 
+<!-- todo: finish -->
+
 ### Convert Int primary keys to UUID
 
+<!-- todo: finish -->
+
 ### Add primary key to all tables
+
+<!-- todo: finish -->
 
 <!-- TODO: talk about simulator push restrictions -->
