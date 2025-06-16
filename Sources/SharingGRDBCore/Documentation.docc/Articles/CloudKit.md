@@ -19,9 +19,9 @@ to make sure you understand how to best prepare your app for cloud synchronizati
     - [Primary keys on every table](#Primary-keys-on-every-table)  
     - [Default values for columns](#Default-values-for-columns)  
     - [Unique constraints](#Unique-constraints)  
-    - [Backwards compatible migrations](#Backwards-compatible-migrations)  
     - [Foreign key relationships](#Foreign-key-relationships)  
-    - [Record conflicts](#Record-conflicts)  
+  - [Record conflicts](#Record-conflicts)  
+  - [Backwards compatible migrations](#Backwards-compatible-migrations)  
   - [Sharing records with other iCloud users](#Sharing-records-with-other-iCloud-users)  
     - [Sharing root records](#Sharing-root-records)  
     - [Sharing foreign key relationships](#Sharing-foreign-key-relationships)  
@@ -135,6 +135,8 @@ CREATE TABLE "reminders" (
 )
 ```
 
+> Tip: The "ON CONFLICT REPLACE" clause must be placed directly after "NOT NULL".
+
 This will make it possible to create new records using the `Draft` type afforded to primary 
 keyed tables without needing to specify an `id`:
 
@@ -159,7 +161,7 @@ tables they are joining. For example, a `ReminderTag` table that joins reminders
 designed like so:
 
 ```sql
-CREATE TABLE "reminders" (
+CREATE TABLE "reminderTags" (
   "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
   "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
   "tagID" TEXT NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
@@ -174,21 +176,31 @@ facilitate synchronizing to CloudKit.
 > Important: All columns must have a default in order to allow for multiple devices to run your
 > app with different versions of the schema.
 
-<!-- todo: finish -->
+Your tables' schemas should be defined to provide a default for every non-null column. To see why 
+this is necessary, consider if device A is running with a schema in which `Reminder` has an 
+`isFlagged` column and device B is running with a schema that does not. When device B creates a 
+record without the `isFlagged` value, and that record is synchronized to device A, it will fail to 
+insert into the database because there is not value for `isFlagged`. 
+
+For this reason all columns in your schema must have a default value, and this will be validated
+when a ``SyncEngine`` is first created. If a non-null column without a default is detected,
+a ``NonNullColumnMustHaveDefault`` error will be thrown.
 
 #### Unique constraints
 
 > Important: SQLite tables cannot have "UNIQUE" constraints on their columns in order to allow
 > for distributed creation of records.
 
-<!-- todo: finish -->
+Tables with unique constraints on their columns, other than on the primary key, cannot be
+synchronized. As an example, suppose you have a `Tag` table with a unique constraint on the 
+`title` column. It is not clear how the application should handle if two different devices create
+a tag with the title "Family" at the same time. When the two devices synchronize their data
+they will have a conflict on the uniqueness constraint, but it would not be correct to 
+discard one of the tags.
 
-#### Backwards compatible migrations
-
-> Important: Database migrations should be done carefully and with full backwards compatibility
-> in mind in order to support multiple devices running with different schema versions.
-
-<!-- todo: finish -->
+For this reason uniqueness constraints are not allowed in schemas, and this will be validated
+when a ``SyncEngine`` is first created. If a uniqueness constraint is detected a 
+``UniqueConstraintDisallowed`` error will be thrown.
 
 #### Foreign key relationships
 
@@ -256,7 +268,7 @@ CREATE TABLE "reminders" (
 i.e. when a reminders list is deleted, all of its associated reminders will also be deleted, 
 and everything will be synchronized to all devices.
 
-#### Record conflicts
+## Record conflicts
 
 > Important: Conflicts are handled automatically by letting most recently edited records overwrite
 > older records.
@@ -270,6 +282,13 @@ has on device, and it chooses the one with the newest timestamp.
 There is no per-field synchronization, nor is there more advanced CRDT synchronization. We may
 allow for these kinds of strategies in the future, but for now "last edit wins" is the only
 strategy available and we feel serves the needs of the most number of people.
+
+## Backwards compatible migrations
+
+> Important: Database migrations should be done carefully and with full backwards compatibility
+> in mind in order to support multiple devices running with different schema versions.
+
+<!-- todo: finish -->
 
 ## Sharing records with other iCloud users
 
@@ -325,11 +344,11 @@ configure how they want to share the record. A record can be _unshared_ by prese
 #### Sharing root records
 
 > Important: It is only possible to share "root" records, that is, records with no
-> non-optional foreign keys.
+> foreign keys.
 
-A record can be shared only if it is a "root" record. That means it cannot have any non-optional
-foreign keys. As an example, the following `RemindersList` table is a root record because it does
-not have any fields pointing to other tables:
+A record can be shared only if it is a "root" record. That means it cannot have any
+foreign keys whatsoever. As an example, the following `RemindersList` table is a root record because 
+it does not have any fields pointing to other tables:
 
 ```swift
 @Table 
@@ -354,12 +373,13 @@ struct Reminder: Identifiable {
 
 Such records cannot be shared because it is not appropriate to also share the parent record
 (i.e. the reminders list). For example, suppose you have a list named "Personal" with a reminder
-"Get milk". You share this reminder with someone, who then wants to rename the list to "Life". 
-Would you want your list to also be renamed even though you did not explicitly share the list?
+"Get milk". If you share this reminder with someone, and they decide to reassign the reminder to
+their "Life" list, what should happen? Should their list be synchronized to your device?
+Or what if they rename your personal list? Should that also rename the list on your device?
 Or what if they delete the list? Would you want that to delete your list and all the reminders
 in the list?
 
-For those reasons it is not possible to share non-root records, like reminders. Instead, you can
+For these reasons it is not possible to share non-root records, like reminders. Instead, you can
 share root records, like reminders lists. If you do invoke ``SyncEngine/share(record:configure:)``
 with a non-root record, a ``SyncEngine/CantShareRecordWithParent`` error will be thrown.
 
@@ -373,19 +393,18 @@ For a more complex example, consider the following diagrammatic schema for a rem
 
 In this schema, a `RemindersList` can have many `Reminder`s, can have a `CoverImage`, and a
 `Reminder` can have multiple `Tag`s, and vice-versa. The only table in this diagram that constitutes
-a "root" is `RemindersList`. It is the only one with no non-optional foreign key relationships.
+a "root" is `RemindersList`. It is the only one with no foreign key relationships.
 None of `Reminder`, `CoverImage`, `Tag` or `ReminderTag` can be directly shared on their own
 because they are not root tables.
 
 #### Sharing foreign key relationships
 
 > Important: Foreign key relationships are automatically synchronized, but only if the related
-> record has a single non-optional foreign key without a uniqueness constraint. Records with 
-> multiple foreign keys or uniqueness constraints cannot be synchronized.
+> record has a single foreign key. Records with multiple foreign keys cannot be synchronized.
 
 Relationships between models will automatically be shared when sharing a root record, but with
 some limitations. An associated record of a shared record will only be shared if it has exactly
-one non-optional foreign key pointing to the root shared record, whether directly or indirectly
+one foreign key pointing to the root shared record, whether directly or indirectly
 through other records satisfying this property.
 
 Below we describe some of the most common types of relationships in SQL databases, as well as
@@ -414,8 +433,7 @@ struct Reminder: Identifiable {
 ```
 
 Since `RemindersList` is a [root record](#Sharing-root-records) it can be shared, and since
-`Reminder` has only one non-optional foreign key pointing to `RemindersList`, it too will be
-shared.
+`Reminder` has only one foreign key pointing to `RemindersList`, it too will be shared.
 
 Further, suppose there was a `ChildReminder` table that had a single foreign key pointing to a 
 `Reminder`:
@@ -440,20 +458,17 @@ As a more complex example, consider the following diagrammatic schema:
 In this schema, a `RemindersList` can have many `Reminder`s and a `CoverImage`, and a `Reminder`
 can have many `ChildReminder`s. Sharing a `RemindersList` will share all associated reminders,
 cover image, and even child reminderes. The child reminders are synchronized because it has a 
-single non-optional foreign key pointing to a table that also has a single non-optional foreign
-key pointing to the root record.
+single foreign key pointing to a table that also has a single foreign key pointing to the root 
+record.
 
 ##### Many-to-many relationships
 
 Many-to-many relationships pose a significant problem to sharing and cannot be supported. If a 
-table has multiple non-optional foreign keys, then it will not be shared even if one of those 
+table has multiple foreign keys, then it will not be shared even if one of those 
 foreign keys points to the shared record. 
 
-> Note: `CKShare` in CloudKit, which is what our tools are built on, does not support sharing 
-> many-to-many relationships.
-
-To see why many-to-many relationships can be problematic, suppose we had a many-to-many association 
-of a `Tag` table to `Reminder` via a `ReminderTag` join table:
+As an example, suppose we had a many-to-many association of a `Tag` table to `Reminder` via a 
+`ReminderTag` join table:
 
 ```swift
 @Table
@@ -473,16 +488,20 @@ In diagrammatic form, this schema looks like the following:
 
 ![Synchronizing many-to-many relationships](sync-diagram-many-to-many.png)
 
-The `ReminderTag` records will _not_ be shared because it has two non-optional foreign key 
+The `ReminderTag` records will _not_ be shared because it has two foreign key 
 relationships, represented by the two arrows leaving the `ReminderTag` node. As a consequence,
 the `Tag` records will also not be shared. Sharing these records cannot be done in a consistent and 
 logical manner. 
 
-To see the problem, suppose you share a "Personal" list with someone, which holds a "Get milk" 
-reminder, and that reminder has a "weekend" tag associated with it. If the tag were shared with your 
-friend, then what happens when they delete the tag? Would it be appropriate to delete that tag from 
-all of your reminders, even the ones that were not shared? For these reasons, and more, records 
-with multiple non-optional foreign keys cannot be shared with a record.
+> Note: `CKShare` in CloudKit, which is what our tools are built on, does not support sharing 
+> many-to-many relationships. This is also how the Reminders app works on Apple's platforms. 
+> Sharing a list of reminders with another use does not share its tags with that user. 
+
+To see why this is an acceptable limitation, suppose you share a "Personal" list with someone, which 
+holds a "Get milk" reminder, and that reminder has a "weekend" tag associated with it. If the tag 
+were shared with your friend, then what happens when they delete the tag? Would it be appropriate to 
+delete that tag from all of your reminders, even the ones that were not shared? For these reasons, 
+and more, records with multiple foreign keys cannot be shared with a record.
 
 If you want to support many tags associated with a single reminder, you will have no choice
 but to turn it into a one-to-many relationship so that each tag belongs to exactly one reminder:

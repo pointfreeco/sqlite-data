@@ -143,7 +143,7 @@ func appDatabase() throws -> any DatabaseWriter {
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99_ef00),
         "position" INTEGER NOT NULL DEFAULT 0,
-        "title" TEXT NOT NULL
+        "title" TEXT NOT NULL DEFAULT ''
       ) STRICT
       """
     )
@@ -153,7 +153,9 @@ func appDatabase() throws -> any DatabaseWriter {
       CREATE TABLE "remindersListAssets" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "coverImage" BLOB,
-        "remindersListID" TEXT NOT NULL UNIQUE REFERENCES "remindersLists"("id") ON DELETE CASCADE
+        "remindersListID" TEXT NOT NULL 
+          DEFAULT '00000000-0000-0000-0000-000000000000'
+          REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
       """
     )
@@ -165,11 +167,11 @@ func appDatabase() throws -> any DatabaseWriter {
         "dueDate" TEXT,
         "isCompleted" INTEGER NOT NULL DEFAULT 0,
         "isFlagged" INTEGER NOT NULL DEFAULT 0,
-        "notes" TEXT,
+        "notes" TEXT NOT NULL DEFAULT '',
         "position" INTEGER NOT NULL DEFAULT 0,
         "priority" INTEGER,
-        "remindersListID" TEXT NOT NULL,
-        "title" TEXT NOT NULL,
+        "remindersListID" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        "title" TEXT NOT NULL DEFAULT '',
 
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
@@ -180,7 +182,7 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "tags" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "title" TEXT NOT NULL COLLATE NOCASE
+        "title" TEXT NOT NULL DEFAULT ''
       ) STRICT
       """
     )
@@ -189,8 +191,8 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "remindersTags" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "reminderID" TEXT NOT NULL,
-        "tagID" TEXT NOT NULL,
+        "reminderID" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        "tagID" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
 
         FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
         FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
@@ -219,16 +221,16 @@ func appDatabase() throws -> any DatabaseWriter {
         .where { $0.id.eq(new.id) }
     })
     .execute(db)
-    try RemindersList.createTemporaryTrigger(
-      after: .delete { _ in
-        RemindersList.insert {
-          RemindersList.Draft(color: .blue, title: "Personal")
-        }
-      } when: { _ in
-        RemindersList.count().eq(0)
-      }
-    )
-    .execute(db)
+//    try RemindersList.createTemporaryTrigger(
+//      after: .delete { _ in
+//        RemindersList.insert {
+//          RemindersList.Draft(color: .blue, title: "Personal")
+//        }
+//      } when: { _ in
+//        RemindersList.count().eq(0)
+//      }
+//    )
+//    .execute(db)
   }
 
   return database

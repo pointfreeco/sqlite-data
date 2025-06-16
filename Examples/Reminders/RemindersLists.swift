@@ -113,18 +113,36 @@ class RemindersListsModel {
       try database.write { db in
         var ids = remindersLists.map(\.remindersList.id)
         ids.move(fromOffsets: source, toOffset: destination)
-        try RemindersList
-          .where { $0.id.in(ids) }
-          .update {
-            let ids = Array(ids.enumerated())
-            let (first, rest) = (ids.first!, ids.dropFirst())
-            $0.position =
-            rest
-              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
-                cases.when(id.element, then: id.offset)
-              }
-              .else($0.position)
-          }
+        for (offset, id) in ids.enumerated() {
+          try RemindersList.find(id)
+            .update { $0.position = offset }
+            .execute(db)
+        }
+//          .find(ids)
+//        try RemindersList
+//          .where { $0.id.in(ids) }
+//          .update {
+//            let ids = Array(ids.enumerated())
+//            let (first, rest) = (ids.first!, ids.dropFirst())
+//            $0.position =
+//            rest
+//              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
+//                cases.when(id.element, then: id.offset)
+//              }
+//              .else($0.position)
+//          }
+//          .execute(db)
+      }
+    }
+  }
+
+  func deleteTags(indexSet: IndexSet) {
+    withErrorReporting {
+      let tagIDs = indexSet.map { tags[$0].id }
+      try database.write { db in
+        try Tag
+          .where { $0.id.in(tagIDs) }
+          .delete()
           .execute(db)
       }
     }
@@ -270,6 +288,9 @@ struct RemindersListsView: View {
               TagRow(tag: tag)
             }
             .foregroundStyle(.primary)
+          }
+          .onDelete { indexSet in
+            model.deleteTags(indexSet: indexSet)
           }
         } header: {
           Text("Tags")

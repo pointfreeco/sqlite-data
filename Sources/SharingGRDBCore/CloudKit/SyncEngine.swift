@@ -84,6 +84,7 @@ public final class SyncEngine: Sendable {
     metadatabaseURL: URL,
     tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
   ) throws {
+    try validateSchema(tables: tables, database: database)
     // TODO: Explain why / link to documentation?
     precondition(
       !database.configuration.foreignKeysEnabled,
@@ -156,7 +157,7 @@ public final class SyncEngine: Sendable {
       }
       db.add(function: .isUpdatingWithServerRecord)
       db.add(function: .didUpdate(syncEngine: self))
-      db.add(function: .willDelete(syncEngine: self))
+      db.add(function: .didDelete(syncEngine: self))
 
       try Metadata.createTriggers(tables: self.tables, db: db)
 
@@ -230,7 +231,7 @@ public final class SyncEngine: Sendable {
       for table in self.tables {
         try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
       }
-      db.remove(function: .willDelete(syncEngine: self))
+      db.remove(function: .didDelete(syncEngine: self))
       db.remove(function: .didUpdate(syncEngine: self))
       db.remove(function: .isUpdatingWithServerRecord)
     }
@@ -290,7 +291,7 @@ public final class SyncEngine: Sendable {
     )
   }
 
-  func willDelete(recordName: String) {
+  func didDelete(recordName: String) {
     let zoneID = zoneID(for: recordName)
     let syncEngine = syncEngines.withValue {
       zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -602,8 +603,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           self.upsertFromServerRecord(record)
           self.refreshLastKnownServerRecord(record)
         }
-        if
-          let shareReference = record.share,
+        if let shareReference = record.share,
           let shareRecord = try? await container.database(for: shareReference.recordID)
             .record(for: shareReference.recordID),
           let share = shareRecord as? CKShare
@@ -631,6 +631,7 @@ extension SyncEngine: CKSyncEngineDelegate {
             try deleteShare(recordID: recordID, recordType: recordType)
           }
         } else {
+          // TODO: Should we be reporting this? What if another device deletes from a table this device doesn't know about?
           reportIssue(
             .sqliteDataCloudKitFailure.appending(
               """
@@ -747,6 +748,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           ?? nil
         guard let table = tablesByName[record.recordType]
         else {
+          // TODO: Should we be reporting this? What if another device makes changes to a table this device doesn't know about?
           reportIssue(
             .sqliteDataCloudKitFailure.appending(
               """
@@ -822,7 +824,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func refreshLastKnownServerRecord(_ record: CKRecord) {
     $isUpdatingWithServerRecord.withValue(true) {
       let metadata = metadataFor(recordID: record.recordID)
-      
+
       func updateLastKnownServerRecord() {
         withErrorReporting(.sqliteDataCloudKitFailure) {
           try database.write { db in
@@ -833,7 +835,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           }
         }
       }
-      
+
       if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
         if let recordDate = record.modificationDate, lastKnownDate < recordDate {
           updateLastKnownServerRecord()
@@ -862,9 +864,9 @@ extension DatabaseFunction {
     }
   }
 
-  fileprivate static func willDelete(syncEngine: SyncEngine) -> Self {
-    return Self("willDelete") { recordName in
-      syncEngine.willDelete(recordName: recordName)
+  fileprivate static func didDelete(syncEngine: SyncEngine) -> Self {
+    return Self("didDelete") { recordName in
+      syncEngine.didDelete(recordName: recordName)
     }
   }
 
@@ -956,5 +958,61 @@ extension Database {
       """
     )
     .execute(self)
+  }
+}
+
+private func validateSchema(
+  tables: [any PrimaryKeyedTable.Type],
+  database: any DatabaseReader
+) throws {
+  try database.read { db in
+    for table in tables {
+      // TODO: write tests for this
+      let columnsWithUniqueConstraints =
+        try SQLQueryExpression(
+          """
+          SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text)) 
+          WHERE "unique" = 1 AND "origin" <> 'pk'
+          """,
+          as: String.self
+        )
+        .fetchAll(db)
+      if !columnsWithUniqueConstraints.isEmpty {
+        throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
+      }
+
+      // TODO: write tests for this
+      let nonNullColumnsWithNoDefault =
+        try SQLQueryExpression(
+          """
+          SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
+          WHERE "notnull" = 1 AND "dflt_value" IS NULL
+          """,
+          as: String.self
+        )
+        .fetchAll(db)
+      if !nonNullColumnsWithNoDefault.isEmpty {
+        throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
+      }
+    }
+  }
+}
+
+public struct UniqueConstraintDisallowed: Error {
+  let localizedDescription: String
+  init(table: any PrimaryKeyedTable.Type, columns: [String]) {
+    localizedDescription = """
+      Table '\(table.tableName)' has column\(columns.count == 1 ? "" : "s") with unique \
+      constraints: \(columns.map { "'\($0)'" }.joined(separator: ", "))
+      """
+  }
+}
+public struct NonNullColumnMustHaveDefault: Error {
+  let localizedDescription: String
+  init(table: any PrimaryKeyedTable.Type, columns: [String]) {
+    localizedDescription = """
+      Table '\(table.tableName)' has non-null column\(columns.count == 1 ? "" : "s") with no \
+      default: \(columns.map { "'\($0)'" }.joined(separator: ", "))
+      """
   }
 }

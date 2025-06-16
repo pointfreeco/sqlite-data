@@ -35,7 +35,7 @@ extension Metadata {
       ifNotExists: true,
       after: .delete {
         SQLQueryExpression(
-          "SELECT \(raw: .sqliteDataCloudKitSchemaName)_willUpdate(\($0.recordName))"
+          "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didDelete(\($0.recordName))"
         )
       } when: { _ in
         SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
