@@ -49,19 +49,11 @@ class RemindersDetailModel: HashableObject {
       try database.write { db in
         var ids = reminderRows.map(\.reminder.id)
         ids.move(fromOffsets: source, toOffset: destination)
-        try Reminder
-          .where { $0.id.in(ids) }
-          .update {
-            let ids = Array(ids.enumerated())
-            let (first, rest) = (ids.first!, ids.dropFirst())
-            $0.position =
-            rest
-              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
-                cases.when(id.element, then: id.offset)
-              }
-              .else($0.position)
-          }
-          .execute(db)
+        for (offset, id) in ids.enumerated() {
+          try Reminder.find(id)
+            .update { $0.position = offset }
+            .execute(db)
+        }
       }
     }
     $ordering.withLock { $0 = .manual }
