@@ -175,6 +175,8 @@ var items
 @FetchAll(Item.where(\.isInStock))
 var items
 
+
+
 @FetchOne(Item.count())
 var inStockItemsCount = 0
 
@@ -190,7 +192,9 @@ var items: [Item]
 @Query(sort: [SortDescriptor(\.title)])
 var items: [Item]
 
-@Query(filter: #Predicate<Item> { $0.isInStock })
+@Query(filter: #Predicate<Item> {
+  $0.isInStock
+})
 var items: [Item]
 
 // No @Query equivalent of counting
