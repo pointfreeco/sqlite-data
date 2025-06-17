@@ -15,7 +15,6 @@
 		CA5E470B2DECF0280069E0F8 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E470A2DECF0280069E0F8 /* DependenciesTestSupport */; };
 		CAD001872D874F1F00FA977A /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CAD001862D874F1F00FA977A /* DependenciesTestSupport */; };
 		CAFDD64A2D5E823A00EE099E /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CAFDD6492D5E823A00EE099E /* SharingGRDB */; };
-		DC5B73A72DEFE103004C2A16 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B73A62DEFE103004C2A16 /* SharingGRDB */; };
 		DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = DC5FA7472D4C63D60082743E /* DependenciesMacros */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
 		DCBE8A162D4842C80071F499 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A152D4842C80071F499 /* SharingGRDB */; };
@@ -148,7 +147,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DCF2684A2D4993BC00B680BE /* SharingGRDB in Frameworks */,
-				DC5B73A72DEFE103004C2A16 /* SharingGRDB in Frameworks */,
 				CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -997,13 +995,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		DC5B73A52DEFE103004C2A16 /* XCLocalSwiftPackageReference "../../sharing-grdb" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../sharing-grdb";
-		};
-/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
