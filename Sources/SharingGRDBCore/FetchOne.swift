@@ -278,6 +278,46 @@ public struct FetchOne<Value: Sendable>: Sendable {
       )
     )
   }
+
+  /// Replaces the optional wrapped value with data from the given query.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public func load<S: SelectStatement>(
+    _ statement: S,
+    database: (any DatabaseReader)? = nil
+  ) async throws
+  where
+  Value == S.From.QueryOutput?,
+  S.QueryValue == (),
+  S.Joins == ()
+  {
+    let statement = statement.selectStar().asSelect().limit(1)
+    try await load(statement, database: database)
+  }
+
+  /// Replaces the optional wrapped value with data from the given query.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public func load<V: QueryRepresentable>(
+    _ statement: some StructuredQueriesCore.Statement<V>,
+    database: (any DatabaseReader)? = nil
+  ) async throws
+  where
+  Value == V.QueryOutput?
+  {
+    try await sharedReader.load(
+      .fetch(
+        FetchOneStatementOptionalValueRequest(statement: statement),
+        database: database
+      )
+    )
+  }
 }
 
 /// Initializes this property with a query associated with the wrapped value.
@@ -699,5 +739,12 @@ private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: Stateme
     guard let result = try statement.fetchOne(db)
     else { throw NotFound() }
     return result
+  }
+}
+
+private struct FetchOneStatementOptionalValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
+  let statement: any StructuredQueriesCore.Statement<Value>
+  func fetch(_ db: Database) throws -> Value.QueryOutput? {
+    try statement.fetchOne(db)
   }
 }
