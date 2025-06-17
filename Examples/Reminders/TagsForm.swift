@@ -25,7 +25,7 @@ struct TagsView: View {
       }
       if !tags.rest.isEmpty {
         Section {
-          ForEach(tags.rest, id: \.id) { tag in
+          ForEach(tags.rest) { tag in
             TagView(
               isSelected: selectedTagIDs.contains(tag.id),
               selectedTags: $selectedTags,

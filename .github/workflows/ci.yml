@@ -28,6 +28,21 @@ jobs:
       - name: Run ${{ matrix.config }} tests
         run: swift test -c ${{ matrix.config }}
 
+  examples:
+    name: Examples
+    strategy:
+      matrix:
+        xcode: ['16.3']
+        config: ['debug']
+        scheme: ['Reminders', 'CaseStudies', 'SyncUps']
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode ${{ matrix.xcode }}
+        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
+      - name: xcodebuild ${{ matrix.scheme }}
+        run: make DERIVED_DATA_PATH=~/.derivedData SCHEME="${{ matrix.scheme }}" xcodebuild-raw
+
   linux:
     name: Linux
     strategy:

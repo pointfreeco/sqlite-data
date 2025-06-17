@@ -54,18 +54,25 @@ cascading action (such as delete).
 We further recommend that you enable query tracing to log queries that are executed in your
 application. This can be handy for tracking down long-running queries, or when more queries execute
 than you expect. We also recommend only doing this in debug builds to avoid leaking sensitive
-information when the app is running on a user's device:
+information when the app is running on a user's device, and we further recommned using OSLog
+when running your app in the simulator/device and using `Swift.print` in previews:
 
 ```diff
-+import OSLog
+ import OSLog
+ import SharingGRDB
 
  func appDatabase() -> any DatabaseWriter {
++  @Dependency(\.context) var context
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
 +  #if DEBUG
 +    configuration.prepareDatabase { db in
 +      db.trace(options: .profile) {
-+        logger.debug("\($0.expandedDescription)")
++        if context == .preview {
++          print("\($0.expandedDescription)")
++        } else {
++          logger.debug("\($0.expandedDescription)")
++        }
 +      }
 +    }
 +  #endif
@@ -78,8 +85,12 @@ information when the app is running on a user's device:
 > sensitive data that you may not want to leak. In this case we feel it is OK because everything
 > is surrounded in `#if DEBUG`, but it is something to be careful of in your own apps.
 
-> Tip: OSLog allows you to more flexibly filter logs in Xcode, but if you are on a non-Apple
-> platform you can use Swift's `print` function, instead.
+
+> Tip: `@Dependency(\.context)` comes from the [Swift Dependencies][swift-dependencies-gh] library,
+> which SharingGRDB uses to share its database connection across fetch keys. It allows you to
+> inspect the context your app is running in: live, preview or test.
+
+[swift-dependencies-gh]: https://github.com/pointfreeco/swift-dependencies
 
 For more information on configuring tracing, see [GRDB's documentation][trace-docs] on the
 matter.
@@ -95,12 +106,17 @@ way to do this is to construct the database connection for a path on the file sy
 ```diff
 -func appDatabase() -> any DatabaseWriter {
 +func appDatabase() throws -> any DatabaseWriter {
+   @Dependency(\.context) var context
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
    #if DEBUG
      configuration.prepareDatabase { db in
        db.trace(options: .profile) {
-         logger.debug("\($0.expandedDescription)")
+         if context == .preview {
+           print("\($0.expandedDescription)")
+         } else {
+           logger.debug("\($0.expandedDescription)")
+         }
        }
      }
    #endif
@@ -111,21 +127,27 @@ way to do this is to construct the database connection for a path on the file sy
  }
 ```
 
-However, in tests and Xcode previews we would like to use an in-memory database so that each test
-and preview gets their own sandboxed database. In fact, previews can crash if we attempt to load a
-database from the file system.
+However, this can be improved. First, this code will crash if it is executed in Xcode previews 
+because SQLite is unable to form a connection to a database on disk in a preview context. And
+second, in tests we should write this databadse to the temporary directoy on disk with a unique
+name so that each test gets a fresh database and so that multiple tests can run in parallel.
 
 To fix this we can use `@Dependency(\.context)` to determine if we are in a "live" application
 context or if we're in a preview or test.
 
 ```diff
  func appDatabase() -> any DatabaseWriter {
+   @Dependency(\.context) var context
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
    #if DEBUG
      configuration.prepareDatabase { db in
        db.trace(options: .profile) {
-         logger.debug("\($0.expandedDescription)")
+         if context == .preview {
+           print("\($0.expandedDescription)")
+         } else {
+           logger.debug("\($0.expandedDescription)")
+         }
        }
      }
    #endif
@@ -138,17 +160,15 @@ context or if we're in a preview or test.
 +    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
 +    logger.info("open \(path)")
 +    database = try DatabasePool(path: path, configuration: configuration)
++  } else if context == .test {
++    let path = URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
++    database = try DatabasePool(path: path, configuration: configuration)
 +  } else {
 +    database = try DatabaseQueue(configuration: configuration)
 +  }
    return database
  }
 ```
-
-> Tip: `@Dependency(\.context)` comes from the [Swift Dependencies][swift-dependencies-gh] library,
-> which SharingGRDB uses to share its database connection across fetch keys.
-
-[swift-dependencies-gh]: https://github.com/pointfreeco/swift-dependencies
 
 ### Step 4: Migrate database
 
@@ -159,20 +179,27 @@ database connection:
 
 ```diff
  func appDatabase() throws -> any DatabaseWriter {
+   @Dependency(\.context) var context
    var configuration = Configuration()
    configuration.foreignKeysEnabled = true
    #if DEBUG
      configuration.prepareDatabase { db in
        db.trace(options: .profile) {
-         logger.debug("\($0.expandedDescription)")
+         if context == .preview {
+           print("\($0.expandedDescription)")
+         } else {
+           logger.debug("\($0.expandedDescription)")
+         }
        }
      }
    #endif
-   @Dependency(\.context) var context
    let database: any DatabaseWriter
    if context == .live {
      let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
      logger.info("open \(path)")
+     database = try DatabasePool(path: path, configuration: configuration)
+   } else if context == .test {
+     let path = URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
      database = try DatabasePool(path: path, configuration: configuration)
    } else {
      database = try DatabaseQueue(configuration: configuration)
@@ -199,26 +226,34 @@ we have just written in one snippet:
 
 ```swift
 import OSLog
+import SharingGRDB
 
 func appDatabase() throws -> any DatabaseWriter {
-  var configuration = Configuration()
-  configuration.foreignKeysEnabled = true
-  #if DEBUG
-    configuration.prepareDatabase { db in
-      db.trace(options: .profile) {
-        logger.debug("\($0.expandedDescription)")
-      }
-    }
-  #endif
-  @Dependency(\.context) var context
-  let database: any DatabaseWriter
-  if context == .live {
-    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-    logger.info("open \(path)")
-    database = try DatabasePool(path: path, configuration: configuration)
-  } else {
-    database = try DatabaseQueue(configuration: configuration)
-  }
+   @Dependency(\.context) var context
+   var configuration = Configuration()
+   configuration.foreignKeysEnabled = true
+   #if DEBUG
+     configuration.prepareDatabase { db in
+       db.trace(options: .profile) {
+         if context == .preview {
+           print("\($0.expandedDescription)")
+         } else {
+           logger.debug("\($0.expandedDescription)")
+         }
+       }
+     }
+   #endif
+   let database: any DatabaseWriter
+   if context == .live {
+     let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
+     logger.info("open \(path)")
+     database = try DatabasePool(path: path, configuration: configuration)
+   } else if context == .test {
+     let path = URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
+     database = try DatabasePool(path: path, configuration: configuration)
+   } else {
+     database = try DatabaseQueue(configuration: configuration)
+   }
   var migrator = DatabaseMigrator()
   #if DEBUG
     migrator.eraseDatabaseOnSchemaChange = true

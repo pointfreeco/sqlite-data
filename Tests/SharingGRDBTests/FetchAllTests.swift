@@ -25,7 +25,7 @@ struct FetchAllTests {
       for index in 1...count {
         group.addTask {
           try await database.write { db in
-            try Record.insert(Record(id: index)).execute(db)
+            try Record.insert { Record(id: index) }.execute(db)
           }
         }
       }
@@ -35,7 +35,7 @@ struct FetchAllTests {
     #expect(records == (1...count).map { Record(id: $0) })
 
     await withThrowingTaskGroup { group in
-      for index in 1...(count/2) {
+      for index in 1...(count / 2) {
         group.addTask {
           try await database.write { db in
             try Record.find(index * 2).delete().execute(db)
@@ -45,7 +45,27 @@ struct FetchAllTests {
     }
 
     try await $records.load()
-    #expect(records == (0...(count/2-1)).map { Record(id: $0 * 2 + 1) })
+    #expect(records == (0...(count / 2 - 1)).map { Record(id: $0 * 2 + 1) })
+  }
+
+  @Test func fetchFailure() {
+    do {
+      try database.read { db in
+        _ =
+          try Record
+          .select { ($0.id, $0.date, #sql("\($0.optionalDate)", as: Date.self)) }
+          .fetchAll(db)
+      }
+      Issue.record()
+    } catch {
+      #expect(
+        "\(error)".contains(
+          """
+          Expected column 2 ("optionalDate") to not be NULL
+          """
+        )
+      )
+    }
   }
 }
 
@@ -64,15 +84,15 @@ extension DatabaseWriter where Self == DatabaseQueue {
       try #sql(
         """
         CREATE TABLE "records" (
-          "id" INTEGER PRIMARY KEY AUTOINCREMENT
-          , "date" INTEGER NOT NULL DEFAULT 42
-          , "optionalDate" INTEGER
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "date" INTEGER NOT NULL DEFAULT 42,
+          "optionalDate" INTEGER
         )
         """
       )
       .execute(db)
       for _ in 1...3 {
-        _ = try Record.insert(Record.Draft()).execute(db)
+        _ = try Record.insert { Record.Draft() }.execute(db)
       }
     }
     return database

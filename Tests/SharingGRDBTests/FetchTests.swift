@@ -12,7 +12,6 @@ struct FetchTests {
 
   @Test func bareFetchAll() async throws {
     @FetchAll var records: [Record]
-    try await $records.load()
     #expect(records == [Record(id: 1), Record(id: 2), Record(id: 3)])
 
     try await database.write { try Record.delete().execute($0) }
@@ -22,7 +21,6 @@ struct FetchTests {
 
   @Test func fetchAllWithQuery() async throws {
     @FetchAll(Record.where { $0.id > 1 }) var records: [Record]
-    try await $records.load()
     #expect(records == [Record(id: 2), Record(id: 3)])
 
     try await database.write { try Record.delete().execute($0) }
@@ -32,7 +30,6 @@ struct FetchTests {
 
   @Test func fetchOneCountWithQuery() async throws {
     @FetchOne(Record.where { $0.id > 1 }.count()) var recordsCount = 0
-    try await $recordsCount.load()
     #expect(recordsCount == 2)
 
     try await database.write { try Record.delete().execute($0) }
@@ -42,10 +39,6 @@ struct FetchTests {
 
   @Test func fetchOneOptional() async throws {
     @FetchOne var record: Record?
-    print(#line)
-    print(#line)
-    try await $record.load()
-    print(#line)
     #expect(record == Record(id: 1))
     print(#line)
 
@@ -69,7 +62,6 @@ struct FetchTests {
 
   @Test func fetchOneOptional_SQL() async throws {
     @FetchOne(#sql("SELECT * FROM records LIMIT 1")) var record: Record?
-    try await $record.load()
     #expect(record == Record(id: 1))
 
     try await database.write { try Record.delete().execute($0) }
@@ -94,7 +86,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
       )
       .execute(db)
       for _ in 1...3 {
-        _ = try Record.insert(Record.Draft()).execute(db)
+        _ = try Record.insert { Record.Draft() }.execute(db)
       }
     }
     try migrator.migrate(database)

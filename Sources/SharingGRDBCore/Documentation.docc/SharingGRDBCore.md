@@ -105,11 +105,42 @@ in SwiftData:
 > Note: For more information on preparing a SQLite database, see <doc:PreparingDatabase>.
 
 This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies, like 
-[`@FetchAll`](<doc:SharingGRDBCore/FetchAll>):
+[`@FetchAll`](<doc:SharingGRDBCore/FetchAll>), which are similar to SwiftData's
+`@Query` macro, but more powerful:
 
-```swift
-@FetchAll var items: [Item]
-```
+@Row {
+  @Column {
+    ```swift
+    @FetchAll
+    var items: [Item]
+
+    @FetchAll(Item.sort(by: \.title))
+    var items
+
+    @FetchAll(Item.where(\.isInStock))
+    var items
+
+    @FetchOne(Item.count())
+    var inStockItemsCount = 0
+    ```
+  }
+  @Column {
+    ```swift
+    @Query
+    var items: [Item]
+
+    @Query(sort: [SortDescriptor(\.title)])
+    var items: [Item]
+
+    // No @Query equivalent of filtering
+    // by 'isInStock: Bool'
+
+    // No @Query equivalent of counting
+    // entries in database without loading
+    // all entries.
+    ```
+  }
+}
 
 And you can access this database throughout your application in a way similar to how one accesses
 a model context, via a property wrapper:

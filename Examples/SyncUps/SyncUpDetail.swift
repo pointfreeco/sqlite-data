@@ -7,7 +7,9 @@ import SwiftUINavigation
 final class SyncUpDetailModel: HashableObject {
   var destination: Destination?
   var isDismissed = false
-  @ObservationIgnored @Fetch var details: Details.Value
+  @ObservationIgnored @FetchAll var attendees: [Attendee]
+  @ObservationIgnored @FetchAll var meetings: [Meeting]
+  @ObservationIgnored @FetchOne var syncUp: SyncUp
 
   var onMeetingStarted: (SyncUp, [Attendee]) -> Void = unimplemented("onMeetingStarted")
 
@@ -33,16 +35,15 @@ final class SyncUpDetailModel: HashableObject {
     syncUp: SyncUp
   ) {
     self.destination = destination
-    _details = Fetch(
-      wrappedValue: Details.Value(syncUp: syncUp),
-      Details(syncUp: syncUp), animation: .default
-    )
+    _attendees = FetchAll(Attendee.where { $0.syncUpID.eq(syncUp.id) })
+    _meetings = FetchAll(Meeting.where { $0.syncUpID.eq(syncUp.id) })
+    _syncUp = FetchOne(wrappedValue: syncUp, SyncUp.find(syncUp.id))
   }
 
   func deleteMeetings(atOffsets indices: IndexSet) {
     withErrorReporting {
       try database.write { db in
-        let ids = indices.map { details.meetings[$0].id }
+        let ids = indices.map { meetings[$0].id }
         try Meeting.where { ids.contains($0.id) }.delete().execute(db)
       }
     }
@@ -58,13 +59,13 @@ final class SyncUpDetailModel: HashableObject {
       isDismissed = true
       try? await clock.sleep(for: .seconds(0.4))
       await withErrorReporting {
-        try await database.write { [syncUp = details.syncUp] db in
+        try await database.write { [syncUp] db in
           try SyncUp.delete(syncUp).execute(db)
         }
       }
 
     case .continueWithoutRecording:
-      onMeetingStarted(details.syncUp, details.attendees)
+      onMeetingStarted(syncUp, attendees)
 
     case .openSettings:
       await openSettings()
@@ -77,7 +78,7 @@ final class SyncUpDetailModel: HashableObject {
   func editButtonTapped() {
     destination = .edit(
       withDependencies(from: self) {
-        SyncUpFormModel(syncUp: SyncUp.Draft(details.syncUp))
+        SyncUpFormModel(syncUp: SyncUp.Draft(syncUp))
       }
     )
   }
@@ -85,7 +86,7 @@ final class SyncUpDetailModel: HashableObject {
   func startMeetingButtonTapped() {
     switch authorizationStatus() {
     case .notDetermined, .authorized:
-      onMeetingStarted(details.syncUp, details.attendees)
+      onMeetingStarted(syncUp, attendees)
 
     case .denied:
       destination = .alert(.speechRecognitionDenied)
@@ -95,30 +96,6 @@ final class SyncUpDetailModel: HashableObject {
 
     @unknown default:
       break
-    }
-  }
-
-  struct Details: FetchKeyRequest {
-    struct Value {
-      var attendees: [Attendee] = []
-      var meetings: [Meeting] = []
-      var syncUp: SyncUp
-    }
-
-    let syncUp: SyncUp
-
-    func fetch(_ db: Database) throws -> Value {
-      guard let syncUp = try SyncUp.where({ $0.id == syncUp.id }).fetchOne(db)
-      else { throw NotFound() }
-      return try Value(
-        attendees: Attendee.where { $0.syncUpID == syncUp.id }.fetchAll(db),
-        meetings:
-          Meeting
-          .where { $0.syncUpID.eq(syncUp.id) }
-          .order { $0.date.desc() }
-          .fetchAll(db),
-        syncUp: syncUp
-      )
     }
   }
 }
@@ -140,27 +117,27 @@ struct SyncUpDetailView: View {
         HStack {
           Label("Length", systemImage: "clock")
           Spacer()
-          Text(model.details.syncUp.seconds.duration.formatted(.units()))
+          Text(model.syncUp.seconds.duration.formatted(.units()))
         }
 
         HStack {
           Label("Theme", systemImage: "paintpalette")
           Spacer()
-          Text(model.details.syncUp.theme.name)
+          Text(model.syncUp.theme.name)
             .padding(4)
-            .foregroundColor(model.details.syncUp.theme.accentColor)
-            .background(model.details.syncUp.theme.mainColor)
+            .foregroundColor(model.syncUp.theme.accentColor)
+            .background(model.syncUp.theme.mainColor)
             .cornerRadius(4)
         }
       } header: {
         Text("Sync-up Info")
       }
 
-      if !model.details.meetings.isEmpty {
+      if !model.meetings.isEmpty {
         Section {
-          ForEach(model.details.meetings, id: \.id) { meeting in
+          ForEach(model.meetings) { meeting in
             NavigationLink(
-              value: AppModel.Path.meeting(meeting, attendees: model.details.attendees)
+              value: AppModel.Path.meeting(meeting, attendees: model.attendees)
             ) {
               HStack {
                 Image(systemName: "calendar")
@@ -178,7 +155,7 @@ struct SyncUpDetailView: View {
       }
 
       Section {
-        ForEach(model.details.attendees, id: \.id) { attendee in
+        ForEach(model.attendees) { attendee in
           Label(attendee.name, systemImage: "person")
         }
       } header: {
@@ -193,7 +170,7 @@ struct SyncUpDetailView: View {
         .frame(maxWidth: .infinity)
       }
     }
-    .navigationTitle(model.details.syncUp.title)
+    .navigationTitle(model.syncUp.title)
     .toolbar {
       Button("Edit") {
         model.editButtonTapped()
@@ -205,7 +182,7 @@ struct SyncUpDetailView: View {
     .sheet(item: $model.destination.edit) { editModel in
       NavigationStack {
         SyncUpFormView(model: editModel)
-          .navigationTitle(model.details.syncUp.title)
+          .navigationTitle(model.syncUp.title)
       }
     }
     .onChange(of: model.isDismissed) {
@@ -294,18 +271,13 @@ struct MeetingView: View {
 }
 
 #Preview {
-  let _ = try! prepareDependencies {
+  let syncUp = try! prepareDependencies {
     $0.defaultDatabase = try SyncUps.appDatabase()
-  }
-  @Dependency(\.defaultDatabase) var database
-  let syncUp = try! database.read { db in
-    try SyncUp.limit(1).fetchOne(db)!
+    return try $0.defaultDatabase.read { db in
+      try SyncUp.limit(1).fetchOne(db)!
+    }
   }
   NavigationStack {
-    SyncUpDetailView(
-      model: SyncUpDetailModel(
-        syncUp: syncUp
-      )
-    )
+    SyncUpDetailView(model: SyncUpDetailModel(syncUp: syncUp))
   }
 }
