@@ -5,6 +5,7 @@ DERIVED_DATA_PATH = ~/.derivedData/$(CONFIG)
 PLATFORM_IOS = iOS Simulator,id=$(call udid_for,iPhone)
 PLATFORM = IOS
 DESTINATION = platform="$(PLATFORM_$(PLATFORM))"
+SCHEME = Reminders
 
 PLATFORM_ID = $(shell echo "$(DESTINATION)" | sed -E "s/.+,id=(.+)/\1/")
 
