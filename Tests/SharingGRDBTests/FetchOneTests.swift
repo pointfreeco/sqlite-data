@@ -169,11 +169,17 @@ import Testing
     #expect($id.loadError == nil)
   }
 
-  @Test func fetchOneOptionalWithStructurdQueriesFind() async throws {
+  @Test func fetchOneOptional() async throws {
     @FetchOne(Record.find(1)) var record: Record?
     #expect(record != nil)
     try await $record.load(Record.find(1))
     #expect(record != nil)
+  }
+
+  @Test func fetchOneDelayedAssignment() async throws {
+    @FetchOne var record: Record
+    _record = FetchOne(wrappedValue: Record(id: 0), Record.all)
+    #expect(record.id == 1)
   }
 }
 
