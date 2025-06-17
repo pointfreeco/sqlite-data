@@ -195,7 +195,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
       )
       .execute(db)
       for _ in 1...3 {
-        _ = try Record.insert(Record.Draft()).execute(db)
+        _ = try Record.insert { Record.Draft() }.execute(db)
       }
     }
     return database

@@ -104,7 +104,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public init(
-    wrappedValue: sending Value = .none,
+    wrappedValue: sending Value = ._none,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -212,7 +212,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public init<S: SelectStatement>(
-    wrappedValue: Value = .none,
+    wrappedValue: Value = ._none,
     _ statement: S,
     database: (any DatabaseReader)? = nil
   )
@@ -225,7 +225,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   {
     let statement = statement.selectStar().asSelect().limit(1)
     sharedReader = SharedReader(
-      wrappedValue: .none,
+      wrappedValue: wrappedValue,
       .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
     )
   }
@@ -238,7 +238,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public init<S: StructuredQueriesCore.Statement>(
-    wrappedValue: Value = .none,
+    wrappedValue: Value = ._none,
     _ statement: S,
     database: (any DatabaseReader)? = nil
   )
@@ -249,7 +249,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
     Value == S.QueryValue.QueryOutput
   {
     sharedReader = SharedReader(
-      wrappedValue: .none,
+      wrappedValue: wrappedValue,
       .fetch(
         FetchOneStatementOptionalProtocolRequest(statement: statement),
         database: database
@@ -265,7 +265,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public init(
-    wrappedValue: Value = .none,
+    wrappedValue: Value = ._none,
     _ statement: some StructuredQueriesCore.Statement<Value>,
     database: (any DatabaseReader)? = nil
   )
@@ -437,7 +437,7 @@ extension FetchOne {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   public init(
-    wrappedValue: sending Value = .none,
+    wrappedValue: sending Value = ._none,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -576,7 +576,7 @@ extension FetchOne {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   public init<S: SelectStatement>(
-    wrappedValue: Value = .none,
+    wrappedValue: Value = ._none,
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
@@ -590,7 +590,7 @@ extension FetchOne {
   {
     let statement = statement.selectStar().asSelect().limit(1)
     sharedReader = SharedReader(
-      wrappedValue: .none,
+      wrappedValue: wrappedValue,
       .fetch(
         FetchOneStatementOptionalProtocolRequest(statement: statement),
         database: database,
@@ -609,7 +609,7 @@ extension FetchOne {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   public init<S: StructuredQueriesCore.Statement>(
-    wrappedValue: Value = .none,
+    wrappedValue: Value = ._none,
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
@@ -621,7 +621,7 @@ extension FetchOne {
     Value == S.QueryValue.QueryOutput
   {
     sharedReader = SharedReader(
-      wrappedValue: .none,
+      wrappedValue: wrappedValue,
       .fetch(
         FetchOneStatementOptionalProtocolRequest(statement: statement),
         database: database,
@@ -640,7 +640,7 @@ extension FetchOne {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   public init(
-    wrappedValue: Value = .none,
+    wrappedValue: Value = ._none,
     _ statement: some StructuredQueriesCore.Statement<Value>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
@@ -858,7 +858,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     public init(
-      wrappedValue: sending Value = .none,
+      wrappedValue: sending Value = ._none,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -987,7 +987,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     public init<S: SelectStatement>(
-      wrappedValue: Value = .none,
+      wrappedValue: Value = ._none,
       _ statement: S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
@@ -1017,7 +1017,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     public init<S: StructuredQueriesCore.Statement>(
-      wrappedValue: Value = .none,
+      wrappedValue: Value = ._none,
       _ statement: S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
@@ -1046,7 +1046,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     public init(
-      wrappedValue: Value = .none,
+      wrappedValue: Value = ._none,
       _ statement: some StructuredQueriesCore.Statement<Value>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
@@ -1217,6 +1217,6 @@ private struct FetchOneStatementOptionalProtocolRequest<
 >: StatementKeyRequest where Value.QueryOutput: _OptionalProtocol {
   let statement: any StructuredQueriesCore.Statement<Value>
   func fetch(_ db: Database) throws -> Value.QueryOutput {
-    try statement.fetchOne(db) ?? .none
+    try statement.fetchOne(db) ?? ._none
   }
 }
