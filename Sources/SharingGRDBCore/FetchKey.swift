@@ -310,11 +310,7 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
       continuation.resumeReturningInitialValue()
       return
     }
-    guard !isTesting else {
-      continuation.resume(with: Result { try database.read(request.fetch) })
-      return
-    }
-    let scheduler: any ValueObservationScheduler = scheduler ?? .async(onQueue: .main)
+    let scheduler: any ValueObservationScheduler = scheduler ?? ImmediateScheduler()
     database.asyncRead { dbResult in
       let result = dbResult.flatMap { db in
         Result {
@@ -345,7 +341,7 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
     let observation = ValueObservation.tracking { db in
       Result { try request.fetch(db) }
     }
-    let scheduler: any ValueObservationScheduler = scheduler ?? .async(onQueue: .main)
+    let scheduler: any ValueObservationScheduler = scheduler ?? ImmediateScheduler()
     #if canImport(Combine)
       let dropFirst =
         switch context {
@@ -433,4 +429,11 @@ private struct FetchOneRequest<Value: DatabaseValueConvertible>: FetchKeyRequest
 
 public struct NotFound: Error {
   public init() {}
+}
+
+private struct ImmediateScheduler: ValueObservationScheduler, Hashable {
+  func immediateInitialValue() -> Bool { true }
+  func schedule(_ action: @escaping @Sendable () -> Void) {
+    action()
+  }
 }
