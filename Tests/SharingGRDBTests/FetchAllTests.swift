@@ -48,6 +48,7 @@ struct FetchAllTests {
     #expect(records == (0...(count / 2 - 1)).map { Record(id: $0 * 2 + 1) })
   }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func fetchFailure() {
     do {
       try database.read { db in
