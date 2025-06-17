@@ -104,7 +104,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public init(
-    wrappedValue: sending Value = ._none,
+    wrappedValue: sending Value,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -435,7 +435,7 @@ extension FetchOne {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   public init(
-    wrappedValue: sending Value = ._none,
+    wrappedValue: sending Value,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -854,7 +854,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     public init(
-      wrappedValue: sending Value = ._none,
+      wrappedValue: sending Value,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
