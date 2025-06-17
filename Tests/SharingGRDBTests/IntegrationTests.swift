@@ -15,19 +15,19 @@ struct IntegrationTests {
     #expect(syncUps == [])
 
     try await database.write { db in
-      _ = try SyncUp.insert(SyncUp.Draft(isActive: true, title: "Engineering"))
+      _ = try SyncUp.insert { SyncUp.Draft(isActive: true, title: "Engineering") }
         .execute(db)
     }
     try await $syncUps.load()
     #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
     try await database.write { db in
-      _ = try SyncUp.upsert(SyncUp.Draft(id: 1, isActive: false, title: "Engineering"))
+      _ = try SyncUp.upsert { SyncUp.Draft(id: 1, isActive: false, title: "Engineering") }
         .execute(db)
     }
     try await $syncUps.load()
     #expect(syncUps == [])
     try await database.write { db in
-      _ = try SyncUp.upsert(SyncUp.Draft(id: 1, isActive: true, title: "Engineering"))
+      _ = try SyncUp.upsert { SyncUp.Draft(id: 1, isActive: true, title: "Engineering") }
         .execute(db)
     }
     try await $syncUps.load()
@@ -40,19 +40,19 @@ struct IntegrationTests {
     #expect(syncUps == [])
 
     try await database.write { db in
-      _ = try SyncUp.insert(SyncUp.Draft(isActive: true, title: "Engineering"))
+      _ = try SyncUp.insert { SyncUp.Draft(isActive: true, title: "Engineering") }
         .execute(db)
     }
     try await $syncUps.load()
     #expect(syncUps == [SyncUp(id: 1, isActive: true, title: "Engineering")])
     try await database.write { db in
-      _ = try SyncUp.upsert(SyncUp.Draft(id: 1, isActive: false, title: "Engineering"))
+      _ = try SyncUp.upsert { SyncUp.Draft(id: 1, isActive: false, title: "Engineering") }
         .execute(db)
     }
     try await $syncUps.load()
     #expect(syncUps == [])
     try await database.write { db in
-      _ = try SyncUp.upsert(SyncUp.Draft(id: 1, isActive: true, title: "Engineering"))
+      _ = try SyncUp.upsert { SyncUp.Draft(id: 1, isActive: true, title: "Engineering") }
         .execute(db)
     }
     try await $syncUps.load()
