@@ -5,10 +5,9 @@ DERIVED_DATA_PATH = ~/.derivedData/$(CONFIG)
 PLATFORM_IOS = iOS Simulator,id=$(call udid_for,iPhone)
 PLATFORM = IOS
 DESTINATION = platform="$(PLATFORM_$(PLATFORM))"
+SCHEME = Reminders
 
 PLATFORM_ID = $(shell echo "$(DESTINATION)" | sed -E "s/.+,id=(.+)/\1/")
-
-WORKSPACE = SharingGRDB.xcworkspace
 
 XCODEBUILD_ARGUMENT = test
 
@@ -18,7 +17,7 @@ XCODEBUILD_FLAGS = \
 	-destination $(DESTINATION) \
 	-scheme "$(SCHEME)" \
 	-skipMacroValidation \
-	-workspace $(WORKSPACE)
+	-project Examples/Examples.xcodeproj
 
 XCODEBUILD_COMMAND = xcodebuild $(XCODEBUILD_ARGUMENT) $(XCODEBUILD_FLAGS)
 

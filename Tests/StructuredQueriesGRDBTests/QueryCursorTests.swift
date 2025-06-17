@@ -18,7 +18,7 @@ import Testing
 
   @Test func emptyInsert() throws {
     try database.write { db in
-      try Number.insert([]).execute(db)
+      try Number.insert { [] }.execute(db)
     }
   }
 

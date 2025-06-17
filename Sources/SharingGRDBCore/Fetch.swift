@@ -70,6 +70,7 @@ public struct Fetch<Value: Sendable>: Sendable {
   /// Initializes this property with an initial value.
   ///
   /// - Parameter wrappedValue: A default value to associate with this property.
+  @_disfavoredOverload
   public init(wrappedValue: sending Value) {
     sharedReader = SharedReader(value: wrappedValue)
   }
