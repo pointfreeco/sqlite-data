@@ -140,7 +140,7 @@ import Testing
   }
 
   @Test func optionalStatementInit() async throws {
-    @FetchOne(Record?.all) var record
+    @FetchOne(Record.all) var record
     try await $record.load()
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
@@ -149,7 +149,7 @@ import Testing
     #expect(record == nil)
     #expect($record.loadError == nil)
 
-    try await $record.load(Record?.all)
+    try await $record.load(Record.all)
     #expect(record == nil)
     #expect($record.loadError == nil)
   }
@@ -167,6 +167,13 @@ import Testing
     try await $id.load(Record.select(\.parentID))
     #expect(id == nil)
     #expect($id.loadError == nil)
+  }
+
+  @Test func fetchOneOptionalWithStructurdQueriesFind() async throws {
+    @FetchOne(Record.find(1)) var record: Record?
+    #expect(record != nil)
+    try await $record.load(Record.find(1))
+    #expect(record != nil)
   }
 }
 

@@ -63,7 +63,7 @@ struct FetchTests {
   @Test func fetchOneOptional_SQL() async throws {
     @FetchOne(#sql("SELECT * FROM records LIMIT 1")) var record: Record?
     #expect(record == Record(id: 1))
-
+    
     try await database.write { try Record.delete().execute($0) }
     try await $record.load()
     #expect(record == nil)

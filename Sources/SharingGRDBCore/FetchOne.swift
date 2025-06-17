@@ -218,15 +218,14 @@ public struct FetchOne<Value: Sendable>: Sendable {
   )
   where
     Value: _OptionalProtocol,
-    S.From: _OptionalProtocol,
-    Value == S.From.QueryOutput,
+    Value == S.From.QueryOutput?,
     S.QueryValue == (),
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect().limit(1)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
+      .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
     )
   }
 
@@ -347,14 +346,13 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ) async throws
   where
     Value: _OptionalProtocol,
-    S.From: _OptionalProtocol,
-    Value == S.From.QueryOutput,
+    Value == S.From.QueryOutput?,
     S.QueryValue == (),
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect().limit(1)
     try await sharedReader.load(
-      .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
+      .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
     )
   }
 
@@ -583,8 +581,7 @@ extension FetchOne {
   )
   where
     Value: _OptionalProtocol,
-    S.From: _OptionalProtocol,
-    Value == S.From.QueryOutput,
+    Value == S.From.QueryOutput?,
     S.QueryValue == (),
     S.Joins == ()
   {
@@ -592,7 +589,7 @@ extension FetchOne {
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
       .fetch(
-        FetchOneStatementOptionalProtocolRequest(statement: statement),
+        FetchOneStatementOptionalValueRequest(statement: statement),
         database: database,
         scheduler: scheduler
       )
@@ -747,15 +744,14 @@ extension FetchOne {
   ) async throws
   where
     Value: _OptionalProtocol,
-    S.From: _OptionalProtocol,
-    Value == S.From.QueryOutput,
+    Value == S.From.QueryOutput?,
     S.QueryValue == (),
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect().limit(1)
     try await sharedReader.load(
       .fetch(
-        FetchOneStatementOptionalProtocolRequest(statement: statement),
+        FetchOneStatementOptionalValueRequest(statement: statement),
         database: database,
         scheduler: scheduler
       )
@@ -994,8 +990,7 @@ extension FetchOne: Equatable where Value: Equatable {
     )
     where
       Value: _OptionalProtocol,
-      S.From: _OptionalProtocol,
-      Value == S.From.QueryOutput,
+      Value == S.From.QueryOutput?,
       S.QueryValue == (),
       S.Joins == ()
     {
@@ -1138,8 +1133,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ) async throws
     where
       Value: _OptionalProtocol,
-      S.From: _OptionalProtocol,
-      Value == S.From.QueryOutput,
+      Value == S.From.QueryOutput?,
       S.QueryValue == (),
       S.Joins == ()
     {
