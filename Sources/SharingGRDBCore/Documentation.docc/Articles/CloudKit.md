@@ -563,6 +563,8 @@ create multiple cover images pointing to the same reminders list.
 
 <!-- todo: finish -->
 
+## Unit testing and Xcode previews
+
 ## Preparing an existing schema for synchronization
 
 <!-- todo: finish -->
