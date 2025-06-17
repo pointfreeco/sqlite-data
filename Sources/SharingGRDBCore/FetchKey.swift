@@ -1,5 +1,6 @@
 import Dependencies
 import Dispatch
+import Foundation
 import GRDB
 import Sharing
 import StructuredQueriesGRDBCore
@@ -310,11 +311,7 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
       continuation.resumeReturningInitialValue()
       return
     }
-    guard !isTesting else {
-      continuation.resume(with: Result { try database.read(request.fetch) })
-      return
-    }
-    let scheduler: any ValueObservationScheduler = scheduler ?? .async(onQueue: .main)
+    let scheduler: any ValueObservationScheduler = scheduler ?? ImmediateScheduler()
     database.asyncRead { dbResult in
       let result = dbResult.flatMap { db in
         Result {
@@ -325,8 +322,6 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
         switch result {
         case let .success(value):
           continuation.resume(returning: value)
-        case let .failure(error) where error is NotFound:
-          continuation.resumeReturningInitialValue()
         case let .failure(error):
           continuation.resume(throwing: error)
         }
@@ -345,7 +340,8 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
     let observation = ValueObservation.tracking { db in
       Result { try request.fetch(db) }
     }
-    let scheduler: any ValueObservationScheduler = scheduler ?? .async(onQueue: .main)
+
+    let scheduler: any ValueObservationScheduler = scheduler ?? ImmediateScheduler()
     #if canImport(Combine)
       let dropFirst =
         switch context {
@@ -365,8 +361,6 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
           switch newValue {
           case let .success(value):
             subscriber.yield(value)
-          case let .failure(error) where error is NotFound:
-            subscriber.yieldReturningInitialValue()
           case let .failure(error):
             subscriber.yield(throwing: error)
           }
@@ -381,8 +375,6 @@ public struct FetchKey<Value: Sendable>: SharedReaderKey {
         switch newValue {
         case let .success(value):
           subscriber.yield(value)
-        case let .failure(error) where error is NotFound:
-          subscriber.yieldReturningInitialValue()
         case let .failure(error):
           subscriber.yield(throwing: error)
         }
@@ -433,4 +425,11 @@ private struct FetchOneRequest<Value: DatabaseValueConvertible>: FetchKeyRequest
 
 public struct NotFound: Error {
   public init() {}
+}
+
+private struct ImmediateScheduler: ValueObservationScheduler, Hashable {
+  func immediateInitialValue() -> Bool { true }
+  func schedule(_ action: @escaping @Sendable () -> Void) {
+    action()
+  }
 }

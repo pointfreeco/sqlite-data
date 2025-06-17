@@ -34,7 +34,7 @@ struct RemindersListForm: View {
         Button("Save") {
           withErrorReporting {
             try database.write { db in
-              try RemindersList.upsert(remindersList)
+              try RemindersList.upsert { remindersList }
                 .execute(db)
             }
           }
