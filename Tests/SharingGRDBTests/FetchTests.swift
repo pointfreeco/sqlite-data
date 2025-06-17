@@ -32,10 +32,17 @@ struct FetchTests {
     @FetchOne(#sql("SELECT * FROM records LIMIT 1")) var record: Record?
     #expect(record != nil)
   }
+
+  @Test func fetchOneOptionalWithStructurdQueriesFind() async throws {
+    @FetchOne(Record.find(1)) var record: Record?
+    #expect(record != nil)
+    try await $record.load(Record.find(1))
+    #expect(record != nil)
+  }
 }
 
 @Table
-private struct Record: Equatable {
+private struct Record: Equatable, Identifiable {
   let id: Int
 }
 extension DatabaseWriter where Self == DatabaseQueue {
