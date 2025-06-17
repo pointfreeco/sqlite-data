@@ -8,8 +8,6 @@ DESTINATION = platform="$(PLATFORM_$(PLATFORM))"
 
 PLATFORM_ID = $(shell echo "$(DESTINATION)" | sed -E "s/.+,id=(.+)/\1/")
 
-WORKSPACE = SharingGRDB.xcworkspace
-
 XCODEBUILD_ARGUMENT = test
 
 XCODEBUILD_FLAGS = \
@@ -18,7 +16,7 @@ XCODEBUILD_FLAGS = \
 	-destination $(DESTINATION) \
 	-scheme "$(SCHEME)" \
 	-skipMacroValidation \
-	-workspace $(WORKSPACE)
+	-project Examples/Examples.xcodeproj
 
 XCODEBUILD_COMMAND = xcodebuild $(XCODEBUILD_ARGUMENT) $(XCODEBUILD_FLAGS)
 
