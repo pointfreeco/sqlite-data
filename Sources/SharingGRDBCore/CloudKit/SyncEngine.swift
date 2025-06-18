@@ -150,7 +150,7 @@ public final class SyncEngine: Sendable {
       if !hasAttachedMetadatabase {
         try SQLQueryExpression(
           """
-          ATTACH DATABASE \(bind: self.metadatabase.path) AS \(quote: .sqliteDataCloudKitSchemaName)
+          ATTACH DATABASE \(bind: metadatabase.path) AS \(quote: .sqliteDataCloudKitSchemaName)
           """
         )
         .execute(db)
@@ -159,15 +159,15 @@ public final class SyncEngine: Sendable {
       db.add(function: .didUpdate(syncEngine: self))
       db.add(function: .didDelete(syncEngine: self))
 
-      try Metadata.createTriggers(tables: self.tables, db: db)
+      try Metadata.createTriggers(tables: tables, db: db)
 
-      for table in self.tables {
-        try table.createTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
+      for table in tables {
+        try table.createTriggers(foreignKeysByTableName: foreignKeysByTableName, db: db)
       }
     }
 
     let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
-    self.syncEngines.withValue {
+    syncEngines.withValue {
       $0 = SyncEngines(
         private: privateSyncEngine,
         shared: sharedSyncEngine
@@ -182,7 +182,7 @@ public final class SyncEngine: Sendable {
         SELECT "name", "sql" 
         FROM "sqlite_master" 
         WHERE "type" = 'table'
-        AND "name" IN (\(self.tablesByName.keys.map(\.queryFragment).joined(separator: ", ")))
+        AND "name" IN (\(tablesByName.keys.map(\.queryFragment).joined(separator: ", ")))
         """,
         as: RecordType.self
       )
@@ -328,13 +328,13 @@ extension PrimaryKeyedTable<UUID> {
     db: Database
   ) throws {
     let foreignKey =
-      foreignKeysByTableName[Self.tableName]?.count(where: \.notnull) == 1
-      ? foreignKeysByTableName[Self.tableName]?.first(where: \.notnull)
+      foreignKeysByTableName[tableName]?.count(where: \.notnull) == 1
+      ? foreignKeysByTableName[tableName]?.first(where: \.notnull)
       : nil
 
     try Metadata.createTriggers(for: Self.self, parentForeignKey: foreignKey, db: db)
 
-    let foreignKeys = foreignKeysByTableName[Self.tableName] ?? []
+    let foreignKeys = foreignKeysByTableName[tableName] ?? []
     for foreignKey in foreignKeys {
       try foreignKey.createTriggers(for: Self.self, db: db)
     }
@@ -345,7 +345,7 @@ extension PrimaryKeyedTable<UUID> {
     foreignKeysByTableName: [String: [ForeignKey]],
     db: Database
   ) throws {
-    let foreignKeys = foreignKeysByTableName[Self.tableName] ?? []
+    let foreignKeys = foreignKeysByTableName[tableName] ?? []
     for foreignKey in foreignKeys.reversed() {
       try foreignKey.dropTriggers(for: Self.self, db: db)
     }
@@ -598,11 +598,11 @@ extension SyncEngine: CKSyncEngineDelegate {
       for record in modifications {
         if let share = record as? CKShare {
           await withErrorReporting {
-            try await self.cacheShare(share)
+            try await cacheShare(share)
           }
         } else {
-          self.upsertFromServerRecord(record)
-          self.refreshLastKnownServerRecord(record)
+          upsertFromServerRecord(record)
+          refreshLastKnownServerRecord(record)
         }
         if let shareReference = record.share,
           let shareRecord = try? await container.database(for: shareReference.recordID)
@@ -708,7 +708,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     guard let url = share.url
     else { return }
 
-    let metadata = try await self.container.shareMetadata(for: url, shouldFetchRootRecord: true)
+    let metadata = try await container.shareMetadata(for: url, shouldFetchRootRecord: true)
 
     guard let rootRecord = metadata.rootRecord
     else { return }

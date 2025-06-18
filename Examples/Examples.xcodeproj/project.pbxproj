@@ -11,12 +11,12 @@
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
 		CA42392E2DF7219E000AF560 /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA42392D2DF7219E000AF560 /* SwiftUINavigation */; };
-		CA5E42502DE7C4D50069E0F8 /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E424F2DE7C4D50069E0F8 /* SwiftUINavigation */; };
 		CA9F99D82DF915D300934431 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CA9F99D72DF915D300934431 /* DependenciesTestSupport */; };
 		CA9F99DD2DF9185A00934431 /* SnapshotTestingCustomDump in Frameworks */ = {isa = PBXBuildFile; productRef = CA9F99DC2DF9185A00934431 /* SnapshotTestingCustomDump */; };
 		CA9F99DF2DF9190C00934431 /* InlineSnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = CA9F99DE2DF9190C00934431 /* InlineSnapshotTesting */; };
 		CAD001872D874F1F00FA977A /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CAD001862D874F1F00FA977A /* DependenciesTestSupport */; };
 		DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = DC5FA7472D4C63D60082743E /* DependenciesMacros */; };
+		DC7082542E035FC500A66B7D /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = DC7082532E035FC500A66B7D /* SwiftUINavigation */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
 		DCD9AC8B2E02176700FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8A2E02176700FB20F8 /* SharingGRDB */; };
 		DCD9AC8D2E02177200FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8C2E02177200FB20F8 /* SharingGRDB */; };
@@ -212,7 +212,7 @@
 			files = (
 				CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */,
 				DCD9AC8D2E02177200FB20F8 /* SharingGRDB in Frameworks */,
-				CA5E46912DEBB8570069E0F8 /* SwiftUINavigation in Frameworks */,
+				DC7082542E035FC500A66B7D /* SwiftUINavigation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -434,8 +434,8 @@
 			name = Reminders;
 			packageProductDependencies = (
 				CA14DBC82DA884C400E36852 /* CasePaths */,
-				CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */,
 				DCD9AC8C2E02177200FB20F8 /* SharingGRDB */,
+				DC7082532E035FC500A66B7D /* SwiftUINavigation */,
 			);
 			productName = Reminders;
 			productReference = CAF836D82D4735AB0047AEB5 /* Reminders.app */;
@@ -520,8 +520,7 @@
 				DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */,
 				DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */,
 				DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */,
-				CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
-				DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */,
+				DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CAF836992D4735620047AEB5 /* Products */;
@@ -1290,9 +1289,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */ = {
+		DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../sharing-grdb";
+			relativePath = ..;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -1351,11 +1350,6 @@
 			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
 			productName = SwiftUINavigation;
 		};
-		CA5E424F2DE7C4D50069E0F8 /* SwiftUINavigation */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
-			productName = SwiftUINavigation;
-		};
 		CA9F99D72DF915D300934431 /* DependenciesTestSupport */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */;
@@ -1381,6 +1375,11 @@
 			package = DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */;
 			productName = DependenciesMacros;
 		};
+		DC7082532E035FC500A66B7D /* SwiftUINavigation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
+			productName = SwiftUINavigation;
+		};
 		DCBE8A132D4842BF0071F499 /* CasePaths */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
@@ -1392,12 +1391,12 @@
 		};
 		DCD9AC8C2E02177200FB20F8 /* SharingGRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */;
+			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */;
 			productName = SharingGRDB;
 		};
 		DCD9AC8E2E02177900FB20F8 /* SharingGRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */;
+			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */;
 			productName = SharingGRDB;
 		};
 		DCF267382D48437300B680BE /* SwiftUINavigation */ = {
