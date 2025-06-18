@@ -32,7 +32,7 @@ extension BaseCloudKitTests {
           """,
           [2]: """
           CREATE TRIGGER "after_delete_on_sqlitedata_icloud_metadata@SharingGRDBCore/Metadata.swift:28:69"
-          AFTER  DELETE ON "sqlitedata_icloud_metadata"
+          AFTER DELETE ON "sqlitedata_icloud_metadata"
           FOR EACH ROW WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord() BEGIN
             SELECT sqlitedata_icloud_didDelete("old"."recordName");
           END
@@ -52,13 +52,10 @@ extension BaseCloudKitTests {
             "new"."id",
             "new"."remindersListID" AS "foreignKey",
             datetime('subsec')
-          FROM (SELECT 1) 
-          LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKey"
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
             "parentRecordName" = "excluded"."parentRecordName",
-            "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
           END
           """,
@@ -77,19 +74,16 @@ extension BaseCloudKitTests {
             "new"."id",
             "new"."remindersListID" AS "foreignKey",
             datetime('subsec')
-          FROM (SELECT 1) 
-          LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKey"
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
             "parentRecordName" = "excluded"."parentRecordName",
-            "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
           END
           """,
           [5]: """
-          CREATE TRIGGER "after_delete_on_reminders@SharingGRDBCore/Metadata.swift:148:27"
-          AFTER  DELETE ON "reminders"
+          CREATE TRIGGER "after_delete_on_reminders@SharingGRDBCore/Metadata.swift:145:27"
+          AFTER DELETE ON "reminders"
           FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
             WHERE ("sqlitedata_icloud_metadata"."recordName" = "old"."id");
@@ -163,13 +157,10 @@ extension BaseCloudKitTests {
             "new"."id",
             NULL AS "foreignKey",
             datetime('subsec')
-          FROM (SELECT 1) 
-          LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKey"
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
             "parentRecordName" = "excluded"."parentRecordName",
-            "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
           END
           """,
@@ -188,19 +179,16 @@ extension BaseCloudKitTests {
             "new"."id",
             NULL AS "foreignKey",
             datetime('subsec')
-          FROM (SELECT 1) 
-          LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKey"
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
             "parentRecordName" = "excluded"."parentRecordName",
-            "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
           END
           """,
           [14]: """
-          CREATE TRIGGER "after_delete_on_remindersLists@SharingGRDBCore/Metadata.swift:148:27"
-          AFTER  DELETE ON "remindersLists"
+          CREATE TRIGGER "after_delete_on_remindersLists@SharingGRDBCore/Metadata.swift:145:27"
+          AFTER DELETE ON "remindersLists"
           FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
             WHERE ("sqlitedata_icloud_metadata"."recordName" = "old"."id");
@@ -221,13 +209,10 @@ extension BaseCloudKitTests {
             "new"."id",
             NULL AS "foreignKey",
             datetime('subsec')
-          FROM (SELECT 1) 
-          LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKey"
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
             "parentRecordName" = "excluded"."parentRecordName",
-            "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
           END
           """,
@@ -246,19 +231,16 @@ extension BaseCloudKitTests {
             "new"."id",
             NULL AS "foreignKey",
             datetime('subsec')
-          FROM (SELECT 1) 
-          LEFT JOIN "sqlitedata_icloud_metadata" ON "sqlitedata_icloud_metadata"."recordName" = "foreignKey"
           ON CONFLICT("recordName") DO UPDATE
           SET
             "recordType" = "excluded"."recordType",
             "parentRecordName" = "excluded"."parentRecordName",
-            "recordType" = "excluded"."recordType",
             "userModificationDate"  = "excluded"."userModificationDate";
           END
           """,
           [17]: """
-          CREATE TRIGGER "after_delete_on_users@SharingGRDBCore/Metadata.swift:148:27"
-          AFTER  DELETE ON "users"
+          CREATE TRIGGER "after_delete_on_users@SharingGRDBCore/Metadata.swift:145:27"
+          AFTER DELETE ON "users"
           FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
             WHERE ("sqlitedata_icloud_metadata"."recordName" = "old"."id");

@@ -74,13 +74,10 @@ extension Metadata {
         "new".\(quote: T.columns.primaryKey.name),
         \(raw: foreignKey) AS "foreignKey",
         datetime('subsec')
-      FROM (SELECT 1) 
-      LEFT JOIN \(Metadata.self) ON \(Metadata.recordName) = "foreignKey"
       ON CONFLICT(\(quote: Metadata.recordName.name)) DO UPDATE
       SET
         \(quote: Metadata.recordType.name) = "excluded".\(quote: Metadata.recordType.name),
         \(quote: Metadata.parentRecordName.name) = "excluded".\(quote: Metadata.parentRecordName.name),
-        \(quote: Metadata.recordType.name) = "excluded".\(quote: Metadata.recordType.name),
         \(quote: Metadata.userModificationDate.name)  = "excluded".\(quote: Metadata.userModificationDate.name)
       """
 
