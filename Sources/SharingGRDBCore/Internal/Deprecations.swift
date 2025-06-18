@@ -37,7 +37,7 @@ extension FetchAll {
   @_disfavoredOverload
   public init<V1: QueryRepresentable, each V2: QueryRepresentable>(
     wrappedValue: [Element] = [],
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+    _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -77,7 +77,7 @@ extension FetchAll {
 
   @_disfavoredOverload
   public func load<V1: QueryRepresentable, each V2: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+    _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
     database: (any DatabaseReader)? = nil
   ) async throws
   where
@@ -121,7 +121,7 @@ extension FetchAll {
   @_disfavoredOverload
   public init<V1: QueryRepresentable, each V2: QueryRepresentable>(
     wrappedValue: [Element] = [],
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+    _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -165,7 +165,7 @@ extension FetchAll {
 
   @_disfavoredOverload
   public func load<V1: QueryRepresentable, each V2: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+    _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws
@@ -211,7 +211,7 @@ extension FetchAll {
     @_disfavoredOverload
     public init<V1: QueryRepresentable, each V2: QueryRepresentable>(
       wrappedValue: [Element] = [],
-      _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+      _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -255,7 +255,7 @@ extension FetchAll {
 
     @_disfavoredOverload
     public func load<V1: QueryRepresentable, each V2: QueryRepresentable>(
-      _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+      _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     ) async throws
@@ -276,8 +276,11 @@ extension FetchAll {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private struct FetchAllStatementPackRequest<each Value: QueryRepresentable>: StatementKeyRequest {
+private struct FetchAllStatementPackRequest<each Value: QueryRepresentable>: StatementKeyRequest, @unchecked Sendable {
   let statement: any StructuredQueriesCore.Statement<(repeat each Value)>
+  init(statement: sending any StructuredQueriesCore.Statement<(repeat each Value)>) {
+    self.statement = statement
+  }
   func fetch(_ db: Database) throws -> [(repeat (each Value).QueryOutput)] {
     try statement.fetchAll(db)
   }
@@ -314,7 +317,7 @@ extension FetchOne {
   @_disfavoredOverload
   public init<V1: QueryRepresentable, each V2: QueryRepresentable>(
     wrappedValue: (V1.QueryOutput, repeat (each V2).QueryOutput),
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+    _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -356,7 +359,7 @@ extension FetchOne {
   ///     (`@Dependency(\.defaultDatabase)`).
   @_disfavoredOverload
   public func load<V1: QueryRepresentable, each V2: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+    _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
     database: (any DatabaseReader)? = nil
   ) async throws
   where
@@ -396,7 +399,7 @@ extension FetchOne {
   @_disfavoredOverload
   public init<V1: QueryRepresentable, each V2: QueryRepresentable>(
     wrappedValue: (V1.QueryOutput, repeat (each V2).QueryOutput),
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+    _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -436,7 +439,7 @@ extension FetchOne {
 
   @_disfavoredOverload
   public func load<V1: QueryRepresentable, each V2: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+    _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws
@@ -479,7 +482,7 @@ extension FetchOne {
     @_disfavoredOverload
     public init<V1: QueryRepresentable, each V2: QueryRepresentable>(
       wrappedValue: (V1.QueryOutput, repeat (each V2).QueryOutput),
-      _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+      _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -519,7 +522,7 @@ extension FetchOne {
 
     @_disfavoredOverload
     public func load<V1: QueryRepresentable, each V2: QueryRepresentable>(
-      _ statement: some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
+      _ statement: sending some StructuredQueriesCore.Statement<(V1, repeat each V2)>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     ) async throws
@@ -539,8 +542,11 @@ extension FetchOne {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private struct FetchOneStatementPackRequest<each Value: QueryRepresentable>: StatementKeyRequest {
+private struct FetchOneStatementPackRequest<each Value: QueryRepresentable>: StatementKeyRequest, @unchecked Sendable {
   let statement: any StructuredQueriesCore.Statement<(repeat each Value)>
+  init(statement: sending any StructuredQueriesCore.Statement<(repeat each Value)>) {
+    self.statement = statement
+  }
   func fetch(_ db: Database) throws -> (repeat (each Value).QueryOutput) {
     guard let result = try statement.fetchOne(db)
     else { throw NotFound() }

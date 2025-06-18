@@ -149,7 +149,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///     (`@Dependency(\.defaultDatabase)`).
   public init<V: QueryRepresentable>(
     wrappedValue: Value,
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: sending some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -170,7 +170,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///     (`@Dependency(\.defaultDatabase)`).
   public init<V: QueryRepresentable>(
     wrappedValue: Value = nil,
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: sending some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -191,7 +191,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///     (`@Dependency(\.defaultDatabase)`).
   public init<S: StructuredQueriesCore.Statement<Value>>(
     wrappedValue: Value,
-    _ statement: S,
+    _ statement: sending S,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -238,7 +238,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///     (`@Dependency(\.defaultDatabase)`).
   public init<S: StructuredQueriesCore.Statement>(
     wrappedValue: Value = ._none,
-    _ statement: S,
+    _ statement: sending S,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -265,7 +265,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///     (`@Dependency(\.defaultDatabase)`).
   public init(
     wrappedValue: Value = ._none,
-    _ statement: some StructuredQueriesCore.Statement<Value>,
+    _ statement: sending some StructuredQueriesCore.Statement<Value>,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -305,7 +305,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public func load<V: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: sending some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
   ) async throws
   where
@@ -323,7 +323,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public func load<V: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: sending some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
   ) async throws
   where
@@ -363,7 +363,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public func load<S: StructuredQueriesCore.Statement>(
-    _ statement: S,
+    _ statement: sending S,
     database: (any DatabaseReader)? = nil
   ) async throws
   where
@@ -384,7 +384,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public func load(
-    _ statement: some StructuredQueriesCore.Statement<Value>,
+    _ statement: sending some StructuredQueriesCore.Statement<Value>,
     database: (any DatabaseReader)? = nil
   ) async throws
   where
@@ -490,7 +490,7 @@ extension FetchOne {
   ///     asynchronously on the main queue.
   public init<V: QueryRepresentable>(
     wrappedValue: Value,
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: sending some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -518,7 +518,7 @@ extension FetchOne {
   ///     asynchronously on the main queue.
   public init<V: QueryRepresentable>(
     wrappedValue: Value = nil,
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: sending some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -546,7 +546,7 @@ extension FetchOne {
   ///     asynchronously on the main queue.
   public init<S: StructuredQueriesCore.Statement<Value>>(
     wrappedValue: Value,
-    _ statement: S,
+    _ statement: sending S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -607,7 +607,7 @@ extension FetchOne {
   ///     asynchronously on the main queue.
   public init<S: StructuredQueriesCore.Statement>(
     wrappedValue: Value = ._none,
-    _ statement: S,
+    _ statement: sending S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -638,7 +638,7 @@ extension FetchOne {
   ///     asynchronously on the main queue.
   public init(
     wrappedValue: Value = ._none,
-    _ statement: some StructuredQueriesCore.Statement<Value>,
+    _ statement: sending some StructuredQueriesCore.Statement<Value>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -688,7 +688,7 @@ extension FetchOne {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   public func load<V: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: sending some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws
@@ -713,7 +713,7 @@ extension FetchOne {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   public func load<V: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: sending some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws
@@ -767,7 +767,7 @@ extension FetchOne {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   public func load<S: StructuredQueriesCore.Statement>(
-    _ statement: S,
+    _ statement: sending S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws
@@ -795,7 +795,7 @@ extension FetchOne {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   public func load(
-    _ statement: some StructuredQueriesCore.Statement<Value>,
+    _ statement: sending some StructuredQueriesCore.Statement<Value>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws
@@ -905,7 +905,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     the fetched results.
     public init<V: QueryRepresentable>(
       wrappedValue: Value,
-      _ statement: some StructuredQueriesCore.Statement<V>,
+      _ statement: sending some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -931,7 +931,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     the fetched results.
     public init<V: QueryRepresentable>(
       wrappedValue: Value = nil,
-      _ statement: some StructuredQueriesCore.Statement<V>,
+      _ statement: sending some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -957,7 +957,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     the fetched results.
     public init<S: StructuredQueriesCore.Statement<Value>>(
       wrappedValue: Value,
-      _ statement: S,
+      _ statement: sending S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -1013,7 +1013,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     the fetched results.
     public init<S: StructuredQueriesCore.Statement>(
       wrappedValue: Value = ._none,
-      _ statement: S,
+      _ statement: sending S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -1042,7 +1042,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     the fetched results.
     public init(
       wrappedValue: Value = ._none,
-      _ statement: some StructuredQueriesCore.Statement<Value>,
+      _ statement: sending some StructuredQueriesCore.Statement<Value>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -1089,7 +1089,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     public func load<V: QueryRepresentable>(
-      _ statement: some StructuredQueriesCore.Statement<V>,
+      _ statement: sending some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     ) async throws
@@ -1108,7 +1108,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     public func load<V: QueryRepresentable>(
-      _ statement: some StructuredQueriesCore.Statement<V>,
+      _ statement: sending some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     ) async throws
@@ -1149,7 +1149,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     public func load<S: StructuredQueriesCore.Statement>(
-      _ statement: S,
+      _ statement: sending S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     ) async throws
@@ -1171,7 +1171,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     public func load(
-      _ statement: some StructuredQueriesCore.Statement<Value>,
+      _ statement: sending some StructuredQueriesCore.Statement<Value>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     ) async throws
@@ -1185,9 +1185,9 @@ extension FetchOne: Equatable where Value: Equatable {
   }
 #endif
 
-private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
+private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest, @unchecked Sendable {
   let statement: any StructuredQueriesCore.Statement<Value>
-  init(statement: any StructuredQueriesCore.Statement<Value>) {
+  init(statement: sending any StructuredQueriesCore.Statement<Value>) {
     self.statement = statement
   }
   func fetch(_ db: Database) throws -> Value.QueryOutput {
@@ -1198,9 +1198,12 @@ private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: Stateme
 }
 
 private struct FetchOneStatementOptionalValueRequest<Value: QueryRepresentable>:
-  StatementKeyRequest
+  StatementKeyRequest, @unchecked Sendable
 {
   let statement: any StructuredQueriesCore.Statement<Value>
+  init(statement: sending any StructuredQueriesCore.Statement<Value>) {
+    self.statement = statement
+  }
   func fetch(_ db: Database) throws -> Value.QueryOutput? {
     try statement.fetchOne(db)
   }
@@ -1208,8 +1211,11 @@ private struct FetchOneStatementOptionalValueRequest<Value: QueryRepresentable>:
 
 private struct FetchOneStatementOptionalProtocolRequest<
   Value: QueryRepresentable & _OptionalProtocol
->: StatementKeyRequest where Value.QueryOutput: _OptionalProtocol {
+>: StatementKeyRequest, @unchecked Sendable where Value.QueryOutput: _OptionalProtocol {
   let statement: any StructuredQueriesCore.Statement<Value>
+  init(statement: sending any StructuredQueriesCore.Statement<Value>) {
+    self.statement = statement
+  }
   func fetch(_ db: Database) throws -> Value.QueryOutput {
     try statement.fetchOne(db) ?? ._none
   }
