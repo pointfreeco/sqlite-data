@@ -9,12 +9,11 @@ import Testing
 
 @Suite struct GRDBSharingTests {
   @Test
-  func fetchOne() async throws {
-    try await withDependencies {
+  func fetchOne() throws {
+    try withDependencies {
       $0.defaultDatabase = try DatabaseQueue()
     } operation: {
       @FetchOne(#sql("SELECT 1")) var bool = false
-      try await Task.sleep(nanoseconds: 100_000_000)
       #expect(bool)
       #expect($bool.loadError == nil)
     }
@@ -30,13 +29,12 @@ import Testing
     }
   }
 
-  @Test func fetchSyntaxError() async throws {
-    try await withDependencies {
+  @Test func fetchSyntaxError() throws {
+    try withDependencies {
       $0.defaultDatabase = try DatabaseQueue()
     } operation: {
       @FetchOne(#sql("SELEC 1")) var bool = false
       #expect(bool == false)
-      try await Task.sleep(nanoseconds: 100_000_000)
       #expect($bool.loadError is DatabaseError?)
       let error = try #require($bool.loadError as? DatabaseError)
       #expect(error.message == #"near "SELEC": syntax error"#)
@@ -49,7 +47,6 @@ import Testing
       $0.defaultDatabase = try .database(named: name)
     } operation: {
       @SharedReader(.fetchAll(sql: "SELECT * FROM records")) var records1: [Record] = []
-      try await Task.sleep(nanoseconds: 100_000_000)
       #expect(records1.map(\.id) == [1, 2, 3])
 
       try await withDependencies {
@@ -57,12 +54,11 @@ import Testing
       } operation: {
         @Dependency(\.defaultDatabase) var database2
         @SharedReader(.fetchAll(sql: "SELECT * FROM records")) var records2: [Record] = []
-        try await Task.sleep(nanoseconds: 100_000_000)
         #expect(records2.map(\.id) == [1, 2, 3])
         try await database2.write { db in
           _ = try Record.deleteOne(db, key: 1)
         }
-        try await Task.sleep(nanoseconds: 100_000_000)
+        try await $records2.load()
         #expect(records1.map(\.id) == [1, 2, 3])
         #expect(records2.map(\.id) == [2, 3])
       }

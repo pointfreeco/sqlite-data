@@ -176,6 +176,8 @@ var items
 @FetchAll(Item.where(\.isInStock))
 var items
 
+
+
 @FetchOne(Item.count())
 var itemsCount = 0
 
@@ -191,8 +193,10 @@ var items: [Item]
 @Query(sort: [SortDescriptor(\.title)])
 var items: [Item]
 
-// No @Query equivalent of filtering
-// by 'isInStock: Bool'
+@Query(filter: #Predicate<Item> {
+  $0.isInStock
+})
+var items: [Item]
 
 // No @Query equivalent of counting
 // entries in database without loading
@@ -394,7 +398,7 @@ simple as adding it to your `Package.swift`:
 
 ``` swift
 dependencies: [
-  .package(url: "https://github.com/pointfreeco/sharing-grdb", from: "0.4.0")
+  .package(url: "https://github.com/pointfreeco/sharing-grdb", from: "0.5.0")
 ]
 ```
 
