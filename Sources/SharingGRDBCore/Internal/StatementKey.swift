@@ -1,9 +1,7 @@
-protocol StatementKeyRequest<QueryValue>: FetchKeyRequest {
-  associatedtype QueryValue
-  var statement: any SendableStatement<QueryValue> { get }
+protocol StatementKeyRequest<Statement>: FetchKeyRequest {
+  associatedtype Statement: StructuredQueriesCore.Statement & Sendable
+  var statement: Statement { get }
 }
-
-typealias SendableStatement<QueryValue> = StructuredQueriesCore.Statement<QueryValue> & Sendable
 
 extension StatementKeyRequest {
   static func == (lhs: Self, rhs: Self) -> Bool {

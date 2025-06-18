@@ -1185,30 +1185,35 @@ extension FetchOne: Equatable where Value: Equatable {
   }
 #endif
 
-private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
-  let statement: any SendableStatement<Value>
-  func fetch(_ db: Database) throws -> Value.QueryOutput {
+private struct FetchOneStatementValueRequest<
+  Statement: StructuredQueriesCore.Statement & Sendable
+>: StatementKeyRequest where Statement.QueryValue: QueryRepresentable {
+  let statement: Statement
+  func fetch(_ db: Database) throws -> Statement.QueryValue.QueryOutput {
     guard let result = try statement.fetchOne(db)
     else { throw NotFound() }
     return result
   }
 }
 
-private struct FetchOneStatementOptionalValueRequest<Value: QueryRepresentable>:
-  StatementKeyRequest
-{
-  let statement: any SendableStatement<Value>
-  func fetch(_ db: Database) throws -> Value.QueryOutput? {
+private struct FetchOneStatementOptionalValueRequest<
+  Statement: StructuredQueriesCore.Statement & Sendable
+>: StatementKeyRequest where Statement.QueryValue: QueryRepresentable {
+  let statement: Statement
+  func fetch(_ db: Database) throws -> Statement.QueryValue.QueryOutput? {
     try statement.fetchOne(db)
   }
 }
 
 private struct FetchOneStatementOptionalProtocolRequest<
-  Value: QueryRepresentable & _OptionalProtocol
+  Statement: StructuredQueriesCore.Statement & Sendable
 >: StatementKeyRequest
-where Value.QueryOutput: _OptionalProtocol {
-  let statement: any SendableStatement<Value>
-  func fetch(_ db: Database) throws -> Value.QueryOutput {
+where
+  Statement.QueryValue: QueryRepresentable & _OptionalProtocol,
+  Statement.QueryValue.QueryOutput: _OptionalProtocol
+{
+  let statement: Statement
+  func fetch(_ db: Database) throws -> Statement.QueryValue.QueryOutput {
     try statement.fetchOne(db) ?? ._none
   }
 }

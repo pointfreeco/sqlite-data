@@ -504,9 +504,11 @@ extension FetchAll: Equatable where Element: Equatable {
   }
 #endif
 
-private struct FetchAllStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
-  let statement: any SendableStatement<Value>
-  func fetch(_ db: Database) throws -> [Value.QueryOutput] {
+private struct FetchAllStatementValueRequest<
+  Statement: StructuredQueriesCore.Statement & Sendable
+>: StatementKeyRequest where Statement.QueryValue: QueryRepresentable {
+  let statement: Statement
+  func fetch(_ db: Database) throws -> [Statement.QueryValue.QueryOutput] {
     try statement.fetchAll(db)
   }
 }

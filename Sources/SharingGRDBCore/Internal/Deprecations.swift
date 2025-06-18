@@ -276,8 +276,11 @@ extension FetchAll {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private struct FetchAllStatementPackRequest<each Value: QueryRepresentable>: StatementKeyRequest {
-  let statement: any SendableStatement<(repeat each Value)>
+private struct FetchAllStatementPackRequest<
+  each Value: QueryRepresentable,
+  Statement: StructuredQueriesCore.Statement<(repeat each Value)> & Sendable
+>: StatementKeyRequest {
+  let statement: Statement
   func fetch(_ db: Database) throws -> [(repeat (each Value).QueryOutput)] {
     try statement.fetchAll(db)
   }
@@ -539,8 +542,11 @@ extension FetchOne {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private struct FetchOneStatementPackRequest<each Value: QueryRepresentable>: StatementKeyRequest {
-  let statement: any SendableStatement<(repeat each Value)>
+private struct FetchOneStatementPackRequest<
+  each Value: QueryRepresentable,
+  Statement: StructuredQueriesCore.Statement<(repeat each Value)> & Sendable
+>: StatementKeyRequest {
+  let statement: Statement
   func fetch(_ db: Database) throws -> (repeat (each Value).QueryOutput) {
     guard let result = try statement.fetchOne(db)
     else { throw NotFound() }
