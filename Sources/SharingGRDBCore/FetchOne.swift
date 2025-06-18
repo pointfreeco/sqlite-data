@@ -1185,11 +1185,8 @@ extension FetchOne: Equatable where Value: Equatable {
   }
 #endif
 
-private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest, @unchecked Sendable {
-  let statement: any StructuredQueriesCore.Statement<Value>
-  init(statement: some SendableStatement<Value>) {
-    self.statement = statement
-  }
+private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
+  let statement: any SendableStatement<Value>
   func fetch(_ db: Database) throws -> Value.QueryOutput {
     guard let result = try statement.fetchOne(db)
     else { throw NotFound() }
@@ -1198,12 +1195,9 @@ private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: Stateme
 }
 
 private struct FetchOneStatementOptionalValueRequest<Value: QueryRepresentable>:
-  StatementKeyRequest, @unchecked Sendable
+  StatementKeyRequest
 {
-  let statement: any StructuredQueriesCore.Statement<Value>
-  init(statement: any SendableStatement<Value> & Sendable) {
-    self.statement = statement
-  }
+  let statement: any SendableStatement<Value>
   func fetch(_ db: Database) throws -> Value.QueryOutput? {
     try statement.fetchOne(db)
   }
@@ -1211,12 +1205,9 @@ private struct FetchOneStatementOptionalValueRequest<Value: QueryRepresentable>:
 
 private struct FetchOneStatementOptionalProtocolRequest<
   Value: QueryRepresentable & _OptionalProtocol
->: StatementKeyRequest, @unchecked Sendable
+>: StatementKeyRequest
 where Value.QueryOutput: _OptionalProtocol {
-  let statement: any StructuredQueriesCore.Statement<Value>
-  init(statement: some SendableStatement<Value>) {
-    self.statement = statement
-  }
+  let statement: any SendableStatement<Value>
   func fetch(_ db: Database) throws -> Value.QueryOutput {
     try statement.fetchOne(db) ?? ._none
   }
