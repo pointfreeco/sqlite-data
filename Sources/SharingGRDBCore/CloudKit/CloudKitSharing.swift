@@ -43,10 +43,10 @@ extension SyncEngine {
 
     let rootRecord =
       metadata.lastKnownServerRecord
-    // 1) create record
-    // 2) (before sync) you share
-    // 3) create a CKRecord down below
-    // 4) a moment later, sync engine creates a record
+      // 1) create record
+      // 2) (before sync) you share
+      // 3) create a CKRecord down below
+      // 4) a moment later, sync engine creates a record
       ?? CKRecord(
         recordType: metadata.recordType,
         recordID: CKRecord.ID(
@@ -138,7 +138,7 @@ extension SyncEngine {
     }
   }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class CloudSharingDelegate: NSObject, UICloudSharingControllerDelegate {
     let share: CKShare
     let didFinish: (Result<Void, Error>) -> Void

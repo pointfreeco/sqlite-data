@@ -37,13 +37,13 @@ extension Logger {
       }
     case .fetchedDatabaseChanges(let event):
       let deletions =
-      event.deletions.isEmpty
-      ? "⚪️ No deletions"
-      : "✅ Zones deleted (\(event.deletions.count): "
-      + event.deletions
-        .map { $0.zoneID.zoneName + ":" + $0.zoneID.ownerName }
-        .sorted()
-        .joined(separator: ", ")
+        event.deletions.isEmpty
+        ? "⚪️ No deletions"
+        : "✅ Zones deleted (\(event.deletions.count): "
+          + event.deletions
+          .map { $0.zoneID.zoneName + ":" + $0.zoneID.ownerName }
+          .sorted()
+          .joined(separator: ", ")
       debug(
         """
         \(prefix) fetchedDatabaseChanges
@@ -59,8 +59,8 @@ extension Logger {
         .map { recordType in "\(recordType) (\(deletionsByRecordType[recordType]!.count))" }
         .joined(separator: ", ")
       let deletions =
-      event.deletions.isEmpty
-      ? "⚪️ No deletions" : "✅ Records deleted (\(event.deletions.count)): \(recordTypeDeletions)"
+        event.deletions.isEmpty
+        ? "⚪️ No deletions" : "✅ Records deleted (\(event.deletions.count)): \(recordTypeDeletions)"
 
       let modificationsByRecordType = Dictionary(
         grouping: event.modifications,
@@ -70,9 +70,9 @@ extension Logger {
         .map { recordType in "\(recordType) (\(modificationsByRecordType[recordType]!.count))" }
         .joined(separator: ", ")
       let modifications =
-      event.modifications.isEmpty
-      ? "⚪️ No modifications"
-      : "✅ Records modified (\(event.modifications.count)): \(recordTypeModifications)"
+        event.modifications.isEmpty
+        ? "⚪️ No modifications"
+        : "✅ Records modified (\(event.modifications.count)): \(recordTypeModifications)"
 
       debug(
         """
@@ -87,26 +87,26 @@ extension Logger {
         .sorted()
         .joined(separator: ", ")
       let savedZones =
-      event.savedZones.isEmpty
-      ? "⚪️ No saved zones" : "✅ Saved zones (\(event.savedZones.count)): \(savedZoneNames)"
+        event.savedZones.isEmpty
+        ? "⚪️ No saved zones" : "✅ Saved zones (\(event.savedZones.count)): \(savedZoneNames)"
 
       let deletedZoneNames = event.deletedZoneIDs
         .map { $0.zoneName }
         .sorted()
         .joined(separator: ", ")
       let deletedZones =
-      event.deletedZoneIDs.isEmpty
-      ? "⚪️ No deleted zones"
-      : "✅ Deleted zones (\(event.deletedZoneIDs.count)): \(deletedZoneNames)"
+        event.deletedZoneIDs.isEmpty
+        ? "⚪️ No deleted zones"
+        : "✅ Deleted zones (\(event.deletedZoneIDs.count)): \(deletedZoneNames)"
 
       let failedZoneSaveNames = event.failedZoneSaves
         .map { $0.zone.zoneID.zoneName + ":" + $0.zone.zoneID.ownerName }
         .sorted()
         .joined(separator: ", ")
       let failedZoneSaves =
-      event.failedZoneSaves.isEmpty
-      ? "⚪️ No failed saved zones"
-      : "🛑 Failed zone saves (\(event.failedZoneSaves.count)): \(failedZoneSaveNames)"
+        event.failedZoneSaves.isEmpty
+        ? "⚪️ No failed saved zones"
+        : "🛑 Failed zone saves (\(event.failedZoneSaves.count)): \(failedZoneSaveNames)"
 
       let failedZoneDeleteNames = event.failedZoneDeletes
         .keys
@@ -114,9 +114,9 @@ extension Logger {
         .sorted()
         .joined(separator: ", ")
       let failedZoneDeletes =
-      event.failedZoneDeletes.isEmpty
-      ? "⚪️ No failed deleted zones"
-      : "🛑 Failed zone delete (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
+        event.failedZoneDeletes.isEmpty
+        ? "⚪️ No failed deleted zones"
+        : "🛑 Failed zone delete (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
 
       debug(
         """

@@ -13,19 +13,41 @@ public struct Metadata: Hashable, Sendable {
   public var share: CKShare?
   public var userModificationDate: Date?
 
-  public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore.PrimaryKeyedTableDefinition {
+  public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore
+      .PrimaryKeyedTableDefinition
+  {
     public typealias QueryValue = Metadata
-    public let recordType = StructuredQueriesCore.TableColumn<QueryValue, String>("recordType", keyPath: \QueryValue.recordType)
-    public let recordName = StructuredQueriesCore.TableColumn<QueryValue, UUID>("recordName", keyPath: \QueryValue.recordName)
-    public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, String?>("parentRecordName", keyPath: \QueryValue.parentRecordName)
-    public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<QueryValue, CKRecord?.DataRepresentation>("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
-    public let share = StructuredQueriesCore.TableColumn<QueryValue, CKShare?.ShareDataRepresentation>("share", keyPath: \QueryValue.share)
-    public let userModificationDate = StructuredQueriesCore.TableColumn<QueryValue, Date?>("userModificationDate", keyPath: \QueryValue.userModificationDate)
+    public let recordType = StructuredQueriesCore.TableColumn<QueryValue, String>(
+      "recordType",
+      keyPath: \QueryValue.recordType
+    )
+    public let recordName = StructuredQueriesCore.TableColumn<QueryValue, UUID>(
+      "recordName",
+      keyPath: \QueryValue.recordName
+    )
+    public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, String?>(
+      "parentRecordName",
+      keyPath: \QueryValue.parentRecordName
+    )
+    public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<
+      QueryValue, CKRecord?.DataRepresentation
+    >("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
+    public let share = StructuredQueriesCore.TableColumn<
+      QueryValue, CKShare?.ShareDataRepresentation
+    >("share", keyPath: \QueryValue.share)
+    public let userModificationDate = StructuredQueriesCore.TableColumn<QueryValue, Date?>(
+      "userModificationDate",
+      keyPath: \QueryValue.userModificationDate
+    )
     public var primaryKey: StructuredQueriesCore.TableColumn<QueryValue, UUID> {
       self.recordName
     }
     public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
-      [QueryValue.columns.recordType, QueryValue.columns.recordName, QueryValue.columns.parentRecordName, QueryValue.columns.lastKnownServerRecord, QueryValue.columns.share, QueryValue.columns.userModificationDate]
+      [
+        QueryValue.columns.recordType, QueryValue.columns.recordName,
+        QueryValue.columns.parentRecordName, QueryValue.columns.lastKnownServerRecord,
+        QueryValue.columns.share, QueryValue.columns.userModificationDate,
+      ]
     }
   }
 
@@ -39,14 +61,34 @@ public struct Metadata: Hashable, Sendable {
     public var userModificationDate: Date?
     public struct TableColumns: StructuredQueriesCore.TableDefinition {
       public typealias QueryValue = Draft
-      public let recordType = StructuredQueriesCore.TableColumn<QueryValue, String>("recordType", keyPath: \QueryValue.recordType)
-      public let recordName = StructuredQueriesCore.TableColumn<QueryValue, UUID?>("recordName", keyPath: \QueryValue.recordName)
-      public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, String?>("parentRecordName", keyPath: \QueryValue.parentRecordName)
-      public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<QueryValue, CKRecord?.DataRepresentation>("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
-      public let share = StructuredQueriesCore.TableColumn<QueryValue, CKShare?.ShareDataRepresentation>("share", keyPath: \QueryValue.share)
-      public let userModificationDate = StructuredQueriesCore.TableColumn<QueryValue, Date?>("userModificationDate", keyPath: \QueryValue.userModificationDate)
+      public let recordType = StructuredQueriesCore.TableColumn<QueryValue, String>(
+        "recordType",
+        keyPath: \QueryValue.recordType
+      )
+      public let recordName = StructuredQueriesCore.TableColumn<QueryValue, UUID?>(
+        "recordName",
+        keyPath: \QueryValue.recordName
+      )
+      public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, String?>(
+        "parentRecordName",
+        keyPath: \QueryValue.parentRecordName
+      )
+      public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<
+        QueryValue, CKRecord?.DataRepresentation
+      >("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
+      public let share = StructuredQueriesCore.TableColumn<
+        QueryValue, CKShare?.ShareDataRepresentation
+      >("share", keyPath: \QueryValue.share)
+      public let userModificationDate = StructuredQueriesCore.TableColumn<QueryValue, Date?>(
+        "userModificationDate",
+        keyPath: \QueryValue.userModificationDate
+      )
       public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
-        [QueryValue.columns.recordType, QueryValue.columns.recordName, QueryValue.columns.parentRecordName, QueryValue.columns.lastKnownServerRecord, QueryValue.columns.share, QueryValue.columns.userModificationDate]
+        [
+          QueryValue.columns.recordType, QueryValue.columns.recordName,
+          QueryValue.columns.parentRecordName, QueryValue.columns.lastKnownServerRecord,
+          QueryValue.columns.share, QueryValue.columns.userModificationDate,
+        ]
       }
     }
     public static let columns = TableColumns()
@@ -100,7 +142,8 @@ public struct Metadata: Hashable, Sendable {
   }
 }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) extension Metadata: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension Metadata: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
   public static let columns = TableColumns()
   public static let tableName = "sqlitedata_icloud_metadata"
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
@@ -128,5 +171,3 @@ public struct Metadata: Hashable, Sendable {
     self.share = share
   }
 }
-
-

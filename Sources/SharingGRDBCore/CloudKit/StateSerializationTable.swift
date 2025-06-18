@@ -13,11 +13,19 @@ package struct StateSerialization {
 extension CKDatabase.Scope: @retroactive QueryBindable {
 }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) extension StateSerialization: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
-  public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore.PrimaryKeyedTableDefinition {
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension StateSerialization: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
+  public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore
+      .PrimaryKeyedTableDefinition
+  {
     public typealias QueryValue = StateSerialization
-    public let scope = StructuredQueriesCore.TableColumn<QueryValue, CKDatabase.Scope>("scope", keyPath: \QueryValue.scope)
-    public let data = StructuredQueriesCore.TableColumn<QueryValue, CKSyncEngine.State.Serialization.JSONRepresentation>("data", keyPath: \QueryValue.data)
+    public let scope = StructuredQueriesCore.TableColumn<QueryValue, CKDatabase.Scope>(
+      "scope",
+      keyPath: \QueryValue.scope
+    )
+    public let data = StructuredQueriesCore.TableColumn<
+      QueryValue, CKSyncEngine.State.Serialization.JSONRepresentation
+    >("data", keyPath: \QueryValue.data)
     public var primaryKey: StructuredQueriesCore.TableColumn<QueryValue, CKDatabase.Scope> {
       self.scope
     }
@@ -31,8 +39,13 @@ extension CKDatabase.Scope: @retroactive QueryBindable {
     package var data: CKSyncEngine.State.Serialization
     public struct TableColumns: StructuredQueriesCore.TableDefinition {
       public typealias QueryValue = StateSerialization.Draft
-      public let scope = StructuredQueriesCore.TableColumn<QueryValue, CKDatabase.Scope?>("scope", keyPath: \QueryValue.scope)
-      public let data = StructuredQueriesCore.TableColumn<QueryValue, CKSyncEngine.State.Serialization.JSONRepresentation>("data", keyPath: \QueryValue.data)
+      public let scope = StructuredQueriesCore.TableColumn<QueryValue, CKDatabase.Scope?>(
+        "scope",
+        keyPath: \QueryValue.scope
+      )
+      public let data = StructuredQueriesCore.TableColumn<
+        QueryValue, CKSyncEngine.State.Serialization.JSONRepresentation
+      >("data", keyPath: \QueryValue.data)
       public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
         [QueryValue.columns.scope, QueryValue.columns.data]
       }

@@ -115,9 +115,11 @@ extension PrimaryKeyedTable where TableColumns.PrimaryKey == UUID {
   static func find(recordID: CKRecord.ID) -> Where<Self> {
     let recordName = UUID(uuidString: recordID.recordName)
     if recordName == nil {
-      reportIssue("""
+      reportIssue(
+        """
         'recordName' ("\(recordID.recordName)") must be a UUID.
-        """)
+        """
+      )
     }
     return Self.where {
       $0.primaryKey.eq(recordName ?? UUID())
@@ -130,9 +132,11 @@ extension Metadata {
   init(record: CKRecord) {
     let recordName = UUID(uuidString: record.recordID.recordName)
     if recordName == nil {
-      reportIssue("""
+      reportIssue(
+        """
         'recordName' ("\(record.recordID.recordName)") must be a UUID.
-        """)
+        """
+      )
     }
     self.init(
       recordType: record.recordType,

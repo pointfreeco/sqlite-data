@@ -12,9 +12,13 @@ extension RecordType: StructuredQueriesCore.Table, StructuredQueriesCore.Primary
   {
     public typealias QueryValue = RecordType
     public let tableName = StructuredQueriesCore.TableColumn<QueryValue, String>(
-      "tableName", keyPath: \QueryValue.tableName)
+      "tableName",
+      keyPath: \QueryValue.tableName
+    )
     public let schema = StructuredQueriesCore.TableColumn<QueryValue, String>(
-      "schema", keyPath: \QueryValue.schema)
+      "schema",
+      keyPath: \QueryValue.schema
+    )
     public var primaryKey: StructuredQueriesCore.TableColumn<QueryValue, String> {
       self.tableName
     }
@@ -29,9 +33,13 @@ extension RecordType: StructuredQueriesCore.Table, StructuredQueriesCore.Primary
     public struct TableColumns: StructuredQueriesCore.TableDefinition {
       public typealias QueryValue = RecordType.Draft
       public let tableName = StructuredQueriesCore.TableColumn<QueryValue, String?>(
-        "tableName", keyPath: \QueryValue.tableName)
+        "tableName",
+        keyPath: \QueryValue.tableName
+      )
       public let schema = StructuredQueriesCore.TableColumn<QueryValue, String>(
-        "schema", keyPath: \QueryValue.schema)
+        "schema",
+        keyPath: \QueryValue.schema
+      )
       public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
         [QueryValue.columns.tableName, QueryValue.columns.schema]
       }
