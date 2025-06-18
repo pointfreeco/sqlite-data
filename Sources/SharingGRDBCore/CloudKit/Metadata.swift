@@ -28,7 +28,7 @@ extension Metadata {
   )
 
   fileprivate static let afterDeleteTrigger = createTemporaryTrigger(
-    "after_insert_on_sqlitedata_icloud_metadata",
+    "after_delete_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
     after: .delete {
       SQLQueryExpression(

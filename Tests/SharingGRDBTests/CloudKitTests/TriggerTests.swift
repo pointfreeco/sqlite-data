@@ -17,21 +17,21 @@ extension BaseCloudKitTests {
         #"""
         [
           [0]: """
-          CREATE TRIGGER "after_insert_on_sqlitedata_icloud_metadata@SharingGRDBCore/Metadata.swift:6:69"
+          CREATE TRIGGER "after_insert_on_sqlitedata_icloud_metadata"
           AFTER INSERT ON "sqlitedata_icloud_metadata"
           FOR EACH ROW WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord() BEGIN
             SELECT sqlitedata_icloud_didUpdate("new"."recordName");
           END
           """,
           [1]: """
-          CREATE TRIGGER "after_update_on_sqlitedata_icloud_metadata@SharingGRDBCore/Metadata.swift:17:69"
+          CREATE TRIGGER "after_update_on_sqlitedata_icloud_metadata"
           AFTER UPDATE ON "sqlitedata_icloud_metadata"
           FOR EACH ROW WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord() BEGIN
             SELECT sqlitedata_icloud_didUpdate("new"."recordName");
           END
           """,
           [2]: """
-          CREATE TRIGGER "after_delete_on_sqlitedata_icloud_metadata@SharingGRDBCore/Metadata.swift:28:69"
+          CREATE TRIGGER "after_delete_on_sqlitedata_icloud_metadata"
           AFTER DELETE ON "sqlitedata_icloud_metadata"
           FOR EACH ROW WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord() BEGIN
             SELECT sqlitedata_icloud_didDelete("old"."recordName");
@@ -82,7 +82,7 @@ extension BaseCloudKitTests {
           END
           """,
           [5]: """
-          CREATE TRIGGER "after_delete_on_reminders@SharingGRDBCore/Metadata.swift:145:27"
+          CREATE TRIGGER "sqlitedata_icloud_after_delete_on_reminders"
           AFTER DELETE ON "reminders"
           FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
@@ -187,7 +187,7 @@ extension BaseCloudKitTests {
           END
           """,
           [14]: """
-          CREATE TRIGGER "after_delete_on_remindersLists@SharingGRDBCore/Metadata.swift:145:27"
+          CREATE TRIGGER "sqlitedata_icloud_after_delete_on_remindersLists"
           AFTER DELETE ON "remindersLists"
           FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
@@ -239,7 +239,7 @@ extension BaseCloudKitTests {
           END
           """,
           [17]: """
-          CREATE TRIGGER "after_delete_on_users@SharingGRDBCore/Metadata.swift:145:27"
+          CREATE TRIGGER "sqlitedata_icloud_after_delete_on_users"
           AFTER DELETE ON "users"
           FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
