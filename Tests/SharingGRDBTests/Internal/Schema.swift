@@ -29,7 +29,7 @@ func database() throws -> DatabasePool {
       """
       CREATE TABLE "remindersLists" (
         "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-        "title" TEXT NOT NULL
+        "title" TEXT NOT NULL DEFAULT ''
       ) STRICT
       """
     )
@@ -38,8 +38,8 @@ func database() throws -> DatabasePool {
       """
       CREATE TABLE "users" (
         "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-        "name" TEXT NOT NULL,
-        "parentUserID" TEXT DEFAULT NULL,
+        "name" TEXT NOT NULL DEFAULT '',
+        "parentUserID" TEXT,
       
         FOREIGN KEY("parentUserID") REFERENCES "users"("id") ON DELETE SET DEFAULT ON UPDATE CASCADE 
       ) STRICT
@@ -51,9 +51,9 @@ func database() throws -> DatabasePool {
       CREATE TABLE "reminders" (
         "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
         "assignedUserID" TEXT,
-        "title" TEXT NOT NULL,
+        "title" TEXT NOT NULL DEFAULT '',
         "parentReminderID" TEXT, 
-        "remindersListID" TEXT NOT NULL, 
+        "remindersListID" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000', 
         
         FOREIGN KEY("assignedUserID") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE,
         FOREIGN KEY("parentReminderID") REFERENCES "reminders"("id") ON DELETE RESTRICT ON UPDATE RESTRICT,

@@ -7,6 +7,7 @@ import SnapshotTestingCustomDump
 import Testing
 
 extension BaseCloudKitTests {
+  @MainActor
   final class ForeignKeyTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func deleteCascade() throws {

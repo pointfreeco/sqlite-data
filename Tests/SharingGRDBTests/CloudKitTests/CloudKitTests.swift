@@ -7,6 +7,7 @@ import SnapshotTestingCustomDump
 import Testing
 
 extension BaseCloudKitTests {
+  @MainActor
   final class CloudKitTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func setUp() throws {
@@ -21,7 +22,7 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "remindersLists" (
                 "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-                "title" TEXT NOT NULL
+                "title" TEXT NOT NULL DEFAULT ''
               ) STRICT
               """
           ),
@@ -30,8 +31,8 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "users" (
                 "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-                "name" TEXT NOT NULL,
-                "parentUserID" TEXT DEFAULT NULL,
+                "name" TEXT NOT NULL DEFAULT '',
+                "parentUserID" TEXT,
               
                 FOREIGN KEY("parentUserID") REFERENCES "users"("id") ON DELETE SET DEFAULT ON UPDATE CASCADE 
               ) STRICT
@@ -43,9 +44,9 @@ extension BaseCloudKitTests {
               CREATE TABLE "reminders" (
                 "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
                 "assignedUserID" TEXT,
-                "title" TEXT NOT NULL,
+                "title" TEXT NOT NULL DEFAULT '',
                 "parentReminderID" TEXT, 
-                "remindersListID" TEXT NOT NULL, 
+                "remindersListID" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000', 
                 
                 FOREIGN KEY("assignedUserID") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE,
                 FOREIGN KEY("parentReminderID") REFERENCES "reminders"("id") ON DELETE RESTRICT ON UPDATE RESTRICT,
@@ -125,8 +126,8 @@ extension BaseCloudKitTests {
         """
         [
           [0]: "sqlitedata_icloud_didupdate",
-          [1]: "sqlitedata_icloud_willdelete",
-          [2]: "sqlitedata_icloud_isupdatingwithserverrecord"
+          [1]: "sqlitedata_icloud_isupdatingwithserverrecord",
+          [2]: "sqlitedata_icloud_diddelete"
         ]
         """
       }

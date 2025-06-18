@@ -221,16 +221,16 @@ func appDatabase() throws -> any DatabaseWriter {
         .where { $0.id.eq(new.id) }
     })
     .execute(db)
-//    try RemindersList.createTemporaryTrigger(
-//      after: .delete { _ in
-//        RemindersList.insert {
-//          RemindersList.Draft(color: .blue, title: "Personal")
-//        }
-//      } when: { _ in
-//        RemindersList.count().eq(0)
-//      }
-//    )
-//    .execute(db)
+    try RemindersList.createTemporaryTrigger(
+      after: .delete { _ in
+        RemindersList.insert {
+          RemindersList.Draft(color: .blue, title: "Personal")
+        }
+      } when: { _ in
+        RemindersList.count().eq(0)
+      }
+    )
+    .execute(db)
   }
 
   return database

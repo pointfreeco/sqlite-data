@@ -27,7 +27,8 @@ to make sure you understand how to best prepare your app for cloud synchronizati
     - [Sharing foreign key relationships](#Sharing-foreign-key-relationships)  
       - [One-to-many relationships](#One-to-many-relationships)  
       - [Many-to-many relationships](#Many-to-many-relationships)  
-      - [One-to-"at most one" relationships](#One-to-at-most-one-relationships)  
+      - [One-to-"at most one" relationships](#One-to-at-most-one-relationships)
+    - [Controlling what data is shared](#Controlling-what-data-is-shared)
   - [Assets](#Assets)  
   - [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)  
   - [How SharingGRDB handles distributed schema scenarios](#How-SharingGRDB-handles-distributed-schema-scenarios)  
@@ -551,6 +552,10 @@ you will model the relationship as a one-to-many (as described in
 <doc:CloudKit#One-to-many-relationships>) and making sure that in your feature's logic you never
 create multiple cover images pointing to the same reminders list.
 
+#### Controlling what data is shared
+
+<!-- todo: finish -->
+
 ## Assets
 
 <!-- todo: finish -->
@@ -578,3 +583,7 @@ create multiple cover images pointing to the same reminders list.
 <!-- todo: finish -->
 
 <!-- TODO: talk about simulator push restrictions -->
+
+## Migrating from Swift Data to SharingGRDB
+
+## Separating schema migrations from data migrations

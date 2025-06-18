@@ -209,86 +209,86 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
   }
 
   func dropTriggers<T: PrimaryKeyedTable>(for _: T.Type, db: Database) throws {
-//    switch onDelete {
-//    case .cascade:
-//      try SQLQueryExpression(
-//        """
-//        DROP TRIGGER
-//          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteCascade"
-//        """
-//      )
-//      .execute(db)
-//
-//    case .setNull:
-//      try SQLQueryExpression(
-//        """
-//        DROP TRIGGER
-//          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteSetNull"
-//        """
-//      )
-//      .execute(db)
-//
-//    case .setDefault:
-//      try SQLQueryExpression(
-//        """
-//        DROP TRIGGER
-//          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteSetDefault"
-//        """
-//      )
-//      .execute(db)
-//
-//    case .restrict:
-//      try SQLQueryExpression(
-//        """
-//        DROP TRIGGER
-//          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteRestrict"
-//        """
-//      )
-//      .execute(db)
-//
-//    case .noAction:
-//      break
-//    }
+    switch onDelete {
+    case .cascade:
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteCascade"
+        """
+      )
+      .execute(db)
 
-//    switch onUpdate {
-//    case .cascade:
-//      try SQLQueryExpression(
-//        """
-//        DROP TRIGGER
-//          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateCascade"
-//        """
-//      )
-//      .execute(db)
-//
-//    case .setNull:
-//      try SQLQueryExpression(
-//        """
-//        DROP TRIGGER
-//          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateSetNull"
-//        """
-//      )
-//      .execute(db)
-//
-//    case .setDefault:
-//      try SQLQueryExpression(
-//        """
-//        DROP TRIGGER
-//          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateSetDefault"
-//        """
-//      )
-//      .execute(db)
-//
-//    case .restrict:
-//      try SQLQueryExpression(
-//        """
-//        DROP TRIGGER
-//          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateRestrict"
-//        """
-//      )
-//      .execute(db)
-//
-//    case .noAction:
-//      break
-//    }
+    case .setNull:
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteSetNull"
+        """
+      )
+      .execute(db)
+
+    case .setDefault:
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteSetDefault"
+        """
+      )
+      .execute(db)
+
+    case .restrict:
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteRestrict"
+        """
+      )
+      .execute(db)
+
+    case .noAction:
+      break
+    }
+
+    switch onUpdate {
+    case .cascade:
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateCascade"
+        """
+      )
+      .execute(db)
+
+    case .setNull:
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateSetNull"
+        """
+      )
+      .execute(db)
+
+    case .setDefault:
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateSetDefault"
+        """
+      )
+      .execute(db)
+
+    case .restrict:
+      try SQLQueryExpression(
+        """
+        DROP TRIGGER
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateRestrict"
+        """
+      )
+      .execute(db)
+
+    case .noAction:
+      break
+    }
   }
 }

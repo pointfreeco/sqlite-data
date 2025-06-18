@@ -34,7 +34,7 @@ public final class SyncEngine: Sendable {
             CKSyncEngine.Configuration(
               database: container.privateCloudDatabase,
               stateSerialization: try? database.read { db in  // TODO: write test for this
-                try StateSerialization.find(.private).select(\.data).fetchOne(db)
+                try StateSerialization.find(CKDatabase.Scope.private).select(\.data).fetchOne(db)
               },
               delegate: syncEngine
             )
@@ -43,7 +43,7 @@ public final class SyncEngine: Sendable {
             CKSyncEngine.Configuration(
               database: container.sharedCloudDatabase,
               stateSerialization: try? database.read { db in  // TODO: write test for this
-                try StateSerialization.find(.shared).select(\.data).fetchOne(db)
+                try StateSerialization.find(CKDatabase.Scope.shared).select(\.data).fetchOne(db)
               },
               delegate: syncEngine
             )
@@ -231,6 +231,7 @@ public final class SyncEngine: Sendable {
       for table in self.tables {
         try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
       }
+      try Metadata.dropTriggers(tables: self.tables, db: db)
       db.remove(function: .didDelete(syncEngine: self))
       db.remove(function: .didUpdate(syncEngine: self))
       db.remove(function: .isUpdatingWithServerRecord)
@@ -241,7 +242,6 @@ public final class SyncEngine: Sendable {
       try RecordType.delete().execute(db)
       try StateSerialization.delete().execute(db)
     }
-
     _ = await (privateCancellation, sharedCancellation)
   }
 
@@ -346,9 +346,10 @@ extension PrimaryKeyedTable<UUID> {
     db: Database
   ) throws {
     let foreignKeys = foreignKeysByTableName[Self.tableName] ?? []
-    for foreignKey in foreignKeys {
+    for foreignKey in foreignKeys.reversed() {
       try foreignKey.dropTriggers(for: Self.self, db: db)
     }
+    try Metadata.dropTriggers(for: Self.self, db: db)
   }
 }
 

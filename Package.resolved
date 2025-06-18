@@ -1,5 +1,5 @@
 {
-  "originHash" : "a534be697c5a5dde86d3f510df8d5ac32f64626136b0d5a55819d56fc0295499",
+  "originHash" : "eeb146033872c3a335797e08df619408f2389e941d3afa8f8b3fdae982a5f91e",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -17,15 +17,6 @@
       "state" : {
         "revision" : "04e73c26c4ce8218ab85aaf791942bb0b204f330",
         "version" : "7.4.1"
-      }
-    },
-    {
-      "identity" : "swift-case-paths",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/swift-case-paths",
-      "state" : {
-        "revision" : "41b89b8b68d8c56c622dbb7132258f1a3e638b25",
-        "version" : "1.7.0"
       }
     },
     {
@@ -101,15 +92,6 @@
       }
     },
     {
-      "identity" : "swift-navigation",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/swift-navigation",
-      "state" : {
-        "revision" : "ae208d1a5cf33aee1d43734ea780a09ada6e2a21",
-        "version" : "2.3.1"
-      }
-    },
-    {
       "identity" : "swift-perception",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-perception",
@@ -142,7 +124,7 @@
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
         "branch" : "temp-triggers",
-        "revision" : "4b33440ba8f3f797dd66f1e15ff5c4fc3cef2492"
+        "revision" : "7b81eb46a10afd42d3bf40448c78d0cfbd59d56a"
       }
     },
     {

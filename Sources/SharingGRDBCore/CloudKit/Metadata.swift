@@ -3,45 +3,55 @@ import StructuredQueriesCore
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Metadata {
+  fileprivate static let afterInsertTrigger = createTemporaryTrigger(
+    ifNotExists: true,
+    after: .insert {
+      SQLQueryExpression(
+        "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\($0.recordName))"
+      )
+    } when: { _ in
+      SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+    }
+  )
+
+  fileprivate static let afterUpdateTrigger = createTemporaryTrigger(
+    ifNotExists: true,
+    after: .update { _, new in
+      SQLQueryExpression(
+        "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(new.recordName))"
+      )
+    } when: { _, _ in
+      SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+    }
+  )
+
+  fileprivate static let afterDeleteTrigger = createTemporaryTrigger(
+    ifNotExists: true,
+    after: .delete {
+      SQLQueryExpression(
+        "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didDelete(\($0.recordName))"
+      )
+    } when: { _ in
+      SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+    }
+  )
+
   static func createTriggers(
     tables: [any PrimaryKeyedTable.Type],
     db: Database
   ) throws {
-    try createTemporaryTrigger(
-      ifNotExists: true,
-      after: .insert {
-        SQLQueryExpression(
-          "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\($0.recordName))"
-        )
-      } when: { _ in
-        SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
-      }
-    )
-    .execute(db)
+    try afterInsertTrigger.execute(db)
+    try afterUpdateTrigger.execute(db)
+    try afterDeleteTrigger.execute(db)
+  }
 
-    try createTemporaryTrigger(
-      ifNotExists: true,
-      after: .update { _, new in
-        SQLQueryExpression(
-          "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(new.recordName))"
-        )
-      } when: { _, _ in
-        SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
-      }
-    )
-    .execute(db)
-
-    try createTemporaryTrigger(
-      ifNotExists: true,
-      after: .delete {
-        SQLQueryExpression(
-          "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didDelete(\($0.recordName))"
-        )
-      } when: { _ in
-        SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
-      }
-    )
-    .execute(db)
+  static func dropTriggers(
+    tables: [any PrimaryKeyedTable.Type],
+    db: Database
+  ) throws {
+    try afterInsertTrigger.drop().execute(db)
+    try afterUpdateTrigger.drop().execute(db)
+    try afterDeleteTrigger.drop().execute(db)
   }
 
   static func createTriggers<T: PrimaryKeyedTable<UUID>>(
@@ -93,13 +103,24 @@ extension Metadata {
     )
     .execute(db)
 
-    try T.createTemporaryTrigger(
-      ifNotExists: true,
-      after: .delete { old in
-        Metadata
-          .where { $0.recordName.eq(old.primaryKey) }
-          .delete()
-      }
+    try T.createDeleteTrigger.execute(db)
+  }
+
+  static func dropTriggers<T: PrimaryKeyedTable<UUID>>(
+    for _: T.Type,
+    db: Database
+  ) throws {
+    try T.createDeleteTrigger.drop().execute(db)
+    try SQLQueryExpression(
+      """
+      DROP TRIGGER \(updateTriggerName(for: T.self))
+      """
+    )
+    .execute(db)
+    try SQLQueryExpression(
+      """
+      DROP TRIGGER \(insertTriggerName(for: T.self))
+      """
     )
     .execute(db)
   }
@@ -119,12 +140,18 @@ extension Metadata {
       #""\#(raw: .sqliteDataCloudKitSchemaName)_\#(raw: T.tableName)_metadataUpdates""#
     )
   }
+}
 
-  private static func deleteTriggerName<T: PrimaryKeyedTable>(
-    for _: T.Type
-  ) -> SQLQueryExpression<Void> {
-    SQLQueryExpression(
-      #""\#(raw: .sqliteDataCloudKitSchemaName)_\#(raw: T.tableName)_metadataDeletes""#
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension PrimaryKeyedTable<UUID> {
+  fileprivate static var createDeleteTrigger: TemporaryTrigger<Self> {
+    createTemporaryTrigger(
+      ifNotExists: true,
+      after: .delete { old in
+        Metadata
+          .where { $0.recordName.eq(old.primaryKey) }
+          .delete()
+      }
     )
   }
 }
