@@ -114,7 +114,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   ///     (`@Dependency(\.defaultDatabase)`).
   public init<V: QueryRepresentable>(
     wrappedValue: [Element] = [],
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: some StructuredQueriesCore.Statement<V> & Sendable,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -136,7 +136,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
-  public init<S: StructuredQueriesCore.Statement<Element>>(
+  public init<S: StructuredQueriesCore.Statement<Element> & Sendable>(
     wrappedValue: [Element] = [],
     _ statement: S,
     database: (any DatabaseReader)? = nil
@@ -181,7 +181,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public func load<V: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: some StructuredQueriesCore.Statement<V> & Sendable,
     database: (any DatabaseReader)? = nil
   ) async throws
   where
@@ -249,7 +249,7 @@ extension FetchAll {
   ///     asynchronously on the main queue.
   public init<V: QueryRepresentable>(
     wrappedValue: [Element] = [],
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: some StructuredQueriesCore.Statement<V> & Sendable,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -275,7 +275,7 @@ extension FetchAll {
   ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
-  public init<S: StructuredQueriesCore.Statement<Element>>(
+  public init<S: StructuredQueriesCore.Statement<Element> & Sendable>(
     wrappedValue: [Element] = [],
     _ statement: S,
     database: (any DatabaseReader)? = nil,
@@ -327,7 +327,7 @@ extension FetchAll {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   public func load<V: QueryRepresentable>(
-    _ statement: some StructuredQueriesCore.Statement<V>,
+    _ statement: some StructuredQueriesCore.Statement<V> & Sendable,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws
@@ -411,7 +411,7 @@ extension FetchAll: Equatable where Element: Equatable {
     ///     the fetched results.
     public init<V: QueryRepresentable>(
       wrappedValue: [Element] = [],
-      _ statement: some StructuredQueriesCore.Statement<V>,
+      _ statement: some StructuredQueriesCore.Statement<V> & Sendable,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -435,7 +435,7 @@ extension FetchAll: Equatable where Element: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
-    public init<S: StructuredQueriesCore.Statement<Element>>(
+    public init<S: StructuredQueriesCore.Statement<Element> & Sendable>(
       wrappedValue: [Element] = [],
       _ statement: S,
       database: (any DatabaseReader)? = nil,
@@ -485,7 +485,7 @@ extension FetchAll: Equatable where Element: Equatable {
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
     public func load<V: QueryRepresentable>(
-      _ statement: some StructuredQueriesCore.Statement<V>,
+      _ statement: some StructuredQueriesCore.Statement<V> & Sendable,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     ) async throws
@@ -504,8 +504,11 @@ extension FetchAll: Equatable where Element: Equatable {
   }
 #endif
 
-private struct FetchAllStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
+private struct FetchAllStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest, @unchecked Sendable {
   let statement: any StructuredQueriesCore.Statement<Value>
+  init(statement: some SendableStatement<Value>) {
+    self.statement = statement
+  }
   func fetch(_ db: Database) throws -> [Value.QueryOutput] {
     try statement.fetchAll(db)
   }
