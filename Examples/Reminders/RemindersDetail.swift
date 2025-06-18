@@ -65,7 +65,7 @@ class RemindersDetailModel: HashableObject {
     }
   }
 
-  private var remindersQuery: some StructuredQueriesCore.Statement<Row> {
+  private var remindersQuery: some StructuredQueriesCore.Statement<Row> & Sendable {
     let query =
     Reminder
       .where {
