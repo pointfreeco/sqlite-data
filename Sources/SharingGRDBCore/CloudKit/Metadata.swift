@@ -4,6 +4,7 @@ import StructuredQueriesCore
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Metadata {
   fileprivate static let afterInsertTrigger = createTemporaryTrigger(
+    "after_insert_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
     after: .insert {
       SQLQueryExpression(
@@ -15,6 +16,7 @@ extension Metadata {
   )
 
   fileprivate static let afterUpdateTrigger = createTemporaryTrigger(
+    "after_update_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
     after: .update { _, new in
       SQLQueryExpression(
@@ -26,6 +28,7 @@ extension Metadata {
   )
 
   fileprivate static let afterDeleteTrigger = createTemporaryTrigger(
+    "after_insert_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
     after: .delete {
       SQLQueryExpression(
@@ -49,9 +52,9 @@ extension Metadata {
     tables: [any PrimaryKeyedTable.Type],
     db: Database
   ) throws {
-    try afterInsertTrigger.drop().execute(db)
-    try afterUpdateTrigger.drop().execute(db)
     try afterDeleteTrigger.drop().execute(db)
+    try afterUpdateTrigger.drop().execute(db)
+    try afterInsertTrigger.drop().execute(db)
   }
 
   static func createTriggers<T: PrimaryKeyedTable<UUID>>(
@@ -83,7 +86,7 @@ extension Metadata {
 
     try SQLQueryExpression(
       """
-      CREATE TEMPORARY TRIGGER IF NOT EXISTS \(Self.insertTriggerName(for: T.self))
+      CREATE TEMPORARY TRIGGER IF NOT EXISTS \(insertTriggerName(for: T.self))
       AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
         \(upsert);
       END
@@ -92,7 +95,7 @@ extension Metadata {
     .execute(db)
     try SQLQueryExpression(
       """
-      CREATE TEMPORARY TRIGGER IF NOT EXISTS \(Self.updateTriggerName(for: T.self))
+      CREATE TEMPORARY TRIGGER IF NOT EXISTS \(updateTriggerName(for: T.self))
       AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
         \(upsert);
       END
@@ -143,6 +146,7 @@ extension Metadata {
 extension PrimaryKeyedTable<UUID> {
   fileprivate static var createDeleteTrigger: TemporaryTrigger<Self> {
     createTemporaryTrigger(
+      "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_\(tableName)",
       ifNotExists: true,
       after: .delete { old in
         Metadata
