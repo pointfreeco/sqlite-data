@@ -128,7 +128,7 @@ extension PrimaryKeyedTable where TableColumns.PrimaryKey == UUID {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension Metadata {
+extension SyncMetadata {
   init(record: CKRecord) {
     let recordName = UUID(uuidString: record.recordID.recordName)
     if recordName == nil {

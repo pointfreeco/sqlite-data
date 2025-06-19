@@ -26,7 +26,7 @@ extension BaseCloudKitTests {
 
       try database.write { db in
         let reminderMetadata = try #require(
-          try Metadata
+          try SyncMetadata
             .find(UUID(3))
             .fetchOne(db)
         )
@@ -40,7 +40,7 @@ extension BaseCloudKitTests {
       }
       try database.write { db in
         let reminderMetadata = try #require(
-          try Metadata
+          try SyncMetadata
             .find(UUID(3))
             .fetchOne(db)
         )

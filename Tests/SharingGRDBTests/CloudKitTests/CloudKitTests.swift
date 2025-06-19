@@ -62,7 +62,7 @@ extension BaseCloudKitTests {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tearDown() async throws {
       _ = try await database.write { db in
-        try Metadata.count().fetchOne(db) ?? 0
+        try SyncMetadata.count().fetchOne(db) ?? 0
       }
       try await syncEngine.tearDownSyncEngine()
 //      await #expect(throws: DatabaseError.self) {
@@ -104,7 +104,7 @@ extension BaseCloudKitTests {
 
       let metadata =
         try await database.write { db in
-          try Metadata.find(UUID(1)).fetchOne(db)
+          try SyncMetadata.find(UUID(1)).fetchOne(db)
         }
       #expect(metadata != nil)
     }
@@ -195,7 +195,7 @@ extension BaseCloudKitTests {
       )
       let userModificationDate = try #require(
         try await database.write { db in
-          try Metadata.find(UUID(1)).select(\.userModificationDate).fetchOne(db) ?? nil
+          try SyncMetadata.find(UUID(1)).select(\.userModificationDate).fetchOne(db) ?? nil
         }
       )
 
@@ -212,7 +212,7 @@ extension BaseCloudKitTests {
 
       let metadata = try #require(
         try await database.write { db in
-          try Metadata.find(UUID(1)).fetchOne(db)
+          try SyncMetadata.find(UUID(1)).fetchOne(db)
         }
       )
       // TODO: Control dates in SQLite in order to get consistent passing on float comparison
@@ -235,7 +235,7 @@ extension BaseCloudKitTests {
       )
       let userModificationDate = try #require(
         try await database.write { db in
-          try Metadata
+          try SyncMetadata
             .find(UUID(1))
             .select(\.userModificationDate)
             .fetchOne(db) ?? nil
@@ -255,7 +255,7 @@ extension BaseCloudKitTests {
 
       let metadata = try #require(
         try await database.write { db in
-          try Metadata.find(UUID(1)).fetchOne(db)
+          try SyncMetadata.find(UUID(1)).fetchOne(db)
         }
       )
       #expect(metadata.userModificationDate == userModificationDate)
@@ -285,7 +285,7 @@ extension BaseCloudKitTests {
           == 0
       )
       let metadata = try await database.write { db in
-        try Metadata.find(UUID(1)).fetchOne(db)
+        try SyncMetadata.find(UUID(1)).fetchOne(db)
       }
       #expect(metadata == nil)
     }

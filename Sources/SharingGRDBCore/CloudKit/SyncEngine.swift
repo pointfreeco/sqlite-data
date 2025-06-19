@@ -159,7 +159,7 @@ public final class SyncEngine: Sendable {
       db.add(function: .didUpdate(syncEngine: self))
       db.add(function: .didDelete(syncEngine: self))
 
-      try Metadata.createTriggers(tables: tables, db: db)
+      try SyncMetadata.createTriggers(tables: tables, db: db)
 
       for table in tables {
         try table.createTriggers(foreignKeysByTableName: foreignKeysByTableName, db: db)
@@ -231,14 +231,14 @@ public final class SyncEngine: Sendable {
       for table in self.tables {
         try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
       }
-      try Metadata.dropTriggers(tables: self.tables, db: db)
+      try SyncMetadata.dropTriggers(tables: self.tables, db: db)
       db.remove(function: .didDelete(syncEngine: self))
       db.remove(function: .didUpdate(syncEngine: self))
       db.remove(function: .isUpdatingWithServerRecord)
     }
     try await database.write { db in
       // TODO: Do an `.erase()` + re-migrate
-      try Metadata.delete().execute(db)
+      try SyncMetadata.delete().execute(db)
       try RecordType.delete().execute(db)
       try StateSerialization.delete().execute(db)
     }
@@ -312,7 +312,7 @@ public final class SyncEngine: Sendable {
     let metadata =
       withErrorReporting {
         try metadatabase.read { db in
-          try Metadata
+          try SyncMetadata
             .find(UUID(uuidString: recordName)!)
             .fetchOne(db)
         }
@@ -332,7 +332,7 @@ extension PrimaryKeyedTable<UUID> {
       ? foreignKeysByTableName[tableName]?.first(where: \.notnull)
       : nil
 
-    try Metadata.createTriggers(for: Self.self, parentForeignKey: foreignKey, db: db)
+    try SyncMetadata.createTriggers(for: Self.self, parentForeignKey: foreignKey, db: db)
 
     let foreignKeys = foreignKeysByTableName[tableName] ?? []
     for foreignKey in foreignKeys {
@@ -349,7 +349,7 @@ extension PrimaryKeyedTable<UUID> {
     for foreignKey in foreignKeys.reversed() {
       try foreignKey.dropTriggers(for: Self.self, db: db)
     }
-    try Metadata.dropTriggers(for: Self.self, db: db)
+    try SyncMetadata.dropTriggers(for: Self.self, db: db)
   }
 }
 
@@ -666,7 +666,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         withErrorReporting {
           try $isUpdatingWithServerRecord.withValue(true) {
             try database.write { db in
-              try Metadata
+              try SyncMetadata
                 .find(recordID: failedRecord.recordID)
                 .update { $0.lastKnownServerRecord = nil }
                 .execute(db)
@@ -714,7 +714,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     else { return }
 
     try await database.write { db in
-      try Metadata
+      try SyncMetadata
         .find(recordID: rootRecord.recordID)
         .update { $0.share = share }
         .execute(db)
@@ -725,13 +725,13 @@ extension SyncEngine: CKSyncEngineDelegate {
     // TODO: more efficient way to do this?
     try database.write { db in
       let metadata =
-        try Metadata
+        try SyncMetadata
         .where { $0.share.isNot(nil) }
         .fetchAll(db)
         .first(where: { $0.share?.recordID == recordID }) ?? nil
       guard let metadata
       else { return }
-      try Metadata.find(metadata.recordName)
+      try SyncMetadata.find(metadata.recordName)
         .update { $0.share = nil }
         .execute(db)
     }
@@ -754,7 +754,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
         let userModificationDate =
           try metadatabase.read { db in
-            try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(
+            try SyncMetadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(
               db
             )
           }
@@ -809,9 +809,9 @@ extension SyncEngine: CKSyncEngineDelegate {
           // TODO: Use WHERE to scope the update?
           try database.write { db in
             try SQLQueryExpression(query).execute(db)
-            try Metadata
+            try SyncMetadata
               .insert {
-                Metadata(record: record)
+                SyncMetadata(record: record)
               } onConflictDoUpdate: {
                 $0.lastKnownServerRecord = record
                 $0.userModificationDate = record.userModificationDate
@@ -831,7 +831,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       func updateLastKnownServerRecord() {
         withErrorReporting(.sqliteDataCloudKitFailure) {
           try database.write { db in
-            try Metadata
+            try SyncMetadata
               .find(recordID: record.recordID)
               .update { $0.lastKnownServerRecord = record }
               .execute(db)
@@ -849,10 +849,10 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  private func metadataFor(recordID: CKRecord.ID) -> Metadata? {
+  private func metadataFor(recordID: CKRecord.ID) -> SyncMetadata? {
     withErrorReporting(.sqliteDataCloudKitFailure) {
       try metadatabase.read { db in
-        try Metadata.find(recordID: recordID).fetchOne(db)
+        try SyncMetadata.find(recordID: recordID).fetchOne(db)
       }
     }
       ?? nil

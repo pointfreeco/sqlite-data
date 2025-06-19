@@ -31,7 +31,7 @@ extension SyncEngine {
     let recordName = record[keyPath: T.columns.primaryKey.keyPath]
     let metadata =
       try await metadatabase.read { db in
-        try Metadata
+        try SyncMetadata
           .find(recordName)
           .fetchOne(db)
       } ?? nil
@@ -79,7 +79,7 @@ extension SyncEngine {
       deleting: []
     )
     try await database.write { db in
-      try Metadata
+      try SyncMetadata
         .find(recordName)
         .update { $0.share = sharedRecord }
         .execute(db)

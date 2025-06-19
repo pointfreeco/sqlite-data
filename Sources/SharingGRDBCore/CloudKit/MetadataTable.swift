@@ -2,7 +2,7 @@ import CloudKit
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 // @Table("\(String.sqliteDataCloudKitSchemaName)_metadata")
-public struct Metadata: Hashable, Sendable {
+public struct SyncMetadata: Hashable, Sendable {
   public var recordType: String
   // @Column(primaryKey: true)
   public var recordName: UUID
@@ -16,7 +16,7 @@ public struct Metadata: Hashable, Sendable {
   public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore
       .PrimaryKeyedTableDefinition
   {
-    public typealias QueryValue = Metadata
+    public typealias QueryValue = SyncMetadata
     public let recordType = StructuredQueriesCore.TableColumn<QueryValue, String>(
       "recordType",
       keyPath: \QueryValue.recordType
@@ -52,7 +52,7 @@ public struct Metadata: Hashable, Sendable {
   }
 
   public struct Draft: StructuredQueriesCore.TableDraft {
-    public typealias PrimaryTable = Metadata
+    public typealias PrimaryTable = SyncMetadata
     public var recordType: String
     public var recordName: UUID?
     public var parentRecordName: UUID?
@@ -93,7 +93,7 @@ public struct Metadata: Hashable, Sendable {
     }
     public static let columns = TableColumns()
 
-    public static let tableName = Metadata.tableName
+    public static let tableName = SyncMetadata.tableName
 
     public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       let recordType = try decoder.decode(String.self)
@@ -116,7 +116,7 @@ public struct Metadata: Hashable, Sendable {
       self.share = share
     }
 
-    public init(_ other: Metadata) {
+    public init(_ other: SyncMetadata) {
       self.recordType = other.recordType
       self.recordName = other.recordName
       self.parentRecordName = other.parentRecordName
@@ -143,7 +143,7 @@ public struct Metadata: Hashable, Sendable {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension Metadata: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
+extension SyncMetadata: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
   public static let columns = TableColumns()
   public static let tableName = "sqlitedata_icloud_metadata"
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {

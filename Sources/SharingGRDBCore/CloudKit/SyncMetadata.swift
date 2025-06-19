@@ -2,7 +2,7 @@ import CloudKit
 import StructuredQueriesCore
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension Metadata {
+extension SyncMetadata {
   fileprivate static let afterInsertTrigger = createTemporaryTrigger(
     "after_insert_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
@@ -65,23 +65,23 @@ extension Metadata {
     let foreignKey = (parentForeignKey?.from).map { #""new"."\#($0)""# } ?? "NULL"
 
     let upsert: QueryFragment = """
-      INSERT INTO \(Metadata.self)
+      INSERT INTO \(Self.self)
         (
-          \(quote: Metadata.recordType.name),
-          \(quote: Metadata.recordName.name),
-          \(quote: Metadata.parentRecordName.name),
-          \(quote: Metadata.userModificationDate.name)
+          \(quote: recordType.name),
+          \(quote: recordName.name),
+          \(quote: parentRecordName.name),
+          \(quote: userModificationDate.name)
         )
       SELECT
         \(quote: T.tableName, delimiter: .text),
         "new".\(quote: T.columns.primaryKey.name),
         \(raw: foreignKey) AS "foreignKey",
         datetime('subsec')
-      ON CONFLICT(\(quote: Metadata.recordName.name)) DO UPDATE
+      ON CONFLICT(\(quote: SyncMetadata.recordName.name)) DO UPDATE
       SET
-        \(quote: Metadata.recordType.name) = "excluded".\(quote: Metadata.recordType.name),
-        \(quote: Metadata.parentRecordName.name) = "excluded".\(quote: Metadata.parentRecordName.name),
-        \(quote: Metadata.userModificationDate.name)  = "excluded".\(quote: Metadata.userModificationDate.name)
+        \(quote: recordType.name) = "excluded".\(quote: recordType.name),
+        \(quote: parentRecordName.name) = "excluded".\(quote: parentRecordName.name),
+        \(quote: userModificationDate.name)  = "excluded".\(quote: userModificationDate.name)
       """
 
     try SQLQueryExpression(
@@ -149,7 +149,7 @@ extension PrimaryKeyedTable<UUID> {
       "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_\(tableName)",
       ifNotExists: true,
       after: .delete { old in
-        Metadata
+        SyncMetadata
           .where { $0.recordName.eq(old.primaryKey) }
           .delete()
       }
