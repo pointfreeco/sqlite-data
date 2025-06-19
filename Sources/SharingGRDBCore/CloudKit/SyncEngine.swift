@@ -492,7 +492,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         record.parent = metadata.parentRecordName.map { parentRecordName in
           CKRecord.Reference(
             recordID: CKRecord.ID(
-              recordName: parentRecordName,
+              recordName: parentRecordName.uuidString.lowercased(),
               zoneID: record.recordID.zoneID
             ),
             action: .none
@@ -740,13 +740,6 @@ extension SyncEngine: CKSyncEngineDelegate {
   private func upsertFromServerRecord(_ record: CKRecord) {
     $isUpdatingWithServerRecord.withValue(true) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
-        let userModificationDate =
-          try metadatabase.read { db in
-            try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(
-              db
-            )
-          }
-          ?? nil
         guard let table = tablesByName[record.recordType]
         else {
           // TODO: Should we be reporting this? What if another device makes changes to a table this device doesn't know about?
@@ -759,6 +752,13 @@ extension SyncEngine: CKSyncEngineDelegate {
           )
           return
         }
+        let userModificationDate =
+          try metadatabase.read { db in
+            try Metadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(
+              db
+            )
+          }
+          ?? nil
         guard
           let userModificationDate,
           userModificationDate > record.userModificationDate ?? .distantPast
@@ -805,6 +805,8 @@ extension SyncEngine: CKSyncEngineDelegate {
               }
               .joined(separator: ",")
           )
+          // TODO: Append more ON CONFLICT clauses for each unique constraint?
+          // TODO: Use WHERE to scope the update?
           try database.write { db in
             try SQLQueryExpression(query).execute(db)
             try Metadata

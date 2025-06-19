@@ -30,7 +30,7 @@ extension BaseCloudKitTests {
             .find(UUID(3))
             .fetchOne(db)
         )
-        #expect(reminderMetadata.parentRecordName == UUID(1).uuidString)
+        #expect(reminderMetadata.parentRecordName == UUID(1))
       }
 
       try database.write { db in
@@ -44,7 +44,7 @@ extension BaseCloudKitTests {
             .find(UUID(3))
             .fetchOne(db)
         )
-        #expect(reminderMetadata.parentRecordName == UUID(2).uuidString)
+        #expect(reminderMetadata.parentRecordName == UUID(2))
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
         .saveRecord(CKRecord.ID(UUID(3))),

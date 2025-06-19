@@ -6,7 +6,7 @@ public struct Metadata: Hashable, Sendable {
   public var recordType: String
   // @Column(primaryKey: true)
   public var recordName: UUID
-  public var parentRecordName: String?
+  public var parentRecordName: UUID?
   // @Column(as: CKRecord?.DataRepresentation.self)
   public var lastKnownServerRecord: CKRecord?
   // @Column(as: CKShare?.ShareDataRepresentation.self)
@@ -25,7 +25,7 @@ public struct Metadata: Hashable, Sendable {
       "recordName",
       keyPath: \QueryValue.recordName
     )
-    public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, String?>(
+    public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, UUID?>(
       "parentRecordName",
       keyPath: \QueryValue.parentRecordName
     )
@@ -55,7 +55,7 @@ public struct Metadata: Hashable, Sendable {
     public typealias PrimaryTable = Metadata
     public var recordType: String
     public var recordName: UUID?
-    public var parentRecordName: String?
+    public var parentRecordName: UUID?
     public var lastKnownServerRecord: CKRecord?
     public var share: CKShare?
     public var userModificationDate: Date?
@@ -69,7 +69,7 @@ public struct Metadata: Hashable, Sendable {
         "recordName",
         keyPath: \QueryValue.recordName
       )
-      public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, String?>(
+      public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, UUID?>(
         "parentRecordName",
         keyPath: \QueryValue.parentRecordName
       )
@@ -98,7 +98,7 @@ public struct Metadata: Hashable, Sendable {
     public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       let recordType = try decoder.decode(String.self)
       self.recordName = try decoder.decode(UUID.self)
-      self.parentRecordName = try decoder.decode(String.self)
+      self.parentRecordName = try decoder.decode(UUID.self)
       let lastKnownServerRecord = try decoder.decode(CKRecord?.DataRepresentation.self)
       let share = try decoder.decode(CKShare?.ShareDataRepresentation.self)
       self.userModificationDate = try decoder.decode(Date.self)
@@ -127,7 +127,7 @@ public struct Metadata: Hashable, Sendable {
     public init(
       recordType: String,
       recordName: UUID? = nil,
-      parentRecordName: String? = nil,
+      parentRecordName: UUID? = nil,
       lastKnownServerRecord: CKRecord? = nil,
       share: CKShare? = nil,
       userModificationDate: Date? = nil
@@ -149,7 +149,7 @@ extension Metadata: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKe
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
     let recordType = try decoder.decode(String.self)
     let recordName = try decoder.decode(UUID.self)
-    self.parentRecordName = try decoder.decode(String.self)
+    self.parentRecordName = try decoder.decode(UUID.self)
     let lastKnownServerRecord = try decoder.decode(CKRecord?.DataRepresentation.self)
     let share = try decoder.decode(CKShare?.ShareDataRepresentation.self)
     self.userModificationDate = try decoder.decode(Date.self)

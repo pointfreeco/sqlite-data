@@ -129,7 +129,7 @@ extension Metadata {
     for _: T.Type
   ) -> SQLQueryExpression<Void> {
     SQLQueryExpression(
-      #""\#(raw: .sqliteDataCloudKitSchemaName)_\#(raw: T.tableName)_metadataInserts""#
+      "\(quote: "\(String.sqliteDataCloudKitSchemaName)_\(T.tableName)_metadataInserts")"
     )
   }
 
@@ -137,7 +137,7 @@ extension Metadata {
     for _: T.Type
   ) -> SQLQueryExpression<Void> {
     SQLQueryExpression(
-      #""\#(raw: .sqliteDataCloudKitSchemaName)_\#(raw: T.tableName)_metadataUpdates""#
+      "\(quote: "\(String.sqliteDataCloudKitSchemaName)_\(T.tableName)_metadataUpdates")"
     )
   }
 }
