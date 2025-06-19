@@ -27,8 +27,8 @@ Swift language, hosted by [Brandon Williams](https://twitter.com/mbrandonw) and
 [Stephen Celis](https://twitter.com/stephencelis). To support the continued development of this
 library, [subscribe today](https://www.pointfree.co/pricing).
 
-<a href="https://www.pointfree.co/collections/sqlite/sharing-with-sqlite">
-  <img alt="video poster image" src="https://d3rccdn33rt8ze.cloudfront.net/episodes/0309.jpeg" width="600">
+<a href="https://www.pointfree.co/collections/modern-persistence">
+  <img alt="video poster image" src="https://d3rccdn33rt8ze.cloudfront.net/episodes/0325.jpeg" width="600">
 </a>
 
 ## Overview
