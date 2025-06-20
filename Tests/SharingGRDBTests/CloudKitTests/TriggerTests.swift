@@ -19,66 +19,44 @@ extension BaseCloudKitTests {
           [0]: """
           CREATE TRIGGER "after_insert_on_sqlitedata_icloud_metadata"
           AFTER INSERT ON "sqlitedata_icloud_metadata"
-          FOR EACH ROW WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord() BEGIN
+          FOR EACH ROW WHEN NOT (sqlitedata_icloud_isUpdatingWithServerRecord()) BEGIN
             SELECT sqlitedata_icloud_didUpdate("new"."recordName");
           END
           """,
           [1]: """
           CREATE TRIGGER "after_update_on_sqlitedata_icloud_metadata"
           AFTER UPDATE ON "sqlitedata_icloud_metadata"
-          FOR EACH ROW WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord() BEGIN
+          FOR EACH ROW WHEN NOT (sqlitedata_icloud_isUpdatingWithServerRecord()) BEGIN
             SELECT sqlitedata_icloud_didUpdate("new"."recordName");
           END
           """,
           [2]: """
           CREATE TRIGGER "after_delete_on_sqlitedata_icloud_metadata"
           AFTER DELETE ON "sqlitedata_icloud_metadata"
-          FOR EACH ROW WHEN NOT sqlitedata_icloud_isUpdatingWithServerRecord() BEGIN
+          FOR EACH ROW WHEN NOT (sqlitedata_icloud_isUpdatingWithServerRecord()) BEGIN
             SELECT sqlitedata_icloud_didDelete("old"."recordName");
           END
           """,
           [3]: """
-          CREATE TRIGGER "sqlitedata_icloud_reminders_metadataInserts"
-          AFTER INSERT ON "reminders" FOR EACH ROW BEGIN
+          CREATE TRIGGER "sqlitedata_icloud_after_insert_on_reminders"
+          AFTER INSERT ON "reminders"
+          FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
-            (
-              "recordType",
-              "recordName",
-              "parentRecordName",
-              "userModificationDate"
-            )
-          SELECT
-            'reminders',
-            "new"."id",
-            "new"."remindersListID" AS "foreignKey",
-            datetime('subsec')
-          ON CONFLICT("recordName") DO UPDATE
-          SET
-            "recordType" = "excluded"."recordType",
-            "parentRecordName" = "excluded"."parentRecordName",
-            "userModificationDate"  = "excluded"."userModificationDate";
+            ("recordType", "recordName", "parentRecordName", "userModificationDate")
+            SELECT 'reminders', "new"."id", "new"."remindersListID" AS "foreignKey", datetime('subsec')
+            ON CONFLICT ("recordName")
+            DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
           [4]: """
-          CREATE TRIGGER "sqlitedata_icloud_reminders_metadataUpdates"
-          AFTER UPDATE ON "reminders" FOR EACH ROW BEGIN
+          CREATE TRIGGER "sqlitedata_icloud_after_update_on_reminders"
+          AFTER UPDATE ON "reminders"
+          FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
-            (
-              "recordType",
-              "recordName",
-              "parentRecordName",
-              "userModificationDate"
-            )
-          SELECT
-            'reminders',
-            "new"."id",
-            "new"."remindersListID" AS "foreignKey",
-            datetime('subsec')
-          ON CONFLICT("recordName") DO UPDATE
-          SET
-            "recordType" = "excluded"."recordType",
-            "parentRecordName" = "excluded"."parentRecordName",
-            "userModificationDate"  = "excluded"."userModificationDate";
+            ("recordType", "recordName", "parentRecordName", "userModificationDate")
+            SELECT 'reminders', "new"."id", "new"."remindersListID" AS "foreignKey", datetime('subsec')
+            ON CONFLICT ("recordName")
+            DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
           [5]: """
@@ -143,47 +121,25 @@ extension BaseCloudKitTests {
           END
           """,
           [12]: """
-          CREATE TRIGGER "sqlitedata_icloud_remindersLists_metadataInserts"
-          AFTER INSERT ON "remindersLists" FOR EACH ROW BEGIN
+          CREATE TRIGGER "sqlitedata_icloud_after_insert_on_remindersLists"
+          AFTER INSERT ON "remindersLists"
+          FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
-            (
-              "recordType",
-              "recordName",
-              "parentRecordName",
-              "userModificationDate"
-            )
-          SELECT
-            'remindersLists',
-            "new"."id",
-            NULL AS "foreignKey",
-            datetime('subsec')
-          ON CONFLICT("recordName") DO UPDATE
-          SET
-            "recordType" = "excluded"."recordType",
-            "parentRecordName" = "excluded"."parentRecordName",
-            "userModificationDate"  = "excluded"."userModificationDate";
+            ("recordType", "recordName", "parentRecordName", "userModificationDate")
+            SELECT 'remindersLists', "new"."id", NULL AS "foreignKey", datetime('subsec')
+            ON CONFLICT ("recordName")
+            DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
           [13]: """
-          CREATE TRIGGER "sqlitedata_icloud_remindersLists_metadataUpdates"
-          AFTER UPDATE ON "remindersLists" FOR EACH ROW BEGIN
+          CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersLists"
+          AFTER UPDATE ON "remindersLists"
+          FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
-            (
-              "recordType",
-              "recordName",
-              "parentRecordName",
-              "userModificationDate"
-            )
-          SELECT
-            'remindersLists',
-            "new"."id",
-            NULL AS "foreignKey",
-            datetime('subsec')
-          ON CONFLICT("recordName") DO UPDATE
-          SET
-            "recordType" = "excluded"."recordType",
-            "parentRecordName" = "excluded"."parentRecordName",
-            "userModificationDate"  = "excluded"."userModificationDate";
+            ("recordType", "recordName", "parentRecordName", "userModificationDate")
+            SELECT 'remindersLists', "new"."id", NULL AS "foreignKey", datetime('subsec')
+            ON CONFLICT ("recordName")
+            DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
           [14]: """
@@ -195,47 +151,25 @@ extension BaseCloudKitTests {
           END
           """,
           [15]: """
-          CREATE TRIGGER "sqlitedata_icloud_users_metadataInserts"
-          AFTER INSERT ON "users" FOR EACH ROW BEGIN
+          CREATE TRIGGER "sqlitedata_icloud_after_insert_on_users"
+          AFTER INSERT ON "users"
+          FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
-            (
-              "recordType",
-              "recordName",
-              "parentRecordName",
-              "userModificationDate"
-            )
-          SELECT
-            'users',
-            "new"."id",
-            NULL AS "foreignKey",
-            datetime('subsec')
-          ON CONFLICT("recordName") DO UPDATE
-          SET
-            "recordType" = "excluded"."recordType",
-            "parentRecordName" = "excluded"."parentRecordName",
-            "userModificationDate"  = "excluded"."userModificationDate";
+            ("recordType", "recordName", "parentRecordName", "userModificationDate")
+            SELECT 'users', "new"."id", NULL AS "foreignKey", datetime('subsec')
+            ON CONFLICT ("recordName")
+            DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
           [16]: """
-          CREATE TRIGGER "sqlitedata_icloud_users_metadataUpdates"
-          AFTER UPDATE ON "users" FOR EACH ROW BEGIN
+          CREATE TRIGGER "sqlitedata_icloud_after_update_on_users"
+          AFTER UPDATE ON "users"
+          FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
-            (
-              "recordType",
-              "recordName",
-              "parentRecordName",
-              "userModificationDate"
-            )
-          SELECT
-            'users',
-            "new"."id",
-            NULL AS "foreignKey",
-            datetime('subsec')
-          ON CONFLICT("recordName") DO UPDATE
-          SET
-            "recordType" = "excluded"."recordType",
-            "parentRecordName" = "excluded"."parentRecordName",
-            "userModificationDate"  = "excluded"."userModificationDate";
+            ("recordType", "recordName", "parentRecordName", "userModificationDate")
+            SELECT 'users', "new"."id", NULL AS "foreignKey", datetime('subsec')
+            ON CONFLICT ("recordName")
+            DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
           [17]: """
