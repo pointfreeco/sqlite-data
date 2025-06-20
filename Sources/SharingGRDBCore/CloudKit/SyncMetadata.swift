@@ -1,158 +1,66 @@
 import CloudKit
-import StructuredQueriesCore
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension SyncMetadata {
-  fileprivate static let afterInsertTrigger = createTemporaryTrigger(
-    "after_insert_on_sqlitedata_icloud_metadata",
-    ifNotExists: true,
-    after: .insert {
-      SQLQueryExpression(
-        "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\($0.recordName))"
-      )
-    } when: { _ in
-      SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+// @Table("\(String.sqliteDataCloudKitSchemaName)_metadata")
+public struct SyncMetadata: Hashable, Sendable {
+  public var recordType: String
+  // @Column(primaryKey: true)
+  public var recordName: RecordName
+  public var parentRecordName: RecordName?
+  // @Column(as: CKRecord?.DataRepresentation.self)
+  public var lastKnownServerRecord: CKRecord?
+  // @Column(as: CKShare?.ShareDataRepresentation.self)
+  public var share: CKShare?
+  public var userModificationDate: Date?
+
+  public struct RecordName: RawRepresentable, Sendable, Hashable, QueryBindable {
+    public var recordType: String
+    public var id: UUID
+
+    public init<T: PrimaryKeyedTable<UUID>>(_ table: T.Type, id: UUID) {
+      recordType = T.tableName
+      self.id = id
     }
-  )
 
-  fileprivate static let afterUpdateTrigger = createTemporaryTrigger(
-    "after_update_on_sqlitedata_icloud_metadata",
-    ifNotExists: true,
-    after: .update { _, new in
-      SQLQueryExpression(
-        "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(new.recordName))"
-      )
-    } when: { _, _ in
-      SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+    public init?(rawValue: String) {
+      guard let colonIndex = rawValue.firstIndex(of: ":")
+      else {
+        return nil
+      }
+      guard let id = UUID(uuidString: String(rawValue[rawValue.index(after: colonIndex)...]))
+      else {
+        return nil
+      }
+
+      recordType = String(rawValue[rawValue.startIndex..<colonIndex])
+      self.id = id
     }
-  )
 
-  fileprivate static let afterDeleteTrigger = createTemporaryTrigger(
-    "after_delete_on_sqlitedata_icloud_metadata",
-    ifNotExists: true,
-    after: .delete {
-      SQLQueryExpression(
-        "SELECT \(raw: .sqliteDataCloudKitSchemaName)_didDelete(\($0.recordName))"
-      )
-    } when: { _ in
-      SQLQueryExpression("NOT \(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+    public init<T: PrimaryKeyedTable<UUID>>(record: T) {
+      recordType = T.tableName
+      id = record[keyPath: T.columns.primaryKey.keyPath]
     }
-  )
 
-  static func createTriggers(
-    tables: [any PrimaryKeyedTable.Type],
-    db: Database
-  ) throws {
-    try afterInsertTrigger.execute(db)
-    try afterUpdateTrigger.execute(db)
-    try afterDeleteTrigger.execute(db)
-  }
+    public init?(recordID: CKRecord.ID) {
+      self.init(rawValue: recordID.recordName)
+    }
 
-  static func dropTriggers(
-    tables: [any PrimaryKeyedTable.Type],
-    db: Database
-  ) throws {
-    try afterDeleteTrigger.drop().execute(db)
-    try afterUpdateTrigger.drop().execute(db)
-    try afterInsertTrigger.drop().execute(db)
-  }
-
-  static func createTriggers<T: PrimaryKeyedTable<UUID>>(
-    for _: T.Type,
-    parentForeignKey: ForeignKey?,
-    db: Database
-  ) throws {
-    let foreignKey = (parentForeignKey?.from).map { #""new"."\#($0)""# } ?? "NULL"
-
-    let upsert: QueryFragment = """
-      INSERT INTO \(Self.self)
-        (
-          \(quote: recordType.name),
-          \(quote: recordName.name),
-          \(quote: parentRecordName.name),
-          \(quote: userModificationDate.name)
-        )
-      SELECT
-        \(quote: T.tableName, delimiter: .text),
-        "new".\(quote: T.columns.primaryKey.name),
-        \(raw: foreignKey) AS "foreignKey",
-        datetime('subsec')
-      ON CONFLICT(\(quote: SyncMetadata.recordName.name)) DO UPDATE
-      SET
-        \(quote: recordType.name) = "excluded".\(quote: recordType.name),
-        \(quote: parentRecordName.name) = "excluded".\(quote: parentRecordName.name),
-        \(quote: userModificationDate.name)  = "excluded".\(quote: userModificationDate.name)
-      """
-
-    try SQLQueryExpression(
-      """
-      CREATE TEMPORARY TRIGGER IF NOT EXISTS \(insertTriggerName(for: T.self))
-      AFTER INSERT ON \(T.self) FOR EACH ROW BEGIN
-        \(upsert);
-      END
-      """
-    )
-    .execute(db)
-    try SQLQueryExpression(
-      """
-      CREATE TEMPORARY TRIGGER IF NOT EXISTS \(updateTriggerName(for: T.self))
-      AFTER UPDATE ON \(T.self) FOR EACH ROW BEGIN
-        \(upsert);
-      END
-      """
-    )
-    .execute(db)
-
-    try T.createDeleteTrigger.execute(db)
-  }
-
-  static func dropTriggers<T: PrimaryKeyedTable<UUID>>(
-    for _: T.Type,
-    db: Database
-  ) throws {
-    try T.createDeleteTrigger.drop().execute(db)
-    try SQLQueryExpression(
-      """
-      DROP TRIGGER \(updateTriggerName(for: T.self))
-      """
-    )
-    .execute(db)
-    try SQLQueryExpression(
-      """
-      DROP TRIGGER \(insertTriggerName(for: T.self))
-      """
-    )
-    .execute(db)
-  }
-
-  private static func insertTriggerName<T: PrimaryKeyedTable>(
-    for _: T.Type
-  ) -> SQLQueryExpression<Void> {
-    SQLQueryExpression(
-      "\(quote: "\(String.sqliteDataCloudKitSchemaName)_\(T.tableName)_metadataInserts")"
-    )
-  }
-
-  private static func updateTriggerName<T: PrimaryKeyedTable>(
-    for _: T.Type
-  ) -> SQLQueryExpression<Void> {
-    SQLQueryExpression(
-      "\(quote: "\(String.sqliteDataCloudKitSchemaName)_\(T.tableName)_metadataUpdates")"
-    )
+    public var rawValue: String {
+      "\(recordType):\(id.uuidString)"
+    }
   }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension PrimaryKeyedTable<UUID> {
-  fileprivate static var createDeleteTrigger: TemporaryTrigger<Self> {
-    createTemporaryTrigger(
-      "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_\(tableName)",
-      ifNotExists: true,
-      after: .delete { old in
-        SyncMetadata
-          .where { $0.recordName.eq(old.primaryKey) }
-          .delete()
-      }
-    )
+  public static func recordName(for id: UUID) -> SyncMetadata.RecordName {
+    SyncMetadata.RecordName(Self.self, id: id)
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension PrimaryKeyedTableDefinition<UUID> {
+  var recordName: some QueryExpression<SyncMetadata.RecordName> {
+    SQLQueryExpression("\(quote: QueryValue.tableName, delimiter: .text) || ':' || \(primaryKey)")
   }
 }

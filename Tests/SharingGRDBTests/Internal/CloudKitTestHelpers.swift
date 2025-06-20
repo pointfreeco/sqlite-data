@@ -13,6 +13,15 @@ extension CKRecord.ID {
   }
 }
 
+extension PrimaryKeyedTable<UUID> {
+  static func recordID(for id: UUID) -> CKRecord.ID {
+    CKRecord.ID(
+      recordName: "\(Self.tableName):\(id.uuidString)",
+      zoneID: SyncEngine.defaultZone.zoneID
+    )
+  }
+}
+
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 final class MockSyncEngine: SyncEngineProtocol {
   private let _state: LockIsolated<MockSyncEngineState>

@@ -15,22 +15,22 @@ extension BaseCloudKitTests {
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           RemindersList(id: UUID(2), title: "Work")
-          Reminder(id: UUID(3), title: "Groceries", remindersListID: UUID(1))
+          Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
         }
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1))),
-        .saveRecord(CKRecord.ID(UUID(2))),
-        .saveRecord(CKRecord.ID(UUID(3))),
+        .saveRecord(RemindersList.recordID(for: UUID(1))),
+        .saveRecord(RemindersList.recordID(for: UUID(2))),
+        .saveRecord(Reminder.recordID(for: UUID(1))),
       ])
 
       try database.write { db in
         let reminderMetadata = try #require(
           try SyncMetadata
-            .find(UUID(3))
+            .find(Reminder.recordName(for: UUID(1)))
             .fetchOne(db)
         )
-        #expect(reminderMetadata.parentRecordName == UUID(1))
+        #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(1)))
       }
 
       try database.write { db in
@@ -41,13 +41,13 @@ extension BaseCloudKitTests {
       try database.write { db in
         let reminderMetadata = try #require(
           try SyncMetadata
-            .find(UUID(3))
+            .find(Reminder.recordName(for: UUID(1)))
             .fetchOne(db)
         )
-        #expect(reminderMetadata.parentRecordName == UUID(2))
+        #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(2)))
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(3))),
+        .saveRecord(Reminder.recordID(for: UUID(1))),
       ])
     }
   }

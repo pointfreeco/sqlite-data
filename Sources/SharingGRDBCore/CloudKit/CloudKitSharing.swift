@@ -28,7 +28,7 @@ extension SyncEngine {
       throw CantShareRecordWithParent()
     }
 
-    let recordName = record[keyPath: T.columns.primaryKey.keyPath]
+    let recordName = SyncMetadata.RecordName(record: record)
     let metadata =
       try await metadatabase.read { db in
         try SyncMetadata
@@ -50,7 +50,7 @@ extension SyncEngine {
       ?? CKRecord(
         recordType: metadata.recordType,
         recordID: CKRecord.ID(
-          recordName: metadata.recordName.uuidString,
+          recordName: metadata.recordName.rawValue,
           zoneID: Self.defaultZone.zoneID
         )
       )
