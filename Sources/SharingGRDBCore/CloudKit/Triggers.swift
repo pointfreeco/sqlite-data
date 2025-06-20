@@ -30,7 +30,7 @@ extension PrimaryKeyedTable<UUID> {
       ifNotExists: true,
       after: .delete { old in
         SyncMetadata
-          .where { $0.recordName.eq(old.recordName) }
+          .find(old.recordName)
           .delete()
       }
     )
