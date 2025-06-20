@@ -43,7 +43,7 @@ extension BaseCloudKitTests {
           FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
             ("recordType", "recordName", "parentRecordName", "userModificationDate")
-            SELECT 'reminders', 'reminders' || ':' || "new"."id", 'remindersLists' || ':' ||  "new"."remindersListID" AS "foreignKey", datetime('subsec')
+            SELECT 'reminders',  "new"."id" || ':' || 'reminders', "new"."remindersListID" || ':' || 'remindersLists' AS "foreignKey", datetime('subsec')
             ON CONFLICT ("recordName")
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
@@ -54,7 +54,7 @@ extension BaseCloudKitTests {
           FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
             ("recordType", "recordName", "parentRecordName", "userModificationDate")
-            SELECT 'reminders', 'reminders' || ':' || "new"."id", 'remindersLists' || ':' ||  "new"."remindersListID" AS "foreignKey", datetime('subsec')
+            SELECT 'reminders',  "new"."id" || ':' || 'reminders', "new"."remindersListID" || ':' || 'remindersLists' AS "foreignKey", datetime('subsec')
             ON CONFLICT ("recordName")
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
@@ -64,7 +64,7 @@ extension BaseCloudKitTests {
           AFTER DELETE ON "reminders"
           FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
-            WHERE ("sqlitedata_icloud_metadata"."recordName" = 'reminders' || ':' || "old"."id");
+            WHERE ("sqlitedata_icloud_metadata"."recordName" =  "old"."id" || ':' || 'reminders');
           END
           """,
           [6]: """
@@ -126,7 +126,7 @@ extension BaseCloudKitTests {
           FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
             ("recordType", "recordName", "parentRecordName", "userModificationDate")
-            SELECT 'remindersLists', 'remindersLists' || ':' || "new"."id", NULL AS "foreignKey", datetime('subsec')
+            SELECT 'remindersLists',  "new"."id" || ':' || 'remindersLists', NULL AS "foreignKey", datetime('subsec')
             ON CONFLICT ("recordName")
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
@@ -137,7 +137,7 @@ extension BaseCloudKitTests {
           FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
             ("recordType", "recordName", "parentRecordName", "userModificationDate")
-            SELECT 'remindersLists', 'remindersLists' || ':' || "new"."id", NULL AS "foreignKey", datetime('subsec')
+            SELECT 'remindersLists',  "new"."id" || ':' || 'remindersLists', NULL AS "foreignKey", datetime('subsec')
             ON CONFLICT ("recordName")
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
@@ -147,7 +147,7 @@ extension BaseCloudKitTests {
           AFTER DELETE ON "remindersLists"
           FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
-            WHERE ("sqlitedata_icloud_metadata"."recordName" = 'remindersLists' || ':' || "old"."id");
+            WHERE ("sqlitedata_icloud_metadata"."recordName" =  "old"."id" || ':' || 'remindersLists');
           END
           """,
           [15]: """
@@ -156,7 +156,7 @@ extension BaseCloudKitTests {
           FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
             ("recordType", "recordName", "parentRecordName", "userModificationDate")
-            SELECT 'users', 'users' || ':' || "new"."id", NULL AS "foreignKey", datetime('subsec')
+            SELECT 'users',  "new"."id" || ':' || 'users', NULL AS "foreignKey", datetime('subsec')
             ON CONFLICT ("recordName")
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
@@ -167,7 +167,7 @@ extension BaseCloudKitTests {
           FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
             ("recordType", "recordName", "parentRecordName", "userModificationDate")
-            SELECT 'users', 'users' || ':' || "new"."id", NULL AS "foreignKey", datetime('subsec')
+            SELECT 'users',  "new"."id" || ':' || 'users', NULL AS "foreignKey", datetime('subsec')
             ON CONFLICT ("recordName")
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
@@ -177,7 +177,7 @@ extension BaseCloudKitTests {
           AFTER DELETE ON "users"
           FOR EACH ROW BEGIN
             DELETE FROM "sqlitedata_icloud_metadata"
-            WHERE ("sqlitedata_icloud_metadata"."recordName" = 'users' || ':' || "old"."id");
+            WHERE ("sqlitedata_icloud_metadata"."recordName" =  "old"."id" || ':' || 'users');
           END
           """,
           [18]: """

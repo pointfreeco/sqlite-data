@@ -6,7 +6,7 @@ import SharingGRDBCore
 extension PrimaryKeyedTable<UUID> {
   static func recordID(for id: UUID) -> CKRecord.ID {
     CKRecord.ID(
-      recordName: "\(Self.tableName):\(id.uuidString)",
+      recordName: self.recordName(for: id).rawValue,
       zoneID: SyncEngine.defaultZone.zoneID
     )
   }
