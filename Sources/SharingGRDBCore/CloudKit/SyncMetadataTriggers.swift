@@ -62,7 +62,9 @@ extension SyncMetadata {
     parentForeignKey: ForeignKey?,
     db: Database
   ) throws {
-    let foreignKey = (parentForeignKey?.from).map { #""new"."\#($0)""# } ?? "NULL"
+    let foreignKey = parentForeignKey.map {
+      #"'\#($0.table)' || ':' ||  "new"."\#($0.from)""#
+    } ?? "NULL"
 
     let upsert: QueryFragment = """
       INSERT INTO \(Self.self)

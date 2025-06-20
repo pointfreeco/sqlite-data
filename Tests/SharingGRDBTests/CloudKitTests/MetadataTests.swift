@@ -34,7 +34,7 @@ extension BaseCloudKitTests {
       }
 
       try database.write { db in
-        try Reminder.find(UUID(3))
+        try Reminder.find(UUID(1))
           .update { $0.remindersListID = UUID(2) }
           .execute(db)
       }
