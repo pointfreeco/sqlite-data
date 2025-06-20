@@ -492,7 +492,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         let row =
           withErrorReporting {
             try database.read { db in
-              try T.find(recordID: recordID).fetchOne(db)
+              try T.find(recordName.id).fetchOne(db)
             }
           }
           ?? nil
@@ -636,11 +636,20 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
 
       for (recordID, recordType) in deletions {
+        guard let recordName = SyncMetadata.RecordName(recordID: recordID)
+        else {
+          reportIssue("""
+          Received 'recordName' in invalid format: \(recordID.recordName)
+          
+          'recordName' should be formatted as "tableName:uuid". 
+          """)
+          continue
+        }
         if let table = tablesByName[recordType] {
           func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try database.write { db in
-                try T.find(recordID: recordID)
+                try T.find(recordName.id)
                   .delete()
                   .execute(db)
               }
@@ -953,7 +962,6 @@ extension DatabaseFunction {
       }
       guard let recordName = SyncMetadata.RecordName(rawValue: recordName)
       else {
-        print(name)
         reportIssue("""
           Received 'recordName' in invalid format: \(recordName)
           

@@ -20,10 +20,10 @@ extension BaseCloudKitTests {
         }
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1))),
-        .saveRecord(CKRecord.ID(UUID(1))),
-        .saveRecord(CKRecord.ID(UUID(2))),
-        .saveRecord(CKRecord.ID(UUID(3))),
+        .saveRecord(RemindersList.recordID(for: UUID(1))),
+        .saveRecord(Reminder.recordID(for: UUID(1))),
+        .saveRecord(Reminder.recordID(for: UUID(2))),
+        .saveRecord(Reminder.recordID(for: UUID(3))),
       ])
       try database.write { db in
         try RemindersList.find(UUID(1)).delete().execute(db)
@@ -32,10 +32,10 @@ extension BaseCloudKitTests {
         try #expect(Reminder.all.fetchAll(db) == [])
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .deleteRecord(CKRecord.ID(UUID(1))),
-        .deleteRecord(CKRecord.ID(UUID(1))),
-        .deleteRecord(CKRecord.ID(UUID(2))),
-        .deleteRecord(CKRecord.ID(UUID(3))),
+        .deleteRecord(RemindersList.recordID(for: UUID(1))),
+        .deleteRecord(Reminder.recordID(for: UUID(1))),
+        .deleteRecord(Reminder.recordID(for: UUID(2))),
+        .deleteRecord(Reminder.recordID(for: UUID(3))),
       ])
     }
 
@@ -54,9 +54,9 @@ extension BaseCloudKitTests {
         }
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1))),
-        .saveRecord(CKRecord.ID(UUID(2))),
-        .saveRecord(CKRecord.ID(UUID(3))),
+        .saveRecord(User.recordID(for: UUID(1))),
+        .saveRecord(RemindersList.recordID(for: UUID(2))),
+        .saveRecord(Reminder.recordID(for: UUID(3))),
       ])
       try database.write { db in
         try User.find(UUID(1)).delete().execute(db)
@@ -70,8 +70,8 @@ extension BaseCloudKitTests {
         )
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .deleteRecord(CKRecord.ID(UUID(1))),
-        .saveRecord(CKRecord.ID(UUID(3))),
+        .deleteRecord(User.recordID(for: UUID(1))),
+        .saveRecord(Reminder.recordID(for: UUID(3))),
       ])
     }
 
@@ -86,10 +86,10 @@ extension BaseCloudKitTests {
         }
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1))),
-        .saveRecord(CKRecord.ID(UUID(2))),
-        .saveRecord(CKRecord.ID(UUID(3))),
-        .saveRecord(CKRecord.ID(UUID(4))),
+        .saveRecord(RemindersList.recordID(for: UUID(1))),
+        .saveRecord(Reminder.recordID(for: UUID(2))),
+        .saveRecord(Reminder.recordID(for: UUID(3))),
+        .saveRecord(Reminder.recordID(for: UUID(4))),
       ])
       try database.write { db in
         try RemindersList.find(UUID(1)).update { $0.id = UUID(9) }.execute(db)
@@ -105,10 +105,10 @@ extension BaseCloudKitTests {
         )
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(9))),
-        .saveRecord(CKRecord.ID(UUID(2))),
-        .saveRecord(CKRecord.ID(UUID(3))),
-        .saveRecord(CKRecord.ID(UUID(4))),
+        .saveRecord(RemindersList.recordID(for: UUID(9))),
+        .saveRecord(Reminder.recordID(for: UUID(2))),
+        .saveRecord(Reminder.recordID(for: UUID(3))),
+        .saveRecord(Reminder.recordID(for: UUID(4))),
       ])
     }
 
@@ -122,9 +122,9 @@ extension BaseCloudKitTests {
         }
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1))),
-        .saveRecord(CKRecord.ID(UUID(2))),
-        .saveRecord(CKRecord.ID(UUID(3))),
+        .saveRecord(RemindersList.recordID(for: UUID(1))),
+        .saveRecord(Reminder.recordID(for: UUID(2))),
+        .saveRecord(Reminder.recordID(for: UUID(3))),
       ])
       do {
         let error = #expect(throws: DatabaseError.self) {
@@ -189,9 +189,9 @@ extension BaseCloudKitTests {
         }
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1))),
-        .saveRecord(CKRecord.ID(UUID(2))),
-        .saveRecord(CKRecord.ID(UUID(3))),
+        .saveRecord(RemindersList.recordID(for: UUID(1))),
+        .saveRecord(Reminder.recordID(for: UUID(2))),
+        .saveRecord(Reminder.recordID(for: UUID(3))),
       ])
 
       let error = #expect(throws: DatabaseError.self) {
@@ -214,7 +214,6 @@ extension BaseCloudKitTests {
           ]
         )
       }
-
 
       withKnownIssue("We would prefer that no '.savedRecord's are appended.") {
         // NB: A '.savedRecord(UUID(9))' is being enqueued.
