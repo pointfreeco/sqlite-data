@@ -539,20 +539,21 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
       for table in tables {
         withErrorReporting(.sqliteDataCloudKitFailure) {
-          let names = try database.read { db in
-            func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws -> [UUID] {
+          let recordNames = try database.read { db in
+            func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws -> [SyncMetadata.RecordName] {
               try T
                 .select(\.primaryKey)
                 .fetchAll(db)
+                .map { T.recordName(for: $0) }
             }
             return try open(table)
           }
           syncEngines.withValue {
             $0.private?.state.add(
-              pendingRecordZoneChanges: names.map {
+              pendingRecordZoneChanges: recordNames.map {
                 .saveRecord(
                   CKRecord.ID(
-                    recordName: $0.uuidString,
+                    recordName: $0.rawValue,
                     zoneID: Self.defaultZone.zoneID
                   )
                 )
@@ -641,7 +642,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           reportIssue("""
           Received 'recordName' in invalid format: \(recordID.recordName)
           
-          'recordName' should be formatted as "tableName:uuid". 
+          'recordName' should be formatted as "uuid:tableName". 
           """)
           continue
         }
@@ -695,7 +696,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         reportIssue("""
           Attempted to delete record with invalid 'recordName': \(failedRecord.recordID.recordName)
           
-          'recordName' should be formatted as "tableName:uuid".
+          'recordName' should be formatted as "uuid:tableName".
           """)
         continue
       }
@@ -755,7 +756,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       reportIssue("""
           Attempted to delete record with invalid 'recordName': \(rootRecord.recordID.recordName)
           
-          'recordName' should be formatted as "tableName:uuid".
+          'recordName' should be formatted as "uuid:tableName".
           """)
       return
     }
@@ -804,7 +805,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           reportIssue("""
           Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
           
-          'recordName' should be formatted as "tableName:uuid".
+          'recordName' should be formatted as "uuid:tableName".
           """)
           return
         }
@@ -892,7 +893,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         reportIssue("""
           Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
           
-          'recordName' should be formatted as "tableName:uuid".
+          'recordName' should be formatted as "uuid:tableName".
           """)
         return
       }
@@ -965,7 +966,7 @@ extension DatabaseFunction {
         reportIssue("""
           Received 'recordName' in invalid format: \(recordName)
           
-          'recordName' should be formatted as "tableName:uuid". 
+          'recordName' should be formatted as "uuid:tableName". 
           """)
         return nil
       }

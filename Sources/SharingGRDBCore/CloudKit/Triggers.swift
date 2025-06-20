@@ -44,7 +44,7 @@ extension SyncMetadata {
     foreignKey: ForeignKey?,
   ) -> some StructuredQueriesCore.Statement {
     let foreignKey = foreignKey.map {
-      #"'\#($0.table)' || ':' ||  "new"."\#($0.from)""#
+      #""new"."\#($0.from)" || ':' || '\#($0.table)'"#
     } ?? "NULL"
     return insert {
       ($0.recordType, $0.recordName, $0.parentRecordName, $0.userModificationDate)

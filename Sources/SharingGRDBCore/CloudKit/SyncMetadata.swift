@@ -27,12 +27,12 @@ public struct SyncMetadata: Hashable, Sendable {
       else {
         return nil
       }
-      guard let id = UUID(uuidString: String(rawValue[rawValue.index(after: colonIndex)...]))
+      guard let id = UUID(uuidString: String(rawValue[rawValue.startIndex..<colonIndex]))
       else {
         return nil
       }
 
-      recordType = String(rawValue[rawValue.startIndex..<colonIndex])
+      recordType = String(rawValue[rawValue.index(after: colonIndex)...])
       self.id = id
     }
 
@@ -46,7 +46,7 @@ public struct SyncMetadata: Hashable, Sendable {
     }
 
     public var rawValue: String {
-      "\(recordType):\(id.uuidString)"
+      "\(id.uuidString.lowercased()):\(recordType)"
     }
   }
 }
@@ -60,7 +60,7 @@ extension PrimaryKeyedTable<UUID> {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension PrimaryKeyedTableDefinition<UUID> {
-  var recordName: some QueryExpression<SyncMetadata.RecordName> {
-    SQLQueryExpression("\(quote: QueryValue.tableName, delimiter: .text) || ':' || \(primaryKey)")
+  public var recordName: some QueryExpression<SyncMetadata.RecordName> {
+    SQLQueryExpression(" \(primaryKey) || ':' || \(quote: QueryValue.tableName, delimiter: .text)")
   }
 }

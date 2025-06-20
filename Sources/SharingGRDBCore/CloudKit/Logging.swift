@@ -39,7 +39,7 @@ extension Logger {
       let deletions =
         event.deletions.isEmpty
         ? "⚪️ No deletions"
-        : "✅ Zones deleted (\(event.deletions.count): "
+        : "✅ Zones deleted (\(event.deletions.count)): "
           + event.deletions
           .map { $0.zoneID.zoneName + ":" + $0.zoneID.ownerName }
           .sorted()
