@@ -85,13 +85,13 @@ extension BaseCloudKitTests {
         }
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1)))
+        .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
 
 
       let record = CKRecord(
         recordType: "remindersLists",
-        recordID: CKRecord.ID(UUID(1))
+        recordID: RemindersList.recordID(for: UUID(1))
       )
       await syncEngine.handleFetchedRecordZoneChanges(
         modifications: [record],
@@ -104,7 +104,7 @@ extension BaseCloudKitTests {
 
       let metadata =
         try await database.write { db in
-          try SyncMetadata.find(UUID(1)).fetchOne(db)
+          try SyncMetadata.find(RemindersList.recordName(for: UUID(1))).fetchOne(db)
         }
       #expect(metadata != nil)
     }
@@ -156,7 +156,7 @@ extension BaseCloudKitTests {
           .execute(db)
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1)))
+        .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
       try database.write { db in
         try RemindersList
@@ -165,7 +165,7 @@ extension BaseCloudKitTests {
           .execute(db)
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1)))
+        .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
       try database.write { db in
         try RemindersList
@@ -174,7 +174,7 @@ extension BaseCloudKitTests {
           .execute(db)
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .deleteRecord(CKRecord.ID(UUID(1)))
+        .deleteRecord(RemindersList.recordID(for: UUID(1)))
       ])
     }
 
@@ -186,16 +186,19 @@ extension BaseCloudKitTests {
         }
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1)))
+        .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
 
       let record = CKRecord(
         recordType: "remindersLists",
-        recordID: CKRecord.ID(UUID(1))
+        recordID: RemindersList.recordID(for: UUID(1))
       )
       let userModificationDate = try #require(
         try await database.write { db in
-          try SyncMetadata.find(UUID(1)).select(\.userModificationDate).fetchOne(db) ?? nil
+          try SyncMetadata
+            .find(RemindersList.recordName(for: UUID(1)))
+            .select(\.userModificationDate)
+            .fetchOne(db) ?? nil
         }
       )
 
@@ -212,7 +215,9 @@ extension BaseCloudKitTests {
 
       let metadata = try #require(
         try await database.write { db in
-          try SyncMetadata.find(UUID(1)).fetchOne(db)
+          try SyncMetadata
+            .find(RemindersList.recordName(for: UUID(1)))
+            .fetchOne(db)
         }
       )
       // TODO: Control dates in SQLite in order to get consistent passing on float comparison
@@ -227,16 +232,16 @@ extension BaseCloudKitTests {
         }
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1)))
+        .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
       let record = CKRecord(
         recordType: "remindersLists",
-        recordID: CKRecord.ID(UUID(1))
+        recordID: RemindersList.recordID(for: UUID(1))
       )
       let userModificationDate = try #require(
         try await database.write { db in
           try SyncMetadata
-            .find(UUID(1))
+            .find(RemindersList.recordName(for: UUID(1)))
             .select(\.userModificationDate)
             .fetchOne(db) ?? nil
         }
@@ -255,7 +260,9 @@ extension BaseCloudKitTests {
 
       let metadata = try #require(
         try await database.write { db in
-          try SyncMetadata.find(UUID(1)).fetchOne(db)
+          try SyncMetadata
+            .find(RemindersList.recordName(for: UUID(1)))
+            .fetchOne(db)
         }
       )
       #expect(metadata.userModificationDate == userModificationDate)
@@ -269,12 +276,12 @@ extension BaseCloudKitTests {
         }
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(CKRecord.ID(UUID(1)))
+        .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
 
       let record = CKRecord(
         recordType: "remindersLists",
-        recordID: CKRecord.ID(UUID(1))
+        recordID: RemindersList.recordID(for: UUID(1))
       )
       await syncEngine.handleFetchedRecordZoneChanges(
         modifications: [],
@@ -285,7 +292,9 @@ extension BaseCloudKitTests {
           == 0
       )
       let metadata = try await database.write { db in
-        try SyncMetadata.find(UUID(1)).fetchOne(db)
+        try SyncMetadata
+          .find(RemindersList.recordName(for: UUID(1)))
+          .fetchOne(db)
       }
       #expect(metadata == nil)
     }

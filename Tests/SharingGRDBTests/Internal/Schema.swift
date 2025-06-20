@@ -22,6 +22,11 @@ import SharingGRDB
 func database() throws -> DatabasePool {
   var configuration = Configuration()
   configuration.foreignKeysEnabled = false
+  configuration.prepareDatabase { db in 
+    db.trace {
+      print($0.expandedDescription)
+    }
+  }
   let url = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite")
   let database = try DatabasePool(path: url.path(), configuration: configuration)
   try database.write { db in

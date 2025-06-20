@@ -111,36 +111,15 @@ extension CKRecord {
     "\(String.sqliteDataCloudKitSchemaName)_userModificationDate"
 }
 
-extension PrimaryKeyedTable where TableColumns.PrimaryKey == UUID {
-  static func find(recordID: CKRecord.ID) -> Where<Self> {
-    let recordName = UUID(uuidString: recordID.recordName)
-    if recordName == nil {
-      reportIssue(
-        """
-        'recordName' ("\(recordID.recordName)") must be a UUID.
-        """
-      )
-    }
-    return Self.where {
-      $0.primaryKey.eq(recordName ?? UUID())
-    }
-  }
-}
-
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncMetadata {
-  init(record: CKRecord) {
-    let recordName = UUID(uuidString: record.recordID.recordName)
-    if recordName == nil {
-      reportIssue(
-        """
-        'recordName' ("\(record.recordID.recordName)") must be a UUID.
-        """
-      )
-    }
+  init?(record: CKRecord) {
+    let recordName = RecordName(recordID: record.recordID)
+    guard let recordName
+    else { return nil }
     self.init(
       recordType: record.recordType,
-      recordName: recordName ?? UUID(),
+      recordName: recordName,
       lastKnownServerRecord: record,
       userModificationDate: record.userModificationDate
     )

@@ -3,11 +3,10 @@ import ConcurrencyExtras
 import CustomDump
 import SharingGRDBCore
 
-extension CKRecord.ID {
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  convenience init(_ id: UUID) {
-    self.init(
-      recordName: id.uuidString.lowercased(),
+extension PrimaryKeyedTable<UUID> {
+  static func recordID(for id: UUID) -> CKRecord.ID {
+    CKRecord.ID(
+      recordName: self.recordName(for: id).rawValue,
       zoneID: SyncEngine.defaultZone.zoneID
     )
   }

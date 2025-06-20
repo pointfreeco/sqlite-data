@@ -124,13 +124,16 @@ struct RemindersListForm: View {
     .task {
       guard let remindersListID = remindersList.id
       else { return }
-      await withErrorReporting {
+      do {
         coverImageData = try await database.read { db in
           try RemindersListAsset
             .where { $0.remindersListID.eq(remindersListID) }
             .select(\.coverImage)
             .fetchOne(db) ?? nil
         }
+      } catch is CancellationError {
+      } catch {
+        reportIssue(error)
       }
     }
   }

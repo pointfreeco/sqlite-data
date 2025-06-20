@@ -282,7 +282,7 @@ public final class SyncEngine: Sendable {
     )
   }
 
-  func didUpdate(recordName: String) {
+  func didUpdate(recordName: SyncMetadata.RecordName) {
     let zoneID = zoneID(for: recordName)
     let syncEngine = syncEngines.withValue {
       zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -291,7 +291,7 @@ public final class SyncEngine: Sendable {
       pendingRecordZoneChanges: [
         .saveRecord(
           CKRecord.ID(
-            recordName: recordName,
+            recordName: recordName.rawValue,
             zoneID: zoneID
           )
         )
@@ -299,7 +299,7 @@ public final class SyncEngine: Sendable {
     )
   }
 
-  func didDelete(recordName: String) {
+  func didDelete(recordName: SyncMetadata.RecordName) {
     let zoneID = zoneID(for: recordName)
     let syncEngine = syncEngines.withValue {
       zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -308,7 +308,7 @@ public final class SyncEngine: Sendable {
       pendingRecordZoneChanges: [
         .deleteRecord(
           CKRecord.ID(
-            recordName: recordName,
+            recordName: recordName.rawValue,
             zoneID: zoneID
           )
         )
@@ -316,12 +316,12 @@ public final class SyncEngine: Sendable {
     )
   }
 
-  private func zoneID(for recordName: String) -> CKRecordZone.ID {
+  private func zoneID(for recordName: SyncMetadata.RecordName) -> CKRecordZone.ID {
     let metadata =
       withErrorReporting {
         try metadatabase.read { db in
           try SyncMetadata
-            .find(UUID(uuidString: recordName)!)
+            .find(recordName)
             .fetchOne(db)
         }
       } ?? nil
@@ -474,7 +474,9 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
       #endif
 
-      guard let metadata = metadataFor(recordID: recordID)
+      guard
+        let recordName = SyncMetadata.RecordName(recordID: recordID),
+        let metadata = metadataFor(recordName: recordName)
       else {
         syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
         return nil
@@ -490,7 +492,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         let row =
           withErrorReporting {
             try database.read { db in
-              try T.find(recordID: recordID).fetchOne(db)
+              try T.find(recordName.id).fetchOne(db)
             }
           }
           ?? nil
@@ -510,7 +512,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         record.parent = metadata.parentRecordName.map { parentRecordName in
           CKRecord.Reference(
             recordID: CKRecord.ID(
-              recordName: parentRecordName.uuidString.lowercased(),
+              recordName: parentRecordName.rawValue,
               zoneID: record.recordID.zoneID
             ),
             action: .none
@@ -537,20 +539,21 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
       for table in tables {
         withErrorReporting(.sqliteDataCloudKitFailure) {
-          let names = try database.read { db in
-            func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws -> [UUID] {
+          let recordNames = try database.read { db in
+            func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws -> [SyncMetadata.RecordName] {
               try T
                 .select(\.primaryKey)
                 .fetchAll(db)
+                .map { T.recordName(for: $0) }
             }
             return try open(table)
           }
           syncEngines.withValue {
             $0.private?.state.add(
-              pendingRecordZoneChanges: names.map {
+              pendingRecordZoneChanges: recordNames.map {
                 .saveRecord(
                   CKRecord.ID(
-                    recordName: $0.uuidString,
+                    recordName: $0.rawValue,
                     zoneID: Self.defaultZone.zoneID
                   )
                 )
@@ -634,11 +637,20 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
 
       for (recordID, recordType) in deletions {
+        guard let recordName = SyncMetadata.RecordName(recordID: recordID)
+        else {
+          reportIssue("""
+          Received 'recordName' in invalid format: \(recordID.recordName)
+          
+          'recordName' should be formatted as "uuid:tableName". 
+          """)
+          continue
+        }
         if let table = tablesByName[recordType] {
           func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try database.write { db in
-                try T.find(recordID: recordID)
+                try T.find(recordName.id)
                   .delete()
                   .execute(db)
               }
@@ -679,13 +691,22 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
     for failedRecordSave in event.failedRecordSaves {
       let failedRecord = failedRecordSave.record
+      guard let recordName = SyncMetadata.RecordName(rawValue: failedRecord.recordID.recordName)
+      else {
+        reportIssue("""
+          Attempted to delete record with invalid 'recordName': \(failedRecord.recordID.recordName)
+          
+          'recordName' should be formatted as "uuid:tableName".
+          """)
+        continue
+      }
 
       func clearServerRecord() {
         withErrorReporting {
           try $isUpdatingWithServerRecord.withValue(true) {
             try database.write { db in
               try SyncMetadata
-                .find(recordID: failedRecord.recordID)
+                .find(recordName)
                 .update { $0.lastKnownServerRecord = nil }
                 .execute(db)
             }
@@ -730,10 +751,19 @@ extension SyncEngine: CKSyncEngineDelegate {
 
     guard let rootRecord = metadata.rootRecord
     else { return }
+    guard let recordName = SyncMetadata.RecordName(recordID: rootRecord.recordID)
+    else {
+      reportIssue("""
+          Attempted to delete record with invalid 'recordName': \(rootRecord.recordID.recordName)
+          
+          'recordName' should be formatted as "uuid:tableName".
+          """)
+      return
+    }
 
     try await database.write { db in
       try SyncMetadata
-        .find(recordID: rootRecord.recordID)
+        .find(recordName)
         .update { $0.share = share }
         .execute(db)
     }
@@ -770,9 +800,18 @@ extension SyncEngine: CKSyncEngineDelegate {
           )
           return
         }
+        guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
+        else {
+          reportIssue("""
+          Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
+          
+          'recordName' should be formatted as "uuid:tableName".
+          """)
+          return
+        }
         let userModificationDate =
           try metadatabase.read { db in
-            try SyncMetadata.find(recordID: record.recordID).select(\.userModificationDate).fetchOne(
+            try SyncMetadata.find(recordName).select(\.userModificationDate).fetchOne(
               db
             )
           }
@@ -825,11 +864,16 @@ extension SyncEngine: CKSyncEngineDelegate {
           )
           // TODO: Append more ON CONFLICT clauses for each unique constraint?
           // TODO: Use WHERE to scope the update?
+          guard let metadata = SyncMetadata(record: record)
+          else {
+            reportIssue("???")
+            return
+          }
           try database.write { db in
             try SQLQueryExpression(query).execute(db)
             try SyncMetadata
               .insert {
-                SyncMetadata(record: record)
+                metadata
               } onConflictDoUpdate: {
                 $0.lastKnownServerRecord = record
                 $0.userModificationDate = record.userModificationDate
@@ -844,13 +888,22 @@ extension SyncEngine: CKSyncEngineDelegate {
 
   private func refreshLastKnownServerRecord(_ record: CKRecord) {
     $isUpdatingWithServerRecord.withValue(true) {
-      let metadata = metadataFor(recordID: record.recordID)
+      guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
+      else {
+        reportIssue("""
+          Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
+          
+          'recordName' should be formatted as "uuid:tableName".
+          """)
+        return
+      }
+      let metadata = metadataFor(recordName: recordName)
 
       func updateLastKnownServerRecord() {
         withErrorReporting(.sqliteDataCloudKitFailure) {
           try database.write { db in
             try SyncMetadata
-              .find(recordID: record.recordID)
+              .find(recordName)
               .update { $0.lastKnownServerRecord = record }
               .execute(db)
           }
@@ -867,10 +920,10 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  private func metadataFor(recordID: CKRecord.ID) -> SyncMetadata? {
+  private func metadataFor(recordName: SyncMetadata.RecordName) -> SyncMetadata? {
     withErrorReporting(.sqliteDataCloudKitFailure) {
       try metadatabase.read { db in
-        try SyncMetadata.find(recordID: recordID).fetchOne(db)
+        try SyncMetadata.find(recordName).fetchOne(db)
       }
     }
       ?? nil
@@ -900,12 +953,21 @@ extension DatabaseFunction {
 
   private convenience init(
     _ name: String,
-    function: @escaping @Sendable (String) -> Void
+    function: @escaping @Sendable (SyncMetadata.RecordName) -> Void
   ) {
     self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 1) { arguments in
       guard
         let recordName = String.fromDatabaseValue(arguments[0])
       else {
+        return nil
+      }
+      guard let recordName = SyncMetadata.RecordName(rawValue: recordName)
+      else {
+        reportIssue("""
+          Received 'recordName' in invalid format: \(recordName)
+          
+          'recordName' should be formatted as "uuid:tableName". 
+          """)
         return nil
       }
       function(recordName)

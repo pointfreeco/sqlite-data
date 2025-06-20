@@ -13,7 +13,7 @@ class RemindersListsModel {
       .group(by: \.id)
       .order(by: \.position)
       .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted }
-      .leftJoin(Metadata.all) { $0.id.eq($2.recordName) }
+      .leftJoin(SyncMetadata.all) { $0.recordName.eq($2.recordName) }
       .select { remindersList, reminder, metadata in
         ReminderListState.Columns(
           remindersCount: reminder.id.count(),

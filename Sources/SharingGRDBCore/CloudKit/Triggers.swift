@@ -30,7 +30,7 @@ extension PrimaryKeyedTable<UUID> {
       ifNotExists: true,
       after: .delete { old in
         SyncMetadata
-          .where { $0.recordName.eq(old.primaryKey) }
+          .find(old.recordName)
           .delete()
       }
     )
@@ -43,13 +43,15 @@ extension SyncMetadata {
     new: TemporaryTrigger<T>.Operation.New,
     foreignKey: ForeignKey?,
   ) -> some StructuredQueriesCore.Statement {
-    let foreignKey = (foreignKey?.from).map { #""new"."\#($0)""# } ?? "NULL"
+    let foreignKey = foreignKey.map {
+      #""new"."\#($0.from)" || ':' || '\#($0.table)'"#
+    } ?? "NULL"
     return insert {
       ($0.recordType, $0.recordName, $0.parentRecordName, $0.userModificationDate)
     } select: {
       Values(
         T.tableName,
-        new.primaryKey,
+        new.recordName,
         SQLQueryExpression(#"\#(raw: foreignKey) AS "foreignKey""#),
         .datetime("subsec")
       )
@@ -104,12 +106,15 @@ extension SyncMetadata {
   )
 }
 
+
 extension QueryExpression where Self == SQLQueryExpression<()> {
-  fileprivate static func didUpdate(_ expression: some QueryExpression<UUID>) -> Self {
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  fileprivate static func didUpdate(_ expression: some QueryExpression<SyncMetadata.RecordName>) -> Self {
     Self("\(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(expression))")
   }
 
-  fileprivate static func didDelete(_ expression: some QueryExpression<UUID>) -> Self {
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  fileprivate static func didDelete(_ expression: some QueryExpression<SyncMetadata.RecordName>) -> Self {
     Self("\(raw: .sqliteDataCloudKitSchemaName)_didDelete(\(expression))")
   }
 }
