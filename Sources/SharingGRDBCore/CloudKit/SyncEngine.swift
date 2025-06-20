@@ -159,7 +159,9 @@ public final class SyncEngine: Sendable {
       db.add(function: .didUpdate(syncEngine: self))
       db.add(function: .didDelete(syncEngine: self))
 
-      try SyncMetadata.createTriggers(tables: tables, db: db)
+      for trigger in SyncMetadata.callbackTriggers {
+        try trigger.execute(db)
+      }
 
       for table in tables {
         try table.createTriggers(foreignKeysByTableName: foreignKeysByTableName, db: db)
@@ -231,7 +233,9 @@ public final class SyncEngine: Sendable {
       for table in self.tables {
         try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
       }
-      try SyncMetadata.dropTriggers(tables: self.tables, db: db)
+      for trigger in SyncMetadata.callbackTriggers.reversed() {
+        try trigger.drop().execute(db)
+      }
       db.remove(function: .didDelete(syncEngine: self))
       db.remove(function: .didUpdate(syncEngine: self))
       db.remove(function: .isUpdatingWithServerRecord)
@@ -332,7 +336,9 @@ extension PrimaryKeyedTable<UUID> {
       ? foreignKeysByTableName[tableName]?.first(where: \.notnull)
       : nil
 
-    try SyncMetadata.createTriggers(for: Self.self, parentForeignKey: foreignKey, db: db)
+    for trigger in metadataTriggers(foreignKey: foreignKey) {
+      try trigger.execute(db)
+    }
 
     let foreignKeys = foreignKeysByTableName[tableName] ?? []
     for foreignKey in foreignKeys {
@@ -349,7 +355,10 @@ extension PrimaryKeyedTable<UUID> {
     for foreignKey in foreignKeys.reversed() {
       try foreignKey.dropTriggers(for: Self.self, db: db)
     }
-    try SyncMetadata.dropTriggers(for: Self.self, db: db)
+
+    for trigger in metadataTriggers(foreignKey: nil).reversed() {
+      try trigger.drop().execute(db)
+    }
   }
 }
 
