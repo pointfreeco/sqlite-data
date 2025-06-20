@@ -2,7 +2,7 @@ import Foundation
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension PrimaryKeyedTable<UUID> {
-  static func triggers(foreignKey: ForeignKey?) -> [TemporaryTrigger<Self>] {
+  static func metadataTriggers(foreignKey: ForeignKey?) -> [TemporaryTrigger<Self>] {
     [
       afterInsert(foreignKey: foreignKey),
       afterUpdate(foreignKey: foreignKey),
@@ -65,7 +65,7 @@ extension SyncMetadata {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncMetadata {
-  static var triggers: [TemporaryTrigger<Self>] {
+  static var callbackTriggers: [TemporaryTrigger<Self>] {
     [
       afterInsertTrigger,
       afterUpdateTrigger,

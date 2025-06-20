@@ -159,7 +159,7 @@ public final class SyncEngine: Sendable {
       db.add(function: .didUpdate(syncEngine: self))
       db.add(function: .didDelete(syncEngine: self))
 
-      for trigger in SyncMetadata.triggers {
+      for trigger in SyncMetadata.callbackTriggers {
         try trigger.execute(db)
       }
 
@@ -233,7 +233,7 @@ public final class SyncEngine: Sendable {
       for table in self.tables {
         try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
       }
-      for trigger in SyncMetadata.triggers.reversed() {
+      for trigger in SyncMetadata.callbackTriggers.reversed() {
         try trigger.drop().execute(db)
       }
       db.remove(function: .didDelete(syncEngine: self))
@@ -336,7 +336,7 @@ extension PrimaryKeyedTable<UUID> {
       ? foreignKeysByTableName[tableName]?.first(where: \.notnull)
       : nil
 
-    for trigger in triggers(foreignKey: foreignKey) {
+    for trigger in metadataTriggers(foreignKey: foreignKey) {
       try trigger.execute(db)
     }
 
@@ -356,7 +356,7 @@ extension PrimaryKeyedTable<UUID> {
       try foreignKey.dropTriggers(for: Self.self, db: db)
     }
 
-    for trigger in triggers(foreignKey: nil).reversed() {
+    for trigger in metadataTriggers(foreignKey: nil).reversed() {
       try trigger.drop().execute(db)
     }
   }
