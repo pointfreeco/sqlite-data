@@ -164,7 +164,11 @@ public final class SyncEngine: Sendable {
       }
 
       for table in tables {
-        try table.createTriggers(foreignKeysByTableName: foreignKeysByTableName, db: db)
+        try table.createTriggers(
+          foreignKeysByTableName: foreignKeysByTableName,
+          tablesByName: tablesByName,
+          db: db
+        )
       }
     }
 
@@ -329,6 +333,7 @@ extension PrimaryKeyedTable<UUID> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   fileprivate static func createTriggers(
     foreignKeysByTableName: [String: [ForeignKey]],
+    tablesByName: [String: any PrimaryKeyedTable<UUID>.Type],
     db: Database
   ) throws {
     let foreignKey =
@@ -342,7 +347,11 @@ extension PrimaryKeyedTable<UUID> {
 
     let foreignKeys = foreignKeysByTableName[tableName] ?? []
     for foreignKey in foreignKeys {
-      try foreignKey.createTriggers(for: Self.self, db: db)
+      guard let parent = tablesByName[foreignKey.table] else {
+        reportIssue("")
+        continue
+      }
+      try foreignKey.createTriggers(Self.self, belongsTo: parent, db: db)
     }
   }
 
