@@ -999,8 +999,10 @@ extension String {
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
 extension URL {
-  fileprivate static func metadatabase(containerIdentifier: String?) -> Self {
-    applicationSupportDirectory.appending(
+  package static func metadatabase(containerIdentifier: String?) -> Self {
+    @Dependency(\.context) var context
+    let base: URL = context == .live ? .applicationDirectory : .temporaryDirectory
+    return base.appending(
       component: "\(containerIdentifier.map { "\($0)." } ?? "")sqlite-data-icloud.sqlite"
     )
   }

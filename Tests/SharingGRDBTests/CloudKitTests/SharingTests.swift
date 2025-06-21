@@ -45,8 +45,6 @@ extension BaseCloudKitTests {
   }
 }
 
-    // TODO: Assert on Metadata.parentRecordName when create new reminders in a shared list
-
 @Table fileprivate struct NonSyncedTable {
   let id: UUID
 }

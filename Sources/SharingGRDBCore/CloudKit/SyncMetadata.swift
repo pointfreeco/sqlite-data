@@ -13,7 +13,10 @@ public struct SyncMetadata: Hashable, Sendable {
   // @Column(as: CKShare?.ShareDataRepresentation.self)
   public var share: CKShare?
   public var userModificationDate: Date?
+}
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncMetadata {
   public struct RecordName: RawRepresentable, Sendable, Hashable, QueryBindable {
     public var recordType: String
     public var id: UUID
