@@ -42,10 +42,30 @@ extension BaseCloudKitTests {
         )
       }
     }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func sharePrivateTable() async throws {
+      await #expect(throws: SyncEngine.PrivateRootRecord.self) {
+        _ = try await self.syncEngine.share(
+          record: RemindersListPrivate(id: UUID(1), remindersListID: UUID(1)),
+          configure: { _ in }
+        )
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func shareRecordBeforeSync() async throws {
+      await #expect(throws: SyncEngine.NoCKRecordFound.self) {
+        _ = try await self.syncEngine.share(
+          record: RemindersList(id: UUID(1)),
+          configure: { _ in }
+        )
+      }
+    }
   }
 }
 
-    // TODO: Assert on Metadata.parentRecordName when create new reminders in a shared list
+// TODO: Assert on Metadata.parentRecordName when create new reminders in a shared list
 
 @Table fileprivate struct NonSyncedTable {
   let id: UUID
