@@ -56,6 +56,17 @@ extension SyncMetadata {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncMetadata.TableColumns {
+  public var parentRecordPrimaryKey: some QueryExpression<UUID?> {
+    SQLQueryExpression("substr(\(parentRecordName), 1, 36)")
+  }
+
+  public var parentRecordType: some QueryExpression<String?> {
+    SQLQueryExpression("substr(\(parentRecordName), 38)")
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension PrimaryKeyedTable<UUID> {
   public static func recordName(for id: UUID) -> SyncMetadata.RecordName {
     SyncMetadata.RecordName(Self.self, id: id)

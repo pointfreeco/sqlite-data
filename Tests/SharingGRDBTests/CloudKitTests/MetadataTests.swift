@@ -45,7 +45,7 @@ extension BaseCloudKitTests {
         #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(2)))
       }
       privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(Reminder.recordID(for: UUID(1))),
+        .saveRecord(Reminder.recordID(for: UUID(1)))
       ])
     }
 
@@ -78,6 +78,99 @@ extension BaseCloudKitTests {
             .fetchOne(db)
         )
         #expect(reminderTagMetadata.parentRecordName == nil)
+      }
+    }
+
+    @Test func recordType() throws {
+      try database.write { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "Personal")
+          Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
+          Reminder(id: UUID(3), title: "Groceries", remindersListID: UUID(1))
+          Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
+        }
+      }
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
+        .saveRecord(RemindersList.recordID(for: UUID(1))),
+        .saveRecord(Reminder.recordID(for: UUID(2))),
+        .saveRecord(Reminder.recordID(for: UUID(3))),
+        .saveRecord(Reminder.recordID(for: UUID(4))),
+      ])
+
+      try database.read { db in
+        let reminderMetadata =
+        try SyncMetadata
+          .where { $0.recordType == Reminder.tableName }
+          .fetchAll(db)
+        #expect(
+          reminderMetadata.map(\.recordName) == [
+            Reminder.recordName(for: UUID(2)),
+            Reminder.recordName(for: UUID(3)),
+            Reminder.recordName(for: UUID(4)),
+          ]
+        )
+      }
+    }
+
+    @Test func parentRecordType() throws {
+      try database.write { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "Personal")
+          Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
+          Reminder(id: UUID(3), title: "Groceries", remindersListID: UUID(1))
+          Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
+        }
+      }
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
+        .saveRecord(RemindersList.recordID(for: UUID(1))),
+        .saveRecord(Reminder.recordID(for: UUID(2))),
+        .saveRecord(Reminder.recordID(for: UUID(3))),
+        .saveRecord(Reminder.recordID(for: UUID(4))),
+      ])
+
+      try database.read { db in
+        let reminderMetadata =
+        try SyncMetadata
+          .where { $0.parentRecordType == RemindersList.tableName }
+          .fetchAll(db)
+        #expect(
+          reminderMetadata.map(\.recordName) == [
+            Reminder.recordName(for: UUID(2)),
+            Reminder.recordName(for: UUID(3)),
+            Reminder.recordName(for: UUID(4)),
+          ]
+        )
+      }
+    }
+
+    @Test func parentRecordPrimaryKey() throws {
+      try database.write { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "Personal")
+          Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
+          Reminder(id: UUID(3), title: "Groceries", remindersListID: UUID(1))
+          Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
+        }
+      }
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
+        .saveRecord(RemindersList.recordID(for: UUID(1))),
+        .saveRecord(Reminder.recordID(for: UUID(2))),
+        .saveRecord(Reminder.recordID(for: UUID(3))),
+        .saveRecord(Reminder.recordID(for: UUID(4))),
+      ])
+
+      try database.read { db in
+        let reminderMetadata =
+        try SyncMetadata
+          .where { $0.parentRecordPrimaryKey == UUID(1) }
+          .fetchAll(db)
+        #expect(
+          reminderMetadata.map(\.recordName) == [
+            Reminder.recordName(for: UUID(2)),
+            Reminder.recordName(for: UUID(3)),
+            Reminder.recordName(for: UUID(4)),
+          ]
+        )
       }
     }
   }
