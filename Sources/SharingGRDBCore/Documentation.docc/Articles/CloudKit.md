@@ -292,7 +292,7 @@ extra complications to an app that go beyond the existing complications of shari
 across many devices. Please read the documentation carefully and thoroughly to understand
 how to best situate your app for sharing that does not cause problems down the road.
 
-See <doc:SharingWithCloudKit> for more information.
+See <doc:CloudKitSharing> for more information.
 
 ## Assets
 
