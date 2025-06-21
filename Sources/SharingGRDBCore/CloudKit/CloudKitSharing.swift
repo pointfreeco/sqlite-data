@@ -18,20 +18,19 @@ extension SyncEngine {
   public struct UnrecognizedTable: Error {}
   public struct RecordMustBeRoot: Error {}
   public struct NoCKRecordFound: Error {}
+  public struct PrivateRootRecord: Error {}
 
   public func share<T: PrimaryKeyedTable>(
     record: T,
     configure: @Sendable (CKShare) -> Void
   ) async throws -> SharedRecord
   where T.TableColumns.PrimaryKey == UUID {
+    guard !privateTables.contains(where: { T.self == $0 })
+    else { throw PrivateRootRecord() }
     guard let foreignKeys = foreignKeysByTableName[T.tableName]
-    else {
-      throw UnrecognizedTable()
-    }
+    else { throw UnrecognizedTable() }
     guard foreignKeys.isEmpty
-    else {
-      throw RecordMustBeRoot()
-    }
+    else { throw RecordMustBeRoot() }
 
     let recordName = SyncMetadata.RecordName(record: record)
     let metadata =
@@ -42,9 +41,7 @@ extension SyncEngine {
       } ?? nil
 
     guard let metadata
-    else {
-      throw NoCKRecordFound()
-    }
+    else { throw NoCKRecordFound() }
 
     let rootRecord =
       metadata.lastKnownServerRecord

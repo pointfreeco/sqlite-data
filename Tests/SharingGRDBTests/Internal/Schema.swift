@@ -10,6 +10,11 @@ import SharingGRDB
   let id: UUID
   var title = ""
 }
+@Table struct RemindersListPrivate: Equatable, Identifiable {
+  let id: UUID
+  var position = 0
+  var remindersListID: RemindersList.ID
+}
 @Table struct User: Equatable, Identifiable {
   let id: UUID
   var name = ""
@@ -49,6 +54,16 @@ func database() throws -> DatabasePool {
       CREATE TABLE "remindersLists" (
         "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
         "title" TEXT NOT NULL DEFAULT ''
+      ) STRICT
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TABLE "remindersListPrivates" (
+        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "position" INTEGER NOT NULL DEFAULT 0,
+        "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
       """
     )

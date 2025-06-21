@@ -48,6 +48,9 @@ class BaseCloudKitTests: @unchecked Sendable {
         ChildWithOnDeleteRestrict.self,
         ChildWithOnDeleteSetNull.self,
         ChildWithOnDeleteSetDefault.self,
+      ],
+      privateTables: [
+        RemindersListPrivate.self
       ]
     )
     try await Task.sleep(for: .seconds(0.1))

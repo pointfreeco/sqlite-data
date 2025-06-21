@@ -12,6 +12,7 @@ public final class SyncEngine: Sendable {
   let logger: Logger
   let metadatabase: any DatabaseReader
   let tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
+  let privateTables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
   let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
   let foreignKeysByTableName: [String: [ForeignKey]]
   let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
@@ -24,7 +25,8 @@ public final class SyncEngine: Sendable {
     container: CKContainer,
     database: any DatabaseWriter,
     logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit"),
-    tables: [any PrimaryKeyedTable<UUID>.Type]
+    tables: [any PrimaryKeyedTable<UUID>.Type],
+    privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
   ) throws {
     try self.init(
       container: container,
@@ -53,7 +55,8 @@ public final class SyncEngine: Sendable {
       database: database,
       logger: logger,
       metadatabaseURL: URL.metadatabase(containerIdentifier: container.containerIdentifier),
-      tables: tables
+      tables: tables,
+      privateTables: privateTables
     )
   }
 
@@ -62,14 +65,16 @@ public final class SyncEngine: Sendable {
     sharedSyncEngine: any SyncEngineProtocol,
     database: any DatabaseWriter,
     metadatabaseURL: URL,
-    tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
+    tables: [any PrimaryKeyedTable<UUID>.Type],
+    privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
   ) throws {
     try self.init(
       defaultSyncEngines: { _, _ in (privateSyncEngine, sharedSyncEngine) },
       database: database,
       logger: Logger(.disabled),
       metadatabaseURL: metadatabaseURL,
-      tables: tables
+      tables: tables,
+      privateTables: privateTables
     )
   }
 
@@ -82,7 +87,8 @@ public final class SyncEngine: Sendable {
     database: any DatabaseWriter,
     logger: Logger,
     metadatabaseURL: URL,
-    tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
+    tables: [any PrimaryKeyedTable<UUID>.Type],
+    privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
   ) throws {
     try validateSchema(tables: tables, database: database)
     // TODO: Explain why / link to documentation?
@@ -97,7 +103,8 @@ public final class SyncEngine: Sendable {
     self.database = database
     self.logger = logger
     self.metadatabase = try defaultMetadatabase(logger: logger, url: metadatabaseURL)
-    self.tables = tables
+    self.tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init)).map(\.type)
+    self.privateTables = privateTables
     self.tablesByName = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
     self.foreignKeysByTableName = Dictionary(
       uniqueKeysWithValues: try database.read { db in
@@ -393,7 +400,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     case .sentRecordZoneChanges(let event):
       handleSentRecordZoneChanges(event, syncEngine: syncEngine)
     case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
-      .didFetchChanges, .willSendChanges, .didSendChanges:
+        .didFetchChanges, .willSendChanges, .didSendChanges:
       break
     @unknown default:
       break
@@ -422,57 +429,57 @@ extension SyncEngine: CKSyncEngineDelegate {
       changes += keyValue.value
     }
 
-    #if DEBUG
-      struct State {
-        var missingTables: [CKRecord.ID] = []
-        var missingRecords: [CKRecord.ID] = []
-        var sentRecords: [CKRecord.ID] = []
-      }
-      let state = LockIsolated(State())
-      defer {
-        let state = state.withValue(\.self)
-        let missingTables = Dictionary(grouping: state.missingTables, by: \.zoneID.zoneName)
-          .reduce(into: [String]()) {
-            strings,
-            keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-          }
-          .joined(separator: ", ")
-        let missingRecords = Dictionary(grouping: state.missingRecords, by: \.zoneID.zoneName)
-          .reduce(into: [String]()) {
-            strings,
-            keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-          }
-          .joined(separator: ", ")
-        let sentRecords = Dictionary(grouping: state.sentRecords, by: \.zoneID.zoneName)
-          .reduce(into: [String]()) {
-            strings,
-            keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-          }
-          .joined(separator: ", ")
-        logger.debug(
+#if DEBUG
+    struct State {
+      var missingTables: [CKRecord.ID] = []
+      var missingRecords: [CKRecord.ID] = []
+      var sentRecords: [CKRecord.ID] = []
+    }
+    let state = LockIsolated(State())
+    defer {
+      let state = state.withValue(\.self)
+      let missingTables = Dictionary(grouping: state.missingTables, by: \.zoneID.zoneName)
+        .reduce(into: [String]()) {
+          strings,
+          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+        }
+        .joined(separator: ", ")
+      let missingRecords = Dictionary(grouping: state.missingRecords, by: \.zoneID.zoneName)
+        .reduce(into: [String]()) {
+          strings,
+          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+        }
+        .joined(separator: ", ")
+      let sentRecords = Dictionary(grouping: state.sentRecords, by: \.zoneID.zoneName)
+        .reduce(into: [String]()) {
+          strings,
+          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+        }
+        .joined(separator: ", ")
+      logger.debug(
           """
           [\(syncEngine.scope.label)] nextRecordZoneChangeBatch: \(context.reason)
             \(state.missingTables.isEmpty ? "⚪️ No missing tables" : "⚠️ Missing tables: \(missingTables)")
             \(state.missingRecords.isEmpty ? "⚪️ No missing records" : "⚠️ Missing records: \(missingRecords)")
             \(state.sentRecords.isEmpty ? "⚪️ No sent records" : "✅ Sent records: \(sentRecords)")
           """
-        )
-      }
-    #endif
+      )
+    }
+#endif
 
     let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
-      #if DEBUG
-        var missingTable: CKRecord.ID?
-        var missingRecord: CKRecord.ID?
-        var sentRecord: CKRecord.ID?
-        defer {
-          state.withValue { [missingTable, missingRecord, sentRecord] in
-            if let missingTable { $0.missingTables.append(missingTable) }
-            if let missingRecord { $0.missingRecords.append(missingRecord) }
-            if let sentRecord { $0.sentRecords.append(sentRecord) }
-          }
+#if DEBUG
+      var missingTable: CKRecord.ID?
+      var missingRecord: CKRecord.ID?
+      var sentRecord: CKRecord.ID?
+      defer {
+        state.withValue { [missingTable, missingRecord, sentRecord] in
+          if let missingTable { $0.missingTables.append(missingTable) }
+          if let missingRecord { $0.missingRecords.append(missingRecord) }
+          if let sentRecord { $0.sentRecords.append(sentRecord) }
         }
-      #endif
+      }
+#endif
 
       guard
         let recordName = SyncMetadata.RecordName(recordID: recordID),
@@ -490,12 +497,12 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
       func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) async -> CKRecord? {
         let row =
-          withErrorReporting {
-            try database.read { db in
-              try T.find(recordName.id).fetchOne(db)
-            }
+        withErrorReporting {
+          try database.read { db in
+            try T.find(recordName.id).fetchOne(db)
           }
-          ?? nil
+        }
+        ?? nil
         guard let row
         else {
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
@@ -504,13 +511,16 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
 
         let record =
-          metadata.lastKnownServerRecord
-          ?? CKRecord(
-            recordType: metadata.recordType,
-            recordID: recordID
-          )
-        record.parent = metadata.parentRecordName.map { parentRecordName in
-          CKRecord.Reference(
+        metadata.lastKnownServerRecord
+        ?? CKRecord(
+          recordType: metadata.recordType,
+          recordID: recordID
+        )
+        record.parent = metadata.parentRecordName.flatMap { parentRecordName in
+          guard !privateTables.contains(where: { $0.tableName == parentRecordName.recordType })
+          else { return nil }
+
+          return CKRecord.Reference(
             recordID: CKRecord.ID(
               recordName: parentRecordName.rawValue,
               zoneID: record.recordID.zoneID
@@ -589,26 +599,25 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func handleFetchedDatabaseChanges(_ event: CKSyncEngine.Event.FetchedDatabaseChanges) {
-    // TODO: Come back to this once we have zoneName in the metadata table.
-    //    $isUpdatingWithServerRecord.withValue(true) {
-    //      withErrorReporting(.sqliteDataCloudKitFailure) {
-    //        try database.write { db in
-    //          for deletion in event.deletions {
-    //            if let table = tablesByName[deletion.zoneID.zoneName] {
-    //              func open<T: PrimaryKeyedTable>(_: T.Type) {
-    //                withErrorReporting(.sqliteDataCloudKitFailure) {
-    //                  try T.delete().execute(db)
-    //                }
-    //              }
-    //              open(table)
-    //            }
-    //          }
-    //
-    //          // TODO: Deal with modifications?
-    //          _ = event.modifications
-    //        }
-    //      }
-    //    }
+    // TODO: How to handle this?
+    $isUpdatingWithServerRecord.withValue(true) {
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        try database.write { db in
+          for deletion in event.deletions {
+            // if let table = tablesByName[deletion.zoneID.zoneName] {
+            //   func open<T: PrimaryKeyedTable>(_: T.Type) {
+            //     withErrorReporting(.sqliteDataCloudKitFailure) {
+            //       try T.delete().execute(db)
+            //     }
+            //   }
+            //   open(table)
+          }
+        }
+
+        // TODO: Deal with modifications?
+        _ = event.modifications
+      }
+    }
   }
 
   package func handleFetchedRecordZoneChanges(
@@ -1097,5 +1106,15 @@ public struct NonNullColumnMustHaveDefault: Error {
       Table '\(table.tableName)' has non-null column\(columns.count == 1 ? "" : "s") with no \
       default: \(columns.map { "'\($0)'" }.joined(separator: ", "))
       """
+  }
+}
+
+private struct HashablePrimaryKeyedTableType: Hashable {
+  let type: any PrimaryKeyedTable<UUID>.Type
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(ObjectIdentifier(type))
+  }
+  static func == (lhs: Self, rhs: Self) -> Bool {
+    lhs.type == rhs.type
   }
 }
