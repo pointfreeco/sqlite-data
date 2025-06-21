@@ -3,9 +3,7 @@ import SharingGRDB
 
 @Table struct Reminder: Equatable, Identifiable {
   let id: UUID
-//  var assignedUserID: User.ID?
   var title = ""
-//  var parentReminderID: ID?
   var remindersListID: RemindersList.ID
 }
 @Table struct RemindersList: Equatable, Identifiable {
@@ -71,9 +69,7 @@ func database() throws -> DatabasePool {
       """
       CREATE TABLE "reminders" (
         "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
-        "assignedUserID" TEXT,
         "title" TEXT NOT NULL DEFAULT '',
-        "parentReminderID" TEXT, 
         "remindersListID" TEXT NOT NULL, 
         
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
