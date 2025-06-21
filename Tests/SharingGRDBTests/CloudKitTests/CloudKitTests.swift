@@ -21,7 +21,7 @@ extension BaseCloudKitTests {
             tableName: "remindersLists",
             schema: """
               CREATE TABLE "remindersLists" (
-                "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
                 "title" TEXT NOT NULL DEFAULT ''
               ) STRICT
               """
@@ -30,7 +30,7 @@ extension BaseCloudKitTests {
             tableName: "users",
             schema: """
               CREATE TABLE "users" (
-                "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
                 "name" TEXT NOT NULL DEFAULT '',
                 "parentUserID" TEXT,
               
@@ -42,15 +42,48 @@ extension BaseCloudKitTests {
             tableName: "reminders",
             schema: """
               CREATE TABLE "reminders" (
-                "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
                 "assignedUserID" TEXT,
                 "title" TEXT NOT NULL DEFAULT '',
                 "parentReminderID" TEXT, 
-                "remindersListID" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000', 
+                "remindersListID" TEXT NOT NULL, 
                 
-                FOREIGN KEY("assignedUserID") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE,
-                FOREIGN KEY("parentReminderID") REFERENCES "reminders"("id") ON DELETE RESTRICT ON UPDATE RESTRICT,
                 FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
+              ) STRICT
+              """
+          ),
+          [3]: RecordType(
+            tableName: "parents",
+            schema: """
+              CREATE TABLE "parents"(
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid())
+              ) STRICT
+              """
+          ),
+          [4]: RecordType(
+            tableName: "childWithOnDeleteRestricts",
+            schema: """
+              CREATE TABLE "childWithOnDeleteRestricts"(
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "parentID" TEXT NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
+              ) STRICT
+              """
+          ),
+          [5]: RecordType(
+            tableName: "childWithOnDeleteSetNulls",
+            schema: """
+              CREATE TABLE "childWithOnDeleteSetNulls"(
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
+              ) STRICT
+              """
+          ),
+          [6]: RecordType(
+            tableName: "childWithOnDeleteSetDefaults",
+            schema: """
+              CREATE TABLE "childWithOnDeleteSetDefaults"(
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT '00000000-0000-0000-0000-000000000000',
+                "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
               ) STRICT
               """
           )

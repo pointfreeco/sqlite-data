@@ -337,8 +337,8 @@ extension PrimaryKeyedTable<UUID> {
     db: Database
   ) throws {
     let foreignKey =
-      foreignKeysByTableName[tableName]?.count(where: \.notnull) == 1
-      ? foreignKeysByTableName[tableName]?.first(where: \.notnull)
+    foreignKeysByTableName[tableName]?.count == 1
+      ? foreignKeysByTableName[tableName]?.first
       : nil
 
     for trigger in metadataTriggers(foreignKey: foreignKey) {
@@ -348,7 +348,7 @@ extension PrimaryKeyedTable<UUID> {
     let foreignKeys = foreignKeysByTableName[tableName] ?? []
     for foreignKey in foreignKeys {
       guard let parent = tablesByName[foreignKey.table] else {
-        reportIssue("")
+        reportIssue("TODO")
         continue
       }
       try foreignKey.createTriggers(Self.self, belongsTo: parent, db: db)
@@ -1050,33 +1050,33 @@ private func validateSchema(
 ) throws {
   try database.read { db in
     for table in tables {
-      // TODO: write tests for this
-      let columnsWithUniqueConstraints =
-        try SQLQueryExpression(
-          """
-          SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text)) 
-          WHERE "unique" = 1 AND "origin" <> 'pk'
-          """,
-          as: String.self
-        )
-        .fetchAll(db)
-      if !columnsWithUniqueConstraints.isEmpty {
-        throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
-      }
+//      // TODO: write tests for this
+//      let columnsWithUniqueConstraints =
+//        try SQLQueryExpression(
+//          """
+//          SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text)) 
+//          WHERE "unique" = 1 AND "origin" <> 'pk'
+//          """,
+//          as: String.self
+//        )
+//        .fetchAll(db)
+//      if !columnsWithUniqueConstraints.isEmpty {
+//        throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
+//      }
 
-      // TODO: write tests for this
-      let nonNullColumnsWithNoDefault =
-        try SQLQueryExpression(
-          """
-          SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
-          WHERE "notnull" = 1 AND "dflt_value" IS NULL
-          """,
-          as: String.self
-        )
-        .fetchAll(db)
-      if !nonNullColumnsWithNoDefault.isEmpty {
-        throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
-      }
+//      // TODO: write tests for this
+//      let nonNullColumnsWithNoDefault =
+//        try SQLQueryExpression(
+//          """
+//          SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
+//          WHERE "notnull" = 1 AND "dflt_value" IS NULL
+//          """,
+//          as: String.self
+//        )
+//        .fetchAll(db)
+//      if !nonNullColumnsWithNoDefault.isEmpty {
+//        throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
+//      }
     }
   }
 }

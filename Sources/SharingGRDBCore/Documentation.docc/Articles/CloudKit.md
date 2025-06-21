@@ -382,7 +382,7 @@ in the list?
 
 For these reasons it is not possible to share non-root records, like reminders. Instead, you can
 share root records, like reminders lists. If you do invoke ``SyncEngine/share(record:configure:)``
-with a non-root record, a ``SyncEngine/CantShareRecordWithParent`` error will be thrown.
+with a non-root record, a ``SyncEngine/RecordMustBeRoot`` error will be thrown.
 
 > Note: A reminder can still be shared as an association to a shared reminders list, as discussed
 > [in the next section](<doc:CloudKit#Sharing foreign key relationships>). However, a single 

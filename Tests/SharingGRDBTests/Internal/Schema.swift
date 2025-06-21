@@ -3,9 +3,9 @@ import SharingGRDB
 
 @Table struct Reminder: Equatable, Identifiable {
   let id: UUID
-  var assignedUserID: User.ID?
+//  var assignedUserID: User.ID?
   var title = ""
-  var parentReminderID: ID?
+//  var parentReminderID: ID?
   var remindersListID: RemindersList.ID
 }
 @Table struct RemindersList: Equatable, Identifiable {
@@ -16,6 +16,22 @@ import SharingGRDB
   let id: UUID
   var name = ""
   var parentUserID: User.ID?
+}
+
+@Table struct Parent: Equatable, Identifiable {
+  let id: UUID
+}
+@Table struct ChildWithOnDeleteRestrict: Equatable, Identifiable {
+  let id: UUID
+  let parentID: Parent.ID
+}
+@Table struct ChildWithOnDeleteSetNull: Equatable, Identifiable {
+  let id: UUID
+  let parentID: Parent.ID?
+}
+@Table struct ChildWithOnDeleteSetDefault: Equatable, Identifiable {
+  let id: UUID
+  let parentID: Parent.ID
 }
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
@@ -33,7 +49,7 @@ func database() throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "remindersLists" (
-        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
         "title" TEXT NOT NULL DEFAULT ''
       ) STRICT
       """
@@ -42,7 +58,7 @@ func database() throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "users" (
-        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
         "name" TEXT NOT NULL DEFAULT '',
         "parentUserID" TEXT,
       
@@ -54,19 +70,46 @@ func database() throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "reminders" (
-        "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
+        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
         "assignedUserID" TEXT,
         "title" TEXT NOT NULL DEFAULT '',
         "parentReminderID" TEXT, 
-        "remindersListID" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000', 
+        "remindersListID" TEXT NOT NULL, 
         
-        FOREIGN KEY("assignedUserID") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE,
-        FOREIGN KEY("parentReminderID") REFERENCES "reminders"("id") ON DELETE RESTRICT ON UPDATE RESTRICT,
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT
       """
     )
     .execute(db)
+    try #sql("""
+      CREATE TABLE "parents"(
+        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid())
+      ) STRICT
+      """)
+    .execute(db)
+    try #sql("""
+      CREATE TABLE "childWithOnDeleteRestricts"(
+        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "parentID" TEXT NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
+      ) STRICT
+      """)
+    .execute(db)
+    try #sql("""
+      CREATE TABLE "childWithOnDeleteSetNulls"(
+        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
+      ) STRICT
+      """)
+    .execute(db)
+    try #sql("""
+      CREATE TABLE "childWithOnDeleteSetDefaults"(
+        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT '00000000-0000-0000-0000-000000000000',
+        "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
+      ) STRICT
+      """)
+    .execute(db)
+
+    
   }
   return database
 }

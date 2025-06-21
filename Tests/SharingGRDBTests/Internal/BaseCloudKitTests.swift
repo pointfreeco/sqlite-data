@@ -40,7 +40,15 @@ class BaseCloudKitTests: @unchecked Sendable {
       metadatabaseURL: URL.temporaryDirectory.appending(
         path: "metadatabase.\(UUID().uuidString).sqlite"
       ),
-      tables: [Reminder.self, RemindersList.self, User.self]
+      tables: [
+        Reminder.self,
+        RemindersList.self,
+        User.self,
+        Parent.self,
+        ChildWithOnDeleteRestrict.self,
+        ChildWithOnDeleteSetNull.self,
+        ChildWithOnDeleteSetDefault.self,
+      ]
     )
     try await Task.sleep(for: .seconds(0.1))
     privateSyncEngine.assertFetchChangesScopes([.all])
