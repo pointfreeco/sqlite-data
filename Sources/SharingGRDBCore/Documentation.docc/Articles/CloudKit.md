@@ -325,3 +325,9 @@ See <doc:SharingWithCloudKit> for more information.
 ## Migrating from Swift Data to SharingGRDB
 
 ## Separating schema migrations from data migrations
+
+## Topics
+
+### Go deeper
+
+- <doc:ComparisonWithSwiftData>
