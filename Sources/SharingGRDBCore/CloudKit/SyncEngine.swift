@@ -336,12 +336,12 @@ extension PrimaryKeyedTable<UUID> {
     tablesByName: [String: any PrimaryKeyedTable<UUID>.Type],
     db: Database
   ) throws {
-    let foreignKey =
+    let parentForeignKey =
     foreignKeysByTableName[tableName]?.count == 1
       ? foreignKeysByTableName[tableName]?.first
       : nil
 
-    for trigger in metadataTriggers(foreignKey: foreignKey) {
+    for trigger in metadataTriggers(parentForeignKey: parentForeignKey) {
       try trigger.execute(db)
     }
 
@@ -365,7 +365,7 @@ extension PrimaryKeyedTable<UUID> {
       try foreignKey.dropTriggers(for: Self.self, db: db)
     }
 
-    for trigger in metadataTriggers(foreignKey: nil).reversed() {
+    for trigger in metadataTriggers(parentForeignKey: nil).reversed() {
       try trigger.drop().execute(db)
     }
   }
