@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import CloudKit
 import StructuredQueriesCore
 
@@ -87,3 +88,4 @@ extension StateSerialization: StructuredQueriesCore.Table, StructuredQueriesCore
     self.data = data
   }
 }
+#endif

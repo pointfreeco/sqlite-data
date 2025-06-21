@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import CloudKit
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -41,3 +42,4 @@ package protocol CKSyncEngineStateProtocol: Sendable {
   func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange])
   func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange])
 }
+#endif
