@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import CloudKit
 import os
 
@@ -238,3 +239,4 @@ extension CKDatabase.Scope {
     }
   }
 }
+#endif

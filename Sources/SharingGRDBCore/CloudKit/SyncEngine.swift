@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import CloudKit
 import ConcurrencyExtras
 import OSLog
@@ -1099,3 +1100,4 @@ public struct NonNullColumnMustHaveDefault: Error {
       """
   }
 }
+#endif

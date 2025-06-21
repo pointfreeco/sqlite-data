@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import CloudKit
 import Dependencies
 import SwiftUI
@@ -178,4 +179,5 @@ extension SyncEngine {
       didFinish(.failure(error))
     }
   }
+#endif
 #endif
