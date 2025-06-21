@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - cloudkit
   pull_request:
     branches:
       - '*'
