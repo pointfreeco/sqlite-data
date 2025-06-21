@@ -344,7 +344,7 @@ extension PrimaryKeyedTable<UUID> {
     db: Database
   ) throws {
     let parentForeignKey =
-    foreignKeysByTableName[tableName]?.count == 1
+      foreignKeysByTableName[tableName]?.count == 1
       ? foreignKeysByTableName[tableName]?.first
       : nil
 
@@ -400,7 +400,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     case .sentRecordZoneChanges(let event):
       handleSentRecordZoneChanges(event, syncEngine: syncEngine)
     case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
-        .didFetchChanges, .willSendChanges, .didSendChanges:
+      .didFetchChanges, .willSendChanges, .didSendChanges:
       break
     @unknown default:
       break
@@ -429,57 +429,57 @@ extension SyncEngine: CKSyncEngineDelegate {
       changes += keyValue.value
     }
 
-#if DEBUG
-    struct State {
-      var missingTables: [CKRecord.ID] = []
-      var missingRecords: [CKRecord.ID] = []
-      var sentRecords: [CKRecord.ID] = []
-    }
-    let state = LockIsolated(State())
-    defer {
-      let state = state.withValue(\.self)
-      let missingTables = Dictionary(grouping: state.missingTables, by: \.zoneID.zoneName)
-        .reduce(into: [String]()) {
-          strings,
-          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-        }
-        .joined(separator: ", ")
-      let missingRecords = Dictionary(grouping: state.missingRecords, by: \.zoneID.zoneName)
-        .reduce(into: [String]()) {
-          strings,
-          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-        }
-        .joined(separator: ", ")
-      let sentRecords = Dictionary(grouping: state.sentRecords, by: \.zoneID.zoneName)
-        .reduce(into: [String]()) {
-          strings,
-          keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-        }
-        .joined(separator: ", ")
-      logger.debug(
+    #if DEBUG
+      struct State {
+        var missingTables: [CKRecord.ID] = []
+        var missingRecords: [CKRecord.ID] = []
+        var sentRecords: [CKRecord.ID] = []
+      }
+      let state = LockIsolated(State())
+      defer {
+        let state = state.withValue(\.self)
+        let missingTables = Dictionary(grouping: state.missingTables, by: \.zoneID.zoneName)
+          .reduce(into: [String]()) {
+            strings,
+            keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+          }
+          .joined(separator: ", ")
+        let missingRecords = Dictionary(grouping: state.missingRecords, by: \.zoneID.zoneName)
+          .reduce(into: [String]()) {
+            strings,
+            keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+          }
+          .joined(separator: ", ")
+        let sentRecords = Dictionary(grouping: state.sentRecords, by: \.zoneID.zoneName)
+          .reduce(into: [String]()) {
+            strings,
+            keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
+          }
+          .joined(separator: ", ")
+        logger.debug(
           """
           [\(syncEngine.scope.label)] nextRecordZoneChangeBatch: \(context.reason)
             \(state.missingTables.isEmpty ? "⚪️ No missing tables" : "⚠️ Missing tables: \(missingTables)")
             \(state.missingRecords.isEmpty ? "⚪️ No missing records" : "⚠️ Missing records: \(missingRecords)")
             \(state.sentRecords.isEmpty ? "⚪️ No sent records" : "✅ Sent records: \(sentRecords)")
           """
-      )
-    }
-#endif
+        )
+      }
+    #endif
 
     let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
-#if DEBUG
-      var missingTable: CKRecord.ID?
-      var missingRecord: CKRecord.ID?
-      var sentRecord: CKRecord.ID?
-      defer {
-        state.withValue { [missingTable, missingRecord, sentRecord] in
-          if let missingTable { $0.missingTables.append(missingTable) }
-          if let missingRecord { $0.missingRecords.append(missingRecord) }
-          if let sentRecord { $0.sentRecords.append(sentRecord) }
+      #if DEBUG
+        var missingTable: CKRecord.ID?
+        var missingRecord: CKRecord.ID?
+        var sentRecord: CKRecord.ID?
+        defer {
+          state.withValue { [missingTable, missingRecord, sentRecord] in
+            if let missingTable { $0.missingTables.append(missingTable) }
+            if let missingRecord { $0.missingRecords.append(missingRecord) }
+            if let sentRecord { $0.sentRecords.append(sentRecord) }
+          }
         }
-      }
-#endif
+      #endif
 
       guard
         let recordName = SyncMetadata.RecordName(recordID: recordID),
@@ -497,12 +497,12 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
       func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) async -> CKRecord? {
         let row =
-        withErrorReporting {
-          try database.read { db in
-            try T.find(recordName.id).fetchOne(db)
+          withErrorReporting {
+            try database.read { db in
+              try T.find(recordName.id).fetchOne(db)
+            }
           }
-        }
-        ?? nil
+          ?? nil
         guard let row
         else {
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
@@ -511,11 +511,11 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
 
         let record =
-        metadata.lastKnownServerRecord
-        ?? CKRecord(
-          recordType: metadata.recordType,
-          recordID: recordID
-        )
+          metadata.lastKnownServerRecord
+          ?? CKRecord(
+            recordType: metadata.recordType,
+            recordID: recordID
+          )
         record.parent = metadata.parentRecordName.flatMap { parentRecordName in
           guard !privateTables.contains(where: { $0.tableName == parentRecordName.recordType })
           else { return nil }
@@ -648,11 +648,13 @@ extension SyncEngine: CKSyncEngineDelegate {
       for (recordID, recordType) in deletions {
         guard let recordName = SyncMetadata.RecordName(recordID: recordID)
         else {
-          reportIssue("""
-          Received 'recordName' in invalid format: \(recordID.recordName)
-          
-          'recordName' should be formatted as "uuid:tableName". 
-          """)
+          reportIssue(
+            """
+            Received 'recordName' in invalid format: \(recordID.recordName)
+
+            'recordName' should be formatted as "uuid:tableName". 
+            """
+          )
           continue
         }
         if let table = tablesByName[recordType] {
@@ -702,11 +704,13 @@ extension SyncEngine: CKSyncEngineDelegate {
       let failedRecord = failedRecordSave.record
       guard let recordName = SyncMetadata.RecordName(rawValue: failedRecord.recordID.recordName)
       else {
-        reportIssue("""
+        reportIssue(
+          """
           Attempted to delete record with invalid 'recordName': \(failedRecord.recordID.recordName)
-          
+
           'recordName' should be formatted as "uuid:tableName".
-          """)
+          """
+        )
         continue
       }
 
@@ -762,11 +766,13 @@ extension SyncEngine: CKSyncEngineDelegate {
     else { return }
     guard let recordName = SyncMetadata.RecordName(recordID: rootRecord.recordID)
     else {
-      reportIssue("""
-          Attempted to delete record with invalid 'recordName': \(rootRecord.recordID.recordName)
-          
-          'recordName' should be formatted as "uuid:tableName".
-          """)
+      reportIssue(
+        """
+        Attempted to delete record with invalid 'recordName': \(rootRecord.recordID.recordName)
+
+        'recordName' should be formatted as "uuid:tableName".
+        """
+      )
       return
     }
 
@@ -811,11 +817,13 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
         guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
         else {
-          reportIssue("""
-          Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
-          
-          'recordName' should be formatted as "uuid:tableName".
-          """)
+          reportIssue(
+            """
+            Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
+
+            'recordName' should be formatted as "uuid:tableName".
+            """
+          )
           return
         }
         let userModificationDate =
@@ -899,11 +907,13 @@ extension SyncEngine: CKSyncEngineDelegate {
     $isUpdatingWithServerRecord.withValue(true) {
       guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
       else {
-        reportIssue("""
+        reportIssue(
+          """
           Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
-          
+
           'recordName' should be formatted as "uuid:tableName".
-          """)
+          """
+        )
         return
       }
       let metadata = metadataFor(recordName: recordName)
@@ -972,11 +982,13 @@ extension DatabaseFunction {
       }
       guard let recordName = SyncMetadata.RecordName(rawValue: recordName)
       else {
-        reportIssue("""
+        reportIssue(
+          """
           Received 'recordName' in invalid format: \(recordName)
-          
+
           'recordName' should be formatted as "uuid:tableName". 
-          """)
+          """
+        )
         return nil
       }
       function(recordName)
@@ -1059,33 +1071,33 @@ private func validateSchema(
 ) throws {
   try database.read { db in
     for table in tables {
-//      // TODO: write tests for this
-//      let columnsWithUniqueConstraints =
-//        try SQLQueryExpression(
-//          """
-//          SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text)) 
-//          WHERE "unique" = 1 AND "origin" <> 'pk'
-//          """,
-//          as: String.self
-//        )
-//        .fetchAll(db)
-//      if !columnsWithUniqueConstraints.isEmpty {
-//        throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
-//      }
+      //      // TODO: write tests for this
+      //      let columnsWithUniqueConstraints =
+      //        try SQLQueryExpression(
+      //          """
+      //          SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
+      //          WHERE "unique" = 1 AND "origin" <> 'pk'
+      //          """,
+      //          as: String.self
+      //        )
+      //        .fetchAll(db)
+      //      if !columnsWithUniqueConstraints.isEmpty {
+      //        throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
+      //      }
 
-//      // TODO: write tests for this
-//      let nonNullColumnsWithNoDefault =
-//        try SQLQueryExpression(
-//          """
-//          SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
-//          WHERE "notnull" = 1 AND "dflt_value" IS NULL
-//          """,
-//          as: String.self
-//        )
-//        .fetchAll(db)
-//      if !nonNullColumnsWithNoDefault.isEmpty {
-//        throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
-//      }
+      //      // TODO: write tests for this
+      //      let nonNullColumnsWithNoDefault =
+      //        try SQLQueryExpression(
+      //          """
+      //          SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
+      //          WHERE "notnull" = 1 AND "dflt_value" IS NULL
+      //          """,
+      //          as: String.self
+      //        )
+      //        .fetchAll(db)
+      //      if !nonNullColumnsWithNoDefault.isEmpty {
+      //        throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
+      //      }
     }
   }
 }
