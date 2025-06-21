@@ -61,6 +61,10 @@ extension SyncMetadata.TableColumns {
     SQLQueryExpression("substr(\(parentRecordName), 1, 36)")
   }
 
+  public var recordPrimaryKey: some QueryExpression<UUID> {
+    SQLQueryExpression("substr(\(recordName), 1, 36)")
+  }
+
   public var parentRecordType: some QueryExpression<String?> {
     SQLQueryExpression("substr(\(parentRecordName), 38)")
   }
