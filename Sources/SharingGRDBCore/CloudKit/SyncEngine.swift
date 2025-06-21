@@ -337,7 +337,7 @@ extension PrimaryKeyedTable<UUID> {
     db: Database
   ) throws {
     let parentForeignKey =
-    foreignKeysByTableName[tableName]?.count == 1
+      foreignKeysByTableName[tableName]?.count == 1
       ? foreignKeysByTableName[tableName]?.first
       : nil
 
@@ -639,11 +639,13 @@ extension SyncEngine: CKSyncEngineDelegate {
       for (recordID, recordType) in deletions {
         guard let recordName = SyncMetadata.RecordName(recordID: recordID)
         else {
-          reportIssue("""
-          Received 'recordName' in invalid format: \(recordID.recordName)
-          
-          'recordName' should be formatted as "uuid:tableName". 
-          """)
+          reportIssue(
+            """
+            Received 'recordName' in invalid format: \(recordID.recordName)
+
+            'recordName' should be formatted as "uuid:tableName". 
+            """
+          )
           continue
         }
         if let table = tablesByName[recordType] {
@@ -693,11 +695,13 @@ extension SyncEngine: CKSyncEngineDelegate {
       let failedRecord = failedRecordSave.record
       guard let recordName = SyncMetadata.RecordName(rawValue: failedRecord.recordID.recordName)
       else {
-        reportIssue("""
+        reportIssue(
+          """
           Attempted to delete record with invalid 'recordName': \(failedRecord.recordID.recordName)
-          
+
           'recordName' should be formatted as "uuid:tableName".
-          """)
+          """
+        )
         continue
       }
 
@@ -753,11 +757,13 @@ extension SyncEngine: CKSyncEngineDelegate {
     else { return }
     guard let recordName = SyncMetadata.RecordName(recordID: rootRecord.recordID)
     else {
-      reportIssue("""
-          Attempted to delete record with invalid 'recordName': \(rootRecord.recordID.recordName)
-          
-          'recordName' should be formatted as "uuid:tableName".
-          """)
+      reportIssue(
+        """
+        Attempted to delete record with invalid 'recordName': \(rootRecord.recordID.recordName)
+
+        'recordName' should be formatted as "uuid:tableName".
+        """
+      )
       return
     }
 
@@ -802,11 +808,13 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
         guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
         else {
-          reportIssue("""
-          Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
-          
-          'recordName' should be formatted as "uuid:tableName".
-          """)
+          reportIssue(
+            """
+            Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
+
+            'recordName' should be formatted as "uuid:tableName".
+            """
+          )
           return
         }
         let userModificationDate =
@@ -890,11 +898,13 @@ extension SyncEngine: CKSyncEngineDelegate {
     $isUpdatingWithServerRecord.withValue(true) {
       guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
       else {
-        reportIssue("""
+        reportIssue(
+          """
           Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
-          
+
           'recordName' should be formatted as "uuid:tableName".
-          """)
+          """
+        )
         return
       }
       let metadata = metadataFor(recordName: recordName)
@@ -963,11 +973,13 @@ extension DatabaseFunction {
       }
       guard let recordName = SyncMetadata.RecordName(rawValue: recordName)
       else {
-        reportIssue("""
+        reportIssue(
+          """
           Received 'recordName' in invalid format: \(recordName)
-          
+
           'recordName' should be formatted as "uuid:tableName". 
-          """)
+          """
+        )
         return nil
       }
       function(recordName)
@@ -1050,33 +1062,33 @@ private func validateSchema(
 ) throws {
   try database.read { db in
     for table in tables {
-//      // TODO: write tests for this
-//      let columnsWithUniqueConstraints =
-//        try SQLQueryExpression(
-//          """
-//          SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text)) 
-//          WHERE "unique" = 1 AND "origin" <> 'pk'
-//          """,
-//          as: String.self
-//        )
-//        .fetchAll(db)
-//      if !columnsWithUniqueConstraints.isEmpty {
-//        throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
-//      }
+      //      // TODO: write tests for this
+      //      let columnsWithUniqueConstraints =
+      //        try SQLQueryExpression(
+      //          """
+      //          SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
+      //          WHERE "unique" = 1 AND "origin" <> 'pk'
+      //          """,
+      //          as: String.self
+      //        )
+      //        .fetchAll(db)
+      //      if !columnsWithUniqueConstraints.isEmpty {
+      //        throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
+      //      }
 
-//      // TODO: write tests for this
-//      let nonNullColumnsWithNoDefault =
-//        try SQLQueryExpression(
-//          """
-//          SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
-//          WHERE "notnull" = 1 AND "dflt_value" IS NULL
-//          """,
-//          as: String.self
-//        )
-//        .fetchAll(db)
-//      if !nonNullColumnsWithNoDefault.isEmpty {
-//        throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
-//      }
+      //      // TODO: write tests for this
+      //      let nonNullColumnsWithNoDefault =
+      //        try SQLQueryExpression(
+      //          """
+      //          SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
+      //          WHERE "notnull" = 1 AND "dflt_value" IS NULL
+      //          """,
+      //          as: String.self
+      //        )
+      //        .fetchAll(db)
+      //      if !nonNullColumnsWithNoDefault.isEmpty {
+      //        throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
+      //      }
     }
   }
 }
