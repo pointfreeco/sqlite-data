@@ -15,9 +15,11 @@ to make sure you understand how to best prepare your app for cloud synchronizati
   - [Setting up a SyncEngine](#Setting-up-a-SyncEngine)  
   - [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)  
     - [UUID Primary keys](#UUID-Primary-keys)  
-    - [Primary keys on every table](#Primary-keys-on-every-table)  
+    - [Primary keys on every table](#Primary-keys-on-every-table)
+<!--
     - [Default values for columns](#Default-values-for-columns)  
-    - [Unique constraints](#Unique-constraints)  
+    - [Unique constraints](#Unique-constraints)
+-->
     - [Foreign key relationships](#Foreign-key-relationships)  
   - [Record conflicts](#Record-conflicts)  
   - [Backwards compatible migrations](#Backwards-compatible-migrations)  
@@ -165,6 +167,9 @@ CREATE TABLE "reminderTags" (
 Note that the `id` column may never be used in your application code, but it is necessary to 
 facilitate synchronizing to CloudKit.
 
+<!--
+TODO: think more about this
+
 #### Default values for columns
 
 > Important: All columns must have a default in order to allow for multiple devices to run your
@@ -195,6 +200,7 @@ discard one of the tags.
 For this reason uniqueness constraints are not allowed in schemas, and this will be validated
 when a ``SyncEngine`` is first created. If a uniqueness constraint is detected a 
 ``UniqueConstraintDisallowed`` error will be thrown.
+-->
 
 #### Foreign key relationships
 
