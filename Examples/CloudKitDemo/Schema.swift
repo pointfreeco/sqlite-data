@@ -12,7 +12,6 @@ func appDatabase() throws -> any DatabaseWriter {
   var configuration = Configuration()
   configuration.foreignKeysEnabled = false
   configuration.prepareDatabase { db in
-    try db.attachMetadatabase(containerIdentifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitDemo")
     db.trace {
       print($0.expandedDescription)
     }
