@@ -29,13 +29,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
   ) -> Bool {
     try! prepareDependencies {
       $0.defaultDatabase = try appDatabase()
-      $0.defaultSyncEngine = try SyncEngine(
-        container: CKContainer(
-          identifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitDemo"
-        ),
-        database: $0.defaultDatabase,
-        tables: [Counter.self]
-      )
     }
     return true
   }
@@ -56,14 +49,5 @@ class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   var window: UIWindow?
-  func windowScene(
-    _ windowScene: UIWindowScene,
-    userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
-  ) {
-    @Dependency(\.defaultSyncEngine) var syncEngine
-    Task {
-      try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
-    }
-  }
 }
 #endif
