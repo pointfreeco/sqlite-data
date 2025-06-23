@@ -758,12 +758,14 @@ extension SyncEngine: CKSyncEngineDelegate {
       return
     }
 
-    try await database.write { db in
-      try SyncMetadata
-        .find(recordName)
-        .update { $0.share = share }
-        .execute(db)
-    }
+    try {
+      try database.write { db in
+        try SyncMetadata
+          .find(recordName)
+          .update { $0.share = share }
+          .execute(db)
+      }
+    }()
   }
 
   private func deleteShare(recordID: CKRecord.ID, recordType: String) throws {
