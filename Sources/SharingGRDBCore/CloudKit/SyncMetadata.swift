@@ -86,6 +86,21 @@ public struct SyncMetadata: Hashable, Sendable {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncMetadata.TableColumns {
+  public var parentRecordPrimaryKey: some QueryExpression<UUID?> {
+    SQLQueryExpression("substr(\(parentRecordName), 1, 36)")
+  }
+
+  public var recordPrimaryKey: some QueryExpression<UUID> {
+    SQLQueryExpression("substr(\(recordName), 1, 36)")
+  }
+
+  public var parentRecordType: some QueryExpression<String?> {
+    SQLQueryExpression("substr(\(parentRecordName), 38)")
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension PrimaryKeyedTable<UUID> {
   /// Constructs a ``SyncMetadata/RecordName-swift.struct`` for a primary keyed table give an ID.
   ///

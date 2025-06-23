@@ -45,11 +45,19 @@ class RemindersListsModel {
           flaggedCount: $0.count(filter: $0.isFlagged && !$0.isCompleted),
           scheduledCount: $0.count(filter: $0.isScheduled),
           sharedCount: SyncMetadata.count {
-            $0.recordType.eq(Reminder.tableName) && $0.share.isNot(nil)
+            $0.recordType.eq(Reminder.tableName)
+              && $0.parentRecordName.map {
+                $0.in(
+                  SyncMetadata
+                    .where { $0.recordType.eq(RemindersList.tableName) && $0.share.isNot(nil) }
+                    .select(\.recordName)
+                )
+              }
+                ?? false
           },
           todayCount: $0.count(filter: $0.isToday)
-      )
-    }
+        )
+      }
   )
   var stats = Stats()
 
@@ -138,13 +146,13 @@ class RemindersListsModel {
   }
 
   #if DEBUG
-  func seedDatabaseButtonTapped() {
-    withErrorReporting {
-      try database.write { db in
-        try db.seedSampleData()
+    func seedDatabaseButtonTapped() {
+      withErrorReporting {
+        try database.write { db in
+          try db.seedSampleData()
+        }
       }
     }
-  }
   #endif
 
   @CasePathable
@@ -244,7 +252,7 @@ struct RemindersListsView: View {
                 iconName: "square.and.arrow.up.fill",
                 title: "Shared"
               ) {
-                model.statTapped(.completed)
+                model.statTapped(.shared)
               }
             }
           }
@@ -309,7 +317,7 @@ struct RemindersListsView: View {
     .listStyle(.insetGrouped)
     .toolbar {
       #if DEBUG
-      ToolbarItem(placement: .automatic) {
+        ToolbarItem(placement: .automatic) {
           Menu {
             Button {
               model.seedDatabaseButtonTapped()
