@@ -280,49 +280,57 @@ public final class SyncEngine: Sendable {
   }
 
   func didUpdate(recordName: SyncMetadata.RecordName) {
-    let zoneID = zoneID(for: recordName)
-    let syncEngine = syncEngines.withValue {
-      zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-    }
-    syncEngine?.state.add(
-      pendingRecordZoneChanges: [
-        .saveRecord(
-          CKRecord.ID(
-            recordName: recordName.rawValue,
-            zoneID: zoneID
+    DispatchQueue.main.async {
+      let zoneID = self.zoneID(for: recordName)
+      let syncEngine = self.syncEngines.withValue {
+        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+      }
+      syncEngine?.state.add(
+        pendingRecordZoneChanges: [
+          .saveRecord(
+            CKRecord.ID(
+              recordName: recordName.rawValue,
+              zoneID: zoneID
+            )
           )
-        )
-      ]
-    )
+        ]
+      )
+    }
   }
 
   func didDelete(recordName: SyncMetadata.RecordName) {
-    let zoneID = zoneID(for: recordName)
-    let syncEngine = syncEngines.withValue {
-      zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-    }
-    syncEngine?.state.add(
-      pendingRecordZoneChanges: [
-        .deleteRecord(
-          CKRecord.ID(
-            recordName: recordName.rawValue,
-            zoneID: zoneID
+    DispatchQueue.main.async {
+      let zoneID = zoneID(for: recordName)
+      let syncEngine = syncEngines.withValue {
+        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+      }
+      syncEngine?.state.add(
+        pendingRecordZoneChanges: [
+          .deleteRecord(
+            CKRecord.ID(
+              recordName: recordName.rawValue,
+              zoneID: zoneID
+            )
           )
-        )
-      ]
-    )
+        ]
+      )
+    }
   }
 
   private func zoneID(for recordName: SyncMetadata.RecordName) -> CKRecordZone.ID {
-    let metadata =
+    let lastKnownServerRecord =
       withErrorReporting {
         try metadatabase.read { db in
-          try SyncMetadata
+          struct Parent: AliasName {}
+          return try SyncMetadata
             .find(recordName)
+            .leftJoin(SyncMetadata.as(Parent.self).all) { $1.recordName.is($0.parentRecordName) }
+            .select { $0.lastKnownServerRecord ?? $1.lastKnownServerRecord }
             .fetchOne(db)
         }
       } ?? nil
-    return metadata?.lastKnownServerRecord?.recordID.zoneID ?? Self.defaultZone.zoneID
+    // TODO: Clean up double optional
+    return lastKnownServerRecord??.recordID.zoneID ?? Self.defaultZone.zoneID
   }
 }
 
