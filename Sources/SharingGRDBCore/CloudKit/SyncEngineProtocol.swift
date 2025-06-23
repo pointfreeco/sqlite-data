@@ -8,6 +8,10 @@ package protocol SyncEngineProtocol<State>: AnyObject, Sendable {
   var scope: CKDatabase.Scope { get }
   func acceptShare(metadata: ShareMetadata) async throws
   func cancelOperations() async
+  func recordZoneChangeBatch(
+    pendingChanges: [CKSyncEngine.PendingRecordZoneChange],
+    recordProvider: @Sendable (CKRecord.ID) async -> CKRecord?
+  ) async -> CKSyncEngine.RecordZoneChangeBatch?
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -36,6 +40,7 @@ package struct ShareMetadata: Hashable {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 package protocol CKSyncEngineStateProtocol: Sendable {
+  var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] { get }
   func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange])
   func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange])
   func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange])

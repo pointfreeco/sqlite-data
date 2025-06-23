@@ -7,7 +7,7 @@ import SnapshotTestingCustomDump
 import Testing
 
 extension BaseCloudKitTests {
-//  final class SyncEngineTests: BaseCloudKitTests, @unchecked Sendable {
+  final class SyncEngineTests: BaseCloudKitTests, @unchecked Sendable {
 //    #if os(macOS)
 //      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 //      @Test func foreignKeysDisabled() throws {
@@ -29,7 +29,11 @@ extension BaseCloudKitTests {
 //        )
 //      }
 //    #endif
-//  }
+
+    @Test func nextRecordZoneChangeBatch() async throws {
+      
+    }
+  }
 }
 
 private func databaseWithForeignKeys() throws -> any DatabaseWriter {

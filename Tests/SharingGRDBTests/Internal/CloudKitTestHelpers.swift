@@ -35,6 +35,34 @@ final class MockSyncEngine: SyncEngineProtocol {
     _ = _acceptedShareMetadata.withValue { $0.insert(metadata) }
   }
 
+  func recordZoneChangeBatch(
+    pendingChanges: [CKSyncEngine.PendingRecordZoneChange],
+    recordProvider: @Sendable (CKRecord.ID) async -> CKRecord?
+  ) async -> CKSyncEngine.RecordZoneChangeBatch? {
+    let savedRecordIDs: [CKRecord.ID] = state.pendingRecordZoneChanges.compactMap {
+      guard case .saveRecord(let recordID) = $0
+      else { return nil }
+      return recordID
+    }
+    let recordsToSave = await withoutActuallyEscaping(recordProvider) { escapingRecordProvider in
+      await withTaskGroup(of: CKRecord?.self, returning: [CKRecord].self) { group in
+        for recordID in savedRecordIDs {
+          group.addTask {
+            await escapingRecordProvider(recordID)
+          }
+        }
+        return await group.compactMap { $0 }.reduce(into: []) { $0 += [$1] }
+      }
+    }
+    let recordIDsToDelete: [CKRecord.ID] = state.pendingRecordZoneChanges.compactMap {
+      guard case .deleteRecord(let recordID) = $0
+      else { return nil }
+      return recordID
+    }
+
+    return CKSyncEngine.RecordZoneChangeBatch(recordsToSave: recordsToSave, recordIDsToDelete: recordIDsToDelete)
+  }
+
   func assertFetchChangesScopes(
     _ scopes: Set<CKSyncEngine.FetchChangesOptions.Scope>,
     fileID: StaticString = #fileID,
@@ -138,6 +166,10 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol {
       )
       $0.removeAll()
     }
+  }
+
+  var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] {
+    _pendingRecordZoneChanges.withValue { Array($0) }
   }
 
   func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {

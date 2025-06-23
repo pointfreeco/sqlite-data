@@ -411,6 +411,21 @@ extension SyncEngine: CKSyncEngineDelegate {
     _ context: CKSyncEngine.SendChangesContext,
     syncEngine: CKSyncEngine
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
+    let syncEngine = syncEngines.withValue {
+      syncEngine === $0.private ? $0.private : $0.shared
+    }
+    guard let syncEngine
+    else {
+      reportIssue("TODO")
+      return nil
+    }
+    return await _nextRecordZoneChangeBatch(context, syncEngine: syncEngine)
+  }
+
+  package func _nextRecordZoneChangeBatch(
+    _ context: CKSyncEngine.SendChangesContext,
+    syncEngine: any SyncEngineProtocol
+  ) async -> CKSyncEngine.RecordZoneChangeBatch? {
     let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(
       context.options.scope.contains
     )
@@ -467,7 +482,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
     #endif
 
-    let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
+    let batch = await syncEngines.withValue(\.private)?.recordZoneChangeBatch(pendingChanges: changes) { recordID in
       #if DEBUG
         var missingTable: CKRecord.ID?
         var missingRecord: CKRecord.ID?
