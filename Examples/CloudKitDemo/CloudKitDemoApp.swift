@@ -20,6 +20,8 @@ struct CloudKitDemoApp: App {
 
 
 class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
+  @Dependency(\.defaultSyncEngine) var syncEngine
+
   func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
@@ -35,5 +37,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
       )
     }
     return true
+  }
+
+  func application(
+    _ application: UIApplication,
+    userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
+  ) {
+    Task {
+      try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
+    }
   }
 }
