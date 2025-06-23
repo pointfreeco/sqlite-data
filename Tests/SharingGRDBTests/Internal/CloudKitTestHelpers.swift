@@ -44,15 +44,16 @@ final class MockSyncEngine: SyncEngineProtocol {
       else { return nil }
       return recordID
     }
-    let recordsToSave = await withoutActuallyEscaping(recordProvider) { escapingRecordProvider in
-      await withTaskGroup(of: CKRecord?.self, returning: [CKRecord].self) { group in
-        for recordID in savedRecordIDs {
-          group.addTask {
-            await escapingRecordProvider(recordID)
-          }
-        }
-        return await group.compactMap { $0 }.reduce(into: []) { $0 += [$1] }
+    var recordsToSave: [CKRecord] = []
+    defer {
+      for savedRecord in recordsToSave {
+        state.remove(pendingRecordZoneChanges: [.saveRecord(savedRecord.recordID)])
       }
+    }
+    for recordID in savedRecordIDs {
+      guard let record = await recordProvider(recordID)
+      else { continue }
+      recordsToSave.append(record)
     }
     let recordIDsToDelete: [CKRecord.ID] = state.pendingRecordZoneChanges.compactMap {
       guard case .deleteRecord(let recordID) = $0
@@ -223,5 +224,13 @@ extension CKSyncEngine.FetchChangesOptions.Scope: @retroactive Hashable {
     @unknown default:
       hasher.combine(3)
     }
+  }
+}
+
+struct SendChangesContext: Sendable {
+  var reason = CKSyncEngine.SyncReason.scheduled
+  var options = CKSyncEngine.SendChangesOptions(scope: .all)
+  var promoted: CKSyncEngine.SendChangesContext {
+    unsafeBitCast(self, to: CKSyncEngine.SendChangesContext.self)
   }
 }
