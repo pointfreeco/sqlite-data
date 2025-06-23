@@ -11,9 +11,6 @@ extension BaseCloudKitTests {
     @Test func nextRecordZoneChangeBatch_NoMetadataForRecord() async throws {
       privateSyncEngine.state
         .add(pendingRecordZoneChanges: [.saveRecord(Reminder.recordID(for: UUID(1)))])
-      #expect(privateSyncEngine.state.pendingRecordZoneChanges == [
-        .saveRecord(Reminder.recordID(for: UUID(1)))
-      ])
 
       let batch = await syncEngine._nextRecordZoneChangeBatch(
         SendChangesContext(
@@ -91,9 +88,11 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      #expect(privateSyncEngine.state.pendingRecordZoneChanges == [
-        .saveRecord(RemindersList.recordID(for: UUID(1)))
-      ])
+      #expect(
+        privateSyncEngine.state.pendingRecordZoneChanges == [
+          .saveRecord(RemindersList.recordID(for: UUID(1)))
+        ]
+      )
 
       let batch = await syncEngine._nextRecordZoneChangeBatch(
         SendChangesContext(
@@ -118,29 +117,40 @@ extension BaseCloudKitTests {
       try await database.write { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
+        }
+      }
+      try await database.write { db in
+        try db.seed {
           Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1)))
-      ])
+      #expect(
+        privateSyncEngine.state.pendingRecordZoneChanges == [
+          .saveRecord(RemindersList.recordID(for: UUID(1))),
+          .saveRecord(Reminder.recordID(for: UUID(1))),
+        ]
+      )
 
       let batch = await syncEngine._nextRecordZoneChangeBatch(
         SendChangesContext(
           options: CKSyncEngine.SendChangesOptions(
-            scope: .recordIDs([Reminder.recordID(for: UUID(1))])
+            scope: .recordIDs([
+              RemindersList.recordID(for: UUID(1)),
+              Reminder.recordID(for: UUID(1)),
+            ])
           )
         ),
         syncEngine: privateSyncEngine
       )
       #expect(batch?.recordIDsToDelete == [])
-      #expect(batch?.recordsToSave.count == 1)
+      #expect(batch?.recordsToSave.count == 2)
 
-      let savedRecord = try #require(batch?.recordsToSave.first)
-      #expect(savedRecord.encryptedValues["title"] == "Get milk")
-      #expect(savedRecord.recordType == RemindersList.tableName)
-      #expect(savedRecord.recordID == RemindersList.recordID(for: UUID(1)))
-      #expect(savedRecord.parent == CKRecord.Reference.ini)
+      let remindersListRecord = try #require(batch?.recordsToSave.first)
+      let reminderRecord = try #require(batch?.recordsToSave.last)
+      #expect(reminderRecord.encryptedValues["title"] == "Get milk")
+      #expect(reminderRecord.recordType == Reminder.tableName)
+      #expect(reminderRecord.recordID == Reminder.recordID(for: UUID(1)))
+      #expect(reminderRecord.parent?.recordID == remindersListRecord.recordID)
 
       #expect(privateSyncEngine.state.pendingRecordZoneChanges == [])
     }

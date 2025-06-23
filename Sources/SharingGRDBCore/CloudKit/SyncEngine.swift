@@ -411,15 +411,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     _ context: CKSyncEngine.SendChangesContext,
     syncEngine: CKSyncEngine
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-    let syncEngine = syncEngines.withValue {
-      syncEngine === $0.private ? $0.private : $0.shared
-    }
-    guard let syncEngine
-    else {
-      reportIssue("TODO")
-      return nil
-    }
-    return await _nextRecordZoneChangeBatch(
+    await _nextRecordZoneChangeBatch(
       SendChangesContext(context: context),
       syncEngine: syncEngine
     )
