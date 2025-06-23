@@ -226,11 +226,3 @@ extension CKSyncEngine.FetchChangesOptions.Scope: @retroactive Hashable {
     }
   }
 }
-
-struct SendChangesContext: Sendable {
-  var reason = CKSyncEngine.SyncReason.scheduled
-  var options = CKSyncEngine.SendChangesOptions(scope: .all)
-  var promoted: CKSyncEngine.SendChangesContext {
-    unsafeBitCast(self, to: CKSyncEngine.SendChangesContext.self)
-  }
-}

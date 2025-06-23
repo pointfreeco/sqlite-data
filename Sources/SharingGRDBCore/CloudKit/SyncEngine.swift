@@ -419,11 +419,14 @@ extension SyncEngine: CKSyncEngineDelegate {
       reportIssue("TODO")
       return nil
     }
-    return await _nextRecordZoneChangeBatch(context, syncEngine: syncEngine)
+    return await _nextRecordZoneChangeBatch(
+      SendChangesContext(context: context),
+      syncEngine: syncEngine
+    )
   }
 
   package func _nextRecordZoneChangeBatch(
-    _ context: CKSyncEngine.SendChangesContext,
+    _ context: SendChangesContext,
     syncEngine: any SyncEngineProtocol
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
     let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(
@@ -534,6 +537,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         record.parent = metadata.parentRecordName.flatMap { parentRecordName in
           guard !privateTables.contains(where: { $0.tableName == parentRecordName.recordType })
           else { return nil }
+          //CKRecord.Reference.init(record: <#T##CKRecord#>, action: <#T##CKRecord.ReferenceAction#>)
           return CKRecord.Reference(
             recordID: CKRecord.ID(
               recordName: parentRecordName.rawValue,
