@@ -1,19 +1,31 @@
 import CloudKit
 import SharingGRDB
-import SharingGRDB
 import SwiftUI
 import SwiftUINavigation
 
 struct CountersListView: View {
-  @FetchAll var counters: [Counter]
+  @FetchAll(
+    Counter
+      .join(SyncMetadata.all) { $0.id.eq($1.recordPrimaryKey) }
+      .where { $1.share.is(nil) }
+      .select { counter, _ in counter }
+  )
+  var localCounters: [Counter]
+  @FetchAll(
+    Counter
+      .join(SyncMetadata.all) { $0.id.eq($1.recordPrimaryKey) }
+      .where { $1.share.isNot(nil) }
+      .select { counter, _ in counter }
+  )
+  var sharedCounters: [Counter]
   @Dependency(\.defaultDatabase) var database
   @State var confirmDeletion: Counter?
 
   var body: some View {
     List {
-      if !counters.isEmpty {
+      if !localCounters.isEmpty {
         Section {
-          ForEach(counters) { counter in
+          ForEach(localCounters) { counter in
             CounterRow(counter: counter)
               .buttonStyle(.borderless)
           }
@@ -21,14 +33,35 @@ struct CountersListView: View {
             withErrorReporting {
               try database.write { db in
                 for index in indexSet {
-                  try Counter.find(counters[index].id).delete()
+                  try Counter.find(localCounters[index].id).delete()
                     .execute(db)
                 }
               }
             }
           }
         } header: {
-          Text("Counters")
+          Text("Local counters")
+        }
+      }
+
+      if !sharedCounters.isEmpty {
+        Section {
+          ForEach(sharedCounters) { counter in
+            CounterRow(counter: counter)
+              .buttonStyle(.borderless)
+          }
+          .onDelete { indexSet in
+            withErrorReporting {
+              try database.write { db in
+                for index in indexSet {
+                  try Counter.find(sharedCounters[index].id).delete()
+                    .execute(db)
+                }
+              }
+            }
+          }
+        } header: {
+          Text("Shared counters")
         }
       }
     }
