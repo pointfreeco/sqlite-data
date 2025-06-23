@@ -5,19 +5,6 @@ import SharingGRDB
 struct Counter: Identifiable {
   let id: UUID
   var count = 0
-
-  static let withShare = Counter
-    .join(Metadata.all) {
-      #sql("\($0.id) = \($1.recordName)")
-      && $1.share.isNot(nil)
-    }
-
-  static let nonShared = Counter
-    .where { counter in
-      !counter.id.in(
-        #sql("\(Metadata.where { $0.share.isNot(nil) }.select(\.recordName))")
-      )
-    }
 }
 
 func appDatabase() throws -> any DatabaseWriter {
@@ -28,7 +15,6 @@ func appDatabase() throws -> any DatabaseWriter {
     db.trace {
       print($0.expandedDescription)
     }
-    try db.attachMetadatabase(containerIdentifier: "iCloud.co.pointfree.SharingGRDB.CloudKitDemo")
   }
   let database = try DatabasePool(path: path, configuration: configuration)
 
