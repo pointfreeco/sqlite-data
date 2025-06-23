@@ -10,16 +10,25 @@ struct CountersListView: View {
       .where { $1.share.is(nil) }
       .select { counter, _ in counter }
   )
-  var localCounters: [Counter]
+  var localCounters
   @FetchAll(
     Counter
       .join(SyncMetadata.all) { $0.id.eq($1.recordPrimaryKey) }
       .where { $1.share.isNot(nil) }
-      .select { counter, _ in counter }
+      .select {
+        SharedCounter.Columns(counter: $0, share: #sql("\($1.share)"))
+      }
   )
-  var sharedCounters: [Counter]
+  var sharedCounters
   @Dependency(\.defaultDatabase) var database
   @State var confirmDeletion: Counter?
+
+  @Selection
+  struct SharedCounter {
+    let counter: Counter
+    @Column(as: CKShare.ShareDataRepresentation.self)
+    let share: CKShare
+  }
 
   var body: some View {
     List {
@@ -46,15 +55,15 @@ struct CountersListView: View {
 
       if !sharedCounters.isEmpty {
         Section {
-          ForEach(sharedCounters) { counter in
-            CounterRow(counter: counter)
+          ForEach(sharedCounters, id: \.counter.id) { sharedCounter in
+            CounterRow(counter: sharedCounter.counter, share: sharedCounter.share)
               .buttonStyle(.borderless)
           }
           .onDelete { indexSet in
             withErrorReporting {
               try database.write { db in
                 for index in indexSet {
-                  try Counter.find(sharedCounters[index].id).delete()
+                  try Counter.find(sharedCounters[index].counter.id).delete()
                     .execute(db)
                 }
               }
@@ -83,42 +92,51 @@ struct CountersListView: View {
 
 struct CounterRow: View {
   let counter: Counter
+  var share: CKShare?
   @State var sharedRecord: SharedRecord?
   @Dependency(\.defaultDatabase) var database
   @Dependency(\.defaultSyncEngine) var syncEngine
 
   var body: some View {
-    HStack {
-      Text("\(counter.count)")
-      Button("-") {
-        withErrorReporting {
-          try database.write { db in
-            try Counter.find(counter.id).update {
-              $0.count -= 1
+    VStack {
+      HStack {
+        Text("\(counter.count)")
+        Button("-") {
+          withErrorReporting {
+            try database.write { db in
+              try Counter.find(counter.id).update {
+                $0.count -= 1
+              }
+              .execute(db)
             }
-            .execute(db)
           }
+        }
+        Button("+") {
+          withErrorReporting {
+            try database.write { db in
+              try Counter.find(counter.id).update {
+                $0.count += 1
+              }
+              .execute(db)
+            }
+          }
+        }
+        Spacer()
+        Button {
+          Task {
+            sharedRecord = try await syncEngine.share(record: counter) { share in
+              share[CKShare.SystemFieldKey.title] = "Join my counter!"
+            }
+          }
+        } label: {
+          Image(systemName: "square.and.arrow.up")
         }
       }
-      Button("+") {
-        withErrorReporting {
-          try database.write { db in
-            try Counter.find(counter.id).update {
-              $0.count += 1
-            }
-            .execute(db)
-          }
-        }
-      }
-      Spacer()
-      Button {
-        Task {
-          sharedRecord = try await syncEngine.share(record: counter) { share in
-            share[CKShare.SystemFieldKey.title] = "Join my counter!"
-          }
-        }
-      } label: {
-        Image(systemName: "square.and.arrow.up")
+
+      if let share {
+        Text(share.participants
+          .compactMap { $0.userIdentity.nameComponents?.formatted() }
+          .joined(separator: ", "))
       }
     }
     .sheet(item: $sharedRecord) { sharedRecord in
