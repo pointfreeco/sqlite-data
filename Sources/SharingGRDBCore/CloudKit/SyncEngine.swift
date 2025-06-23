@@ -300,8 +300,8 @@ public final class SyncEngine: Sendable {
 
   func didDelete(recordName: SyncMetadata.RecordName) {
     DispatchQueue.main.async {
-      let zoneID = zoneID(for: recordName)
-      let syncEngine = syncEngines.withValue {
+      let zoneID = self.zoneID(for: recordName)
+      let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
       syncEngine?.state.add(
