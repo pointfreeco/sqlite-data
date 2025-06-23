@@ -8,7 +8,9 @@ struct CountersListView: View {
     Counter
       .join(SyncMetadata.all) { $0.id.eq($1.recordPrimaryKey) }
       .where { $1.share.is(nil) }
-      .select { counter, _ in counter }
+      .select {
+        Row.Columns(counter: $0, share: $1.share)
+      }
   )
   var localCounters
   @FetchAll(
@@ -16,7 +18,7 @@ struct CountersListView: View {
       .join(SyncMetadata.all) { $0.id.eq($1.recordPrimaryKey) }
       .where { $1.share.isNot(nil) }
       .select {
-        SharedCounter.Columns(counter: $0, share: #sql("\($1.share)"))
+        Row.Columns(counter: $0, share: $1.share)
       }
   )
   var sharedCounters
@@ -24,25 +26,25 @@ struct CountersListView: View {
   @State var confirmDeletion: Counter?
 
   @Selection
-  struct SharedCounter {
+  struct Row {
     let counter: Counter
-    @Column(as: CKShare.ShareDataRepresentation.self)
-    let share: CKShare
+    @Column(as: CKShare?.ShareDataRepresentation.self)
+    let share: CKShare?
   }
 
   var body: some View {
     List {
       if !localCounters.isEmpty {
         Section {
-          ForEach(localCounters) { counter in
-            CounterRow(counter: counter)
+          ForEach(localCounters, id: \.counter.id) { row in
+            CounterRow(row: row)
               .buttonStyle(.borderless)
           }
           .onDelete { indexSet in
             withErrorReporting {
               try database.write { db in
                 for index in indexSet {
-                  try Counter.find(localCounters[index].id).delete()
+                  try Counter.find(localCounters[index].counter.id).delete()
                     .execute(db)
                 }
               }
@@ -55,8 +57,8 @@ struct CountersListView: View {
 
       if !sharedCounters.isEmpty {
         Section {
-          ForEach(sharedCounters, id: \.counter.id) { sharedCounter in
-            CounterRow(counter: sharedCounter.counter, share: sharedCounter.share)
+          ForEach(sharedCounters, id: \.counter.id) { row in
+            CounterRow(row: row)
               .buttonStyle(.borderless)
           }
           .onDelete { indexSet in
@@ -91,8 +93,7 @@ struct CountersListView: View {
 }
 
 struct CounterRow: View {
-  let counter: Counter
-  var share: CKShare?
+  let row: CountersListView.Row
   @State var sharedRecord: SharedRecord?
   @Dependency(\.defaultDatabase) var database
   @Dependency(\.defaultSyncEngine) var syncEngine
@@ -100,11 +101,11 @@ struct CounterRow: View {
   var body: some View {
     VStack {
       HStack {
-        Text("\(counter.count)")
+        Text("\(row.counter.count)")
         Button("-") {
           withErrorReporting {
             try database.write { db in
-              try Counter.find(counter.id).update {
+              try Counter.find(row.counter.id).update {
                 $0.count -= 1
               }
               .execute(db)
@@ -114,7 +115,7 @@ struct CounterRow: View {
         Button("+") {
           withErrorReporting {
             try database.write { db in
-              try Counter.find(counter.id).update {
+              try Counter.find(row.counter.id).update {
                 $0.count += 1
               }
               .execute(db)
@@ -124,7 +125,7 @@ struct CounterRow: View {
         Spacer()
         Button {
           Task {
-            sharedRecord = try await syncEngine.share(record: counter) { share in
+            sharedRecord = try await syncEngine.share(record: row.counter) { share in
               share[CKShare.SystemFieldKey.title] = "Join my counter!"
             }
           }
@@ -133,7 +134,7 @@ struct CounterRow: View {
         }
       }
 
-      if let share {
+      if let share = row.share {
         Text(share.participants
           .compactMap { $0.userIdentity.nameComponents?.formatted() }
           .joined(separator: ", "))
