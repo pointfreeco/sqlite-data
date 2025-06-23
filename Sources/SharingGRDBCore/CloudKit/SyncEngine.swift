@@ -1026,6 +1026,25 @@ struct SyncEngines {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Database {
+  /// Attaches the metadatabase to an existing database connection.
+  ///
+  /// Invoke this method when preparing your database connection in order to allow querying the
+  /// ``SyncMetadata`` table (see <doc:CloudKit#Accessing-CloudKit-metadata> for more info):
+  ///
+  /// ```swift
+  /// func appDatabase() -> any DatabaseWriter {
+  ///   var configuration = Configuration()
+  ///   configuration.prepareDatabase = { db in
+  ///     db.attachMetadatabase(containerIdentifier: "iCloud.my.company.MyApp")
+  ///     …
+  ///   }
+  /// }
+  /// ```
+  ///
+  /// See <doc:PreparingDatabase> for more information on preparing your database.
+  ///
+  /// - Parameter containerIdentifier: The identifier of the CloudKit container used to synchronize
+  ///                                  data.
   public func attachMetadatabase(containerIdentifier: String) throws {
     let url = URL.metadatabase(containerIdentifier: containerIdentifier)
     let path = url.path(percentEncoded: false)
