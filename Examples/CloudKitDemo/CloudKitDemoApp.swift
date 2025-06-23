@@ -29,13 +29,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
   ) -> Bool {
     try! prepareDependencies {
       $0.defaultDatabase = try appDatabase()
-      $0.defaultSyncEngine = try SyncEngine(
-        container: CKContainer(
-          identifier: "iCloud.co.pointfree.SharingGRDB.CloudKitDemo"
-        ),
-        database: $0.defaultDatabase,
-        tables: [Counter.self]
-      )
     }
     return true
   }
