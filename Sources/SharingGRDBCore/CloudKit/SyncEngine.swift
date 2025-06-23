@@ -642,16 +642,16 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
 
       for (recordID, recordType) in deletions {
-        guard let recordName = SyncMetadata.RecordName(recordID: recordID)
-        else {
-          reportIssue("""
+        if let table = tablesByName[recordType] {
+          guard let recordName = SyncMetadata.RecordName(recordID: recordID)
+          else {
+            reportIssue("""
           Received 'recordName' in invalid format: \(recordID.recordName)
           
           'recordName' should be formatted as "uuid:tableName". 
           """)
-          continue
-        }
-        if let table = tablesByName[recordType] {
+            continue
+          }
           func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try database.write { db in
