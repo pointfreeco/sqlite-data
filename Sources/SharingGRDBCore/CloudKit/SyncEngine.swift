@@ -206,7 +206,7 @@ public final class SyncEngine: Sendable {
 
     /*
      TODO: When we detect a change in schema should save records?
-     TODO: Should we save records for everything in a table that is not in metadata?
+     TODO: Should we save  records for everything in a table that is not in metadata?
      */
 
     if !recordTypesToFetch.isEmpty {
@@ -276,11 +276,7 @@ public final class SyncEngine: Sendable {
         }
       }
     }
-    try setUpSyncEngine(
-      database: database,
-      metadatabase: metadatabase,
-      shouldFetchChanges: true
-    )
+    try await setUpSyncEngine()
   }
 
   func didUpdate(recordName: SyncMetadata.RecordName) {

@@ -10,66 +10,25 @@ extension BaseCloudKitTests {
   @MainActor
   final class CloudKitTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func setUp() throws {
-      let zones = try database.write { db in
-        try RecordType.all.fetchAll(db)
-      }
-      assertInlineSnapshot(of: zones, as: .customDump) {
-        #"""
-        [
-          [0]: RecordType(
-            tableName: "remindersLists",
-            schema: """
-              CREATE TABLE "remindersLists" (
-                "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-                "title" TEXT NOT NULL DEFAULT ''
-              ) STRICT
-              """
-          ),
-          [1]: RecordType(
-            tableName: "users",
-            schema: """
-              CREATE TABLE "users" (
-                "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-                "name" TEXT NOT NULL DEFAULT '',
-                "parentUserID" TEXT,
-              
-                FOREIGN KEY("parentUserID") REFERENCES "users"("id") ON DELETE SET DEFAULT ON UPDATE CASCADE 
-              ) STRICT
-              """
-          ),
-          [2]: RecordType(
-            tableName: "reminders",
-            schema: """
-              CREATE TABLE "reminders" (
-                "id" TEXT NOT NULL PRIMARY KEY DEFAULT (uuid()),
-                "assignedUserID" TEXT,
-                "title" TEXT NOT NULL DEFAULT '',
-                "parentReminderID" TEXT, 
-                "remindersListID" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000', 
-                
-                FOREIGN KEY("assignedUserID") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE,
-                FOREIGN KEY("parentReminderID") REFERENCES "reminders"("id") ON DELETE RESTRICT ON UPDATE RESTRICT,
-                FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
-              ) STRICT
-              """
-          )
-        ]
-        """#
-      }
-    }
-
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tearDown() async throws {
-      _ = try await database.write { db in
-        try SyncMetadata.count().fetchOne(db) ?? 0
+      try await database.write { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "Personal")
+        }
+      }
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
+        .saveRecord(RemindersList.recordID(for: UUID(1)))
+      ])
+      
+      try await database.write { db in
+        let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
+        #expect(metadataCount == 1)
       }
       try await syncEngine.tearDownSyncEngine()
-//      await #expect(throws: DatabaseError.self) {
-//        try await self.database.write { db in
-//          try Metadata.count().fetchOne(db) ?? 0
-//        }
-//      }
+      try await self.database.write { db in
+        let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
+        #expect(metadataCount == 0)
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
