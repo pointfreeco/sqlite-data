@@ -1,4 +1,5 @@
 import CasePaths
+import CloudKit
 import SharingGRDB
 import SwiftUI
 import SwiftUINavigation
@@ -13,8 +14,10 @@ class RemindersDetailModel: HashableObject {
 
   let detailType: DetailType
   var isNewReminderSheetPresented = false
+  var sharedRecord: SharedRecord?
 
   @ObservationIgnored @Dependency(\.defaultDatabase) private var database
+  @ObservationIgnored @Dependency(\.defaultSyncEngine) private var syncEngine
 
   init(detailType: DetailType) {
     self.detailType = detailType
@@ -59,7 +62,17 @@ class RemindersDetailModel: HashableObject {
     $ordering.withLock { $0 = .manual }
     await updateQuery()
   }
-  
+
+  func shareButtonTapped() async {
+    guard let remindersList = detailType.remindersList
+    else { return }
+    sharedRecord = await withErrorReporting {
+      try await syncEngine.share(record: remindersList) { share in
+        share[CKShare.SystemFieldKey.title] = remindersList.title
+      }
+    }
+  }
+
   private func updateQuery() async {
     await withErrorReporting {
       try await $reminderRows.load(remindersQuery, animation: .default)
@@ -189,6 +202,9 @@ struct RemindersDetailView: View {
         }
       }
     }
+    .sheet(item: $model.sharedRecord) { sharedRecord in
+      CloudSharingView(sharedRecord: sharedRecord)
+    }
     .toolbar {
       ToolbarItem(placement: .principal) {
         Text(model.detailType.navigationTitle)
@@ -215,32 +231,41 @@ struct RemindersDetailView: View {
         }
       }
       ToolbarItem(placement: .primaryAction) {
-        Menu {
-          Group {
-            Menu {
-              ForEach(RemindersDetailModel.Ordering.allCases, id: \.self) { ordering in
-                Button {
-                  Task { await model.orderingButtonTapped(ordering) }
-                } label: {
-                  Text(ordering.rawValue)
-                  ordering.icon
-                }
-              }
-            } label: {
-              Text("Sort By")
-              Text(model.ordering.rawValue)
-              Image(systemName: "arrow.up.arrow.down")
-            }
+        HStack(alignment: .firstTextBaseline) {
+          if model.detailType.is(\.remindersList) {
             Button {
-              Task { await model.showCompletedButtonTapped() }
+              Task { await model.shareButtonTapped() }
             } label: {
-              Text(model.showCompleted ? "Hide Completed" : "Show Completed")
-              Image(systemName: model.showCompleted ? "eye.slash.fill" : "eye")
+              Image(systemName: "square.and.arrow.up")
             }
           }
-          .tint(model.detailType.color)
-        } label: {
-          Image(systemName: "ellipsis.circle")
+          Menu {
+            Group {
+              Menu {
+                ForEach(RemindersDetailModel.Ordering.allCases, id: \.self) { ordering in
+                  Button {
+                    Task { await model.orderingButtonTapped(ordering) }
+                  } label: {
+                    Text(ordering.rawValue)
+                    ordering.icon
+                  }
+                }
+              } label: {
+                Text("Sort By")
+                Text(model.ordering.rawValue)
+                Image(systemName: "arrow.up.arrow.down")
+              }
+              Button {
+                Task { await model.showCompletedButtonTapped() }
+              } label: {
+                Text(model.showCompleted ? "Hide Completed" : "Show Completed")
+                Image(systemName: model.showCompleted ? "eye.slash.fill" : "eye")
+              }
+            }
+            .tint(model.detailType.color)
+          } label: {
+            Image(systemName: "ellipsis.circle")
+          }
         }
       }
     }
