@@ -8,7 +8,7 @@
 	<string>development</string>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
-		<string>iCloud.co.pointfree.SharingGRDB.CloudKitDemo</string>
+		<string>iCloud.co.pointfree.SQLiteData.demos.CloudKitDemo</string>
 	</array>
 	<key>com.apple.developer.icloud-services</key>
 	<array>
