@@ -25,8 +25,6 @@ struct CountersListView: View {
               }
             }
           }
-        } header: {
-          Text("Local counters")
         }
       }
     }

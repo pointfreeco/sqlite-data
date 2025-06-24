@@ -1025,9 +1025,15 @@ extension String {
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
 extension URL {
-  package static func metadatabase(containerIdentifier: String?) -> Self {
+  package static func metadatabase(containerIdentifier: String?) throws -> Self {
     @Dependency(\.context) var context
-    let base: URL = context == .live ? .applicationDirectory : .temporaryDirectory
+    try FileManager.default.createDirectory(
+      at: .applicationSupportDirectory,
+      withIntermediateDirectories: true
+    )
+    let base: URL = context == .live
+    ? .applicationSupportDirectory
+    : .temporaryDirectory
     return base.appending(
       component: "\(containerIdentifier.map { "\($0)." } ?? "")sqlite-data-icloud.sqlite"
     )
@@ -1086,7 +1092,7 @@ extension Database {
   /// - Parameter containerIdentifier: The identifier of the CloudKit container used to synchronize
   ///                                  data.
   public func attachMetadatabase(containerIdentifier: String) throws {
-    let url = URL.metadatabase(containerIdentifier: containerIdentifier)
+    let url = try URL.metadatabase(containerIdentifier: containerIdentifier)
     let path = url.path(percentEncoded: false)
     try FileManager.default.createDirectory(
       at: .applicationSupportDirectory,
