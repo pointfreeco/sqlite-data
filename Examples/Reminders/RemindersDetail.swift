@@ -14,7 +14,6 @@ class RemindersDetailModel: HashableObject {
 
   let detailType: DetailType
   var isNewReminderSheetPresented = false
-  var sharedRecord: SharedRecord?
 
   @ObservationIgnored @Dependency(\.defaultDatabase) private var database
   @ObservationIgnored @Dependency(\.defaultSyncEngine) private var syncEngine
@@ -63,16 +62,6 @@ class RemindersDetailModel: HashableObject {
     await updateQuery()
   }
 
-  func shareButtonTapped() async {
-    guard let remindersList = detailType.remindersList
-    else { return }
-    sharedRecord = await withErrorReporting {
-      try await syncEngine.share(record: remindersList) { share in
-        share[CKShare.SystemFieldKey.title] = remindersList.title
-      }
-    }
-  }
-
   private func updateQuery() async {
     await withErrorReporting {
       try await $reminderRows.load(remindersQuery, animation: .default)
@@ -103,8 +92,6 @@ class RemindersDetailModel: HashableObject {
         case .flagged: reminder.isFlagged
         case .remindersList(let list): reminder.remindersListID.eq(list.id)
         case .scheduled: reminder.isScheduled
-        case .shared:
-          SyncMetadata.where { $0.recordPrimaryKey.eq(reminder.remindersListID) }.exists()
         case .tags(let tags): tag.id.ifnull(UUID(0)).in(tags.map(\.id))
         case .today: reminder.isToday
         }
@@ -144,7 +131,6 @@ class RemindersDetailModel: HashableObject {
     case flagged
     case remindersList(RemindersList)
     case scheduled
-    case shared
     case tags([Tag])
     case today
   }
@@ -202,9 +188,6 @@ struct RemindersDetailView: View {
             .navigationTitle("New Reminder")
         }
       }
-    }
-    .sheet(item: $model.sharedRecord) { sharedRecord in
-      CloudSharingView(sharedRecord: sharedRecord)
     }
     .toolbar {
       ToolbarItem(placement: .principal) {
@@ -317,7 +300,6 @@ extension RemindersDetailModel.DetailType {
     case .flagged: "flagged"
     case .remindersList(let list): "list_\(list.id)"
     case .scheduled: "scheduled"
-    case .shared: "shared"
     case .tags: "tags"
     case .today: "today"
     }
@@ -329,7 +311,6 @@ extension RemindersDetailModel.DetailType {
     case .flagged: "Flagged"
     case .remindersList(let list): list.title
     case .scheduled: "Scheduled"
-    case .shared: "Shared"
     case .tags(let tags):
       switch tags.count {
       case 0: "Tags"
@@ -346,7 +327,6 @@ extension RemindersDetailModel.DetailType {
     case .flagged: .orange
     case .remindersList(let list): list.color
     case .scheduled: .red
-    case .shared: .pink
     case .tags: .blue
     case .today: .blue
     }
