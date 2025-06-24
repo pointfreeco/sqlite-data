@@ -21,8 +21,6 @@ struct CloudKitDemoApp: App {
 
 #if canImport(UIKit)
 class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
-  @Dependency(\.defaultSyncEngine) var syncEngine
-
   func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
