@@ -7,6 +7,7 @@ import SnapshotTestingCustomDump
 import Testing
 
 extension BaseCloudKitTests {
+  @MainActor
   final class NextRecordZoneChangeBatchTests: BaseCloudKitTests, @unchecked Sendable {
     @Test func nextRecordZoneChangeBatch_NoMetadataForRecord() async throws {
       privateSyncEngine.state

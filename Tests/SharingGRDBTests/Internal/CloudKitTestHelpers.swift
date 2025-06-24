@@ -4,10 +4,10 @@ import CustomDump
 import SharingGRDBCore
 
 extension PrimaryKeyedTable<UUID> {
-  static func recordID(for id: UUID) -> CKRecord.ID {
+  static func recordID(for id: UUID, zoneID: CKRecordZone.ID? = nil) -> CKRecord.ID {
     CKRecord.ID(
       recordName: self.recordName(for: id).rawValue,
-      zoneID: SyncEngine.defaultZone.zoneID
+      zoneID: zoneID ?? SyncEngine.defaultZone.zoneID
     )
   }
 }
@@ -45,11 +45,6 @@ final class MockSyncEngine: SyncEngineProtocol {
       return recordID
     }
     var recordsToSave: [CKRecord] = []
-    defer {
-      for savedRecord in recordsToSave {
-        state.remove(pendingRecordZoneChanges: [.saveRecord(savedRecord.recordID)])
-      }
-    }
     for recordID in savedRecordIDs {
       guard let record = await recordProvider(recordID)
       else { continue }
@@ -59,6 +54,14 @@ final class MockSyncEngine: SyncEngineProtocol {
       guard case .deleteRecord(let recordID) = $0
       else { return nil }
       return recordID
+    }
+    defer {
+      for savedRecord in recordsToSave {
+        state.remove(pendingRecordZoneChanges: [.saveRecord(savedRecord.recordID)])
+      }
+      for recordIDToDelete in recordIDsToDelete {
+        state.remove(pendingRecordZoneChanges: [.deleteRecord(recordIDToDelete)])
+      }
     }
 
     return CKSyncEngine.RecordZoneChangeBatch(recordsToSave: recordsToSave, recordIDsToDelete: recordIDsToDelete)

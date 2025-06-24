@@ -163,6 +163,7 @@ public final class SyncEngine: Sendable {
         )
         .execute(db)
       }
+      db.add(function: .datetime)
       db.add(function: .isUpdatingWithServerRecord)
       db.add(function: .didUpdate(syncEngine: self))
       db.add(function: .didDelete(syncEngine: self))
@@ -251,6 +252,7 @@ public final class SyncEngine: Sendable {
       db.remove(function: .didDelete(syncEngine: self))
       db.remove(function: .didUpdate(syncEngine: self))
       db.remove(function: .isUpdatingWithServerRecord)
+      db.remove(function: .datetime)
     }
     try await database.write { db in
       // TODO: Do an `.erase()` + re-migrate
@@ -286,58 +288,38 @@ public final class SyncEngine: Sendable {
     try await setUpSyncEngine()
   }
 
-  func didUpdate(recordName: SyncMetadata.RecordName) {
-//    DispatchQueue.main.async {
-      let zoneID = self.zoneID(for: recordName)
-      let syncEngine = self.syncEngines.withValue {
-        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-      }
-      syncEngine?.state.add(
-        pendingRecordZoneChanges: [
-          .saveRecord(
-            CKRecord.ID(
-              recordName: recordName.rawValue,
-              zoneID: zoneID
-            )
+  func didUpdate(recordName: SyncMetadata.RecordName, zoneID: CKRecordZone.ID?) {
+    let zoneID = zoneID ?? Self.defaultZone.zoneID
+    let syncEngine = self.syncEngines.withValue {
+      zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+    }
+    syncEngine?.state.add(
+      pendingRecordZoneChanges: [
+        .saveRecord(
+          CKRecord.ID(
+            recordName: recordName.rawValue,
+            zoneID: zoneID
           )
-        ]
-      )
-//    }
+        )
+      ]
+    )
   }
 
-  func didDelete(recordName: SyncMetadata.RecordName) {
-//    DispatchQueue.main.async {
-      let zoneID = self.zoneID(for: recordName)
-      let syncEngine = self.syncEngines.withValue {
-        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-      }
-      syncEngine?.state.add(
-        pendingRecordZoneChanges: [
-          .deleteRecord(
-            CKRecord.ID(
-              recordName: recordName.rawValue,
-              zoneID: zoneID
-            )
+  func didDelete(recordName: SyncMetadata.RecordName, zoneID: CKRecordZone.ID?) {
+    let zoneID = zoneID ?? Self.defaultZone.zoneID
+    let syncEngine = self.syncEngines.withValue {
+      zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+    }
+    syncEngine?.state.add(
+      pendingRecordZoneChanges: [
+        .deleteRecord(
+          CKRecord.ID(
+            recordName: recordName.rawValue,
+            zoneID: zoneID
           )
-        ]
-      )
-//    }
-  }
-
-  private func zoneID(for recordName: SyncMetadata.RecordName) -> CKRecordZone.ID {
-    let lastKnownServerRecord =
-      withErrorReporting {
-        try metadatabase.read { db in
-          struct Parent: AliasName {}
-          return try SyncMetadata
-            .find(recordName)
-            .leftJoin(SyncMetadata.as(Parent.self).all) { $1.recordName.is($0.parentRecordName) }
-            .select { $0.lastKnownServerRecord ?? $1.lastKnownServerRecord }
-            .fetchOne(db)
-        }
-      } ?? nil
-    // TODO: Clean up double optional
-    return lastKnownServerRecord??.recordID.zoneID ?? Self.defaultZone.zoneID
+        )
+      ]
+    )
   }
 }
 
@@ -483,7 +465,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
     #endif
 
-    let batch = await syncEngines.withValue(\.private)?.recordZoneChangeBatch(pendingChanges: changes) { recordID in
+    let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
       #if DEBUG
         var missingTable: CKRecord.ID?
         var missingRecord: CKRecord.ID?
@@ -968,14 +950,29 @@ extension SyncEngine: CKSyncEngineDelegate {
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension DatabaseFunction {
   fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
-    Self("didUpdate") { recordName in
-      syncEngine.didUpdate(recordName: recordName)
+    Self("didUpdate") { recordName, zoneID in
+      syncEngine.didUpdate(
+        recordName: recordName,
+        zoneID: zoneID
+      )
     }
   }
 
   fileprivate static func didDelete(syncEngine: SyncEngine) -> Self {
-    return Self("didDelete") { recordName in
-      syncEngine.didDelete(recordName: recordName)
+    return Self("didDelete") { recordName, zoneID in
+      syncEngine.didDelete(recordName: recordName, zoneID: zoneID)
+    }
+  }
+
+  fileprivate static var datetime: Self {
+    Self(.sqliteDataCloudKitSchemaName + "_datetime", argumentCount: 0) { _ in
+      @Dependency(\.date.now) var now
+      return now.formatted(
+        .iso8601
+          .year().month().day()
+          .dateTimeSeparator(.space)
+          .time(includingFractionalSeconds: true)
+      )
     }
   }
 
@@ -988,9 +985,9 @@ extension DatabaseFunction {
 
   private convenience init(
     _ name: String,
-    function: @escaping @Sendable (SyncMetadata.RecordName) -> Void
+    function: @escaping @Sendable (SyncMetadata.RecordName, CKRecordZone.ID?) -> Void
   ) {
-    self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 1) { arguments in
+    self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 2) { arguments in
       guard
         let recordName = String.fromDatabaseValue(arguments[0])
       else {
@@ -1007,7 +1004,12 @@ extension DatabaseFunction {
         )
         return nil
       }
-      function(recordName)
+      let zoneID = try Data.fromDatabaseValue(arguments[1]).flatMap {
+        let coder = try NSKeyedUnarchiver(forReadingFrom: $0)
+        coder.requiresSecureCoding = true
+        return CKRecord(coder: coder)?.recordID.zoneID
+      }
+      function(recordName, zoneID)
       return nil
     }
   }

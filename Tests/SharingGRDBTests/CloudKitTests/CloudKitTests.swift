@@ -184,9 +184,10 @@ extension BaseCloudKitTests {
       ) {
         """
         [
-          [0]: "sqlitedata_icloud_didupdate",
-          [1]: "sqlitedata_icloud_isupdatingwithserverrecord",
-          [2]: "sqlitedata_icloud_diddelete"
+          [0]: "sqlitedata_icloud_datetime",
+          [1]: "sqlitedata_icloud_didupdate",
+          [2]: "sqlitedata_icloud_isupdatingwithserverrecord",
+          [3]: "sqlitedata_icloud_diddelete"
         ]
         """
       }
