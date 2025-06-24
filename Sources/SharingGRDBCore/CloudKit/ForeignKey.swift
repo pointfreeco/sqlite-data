@@ -83,7 +83,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
           "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: C.tableName)_belongsTo_\(raw: P.tableName)_onDeleteRestrict"
-        AFTER DELETE ON \(P.self)
+        BEFORE DELETE ON \(P.self)
         FOR EACH ROW BEGIN
           SELECT RAISE(ABORT, 'FOREIGN KEY constraint failed')
           FROM \(C.self)
@@ -158,7 +158,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
           "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: C.tableName)_belongsTo_\(raw: P.tableName)_onUpdateRestrict"
-        AFTER UPDATE ON \(P.self)
+        BEFORE UPDATE ON \(P.self)
         FOR EACH ROW BEGIN
           SELECT RAISE(ABORT, 'FOREIGN KEY constraint failed')
           FROM \(C.self)

@@ -10,6 +10,106 @@ extension BaseCloudKitTests {
   @MainActor
   final class CloudKitTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func setUp() throws {
+      let zones = try database.write { db in
+        try RecordType.all.fetchAll(db)
+      }
+      assertInlineSnapshot(of: zones, as: .customDump) {
+        #"""
+        [
+          [0]: RecordType(
+            tableName: "remindersLists",
+            schema: """
+              CREATE TABLE "remindersLists" (
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "title" TEXT NOT NULL DEFAULT ''
+              ) STRICT
+              """
+          ),
+          [1]: RecordType(
+            tableName: "users",
+            schema: """
+              CREATE TABLE "users" (
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "name" TEXT NOT NULL DEFAULT '',
+                "parentUserID" TEXT,
+              
+                FOREIGN KEY("parentUserID") REFERENCES "users"("id") ON DELETE SET DEFAULT ON UPDATE CASCADE 
+              ) STRICT
+              """
+          ),
+          [2]: RecordType(
+            tableName: "reminders",
+            schema: """
+              CREATE TABLE "reminders" (
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "title" TEXT NOT NULL DEFAULT '',
+                "remindersListID" TEXT NOT NULL, 
+                
+                FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
+              ) STRICT
+              """
+          ),
+          [3]: RecordType(
+            tableName: "tags",
+            schema: """
+              CREATE TABLE "tags" (
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "title" TEXT NOT NULL DEFAULT ''
+              ) STRICT
+              """
+          ),
+          [4]: RecordType(
+            tableName: "reminderTags",
+            schema: """
+              CREATE TABLE "reminderTags" (
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
+                "tagID" TEXT NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
+              ) STRICT
+              """
+          ),
+          [5]: RecordType(
+            tableName: "parents",
+            schema: """
+              CREATE TABLE "parents"(
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid())
+              ) STRICT
+              """
+          ),
+          [6]: RecordType(
+            tableName: "childWithOnDeleteRestricts",
+            schema: """
+              CREATE TABLE "childWithOnDeleteRestricts"(
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "parentID" TEXT NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
+              ) STRICT
+              """
+          ),
+          [7]: RecordType(
+            tableName: "childWithOnDeleteSetNulls",
+            schema: """
+              CREATE TABLE "childWithOnDeleteSetNulls"(
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
+              ) STRICT
+              """
+          ),
+          [8]: RecordType(
+            tableName: "childWithOnDeleteSetDefaults",
+            schema: """
+              CREATE TABLE "childWithOnDeleteSetDefaults"(
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT '00000000-0000-0000-0000-000000000000',
+                "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
+              ) STRICT
+              """
+          )
+        ]
+        """#
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tearDown() async throws {
       try await database.write { db in
         try db.seed {

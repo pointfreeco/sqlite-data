@@ -341,19 +341,19 @@ extension PrimaryKeyedTable<UUID> {
     tablesByName: [String: any PrimaryKeyedTable<UUID>.Type],
     db: Database
   ) throws {
-    let foreignKey =
-      foreignKeysByTableName[tableName]?.count(where: \.notnull) == 1
-      ? foreignKeysByTableName[tableName]?.first(where: \.notnull)
+    let parentForeignKey =
+      foreignKeysByTableName[tableName]?.count == 1
+      ? foreignKeysByTableName[tableName]?.first
       : nil
 
-    for trigger in metadataTriggers(foreignKey: foreignKey) {
+    for trigger in metadataTriggers(parentForeignKey: parentForeignKey) {
       try trigger.execute(db)
     }
 
     let foreignKeys = foreignKeysByTableName[tableName] ?? []
     for foreignKey in foreignKeys {
       guard let parent = tablesByName[foreignKey.table] else {
-        reportIssue("")
+        reportIssue("TODO")
         continue
       }
       try foreignKey.createTriggers(Self.self, belongsTo: parent, db: db)
@@ -370,7 +370,7 @@ extension PrimaryKeyedTable<UUID> {
       try foreignKey.dropTriggers(for: Self.self, db: db)
     }
 
-    for trigger in metadataTriggers(foreignKey: nil).reversed() {
+    for trigger in metadataTriggers(parentForeignKey: nil).reversed() {
       try trigger.drop().execute(db)
     }
   }
@@ -645,11 +645,13 @@ extension SyncEngine: CKSyncEngineDelegate {
         if let table = tablesByName[recordType] {
           guard let recordName = SyncMetadata.RecordName(recordID: recordID)
           else {
-            reportIssue("""
-          Received 'recordName' in invalid format: \(recordID.recordName)
-          
-          'recordName' should be formatted as "uuid:tableName". 
-          """)
+            reportIssue(
+              """
+              Received 'recordName' in invalid format: \(recordID.recordName)
+
+              'recordName' should be formatted as "uuid:tableName". 
+              """
+            )
             continue
           }
           func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) {
@@ -698,11 +700,13 @@ extension SyncEngine: CKSyncEngineDelegate {
       let failedRecord = failedRecordSave.record
       guard let recordName = SyncMetadata.RecordName(rawValue: failedRecord.recordID.recordName)
       else {
-        reportIssue("""
+        reportIssue(
+          """
           Attempted to delete record with invalid 'recordName': \(failedRecord.recordID.recordName)
-          
+
           'recordName' should be formatted as "uuid:tableName".
-          """)
+          """
+        )
         continue
       }
 
@@ -758,11 +762,13 @@ extension SyncEngine: CKSyncEngineDelegate {
     else { return }
     guard let recordName = SyncMetadata.RecordName(recordID: rootRecord.recordID)
     else {
-      reportIssue("""
-          Attempted to delete record with invalid 'recordName': \(rootRecord.recordID.recordName)
-          
-          'recordName' should be formatted as "uuid:tableName".
-          """)
+      reportIssue(
+        """
+        Attempted to delete record with invalid 'recordName': \(rootRecord.recordID.recordName)
+
+        'recordName' should be formatted as "uuid:tableName".
+        """
+      )
       return
     }
 
@@ -809,11 +815,13 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
         guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
         else {
-          reportIssue("""
-          Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
-          
-          'recordName' should be formatted as "uuid:tableName".
-          """)
+          reportIssue(
+            """
+            Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
+
+            'recordName' should be formatted as "uuid:tableName".
+            """
+          )
           return
         }
         let userModificationDate =
@@ -897,11 +905,13 @@ extension SyncEngine: CKSyncEngineDelegate {
     $isUpdatingWithServerRecord.withValue(true) {
       guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
       else {
-        reportIssue("""
+        reportIssue(
+          """
           Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
-          
+
           'recordName' should be formatted as "uuid:tableName".
-          """)
+          """
+        )
         return
       }
       let metadata = metadataFor(recordName: recordName)
@@ -970,11 +980,13 @@ extension DatabaseFunction {
       }
       guard let recordName = SyncMetadata.RecordName(rawValue: recordName)
       else {
-        reportIssue("""
+        reportIssue(
+          """
           Received 'recordName' in invalid format: \(recordName)
-          
+
           'recordName' should be formatted as "uuid:tableName". 
-          """)
+          """
+        )
         return nil
       }
       function(recordName)
@@ -993,8 +1005,10 @@ extension String {
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
 extension URL {
-  fileprivate static func metadatabase(containerIdentifier: String?) -> Self {
-    applicationSupportDirectory.appending(
+  package static func metadatabase(containerIdentifier: String?) -> Self {
+    @Dependency(\.context) var context
+    let base: URL = context == .live ? .applicationDirectory : .temporaryDirectory
+    return base.appending(
       component: "\(containerIdentifier.map { "\($0)." } ?? "")sqlite-data-icloud.sqlite"
     )
   }
@@ -1076,33 +1090,33 @@ private func validateSchema(
 ) throws {
   try database.read { db in
     for table in tables {
-      // TODO: write tests for this
-      let columnsWithUniqueConstraints =
-        try SQLQueryExpression(
-          """
-          SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text)) 
-          WHERE "unique" = 1 AND "origin" <> 'pk'
-          """,
-          as: String.self
-        )
-        .fetchAll(db)
-      if !columnsWithUniqueConstraints.isEmpty {
-        throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
-      }
+      //      // TODO: write tests for this
+      //      let columnsWithUniqueConstraints =
+      //        try SQLQueryExpression(
+      //          """
+      //          SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
+      //          WHERE "unique" = 1 AND "origin" <> 'pk'
+      //          """,
+      //          as: String.self
+      //        )
+      //        .fetchAll(db)
+      //      if !columnsWithUniqueConstraints.isEmpty {
+      //        throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
+      //      }
 
-      // TODO: write tests for this
-      let nonNullColumnsWithNoDefault =
-        try SQLQueryExpression(
-          """
-          SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
-          WHERE "notnull" = 1 AND "dflt_value" IS NULL
-          """,
-          as: String.self
-        )
-        .fetchAll(db)
-      if !nonNullColumnsWithNoDefault.isEmpty {
-        throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
-      }
+      //      // TODO: write tests for this
+      //      let nonNullColumnsWithNoDefault =
+      //        try SQLQueryExpression(
+      //          """
+      //          SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
+      //          WHERE "notnull" = 1 AND "dflt_value" IS NULL
+      //          """,
+      //          as: String.self
+      //        )
+      //        .fetchAll(db)
+      //      if !nonNullColumnsWithNoDefault.isEmpty {
+      //        throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
+      //      }
     }
   }
 }

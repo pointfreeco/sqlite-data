@@ -2,25 +2,25 @@ import Foundation
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension PrimaryKeyedTable<UUID> {
-  static func metadataTriggers(foreignKey: ForeignKey?) -> [TemporaryTrigger<Self>] {
+  static func metadataTriggers(parentForeignKey: ForeignKey?) -> [TemporaryTrigger<Self>] {
     [
-      afterInsert(foreignKey: foreignKey),
-      afterUpdate(foreignKey: foreignKey),
+      afterInsert(parentForeignKey: parentForeignKey),
+      afterUpdate(parentForeignKey: parentForeignKey),
       afterDelete,
     ]
   }
 
-  fileprivate static func afterInsert(foreignKey: ForeignKey?) -> TemporaryTrigger<Self> {
+  fileprivate static func afterInsert(parentForeignKey: ForeignKey?) -> TemporaryTrigger<Self> {
     createTemporaryTrigger(
       "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_\(tableName)",
-      after: .insert { new in SyncMetadata.insert(new: new, foreignKey: foreignKey) }
+      after: .insert { new in SyncMetadata.insert(new: new, parentForeignKey: parentForeignKey) }
     )
   }
 
-  fileprivate static func afterUpdate(foreignKey: ForeignKey?) -> TemporaryTrigger<Self> {
+  fileprivate static func afterUpdate(parentForeignKey: ForeignKey?) -> TemporaryTrigger<Self> {
     createTemporaryTrigger(
       "\(String.sqliteDataCloudKitSchemaName)_after_update_on_\(tableName)",
-      after: .update { _, new in SyncMetadata.insert(new: new, foreignKey: foreignKey) }
+      after: .update { _, new in SyncMetadata.insert(new: new, parentForeignKey: parentForeignKey) }
     )
   }
 
@@ -41,9 +41,9 @@ extension PrimaryKeyedTable<UUID> {
 extension SyncMetadata {
   fileprivate static func insert<T: PrimaryKeyedTable<UUID>>(
     new: TemporaryTrigger<T>.Operation.New,
-    foreignKey: ForeignKey?,
+    parentForeignKey: ForeignKey?,
   ) -> some StructuredQueriesCore.Statement {
-    let foreignKey = foreignKey.map {
+    let parentForeignKey = parentForeignKey.map {
       #""new"."\#($0.from)" || ':' || '\#($0.table)'"#
     } ?? "NULL"
     return insert {
@@ -52,7 +52,7 @@ extension SyncMetadata {
       Values(
         T.tableName,
         new.recordName,
-        SQLQueryExpression(#"\#(raw: foreignKey) AS "foreignKey""#),
+        SQLQueryExpression(#"\#(raw: parentForeignKey) AS "foreignKey""#),
         .datetime("subsec")
       )
     } onConflict: {

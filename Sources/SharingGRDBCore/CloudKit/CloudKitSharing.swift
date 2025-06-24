@@ -16,7 +16,9 @@ public struct SharedRecord: Hashable, Identifiable, Sendable {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
-  public struct CantShareRecordWithParent: Error {}
+  // TODO: Move errors into single 'SyncEngine.Error' type?
+  public struct UnrecognizedTable: Error {}
+  public struct RecordMustBeRoot: Error {}
   public struct NoCKRecordFound: Error {}
 
   public func share<T: PrimaryKeyedTable>(
@@ -24,9 +26,13 @@ extension SyncEngine {
     configure: @Sendable (CKShare) -> Void
   ) async throws -> SharedRecord
   where T.TableColumns.PrimaryKey == UUID {
-    guard foreignKeysByTableName[T.tableName]?.count(where: \.notnull) ?? 0 == 0
+    guard let foreignKeys = foreignKeysByTableName[T.tableName]
     else {
-      throw CantShareRecordWithParent()
+      throw UnrecognizedTable()
+    }
+    guard foreignKeys.isEmpty
+    else {
+      throw RecordMustBeRoot()
     }
 
     let recordName = SyncMetadata.RecordName(record: record)
