@@ -27,6 +27,16 @@ extension BaseCloudKitTests {
               """
           ),
           [1]: RecordType(
+            tableName: "remindersListPrivates",
+            schema: """
+              CREATE TABLE "remindersListPrivates" (
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "position" INTEGER NOT NULL DEFAULT 0,
+                "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+              ) STRICT
+              """
+          ),
+          [2]: RecordType(
             tableName: "users",
             schema: """
               CREATE TABLE "users" (
@@ -38,7 +48,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [2]: RecordType(
+          [3]: RecordType(
             tableName: "reminders",
             schema: """
               CREATE TABLE "reminders" (
@@ -50,7 +60,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [3]: RecordType(
+          [4]: RecordType(
             tableName: "tags",
             schema: """
               CREATE TABLE "tags" (
@@ -59,7 +69,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [4]: RecordType(
+          [5]: RecordType(
             tableName: "reminderTags",
             schema: """
               CREATE TABLE "reminderTags" (
@@ -69,7 +79,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [5]: RecordType(
+          [6]: RecordType(
             tableName: "parents",
             schema: """
               CREATE TABLE "parents"(
@@ -77,7 +87,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [6]: RecordType(
+          [7]: RecordType(
             tableName: "childWithOnDeleteRestricts",
             schema: """
               CREATE TABLE "childWithOnDeleteRestricts"(
@@ -86,7 +96,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [7]: RecordType(
+          [8]: RecordType(
             tableName: "childWithOnDeleteSetNulls",
             schema: """
               CREATE TABLE "childWithOnDeleteSetNulls"(
@@ -95,7 +105,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [8]: RecordType(
+          [9]: RecordType(
             tableName: "childWithOnDeleteSetDefaults",
             schema: """
               CREATE TABLE "childWithOnDeleteSetDefaults"(
@@ -111,7 +121,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tearDown() async throws {
-      try await database.write { db in
+      try database.syncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
         }
@@ -120,7 +130,7 @@ extension BaseCloudKitTests {
         .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
       
-      try await database.write { db in
+      try database.syncWrite { db in
         let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
         #expect(metadataCount == 1)
       }
@@ -138,7 +148,7 @@ extension BaseCloudKitTests {
       privateSyncEngine.assertFetchChangesScopes([.all])
       sharedSyncEngine.assertFetchChangesScopes([.all])
 
-      try await database.write { db in
+      try database.syncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
         }
@@ -162,7 +172,7 @@ extension BaseCloudKitTests {
       )
 
       let metadata =
-        try await database.write { db in
+        try database.syncWrite { db in
           try SyncMetadata.find(RemindersList.recordName(for: UUID(1))).fetchOne(db)
         }
       #expect(metadata != nil)
@@ -240,7 +250,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func remoteServerRecordUpdate() async throws {
-      try await database.write { db in
+      try database.syncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
         }
@@ -254,7 +264,7 @@ extension BaseCloudKitTests {
         recordID: RemindersList.recordID(for: UUID(1))
       )
       let userModificationDate = try #require(
-        try await database.write { db in
+        try database.syncWrite { db in
           try SyncMetadata
             .find(RemindersList.recordName(for: UUID(1)))
             .select(\.userModificationDate)
@@ -274,7 +284,7 @@ extension BaseCloudKitTests {
       )
 
       let metadata = try #require(
-        try await database.write { db in
+        try database.syncWrite { db in
           try SyncMetadata
             .find(RemindersList.recordName(for: UUID(1)))
             .fetchOne(db)
@@ -286,7 +296,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func remoteServerRecordUpdateWithOldRecord() async throws {
-      try await database.write { db in
+      try database.syncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
         }
@@ -299,7 +309,7 @@ extension BaseCloudKitTests {
         recordID: RemindersList.recordID(for: UUID(1))
       )
       let userModificationDate = try #require(
-        try await database.write { db in
+        try database.syncWrite { db in
           try SyncMetadata
             .find(RemindersList.recordName(for: UUID(1)))
             .select(\.userModificationDate)
@@ -319,7 +329,7 @@ extension BaseCloudKitTests {
       )
 
       let metadata = try #require(
-        try await database.write { db in
+        try database.syncWrite { db in
           try SyncMetadata
             .find(RemindersList.recordName(for: UUID(1)))
             .fetchOne(db)
@@ -330,7 +340,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func remoteServerRecordDeleted() async throws {
-      try await database.write { db in
+      try database.syncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
         }
@@ -351,7 +361,7 @@ extension BaseCloudKitTests {
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchCount(db) } }()
           == 0
       )
-      let metadata = try await database.write { db in
+      let metadata = try database.syncWrite { db in
         try SyncMetadata
           .find(RemindersList.recordName(for: UUID(1)))
           .fetchOne(db)

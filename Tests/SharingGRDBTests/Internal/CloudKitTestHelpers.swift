@@ -64,7 +64,10 @@ final class MockSyncEngine: SyncEngineProtocol {
       }
     }
 
-    return CKSyncEngine.RecordZoneChangeBatch(recordsToSave: recordsToSave, recordIDsToDelete: recordIDsToDelete)
+    return CKSyncEngine.RecordZoneChangeBatch(
+      recordsToSave: recordsToSave,
+      recordIDsToDelete: recordIDsToDelete
+    )
   }
 
   func assertFetchChangesScopes(
@@ -112,8 +115,9 @@ final class MockSyncEngine: SyncEngineProtocol {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-final class MockSyncEngineState: CKSyncEngineStateProtocol {
-  private let _pendingRecordZoneChanges = LockIsolated<Set<CKSyncEngine.PendingRecordZoneChange>>([])
+final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectable {
+  private let _pendingRecordZoneChanges = LockIsolated<Set<CKSyncEngine.PendingRecordZoneChange>>([]
+  )
   private let _pendingDatabaseChanges = LockIsolated<Set<CKSyncEngine.PendingDatabaseChange>>([])
   private let fileID: StaticString
   private let filePath: StaticString
@@ -195,6 +199,61 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol {
     self._pendingDatabaseChanges.withValue {
       $0.subtract(pendingDatabaseChanges)
     }
+  }
+
+  var customDumpMirror: Mirror {
+    return Mirror(
+      self,
+      children: [
+        (
+          "pendingRecordZoneChanges",
+          _pendingRecordZoneChanges.withValue(\.self)
+            .sorted(by: comparePendingRecordZoneChange)
+            as Any
+        ),
+        (
+          "pendingDatabaseChanges",
+          _pendingDatabaseChanges.withValue(\.self)
+            .sorted(by: comparePendingDatabaseChange) as Any
+        ),
+      ],
+      displayStyle: .struct
+    )
+  }
+}
+
+private func comparePendingRecordZoneChange(
+  _ lhs: CKSyncEngine.PendingRecordZoneChange,
+  _ rhs: CKSyncEngine.PendingRecordZoneChange
+) -> Bool {
+  switch (lhs, rhs) {
+  case (.saveRecord(let lhs), .saveRecord(let rhs)),
+    (.deleteRecord(let lhs), .deleteRecord(let rhs)):
+    lhs.recordName < rhs.recordName
+  case (.deleteRecord, .saveRecord):
+    true
+  case (.saveRecord, .deleteRecord):
+    false
+  default:
+    false
+  }
+}
+
+private func comparePendingDatabaseChange(
+  _ lhs: CKSyncEngine.PendingDatabaseChange,
+  _ rhs: CKSyncEngine.PendingDatabaseChange
+) -> Bool {
+  switch (lhs, rhs) {
+  case (.saveZone(let lhs), .saveZone(let rhs)):
+    lhs.zoneID.zoneName < rhs.zoneID.zoneName
+  case (.deleteZone(let lhs), .deleteZone(let rhs)):
+    lhs.zoneName < rhs.zoneName
+  case (.deleteZone, .saveZone):
+    true
+  case (.saveZone, .deleteZone):
+    false
+  default:
+    false
   }
 }
 

@@ -106,7 +106,7 @@ public final class SyncEngine: Sendable {
     self.metadatabase = try defaultMetadatabase(logger: logger, url: metadatabaseURL)
     self.tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init)).map(\.type)
     self.privateTables = privateTables
-    self.tablesByName = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
+    self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
     self.foreignKeysByTableName = Dictionary(
       uniqueKeysWithValues: try database.read { db in
         try tables.map { table -> (String, [ForeignKey]) in
@@ -514,8 +514,8 @@ extension SyncEngine: CKSyncEngineDelegate {
             recordID: recordID
           )
         record.parent = metadata.parentRecordName.flatMap { parentRecordName in
-          guard !privateTables.contains(where: { $0.tableName == parentRecordName.recordType })
-          else { return nil }
+//          guard !privateTables.contains(where: { $0.tableName == parentRecordName.recordType })
+//          else { return nil }
           return CKRecord.Reference(
             recordID: CKRecord.ID(
               recordName: parentRecordName.rawValue,

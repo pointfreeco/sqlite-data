@@ -13,7 +13,7 @@ extension BaseCloudKitTests {
     @Test func shareNonRootRecord() async throws {
       let reminder = Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
       let user = User(id: UUID(1))
-      try await database.write { db in
+      try database.syncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           reminder
@@ -77,19 +77,17 @@ extension BaseCloudKitTests {
       )
       remindersListRecord.encryptedValues["title"] = "Personal"
       remindersListRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
-      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1234567890)
+      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
       await syncEngine.handleFetchedRecordZoneChanges(
         modifications: [remindersListRecord],
         deletions: []
       )
 
-      try {
-        try database.write { db in
-          try db.seed {
-            Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
-          }
+      try database.syncWrite { db in
+        try db.seed {
+          Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
         }
-      }()
+      }
 
       let batch = await syncEngine._nextRecordZoneChangeBatch(
         SendChangesContext(
@@ -102,16 +100,42 @@ extension BaseCloudKitTests {
       assertInlineSnapshot(of: batch, as: .customDump) {
         """
         CKSyncEngine.RecordZoneChangeBatch(
+          atomicByZone: false,
+          recordIDsToDelete: [],
           recordsToSave: [
             [0]: CKRecord(
+              recordID: CKRecordID(
+                recordName: "00000000-0000-0000-0000-000000000001:reminders",
+                zoneID: CKRecordZoneID(
+                  zoneName: "external.zone",
+                  ownerName: "external.owner"
+                )
+              ),
+              recordType: "reminders",
+              share: CKReference(
+                recordID: CKRecordID(
+                  recordName: "00000000-0000-0000-0000-000000000001:remindersLists",
+                  zoneID: CKRecordZoneID(
+                    zoneName: "external.zone",
+                    ownerName: "external.owner"
+                  )
+                )
+              ),
+              parent: CKReference(
+                recordID: CKRecordID(
+                  recordName: "00000000-0000-0000-0000-000000000001:remindersLists",
+                  zoneID: CKRecordZoneID(
+                    zoneName: "external.zone",
+                    ownerName: "external.owner"
+                  )
+                )
+              ),
               id: "00000000-0000-0000-0000-000000000001",
               remindersListID: "00000000-0000-0000-0000-000000000001",
               sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
               title: "Get milk"
             )
-          ],
-          recordIDsToDelete: [],
-          atomicByZone: false
+          ]
         )
         """
       }
@@ -130,7 +154,7 @@ extension BaseCloudKitTests {
       )
       remindersListRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
       remindersListRecord.encryptedValues["title"] = "Personal"
-      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1234567890)
+      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
       let reminderRecord = CKRecord(
         recordType: Reminder.tableName,
         recordID: Reminder.recordID(for: UUID(1), zoneID: externalZoneID)
@@ -138,17 +162,15 @@ extension BaseCloudKitTests {
       reminderRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
       reminderRecord.encryptedValues["title"] = "Get milk"
       reminderRecord.encryptedValues["remindersListID"] = UUID(1).uuidString.lowercased()
-      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1234567890)
+      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
       await syncEngine.handleFetchedRecordZoneChanges(
         modifications: [remindersListRecord, reminderRecord],
         deletions: []
       )
 
-      try {
-        try database.write { db in
-          try Reminder.find(UUID(1)).delete().execute(db)
-        }
-      }()
+      try database.syncWrite { db in
+        try Reminder.find(UUID(1)).delete().execute(db)
+      }
 
       let batch = await syncEngine._nextRecordZoneChangeBatch(
         SendChangesContext(
@@ -161,7 +183,7 @@ extension BaseCloudKitTests {
       assertInlineSnapshot(of: batch, as: .customDump) {
         """
         CKSyncEngine.RecordZoneChangeBatch(
-          recordsToSave: [],
+          atomicByZone: false,
           recordIDsToDelete: [
             [0]: CKRecordID(
               recordName: "00000000-0000-0000-0000-000000000001:reminders",
@@ -171,7 +193,7 @@ extension BaseCloudKitTests {
               )
             )
           ],
-          atomicByZone: false
+          recordsToSave: []
         )
         """
       }

@@ -11,7 +11,7 @@ extension BaseCloudKitTests {
   final class RecordTypeTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func setUp() async throws {
-      let recordTypes = try await database.write { db in
+      let recordTypes = try database.syncWrite { db in
         try RecordType.all.fetchAll(db)
       }
       assertInlineSnapshot(of: recordTypes, as: .customDump) {
@@ -27,6 +27,16 @@ extension BaseCloudKitTests {
               """
           ),
           [1]: RecordType(
+            tableName: "remindersListPrivates",
+            schema: """
+              CREATE TABLE "remindersListPrivates" (
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "position" INTEGER NOT NULL DEFAULT 0,
+                "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+              ) STRICT
+              """
+          ),
+          [2]: RecordType(
             tableName: "users",
             schema: """
               CREATE TABLE "users" (
@@ -38,7 +48,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [2]: RecordType(
+          [3]: RecordType(
             tableName: "reminders",
             schema: """
               CREATE TABLE "reminders" (
@@ -50,7 +60,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [3]: RecordType(
+          [4]: RecordType(
             tableName: "tags",
             schema: """
               CREATE TABLE "tags" (
@@ -59,7 +69,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [4]: RecordType(
+          [5]: RecordType(
             tableName: "reminderTags",
             schema: """
               CREATE TABLE "reminderTags" (
@@ -69,7 +79,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [5]: RecordType(
+          [6]: RecordType(
             tableName: "parents",
             schema: """
               CREATE TABLE "parents"(
@@ -77,7 +87,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [6]: RecordType(
+          [7]: RecordType(
             tableName: "childWithOnDeleteRestricts",
             schema: """
               CREATE TABLE "childWithOnDeleteRestricts"(
@@ -86,7 +96,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [7]: RecordType(
+          [8]: RecordType(
             tableName: "childWithOnDeleteSetNulls",
             schema: """
               CREATE TABLE "childWithOnDeleteSetNulls"(
@@ -95,7 +105,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [8]: RecordType(
+          [9]: RecordType(
             tableName: "childWithOnDeleteSetDefaults",
             schema: """
               CREATE TABLE "childWithOnDeleteSetDefaults"(
@@ -111,31 +121,31 @@ extension BaseCloudKitTests {
 
     @Test func tearDown() async throws {
       try await syncEngine.tearDownSyncEngine()
-      try await database.write { db in
+      try database.syncWrite { db in
         try #expect(RecordType.all.fetchAll(db) == [])
       }
     }
 
     @Test func resetUp() async throws {
-      let recordTypes = try await database.write { db in
+      let recordTypes = try database.syncWrite { db in
         try RecordType.all.fetchAll(db)
       }
       try await syncEngine.tearDownSyncEngine()
       try await syncEngine.setUpSyncEngine()
       privateSyncEngine.assertFetchChangesScopes([.all])
       sharedSyncEngine.assertFetchChangesScopes([.all])
-      let recordTypesAfterReSetup = try await database.write { db in
+      let recordTypesAfterReSetup = try database.syncWrite { db in
         try RecordType.all.fetchAll(db)
       }
       expectNoDifference(recordTypes, recordTypesAfterReSetup)
     }
 
     @Test func migration() async throws {
-      let recordTypes = try await database.write { db in
-        try RecordType.all.fetchAll(db)
+      let recordTypes = try database.syncWrite { db in
+        try RecordType.order(by: \.tableName).fetchAll(db)
       }
       try await syncEngine.tearDownSyncEngine()
-      try await database.write { db in
+      try database.syncWrite { db in
         try #sql(
           """
           ALTER TABLE "reminders" ADD COLUMN "newFeature" INTEGER NOT NULL 
@@ -147,13 +157,16 @@ extension BaseCloudKitTests {
       privateSyncEngine.assertFetchChangesScopes([.all])
       sharedSyncEngine.assertFetchChangesScopes([.all])
 
-      let recordTypesAfterMigration = try await database.write { db in
-        try RecordType.all.fetchAll(db)
+      let recordTypesAfterMigration = try database.syncWrite { db in
+        try RecordType.order(by: \.tableName).fetchAll(db)
       }
-      #expect(recordTypes[0...1] == recordTypesAfterMigration[0...1])
-      #expect(recordTypes[3...] == recordTypesAfterMigration[3...])
+      let remindersTableIndex = try #require(
+        recordTypesAfterMigration.firstIndex { $0.tableName == Reminder.tableName }
+      )
+      #expect(recordTypes[0..<remindersTableIndex] == recordTypesAfterMigration[0..<remindersTableIndex])
+      #expect(recordTypes[(remindersTableIndex+1)...] == recordTypesAfterMigration[(remindersTableIndex+1)...])
 
-      assertInlineSnapshot(of: recordTypesAfterMigration[2], as: .customDump) {
+      assertInlineSnapshot(of: recordTypesAfterMigration[remindersTableIndex], as: .customDump) {
         #"""
         RecordType(
           tableName: "reminders",
