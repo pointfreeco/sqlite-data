@@ -117,15 +117,11 @@ extension BaseCloudKitTests {
       try await database.write { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
-        }
-      }
-      try await database.write { db in
-        try db.seed {
           Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
         }
       }
       #expect(
-        privateSyncEngine.state.pendingRecordZoneChanges == [
+        Set(privateSyncEngine.state.pendingRecordZoneChanges) == [
           .saveRecord(RemindersList.recordID(for: UUID(1))),
           .saveRecord(Reminder.recordID(for: UUID(1))),
         ]
@@ -145,8 +141,12 @@ extension BaseCloudKitTests {
       #expect(batch?.recordIDsToDelete == [])
       #expect(batch?.recordsToSave.count == 2)
 
-      let remindersListRecord = try #require(batch?.recordsToSave.first)
-      let reminderRecord = try #require(batch?.recordsToSave.last)
+      let remindersListRecord = try #require(
+        batch?.recordsToSave.first(where: { $0.recordType == RemindersList.tableName })
+      )
+      let reminderRecord = try #require(
+        batch?.recordsToSave.first(where: { $0.recordType == Reminder.tableName })
+      )
       #expect(reminderRecord.encryptedValues["title"] == "Get milk")
       #expect(reminderRecord.recordType == Reminder.tableName)
       #expect(reminderRecord.recordID == Reminder.recordID(for: UUID(1)))

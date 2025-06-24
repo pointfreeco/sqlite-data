@@ -529,7 +529,6 @@ extension SyncEngine: CKSyncEngineDelegate {
         record.parent = metadata.parentRecordName.flatMap { parentRecordName in
           guard !privateTables.contains(where: { $0.tableName == parentRecordName.recordType })
           else { return nil }
-          //CKRecord.Reference.init(record: <#T##CKRecord#>, action: <#T##CKRecord.ReferenceAction#>)
           return CKRecord.Reference(
             recordID: CKRecord.ID(
               recordName: parentRecordName.rawValue,
