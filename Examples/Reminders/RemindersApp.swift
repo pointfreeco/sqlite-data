@@ -13,7 +13,7 @@ struct RemindersApp: App {
       try! prepareDependencies {
         $0.defaultDatabase = try Reminders.appDatabase()
         $0.defaultSyncEngine = try SyncEngine(
-          container: CKContainer(identifier: "iCloud.co.pointfree.sharing-grdb.Reminders"),
+          container: CKContainer(identifier: "iCloud.co.pointfree.SQLiteData.demos.Reminders"),
           database: $0.defaultDatabase,
           tables: [
             RemindersList.self,
@@ -75,4 +75,3 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
   }
 }
-

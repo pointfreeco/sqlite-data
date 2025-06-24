@@ -29,24 +29,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
   ) -> Bool {
     try! prepareDependencies {
       $0.defaultDatabase = try appDatabase()
-      $0.defaultSyncEngine = try SyncEngine(
-        container: CKContainer(
-          identifier: "iCloud.co.pointfree.SharingGRDB.CloudKitDemo"
-        ),
-        database: $0.defaultDatabase,
-        tables: [Counter.self]
-      )
     }
     return true
   }
 
   func application(
     _ application: UIApplication,
-    userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
-  ) {
-    Task {
-      try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
-    }
+    configurationForConnecting connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    let configuration = UISceneConfiguration(
+      name: "Default Configuration",
+      sessionRole: connectingSceneSession.role
+    )
+    configuration.delegateClass = SceneDelegate.self
+    return configuration
   }
+}
+
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+  var window: UIWindow?
 }
 #endif

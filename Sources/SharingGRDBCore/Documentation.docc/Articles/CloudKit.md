@@ -15,9 +15,7 @@ to make sure you understand how to best prepare your app for cloud synchronizati
   - [Setting up a SyncEngine](#Setting-up-a-SyncEngine)  
   - [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)  
     - [UUID Primary keys](#UUID-Primary-keys)  
-    - [Primary keys on every table](#Primary-keys-on-every-table)  
-    - [Default values for columns](#Default-values-for-columns)  
-    - [Unique constraints](#Unique-constraints)  
+    - [Primary keys on every table](#Primary-keys-on-every-table)
     - [Foreign key relationships](#Foreign-key-relationships)  
   - [Record conflicts](#Record-conflicts)  
   - [Backwards compatible migrations](#Backwards-compatible-migrations)  
@@ -98,6 +96,26 @@ to the database will be synchronized to CloudKit. You will still interact with y
 database the same way you always have. You can use ``FetchAll`` to fetch data to be used in a view
 or `@Observable` model, and you can use the `defaultDatabase` dependency to write to the database.
 
+There is one additional step you can optionally take if you want to gain access to the underlying
+CloudKit metadata that is stored by the library. When constructing the connection to your database
+you can use the `prepareDatabase` method on `Configuration` to attach the metadatabase:
+
+```swift
+func appDatabase() -> any DatabaseWriter {
+  var configuration = Configuration()
+  configuration.prepareDatabase = { db in
+    db.attachMetadatabase(containerIdentifier: "iCloud.my.company.MyApp")
+    …
+  }
+}
+```
+
+This will allow you to query the ``SyncMetadata`` table, which gives you access to the `CKRecord`
+stored for each of your records, as well as the `CKShare` for any shared records.
+
+See the ``GRDB/Database/attachMetadatabase(containerIdentifier:)`` for more information, as well
+as below <doc:CloudKit#Accessing-CloudKit-metadata>.
+
 ## Designing your schema with synchronization in mind
 
 Distributing your app's schema across many devices is a big decision to make for your app, and
@@ -165,6 +183,9 @@ CREATE TABLE "reminderTags" (
 Note that the `id` column may never be used in your application code, but it is necessary to 
 facilitate synchronizing to CloudKit.
 
+<!--
+TODO: think more about this
+
 #### Default values for columns
 
 > Important: All columns must have a default in order to allow for multiple devices to run your
@@ -195,6 +216,7 @@ discard one of the tags.
 For this reason uniqueness constraints are not allowed in schemas, and this will be validated
 when a ``SyncEngine`` is first created. If a uniqueness constraint is detected a 
 ``UniqueConstraintDisallowed`` error will be thrown.
+-->
 
 #### Foreign key relationships
 
@@ -300,7 +322,65 @@ See <doc:CloudKitSharing> for more information.
 
 ## Accessing CloudKit metadata
 
-<!-- todo: finish -->
+While the library tries to make CloudKit synchronization as seamless and hidden as possible,
+there are times you will need to access the underlying CloudKit types for your tables and records.
+The ``SyncMetadata``table is the central place where this data is stored, and it is publicly 
+exposed for you to query it in whichever way you want.
+
+> Important: In order to query the `SyncMetadata` table from your database connection you will need 
+to attach the metadatabase to your database connection. This can be done with the
+``GRDB/Database/attachMetadatabase(containerIdentifier:)`` method defined on `Database`.
+
+For example, if you want to retrieve the `CKRecord` that is associated with a particular row in
+one of your tables, say a reminder, then you can use ``SyncMetadata/lastKnownServerRecord`` to
+retreive the `CKRecord` and then invoke a CloudKit database function to retreive all of the details: 
+
+```swift
+let metadata = try database.read { db in
+  try SyncMetadata
+    .find(RemindersList.recordName(for: remindersListID))
+    .fetchOne(db)
+}
+guard let metadata 
+else { return }
+
+let ckRecord = try await container.privateCloudDatabase
+  .record(for: metadata.lastKnownServerRecord.recordID)
+```
+
+> Important: In the above snippet we are explicitly using `privateCloudDatabase`, but that is
+> only appropriate for unshared records. If your record is shared, which can be determined from
+> [SyncMetadata.share](<doc:SyncMetadata/share>), then you must use `sharedCloudDatabase` to
+> fetch the newest record.
+
+You are free to invoke any CloudKit functions you want with the `CKRecord` retreived from 
+``SyncMetadata``. Any changes made directly with CloudKit will be automatically synced to your
+SQLite database by the ``SyncEngine``.
+
+It is also possible to fetch the `CKShare` associated with a record if it has been shared:
+
+```swift
+let metadata = try database.read { db in
+  try SyncMetadata
+    .find(RemindersList.recordName(for: remindersListID))
+    .fetchOne(db)
+}
+guard 
+  let metadata,
+  let share = metadata.share
+else { return }
+
+let ckRecord = try await container.sharedCloudDatabase
+  .record(for: share.recordID)
+```
+
+> Important: In the above snippet we are using the `sharedCloudDatabase` and this is always 
+appropriate to use when fetching the details of a `CKShare` as they are always stored in the 
+shared database.
+
+<!-- todo: fact check the above 'important' -->
+
+It is possible to 
 
 ## How SharingGRDB handles distributed schema scenarios
 

@@ -1,5 +1,5 @@
 // @Table("\(String.sqliteDataCloudKitSchemaName)_recordTypes")
-package struct RecordType {
+package struct RecordType: Hashable {
   // @Column(primaryKey: true)
   package let tableName: String
   package let schema: String
