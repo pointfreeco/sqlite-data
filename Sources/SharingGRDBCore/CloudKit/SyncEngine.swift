@@ -287,7 +287,7 @@ public final class SyncEngine: Sendable {
   }
 
   func didUpdate(recordName: SyncMetadata.RecordName) {
-    DispatchQueue.main.async {
+//    DispatchQueue.main.async {
       let zoneID = self.zoneID(for: recordName)
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -302,11 +302,11 @@ public final class SyncEngine: Sendable {
           )
         ]
       )
-    }
+//    }
   }
 
   func didDelete(recordName: SyncMetadata.RecordName) {
-    DispatchQueue.main.async {
+//    DispatchQueue.main.async {
       let zoneID = self.zoneID(for: recordName)
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -321,7 +321,7 @@ public final class SyncEngine: Sendable {
           )
         ]
       )
-    }
+//    }
   }
 
   private func zoneID(for recordName: SyncMetadata.RecordName) -> CKRecordZone.ID {
@@ -1166,4 +1166,5 @@ private struct HashablePrimaryKeyedTableType: Hashable {
   static func == (lhs: Self, rhs: Self) -> Bool {
     lhs.type == rhs.type
   }
+}
 #endif

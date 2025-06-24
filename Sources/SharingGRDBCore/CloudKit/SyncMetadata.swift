@@ -6,7 +6,7 @@ import CloudKit
 /// Each row of this table represents a synchronized record across all tables synchronized with
 /// CloudKit. This means that the sum of the count of rows across all synchronized tables in your
 /// application is the number of rows this one single table holds. However, this table is held
-/// in a database separate from your app's 
+/// in a database separate from your app's database.
 ///
 ///
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -46,10 +46,7 @@ public struct SyncMetadata: Hashable, Sendable {
 
   /// The date the user last modified the record.
   public var userModificationDate: Date?
-}
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension SyncMetadata {
   package init(
     recordType: String,
     recordName: RecordName,
@@ -65,7 +62,10 @@ extension SyncMetadata {
     self.share = share
     self.userModificationDate = userModificationDate
   }
+}
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncMetadata {
   public struct RecordName: RawRepresentable, Sendable, Hashable, QueryBindable {
     public var recordType: String
     public var id: UUID

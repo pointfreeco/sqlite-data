@@ -63,4 +63,5 @@ package struct SendChangesContext: Sendable {
     reason = context.reason
     options = context.options
   }
+}
 #endif
