@@ -1,9 +1,13 @@
 import CloudKit
+import DependenciesTestSupport
 import SharingGRDB
 import SnapshotTesting
 import Testing
 
-@Suite(.snapshots(record: .failed))
+@Suite(
+  .snapshots(record: .failed),
+  .dependency(\.date.now, Date(timeIntervalSince1970: 1234567890))
+)
 class BaseCloudKitTests: @unchecked Sendable {
   let database: any DatabaseWriter
   private let _syncEngine: any Sendable
@@ -50,6 +54,9 @@ class BaseCloudKitTests: @unchecked Sendable {
         ChildWithOnDeleteRestrict.self,
         ChildWithOnDeleteSetNull.self,
         ChildWithOnDeleteSetDefault.self,
+      ],
+      privateTables: [
+        RemindersListPrivate.self
       ]
     )
     try await Task.sleep(for: .seconds(0.1))

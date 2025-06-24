@@ -7,6 +7,7 @@ import SnapshotTestingCustomDump
 import Testing
 
 extension BaseCloudKitTests {
+  @MainActor
   final class SyncEngineTests: BaseCloudKitTests, @unchecked Sendable {
     #if os(macOS) && compiler(>=6.2)
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -29,8 +30,6 @@ extension BaseCloudKitTests {
         )
       }
     #endif
-
-//    @Test func 
   }
 }
 

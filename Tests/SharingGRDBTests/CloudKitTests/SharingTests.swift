@@ -7,6 +7,7 @@ import SnapshotTestingCustomDump
 import Testing
 
 extension BaseCloudKitTests {
+  @MainActor
   final class SharingTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareNonRootRecord() async throws {
@@ -42,9 +43,144 @@ extension BaseCloudKitTests {
         )
       }
     }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func sharePrivateTable() async throws {
+      await #expect(throws: SyncEngine.PrivateRootRecord.self) {
+        _ = try await self.syncEngine.share(
+          record: RemindersListPrivate(id: UUID(1), remindersListID: UUID(1)),
+          configure: { _ in }
+        )
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func shareRecordBeforeSync() async throws {
+      await #expect(throws: SyncEngine.NoCKRecordFound.self) {
+        _ = try await self.syncEngine.share(
+          record: RemindersList(id: UUID(1)),
+          configure: { _ in }
+        )
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func createRecordInExternallySharedRecord() async throws {
+      let externalZoneID = CKRecordZone.ID(
+        zoneName: "external.zone",
+        ownerName: "external.owner"
+      )
+
+      let remindersListRecord = CKRecord(
+        recordType: RemindersList.tableName,
+        recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
+      )
+      remindersListRecord.encryptedValues["title"] = "Personal"
+      remindersListRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
+      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1234567890)
+      await syncEngine.handleFetchedRecordZoneChanges(
+        modifications: [remindersListRecord],
+        deletions: []
+      )
+
+      try {
+        try database.write { db in
+          try db.seed {
+            Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+          }
+        }
+      }()
+
+      let batch = await syncEngine._nextRecordZoneChangeBatch(
+        SendChangesContext(
+          options: CKSyncEngine.SendChangesOptions(
+            scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
+          )
+        ),
+        syncEngine: sharedSyncEngine
+      )
+      assertInlineSnapshot(of: batch, as: .customDump) {
+        """
+        CKSyncEngine.RecordZoneChangeBatch(
+          recordsToSave: [
+            [0]: CKRecord(
+              id: "00000000-0000-0000-0000-000000000001",
+              remindersListID: "00000000-0000-0000-0000-000000000001",
+              sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+              title: "Get milk"
+            )
+          ],
+          recordIDsToDelete: [],
+          atomicByZone: false
+        )
+        """
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func deleteRecordInExternallySharedRecord() async throws {
+      let externalZoneID = CKRecordZone.ID(
+        zoneName: "external.zone",
+        ownerName: "external.owner"
+      )
+
+      let remindersListRecord = CKRecord(
+        recordType: RemindersList.tableName,
+        recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
+      )
+      remindersListRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
+      remindersListRecord.encryptedValues["title"] = "Personal"
+      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1234567890)
+      let reminderRecord = CKRecord(
+        recordType: Reminder.tableName,
+        recordID: Reminder.recordID(for: UUID(1), zoneID: externalZoneID)
+      )
+      reminderRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
+      reminderRecord.encryptedValues["title"] = "Get milk"
+      reminderRecord.encryptedValues["remindersListID"] = UUID(1).uuidString.lowercased()
+      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1234567890)
+      await syncEngine.handleFetchedRecordZoneChanges(
+        modifications: [remindersListRecord, reminderRecord],
+        deletions: []
+      )
+
+      try {
+        try database.write { db in
+          try Reminder.find(UUID(1)).delete().execute(db)
+        }
+      }()
+
+      let batch = await syncEngine._nextRecordZoneChangeBatch(
+        SendChangesContext(
+          options: CKSyncEngine.SendChangesOptions(
+            scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
+          )
+        ),
+        syncEngine: sharedSyncEngine
+      )
+      assertInlineSnapshot(of: batch, as: .customDump) {
+        """
+        CKSyncEngine.RecordZoneChangeBatch(
+          recordsToSave: [],
+          recordIDsToDelete: [
+            [0]: CKRecordID(
+              recordName: "00000000-0000-0000-0000-000000000001:reminders",
+              zoneID: CKRecordZoneID(
+                zoneName: "external.zone",
+                ownerName: "external.owner"
+              )
+            )
+          ],
+          atomicByZone: false
+        )
+        """
+      }
+    }
   }
 }
 
-@Table fileprivate struct NonSyncedTable {
+// TODO: Assert on Metadata.parentRecordName when create new reminders in a shared list
+
+@Table private struct NonSyncedTable {
   let id: UUID
 }

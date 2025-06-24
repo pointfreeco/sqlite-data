@@ -1,3 +1,4 @@
+import CloudKit
 import Foundation
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -43,9 +44,10 @@ extension SyncMetadata {
     new: TemporaryTrigger<T>.Operation.New,
     parentForeignKey: ForeignKey?,
   ) -> some StructuredQueriesCore.Statement {
-    let parentForeignKey = parentForeignKey.map {
-      #""new"."\#($0.from)" || ':' || '\#($0.table)'"#
-    } ?? "NULL"
+    let parentForeignKey =
+      parentForeignKey.map {
+        #""new"."\#($0.from)" || ':' || '\#($0.table)'"#
+      } ?? "NULL"
     return insert {
       ($0.recordType, $0.recordName, $0.parentRecordName, $0.userModificationDate)
     } select: {
@@ -53,7 +55,7 @@ extension SyncMetadata {
         T.tableName,
         new.recordName,
         SQLQueryExpression(#"\#(raw: parentForeignKey) AS "foreignKey""#),
-        .datetime("subsec")
+        .datetime()
       )
     } onConflict: {
       $0.recordName
@@ -75,11 +77,13 @@ extension SyncMetadata {
     ]
   }
 
+  private enum ParentSyncMetadata: AliasName {}
+
   fileprivate static let afterInsertTrigger = createTemporaryTrigger(
     "after_insert_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
-    after: .insert {
-      Values(.didUpdate($0.recordName))
+    after: .insert { new in
+      Values(.didUpdate(new))
     } when: { _ in
       !isUpdatingWithServerRecord()
     }
@@ -89,7 +93,7 @@ extension SyncMetadata {
     "after_update_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
     after: .update { _, new in
-      Values(.didUpdate(new.recordName))
+      Values(.didUpdate(new))
     } when: { _, _ in
       !isUpdatingWithServerRecord()
     }
@@ -98,24 +102,59 @@ extension SyncMetadata {
   fileprivate static let afterDeleteTrigger = createTemporaryTrigger(
     "after_delete_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
-    after: .delete {
-      Values(.didDelete($0.recordName))
+    after: .delete { old in
+      Values(.didDelete(old))
     } when: { _ in
       !isUpdatingWithServerRecord()
     }
   )
 }
 
-
 extension QueryExpression where Self == SQLQueryExpression<()> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  fileprivate static func didUpdate(_ expression: some QueryExpression<SyncMetadata.RecordName>) -> Self {
-    Self("\(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(expression))")
+  fileprivate static func didUpdate(
+    _ new: StructuredQueriesCore.TableAlias<SyncMetadata, TemporaryTrigger<SyncMetadata>.Operation._New>.TableColumns
+  ) -> Self {
+    .didUpdate(
+      recordName: new.recordName,
+      lastKnownServerRecord: new.lastKnownServerRecord
+      ?? SyncMetadata
+        .where { $0.recordName.is(new.parentRecordName) }
+        .select(\.lastKnownServerRecord)
+    )
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  fileprivate static func didDelete(_ expression: some QueryExpression<SyncMetadata.RecordName>) -> Self {
-    Self("\(raw: .sqliteDataCloudKitSchemaName)_didDelete(\(expression))")
+  fileprivate static func didDelete(
+    _ old: StructuredQueriesCore.TableAlias<SyncMetadata, TemporaryTrigger<SyncMetadata>.Operation._Old>.TableColumns
+  )
+  -> Self
+  {
+    .didDelete(
+      recordName: old.recordName,
+      lastKnownServerRecord: old.lastKnownServerRecord
+      ?? SyncMetadata
+        .where { $0.recordName.is(old.parentRecordName) }
+        .select(\.lastKnownServerRecord)
+    )
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private static func didUpdate(
+    recordName: some QueryExpression<SyncMetadata.RecordName>,
+    lastKnownServerRecord: some QueryExpression<CKRecord.DataRepresentation?>
+  ) -> Self {
+    Self("\(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(recordName), \(lastKnownServerRecord))")
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private static func didDelete(
+    recordName: some QueryExpression<SyncMetadata.RecordName>,
+    lastKnownServerRecord: some QueryExpression<CKRecord.DataRepresentation?>
+  )
+  -> Self
+  {
+    Self("\(raw: .sqliteDataCloudKitSchemaName)_didDelete(\(recordName), \(lastKnownServerRecord))")
   }
 }
 
@@ -124,8 +163,8 @@ private func isUpdatingWithServerRecord() -> SQLQueryExpression<Bool> {
 }
 
 extension QueryExpression {
-  fileprivate static func datetime<D: _OptionalPromotable<Date?>>(_ string: String) -> Self
+  fileprivate static func datetime<D: _OptionalPromotable<Date?>>() -> Self
   where Self == SQLQueryExpression<D> {
-    Self("datetime(\(quote: string, delimiter: .text))")
+    Self("\(raw: .sqliteDataCloudKitSchemaName)_datetime()")
   }
 }

@@ -13,6 +13,7 @@ public final class SyncEngine: Sendable {
   let logger: Logger
   let metadatabase: any DatabaseReader
   let tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
+  let privateTables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
   let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
   let foreignKeysByTableName: [String: [ForeignKey]]
   let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
@@ -25,7 +26,8 @@ public final class SyncEngine: Sendable {
     container: CKContainer,
     database: any DatabaseWriter,
     logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit"),
-    tables: [any PrimaryKeyedTable<UUID>.Type]
+    tables: [any PrimaryKeyedTable<UUID>.Type],
+    privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
   ) throws {
     try self.init(
       container: container,
@@ -54,7 +56,8 @@ public final class SyncEngine: Sendable {
       database: database,
       logger: logger,
       metadatabaseURL: URL.metadatabase(containerIdentifier: container.containerIdentifier),
-      tables: tables
+      tables: tables,
+      privateTables: privateTables
     )
   }
 
@@ -63,14 +66,16 @@ public final class SyncEngine: Sendable {
     sharedSyncEngine: any SyncEngineProtocol,
     database: any DatabaseWriter,
     metadatabaseURL: URL,
-    tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
+    tables: [any PrimaryKeyedTable<UUID>.Type],
+    privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
   ) throws {
     try self.init(
       defaultSyncEngines: { _, _ in (privateSyncEngine, sharedSyncEngine) },
       database: database,
       logger: Logger(.disabled),
       metadatabaseURL: metadatabaseURL,
-      tables: tables
+      tables: tables,
+      privateTables: privateTables
     )
   }
 
@@ -83,7 +88,8 @@ public final class SyncEngine: Sendable {
     database: any DatabaseWriter,
     logger: Logger,
     metadatabaseURL: URL,
-    tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
+    tables: [any PrimaryKeyedTable<UUID>.Type],
+    privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
   ) throws {
     try validateSchema(tables: tables, database: database)
     // TODO: Explain why / link to documentation?
@@ -98,7 +104,8 @@ public final class SyncEngine: Sendable {
     self.database = database
     self.logger = logger
     self.metadatabase = try defaultMetadatabase(logger: logger, url: metadatabaseURL)
-    self.tables = tables
+    self.tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init)).map(\.type)
+    self.privateTables = privateTables
     self.tablesByName = Dictionary(uniqueKeysWithValues: tables.map { ($0.tableName, $0) })
     self.foreignKeysByTableName = Dictionary(
       uniqueKeysWithValues: try database.read { db in
@@ -156,6 +163,7 @@ public final class SyncEngine: Sendable {
         )
         .execute(db)
       }
+      db.add(function: .datetime)
       db.add(function: .isUpdatingWithServerRecord)
       db.add(function: .didUpdate(syncEngine: self))
       db.add(function: .didDelete(syncEngine: self))
@@ -244,6 +252,7 @@ public final class SyncEngine: Sendable {
       db.remove(function: .didDelete(syncEngine: self))
       db.remove(function: .didUpdate(syncEngine: self))
       db.remove(function: .isUpdatingWithServerRecord)
+      db.remove(function: .datetime)
     }
     try await database.write { db in
       // TODO: Do an `.erase()` + re-migrate
@@ -279,58 +288,38 @@ public final class SyncEngine: Sendable {
     try await setUpSyncEngine()
   }
 
-  func didUpdate(recordName: SyncMetadata.RecordName) {
-    DispatchQueue.main.async {
-      let zoneID = self.zoneID(for: recordName)
-      let syncEngine = self.syncEngines.withValue {
-        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-      }
-      syncEngine?.state.add(
-        pendingRecordZoneChanges: [
-          .saveRecord(
-            CKRecord.ID(
-              recordName: recordName.rawValue,
-              zoneID: zoneID
-            )
-          )
-        ]
-      )
+  func didUpdate(recordName: SyncMetadata.RecordName, zoneID: CKRecordZone.ID?) {
+    let zoneID = zoneID ?? Self.defaultZone.zoneID
+    let syncEngine = self.syncEngines.withValue {
+      zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
     }
+    syncEngine?.state.add(
+      pendingRecordZoneChanges: [
+        .saveRecord(
+          CKRecord.ID(
+            recordName: recordName.rawValue,
+            zoneID: zoneID
+          )
+        )
+      ]
+    )
   }
 
-  func didDelete(recordName: SyncMetadata.RecordName) {
-    DispatchQueue.main.async {
-      let zoneID = self.zoneID(for: recordName)
-      let syncEngine = self.syncEngines.withValue {
-        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-      }
-      syncEngine?.state.add(
-        pendingRecordZoneChanges: [
-          .deleteRecord(
-            CKRecord.ID(
-              recordName: recordName.rawValue,
-              zoneID: zoneID
-            )
-          )
-        ]
-      )
+  func didDelete(recordName: SyncMetadata.RecordName, zoneID: CKRecordZone.ID?) {
+    let zoneID = zoneID ?? Self.defaultZone.zoneID
+    let syncEngine = self.syncEngines.withValue {
+      zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
     }
-  }
-
-  private func zoneID(for recordName: SyncMetadata.RecordName) -> CKRecordZone.ID {
-    let lastKnownServerRecord =
-      withErrorReporting {
-        try metadatabase.read { db in
-          struct Parent: AliasName {}
-          return try SyncMetadata
-            .find(recordName)
-            .leftJoin(SyncMetadata.as(Parent.self).all) { $1.recordName.is($0.parentRecordName) }
-            .select { $0.lastKnownServerRecord ?? $1.lastKnownServerRecord }
-            .fetchOne(db)
-        }
-      } ?? nil
-    // TODO: Clean up double optional
-    return lastKnownServerRecord??.recordID.zoneID ?? Self.defaultZone.zoneID
+    syncEngine?.state.add(
+      pendingRecordZoneChanges: [
+        .deleteRecord(
+          CKRecord.ID(
+            recordName: recordName.rawValue,
+            zoneID: zoneID
+          )
+        )
+      ]
+    )
   }
 }
 
@@ -409,6 +398,16 @@ extension SyncEngine: CKSyncEngineDelegate {
     _ context: CKSyncEngine.SendChangesContext,
     syncEngine: CKSyncEngine
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
+    await _nextRecordZoneChangeBatch(
+      SendChangesContext(context: context),
+      syncEngine: syncEngine
+    )
+  }
+
+  package func _nextRecordZoneChangeBatch(
+    _ context: SendChangesContext,
+    syncEngine: any SyncEngineProtocol
+  ) async -> CKSyncEngine.RecordZoneChangeBatch? {
     let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(
       context.options.scope.contains
     )
@@ -422,6 +421,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       @unknown default: false
       }
     }
+    // TODO: why did we do this again? can we test it?
     allChangesByIsDeleted[true]?.reverse()
     let changes = allChangesByIsDeleted.reduce(into: []) { changes, keyValue in
       changes += keyValue.value
@@ -465,7 +465,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
     #endif
 
-    let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
+    let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
       #if DEBUG
         var missingTable: CKRecord.ID?
         var missingRecord: CKRecord.ID?
@@ -488,7 +488,6 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
       guard let table = tablesByName[metadata.recordType]
       else {
-        reportIssue("")
         syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
         missingTable = recordID
         return nil
@@ -514,8 +513,10 @@ extension SyncEngine: CKSyncEngineDelegate {
             recordType: metadata.recordType,
             recordID: recordID
           )
-        record.parent = metadata.parentRecordName.map { parentRecordName in
-          CKRecord.Reference(
+        record.parent = metadata.parentRecordName.flatMap { parentRecordName in
+          guard !privateTables.contains(where: { $0.tableName == parentRecordName.recordType })
+          else { return nil }
+          return CKRecord.Reference(
             recordID: CKRecord.ID(
               recordName: parentRecordName.rawValue,
               zoneID: record.recordID.zoneID
@@ -594,26 +595,25 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func handleFetchedDatabaseChanges(_ event: CKSyncEngine.Event.FetchedDatabaseChanges) {
-    // TODO: Come back to this once we have zoneName in the metadata table.
-    //    $isUpdatingWithServerRecord.withValue(true) {
-    //      withErrorReporting(.sqliteDataCloudKitFailure) {
-    //        try database.write { db in
-    //          for deletion in event.deletions {
-    //            if let table = tablesByName[deletion.zoneID.zoneName] {
-    //              func open<T: PrimaryKeyedTable>(_: T.Type) {
-    //                withErrorReporting(.sqliteDataCloudKitFailure) {
-    //                  try T.delete().execute(db)
-    //                }
-    //              }
-    //              open(table)
-    //            }
-    //          }
-    //
-    //          // TODO: Deal with modifications?
-    //          _ = event.modifications
-    //        }
-    //      }
-    //    }
+    // TODO: How to handle this?
+    $isUpdatingWithServerRecord.withValue(true) {
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        try database.write { db in
+          for deletion in event.deletions {
+            // if let table = tablesByName[deletion.zoneID.zoneName] {
+            //   func open<T: PrimaryKeyedTable>(_: T.Type) {
+            //     withErrorReporting(.sqliteDataCloudKitFailure) {
+            //       try T.delete().execute(db)
+            //     }
+            //   }
+            //   open(table)
+          }
+        }
+
+        // TODO: Deal with modifications?
+        _ = event.modifications
+      }
+    }
   }
 
   package func handleFetchedRecordZoneChanges(
@@ -950,14 +950,29 @@ extension SyncEngine: CKSyncEngineDelegate {
 @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
 extension DatabaseFunction {
   fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
-    Self("didUpdate") { recordName in
-      syncEngine.didUpdate(recordName: recordName)
+    Self("didUpdate") { recordName, zoneID in
+      syncEngine.didUpdate(
+        recordName: recordName,
+        zoneID: zoneID
+      )
     }
   }
 
   fileprivate static func didDelete(syncEngine: SyncEngine) -> Self {
-    return Self("didDelete") { recordName in
-      syncEngine.didDelete(recordName: recordName)
+    return Self("didDelete") { recordName, zoneID in
+      syncEngine.didDelete(recordName: recordName, zoneID: zoneID)
+    }
+  }
+
+  fileprivate static var datetime: Self {
+    Self(.sqliteDataCloudKitSchemaName + "_datetime", argumentCount: 0) { _ in
+      @Dependency(\.date.now) var now
+      return now.formatted(
+        .iso8601
+          .year().month().day()
+          .dateTimeSeparator(.space)
+          .time(includingFractionalSeconds: true)
+      )
     }
   }
 
@@ -970,9 +985,9 @@ extension DatabaseFunction {
 
   private convenience init(
     _ name: String,
-    function: @escaping @Sendable (SyncMetadata.RecordName) -> Void
+    function: @escaping @Sendable (SyncMetadata.RecordName, CKRecordZone.ID?) -> Void
   ) {
-    self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 1) { arguments in
+    self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 2) { arguments in
       guard
         let recordName = String.fromDatabaseValue(arguments[0])
       else {
@@ -989,7 +1004,12 @@ extension DatabaseFunction {
         )
         return nil
       }
-      function(recordName)
+      let zoneID = try Data.fromDatabaseValue(arguments[1]).flatMap {
+        let coder = try NSKeyedUnarchiver(forReadingFrom: $0)
+        coder.requiresSecureCoding = true
+        return CKRecord(coder: coder)?.recordID.zoneID
+      }
+      function(recordName, zoneID)
       return nil
     }
   }
@@ -1137,6 +1157,16 @@ public struct NonNullColumnMustHaveDefault: Error {
       Table '\(table.tableName)' has non-null column\(columns.count == 1 ? "" : "s") with no \
       default: \(columns.map { "'\($0)'" }.joined(separator: ", "))
       """
+  }
+}
+
+private struct HashablePrimaryKeyedTableType: Hashable {
+  let type: any PrimaryKeyedTable<UUID>.Type
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(ObjectIdentifier(type))
+  }
+  static func == (lhs: Self, rhs: Self) -> Bool {
+    lhs.type == rhs.type
   }
 }
 #endif
