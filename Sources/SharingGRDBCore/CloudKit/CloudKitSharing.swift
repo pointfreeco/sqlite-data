@@ -16,6 +16,7 @@ public struct SharedRecord: Hashable, Identifiable, Sendable {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
+  // TODO: Move errors into single 'SyncEngine.Error' type?
   public struct UnrecognizedTable: Error {}
   public struct RecordMustBeRoot: Error {}
   public struct NoCKRecordFound: Error {}
