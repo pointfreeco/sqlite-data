@@ -14,6 +14,8 @@ class RemindersDetailModel: HashableObject {
 
   let detailType: DetailType
   var isNewReminderSheetPresented = false
+  var sharedRecord: SharedRecord?
+  var sharedRecord: SharedRecord?
 
   @ObservationIgnored @Dependency(\.defaultDatabase) private var database
   @ObservationIgnored @Dependency(\.defaultSyncEngine) private var syncEngine
@@ -65,6 +67,16 @@ class RemindersDetailModel: HashableObject {
   private func updateQuery() async {
     await withErrorReporting {
       try await $reminderRows.load(remindersQuery, animation: .default)
+    }
+  }
+
+  func shareButtonTapped() async {
+    guard let remindersList = detailType.remindersList
+    else { return }
+    sharedRecord = await withErrorReporting {
+      try await syncEngine.share(record: remindersList) { share in
+        share[CKShare.SystemFieldKey.title] = remindersList.title
+      }
     }
   }
 
@@ -188,6 +200,9 @@ struct RemindersDetailView: View {
             .navigationTitle("New Reminder")
         }
       }
+    }
+    .sheet(item: $model.sharedRecord) { sharedRecord in
+      CloudSharingView(sharedRecord: sharedRecord)
     }
     .toolbar {
       ToolbarItem(placement: .principal) {
