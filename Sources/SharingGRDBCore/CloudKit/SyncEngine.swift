@@ -411,6 +411,16 @@ extension SyncEngine: CKSyncEngineDelegate {
     _ context: CKSyncEngine.SendChangesContext,
     syncEngine: CKSyncEngine
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
+    await _nextRecordZoneChangeBatch(
+      SendChangesContext(context: context),
+      syncEngine: syncEngine
+    )
+  }
+
+  package func _nextRecordZoneChangeBatch(
+    _ context: SendChangesContext,
+    syncEngine: any SyncEngineProtocol
+  ) async -> CKSyncEngine.RecordZoneChangeBatch? {
     let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(
       context.options.scope.contains
     )
@@ -424,6 +434,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       @unknown default: false
       }
     }
+    // TODO: why did we do this again? can we test it?
     allChangesByIsDeleted[true]?.reverse()
     let changes = allChangesByIsDeleted.reduce(into: []) { changes, keyValue in
       changes += keyValue.value
@@ -467,7 +478,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
     #endif
 
-    let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
+    let batch = await syncEngines.withValue(\.private)?.recordZoneChangeBatch(pendingChanges: changes) { recordID in
       #if DEBUG
         var missingTable: CKRecord.ID?
         var missingRecord: CKRecord.ID?
@@ -490,7 +501,6 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
       guard let table = tablesByName[metadata.recordType]
       else {
-        reportIssue("")
         syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
         missingTable = recordID
         return nil
@@ -519,7 +529,6 @@ extension SyncEngine: CKSyncEngineDelegate {
         record.parent = metadata.parentRecordName.flatMap { parentRecordName in
           guard !privateTables.contains(where: { $0.tableName == parentRecordName.recordType })
           else { return nil }
-
           return CKRecord.Reference(
             recordID: CKRecord.ID(
               recordName: parentRecordName.rawValue,

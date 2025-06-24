@@ -13,6 +13,22 @@ public struct SyncMetadata: Hashable, Sendable {
   public var share: CKShare?
   public var userModificationDate: Date?
 
+  package init(
+    recordType: String,
+    recordName: RecordName,
+    parentRecordName: RecordName? = nil,
+    lastKnownServerRecord: CKRecord? = nil,
+    share: CKShare? = nil,
+    userModificationDate: Date? = nil
+  ) {
+    self.recordType = recordType
+    self.recordName = recordName
+    self.parentRecordName = parentRecordName
+    self.lastKnownServerRecord = lastKnownServerRecord
+    self.share = share
+    self.userModificationDate = userModificationDate
+  }
+
   public struct RecordName: RawRepresentable, Sendable, Hashable, QueryBindable {
     public var recordType: String
     public var id: UUID

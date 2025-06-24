@@ -152,8 +152,8 @@ extension CKRecord: @retroactive CustomDumpReflectable {
   public var customDumpMirror: Mirror {
     return Mirror(
       self,
-      children: self.allKeys().sorted().map {
-        ($0, self[$0] as Any)
+      children: self.encryptedValues.allKeys().sorted().map {
+        ($0, self.encryptedValues[$0] as Any)
       },
       displayStyle: .struct
     )
