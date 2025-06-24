@@ -86,17 +86,23 @@ struct RemindersListForm: View {
                   reportIssue("No 'remindersListID'")
                   return
                 }
-                // try RemindersListAsset.insert {
-                //   RemindersListAsset.Draft(
-                //     coverImage: coverImageData,
-                //     remindersListID: remindersListID
-                //   )
-                // } onConflict: {
-                //   $0.remindersListID
-                // } doUpdate: {
-                //   $0.coverImage = coverImageData
-                // }
-                // .execute(db)
+                let existingAsset = try RemindersListAsset
+                  .where { $0.remindersListID.eq(remindersListID) }
+                  .fetchOne(db)
+                if let existingAsset {
+                  try RemindersListAsset
+                    .find(existingAsset.id)
+                    .update { $0.coverImage = coverImageData }
+                    .execute(db)
+                } else {
+                  try RemindersListAsset.insert {
+                    RemindersListAsset.Draft(
+                      coverImage: coverImageData,
+                      remindersListID: remindersListID
+                    )
+                  }
+                  .execute(db)
+                }
               }
             }
           }

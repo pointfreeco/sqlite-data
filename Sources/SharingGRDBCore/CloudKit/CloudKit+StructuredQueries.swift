@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import CloudKit
 import CustomDump
 import StructuredQueriesCore
@@ -183,3 +184,4 @@ extension CKRecordZone.ID: @retroactive CustomDumpReflectable {
     )
   }
 }
+#endif

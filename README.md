@@ -251,7 +251,7 @@ try modelContext.save()
 > [Comparison with SwiftData][comparison-swiftdata-article].
 
 Further, if you want to synchronize the local database to CloudKit so that it is available on
-devices, simply configure a `SyncEngine` in the entry point of the app: 
+all your user's devices, simply configure a `SyncEngine` in the entry point of the app: 
 
 ```swift
 @main

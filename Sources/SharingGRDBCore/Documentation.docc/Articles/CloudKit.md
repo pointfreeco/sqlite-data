@@ -1,7 +1,6 @@
 # CloudKit synchronization
 
-Learn how to seamlessly add CloudKit synchronization and record sharing to your SharingGRDB
-application.
+Learn how to seamlessly add CloudKit synchronization to your SharingGRDB application.
 
 ## Overview
 
@@ -16,19 +15,11 @@ to make sure you understand how to best prepare your app for cloud synchronizati
   - [Setting up a SyncEngine](#Setting-up-a-SyncEngine)  
   - [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)  
     - [UUID Primary keys](#UUID-Primary-keys)  
-    - [Primary keys on every table](#Primary-keys-on-every-table)  
-    - [Default values for columns](#Default-values-for-columns)  
-    - [Unique constraints](#Unique-constraints)  
+    - [Primary keys on every table](#Primary-keys-on-every-table)
     - [Foreign key relationships](#Foreign-key-relationships)  
   - [Record conflicts](#Record-conflicts)  
   - [Backwards compatible migrations](#Backwards-compatible-migrations)  
   - [Sharing records with other iCloud users](#Sharing-records-with-other-iCloud-users)  
-    - [Sharing root records](#Sharing-root-records)  
-    - [Sharing foreign key relationships](#Sharing-foreign-key-relationships)  
-      - [One-to-many relationships](#One-to-many-relationships)  
-      - [Many-to-many relationships](#Many-to-many-relationships)  
-      - [One-to-"at most one" relationships](#One-to-at-most-one-relationships)
-    - [Controlling what data is shared](#Controlling-what-data-is-shared)
   - [Assets](#Assets)  
   - [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)  
   - [How SharingGRDB handles distributed schema scenarios](#How-SharingGRDB-handles-distributed-schema-scenarios)  
@@ -105,6 +96,26 @@ to the database will be synchronized to CloudKit. You will still interact with y
 database the same way you always have. You can use ``FetchAll`` to fetch data to be used in a view
 or `@Observable` model, and you can use the `defaultDatabase` dependency to write to the database.
 
+There is one additional step you can optionally take if you want to gain access to the underlying
+CloudKit metadata that is stored by the library. When constructing the connection to your database
+you can use the `prepareDatabase` method on `Configuration` to attach the metadatabase:
+
+```swift
+func appDatabase() -> any DatabaseWriter {
+  var configuration = Configuration()
+  configuration.prepareDatabase = { db in
+    db.attachMetadatabase(containerIdentifier: "iCloud.my.company.MyApp")
+    …
+  }
+}
+```
+
+This will allow you to query the ``SyncMetadata`` table, which gives you access to the `CKRecord`
+stored for each of your records, as well as the `CKShare` for any shared records.
+
+See the ``GRDB/Database/attachMetadatabase(containerIdentifier:)`` for more information, as well
+as below <doc:CloudKit#Accessing-CloudKit-metadata>.
+
 ## Designing your schema with synchronization in mind
 
 Distributing your app's schema across many devices is a big decision to make for your app, and
@@ -172,6 +183,9 @@ CREATE TABLE "reminderTags" (
 Note that the `id` column may never be used in your application code, but it is necessary to 
 facilitate synchronizing to CloudKit.
 
+<!--
+TODO: think more about this
+
 #### Default values for columns
 
 > Important: All columns must have a default in order to allow for multiple devices to run your
@@ -202,6 +216,7 @@ discard one of the tags.
 For this reason uniqueness constraints are not allowed in schemas, and this will be validated
 when a ``SyncEngine`` is first created. If a uniqueness constraint is detected a 
 ``UniqueConstraintDisallowed`` error will be thrown.
+-->
 
 #### Foreign key relationships
 
@@ -299,262 +314,7 @@ extra complications to an app that go beyond the existing complications of shari
 across many devices. Please read the documentation carefully and thoroughly to understand
 how to best situate your app for sharing that does not cause problems down the road.
 
-> Note: To enable sharing of records be sure to add a `CKSharingSupported` key to your Info.plist 
-with a value of `true`. This is subtly documented in [Apple's documentation for sharing].
-
-[Apple's documentation for sharing]: https://developer.apple.com/documentation/cloudkit/sharing-cloudkit-data-with-other-icloud-users#Create-and-Share-a-Topic
-
-To share a record with another user one must first create a `CKShare`. SharingGRDB provides
-the method ``SyncEngine/share(record:configure:)`` on ``SyncEngine`` for generating a `CKShare`
-for a record. Further, the value returned from this method can be stored in a view and be used
-to drive a sheet to display a ``CloudSharingView``, which is a wrapper around UIKit's
-`UICloudSharingController`:
-
-```swift
-struct RemindersListView: View {
-  let remindersList: RemindersList 
-  @State var sharedRecord: SharedRecord?
-
-  var body: some View {
-    Form {
-      …
-    }
-    .toolbar {
-      Button("Share") {
-        Task {
-          await withErrorReporting {
-            sharedRecord = try await syncEngine.share(record: remindersList) { share in
-              share[CKShare.SystemFieldKey.title] = "Join '\(remindersList.title)!'"
-            }
-          }
-        }
-      }
-    }
-    .sheet(item: $sharedRecord) { sharedRecord in
-      CloudSharingView(sharedRecord: sharedRecord)
-    }
-  }
-}
-```
-
-When the "Share" button is tapped, a ``SharedRecord`` will be generated and stored as local state
-in the view. That will cause a ``CloudSharingView`` sheet to be presented where the user can 
-configure how they want to share the record. A record can be _unshared_ by presenting the same
-``CloudSharingView`` to the user so that they can tap the "Stop sharing" button in the UI.
-
-#### Sharing root records
-
-> Important: It is only possible to share "root" records, that is, records with no
-> foreign keys.
-
-A record can be shared only if it is a "root" record. That means it cannot have any
-foreign keys whatsoever. As an example, the following `RemindersList` table is a root record because 
-it does not have any fields pointing to other tables:
-
-```swift
-@Table 
-struct RemindersList: Identifiable {
-  let id: UUID 
-  var title = ""
-}
-```
-
-On the other hand, a `Reminder` table with a foreign key pointing to the `RemindersList` is _not_
-a root record:
-
-```swift
-@Table 
-struct Reminder: Identifiable {
-  let id: UUID 
-  var title = ""
-  var isCompleted = false
-  var remindersListID: RemindersList.ID
-}
-```
-
-Such records cannot be shared because it is not appropriate to also share the parent record
-(i.e. the reminders list). For example, suppose you have a list named "Personal" with a reminder
-"Get milk". If you share this reminder with someone, and they decide to reassign the reminder to
-their "Life" list, what should happen? Should their list be synchronized to your device?
-Or what if they rename your personal list? Should that also rename the list on your device?
-Or what if they delete the list? Would you want that to delete your list and all the reminders
-in the list?
-
-For these reasons it is not possible to share non-root records, like reminders. Instead, you can
-share root records, like reminders lists. If you do invoke ``SyncEngine/share(record:configure:)``
-with a non-root record, a ``SyncEngine/RecordMustBeRoot`` error will be thrown.
-
-> Note: A reminder can still be shared as an association to a shared reminders list, as discussed
-> [in the next section](<doc:CloudKit#Sharing foreign key relationships>). However, a single 
-> reminder cannot be shared on its own.
-
-For a more complex example, consider the following diagrammatic schema for a reminders app:
-
-![Root record diagram](sync-diagram-root-record.png)
-
-In this schema, a `RemindersList` can have many `Reminder`s, can have a `CoverImage`, and a
-`Reminder` can have multiple `Tag`s, and vice-versa. The only table in this diagram that constitutes
-a "root" is `RemindersList`. It is the only one with no foreign key relationships.
-None of `Reminder`, `CoverImage`, `Tag` or `ReminderTag` can be directly shared on their own
-because they are not root tables.
-
-#### Sharing foreign key relationships
-
-> Important: Foreign key relationships are automatically synchronized, but only if the related
-> record has a single foreign key. Records with multiple foreign keys cannot be synchronized.
-
-Relationships between models will automatically be shared when sharing a root record, but with
-some limitations. An associated record of a shared record will only be shared if it has exactly
-one foreign key pointing to the root shared record, whether directly or indirectly
-through other records satisfying this property.
-
-Below we describe some of the most common types of relationships in SQL databases, as well as
-which are possible to synchronize, which cannot be synchronized, and which can be adapted to
-play nicely with synchronization.
-
-##### One-to-many relationships
-
-One-to-many relationships are the simplest to share with other users. As an example, 
-consider a `RemindersList` table that can have many `Reminder`s associated with it:
-
-```swift
-@Table 
-struct RemindersList: Identifiable {
-  let id: UUID 
-  var title = ""
-}
-
-@Table 
-struct Reminder: Identifiable {
-  let id: UUID 
-  var title = ""
-  var isCompleted = false
-  var remindersListID: RemindersList.ID
-}
-```
-
-Since `RemindersList` is a [root record](#Sharing-root-records) it can be shared, and since
-`Reminder` has only one foreign key pointing to `RemindersList`, it too will be shared.
-
-Further, suppose there was a `ChildReminder` table that had a single foreign key pointing to a 
-`Reminder`:
-
-```swift
-@Table 
-struct ChildReminder: Identifiable {
-  let id: UUID 
-  var title = ""
-  var isCompleted = false
-  var parentReminderID: Reminders.ID
-}
-```
-
-This too will be shared because it has one single foreign key pointing to a table that also has
-one single foreign key pointing to the root record being shared.
-
-As a more complex example, consider the following diagrammatic schema:
-
-![Synchronizing one-to-many relationships](sync-diagram-one-to-many.png)
-
-In this schema, a `RemindersList` can have many `Reminder`s and a `CoverImage`, and a `Reminder`
-can have many `ChildReminder`s. Sharing a `RemindersList` will share all associated reminders,
-cover image, and even child reminderes. The child reminders are synchronized because it has a 
-single foreign key pointing to a table that also has a single foreign key pointing to the root 
-record.
-
-##### Many-to-many relationships
-
-Many-to-many relationships pose a significant problem to sharing and cannot be supported. If a 
-table has multiple foreign keys, then it will not be shared even if one of those 
-foreign keys points to the shared record. 
-
-As an example, suppose we had a many-to-many association of a `Tag` table to `Reminder` via a 
-`ReminderTag` join table:
-
-```swift
-@Table
-struct Tag: Identifiable {
-  let id: UUID 
-  var title = ""
-}
-@Table
-struct ReminderTag: Identifiable {
-  let id: UUID 
-  var reminderID: Reminder.ID
-  var tagID: Tag.ID
-}
-```
-
-In diagrammatic form, this schema looks like the following:
-
-![Synchronizing many-to-many relationships](sync-diagram-many-to-many.png)
-
-The `ReminderTag` records will _not_ be shared because it has two foreign key 
-relationships, represented by the two arrows leaving the `ReminderTag` node. As a consequence,
-the `Tag` records will also not be shared. Sharing these records cannot be done in a consistent and 
-logical manner. 
-
-> Note: `CKShare` in CloudKit, which is what our tools are built on, does not support sharing 
-> many-to-many relationships. This is also how the Reminders app works on Apple's platforms. 
-> Sharing a list of reminders with another use does not share its tags with that user. 
-
-To see why this is an acceptable limitation, suppose you share a "Personal" list with someone, which 
-holds a "Get milk" reminder, and that reminder has a "weekend" tag associated with it. If the tag 
-were shared with your friend, then what happens when they delete the tag? Would it be appropriate to 
-delete that tag from all of your reminders, even the ones that were not shared? For these reasons, 
-and more, records with multiple foreign keys cannot be shared with a record.
-
-If you want to support many tags associated with a single reminder, you will have no choice
-but to turn it into a one-to-many relationship so that each tag belongs to exactly one reminder:
-
-```swift
-@Table
-struct Tag: Identifiable {
-  let id: UUID 
-  var title = "" 
-  var reminderID: Reminder.ID
-}
-```
-
-In diagrammatic form this schema now looks like the following:
-
-![Many-to-many refactor into a one-to-many relationship](sync-diagram-many-to-many-refactor.png)
-
-This kind of relationship will now be synchronized automatically. Sharing a `RemindersList` will
-automatically share all of its `Reminder`s, which will subsequently also share all of their
-`Tag`s. But, this does put responsibility on your application code to properly aggregate 
-multiple tags together with the same titles. Luckily this is something that SQL excels at.
-
-##### One-to-"at most one" relationships
-
-One-to-"at most one" relationships in SQLite allow you to associate zero or one records with
-another record. For an example of this, suppose we wanted to hold onto a cover image for reminders 
-lists (see <doc:CloudKit#Assets> for more information on synchronizing assets such as images). It 
-is perfectly fine to hold onto large binary data in SQLite, such as image data, but typically one 
-should put this data in a separate table.
-
-This kind of relationship can be modeled in SQLite as a foreign key pointing from image record 
-to reminders list record, and with a uniqueness constraint on the key. That enforces that at 
-most one image is associated with a reminders list.
-
-In diagrammatic form, it looks like this:
-
-![One-to-"at most one" relationship with uniqueness](sync-diagram-one-to-at-most-one-unique.png)
-
-Here the `CoverImage` table has a foreign key pointing to the root table `RemindersList`, but 
-with a uniqueness constraint to enforce that at most one cover image belongs to a list.
-
-However, due to what is discussed in <doc:CloudKit#Unique-constraints>, this kind of relationship
-cannot be synchronized to CloudKit since uniqueness constraints do not play nicely with 
-distributed data. But, one can still model this kind of relationship by not enforcing the 
-uniqueness constraint in SQL and instead enforcing it in your application logic. This means
-you will model the relationship as a one-to-many (as described in 
-<doc:CloudKit#One-to-many-relationships>) and making sure that in your feature's logic you never
-create multiple cover images pointing to the same reminders list.
-
-#### Controlling what data is shared
-
-<!-- todo: finish -->
+See <doc:CloudKitSharing> for more information.
 
 ## Assets
 
@@ -562,7 +322,65 @@ create multiple cover images pointing to the same reminders list.
 
 ## Accessing CloudKit metadata
 
-<!-- todo: finish -->
+While the library tries to make CloudKit synchronization as seamless and hidden as possible,
+there are times you will need to access the underlying CloudKit types for your tables and records.
+The ``SyncMetadata``table is the central place where this data is stored, and it is publicly 
+exposed for you to query it in whichever way you want.
+
+> Important: In order to query the `SyncMetadata` table from your database connection you will need 
+to attach the metadatabase to your database connection. This can be done with the
+``GRDB/Database/attachMetadatabase(containerIdentifier:)`` method defined on `Database`.
+
+For example, if you want to retrieve the `CKRecord` that is associated with a particular row in
+one of your tables, say a reminder, then you can use ``SyncMetadata/lastKnownServerRecord`` to
+retreive the `CKRecord` and then invoke a CloudKit database function to retreive all of the details: 
+
+```swift
+let metadata = try database.read { db in
+  try SyncMetadata
+    .find(RemindersList.recordName(for: remindersListID))
+    .fetchOne(db)
+}
+guard let metadata 
+else { return }
+
+let ckRecord = try await container.privateCloudDatabase
+  .record(for: metadata.lastKnownServerRecord.recordID)
+```
+
+> Important: In the above snippet we are explicitly using `privateCloudDatabase`, but that is
+> only appropriate for unshared records. If your record is shared, which can be determined from
+> [SyncMetadata.share](<doc:SyncMetadata/share>), then you must use `sharedCloudDatabase` to
+> fetch the newest record.
+
+You are free to invoke any CloudKit functions you want with the `CKRecord` retreived from 
+``SyncMetadata``. Any changes made directly with CloudKit will be automatically synced to your
+SQLite database by the ``SyncEngine``.
+
+It is also possible to fetch the `CKShare` associated with a record if it has been shared:
+
+```swift
+let metadata = try database.read { db in
+  try SyncMetadata
+    .find(RemindersList.recordName(for: remindersListID))
+    .fetchOne(db)
+}
+guard 
+  let metadata,
+  let share = metadata.share
+else { return }
+
+let ckRecord = try await container.sharedCloudDatabase
+  .record(for: share.recordID)
+```
+
+> Important: In the above snippet we are using the `sharedCloudDatabase` and this is always 
+appropriate to use when fetching the details of a `CKShare` as they are always stored in the 
+shared database.
+
+<!-- todo: fact check the above 'important' -->
+
+It is possible to 
 
 ## How SharingGRDB handles distributed schema scenarios
 
@@ -587,3 +405,9 @@ create multiple cover images pointing to the same reminders list.
 ## Migrating from Swift Data to SharingGRDB
 
 ## Separating schema migrations from data migrations
+
+## Topics
+
+### Go deeper
+
+- <doc:ComparisonWithSwiftData>

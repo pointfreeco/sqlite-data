@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import CloudKit
 import Dependencies
 import GRDB
@@ -16,3 +17,4 @@ extension SyncEngine: TestDependencyKey {
     try! SyncEngine(container: .default(), database: DatabaseQueue(), tables: [])
   }
 }
+#endif

@@ -27,7 +27,9 @@ class BaseCloudKitTests: @unchecked Sendable {
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   init() async throws {
-    let database = try SharingGRDBTests.database()
+    let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
+
+    let database = try SharingGRDBTests.database(containerIdentifier: testContainerIdentifier)
     let privateSyncEngine = MockSyncEngine(scope: .private, state: MockSyncEngineState())
     let sharedSyncEngine = MockSyncEngine(scope: .shared, state: MockSyncEngineState())
     self.database = database
@@ -37,12 +39,12 @@ class BaseCloudKitTests: @unchecked Sendable {
       privateSyncEngine: privateSyncEngine,
       sharedSyncEngine: sharedSyncEngine,
       database: database,
-      metadatabaseURL: URL.temporaryDirectory.appending(
-        path: "metadatabase.\(UUID().uuidString).sqlite"
-      ),
+      metadatabaseURL: URL.metadatabase(containerIdentifier: testContainerIdentifier),
       tables: [
         Reminder.self,
         RemindersList.self,
+        Tag.self,
+        ReminderTag.self,
         User.self,
         Parent.self,
         ChildWithOnDeleteRestrict.self,

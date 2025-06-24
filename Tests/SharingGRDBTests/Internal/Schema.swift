@@ -15,6 +15,15 @@ import SharingGRDB
   var position = 0
   var remindersListID: RemindersList.ID
 }
+@Table struct Tag: Equatable, Identifiable {
+  let id: UUID
+  var title = ""
+}
+@Table struct ReminderTag: Equatable, Identifiable {
+  let id: UUID
+  var reminderID: Reminder.ID
+  var tagID: Tag.ID
+}
 @Table struct User: Equatable, Identifiable {
   let id: UUID
   var name = ""
@@ -38,10 +47,11 @@ import SharingGRDB
 }
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
-func database() throws -> DatabasePool {
+func database(containerIdentifier: String) throws -> DatabasePool {
   var configuration = Configuration()
   configuration.foreignKeysEnabled = false
-  configuration.prepareDatabase { db in 
+  configuration.prepareDatabase { db in
+    try db.attachMetadatabase(containerIdentifier: containerIdentifier)
     db.trace {
       print($0.expandedDescription)
     }
@@ -88,6 +98,25 @@ func database() throws -> DatabasePool {
         "remindersListID" TEXT NOT NULL, 
         
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      ) STRICT
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TABLE "tags" (
+        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "title" TEXT NOT NULL DEFAULT ''
+      ) STRICT
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TABLE "reminderTags" (
+        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
+        "tagID" TEXT NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
       ) STRICT
       """
     )

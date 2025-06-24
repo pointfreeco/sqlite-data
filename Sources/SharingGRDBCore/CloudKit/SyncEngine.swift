@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import CloudKit
 import ConcurrencyExtras
 import OSLog
@@ -212,7 +213,7 @@ public final class SyncEngine: Sendable {
 
     /*
      TODO: When we detect a change in schema should save records?
-     TODO: Should we save records for everything in a table that is not in metadata?
+     TODO: Should we save  records for everything in a table that is not in metadata?
      */
 
     if !recordTypesToFetch.isEmpty {
@@ -282,57 +283,61 @@ public final class SyncEngine: Sendable {
         }
       }
     }
-    try setUpSyncEngine(
-      database: database,
-      metadatabase: metadatabase,
-      shouldFetchChanges: true
-    )
+    try await setUpSyncEngine()
   }
 
   func didUpdate(recordName: SyncMetadata.RecordName) {
-    let zoneID = zoneID(for: recordName)
-    let syncEngine = syncEngines.withValue {
-      zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-    }
-    syncEngine?.state.add(
-      pendingRecordZoneChanges: [
-        .saveRecord(
-          CKRecord.ID(
-            recordName: recordName.rawValue,
-            zoneID: zoneID
+    DispatchQueue.main.async {
+      let zoneID = self.zoneID(for: recordName)
+      let syncEngine = self.syncEngines.withValue {
+        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+      }
+      syncEngine?.state.add(
+        pendingRecordZoneChanges: [
+          .saveRecord(
+            CKRecord.ID(
+              recordName: recordName.rawValue,
+              zoneID: zoneID
+            )
           )
-        )
-      ]
-    )
+        ]
+      )
+    }
   }
 
   func didDelete(recordName: SyncMetadata.RecordName) {
-    let zoneID = zoneID(for: recordName)
-    let syncEngine = syncEngines.withValue {
-      zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-    }
-    syncEngine?.state.add(
-      pendingRecordZoneChanges: [
-        .deleteRecord(
-          CKRecord.ID(
-            recordName: recordName.rawValue,
-            zoneID: zoneID
+    DispatchQueue.main.async {
+      let zoneID = self.zoneID(for: recordName)
+      let syncEngine = self.syncEngines.withValue {
+        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+      }
+      syncEngine?.state.add(
+        pendingRecordZoneChanges: [
+          .deleteRecord(
+            CKRecord.ID(
+              recordName: recordName.rawValue,
+              zoneID: zoneID
+            )
           )
-        )
-      ]
-    )
+        ]
+      )
+    }
   }
 
   private func zoneID(for recordName: SyncMetadata.RecordName) -> CKRecordZone.ID {
-    let metadata =
+    let lastKnownServerRecord =
       withErrorReporting {
         try metadatabase.read { db in
-          try SyncMetadata
+          struct Parent: AliasName {}
+          return try SyncMetadata
             .find(recordName)
+            .leftJoin(SyncMetadata.as(Parent.self).all) { $1.recordName.is($0.parentRecordName) }
+            .select { $0.lastKnownServerRecord ?? $1.lastKnownServerRecord }
             .fetchOne(db)
         }
       } ?? nil
-    return metadata?.lastKnownServerRecord?.recordID.zoneID ?? Self.defaultZone.zoneID
+    // TODO: Clean up double optional
+    return lastKnownServerRecord??.recordID.zoneID ?? Self.defaultZone.zoneID
   }
 }
 
@@ -655,18 +660,18 @@ extension SyncEngine: CKSyncEngineDelegate {
       }
 
       for (recordID, recordType) in deletions {
-        guard let recordName = SyncMetadata.RecordName(recordID: recordID)
-        else {
-          reportIssue(
-            """
-            Received 'recordName' in invalid format: \(recordID.recordName)
-
-            'recordName' should be formatted as "uuid:tableName". 
-            """
-          )
-          continue
-        }
         if let table = tablesByName[recordType] {
+          guard let recordName = SyncMetadata.RecordName(recordID: recordID)
+          else {
+            reportIssue(
+              """
+              Received 'recordName' in invalid format: \(recordID.recordName)
+
+              'recordName' should be formatted as "uuid:tableName". 
+              """
+            )
+            continue
+          }
           func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try database.write { db in
@@ -785,12 +790,14 @@ extension SyncEngine: CKSyncEngineDelegate {
       return
     }
 
-    try await database.write { db in
-      try SyncMetadata
-        .find(recordName)
-        .update { $0.share = share }
-        .execute(db)
-    }
+    try {
+      try database.write { db in
+        try SyncMetadata
+          .find(recordName)
+          .update { $0.share = share }
+          .execute(db)
+      }
+    }()
   }
 
   private func deleteShare(recordID: CKRecord.ID, recordType: String) throws {
@@ -1016,8 +1023,10 @@ extension String {
 
 @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
 extension URL {
-  fileprivate static func metadatabase(containerIdentifier: String?) -> Self {
-    applicationSupportDirectory.appending(
+  package static func metadatabase(containerIdentifier: String?) -> Self {
+    @Dependency(\.context) var context
+    let base: URL = context == .live ? .applicationDirectory : .temporaryDirectory
+    return base.appending(
       component: "\(containerIdentifier.map { "\($0)." } ?? "")sqlite-data-icloud.sqlite"
     )
   }
@@ -1055,6 +1064,25 @@ struct SyncEngines {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Database {
+  /// Attaches the metadatabase to an existing database connection.
+  ///
+  /// Invoke this method when preparing your database connection in order to allow querying the
+  /// ``SyncMetadata`` table (see <doc:CloudKit#Accessing-CloudKit-metadata> for more info):
+  ///
+  /// ```swift
+  /// func appDatabase() -> any DatabaseWriter {
+  ///   var configuration = Configuration()
+  ///   configuration.prepareDatabase = { db in
+  ///     db.attachMetadatabase(containerIdentifier: "iCloud.my.company.MyApp")
+  ///     …
+  ///   }
+  /// }
+  /// ```
+  ///
+  /// See <doc:PreparingDatabase> for more information on preparing your database.
+  ///
+  /// - Parameter containerIdentifier: The identifier of the CloudKit container used to synchronize
+  ///                                  data.
   public func attachMetadatabase(containerIdentifier: String) throws {
     let url = URL.metadatabase(containerIdentifier: containerIdentifier)
     let path = url.path(percentEncoded: false)
@@ -1138,4 +1166,4 @@ private struct HashablePrimaryKeyedTableType: Hashable {
   static func == (lhs: Self, rhs: Self) -> Bool {
     lhs.type == rhs.type
   }
-}
+#endif

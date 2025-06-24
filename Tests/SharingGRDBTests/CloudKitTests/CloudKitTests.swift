@@ -51,6 +51,25 @@ extension BaseCloudKitTests {
               """
           ),
           [3]: RecordType(
+            tableName: "tags",
+            schema: """
+              CREATE TABLE "tags" (
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "title" TEXT NOT NULL DEFAULT ''
+              ) STRICT
+              """
+          ),
+          [4]: RecordType(
+            tableName: "reminderTags",
+            schema: """
+              CREATE TABLE "reminderTags" (
+                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
+                "tagID" TEXT NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
+              ) STRICT
+              """
+          ),
+          [5]: RecordType(
             tableName: "parents",
             schema: """
               CREATE TABLE "parents"(
@@ -58,7 +77,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [4]: RecordType(
+          [6]: RecordType(
             tableName: "childWithOnDeleteRestricts",
             schema: """
               CREATE TABLE "childWithOnDeleteRestricts"(
@@ -67,7 +86,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [5]: RecordType(
+          [7]: RecordType(
             tableName: "childWithOnDeleteSetNulls",
             schema: """
               CREATE TABLE "childWithOnDeleteSetNulls"(
@@ -76,7 +95,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [6]: RecordType(
+          [8]: RecordType(
             tableName: "childWithOnDeleteSetDefaults",
             schema: """
               CREATE TABLE "childWithOnDeleteSetDefaults"(
@@ -92,15 +111,24 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tearDown() async throws {
-      _ = try await database.write { db in
-        try SyncMetadata.count().fetchOne(db) ?? 0
+      try await database.write { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "Personal")
+        }
+      }
+      privateSyncEngine.state.assertPendingRecordZoneChanges([
+        .saveRecord(RemindersList.recordID(for: UUID(1)))
+      ])
+      
+      try await database.write { db in
+        let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
+        #expect(metadataCount == 1)
       }
       try await syncEngine.tearDownSyncEngine()
-//      await #expect(throws: DatabaseError.self) {
-//        try await self.database.write { db in
-//          try Metadata.count().fetchOne(db) ?? 0
-//        }
-//      }
+      try await self.database.write { db in
+        let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
+        #expect(metadataCount == 0)
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

@@ -1,4 +1,5 @@
 import CasePaths
+import CloudKit
 import SharingGRDB
 import SwiftUI
 import SwiftUINavigation
@@ -13,8 +14,10 @@ class RemindersDetailModel: HashableObject {
 
   let detailType: DetailType
   var isNewReminderSheetPresented = false
+  var sharedRecord: SharedRecord?
 
   @ObservationIgnored @Dependency(\.defaultDatabase) private var database
+  @ObservationIgnored @Dependency(\.defaultSyncEngine) private var syncEngine
 
   init(detailType: DetailType) {
     self.detailType = detailType
@@ -59,7 +62,17 @@ class RemindersDetailModel: HashableObject {
     $ordering.withLock { $0 = .manual }
     await updateQuery()
   }
-  
+
+  func shareButtonTapped() async {
+    guard let remindersList = detailType.remindersList
+    else { return }
+    sharedRecord = await withErrorReporting {
+      try await syncEngine.share(record: remindersList) { share in
+        share[CKShare.SystemFieldKey.title] = remindersList.title
+      }
+    }
+  }
+
   private func updateQuery() async {
     await withErrorReporting {
       try await $reminderRows.load(remindersQuery, animation: .default)
@@ -67,7 +80,6 @@ class RemindersDetailModel: HashableObject {
   }
 
   private var remindersQuery: some StructuredQueriesCore.Statement<Row> {
-    let query =
     Reminder
       .where {
         if !showCompleted {
@@ -91,6 +103,8 @@ class RemindersDetailModel: HashableObject {
         case .flagged: reminder.isFlagged
         case .remindersList(let list): reminder.remindersListID.eq(list.id)
         case .scheduled: reminder.isScheduled
+        case .shared:
+          SyncMetadata.where { $0.recordPrimaryKey.eq(reminder.remindersListID) }.exists()
         case .tags(let tags): tag.id.ifnull(UUID(0)).in(tags.map(\.id))
         case .today: reminder.isToday
         }
@@ -105,7 +119,6 @@ class RemindersDetailModel: HashableObject {
           tags: #sql("\($2.jsonNames)")
         )
       }
-    return query
   }
 
   enum Ordering: String, CaseIterable {
@@ -131,6 +144,7 @@ class RemindersDetailModel: HashableObject {
     case flagged
     case remindersList(RemindersList)
     case scheduled
+    case shared
     case tags([Tag])
     case today
   }
@@ -189,6 +203,9 @@ struct RemindersDetailView: View {
         }
       }
     }
+    .sheet(item: $model.sharedRecord) { sharedRecord in
+      CloudSharingView(sharedRecord: sharedRecord)
+    }
     .toolbar {
       ToolbarItem(placement: .principal) {
         Text(model.detailType.navigationTitle)
@@ -215,32 +232,41 @@ struct RemindersDetailView: View {
         }
       }
       ToolbarItem(placement: .primaryAction) {
-        Menu {
-          Group {
-            Menu {
-              ForEach(RemindersDetailModel.Ordering.allCases, id: \.self) { ordering in
-                Button {
-                  Task { await model.orderingButtonTapped(ordering) }
-                } label: {
-                  Text(ordering.rawValue)
-                  ordering.icon
-                }
-              }
-            } label: {
-              Text("Sort By")
-              Text(model.ordering.rawValue)
-              Image(systemName: "arrow.up.arrow.down")
-            }
+        HStack(alignment: .firstTextBaseline) {
+          if model.detailType.is(\.remindersList) {
             Button {
-              Task { await model.showCompletedButtonTapped() }
+              Task { await model.shareButtonTapped() }
             } label: {
-              Text(model.showCompleted ? "Hide Completed" : "Show Completed")
-              Image(systemName: model.showCompleted ? "eye.slash.fill" : "eye")
+              Image(systemName: "square.and.arrow.up")
             }
           }
-          .tint(model.detailType.color)
-        } label: {
-          Image(systemName: "ellipsis.circle")
+          Menu {
+            Group {
+              Menu {
+                ForEach(RemindersDetailModel.Ordering.allCases, id: \.self) { ordering in
+                  Button {
+                    Task { await model.orderingButtonTapped(ordering) }
+                  } label: {
+                    Text(ordering.rawValue)
+                    ordering.icon
+                  }
+                }
+              } label: {
+                Text("Sort By")
+                Text(model.ordering.rawValue)
+                Image(systemName: "arrow.up.arrow.down")
+              }
+              Button {
+                Task { await model.showCompletedButtonTapped() }
+              } label: {
+                Text(model.showCompleted ? "Hide Completed" : "Show Completed")
+                Image(systemName: model.showCompleted ? "eye.slash.fill" : "eye")
+              }
+            }
+            .tint(model.detailType.color)
+          } label: {
+            Image(systemName: "ellipsis.circle")
+          }
         }
       }
     }
@@ -291,6 +317,7 @@ extension RemindersDetailModel.DetailType {
     case .flagged: "flagged"
     case .remindersList(let list): "list_\(list.id)"
     case .scheduled: "scheduled"
+    case .shared: "shared"
     case .tags: "tags"
     case .today: "today"
     }
@@ -302,6 +329,7 @@ extension RemindersDetailModel.DetailType {
     case .flagged: "Flagged"
     case .remindersList(let list): list.title
     case .scheduled: "Scheduled"
+    case .shared: "Shared"
     case .tags(let tags):
       switch tags.count {
       case 0: "Tags"
@@ -318,6 +346,7 @@ extension RemindersDetailModel.DetailType {
     case .flagged: .orange
     case .remindersList(let list): list.color
     case .scheduled: .red
+    case .shared: .pink
     case .tags: .blue
     case .today: .blue
     }

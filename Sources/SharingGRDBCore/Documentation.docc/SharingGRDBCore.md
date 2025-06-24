@@ -174,6 +174,36 @@ a model context, via a property wrapper:
 > Note: For more information on how SharingGRDB compares to SwiftData, see
 > <doc:ComparisonWithSwiftData>.
 
+Further, if you want to synchronize the local database to CloudKit so that it is available on
+all your user's devices, simply configure a `SyncEngine` in the entry point of the app: 
+
+```swift
+@main
+struct MyApp: App {
+  init() {
+    prepareDependencies {
+      $0.defaultDatabase = try! appDatabase()
+      $0.defaultSyncEngine = SyncEngine(
+        container: CKContainer(
+          identifier: "iCloud.co.mycompany.MyApp"
+        ),
+        database: $0.defaultDatabase,
+        tables: [
+          /* ... */
+        ]
+      )
+    }
+  }
+  // ...
+}
+```
+
+> [!NOTE]
+> For more information on synchronizing the database to CloudKit and sharing records with iCloud
+> users, see <doc:CloudKit>.
+
+[CloudKit Synchronization]
+
 This is all you need to know to get started with SharingGRDB, but there's much more to learn. Read
 the [articles](#Essentials) below to learn how to best utilize this library.
 
