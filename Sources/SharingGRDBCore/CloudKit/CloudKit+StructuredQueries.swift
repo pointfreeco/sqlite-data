@@ -156,7 +156,7 @@ extension CKRecord: @retroactive CustomDumpReflectable {
       children: [
         ("recordID", recordID as Any),
         ("recordType", recordType as Any),
-        ("share", parent as Any),
+        ("share", share as Any),
         ("parent", parent as Any),
       ] + self.encryptedValues.allKeys().sorted().map {
         ($0, self.encryptedValues[$0] as Any)

@@ -250,15 +250,7 @@ extension BaseCloudKitTests {
                 )
               ),
               recordType: "reminders",
-              share: CKReference(
-                recordID: CKRecordID(
-                  recordName: "00000000-0000-0000-0000-000000000001:remindersLists",
-                  zoneID: CKRecordZoneID(
-                    zoneName: "co.pointfree.SQLiteData.defaultZone",
-                    ownerName: "__defaultOwner__"
-                  )
-                )
-              ),
+              share: nil,
               parent: CKReference(
                 recordID: CKRecordID(
                   recordName: "00000000-0000-0000-0000-000000000001:remindersLists",

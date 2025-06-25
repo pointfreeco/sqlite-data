@@ -29,14 +29,23 @@ class BaseCloudKitTests: @unchecked Sendable {
     _sharedSyncEngine as! MockSyncEngine
   }
 
+  typealias SendablePrimaryKeyedTable<T> = PrimaryKeyedTable<T> & Sendable
+
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  init() async throws {
+  init(seeds: [any SendablePrimaryKeyedTable<UUID>] = []) async throws {
     let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
 
     let database = try SharingGRDBTests.database(containerIdentifier: testContainerIdentifier)
+    self.database = database
+    try { [seeds] in
+      try database.write { db in
+        try db.seed {
+          seeds
+        }
+      }
+    }()
     let privateSyncEngine = MockSyncEngine(scope: .private, state: MockSyncEngineState())
     let sharedSyncEngine = MockSyncEngine(scope: .shared, state: MockSyncEngineState())
-    self.database = database
     _privateSyncEngine = privateSyncEngine
     _sharedSyncEngine = sharedSyncEngine
     _syncEngine = try SyncEngine(
