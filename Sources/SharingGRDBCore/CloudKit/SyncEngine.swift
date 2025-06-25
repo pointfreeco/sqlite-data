@@ -514,8 +514,8 @@ extension SyncEngine: CKSyncEngineDelegate {
             recordID: recordID
           )
         record.parent = metadata.parentRecordName.flatMap { parentRecordName in
-//          guard !privateTables.contains(where: { $0.tableName == parentRecordName.recordType })
-//          else { return nil }
+          guard !privateTables.contains(where: { $0.tableName == parentRecordName.recordType })
+          else { return nil }
           return CKRecord.Reference(
             recordID: CKRecord.ID(
               recordName: parentRecordName.rawValue,
@@ -756,7 +756,14 @@ extension SyncEngine: CKSyncEngineDelegate {
     guard let url = share.url
     else { return }
 
-    let metadata = try await container.shareMetadata(for: url, shouldFetchRootRecord: true)
+    guard let metadata = try? await container.shareMetadata(
+      for: url,
+      shouldFetchRootRecord: true
+    )
+    else {
+      // TODO: should we delete this record if it doesn't exist in the container?
+      return
+    }
 
     guard let rootRecord = metadata.rootRecord
     else { return }
