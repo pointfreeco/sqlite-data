@@ -29,6 +29,13 @@ struct CloudKitDemoApp: App {
     ) -> Bool {
       try! prepareDependencies {
         $0.defaultDatabase = try appDatabase()
+        $0.defaultSyncEngine = try SyncEngine(
+          container: CKContainer(identifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitDemo"),
+          database: $0.defaultDatabase,
+          tables: [
+            Counter.self
+          ]
+        )
       }
       return true
     }
@@ -49,5 +56,14 @@ struct CloudKitDemoApp: App {
 
   class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
+    @Dependency(\.defaultSyncEngine) var syncEngine
+    func windowScene(
+      _ windowScene: UIWindowScene,
+      userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
+    ) {
+      Task {
+        try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
+      }
+    }
   }
 #endif

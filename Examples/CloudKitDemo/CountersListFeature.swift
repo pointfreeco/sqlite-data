@@ -46,7 +46,9 @@ struct CountersListView: View {
 
 struct CounterRow: View {
   let counter: Counter
+  @State var sharedRecord: SharedRecord?
   @Dependency(\.defaultDatabase) var database
+  @Dependency(\.defaultSyncEngine) var syncEngine
 
   var body: some View {
     VStack {
@@ -72,7 +74,20 @@ struct CounterRow: View {
             }
           }
         }
+        Spacer()
+        Button {
+          Task {
+            sharedRecord = try await syncEngine.share(record: counter) { share in
+              share[CKShare.SystemFieldKey.title] = "Join my counter!"
+            }
+          }
+        } label: {
+          Image(systemName: "square.and.arrow.up")
+        }
       }
+    }
+    .sheet(item: $sharedRecord) { sharedRecord in
+      CloudSharingView(sharedRecord: sharedRecord)
     }
   }
 }
