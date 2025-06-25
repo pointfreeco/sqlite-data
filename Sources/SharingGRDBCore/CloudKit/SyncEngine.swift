@@ -203,27 +203,29 @@ public final class SyncEngine: Sendable {
       )
       .fetchAll(db)
     }
-    let recordTypesToFetch = currentRecordTypes.filter { currentRecordType in
+    let recordTypesToFetch = currentRecordTypes.compactMap { currentRecordType in
       guard
         let existingRecordType = previousRecordTypes.first(where: { previousRecordType in
           currentRecordType.tableName == previousRecordType.tableName
         })
-      else { return true }
-      return existingRecordType.schema != currentRecordType.schema
+      else { return (currentRecordType, isNewTable: true) }
+      return existingRecordType.schema == currentRecordType.schema
+        ? nil
+        : (currentRecordType, isNewTable: false)
     }
-
-    /*
-     TODO: When we detect a change in schema should save records?
-     TODO: Should we save  records for everything in a table that is not in metadata?
-     */
 
     if !recordTypesToFetch.isEmpty {
       withErrorReporting(.sqliteDataCloudKitFailure) {
         try database.write { db in
-          for recordType in recordTypesToFetch {
+          for (recordType, isNewTable) in recordTypesToFetch {
             try RecordType
               .upsert { RecordType.Draft(recordType) }
               .execute(db)
+            if isNewTable {
+              // TODO: Upload everything
+            } else {
+              // TODO: Fetch everything
+            }
           }
         }
       }
