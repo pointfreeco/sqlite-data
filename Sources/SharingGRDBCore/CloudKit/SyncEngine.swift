@@ -222,7 +222,14 @@ public final class SyncEngine: Sendable {
               .upsert { RecordType.Draft(recordType) }
               .execute(db)
             if isNewTable {
-              // TODO: Upload everything
+              if let table = tablesByName[recordType.tableName] {
+                func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+                  try T
+                    .update { $0.primaryKey = $0.primaryKey }
+                    .execute(db)
+                }
+                try open(table)
+              }
             } else {
               // TODO: Fetch everything
             }

@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import SharingGRDB
 
 @Table
@@ -8,15 +9,37 @@ struct Counter: Identifiable {
 }
 
 func appDatabase() throws -> any DatabaseWriter {
-  let path = URL.documentsDirectory.appendingPathComponent("db.sqlite").path()
+  @Dependency(\.context) var context
+  let database: any DatabaseWriter
   var configuration = Configuration()
-  configuration.foreignKeysEnabled = false
+  configuration.foreignKeysEnabled = context != .live
   configuration.prepareDatabase { db in
-    db.trace {
-      print($0.expandedDescription)
-    }
+    #if DEBUG
+      try db.attachMetadatabase(containerIdentifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitDemo")
+      db.trace(options: .profile) {
+        if context == .live {
+          logger.debug("\($0.expandedDescription)")
+        } else {
+          print("\($0.expandedDescription)")
+        }
+      }
+    #endif
   }
-  let database = try DatabasePool(path: path, configuration: configuration)
+  if context == .preview {
+    database = try DatabaseQueue(configuration: configuration)
+  } else {
+    let path =
+      context == .live
+      ? URL.documentsDirectory.appending(component: "db.sqlite").path()
+      : URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
+    logger.debug(
+      """
+      App database
+      open "\(path)"
+      """
+    )
+    database = try DatabasePool(path: path, configuration: configuration)
+  }
 
   var migrator = DatabaseMigrator()
   #if DEBUG
@@ -35,3 +58,5 @@ func appDatabase() throws -> any DatabaseWriter {
 
   return database
 }
+
+private let logger = Logger(subsystem: "CloudKitDemo", category: "Database")
