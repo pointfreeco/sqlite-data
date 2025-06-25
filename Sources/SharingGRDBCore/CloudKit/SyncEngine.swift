@@ -117,10 +117,11 @@ public final class SyncEngine: Sendable {
         }
       }
     )
-    try setUpSyncEngine(
+    _ = try setUpSyncEngine(
       database: database,
-      metadatabase: metadatabase,
-      shouldFetchChanges: true
+      metadatabase: metadatabase
+//      ,
+//      shouldFetchChanges: true
     )
   }
 
@@ -129,21 +130,23 @@ public final class SyncEngine: Sendable {
   }
 
   package func setUpSyncEngine() async throws {
-    try setUpSyncEngine(
+    try await setUpSyncEngine(
       database: database,
-      metadatabase: metadatabase,
-      shouldFetchChanges: false
-    )
-    await withErrorReporting(.sqliteDataCloudKitFailure) {
-      try await fetchChanges()
-    }
+      metadatabase: metadatabase
+//      ,
+//      shouldFetchChanges: false
+    )?.value
+//    await withErrorReporting(.sqliteDataCloudKitFailure) {
+//      try await fetchChanges()
+//    }
   }
 
   nonisolated func setUpSyncEngine(
     database: any DatabaseWriter,
-    metadatabase: any DatabaseReader,
-    shouldFetchChanges: Bool
-  ) throws {
+    metadatabase: any DatabaseReader
+//    ,
+//    shouldFetchChanges: Bool
+  ) throws -> Task<Void, Never>? {
     try database.write { db in
       let hasAttachedMetadatabase: Bool =
         try SQLQueryExpression(
@@ -221,26 +224,62 @@ public final class SyncEngine: Sendable {
             try RecordType
               .upsert { RecordType.Draft(recordType) }
               .execute(db)
-            if isNewTable {
-              if let table = tablesByName[recordType.tableName] {
-                func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
-                  try T
-                    .update { $0.primaryKey = $0.primaryKey }
-                    .execute(db)
-                }
-                try open(table)
+            if isNewTable, let table = tablesByName[recordType.tableName] {
+              func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+                try T
+                  .update { $0.primaryKey = $0.primaryKey }
+                  .execute(db)
               }
-            } else {
-              // TODO: Fetch everything
+              try open(table)
             }
           }
         }
       }
-      if shouldFetchChanges {
-        Task {
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await fetchChanges()
+
+      return Task {
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          // TODO: comment this out and see if things still work
+          try await fetchChanges()
+          try await fetchChangesFromSchemaChange(
+            recordTypesChanged: recordTypesToFetch.filter { !$0.isNewTable }.map(\.0)
+          )
+        }
+      }
+    }
+
+    return nil
+  }
+
+  // TODO: Fetch everything
+  private func fetchChangesFromSchemaChange(recordTypesChanged: [RecordType]) async throws {
+    let lastKnownServerRecords = try {
+      try metadatabase.read { db in
+        try SyncMetadata
+          .where {
+            $0.recordType.in(recordTypesChanged.map(\.tableName)) && $0.lastKnownServerRecord.isNot(nil)
           }
+          .select {
+            SQLQueryExpression(
+              "\($0.lastKnownServerRecord)",
+              as: CKRecord.DataRepresentation.self
+            )
+          }
+          .fetchAll(db)
+      }
+    }()
+
+    let recordIDs = lastKnownServerRecords.map(\.recordID)
+    let recordIDsByDatabase = Dictionary(grouping: recordIDs) { container.database(for: $0) }
+    for (database, recordIDs) in recordIDsByDatabase {
+      let results = try await database.records(for: recordIDs)
+      for (_, result) in results {
+        switch result {
+        case .success(let record):
+          upsertFromServerRecord(record)
+          break
+        case .failure(let error):
+          reportIssue(error)
+          break
         }
       }
     }

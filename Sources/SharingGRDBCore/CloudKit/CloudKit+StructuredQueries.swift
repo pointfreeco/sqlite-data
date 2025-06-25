@@ -34,6 +34,7 @@ extension CKRecord {
 }
 
 extension CKShare {
+  // TODO: Confirm that it's not possible to name this 'DataRepresentation'
   public struct ShareDataRepresentation: QueryBindable, QueryRepresentable {
     public let queryOutput: CKShare
 
