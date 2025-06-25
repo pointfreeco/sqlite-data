@@ -851,6 +851,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           let userModificationDate,
           userModificationDate > record.userModificationDate ?? .distantPast
         else {
+          // TODO: This should be fetched early and held onto (like 'ForeignKey')
           let columnNames = try database.read { db in
             try SQLQueryExpression(
               """
@@ -872,9 +873,6 @@ extension SyncEngine: CKSyncEngineDelegate {
                   return (try? asset.fileURL.map { try Data(contentsOf: $0) })?
                     .queryFragment ?? "NULL"
                 } else {
-                  if encryptedValues[columnName] == nil {
-                    print("!!!")
-                  }
                   return encryptedValues[columnName]?.queryFragment ?? "NULL"
                 }
               }
