@@ -235,11 +235,14 @@ public final class SyncEngine: Sendable {
   }
 
   private func fetchChangesFromSchemaChange(recordTypesChanged: [RecordType]) async throws {
+    // TODO: Should we do this in batches now that we save the full 'lastKnowServerRecord'?
+    // TODO: Or should we denormalize zoneID into the metadata table for easy access?
     let lastKnownServerRecords = try {
       try metadatabase.read { db in
         try SyncMetadata
           .where {
-            $0.recordType.in(recordTypesChanged.map(\.tableName)) && $0.lastKnownServerRecord.isNot(nil)
+            $0.recordType.in(recordTypesChanged.map(\.tableName))
+            && $0.lastKnownServerRecord.isNot(nil)
           }
           .select {
             SQLQueryExpression(
@@ -250,7 +253,6 @@ public final class SyncEngine: Sendable {
           .fetchAll(db)
       }
     }()
-
     let recordIDs = lastKnownServerRecords.map(\.recordID)
     let recordIDsByDatabase = Dictionary(grouping: recordIDs) {
       AnyCloudDatabase(container.database(for: $0))

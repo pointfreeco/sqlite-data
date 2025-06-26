@@ -13,11 +13,12 @@ extension BaseCloudKitTests {
     @Test func schemaChange() async throws {
       let personalList = RemindersList(id: UUID(1), title: "Personal")
       let businessList = RemindersList(id: UUID(2), title: "Business")
+      let reminder = Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
       try database.syncWrite { db in
         try db.seed {
           personalList
           businessList
-          Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+          reminder
         }
       }
       _ = await syncEngine._nextRecordZoneChangeBatch(
@@ -37,8 +38,14 @@ extension BaseCloudKitTests {
       )
       businessListRecord.update(with: businessList, userModificationDate: Date())
       businessListRecord.encryptedValues["position"] = 2
+      let reminderRecord = CKRecord(
+        recordType: Reminder.tableName,
+        recordID: Reminder.recordID(for: UUID(1))
+      )
+      reminderRecord.update(with: reminder, userModificationDate: Date())
+      reminderRecord.encryptedValues["position"] = 3
       _ = await privateDatabase.modifyRecords(
-        saving: [personalListRecord, businessListRecord],
+        saving: [personalListRecord, businessListRecord, reminderRecord],
         deleting: [],
         savePolicy: .ifServerRecordUnchanged,
         atomically: true
@@ -48,6 +55,13 @@ extension BaseCloudKitTests {
         try #sql(
           """
           ALTER TABLE "remindersLists" 
+          ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+          """
+        )
+        .execute(db)
+        try #sql(
+          """
+          ALTER TABLE "reminders" 
           ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
           """
         )
@@ -71,13 +85,31 @@ extension BaseCloudKitTests {
           MigratedRemindersList(id: UUID(2), title: "Business", position: 2),
         ]
       )
+
+      let reminders = try database.syncRead { db in
+        try MigratedReminder.order(by: \.id).fetchAll(db)
+      }
+      expectNoDifference(
+        reminders,
+        [
+          MigratedReminder(id: UUID(1), title: "Get milk", position: 3, remindersListID: UUID(1)),
+        ]
+      )
     }
   }
 }
 
 @Table("remindersLists")
-struct MigratedRemindersList: Equatable, Identifiable {
+fileprivate struct MigratedRemindersList: Equatable, Identifiable {
   let id: UUID
   var title = ""
   var position = 0
+}
+
+@Table("reminders")
+fileprivate struct MigratedReminder: Equatable, Identifiable {
+  let id: UUID
+  var title = ""
+  var position = 0
+  var remindersListID: RemindersList.ID
 }
