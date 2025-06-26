@@ -43,12 +43,12 @@ class BaseCloudKitTests: @unchecked Sendable {
       }
     }()
     let privateSyncEngine = MockSyncEngine(
-      database: MockCloudDatabase(),
+      database: MockCloudDatabase(databaseScope: .private),
       scope: .private,
       state: MockSyncEngineState()
     )
     let sharedSyncEngine = MockSyncEngine(
-      database: MockCloudDatabase(),
+      database: MockCloudDatabase(databaseScope: .shared),
       scope: .shared,
       state: MockSyncEngineState()
     )

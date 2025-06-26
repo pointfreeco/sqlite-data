@@ -233,8 +233,13 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
 
 actor MockCloudDatabase: CloudDatabase {
   var storage: [CKRecord.ID: CKRecord] = [:]
+  let databaseScope: CKDatabase.Scope
 
   struct RecordNotFound: Error {}
+
+  init(databaseScope: CKDatabase.Scope) {
+    self.databaseScope = databaseScope
+  }
 
   func record(for recordID: CKRecord.ID) throws -> CKRecord {
     guard let record = storage[recordID]

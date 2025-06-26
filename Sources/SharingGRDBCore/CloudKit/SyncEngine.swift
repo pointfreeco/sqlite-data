@@ -496,7 +496,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           .joined(separator: ", ")
         logger.debug(
           """
-          [\(syncEngine.scope.label)] nextRecordZoneChangeBatch: \(context.reason)
+          [\(syncEngine.database.databaseScope.label)] nextRecordZoneChangeBatch: \(context.reason)
             \(state.missingTables.isEmpty ? "⚪️ No missing tables" : "⚠️ Missing tables: \(missingTables)")
             \(state.missingRecords.isEmpty ? "⚪️ No missing records" : "⚠️ Missing records: \(missingRecords)")
             \(state.sentRecords.isEmpty ? "⚪️ No sent records" : "✅ Sent records: \(sentRecords)")

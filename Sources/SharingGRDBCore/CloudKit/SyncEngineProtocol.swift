@@ -7,7 +7,6 @@ package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {
   associatedtype Database: CloudDatabase
 
   var database: Database { get }
-  var scope: CKDatabase.Scope { get }
   var state: State { get }
 
   func acceptShare(metadata: ShareMetadata) async throws
