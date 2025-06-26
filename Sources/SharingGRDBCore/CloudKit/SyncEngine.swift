@@ -236,7 +236,6 @@ public final class SyncEngine: Sendable {
     }
   }
 
-  // TODO: Fetch everything
   private func fetchChangesFromSchemaChange(recordTypesChanged: [RecordType]) async throws {
     let lastKnownServerRecords = try {
       try metadatabase.read { db in

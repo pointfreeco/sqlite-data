@@ -14,17 +14,11 @@ public struct SharedRecord: Hashable, Identifiable, Sendable {
   public var id: CKRecord.ID { share.recordID }
 
   public static func == (lhs: Self, rhs: Self) -> Bool {
-    func open<T: Equatable>(_ lhs: T) -> Bool {
-      lhs == (rhs.container as? T)
-    }
-    return open(lhs.container) && lhs.share == rhs.share
+    lhs.container === rhs.container && lhs.share == rhs.share
   }
 
   public func hash(into hasher: inout Hasher) {
-    func open(_ container: some Hashable) {
-      hasher.combine(container)
-    }
-    open(container)
+    hasher.combine(ObjectIdentifier(container))
     hasher.combine(share)
   }
 }

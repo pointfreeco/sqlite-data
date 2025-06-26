@@ -11,10 +11,12 @@ extension BaseCloudKitTests {
   final class SetUpTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func schemaChange() async throws {
+      let personalList = RemindersList(id: UUID(1), title: "Personal")
+      let businessList = RemindersList(id: UUID(2), title: "Business")
       try database.syncWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          RemindersList(id: UUID(2), title: "Business")
+          personalList
+          businessList
           Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
         }
       }
@@ -27,18 +29,14 @@ extension BaseCloudKitTests {
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: UUID(1))
       )
-      personalListRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
-      personalListRecord.encryptedValues["title"] = "Personal"
+      personalListRecord.update(with: personalList, userModificationDate: Date())
       personalListRecord.encryptedValues["position"] = 1
-      personalListRecord.userModificationDate = Date()
       let businessListRecord = CKRecord(
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: UUID(2))
       )
-      businessListRecord.encryptedValues["id"] = UUID(2).uuidString.lowercased()
-      businessListRecord.encryptedValues["title"] = "Business"
+      businessListRecord.update(with: businessList, userModificationDate: Date())
       businessListRecord.encryptedValues["position"] = 2
-      businessListRecord.userModificationDate = Date()
       _ = await privateDatabase.modifyRecords(
         saving: [personalListRecord, businessListRecord],
         deleting: [],

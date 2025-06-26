@@ -1,8 +1,7 @@
 #if canImport(CloudKit)
 import CloudKit
 
-// TODO: make AnyObject
-package protocol CloudContainerProtocol: Equatable, Hashable, Sendable {
+package protocol CloudContainerProtocol: AnyObject, Equatable, Hashable, Sendable {
   var sharedDatabase: any CloudDatabase { get }
   var privateDatabase: any CloudDatabase { get }
   func database(for recordID: CKRecord.ID) -> any CloudDatabase
@@ -12,10 +11,7 @@ package protocol CloudContainerProtocol: Equatable, Hashable, Sendable {
 
 extension CloudContainerProtocol {
   package func database(for recordID: CKRecord.ID) -> any CloudDatabase {
-    if recordID.zoneID.ownerName != CKCurrentUserDefaultName {
-      print("?!?!?!")
-    }
-    return recordID.zoneID.ownerName == CKCurrentUserDefaultName
+    recordID.zoneID.ownerName == CKCurrentUserDefaultName
     ? privateDatabase
     : sharedDatabase
   }
