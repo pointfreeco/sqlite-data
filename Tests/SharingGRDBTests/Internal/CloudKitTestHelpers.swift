@@ -249,7 +249,10 @@ actor MockCloudDatabase: CloudDatabase {
     return record
   }
 
-  func records(for ids: [CKRecord.ID]) throws -> [CKRecord.ID : Result<CKRecord, any Error>] {
+  func records(
+    for ids: [CKRecord.ID],
+    desiredKeys: [CKRecord.FieldKey]?
+  ) throws -> [CKRecord.ID : Result<CKRecord, any Error>] {
     var results: [CKRecord.ID : Result<CKRecord, any Error>] = [:]
     for id in ids {
       results[id] = Result { try record(for: id) }
@@ -291,10 +294,14 @@ actor MockCloudDatabase: CloudDatabase {
 final class MockCloudContainer: CloudContainerProtocol {
   let privateDatabase: any CloudDatabase
   let sharedDatabase: any CloudDatabase
-  
+
   init(privateDatabase: any CloudDatabase, sharedDatabase: any CloudDatabase) {
     self.privateDatabase = privateDatabase
     self.sharedDatabase = sharedDatabase
+  }
+
+  var rawValue: CKContainer {
+    fatalError("This should never be called in tests.")
   }
 
   func shareMetadata(for url: URL, shouldFetchRootRecord: Bool) async throws -> CKShare.Metadata {

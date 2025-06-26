@@ -2,9 +2,9 @@
 import CloudKit
 
 package protocol CloudContainerProtocol: AnyObject, Equatable, Hashable, Sendable {
-  var sharedDatabase: any CloudDatabase { get }
+  var rawValue: CKContainer { get }
   var privateDatabase: any CloudDatabase { get }
-  func database(for recordID: CKRecord.ID) -> any CloudDatabase
+  var sharedDatabase: any CloudDatabase { get }
   @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
   func shareMetadata(for url: URL, shouldFetchRootRecord: Bool) async throws -> CKShare.Metadata
 }
@@ -18,12 +18,16 @@ extension CloudContainerProtocol {
 }
 
 extension CKContainer: CloudContainerProtocol {
-  package var sharedDatabase: any CloudDatabase {
-    sharedCloudDatabase
+  package var rawValue: CKContainer {
+    self
   }
 
   package var privateDatabase: any CloudDatabase {
     privateCloudDatabase
+  }
+  
+  package var sharedDatabase: any CloudDatabase {
+    sharedCloudDatabase
   }
 
   @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)

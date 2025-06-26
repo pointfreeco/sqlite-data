@@ -132,8 +132,6 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.tearDownSyncEngine()
       try await syncEngine.setUpSyncEngine()
-      privateSyncEngine.assertFetchChangesScopes([.all])
-      sharedSyncEngine.assertFetchChangesScopes([.all])
       let recordTypesAfterReSetup = try database.syncWrite { db in
         try RecordType.all.fetchAll(db)
       }
@@ -154,8 +152,6 @@ extension BaseCloudKitTests {
         .execute(db)
       }
       try await syncEngine.setUpSyncEngine()
-      privateSyncEngine.assertFetchChangesScopes([.all])
-      sharedSyncEngine.assertFetchChangesScopes([.all])
 
       let recordTypesAfterMigration = try database.syncWrite { db in
         try RecordType.order(by: \.tableName).fetchAll(db)

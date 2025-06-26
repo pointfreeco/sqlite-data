@@ -60,8 +60,6 @@ extension BaseCloudKitTests {
         syncEngine: privateSyncEngine
       )
       #expect(batch == nil)
-      privateSyncEngine.assertFetchChangesScopes([.all])
-      sharedSyncEngine.assertFetchChangesScopes([.all])
 
       let remindersLists = try database.syncRead { db in
         try MigratedRemindersList.order(by: \.id).fetchAll(db)

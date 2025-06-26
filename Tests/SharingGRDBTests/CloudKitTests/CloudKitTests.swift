@@ -145,8 +145,6 @@ extension BaseCloudKitTests {
     @Test func tearDownAndReSetUp() async throws {
       try await syncEngine.tearDownSyncEngine()
       try await syncEngine.setUpSyncEngine()
-      privateSyncEngine.assertFetchChangesScopes([.all])
-      sharedSyncEngine.assertFetchChangesScopes([.all])
 
       try database.syncWrite { db in
         try db.seed {

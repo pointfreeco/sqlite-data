@@ -227,8 +227,6 @@ public final class SyncEngine: Sendable {
 
     return Task {
       await withErrorReporting(.sqliteDataCloudKitFailure) {
-        // TODO: comment this out and see if things still work
-        try await fetchChanges()
         try await fetchChangesFromSchemaChange(
           recordTypesChanged: recordTypesToFetch.filter { !$0.isNewTable }.map(\.0)
         )

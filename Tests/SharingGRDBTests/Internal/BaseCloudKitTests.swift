@@ -80,8 +80,6 @@ class BaseCloudKitTests: @unchecked Sendable {
         RemindersListPrivate.self
       ]
     )
-    privateSyncEngine.assertFetchChangesScopes([.all])
-    sharedSyncEngine.assertFetchChangesScopes([.all])
   }
 
   deinit {

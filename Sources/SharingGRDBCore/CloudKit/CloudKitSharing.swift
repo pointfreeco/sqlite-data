@@ -98,10 +98,7 @@ extension SyncEngine {
         .execute(db)
     }
 
-    return SharedRecord(
-      container: container,
-      share: sharedRecord
-    )
+    return SharedRecord(container: container, share: sharedRecord)
   }
 
   public func acceptShare(metadata: CKShare.Metadata) async throws {
@@ -141,7 +138,7 @@ extension SyncEngine {
     public func makeUIViewController(context: Context) -> UICloudSharingController {
       let controller = UICloudSharingController(
         share: sharedRecord.share,
-        container: sharedRecord.container
+        container: sharedRecord.container.rawValue
       )
       controller.delegate = context.coordinator
       return controller
