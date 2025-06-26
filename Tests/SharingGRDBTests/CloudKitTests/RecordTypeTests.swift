@@ -21,7 +21,7 @@ extension BaseCloudKitTests {
             tableName: "remindersLists",
             schema: """
               CREATE TABLE "remindersLists" (
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "title" TEXT NOT NULL DEFAULT ''
               ) STRICT
               """
@@ -30,7 +30,7 @@ extension BaseCloudKitTests {
             tableName: "remindersListPrivates",
             schema: """
               CREATE TABLE "remindersListPrivates" (
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "position" INTEGER NOT NULL DEFAULT 0,
                 "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
               ) STRICT
@@ -40,7 +40,7 @@ extension BaseCloudKitTests {
             tableName: "users",
             schema: """
               CREATE TABLE "users" (
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "name" TEXT NOT NULL DEFAULT '',
                 "parentUserID" TEXT,
               
@@ -52,7 +52,7 @@ extension BaseCloudKitTests {
             tableName: "reminders",
             schema: """
               CREATE TABLE "reminders" (
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "title" TEXT NOT NULL DEFAULT '',
                 "remindersListID" TEXT NOT NULL, 
                 
@@ -64,7 +64,7 @@ extension BaseCloudKitTests {
             tableName: "tags",
             schema: """
               CREATE TABLE "tags" (
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "title" TEXT NOT NULL DEFAULT ''
               ) STRICT
               """
@@ -73,7 +73,7 @@ extension BaseCloudKitTests {
             tableName: "reminderTags",
             schema: """
               CREATE TABLE "reminderTags" (
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
                 "tagID" TEXT NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
               ) STRICT
@@ -83,7 +83,7 @@ extension BaseCloudKitTests {
             tableName: "parents",
             schema: """
               CREATE TABLE "parents"(
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid())
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid())
               ) STRICT
               """
           ),
@@ -91,7 +91,7 @@ extension BaseCloudKitTests {
             tableName: "childWithOnDeleteRestricts",
             schema: """
               CREATE TABLE "childWithOnDeleteRestricts"(
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "parentID" TEXT NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
               ) STRICT
               """
@@ -100,7 +100,7 @@ extension BaseCloudKitTests {
             tableName: "childWithOnDeleteSetNulls",
             schema: """
               CREATE TABLE "childWithOnDeleteSetNulls"(
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
               ) STRICT
               """
@@ -109,7 +109,7 @@ extension BaseCloudKitTests {
             tableName: "childWithOnDeleteSetDefaults",
             schema: """
               CREATE TABLE "childWithOnDeleteSetDefaults"(
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT '00000000-0000-0000-0000-000000000000',
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT '00000000-0000-0000-0000-000000000000',
                 "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
               ) STRICT
               """
@@ -132,8 +132,6 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.tearDownSyncEngine()
       try await syncEngine.setUpSyncEngine()
-      privateSyncEngine.assertFetchChangesScopes([.all])
-      sharedSyncEngine.assertFetchChangesScopes([.all])
       let recordTypesAfterReSetup = try database.syncWrite { db in
         try RecordType.all.fetchAll(db)
       }
@@ -154,8 +152,6 @@ extension BaseCloudKitTests {
         .execute(db)
       }
       try await syncEngine.setUpSyncEngine()
-      privateSyncEngine.assertFetchChangesScopes([.all])
-      sharedSyncEngine.assertFetchChangesScopes([.all])
 
       let recordTypesAfterMigration = try database.syncWrite { db in
         try RecordType.order(by: \.tableName).fetchAll(db)
@@ -172,7 +168,7 @@ extension BaseCloudKitTests {
           tableName: "reminders",
           schema: """
             CREATE TABLE "reminders" (
-              "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+              "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
               "title" TEXT NOT NULL DEFAULT '',
               "remindersListID" TEXT NOT NULL, "newFeature" INTEGER NOT NULL, 
               

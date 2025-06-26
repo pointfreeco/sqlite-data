@@ -14,6 +14,7 @@ extension PrimaryKeyedTable<UUID> {
   fileprivate static func afterInsert(parentForeignKey: ForeignKey?) -> TemporaryTrigger<Self> {
     createTemporaryTrigger(
       "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_\(tableName)",
+      ifNotExists: true,
       after: .insert { new in SyncMetadata.insert(new: new, parentForeignKey: parentForeignKey) }
     )
   }
@@ -21,6 +22,7 @@ extension PrimaryKeyedTable<UUID> {
   fileprivate static func afterUpdate(parentForeignKey: ForeignKey?) -> TemporaryTrigger<Self> {
     createTemporaryTrigger(
       "\(String.sqliteDataCloudKitSchemaName)_after_update_on_\(tableName)",
+      ifNotExists: true,
       after: .update { _, new in SyncMetadata.insert(new: new, parentForeignKey: parentForeignKey) }
     )
   }

@@ -14,21 +14,24 @@ extension PrimaryKeyedTable<UUID> {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 final class MockSyncEngine: SyncEngineProtocol {
+  let database: MockCloudDatabase
   private let _state: LockIsolated<MockSyncEngineState>
   private let _fetchChangesScopes = LockIsolated<Set<CKSyncEngine.FetchChangesOptions.Scope>>([])
   private let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
-
   let scope: CKDatabase.Scope
-  init(scope: CKDatabase.Scope, state: MockSyncEngineState) {
+
+  init(
+    database: MockCloudDatabase,
+    scope: CKDatabase.Scope,
+    state: MockSyncEngineState
+  ) {
+    self.database = database
     self.scope = scope
     self._state = LockIsolated(state)
   }
+
   var state: MockSyncEngineState {
     _state.withValue(\.self)
-  }
-
-  func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws {
-    _ = _fetchChangesScopes.withValue { $0.insert(options.scope) }
   }
 
   func acceptShare(metadata: ShareMetadata) {
@@ -55,14 +58,16 @@ final class MockSyncEngine: SyncEngineProtocol {
       else { return nil }
       return recordID
     }
-    defer {
-      for savedRecord in recordsToSave {
-        state.remove(pendingRecordZoneChanges: [.saveRecord(savedRecord.recordID)])
-      }
-      for recordIDToDelete in recordIDsToDelete {
-        state.remove(pendingRecordZoneChanges: [.deleteRecord(recordIDToDelete)])
-      }
-    }
+
+    state.remove(pendingRecordZoneChanges: recordsToSave.map { .saveRecord($0.recordID) })
+    state.remove(pendingRecordZoneChanges: recordIDsToDelete.map { .deleteRecord($0) })
+    
+    _ = await database.modifyRecords(
+      saving: recordsToSave,
+      deleting: recordIDsToDelete,
+      savePolicy: .ifServerRecordUnchanged,
+      atomically: true
+    )
 
     return CKSyncEngine.RecordZoneChangeBatch(
       recordsToSave: recordsToSave,
@@ -219,6 +224,93 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
       ],
       displayStyle: .struct
     )
+  }
+}
+
+actor MockCloudDatabase: CloudDatabase {
+  var storage: [CKRecord.ID: CKRecord] = [:]
+  let databaseScope: CKDatabase.Scope
+
+  struct RecordNotFound: Error {}
+
+  init(databaseScope: CKDatabase.Scope) {
+    self.databaseScope = databaseScope
+  }
+
+  func record(for recordID: CKRecord.ID) throws -> CKRecord {
+    guard let record = storage[recordID]
+    else { throw RecordNotFound() }
+    return record
+  }
+
+  func records(
+    for ids: [CKRecord.ID],
+    desiredKeys: [CKRecord.FieldKey]?
+  ) throws -> [CKRecord.ID : Result<CKRecord, any Error>] {
+    var results: [CKRecord.ID : Result<CKRecord, any Error>] = [:]
+    for id in ids {
+      results[id] = Result { try record(for: id) }
+    }
+    return results
+  }
+
+  func modifyRecords(
+    saving recordsToSave: [CKRecord],
+    deleting recordIDsToDelete: [CKRecord.ID],
+    savePolicy: CKModifyRecordsOperation.RecordSavePolicy,
+    atomically: Bool
+  ) -> (
+    saveResults: [CKRecord.ID : Result<CKRecord, any Error>],
+    deleteResults: [CKRecord.ID : Result<Void, any Error>]
+  ) {
+    for recordToSave in recordsToSave {
+      storage[recordToSave.recordID] = recordToSave
+    }
+    for recordIDToDelete in recordIDsToDelete {
+      storage[recordIDToDelete] = nil
+    }
+    return (
+      saveResults: Dictionary(
+        uniqueKeysWithValues: recordsToSave.map { ($0.recordID, .success($0)) }
+      ),
+      deleteResults: Dictionary(
+        uniqueKeysWithValues: recordIDsToDelete.map { ($0, .success(())) }
+      )
+    )
+  }
+
+  nonisolated static func == (lhs: MockCloudDatabase, rhs: MockCloudDatabase) -> Bool {
+    lhs === rhs
+  }
+
+  nonisolated func hash(into hasher: inout Hasher) {
+    hasher.combine(ObjectIdentifier(self))
+  }
+}
+
+final class MockCloudContainer: CloudContainer {
+  let privateCloudDatabase: MockCloudDatabase
+  let sharedCloudDatabase: MockCloudDatabase
+
+  init(privateCloudDatabase: MockCloudDatabase, sharedCloudDatabase: MockCloudDatabase) {
+    self.privateCloudDatabase = privateCloudDatabase
+    self.sharedCloudDatabase = sharedCloudDatabase
+  }
+
+  var rawValue: CKContainer {
+    fatalError("This should never be called in tests.")
+  }
+
+  func shareMetadata(for url: URL, shouldFetchRootRecord: Bool) async throws -> CKShare.Metadata {
+    fatalError()
+  }
+
+  static func == (lhs: MockCloudContainer, rhs: MockCloudContainer) -> Bool {
+    lhs === rhs
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(ObjectIdentifier(self))
   }
 }
 

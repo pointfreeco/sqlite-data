@@ -20,7 +20,7 @@ extension BaseCloudKitTests {
 
     @Test func initialSync() async throws {
       let metadata = try database.syncRead { db in
-        try SyncMetadata.all.fetchAll(db)
+        try SyncMetadata.all.order(by: \.primaryKey).fetchAll(db)
       }
       assertInlineSnapshot(of: metadata, as: .customDump) {
         """

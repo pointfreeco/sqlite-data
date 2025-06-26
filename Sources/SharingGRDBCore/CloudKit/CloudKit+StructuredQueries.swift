@@ -34,6 +34,7 @@ extension CKRecord {
 }
 
 extension CKShare {
+  // TODO: Confirm that it's not possible to name this 'DataRepresentation'
   public struct ShareDataRepresentation: QueryBindable, QueryRepresentable {
     public let queryOutput: CKShare
 
@@ -70,7 +71,7 @@ extension CKShare? {
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 extension CKRecord {
-  func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date?) {
+  package func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date?) {
     self.userModificationDate = userModificationDate
     for column in T.TableColumns.allColumns {
       func open<Root, Value>(_ column: some TableColumnExpression<Root, Value>) {

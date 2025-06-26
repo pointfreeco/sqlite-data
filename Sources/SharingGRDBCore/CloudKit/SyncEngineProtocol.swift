@@ -2,24 +2,19 @@
 import CloudKit
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-package protocol SyncEngineProtocol<State>: AnyObject, Sendable {
+package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {
   associatedtype State: CKSyncEngineStateProtocol
-  func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws
+  associatedtype Database: CloudDatabase
+
+  var database: Database { get }
   var state: State { get }
-  var scope: CKDatabase.Scope { get }
+
   func acceptShare(metadata: ShareMetadata) async throws
   func cancelOperations() async
   func recordZoneChangeBatch(
     pendingChanges: [CKSyncEngine.PendingRecordZoneChange],
     recordProvider: @Sendable (CKRecord.ID) async -> CKRecord?
   ) async -> CKSyncEngine.RecordZoneChangeBatch?
-}
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension SyncEngineProtocol {
-  package func fetchChanges() async throws {
-    try await fetchChanges(CKSyncEngine.FetchChangesOptions())
-  }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

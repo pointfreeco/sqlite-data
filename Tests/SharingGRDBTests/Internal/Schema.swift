@@ -62,7 +62,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "remindersLists" (
-        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "title" TEXT NOT NULL DEFAULT ''
       ) STRICT
       """
@@ -71,7 +71,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "remindersListPrivates" (
-        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "position" INTEGER NOT NULL DEFAULT 0,
         "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
@@ -81,7 +81,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "users" (
-        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "name" TEXT NOT NULL DEFAULT '',
         "parentUserID" TEXT,
       
@@ -93,7 +93,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "reminders" (
-        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "title" TEXT NOT NULL DEFAULT '',
         "remindersListID" TEXT NOT NULL, 
         
@@ -105,7 +105,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "tags" (
-        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "title" TEXT NOT NULL DEFAULT ''
       ) STRICT
       """
@@ -114,7 +114,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "reminderTags" (
-        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
         "tagID" TEXT NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
       ) STRICT
@@ -123,27 +123,27 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     .execute(db)
     try #sql("""
       CREATE TABLE "parents"(
-        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid())
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid())
       ) STRICT
       """)
     .execute(db)
     try #sql("""
       CREATE TABLE "childWithOnDeleteRestricts"(
-        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "parentID" TEXT NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
       ) STRICT
       """)
     .execute(db)
     try #sql("""
       CREATE TABLE "childWithOnDeleteSetNulls"(
-        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
       ) STRICT
       """)
     .execute(db)
     try #sql("""
       CREATE TABLE "childWithOnDeleteSetDefaults"(
-        "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT '00000000-0000-0000-0000-000000000000',
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT '00000000-0000-0000-0000-000000000000',
         "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
       ) STRICT
       """)

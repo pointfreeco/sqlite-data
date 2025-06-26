@@ -469,8 +469,6 @@ extension BaseCloudKitTests {
       }
 
       try await syncEngine.setUpSyncEngine()
-      privateSyncEngine.assertFetchChangesScopes([.all])
-      sharedSyncEngine.assertFetchChangesScopes([.all])
       let triggersAfterReSetUp = try database.syncWrite { db in
         try #sql("SELECT sql FROM sqlite_temp_master ORDER BY sql", as: String?.self).fetchAll(db)
       }

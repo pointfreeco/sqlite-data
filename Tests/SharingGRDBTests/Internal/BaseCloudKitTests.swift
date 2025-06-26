@@ -39,16 +39,26 @@ class BaseCloudKitTests: @unchecked Sendable {
     self.database = database
     try { [seeds] in
       try database.write { db in
-        try db.seed {
-          seeds
-        }
+        try db.seed { seeds }
       }
     }()
-    let privateSyncEngine = MockSyncEngine(scope: .private, state: MockSyncEngineState())
-    let sharedSyncEngine = MockSyncEngine(scope: .shared, state: MockSyncEngineState())
+    let privateSyncEngine = MockSyncEngine(
+      database: MockCloudDatabase(databaseScope: .private),
+      scope: .private,
+      state: MockSyncEngineState()
+    )
+    let sharedSyncEngine = MockSyncEngine(
+      database: MockCloudDatabase(databaseScope: .shared),
+      scope: .shared,
+      state: MockSyncEngineState()
+    )
     _privateSyncEngine = privateSyncEngine
     _sharedSyncEngine = sharedSyncEngine
-    _syncEngine = try SyncEngine(
+    _syncEngine = try await SyncEngine(
+      container: MockCloudContainer(
+        privateCloudDatabase: privateSyncEngine.database,
+        sharedCloudDatabase: sharedSyncEngine.database
+      ),
       privateSyncEngine: privateSyncEngine,
       sharedSyncEngine: sharedSyncEngine,
       database: database,
@@ -68,9 +78,6 @@ class BaseCloudKitTests: @unchecked Sendable {
         RemindersListPrivate.self
       ]
     )
-    try await Task.sleep(for: .seconds(0.1))
-    privateSyncEngine.assertFetchChangesScopes([.all])
-    sharedSyncEngine.assertFetchChangesScopes([.all])
   }
 
   deinit {
