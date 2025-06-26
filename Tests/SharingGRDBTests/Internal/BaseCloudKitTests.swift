@@ -11,6 +11,8 @@ import Testing
 class BaseCloudKitTests: @unchecked Sendable {
   let database: any DatabaseWriter
   private let _syncEngine: any Sendable
+  let sharedDatabase = MockCloudDatabase()
+  let privateDatabase = MockCloudDatabase()
   private let _privateSyncEngine: any Sendable
   private let _sharedSyncEngine: any Sendable
 
@@ -39,16 +41,26 @@ class BaseCloudKitTests: @unchecked Sendable {
     self.database = database
     try { [seeds] in
       try database.write { db in
-        try db.seed {
-          seeds
-        }
+        try db.seed { seeds }
       }
     }()
-    let privateSyncEngine = MockSyncEngine(scope: .private, state: MockSyncEngineState())
-    let sharedSyncEngine = MockSyncEngine(scope: .shared, state: MockSyncEngineState())
+    let privateSyncEngine = MockSyncEngine(
+      cloudDatabase: privateDatabase,
+      scope: .private,
+      state: MockSyncEngineState()
+    )
+    let sharedSyncEngine = MockSyncEngine(
+      cloudDatabase: sharedDatabase,
+      scope: .shared,
+      state: MockSyncEngineState()
+    )
     _privateSyncEngine = privateSyncEngine
     _sharedSyncEngine = sharedSyncEngine
-    _syncEngine = try SyncEngine(
+    _syncEngine = try await SyncEngine(
+      container: MockCloudContainer(
+        privateDatabase: privateSyncEngine.cloudDatabase,
+        sharedDatabase: sharedSyncEngine.cloudDatabase
+      ),
       privateSyncEngine: privateSyncEngine,
       sharedSyncEngine: sharedSyncEngine,
       database: database,
@@ -68,7 +80,6 @@ class BaseCloudKitTests: @unchecked Sendable {
         RemindersListPrivate.self
       ]
     )
-    try await Task.sleep(for: .seconds(0.1))
     privateSyncEngine.assertFetchChangesScopes([.all])
     sharedSyncEngine.assertFetchChangesScopes([.all])
   }

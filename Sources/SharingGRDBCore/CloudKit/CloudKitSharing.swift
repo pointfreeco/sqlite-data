@@ -8,10 +8,25 @@ import SwiftUI
 #endif
 
 public struct SharedRecord: Hashable, Identifiable, Sendable {
-  public let container: CKContainer
+  let container: any CloudContainerProtocol
   public let share: CKShare
 
   public var id: CKRecord.ID { share.recordID }
+
+  public static func == (lhs: Self, rhs: Self) -> Bool {
+    func open<T: Equatable>(_ lhs: T) -> Bool {
+      lhs == (rhs.container as? T)
+    }
+    return open(lhs.container) && lhs.share == rhs.share
+  }
+
+  public func hash(into hasher: inout Hasher) {
+    func open(_ container: some Hashable) {
+      hasher.combine(container)
+    }
+    open(container)
+    hasher.combine(share)
+  }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -78,7 +93,7 @@ extension SyncEngine {
     configure(sharedRecord)
     // TODO: We are getting an "client oplock error updating record" error in the logs when
     //       creating new shares / editing existing shares.
-    _ = try await container.privateCloudDatabase.modifyRecords(
+    _ = try await container.privateDatabase.modifyRecords(
       saving: [sharedRecord, rootRecord],
       deleting: []
     )
@@ -89,7 +104,10 @@ extension SyncEngine {
         .execute(db)
     }
 
-    return SharedRecord(container: container, share: sharedRecord)
+    return SharedRecord(
+      container: container,
+      share: sharedRecord
+    )
   }
 
   public func acceptShare(metadata: CKShare.Metadata) async throws {

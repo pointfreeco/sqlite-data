@@ -14,15 +14,26 @@ extension PrimaryKeyedTable<UUID> {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 final class MockSyncEngine: SyncEngineProtocol {
+  private let _cloudDatabase: MockCloudDatabase
   private let _state: LockIsolated<MockSyncEngineState>
   private let _fetchChangesScopes = LockIsolated<Set<CKSyncEngine.FetchChangesOptions.Scope>>([])
   private let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
-
   let scope: CKDatabase.Scope
-  init(scope: CKDatabase.Scope, state: MockSyncEngineState) {
+
+  init(
+    cloudDatabase: MockCloudDatabase,
+    scope: CKDatabase.Scope,
+    state: MockSyncEngineState
+  ) {
+    _cloudDatabase = cloudDatabase
     self.scope = scope
     self._state = LockIsolated(state)
   }
+
+  var cloudDatabase: any CloudDatabase {
+    _cloudDatabase
+  }
+
   var state: MockSyncEngineState {
     _state.withValue(\.self)
   }
@@ -55,14 +66,19 @@ final class MockSyncEngine: SyncEngineProtocol {
       else { return nil }
       return recordID
     }
-    defer {
-      for savedRecord in recordsToSave {
-        state.remove(pendingRecordZoneChanges: [.saveRecord(savedRecord.recordID)])
-      }
-      for recordIDToDelete in recordIDsToDelete {
-        state.remove(pendingRecordZoneChanges: [.deleteRecord(recordIDToDelete)])
-      }
+
+    for savedRecord in recordsToSave {
+      state.remove(pendingRecordZoneChanges: [.saveRecord(savedRecord.recordID)])
     }
+    for recordIDToDelete in recordIDsToDelete {
+      state.remove(pendingRecordZoneChanges: [.deleteRecord(recordIDToDelete)])
+    }
+    _ = await _cloudDatabase.modifyRecords(
+      saving: recordsToSave,
+      deleting: recordIDsToDelete,
+      savePolicy: .ifServerRecordUnchanged,
+      atomically: true
+    )
 
     return CKSyncEngine.RecordZoneChangeBatch(
       recordsToSave: recordsToSave,
@@ -219,6 +235,78 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
       ],
       displayStyle: .struct
     )
+  }
+}
+
+actor MockCloudDatabase: CloudDatabase {
+  var storage: [CKRecord.ID: CKRecord] = [:]
+
+  struct RecordNotFound: Error {}
+
+  func record(for recordID: CKRecord.ID) throws -> CKRecord {
+    guard let record = storage[recordID]
+    else { throw RecordNotFound() }
+    return record
+  }
+
+  func records(for ids: [CKRecord.ID]) throws -> [CKRecord.ID : Result<CKRecord, any Error>] {
+    var results: [CKRecord.ID : Result<CKRecord, any Error>] = [:]
+    for id in ids {
+      results[id] = Result { try record(for: id) }
+    }
+    return results
+  }
+
+  func modifyRecords(
+    saving recordsToSave: [CKRecord],
+    deleting recordIDsToDelete: [CKRecord.ID],
+    savePolicy: CKModifyRecordsOperation.RecordSavePolicy,
+    atomically: Bool
+  ) -> (
+    saveResults: [CKRecord.ID : Result<CKRecord, any Error>],
+    deleteResults: [CKRecord.ID : Result<Void, any Error>]
+  ) {
+    for recordToSave in recordsToSave {
+      storage[recordToSave.recordID] = recordToSave
+    }
+    return (
+      saveResults: Dictionary(
+        uniqueKeysWithValues: recordsToSave.map { ($0.recordID, .success($0)) }
+      ),
+      deleteResults: Dictionary(
+        uniqueKeysWithValues: recordIDsToDelete.map { ($0, .success(())) }
+      )
+    )
+  }
+
+  nonisolated static func == (lhs: MockCloudDatabase, rhs: MockCloudDatabase) -> Bool {
+    lhs === rhs
+  }
+
+  nonisolated func hash(into hasher: inout Hasher) {
+    hasher.combine(ObjectIdentifier(self))
+  }
+}
+
+final class MockCloudContainer: CloudContainerProtocol {
+  let privateDatabase: any CloudDatabase
+  let sharedDatabase: any CloudDatabase
+  
+  init(privateDatabase: any CloudDatabase, sharedDatabase: any CloudDatabase) {
+    self.privateDatabase = privateDatabase
+    self.sharedDatabase = sharedDatabase
+  }
+
+  func shareMetadata(for url: URL, shouldFetchRootRecord: Bool) async throws -> CKShare.Metadata {
+    fatalError()
+  }
+
+  static func == (lhs: MockCloudContainer, rhs: MockCloudContainer) -> Bool {
+    lhs === rhs
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(ObjectIdentifier(self))
   }
 }
 

@@ -20,7 +20,7 @@ public final class SyncEngine: Sendable {
   let defaultSyncEngines:
     @Sendable (any DatabaseReader, SyncEngine)
       -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
-  let _container: any Sendable
+  let container: any CloudContainerProtocol
 
   public convenience init(
     container: CKContainer,
@@ -59,17 +59,23 @@ public final class SyncEngine: Sendable {
       tables: tables,
       privateTables: privateTables
     )
+    _ = try setUpSyncEngine(
+      database: database,
+      metadatabase: metadatabase
+    )
   }
 
   package convenience init(
+    container: any CloudContainerProtocol,
     privateSyncEngine: any SyncEngineProtocol,
     sharedSyncEngine: any SyncEngineProtocol,
     database: any DatabaseWriter,
     metadatabaseURL: URL,
     tables: [any PrimaryKeyedTable<UUID>.Type],
     privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
-  ) throws {
+  ) async throws {
     try self.init(
+      container: container,
       defaultSyncEngines: { _, _ in (privateSyncEngine, sharedSyncEngine) },
       database: database,
       logger: Logger(.disabled),
@@ -77,10 +83,11 @@ public final class SyncEngine: Sendable {
       tables: tables,
       privateTables: privateTables
     )
+    try await setUpSyncEngine(database: database, metadatabase: metadatabase)?.value
   }
 
   private init(
-    container: (any Sendable)? = Void?.none,
+    container: any CloudContainerProtocol,
     defaultSyncEngines: @escaping @Sendable (
       any DatabaseReader,
       SyncEngine
@@ -99,7 +106,7 @@ public final class SyncEngine: Sendable {
       Foreign key support must be disabled to synchronize with CloudKit.
       """
     )
-    self._container = container
+    self.container = container
     self.defaultSyncEngines = defaultSyncEngines
     self.database = database
     self.logger = logger
@@ -117,47 +124,27 @@ public final class SyncEngine: Sendable {
         }
       }
     )
-    _ = try setUpSyncEngine(
-      database: database,
-      metadatabase: metadatabase
-//      ,
-//      shouldFetchChanges: true
-    )
-  }
-
-  var container: CKContainer {
-    _container as! CKContainer
   }
 
   package func setUpSyncEngine() async throws {
-    try await setUpSyncEngine(
-      database: database,
-      metadatabase: metadatabase
-//      ,
-//      shouldFetchChanges: false
-    )?.value
-//    await withErrorReporting(.sqliteDataCloudKitFailure) {
-//      try await fetchChanges()
-//    }
+    try await setUpSyncEngine(database: database, metadatabase: metadatabase)?.value
   }
 
   nonisolated func setUpSyncEngine(
     database: any DatabaseWriter,
     metadatabase: any DatabaseReader
-//    ,
-//    shouldFetchChanges: Bool
   ) throws -> Task<Void, Never>? {
     try database.write { db in
       let hasAttachedMetadatabase: Bool =
-        try SQLQueryExpression(
+      try SQLQueryExpression(
           """
           SELECT count(*) 
           FROM pragma_database_list 
           WHERE "name" = \(bind: String.sqliteDataCloudKitSchemaName)
           """,
           as: Int.self
-        )
-        .fetchOne(db) == 1
+      )
+      .fetchOne(db) == 1
       if !hasAttachedMetadatabase {
         try SQLQueryExpression(
           """
@@ -213,41 +200,40 @@ public final class SyncEngine: Sendable {
         })
       else { return (currentRecordType, isNewTable: true) }
       return existingRecordType.schema == currentRecordType.schema
-        ? nil
-        : (currentRecordType, isNewTable: false)
+      ? nil
+      : (currentRecordType, isNewTable: false)
     }
 
-    if !recordTypesToFetch.isEmpty {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try database.write { db in
-          for (recordType, isNewTable) in recordTypesToFetch {
-            try RecordType
-              .upsert { RecordType.Draft(recordType) }
-              .execute(db)
-            if isNewTable, let table = tablesByName[recordType.tableName] {
-              func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
-                try T
-                  .update { $0.primaryKey = $0.primaryKey }
-                  .execute(db)
-              }
-              try open(table)
+    guard !recordTypesToFetch.isEmpty
+    else { return nil }
+
+    withErrorReporting(.sqliteDataCloudKitFailure) {
+      try database.write { db in
+        for (recordType, isNewTable) in recordTypesToFetch {
+          try RecordType
+            .upsert { RecordType.Draft(recordType) }
+            .execute(db)
+          if isNewTable, let table = tablesByName[recordType.tableName] {
+            func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+              try T
+                .update { $0.primaryKey = $0.primaryKey }
+                .execute(db)
             }
+            try open(table)
           }
         }
       }
-
-      return Task {
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          // TODO: comment this out and see if things still work
-          try await fetchChanges()
-          try await fetchChangesFromSchemaChange(
-            recordTypesChanged: recordTypesToFetch.filter { !$0.isNewTable }.map(\.0)
-          )
-        }
-      }
     }
 
-    return nil
+    return Task {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        // TODO: comment this out and see if things still work
+        try await fetchChanges()
+        try await fetchChangesFromSchemaChange(
+          recordTypesChanged: recordTypesToFetch.filter { !$0.isNewTable }.map(\.0)
+        )
+      }
+    }
   }
 
   // TODO: Fetch everything
@@ -269,7 +255,9 @@ public final class SyncEngine: Sendable {
     }()
 
     let recordIDs = lastKnownServerRecords.map(\.recordID)
-    let recordIDsByDatabase = Dictionary(grouping: recordIDs) { container.database(for: $0) }
+    let recordIDsByDatabase = Dictionary(grouping: recordIDs) {
+      AnyCloudDatabase(container.database(for: $0))
+    }
     for (database, recordIDs) in recordIDsByDatabase {
       let results = try await database.records(for: recordIDs)
       for (_, result) in results {
@@ -917,12 +905,15 @@ extension SyncEngine: CKSyncEngineDelegate {
               }
               .joined(separator: ", ")
           )
-          func open<T: PrimaryKeyedTable>(_: T.Type) {
-            query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET")
+          func open<T: PrimaryKeyedTable>(_: T.Type) -> String {
+            T.columns.primaryKey.name
           }
-          open(table)
+          let primaryKeyName = open(table)
+          query.append(") ON CONFLICT(\(quote: primaryKeyName)) DO UPDATE SET ")
+
           query.append(
             columnNames
+              .filter { columnName in columnName != primaryKeyName }
               .map {
                 """
                 \(quote: $0) = "excluded".\(quote: $0)

@@ -54,6 +54,13 @@ func appDatabase() throws -> any DatabaseWriter {
       """)
     .execute(db)
   }
+  migrator.registerMigration("Alter table") { db in
+    try #sql("""
+      ALTER TABLE "counters"
+      ADD COLUMN "newFeature" TEXT
+      """)
+    .execute(db)
+  }
   try migrator.migrate(database)
 
   return database
