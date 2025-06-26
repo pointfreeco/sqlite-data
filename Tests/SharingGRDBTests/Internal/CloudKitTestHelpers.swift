@@ -34,10 +34,6 @@ final class MockSyncEngine: SyncEngineProtocol {
     _state.withValue(\.self)
   }
 
-  func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws {
-    _ = _fetchChangesScopes.withValue { $0.insert(options.scope) }
-  }
-
   func acceptShare(metadata: ShareMetadata) {
     _ = _acceptedShareMetadata.withValue { $0.insert(metadata) }
   }

@@ -11,7 +11,6 @@ package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {
 
   func acceptShare(metadata: ShareMetadata) async throws
   func cancelOperations() async
-  func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws
   func recordZoneChangeBatch(
     pendingChanges: [CKSyncEngine.PendingRecordZoneChange],
     recordProvider: @Sendable (CKRecord.ID) async -> CKRecord?
