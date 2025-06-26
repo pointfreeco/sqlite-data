@@ -301,14 +301,6 @@ public final class SyncEngine: Sendable {
     _ = await (privateCancellation, sharedCancellation)
   }
 
-  // TODO: resendAll() ?
-
-  public func fetchChanges() async throws {
-    let syncEngines = syncEngines.withValue(\.self)
-    try await syncEngines.private?.fetchChanges()
-    try await syncEngines.shared?.fetchChanges()
-  }
-
   #if DEBUG
   public func deleteLocalData() async throws {
     try await tearDownSyncEngine()

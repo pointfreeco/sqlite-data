@@ -19,13 +19,6 @@ package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension SyncEngineProtocol {
-  package func fetchChanges() async throws {
-    try await fetchChanges(CKSyncEngine.FetchChangesOptions())
-  }
-}
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 package struct ShareMetadata: Hashable {
   package var containerIdentifier: String
   package var hierarchicalRootRecordID: CKRecord.ID?
