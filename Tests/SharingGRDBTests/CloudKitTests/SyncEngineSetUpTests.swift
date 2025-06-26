@@ -44,7 +44,7 @@ extension BaseCloudKitTests {
       )
       reminderRecord.update(with: reminder, userModificationDate: Date())
       reminderRecord.encryptedValues["position"] = 3
-      _ = await privateDatabase.modifyRecords(
+      _ = await privateSyncEngine.database.modifyRecords(
         saving: [personalListRecord, businessListRecord, reminderRecord],
         deleting: [],
         savePolicy: .ifServerRecordUnchanged,
@@ -78,6 +78,9 @@ extension BaseCloudKitTests {
       let remindersLists = try database.syncRead { db in
         try MigratedRemindersList.order(by: \.id).fetchAll(db)
       }
+      let reminders = try database.syncRead { db in
+        try MigratedReminder.order(by: \.id).fetchAll(db)
+      }
       expectNoDifference(
         remindersLists,
         [
@@ -85,10 +88,6 @@ extension BaseCloudKitTests {
           MigratedRemindersList(id: UUID(2), title: "Business", position: 2),
         ]
       )
-
-      let reminders = try database.syncRead { db in
-        try MigratedReminder.order(by: \.id).fetchAll(db)
-      }
       expectNoDifference(
         reminders,
         [

@@ -2,10 +2,11 @@
 import CloudKit
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-package protocol SyncEngineProtocol<State>: AnyObject, Sendable {
+package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {
   associatedtype State: CKSyncEngineStateProtocol
+  associatedtype Database: CloudDatabase
 
-  var cloudDatabase: any CloudDatabase { get }
+  var database: Database { get }
   var scope: CKDatabase.Scope { get }
   var state: State { get }
 

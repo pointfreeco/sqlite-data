@@ -23,6 +23,7 @@ package protocol CloudDatabase: AnyObject, Hashable, Sendable {
 }
 
 extension CloudDatabase {
+//  @_disfavoredOverload
   @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
   func modifyRecords(
     saving recordsToSave: [CKRecord],
@@ -54,6 +55,7 @@ final class AnyCloudDatabase: CloudDatabase {
   init(_ rawValue: any CloudDatabase) {
     self.rawValue = rawValue
   }
+  
   func record(for recordID: CKRecord.ID) async throws -> CKRecord {
     try await rawValue.record(for: recordID)
   }

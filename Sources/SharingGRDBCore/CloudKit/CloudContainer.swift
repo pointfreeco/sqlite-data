@@ -1,33 +1,27 @@
 #if canImport(CloudKit)
 import CloudKit
 
-package protocol CloudContainerProtocol: AnyObject, Equatable, Hashable, Sendable {
+package protocol CloudContainer<Database>: AnyObject, Equatable, Hashable, Sendable {
+  associatedtype Database: CloudDatabase
+
   var rawValue: CKContainer { get }
-  var privateDatabase: any CloudDatabase { get }
-  var sharedDatabase: any CloudDatabase { get }
+  var privateCloudDatabase: Database { get }
+  var sharedCloudDatabase: Database { get }
   @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
   func shareMetadata(for url: URL, shouldFetchRootRecord: Bool) async throws -> CKShare.Metadata
 }
 
-extension CloudContainerProtocol {
+extension CloudContainer {
   package func database(for recordID: CKRecord.ID) -> any CloudDatabase {
     recordID.zoneID.ownerName == CKCurrentUserDefaultName
-    ? privateDatabase
-    : sharedDatabase
+    ? privateCloudDatabase
+    : sharedCloudDatabase
   }
 }
 
-extension CKContainer: CloudContainerProtocol {
+extension CKContainer: CloudContainer {
   package var rawValue: CKContainer {
     self
-  }
-
-  package var privateDatabase: any CloudDatabase {
-    privateCloudDatabase
-  }
-  
-  package var sharedDatabase: any CloudDatabase {
-    sharedCloudDatabase
   }
 
   @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)

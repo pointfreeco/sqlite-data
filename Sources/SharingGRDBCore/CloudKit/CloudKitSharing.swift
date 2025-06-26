@@ -8,7 +8,7 @@ import SwiftUI
 #endif
 
 public struct SharedRecord: Hashable, Identifiable, Sendable {
-  let container: any CloudContainerProtocol
+  let container: any CloudContainer
   public let share: CKShare
 
   public var id: CKRecord.ID { share.recordID }
@@ -87,7 +87,7 @@ extension SyncEngine {
     configure(sharedRecord)
     // TODO: We are getting an "client oplock error updating record" error in the logs when
     //       creating new shares / editing existing shares.
-    _ = try await container.privateDatabase.modifyRecords(
+    _ = try await container.privateCloudDatabase.modifyRecords(
       saving: [sharedRecord, rootRecord],
       deleting: []
     )

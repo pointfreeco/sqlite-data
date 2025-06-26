@@ -14,24 +14,20 @@ extension PrimaryKeyedTable<UUID> {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 final class MockSyncEngine: SyncEngineProtocol {
-  private let _cloudDatabase: MockCloudDatabase
+  let database: MockCloudDatabase
   private let _state: LockIsolated<MockSyncEngineState>
   private let _fetchChangesScopes = LockIsolated<Set<CKSyncEngine.FetchChangesOptions.Scope>>([])
   private let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
   let scope: CKDatabase.Scope
 
   init(
-    cloudDatabase: MockCloudDatabase,
+    database: MockCloudDatabase,
     scope: CKDatabase.Scope,
     state: MockSyncEngineState
   ) {
-    _cloudDatabase = cloudDatabase
+    self.database = database
     self.scope = scope
     self._state = LockIsolated(state)
-  }
-
-  var cloudDatabase: any CloudDatabase {
-    _cloudDatabase
   }
 
   var state: MockSyncEngineState {
@@ -67,13 +63,10 @@ final class MockSyncEngine: SyncEngineProtocol {
       return recordID
     }
 
-    for savedRecord in recordsToSave {
-      state.remove(pendingRecordZoneChanges: [.saveRecord(savedRecord.recordID)])
-    }
-    for recordIDToDelete in recordIDsToDelete {
-      state.remove(pendingRecordZoneChanges: [.deleteRecord(recordIDToDelete)])
-    }
-    _ = await _cloudDatabase.modifyRecords(
+    state.remove(pendingRecordZoneChanges: recordsToSave.map { .saveRecord($0.recordID) })
+    state.remove(pendingRecordZoneChanges: recordIDsToDelete.map { .deleteRecord($0) })
+    
+    _ = await database.modifyRecords(
       saving: recordsToSave,
       deleting: recordIDsToDelete,
       savePolicy: .ifServerRecordUnchanged,
@@ -272,6 +265,9 @@ actor MockCloudDatabase: CloudDatabase {
     for recordToSave in recordsToSave {
       storage[recordToSave.recordID] = recordToSave
     }
+    for recordIDToDelete in recordIDsToDelete {
+      storage[recordIDToDelete] = nil
+    }
     return (
       saveResults: Dictionary(
         uniqueKeysWithValues: recordsToSave.map { ($0.recordID, .success($0)) }
@@ -291,13 +287,13 @@ actor MockCloudDatabase: CloudDatabase {
   }
 }
 
-final class MockCloudContainer: CloudContainerProtocol {
-  let privateDatabase: any CloudDatabase
-  let sharedDatabase: any CloudDatabase
+final class MockCloudContainer: CloudContainer {
+  let privateCloudDatabase: MockCloudDatabase
+  let sharedCloudDatabase: MockCloudDatabase
 
-  init(privateDatabase: any CloudDatabase, sharedDatabase: any CloudDatabase) {
-    self.privateDatabase = privateDatabase
-    self.sharedDatabase = sharedDatabase
+  init(privateCloudDatabase: MockCloudDatabase, sharedCloudDatabase: MockCloudDatabase) {
+    self.privateCloudDatabase = privateCloudDatabase
+    self.sharedCloudDatabase = sharedCloudDatabase
   }
 
   var rawValue: CKContainer {

@@ -11,8 +11,6 @@ import Testing
 class BaseCloudKitTests: @unchecked Sendable {
   let database: any DatabaseWriter
   private let _syncEngine: any Sendable
-  let sharedDatabase = MockCloudDatabase()
-  let privateDatabase = MockCloudDatabase()
   private let _privateSyncEngine: any Sendable
   private let _sharedSyncEngine: any Sendable
 
@@ -45,12 +43,12 @@ class BaseCloudKitTests: @unchecked Sendable {
       }
     }()
     let privateSyncEngine = MockSyncEngine(
-      cloudDatabase: privateDatabase,
+      database: MockCloudDatabase(),
       scope: .private,
       state: MockSyncEngineState()
     )
     let sharedSyncEngine = MockSyncEngine(
-      cloudDatabase: sharedDatabase,
+      database: MockCloudDatabase(),
       scope: .shared,
       state: MockSyncEngineState()
     )
@@ -58,8 +56,8 @@ class BaseCloudKitTests: @unchecked Sendable {
     _sharedSyncEngine = sharedSyncEngine
     _syncEngine = try await SyncEngine(
       container: MockCloudContainer(
-        privateDatabase: privateSyncEngine.cloudDatabase,
-        sharedDatabase: sharedSyncEngine.cloudDatabase
+        privateCloudDatabase: privateSyncEngine.database,
+        sharedCloudDatabase: sharedSyncEngine.database
       ),
       privateSyncEngine: privateSyncEngine,
       sharedSyncEngine: sharedSyncEngine,

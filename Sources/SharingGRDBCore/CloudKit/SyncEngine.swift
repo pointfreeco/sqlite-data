@@ -20,7 +20,7 @@ public final class SyncEngine: Sendable {
   let defaultSyncEngines:
     @Sendable (any DatabaseReader, SyncEngine)
       -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
-  let container: any CloudContainerProtocol
+  let container: any CloudContainer
 
   public convenience init(
     container: CKContainer,
@@ -66,7 +66,7 @@ public final class SyncEngine: Sendable {
   }
 
   package convenience init(
-    container: any CloudContainerProtocol,
+    container: any CloudContainer,
     privateSyncEngine: any SyncEngineProtocol,
     sharedSyncEngine: any SyncEngineProtocol,
     database: any DatabaseWriter,
@@ -87,7 +87,7 @@ public final class SyncEngine: Sendable {
   }
 
   private init(
-    container: any CloudContainerProtocol,
+    container: any CloudContainer,
     defaultSyncEngines: @escaping @Sendable (
       any DatabaseReader,
       SyncEngine
@@ -235,6 +235,9 @@ public final class SyncEngine: Sendable {
   }
 
   private func fetchChangesFromSchemaChange(recordTypesChanged: [RecordType]) async throws {
+    // TODO: do batches for sake of CKDatabase
+    //       only docs we found was about modifies: https://developer.apple.com/documentation/cloudkit/ckmodifyrecordsoperation
+    //       recommends limiting to <400 records and <2mb data posted
     // TODO: Should we do this in batches now that we save the full 'lastKnowServerRecord'?
     // TODO: Or should we denormalize zoneID into the metadata table for easy access?
     let lastKnownServerRecords = try {
@@ -306,6 +309,7 @@ public final class SyncEngine: Sendable {
     try await syncEngines.shared?.fetchChanges()
   }
 
+  #if DEBUG
   public func deleteLocalData() async throws {
     try await tearDownSyncEngine()
     withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -322,6 +326,7 @@ public final class SyncEngine: Sendable {
     }
     try await setUpSyncEngine()
   }
+  #endif
 
   func didUpdate(recordName: SyncMetadata.RecordName, zoneID: CKRecordZone.ID?) {
     let zoneID = zoneID ?? Self.defaultZone.zoneID

@@ -3,7 +3,7 @@ import CloudKit
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension CKSyncEngine: SyncEngineProtocol {
-  package var cloudDatabase: any CloudDatabase {
+  package var cloudDatabase: CKDatabase {
     database
   }
   
