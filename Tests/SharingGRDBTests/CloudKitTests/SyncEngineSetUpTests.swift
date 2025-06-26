@@ -14,7 +14,7 @@ extension BaseCloudKitTests {
       let personalList = RemindersList(id: UUID(1), title: "Personal")
       let businessList = RemindersList(id: UUID(2), title: "Business")
       let reminder = Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
-      try database.syncWrite { db in
+      try await database.asyncWrite { db in
         try db.seed {
           personalList
           businessList
@@ -51,7 +51,7 @@ extension BaseCloudKitTests {
         atomically: true
       )
 
-      try database.syncWrite { db in
+      try await database.asyncWrite { db in
         try #sql(
           """
           ALTER TABLE "remindersLists" 
@@ -75,10 +75,10 @@ extension BaseCloudKitTests {
       )
       #expect(batch == nil)
 
-      let remindersLists = try database.syncRead { db in
+      let remindersLists = try await database.read { db in
         try MigratedRemindersList.order(by: \.id).fetchAll(db)
       }
-      let reminders = try database.syncRead { db in
+      let reminders = try await database.read { db in
         try MigratedReminder.order(by: \.id).fetchAll(db)
       }
       expectNoDifference(
