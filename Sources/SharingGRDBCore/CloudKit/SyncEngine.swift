@@ -417,8 +417,8 @@ extension SyncEngine: CKSyncEngineDelegate {
       await handleAccountChange(changeType: changeType)
     case .stateUpdate(let stateSerialization):
       handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
-    case .fetchedDatabaseChanges(let event):
-      handleFetchedDatabaseChanges(event)
+    case .fetchedDatabaseChanges(let modifications, let deletions):
+      handleFetchedDatabaseChanges(modifications: modifications, deletions: deletions)
     case .sentDatabaseChanges:
       break
     case .fetchedRecordZoneChanges(let modifications, let deletions):
@@ -636,12 +636,15 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  package func handleFetchedDatabaseChanges(_ event: Event.FetchedDatabaseChanges) {
+  package func handleFetchedDatabaseChanges(
+    modifications: [CKRecordZone.ID],
+    deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)]
+  ) {
     // TODO: How to handle this?
     Self.$isUpdatingWithServerRecord.withValue(true) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
         try database.write { db in
-          for deletion in event.deletions {
+          for deletion in deletions {
             // if let table = tablesByName[deletion.zoneID.zoneName] {
             //   func open<T: PrimaryKeyedTable>(_: T.Type) {
             //     withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -653,7 +656,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
 
         // TODO: Deal with modifications?
-        _ = event.modifications
+        _ = modifications
       }
     }
   }

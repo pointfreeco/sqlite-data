@@ -6,12 +6,20 @@
     package enum Event: CustomStringConvertible, Sendable {
       case stateUpdate(stateSerialization: CKSyncEngine.State.Serialization)
       case accountChange(changeType: CKSyncEngine.Event.AccountChange.ChangeType)
-      case fetchedDatabaseChanges(FetchedDatabaseChanges)
+      case fetchedDatabaseChanges(
+        modifications: [CKRecordZone.ID],
+        deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)]
+      )
       case fetchedRecordZoneChanges(
         modifications: [CKRecord],
         deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)]
       )
-      case sentDatabaseChanges(SentDatabaseChanges)
+      case sentDatabaseChanges(
+        savedZones: [CKRecordZone],
+        failedZoneSaves: [(zone: CKRecordZone, error: CKError)],
+        deletedZoneIDs: [CKRecordZone.ID],
+        failedZoneDeletes: [CKRecordZone.ID: CKError]
+      )
       case sentRecordZoneChanges(SentRecordZoneChanges)
       case willFetchChanges(WillFetchChanges)
       case willFetchRecordZoneChanges(WillFetchRecordZoneChanges)
@@ -28,10 +36,8 @@
           self = .accountChange(changeType: event.changeType)
         case .fetchedDatabaseChanges(let event):
           self = .fetchedDatabaseChanges(
-            FetchedDatabaseChanges(
-              modifications: event.modifications.map { .init(zoneID: $0.zoneID) },
-              deletions: event.deletions.map { .init(zoneID: $0.zoneID, reason: $0.reason) }
-            )
+            modifications: event.modifications.map(\.zoneID),
+            deletions: event.deletions.map { (zoneID: $0.zoneID, reason: $0.reason) }
           )
         case .fetchedRecordZoneChanges(let event):
           self = .fetchedRecordZoneChanges(
@@ -42,12 +48,10 @@
           )
         case .sentDatabaseChanges(let event):
           self = .sentDatabaseChanges(
-            SentDatabaseChanges.init(
-              savedZones: event.savedZones,
-              failedZoneSaves: event.failedZoneSaves.map { .init(zone: $0.zone, error: $0.error) },
-              deletedZoneIDs: event.deletedZoneIDs,
-              failedZoneDeletes: event.failedZoneDeletes
-            )
+            savedZones: event.savedZones,
+            failedZoneSaves: event.failedZoneSaves.map { (zone: $0.zone, error: $0.error) },
+            deletedZoneIDs: event.deletedZoneIDs,
+            failedZoneDeletes: event.failedZoneDeletes
           )
         case .sentRecordZoneChanges(let event):
           self = .sentRecordZoneChanges(
@@ -118,27 +122,6 @@
         }
       }
 
-      package struct FetchedDatabaseChanges: Sendable {
-        package let modifications: [Modification]
-        package let deletions: [Deletion]
-        package struct Modification: Sendable {
-          package var zoneID: CKRecordZone.ID
-        }
-        package struct Deletion: Sendable {
-          package var zoneID: CKRecordZone.ID
-          package var reason: CKDatabase.DatabaseChange.Deletion.Reason
-        }
-      }
-      package struct SentDatabaseChanges: Sendable {
-        package let savedZones: [CKRecordZone]
-        package let failedZoneSaves: [FailedZoneSave]
-        package let deletedZoneIDs: [CKRecordZone.ID]
-        package let failedZoneDeletes: [CKRecordZone.ID: CKError]
-        package struct FailedZoneSave: Sendable {
-          package let zone: CKRecordZone
-          package let error: CKError
-        }
-      }
       package struct SentRecordZoneChanges: Sendable {
         package let savedRecords: [CKRecord]
         package let failedRecordSaves: [FailedRecordSave]
