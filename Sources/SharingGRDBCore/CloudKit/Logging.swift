@@ -4,7 +4,7 @@ import os
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Logger {
-  func log(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) {
+  func log(_ event: SyncEngine.Event, syncEngine: any SyncEngineProtocol) {
     let prefix = "[\(syncEngine.database.databaseScope.label)] handleEvent:"
     switch event {
     case .stateUpdate:

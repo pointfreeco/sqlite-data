@@ -79,8 +79,7 @@ extension BaseCloudKitTests {
       remindersListRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
       remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
       await syncEngine.handleFetchedRecordZoneChanges(
-        modifications: [remindersListRecord],
-        deletions: []
+        .init(modifications: [.init(record: remindersListRecord)])
       )
 
       try database.syncWrite { db in
@@ -156,8 +155,10 @@ extension BaseCloudKitTests {
       reminderRecord.encryptedValues["remindersListID"] = UUID(1).uuidString.lowercased()
       remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
       await syncEngine.handleFetchedRecordZoneChanges(
-        modifications: [remindersListRecord, reminderRecord],
-        deletions: []
+        .init(modifications: [
+          .init(record: remindersListRecord),
+          .init(record: reminderRecord)
+        ])
       )
 
       try database.syncWrite { db in

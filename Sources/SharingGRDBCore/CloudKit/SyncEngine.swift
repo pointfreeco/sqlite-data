@@ -400,6 +400,15 @@ extension PrimaryKeyedTable<UUID> {
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine: CKSyncEngineDelegate {
   public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
+    guard let event = Event(event)
+    else {
+      reportIssue("Unrecognized event received: \(event)")
+      return
+    }
+    await handleEvent(event, syncEngine: syncEngine)
+  }
+
+  package func handleEvent(_ event: Event, syncEngine: any SyncEngineProtocol) async {
     logger.log(event, syncEngine: syncEngine)
 
     switch event {
@@ -412,10 +421,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     case .sentDatabaseChanges:
       break
     case .fetchedRecordZoneChanges(let event):
-      await handleFetchedRecordZoneChanges(
-        modifications: event.modifications.map(\.record),
-        deletions: event.deletions.map { ($0.recordID, $0.recordType) }
-      )
+      await handleFetchedRecordZoneChanges(event)
     case .sentRecordZoneChanges(let event):
       handleSentRecordZoneChanges(event, syncEngine: syncEngine)
     case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
@@ -569,7 +575,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     return batch
   }
 
-  private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) async {
+  package func handleAccountChange(_ event: Event.AccountChange) async {
     switch event.changeType {
     case .signIn:
       syncEngines.withValue {
@@ -609,9 +615,9 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  private func handleStateUpdate(
-    _ event: CKSyncEngine.Event.StateUpdate,
-    syncEngine: CKSyncEngine
+  package func handleStateUpdate(
+    _ event: Event.StateUpdate,
+    syncEngine: any SyncEngineProtocol
   ) {
     withErrorReporting(.sqliteDataCloudKitFailure) {
       try database.write { db in
@@ -626,7 +632,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  private func handleFetchedDatabaseChanges(_ event: CKSyncEngine.Event.FetchedDatabaseChanges) {
+  package func handleFetchedDatabaseChanges(_ event: Event.FetchedDatabaseChanges) {
     // TODO: How to handle this?
     $isUpdatingWithServerRecord.withValue(true) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -648,21 +654,19 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  package func handleFetchedRecordZoneChanges(
-    modifications: [CKRecord],
-    deletions: [(CKRecord.ID, CKRecord.RecordType)]
-  ) async {
+  package func handleFetchedRecordZoneChanges(_ event: Event.FetchedRecordZoneChanges) async {
     await $isUpdatingWithServerRecord.withValue(true) {
-      for record in modifications {
-        if let share = record as? CKShare {
+      for modification in event.modifications {
+        if let share = modification.record as? CKShare {
           await withErrorReporting {
             try await cacheShare(share)
           }
         } else {
-          upsertFromServerRecord(record)
-          refreshLastKnownServerRecord(record)
+          upsertFromServerRecord(modification.record)
+          refreshLastKnownServerRecord(modification.record)
         }
-        if let shareReference = record.share,
+        if let shareReference = modification.record.share,
+           // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
           let shareRecord = try? await container.database(for: shareReference.recordID)
             .record(for: shareReference.recordID),
           let share = shareRecord as? CKShare
@@ -673,7 +677,8 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
       }
 
-      for (recordID, recordType) in deletions {
+      for deletion in event.deletions {
+        let (recordID, recordType) = (deletion.recordID, deletion.recordType)
         if let table = tablesByName[recordType] {
           guard let recordName = SyncMetadata.RecordName(recordID: recordID)
           else {
@@ -714,9 +719,9 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  private func handleSentRecordZoneChanges(
-    _ event: CKSyncEngine.Event.SentRecordZoneChanges,
-    syncEngine: CKSyncEngine
+  package func handleSentRecordZoneChanges(
+    _ event: Event.SentRecordZoneChanges,
+    syncEngine: any SyncEngineProtocol
   ) {
     for savedRecord in event.savedRecords {
       refreshLastKnownServerRecord(savedRecord)
@@ -1215,4 +1220,5 @@ private struct HashablePrimaryKeyedTableType: Hashable {
     lhs.type == rhs.type
   }
 }
+
 #endif
