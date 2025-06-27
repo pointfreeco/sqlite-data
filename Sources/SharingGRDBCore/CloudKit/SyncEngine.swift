@@ -31,12 +31,12 @@ public final class SyncEngine: Sendable {
   ) throws {
     try self.init(
       container: container,
-      defaultSyncEngines: { database, syncEngine in
+      defaultSyncEngines: { metadatabase, syncEngine in
         (
           private: CKSyncEngine(
             CKSyncEngine.Configuration(
               database: container.privateCloudDatabase,
-              stateSerialization: try? database.read { db in  // TODO: write test for this
+              stateSerialization: try? metadatabase.read { db in
                 try StateSerialization.find(CKDatabase.Scope.private).select(\.data).fetchOne(db)
               },
               delegate: syncEngine
@@ -45,7 +45,7 @@ public final class SyncEngine: Sendable {
           shared: CKSyncEngine(
             CKSyncEngine.Configuration(
               database: container.sharedCloudDatabase,
-              stateSerialization: try? database.read { db in  // TODO: write test for this
+              stateSerialization: try? metadatabase.read { db in
                 try StateSerialization.find(CKDatabase.Scope.shared).select(\.data).fetchOne(db)
               },
               delegate: syncEngine
