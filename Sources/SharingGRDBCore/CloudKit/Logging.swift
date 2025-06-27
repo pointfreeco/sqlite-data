@@ -36,12 +36,12 @@ extension Logger {
       @unknown default:
         debug("unknown")
       }
-    case .fetchedDatabaseChanges(let event):
+    case .fetchedDatabaseChanges(_, let deletions):
       let deletions =
-        event.deletions.isEmpty
+        deletions.isEmpty
         ? "⚪️ No deletions"
-        : "✅ Zones deleted (\(event.deletions.count)): "
-          + event.deletions
+        : "✅ Zones deleted (\(deletions.count)): "
+          + deletions
           .map { $0.zoneID.zoneName + ":" + $0.zoneID.ownerName }
           .sorted()
           .joined(separator: ", ")
@@ -158,8 +158,8 @@ extension Logger {
       )
     case .willFetchChanges:
       debug("\(prefix) willFetchChanges")
-    case .willFetchRecordZoneChanges(let event):
-      debug("\(prefix) willFetchRecordZoneChanges: \(event.zoneID.zoneName)")
+    case .willFetchRecordZoneChanges(let zoneID):
+      debug("\(prefix) willFetchRecordZoneChanges: \(zoneID.zoneName)")
     case .didFetchRecordZoneChanges(let event):
       let errorType = event.error.map {
         switch $0.code {

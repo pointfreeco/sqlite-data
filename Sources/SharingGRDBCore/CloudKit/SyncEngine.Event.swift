@@ -27,7 +27,7 @@
         failedRecordDeletes: [CKRecord.ID: CKError]
       )
       case willFetchChanges
-      case willFetchRecordZoneChanges(WillFetchRecordZoneChanges)
+      case willFetchRecordZoneChanges(zoneID: CKRecordZone.ID)
       case didFetchRecordZoneChanges(DidFetchRecordZoneChanges)
       case didFetchChanges(DidFetchChanges)
       case willSendChanges(WillSendChanges)
@@ -68,7 +68,7 @@
         case .willFetchChanges:
           self = .willFetchChanges
         case .willFetchRecordZoneChanges(let event):
-          self = .willFetchRecordZoneChanges(WillFetchRecordZoneChanges(zoneID: event.zoneID))
+          self = .willFetchRecordZoneChanges(zoneID: event.zoneID)
         case .didFetchRecordZoneChanges(let event):
           self = .didFetchRecordZoneChanges(
             DidFetchRecordZoneChanges(
@@ -120,13 +120,6 @@
         }
       }
 
-      package struct FetchChangesContext: Sendable {
-        package let reason: CKSyncEngine.SyncReason
-        package let options: CKSyncEngine.FetchChangesOptions
-      }
-      package struct WillFetchRecordZoneChanges: Sendable {
-        package let zoneID: CKRecordZone.ID
-      }
       package struct DidFetchRecordZoneChanges: Sendable {
         package let zoneID: CKRecordZone.ID
         package let error: CKError?
