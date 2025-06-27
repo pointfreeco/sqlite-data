@@ -84,30 +84,18 @@
 
       public var description: String {
         switch self {
-        case .stateUpdate:
-          return "stateUpdate"
-        case .accountChange:
-          return "accountChange"
-        case .fetchedDatabaseChanges:
-          return "fetchedDatabaseChanges"
-        case .fetchedRecordZoneChanges:
-          return "fetchedRecordZoneChanges"
-        case .sentDatabaseChanges:
-          return "sentDatabaseChanges"
-        case .sentRecordZoneChanges:
-          return "sentRecordZoneChanges"
-        case .willFetchChanges:
-          return "willFetchChanges"
-        case .willFetchRecordZoneChanges:
-          return "willFetchRecordZoneChanges"
-        case .didFetchRecordZoneChanges:
-          return "didFetchRecordZoneChanges"
-        case .didFetchChanges:
-          return "didFetchChanges"
-        case .willSendChanges:
-          return "willSendChanges"
-        case .didSendChanges:
-          return "didSendChanges"
+        case .stateUpdate: "stateUpdate"
+        case .accountChange: "accountChange"
+        case .fetchedDatabaseChanges: "fetchedDatabaseChanges"
+        case .fetchedRecordZoneChanges: "fetchedRecordZoneChanges"
+        case .sentDatabaseChanges: "sentDatabaseChanges"
+        case .sentRecordZoneChanges: "sentRecordZoneChanges"
+        case .willFetchChanges: "willFetchChanges"
+        case .willFetchRecordZoneChanges: "willFetchRecordZoneChanges"
+        case .didFetchRecordZoneChanges: "didFetchRecordZoneChanges"
+        case .didFetchChanges: "didFetchChanges"
+        case .willSendChanges: "willSendChanges"
+        case .didSendChanges: "didSendChanges"
         }
       }
     }
