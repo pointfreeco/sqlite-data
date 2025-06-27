@@ -415,8 +415,8 @@ extension SyncEngine: CKSyncEngineDelegate {
     switch event {
     case .accountChange(let event):
       await handleAccountChange(event)
-    case .stateUpdate(let event):
-      handleStateUpdate(event, syncEngine: syncEngine)
+    case .stateUpdate(let stateSerialization):
+      handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
     case .fetchedDatabaseChanges(let event):
       handleFetchedDatabaseChanges(event)
     case .sentDatabaseChanges:
@@ -620,7 +620,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   package func handleStateUpdate(
-    _ event: Event.StateUpdate,
+    stateSerialization: CKSyncEngine.State.Serialization,
     syncEngine: any SyncEngineProtocol
   ) {
     withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -628,7 +628,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         try StateSerialization.upsert {
           StateSerialization.Draft(
             scope: syncEngine.database.databaseScope,
-            data: event.stateSerialization
+            data: stateSerialization
           )
         }
         .execute(db)

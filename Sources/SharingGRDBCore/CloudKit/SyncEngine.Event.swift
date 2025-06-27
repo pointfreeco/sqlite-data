@@ -4,7 +4,7 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
     package enum Event: CustomStringConvertible, Sendable {
-      case stateUpdate(StateUpdate)
+      case stateUpdate(stateSerialization: CKSyncEngine.State.Serialization)
       case accountChange(AccountChange)
       case fetchedDatabaseChanges(FetchedDatabaseChanges)
       case fetchedRecordZoneChanges(
@@ -23,7 +23,7 @@
       init?(_ event: CKSyncEngine.Event) {
         switch event {
         case .stateUpdate(let event):
-          self = .stateUpdate(StateUpdate(stateSerialization: event.stateSerialization))
+          self = .stateUpdate(stateSerialization: event.stateSerialization)
         case .accountChange(let event):
           self = .accountChange(AccountChange(changeType: event.changeType))
         case .fetchedDatabaseChanges(let event):
