@@ -89,8 +89,8 @@ extension BaseCloudKitTests {
         }
       }
 
-      let batch = await syncEngine._nextRecordZoneChangeBatch(
-        SendChangesContext(
+      let batch = await syncEngine.nextRecordZoneChangeBatch(
+        SyncEngine.SendChangesContext(
           options: CKSyncEngine.SendChangesOptions(
             scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
           )
@@ -155,19 +155,17 @@ extension BaseCloudKitTests {
       reminderRecord.encryptedValues["title"] = "Get milk"
       reminderRecord.encryptedValues["remindersListID"] = UUID(1).uuidString.lowercased()
       remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
-      await syncEngine.handleFetchedRecordZoneChanges(
-        .init(modifications: [
-          .init(record: remindersListRecord),
-          .init(record: reminderRecord)
-        ])
-      )
+      await syncEngine.handleFetchedRecordZoneChanges(modifications: [
+        remindersListRecord,
+        reminderRecord
+      ])
 
       try await database.asyncWrite { db in
         try Reminder.find(UUID(1)).delete().execute(db)
       }
 
-      let batch = await syncEngine._nextRecordZoneChangeBatch(
-        SendChangesContext(
+      let batch = await syncEngine.nextRecordZoneChangeBatch(
+        SyncEngine.SendChangesContext(
           options: CKSyncEngine.SendChangesOptions(
             scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
           )

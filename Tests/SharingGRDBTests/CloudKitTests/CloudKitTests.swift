@@ -160,7 +160,7 @@ extension BaseCloudKitTests {
         recordType: "remindersLists",
         recordID: RemindersList.recordID(for: UUID(1))
       )
-      await syncEngine.handleFetchedRecordZoneChanges(.init(modifications: [.init(record: record)]))
+      await syncEngine.handleFetchedRecordZoneChanges(modifications: [record])
       expectNoDifference(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
         RemindersList(id: UUID(1), title: "Personal")
@@ -272,9 +272,7 @@ extension BaseCloudKitTests {
       record.encryptedValues[RemindersList.columns.title.name] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(60)
       record.userModificationDate = serverModificationDate
-      await syncEngine.handleFetchedRecordZoneChanges(
-        .init(modifications: [.init(record: record)])
-      )
+      await syncEngine.handleFetchedRecordZoneChanges(modifications: [record])
       expectNoDifference(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
         RemindersList(id: UUID(1), title: "Work")
@@ -319,9 +317,7 @@ extension BaseCloudKitTests {
       record.encryptedValues[RemindersList.columns.title.name] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(-60.0)
       record.userModificationDate = serverModificationDate
-      await syncEngine.handleFetchedRecordZoneChanges(
-        .init(modifications: [.init(record: record)])
-      )
+      await syncEngine.handleFetchedRecordZoneChanges(modifications: [record])
       expectNoDifference(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
         RemindersList(id: UUID(1), title: "Personal")
@@ -353,7 +349,7 @@ extension BaseCloudKitTests {
         recordID: RemindersList.recordID(for: UUID(1))
       )
       await syncEngine.handleFetchedRecordZoneChanges(
-        .init(deletions: [.init(recordID: record.recordID, recordType: record.recordType)])
+        deletions: [(recordID: record.recordID, recordType: record.recordType)]
       )
       #expect(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchCount(db) } }()

@@ -53,8 +53,8 @@ extension BaseCloudKitTests {
         ]
         """
       }
-      let batch = await syncEngine._nextRecordZoneChangeBatch(
-        SendChangesContext(), syncEngine: privateSyncEngine
+      let batch = await syncEngine.nextRecordZoneChangeBatch(
+        SyncEngine.SendChangesContext(), syncEngine: privateSyncEngine
       )
       assertInlineSnapshot(of: batch, as: .customDump) {
         """

@@ -21,8 +21,8 @@ extension BaseCloudKitTests {
           reminder
         }
       }
-      _ = await syncEngine._nextRecordZoneChangeBatch(
-        SendChangesContext(),
+      _ = await syncEngine.nextRecordZoneChangeBatch(
+        SyncEngine.SendChangesContext(),
         syncEngine: privateSyncEngine
       )
 
@@ -69,8 +69,8 @@ extension BaseCloudKitTests {
       }
 
       try await syncEngine.setUpSyncEngine()
-      let batch = await syncEngine._nextRecordZoneChangeBatch(
-        SendChangesContext(),
+      let batch = await syncEngine.nextRecordZoneChangeBatch(
+        SyncEngine.SendChangesContext(),
         syncEngine: privateSyncEngine
       )
       #expect(batch == nil)
