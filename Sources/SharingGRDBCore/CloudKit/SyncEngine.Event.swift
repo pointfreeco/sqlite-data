@@ -20,7 +20,12 @@
         deletedZoneIDs: [CKRecordZone.ID],
         failedZoneDeletes: [CKRecordZone.ID: CKError]
       )
-      case sentRecordZoneChanges(SentRecordZoneChanges)
+      case sentRecordZoneChanges(
+        savedRecords: [CKRecord],
+        failedRecordSaves: [(record: CKRecord, error: CKError)],
+        deletedRecordIDs: [CKRecord.ID],
+        failedRecordDeletes: [CKRecord.ID: CKError]
+      )
       case willFetchChanges(WillFetchChanges)
       case willFetchRecordZoneChanges(WillFetchRecordZoneChanges)
       case didFetchRecordZoneChanges(DidFetchRecordZoneChanges)
@@ -55,13 +60,10 @@
           )
         case .sentRecordZoneChanges(let event):
           self = .sentRecordZoneChanges(
-            SentRecordZoneChanges.init(
-              savedRecords: event.savedRecords,
-              failedRecordSaves: event.failedRecordSaves
-                .map { .init(record: $0.record, error: $0.error) },
-              deletedRecordIDs: event.deletedRecordIDs,
-              failedRecordDeletes: event.failedRecordDeletes
-            )
+            savedRecords: event.savedRecords,
+            failedRecordSaves: event.failedRecordSaves.map { (record: $0.record, error: $0.error) },
+            deletedRecordIDs: event.deletedRecordIDs,
+            failedRecordDeletes: event.failedRecordDeletes
           )
         case .willFetchChanges(let event):
           if #available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *) {
@@ -122,16 +124,6 @@
         }
       }
 
-      package struct SentRecordZoneChanges: Sendable {
-        package let savedRecords: [CKRecord]
-        package let failedRecordSaves: [FailedRecordSave]
-        package let deletedRecordIDs: [CKRecord.ID]
-        package let failedRecordDeletes: [CKRecord.ID: CKError]
-        package struct FailedRecordSave: Sendable {
-          package let record: CKRecord
-          package let error: CKError
-        }
-      }
       package struct WillFetchChanges: Sendable {
         private var _context: (any Sendable)?
         @available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *)

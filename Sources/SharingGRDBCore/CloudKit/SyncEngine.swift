@@ -426,8 +426,19 @@ extension SyncEngine: CKSyncEngineDelegate {
         modifications: modifications,
         deletions: deletions
       )
-    case .sentRecordZoneChanges(let event):
-      handleSentRecordZoneChanges(event, syncEngine: syncEngine)
+    case .sentRecordZoneChanges(
+      let savedRecords,
+      let failedRecordSaves,
+      let deletedRecordIDs,
+      let failedRecordDeletes
+    ):
+      handleSentRecordZoneChanges(
+        savedRecords: savedRecords,
+        failedRecordSaves: failedRecordSaves,
+        deletedRecordIDs: deletedRecordIDs,
+        failedRecordDeletes: failedRecordDeletes,
+        syncEngine: syncEngine
+      )
     case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
       .didFetchChanges, .willSendChanges, .didSendChanges:
       break
@@ -729,10 +740,13 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   package func handleSentRecordZoneChanges(
-    _ event: Event.SentRecordZoneChanges,
+    savedRecords: [CKRecord] = [],
+    failedRecordSaves: [(record: CKRecord, error: CKError)] = [],
+    deletedRecordIDs: [CKRecord.ID] = [],
+    failedRecordDeletes: [CKRecord.ID: CKError] = [:],
     syncEngine: any SyncEngineProtocol
   ) {
-    for savedRecord in event.savedRecords {
+    for savedRecord in savedRecords {
       refreshLastKnownServerRecord(savedRecord)
     }
 
@@ -742,7 +756,7 @@ extension SyncEngine: CKSyncEngineDelegate {
       syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
       syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
     }
-    for failedRecordSave in event.failedRecordSaves {
+    for failedRecordSave in failedRecordSaves {
       let failedRecord = failedRecordSave.record
       guard let recordName = SyncMetadata.RecordName(rawValue: failedRecord.recordID.recordName)
       else {
