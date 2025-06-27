@@ -1028,7 +1028,7 @@ extension DatabaseFunction {
   fileprivate static var isUpdatingWithServerRecord: Self {
     Self(.sqliteDataCloudKitSchemaName + "_" + "isUpdatingWithServerRecord", argumentCount: 0) {
       _ in
-      isUpdatingWithServerRecord
+      SyncEngine.isUpdatingWithServerRecord
     }
   }
 
