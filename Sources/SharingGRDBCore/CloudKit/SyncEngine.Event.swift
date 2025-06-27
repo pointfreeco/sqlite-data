@@ -26,7 +26,7 @@
         deletedRecordIDs: [CKRecord.ID],
         failedRecordDeletes: [CKRecord.ID: CKError]
       )
-      case willFetchChanges(WillFetchChanges)
+      case willFetchChanges
       case willFetchRecordZoneChanges(WillFetchRecordZoneChanges)
       case didFetchRecordZoneChanges(DidFetchRecordZoneChanges)
       case didFetchChanges(DidFetchChanges)
@@ -65,12 +65,8 @@
             deletedRecordIDs: event.deletedRecordIDs,
             failedRecordDeletes: event.failedRecordDeletes
           )
-        case .willFetchChanges(let event):
-          if #available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *) {
-            self = .willFetchChanges(WillFetchChanges(context: event.context))
-          } else {
-            self = .willFetchChanges(WillFetchChanges())
-          }
+        case .willFetchChanges:
+          self = .willFetchChanges
         case .willFetchRecordZoneChanges(let event):
           self = .willFetchRecordZoneChanges(WillFetchRecordZoneChanges(zoneID: event.zoneID))
         case .didFetchRecordZoneChanges(let event):
@@ -124,20 +120,6 @@
         }
       }
 
-      package struct WillFetchChanges: Sendable {
-        private var _context: (any Sendable)?
-        @available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *)
-        package var context: CKSyncEngine.FetchChangesContext {
-          _context as! CKSyncEngine.FetchChangesContext
-        }
-        @available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *)
-        init(context: CKSyncEngine.FetchChangesContext) {
-          _context = context
-        }
-        init() {
-          _context = nil
-        }
-      }
       package struct FetchChangesContext: Sendable {
         package let reason: CKSyncEngine.SyncReason
         package let options: CKSyncEngine.FetchChangesOptions

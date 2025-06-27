@@ -156,12 +156,8 @@ extension Logger {
           \(event.failedRecordDeletes.isEmpty ? "⚪️ No records failed delete" : "🛑 Records failed delete (\(event.failedRecordDeletes.count))")
         """
       )
-    case .willFetchChanges(let event):
-      if #available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *) {
-        debug("\(prefix) willFetchChanges: \(event.context.reason.description)")
-      } else {
-        debug("\(prefix) willFetchChanges")
-      }
+    case .willFetchChanges:
+      debug("\(prefix) willFetchChanges")
     case .willFetchRecordZoneChanges(let event):
       debug("\(prefix) willFetchRecordZoneChanges: \(event.zoneID.zoneName)")
     case .didFetchRecordZoneChanges(let event):
