@@ -21,10 +21,7 @@ extension BaseCloudKitTests {
           reminder
         }
       }
-      _ = await syncEngine.nextRecordZoneChangeBatch(
-        SyncEngine.SendChangesContext(),
-        syncEngine: privateSyncEngine
-      )
+      _ = await syncEngine.nextRecordZoneChangeBatch(syncEngine: privateSyncEngine)
 
       let personalListRecord = CKRecord(
         recordType: RemindersList.tableName,
@@ -69,10 +66,7 @@ extension BaseCloudKitTests {
       }
 
       try await syncEngine.setUpSyncEngine()
-      let batch = await syncEngine.nextRecordZoneChangeBatch(
-        SyncEngine.SendChangesContext(),
-        syncEngine: privateSyncEngine
-      )
+      let batch = await syncEngine.nextRecordZoneChangeBatch(syncEngine: privateSyncEngine)
       #expect(batch == nil)
 
       let remindersLists = try await database.read { db in

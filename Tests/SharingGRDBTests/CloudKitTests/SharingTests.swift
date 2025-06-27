@@ -90,10 +90,8 @@ extension BaseCloudKitTests {
       }
 
       let batch = await syncEngine.nextRecordZoneChangeBatch(
-        SyncEngine.SendChangesContext(
-          options: CKSyncEngine.SendChangesOptions(
-            scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
-          )
+        options: CKSyncEngine.SendChangesOptions(
+          scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
         ),
         syncEngine: sharedSyncEngine
       )
@@ -165,10 +163,8 @@ extension BaseCloudKitTests {
       }
 
       let batch = await syncEngine.nextRecordZoneChangeBatch(
-        SyncEngine.SendChangesContext(
-          options: CKSyncEngine.SendChangesOptions(
-            scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
-          )
+        options: CKSyncEngine.SendChangesOptions(
+          scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
         ),
         syncEngine: sharedSyncEngine
       )

@@ -452,18 +452,18 @@ extension SyncEngine: CKSyncEngineDelegate {
     syncEngine: CKSyncEngine
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
     await nextRecordZoneChangeBatch(
-      SendChangesContext(context: context),
+      reason: context.reason,
+      options: context.options,
       syncEngine: syncEngine
     )
   }
 
   package func nextRecordZoneChangeBatch(
-    _ context: SendChangesContext,
+    reason: CKSyncEngine.SyncReason = .scheduled,
+    options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(scope: .all),
     syncEngine: any SyncEngineProtocol
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-    let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(
-      context.options.scope.contains
-    )
+    let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(options.scope.contains)
     guard !allChanges.isEmpty
     else { return nil }
 
@@ -509,7 +509,7 @@ extension SyncEngine: CKSyncEngineDelegate {
           .joined(separator: ", ")
         logger.debug(
           """
-          [\(syncEngine.database.databaseScope.label)] nextRecordZoneChangeBatch: \(context.reason)
+          [\(syncEngine.database.databaseScope.label)] nextRecordZoneChangeBatch: \(reason)
             \(state.missingTables.isEmpty ? "⚪️ No missing tables" : "⚠️ Missing tables: \(missingTables)")
             \(state.missingRecords.isEmpty ? "⚪️ No missing records" : "⚠️ Missing records: \(missingRecords)")
             \(state.sentRecords.isEmpty ? "⚪️ No sent records" : "✅ Sent records: \(sentRecords)")

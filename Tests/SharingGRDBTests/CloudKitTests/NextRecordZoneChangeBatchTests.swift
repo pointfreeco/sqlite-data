@@ -15,10 +15,8 @@ extension BaseCloudKitTests {
       )
 
       let batch = await syncEngine.nextRecordZoneChangeBatch(
-        SyncEngine.SendChangesContext(
-          options: CKSyncEngine.SendChangesOptions(
-            scope: .recordIDs([Reminder.recordID(for: UUID(1))])
-          )
+        options: CKSyncEngine.SendChangesOptions(
+          scope: .recordIDs([Reminder.recordID(for: UUID(1))])
         ),
         syncEngine: privateSyncEngine
       )
@@ -63,10 +61,8 @@ extension BaseCloudKitTests {
       }
 
       let batch = await syncEngine.nextRecordZoneChangeBatch(
-        SyncEngine.SendChangesContext(
-          options: CKSyncEngine.SendChangesOptions(
-            scope: .recordIDs([UnrecognizedTable.recordID(for: UUID(1))])
-          )
+        options: CKSyncEngine.SendChangesOptions(
+          scope: .recordIDs([UnrecognizedTable.recordID(for: UUID(1))])
         ),
         syncEngine: privateSyncEngine
       )
@@ -111,10 +107,8 @@ extension BaseCloudKitTests {
       }
 
       let batch = await syncEngine.nextRecordZoneChangeBatch(
-        SyncEngine.SendChangesContext(
-          options: CKSyncEngine.SendChangesOptions(
-            scope: .recordIDs([RemindersList.recordID(for: UUID(1))])
-          )
+        options: CKSyncEngine.SendChangesOptions(
+          scope: .recordIDs([RemindersList.recordID(for: UUID(1))])
         ),
         syncEngine: privateSyncEngine
       )
@@ -155,10 +149,8 @@ extension BaseCloudKitTests {
       }
 
       let batch = await syncEngine.nextRecordZoneChangeBatch(
-        SyncEngine.SendChangesContext(
-          options: CKSyncEngine.SendChangesOptions(
-            scope: .recordIDs([RemindersList.recordID(for: UUID(1))])
-          )
+        options: CKSyncEngine.SendChangesOptions(
+          scope: .recordIDs([RemindersList.recordID(for: UUID(1))])
         ),
         syncEngine: privateSyncEngine
       )
@@ -225,13 +217,11 @@ extension BaseCloudKitTests {
       }
 
       let batch = await syncEngine.nextRecordZoneChangeBatch(
-        SyncEngine.SendChangesContext(
-          options: CKSyncEngine.SendChangesOptions(
-            scope: .recordIDs([
-              RemindersList.recordID(for: UUID(1)),
-              Reminder.recordID(for: UUID(1)),
-            ])
-          )
+        options: CKSyncEngine.SendChangesOptions(
+          scope: .recordIDs([
+            RemindersList.recordID(for: UUID(1)),
+            Reminder.recordID(for: UUID(1)),
+          ])
         ),
         syncEngine: privateSyncEngine
       )
@@ -322,13 +312,11 @@ extension BaseCloudKitTests {
       }
 
       let batch = await syncEngine.nextRecordZoneChangeBatch(
-        SyncEngine.SendChangesContext(
-          options: CKSyncEngine.SendChangesOptions(
-            scope: .recordIDs([
-              RemindersList.recordID(for: UUID(1)),
-              Reminder.recordID(for: UUID(1)),
-            ])
-          )
+        options: CKSyncEngine.SendChangesOptions(
+          scope: .recordIDs([
+            RemindersList.recordID(for: UUID(1)),
+            Reminder.recordID(for: UUID(1)),
+          ])
         ),
         syncEngine: privateSyncEngine
       )
