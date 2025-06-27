@@ -82,42 +82,47 @@ extension Logger {
           \(deletions)
         """
       )
-    case .sentDatabaseChanges(let event):
-      let savedZoneNames = event.savedZones
+    case .sentDatabaseChanges(
+      let savedZones,
+      let failedZoneSaves,
+      let deletedZoneIDs,
+      let failedZoneDeletes
+    ):
+      let savedZoneNames = savedZones
         .map { $0.zoneID.zoneName + ":" + $0.zoneID.ownerName }
         .sorted()
         .joined(separator: ", ")
       let savedZones =
-        event.savedZones.isEmpty
-        ? "⚪️ No saved zones" : "✅ Saved zones (\(event.savedZones.count)): \(savedZoneNames)"
+        savedZones.isEmpty
+        ? "⚪️ No saved zones" : "✅ Saved zones (\(savedZones.count)): \(savedZoneNames)"
 
-      let deletedZoneNames = event.deletedZoneIDs
+      let deletedZoneNames = deletedZoneIDs
         .map { $0.zoneName }
         .sorted()
         .joined(separator: ", ")
       let deletedZones =
-        event.deletedZoneIDs.isEmpty
+        deletedZoneIDs.isEmpty
         ? "⚪️ No deleted zones"
-        : "✅ Deleted zones (\(event.deletedZoneIDs.count)): \(deletedZoneNames)"
+        : "✅ Deleted zones (\(deletedZoneIDs.count)): \(deletedZoneNames)"
 
-      let failedZoneSaveNames = event.failedZoneSaves
+      let failedZoneSaveNames = failedZoneSaves
         .map { $0.zone.zoneID.zoneName + ":" + $0.zone.zoneID.ownerName }
         .sorted()
         .joined(separator: ", ")
       let failedZoneSaves =
-        event.failedZoneSaves.isEmpty
+        failedZoneSaves.isEmpty
         ? "⚪️ No failed saved zones"
-        : "🛑 Failed zone saves (\(event.failedZoneSaves.count)): \(failedZoneSaveNames)"
+        : "🛑 Failed zone saves (\(failedZoneSaves.count)): \(failedZoneSaveNames)"
 
-      let failedZoneDeleteNames = event.failedZoneDeletes
+      let failedZoneDeleteNames = failedZoneDeletes
         .keys
         .map { $0.zoneName }
         .sorted()
         .joined(separator: ", ")
       let failedZoneDeletes =
-        event.failedZoneDeletes.isEmpty
+        failedZoneDeletes.isEmpty
         ? "⚪️ No failed deleted zones"
-        : "🛑 Failed zone delete (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
+        : "🛑 Failed zone delete (\(failedZoneDeletes.count)): \(failedZoneDeleteNames)"
 
       debug(
         """
@@ -128,9 +133,14 @@ extension Logger {
           \(failedZoneDeletes)
         """
       )
-    case .sentRecordZoneChanges(let event):
+    case .sentRecordZoneChanges(
+      let savedRecords,
+      let failedRecordSaves,
+      let deletedRecordIDs,
+      let failedRecordDeletes
+    ):
       let savedRecordsByRecordType = Dictionary(
-        grouping: event.savedRecords,
+        grouping: savedRecords,
         by: \.recordType
       )
       let savedRecords = savedRecordsByRecordType.keys
@@ -139,7 +149,7 @@ extension Logger {
         .joined(separator: ", ")
 
       let failedRecordSavesByZoneName = Dictionary(
-        grouping: event.failedRecordSaves,
+        grouping: failedRecordSaves,
         by: { $0.record.recordID.zoneID.zoneName + ":" + $0.record.recordID.zoneID.ownerName }
       )
       let failedRecordSaves = failedRecordSavesByZoneName.keys
@@ -151,17 +161,17 @@ extension Logger {
         """
         \(prefix) sentRecordZoneChanges
           \(savedRecordsByRecordType.isEmpty ? "⚪️ No records saved" : "✅ Saved records: \(savedRecords)")
-          \(event.deletedRecordIDs.isEmpty ? "⚪️ No records deleted" : "✅ Deleted records (\(event.deletedRecordIDs.count))")
+          \(deletedRecordIDs.isEmpty ? "⚪️ No records deleted" : "✅ Deleted records (\(deletedRecordIDs.count))")
           \(failedRecordSavesByZoneName.isEmpty ? "⚪️ No records failed save" : "🛑 Records failed save: \(failedRecordSaves)")
-          \(event.failedRecordDeletes.isEmpty ? "⚪️ No records failed delete" : "🛑 Records failed delete (\(event.failedRecordDeletes.count))")
+          \(failedRecordDeletes.isEmpty ? "⚪️ No records failed delete" : "🛑 Records failed delete (\(failedRecordDeletes.count))")
         """
       )
     case .willFetchChanges:
       debug("\(prefix) willFetchChanges")
     case .willFetchRecordZoneChanges(let zoneID):
       debug("\(prefix) willFetchRecordZoneChanges: \(zoneID.zoneName)")
-    case .didFetchRecordZoneChanges(let event):
-      let errorType = event.error.map {
+    case .didFetchRecordZoneChanges(let zoneID, let error):
+      let errorType = error.map {
         switch $0.code {
         case .internalError: "internalError"
         case .partialFailure: "partialFailure"
@@ -206,7 +216,7 @@ extension Logger {
       debug(
         """
         \(prefix) willFetchRecordZoneChanges
-          ✅ Zone: \(event.zoneID.zoneName):\(event.zoneID.ownerName)\(error)
+          ✅ Zone: \(zoneID.zoneName):\(zoneID.ownerName)\(error)
         """
       )
     case .didFetchChanges:
