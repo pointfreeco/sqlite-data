@@ -34,12 +34,12 @@
     ) throws {
       try self.init(
         container: container,
-        defaultSyncEngines: { database, syncEngine in
+        defaultSyncEngines: { metadatabase, syncEngine in
           (
             private: CKSyncEngine(
               CKSyncEngine.Configuration(
                 database: container.privateCloudDatabase,
-                stateSerialization: try? database.read { db in  // TODO: write test for this
+                stateSerialization: try? metadatabase.read { db in
                   try StateSerialization.find(CKDatabase.Scope.private).select(\.data).fetchOne(db)
                 },
                 delegate: syncEngine
@@ -48,7 +48,7 @@
             shared: CKSyncEngine(
               CKSyncEngine.Configuration(
                 database: container.sharedCloudDatabase,
-                stateSerialization: try? database.read { db in  // TODO: write test for this
+                stateSerialization: try? metadatabase.read { db in
                   try StateSerialization.find(CKDatabase.Scope.shared).select(\.data).fetchOne(db)
                 },
                 delegate: syncEngine
@@ -143,8 +143,8 @@
         let hasAttachedMetadatabase: Bool =
           try SQLQueryExpression(
             """
-            SELECT count(*) 
-            FROM pragma_database_list 
+            SELECT count(*)
+            FROM pragma_database_list
             WHERE "name" = \(bind: String.sqliteDataCloudKitSchemaName)
             """,
             as: Int.self
@@ -189,8 +189,8 @@
       let currentRecordTypes = try database.read { db in
         try SQLQueryExpression(
           """
-          SELECT "name", "sql" 
-          FROM "sqlite_master" 
+          SELECT "name", "sql"
+          FROM "sqlite_master"
           WHERE "type" = 'table'
           AND "name" IN (\(tablesByName.keys.map(\.queryFragment).joined(separator: ", ")))
           """,
@@ -246,19 +246,19 @@
       // TODO: Should we do this in batches now that we save the full 'lastKnowServerRecord'?
       // TODO: Or should we denormalize zoneID into the metadata table for easy access?
       let lastKnownServerRecords = try await metadatabase.read { db in
-          try SyncMetadata
-            .where {
-              $0.recordType.in(recordTypesChanged.map(\.tableName))
-                && $0.lastKnownServerRecord.isNot(nil)
-            }
-            .select {
-              SQLQueryExpression(
-                "\($0.lastKnownServerRecord)",
-                as: CKRecord.DataRepresentation.self
-              )
-            }
-            .fetchAll(db)
-        }
+        try SyncMetadata
+          .where {
+            $0.recordType.in(recordTypesChanged.map(\.tableName))
+              && $0.lastKnownServerRecord.isNot(nil)
+          }
+          .select {
+            SQLQueryExpression(
+              "\($0.lastKnownServerRecord)",
+              as: CKRecord.DataRepresentation.self
+            )
+          }
+          .fetchAll(db)
+      }
       let recordIDs = lastKnownServerRecords.map(\.recordID)
       let recordIDsByDatabase = Dictionary(grouping: recordIDs) {
         AnyCloudDatabase(container.database(for: $0))
@@ -403,24 +403,44 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine: CKSyncEngineDelegate {
     public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
+      guard let event = Event(event)
+      else {
+        reportIssue("Unrecognized event received: \(event)")
+        return
+      }
+      await handleEvent(event, syncEngine: syncEngine)
+    }
+
+    package func handleEvent(_ event: Event, syncEngine: any SyncEngineProtocol) async {
       logger.log(event, syncEngine: syncEngine)
 
       switch event {
-      case .accountChange(let event):
-        await handleAccountChange(event)
-      case .stateUpdate(let event):
-        handleStateUpdate(event, syncEngine: syncEngine)
-      case .fetchedDatabaseChanges(let event):
-        handleFetchedDatabaseChanges(event)
+      case .accountChange(let changeType):
+        await handleAccountChange(changeType: changeType)
+      case .stateUpdate(let stateSerialization):
+        handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
+      case .fetchedDatabaseChanges(let modifications, let deletions):
+        handleFetchedDatabaseChanges(modifications: modifications, deletions: deletions)
       case .sentDatabaseChanges:
         break
-      case .fetchedRecordZoneChanges(let event):
+      case .fetchedRecordZoneChanges(let modifications, let deletions):
         await handleFetchedRecordZoneChanges(
-          modifications: event.modifications.map(\.record),
-          deletions: event.deletions.map { ($0.recordID, $0.recordType) }
+          modifications: modifications,
+          deletions: deletions
         )
-      case .sentRecordZoneChanges(let event):
-        handleSentRecordZoneChanges(event, syncEngine: syncEngine)
+      case .sentRecordZoneChanges(
+        let savedRecords,
+        let failedRecordSaves,
+        let deletedRecordIDs,
+        let failedRecordDeletes
+      ):
+        handleSentRecordZoneChanges(
+          savedRecords: savedRecords,
+          failedRecordSaves: failedRecordSaves,
+          deletedRecordIDs: deletedRecordIDs,
+          failedRecordDeletes: failedRecordDeletes,
+          syncEngine: syncEngine
+        )
       case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
         .didFetchChanges, .willSendChanges, .didSendChanges:
         break
@@ -433,19 +453,19 @@
       _ context: CKSyncEngine.SendChangesContext,
       syncEngine: CKSyncEngine
     ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-      await _nextRecordZoneChangeBatch(
-        SendChangesContext(context: context),
+      await nextRecordZoneChangeBatch(
+        reason: context.reason,
+        options: context.options,
         syncEngine: syncEngine
       )
     }
 
-    package func _nextRecordZoneChangeBatch(
-      _ context: SendChangesContext,
+    package func nextRecordZoneChangeBatch(
+      reason: CKSyncEngine.SyncReason = .scheduled,
+      options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(scope: .all),
       syncEngine: any SyncEngineProtocol
     ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-      let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(
-        context.options.scope.contains
-      )
+      let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(options.scope.contains)
       guard !allChanges.isEmpty
       else { return nil }
 
@@ -491,7 +511,7 @@
             .joined(separator: ", ")
           logger.debug(
             """
-            [\(syncEngine.database.databaseScope.label)] nextRecordZoneChangeBatch: \(context.reason)
+            [\(syncEngine.database.databaseScope.label)] nextRecordZoneChangeBatch: \(reason)
               \(state.missingTables.isEmpty ? "⚪️ No missing tables" : "⚠️ Missing tables: \(missingTables)")
               \(state.missingRecords.isEmpty ? "⚪️ No missing records" : "⚠️ Missing records: \(missingRecords)")
               \(state.sentRecords.isEmpty ? "⚪️ No sent records" : "✅ Sent records: \(sentRecords)")
@@ -572,8 +592,9 @@
       return batch
     }
 
-    private func handleAccountChange(_ event: CKSyncEngine.Event.AccountChange) async {
-      switch event.changeType {
+    package func handleAccountChange(changeType: CKSyncEngine.Event.AccountChange.ChangeType) async
+    {
+      switch changeType {
       case .signIn:
         syncEngines.withValue {
           $0.private?.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
@@ -612,16 +633,16 @@
       }
     }
 
-    private func handleStateUpdate(
-      _ event: CKSyncEngine.Event.StateUpdate,
-      syncEngine: CKSyncEngine
+    package func handleStateUpdate(
+      stateSerialization: CKSyncEngine.State.Serialization,
+      syncEngine: any SyncEngineProtocol
     ) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
         try database.write { db in
           try StateSerialization.upsert {
             StateSerialization.Draft(
               scope: syncEngine.database.databaseScope,
-              data: event.stateSerialization
+              data: stateSerialization
             )
           }
           .execute(db)
@@ -629,12 +650,15 @@
       }
     }
 
-    private func handleFetchedDatabaseChanges(_ event: CKSyncEngine.Event.FetchedDatabaseChanges) {
+    package func handleFetchedDatabaseChanges(
+      modifications: [CKRecordZone.ID],
+      deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)]
+    ) {
       // TODO: How to handle this?
       Self.$isUpdatingWithServerRecord.withValue(true) {
         withErrorReporting(.sqliteDataCloudKitFailure) {
           try database.write { db in
-            for deletion in event.deletions {
+            for deletion in deletions {
               // if let table = tablesByName[deletion.zoneID.zoneName] {
               //   func open<T: PrimaryKeyedTable>(_: T.Type) {
               //     withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -646,14 +670,14 @@
           }
 
           // TODO: Deal with modifications?
-          _ = event.modifications
+          _ = modifications
         }
       }
     }
 
     package func handleFetchedRecordZoneChanges(
-      modifications: [CKRecord],
-      deletions: [(CKRecord.ID, CKRecord.RecordType)]
+      modifications: [CKRecord] = [],
+      deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = []
     ) async {
       await Self.$isUpdatingWithServerRecord.withValue(true) {
         for record in modifications {
@@ -666,6 +690,7 @@
             refreshLastKnownServerRecord(record)
           }
           if let shareReference = record.share,
+            // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
             let shareRecord = try? await container.database(for: shareReference.recordID)
               .record(for: shareReference.recordID),
             let share = shareRecord as? CKShare
@@ -684,7 +709,7 @@
                 """
                 Received 'recordName' in invalid format: \(recordID.recordName)
 
-                'recordName' should be formatted as "uuid:tableName". 
+                'recordName' should be formatted as "uuid:tableName".
                 """
               )
               continue
@@ -717,11 +742,14 @@
       }
     }
 
-    private func handleSentRecordZoneChanges(
-      _ event: CKSyncEngine.Event.SentRecordZoneChanges,
-      syncEngine: CKSyncEngine
+    package func handleSentRecordZoneChanges(
+      savedRecords: [CKRecord] = [],
+      failedRecordSaves: [(record: CKRecord, error: CKError)] = [],
+      deletedRecordIDs: [CKRecord.ID] = [],
+      failedRecordDeletes: [CKRecord.ID: CKError] = [:],
+      syncEngine: any SyncEngineProtocol
     ) {
-      for savedRecord in event.savedRecords {
+      for savedRecord in savedRecords {
         refreshLastKnownServerRecord(savedRecord)
       }
 
@@ -731,7 +759,7 @@
         syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
-      for failedRecordSave in event.failedRecordSaves {
+      for failedRecordSave in failedRecordSaves {
         let failedRecord = failedRecordSave.record
         guard let recordName = SyncMetadata.RecordName(rawValue: failedRecord.recordID.recordName)
         else {
@@ -816,12 +844,12 @@
         return
       }
 
-        try await database.asyncWrite { db in
-          try SyncMetadata
-            .find(recordName)
-            .update { $0.share = share }
-            .execute(db)
-        }
+      try await database.asyncWrite { db in
+        try SyncMetadata
+          .find(recordName)
+          .update { $0.share = share }
+          .execute(db)
+      }
     }
 
     private func deleteShare(recordID: CKRecord.ID, recordType: String) throws {
@@ -1216,4 +1244,5 @@
       lhs.type == rhs.type
     }
   }
+
 #endif

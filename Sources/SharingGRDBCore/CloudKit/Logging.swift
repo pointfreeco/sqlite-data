@@ -4,13 +4,13 @@ import os
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Logger {
-  func log(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) {
+  func log(_ event: SyncEngine.Event, syncEngine: any SyncEngineProtocol) {
     let prefix = "[\(syncEngine.database.databaseScope.label)] handleEvent:"
     switch event {
     case .stateUpdate:
       debug("\(prefix) stateUpdate")
-    case .accountChange(let event):
-      switch event.changeType {
+    case .accountChange(let changeType):
+      switch changeType {
       case .signIn(let currentUser):
         debug(
           """
@@ -36,12 +36,12 @@ extension Logger {
       @unknown default:
         debug("unknown")
       }
-    case .fetchedDatabaseChanges(let event):
+    case .fetchedDatabaseChanges(_, let deletions):
       let deletions =
-        event.deletions.isEmpty
+        deletions.isEmpty
         ? "⚪️ No deletions"
-        : "✅ Zones deleted (\(event.deletions.count)): "
-          + event.deletions
+        : "✅ Zones deleted (\(deletions.count)): "
+          + deletions
           .map { $0.zoneID.zoneName + ":" + $0.zoneID.ownerName }
           .sorted()
           .joined(separator: ", ")
@@ -51,29 +51,29 @@ extension Logger {
           \(deletions)
         """
       )
-    case .fetchedRecordZoneChanges(let event):
+    case .fetchedRecordZoneChanges(let modifications, let deletions):
       let deletionsByRecordType = Dictionary(
-        grouping: event.deletions,
+        grouping: deletions,
         by: \.recordType
       )
       let recordTypeDeletions = deletionsByRecordType.keys.sorted()
         .map { recordType in "\(recordType) (\(deletionsByRecordType[recordType]!.count))" }
         .joined(separator: ", ")
       let deletions =
-        event.deletions.isEmpty
-        ? "⚪️ No deletions" : "✅ Records deleted (\(event.deletions.count)): \(recordTypeDeletions)"
+        deletions.isEmpty
+        ? "⚪️ No deletions" : "✅ Records deleted (\(deletions.count)): \(recordTypeDeletions)"
 
       let modificationsByRecordType = Dictionary(
-        grouping: event.modifications,
-        by: \.record.recordType
+        grouping: modifications,
+        by: \.recordType
       )
       let recordTypeModifications = modificationsByRecordType.keys.sorted()
         .map { recordType in "\(recordType) (\(modificationsByRecordType[recordType]!.count))" }
         .joined(separator: ", ")
       let modifications =
-        event.modifications.isEmpty
+        modifications.isEmpty
         ? "⚪️ No modifications"
-        : "✅ Records modified (\(event.modifications.count)): \(recordTypeModifications)"
+        : "✅ Records modified (\(modifications.count)): \(recordTypeModifications)"
 
       debug(
         """
@@ -82,42 +82,47 @@ extension Logger {
           \(deletions)
         """
       )
-    case .sentDatabaseChanges(let event):
-      let savedZoneNames = event.savedZones
+    case .sentDatabaseChanges(
+      let savedZones,
+      let failedZoneSaves,
+      let deletedZoneIDs,
+      let failedZoneDeletes
+    ):
+      let savedZoneNames = savedZones
         .map { $0.zoneID.zoneName + ":" + $0.zoneID.ownerName }
         .sorted()
         .joined(separator: ", ")
       let savedZones =
-        event.savedZones.isEmpty
-        ? "⚪️ No saved zones" : "✅ Saved zones (\(event.savedZones.count)): \(savedZoneNames)"
+        savedZones.isEmpty
+        ? "⚪️ No saved zones" : "✅ Saved zones (\(savedZones.count)): \(savedZoneNames)"
 
-      let deletedZoneNames = event.deletedZoneIDs
+      let deletedZoneNames = deletedZoneIDs
         .map { $0.zoneName }
         .sorted()
         .joined(separator: ", ")
       let deletedZones =
-        event.deletedZoneIDs.isEmpty
+        deletedZoneIDs.isEmpty
         ? "⚪️ No deleted zones"
-        : "✅ Deleted zones (\(event.deletedZoneIDs.count)): \(deletedZoneNames)"
+        : "✅ Deleted zones (\(deletedZoneIDs.count)): \(deletedZoneNames)"
 
-      let failedZoneSaveNames = event.failedZoneSaves
+      let failedZoneSaveNames = failedZoneSaves
         .map { $0.zone.zoneID.zoneName + ":" + $0.zone.zoneID.ownerName }
         .sorted()
         .joined(separator: ", ")
       let failedZoneSaves =
-        event.failedZoneSaves.isEmpty
+        failedZoneSaves.isEmpty
         ? "⚪️ No failed saved zones"
-        : "🛑 Failed zone saves (\(event.failedZoneSaves.count)): \(failedZoneSaveNames)"
+        : "🛑 Failed zone saves (\(failedZoneSaves.count)): \(failedZoneSaveNames)"
 
-      let failedZoneDeleteNames = event.failedZoneDeletes
+      let failedZoneDeleteNames = failedZoneDeletes
         .keys
         .map { $0.zoneName }
         .sorted()
         .joined(separator: ", ")
       let failedZoneDeletes =
-        event.failedZoneDeletes.isEmpty
+        failedZoneDeletes.isEmpty
         ? "⚪️ No failed deleted zones"
-        : "🛑 Failed zone delete (\(event.failedZoneDeletes.count)): \(failedZoneDeleteNames)"
+        : "🛑 Failed zone delete (\(failedZoneDeletes.count)): \(failedZoneDeleteNames)"
 
       debug(
         """
@@ -128,9 +133,14 @@ extension Logger {
           \(failedZoneDeletes)
         """
       )
-    case .sentRecordZoneChanges(let event):
+    case .sentRecordZoneChanges(
+      let savedRecords,
+      let failedRecordSaves,
+      let deletedRecordIDs,
+      let failedRecordDeletes
+    ):
       let savedRecordsByRecordType = Dictionary(
-        grouping: event.savedRecords,
+        grouping: savedRecords,
         by: \.recordType
       )
       let savedRecords = savedRecordsByRecordType.keys
@@ -139,7 +149,7 @@ extension Logger {
         .joined(separator: ", ")
 
       let failedRecordSavesByZoneName = Dictionary(
-        grouping: event.failedRecordSaves,
+        grouping: failedRecordSaves,
         by: { $0.record.recordID.zoneID.zoneName + ":" + $0.record.recordID.zoneID.ownerName }
       )
       let failedRecordSaves = failedRecordSavesByZoneName.keys
@@ -151,21 +161,17 @@ extension Logger {
         """
         \(prefix) sentRecordZoneChanges
           \(savedRecordsByRecordType.isEmpty ? "⚪️ No records saved" : "✅ Saved records: \(savedRecords)")
-          \(event.deletedRecordIDs.isEmpty ? "⚪️ No records deleted" : "✅ Deleted records (\(event.deletedRecordIDs.count))")
+          \(deletedRecordIDs.isEmpty ? "⚪️ No records deleted" : "✅ Deleted records (\(deletedRecordIDs.count))")
           \(failedRecordSavesByZoneName.isEmpty ? "⚪️ No records failed save" : "🛑 Records failed save: \(failedRecordSaves)")
-          \(event.failedRecordDeletes.isEmpty ? "⚪️ No records failed delete" : "🛑 Records failed delete (\(event.failedRecordDeletes.count))")
+          \(failedRecordDeletes.isEmpty ? "⚪️ No records failed delete" : "🛑 Records failed delete (\(failedRecordDeletes.count))")
         """
       )
-    case .willFetchChanges(let event):
-      if #available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *) {
-        debug("\(prefix) willFetchChanges: \(event.context.reason.description)")
-      } else {
-        debug("\(prefix) willFetchChanges")
-      }
-    case .willFetchRecordZoneChanges(let event):
-      debug("\(prefix) willFetchRecordZoneChanges: \(event.zoneID.zoneName)")
-    case .didFetchRecordZoneChanges(let event):
-      let errorType = event.error.map {
+    case .willFetchChanges:
+      debug("\(prefix) willFetchChanges")
+    case .willFetchRecordZoneChanges(let zoneID):
+      debug("\(prefix) willFetchRecordZoneChanges: \(zoneID.zoneName)")
+    case .didFetchRecordZoneChanges(let zoneID, let error):
+      let errorType = error.map {
         switch $0.code {
         case .internalError: "internalError"
         case .partialFailure: "partialFailure"
@@ -210,19 +216,15 @@ extension Logger {
       debug(
         """
         \(prefix) willFetchRecordZoneChanges
-          ✅ Zone: \(event.zoneID.zoneName):\(event.zoneID.ownerName)\(error)
+          ✅ Zone: \(zoneID.zoneName):\(zoneID.ownerName)\(error)
         """
       )
-    case .didFetchChanges(let event):
-      if #available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *) {
-        debug("\(prefix) didFetchChanges: \(event.context.reason.description)")
-      } else {
-        debug("\(prefix) didFetchChanges")
-      }
-    case .willSendChanges(let event):
-      debug("\(prefix) willSendChanges: \(event.context.reason.description)")
-    case .didSendChanges(let event):
-      debug("\(prefix) didSendChanges: \(event.context.reason.description)")
+    case .didFetchChanges:
+      debug("\(prefix) didFetchChanges")
+    case .willSendChanges(let context):
+      debug("\(prefix) willSendChanges: \(context.reason.description)")
+    case .didSendChanges(let context):
+      debug("\(prefix) didSendChanges: \(context.reason.description)")
     @unknown default:
       warning("\(prefix) ⚠️ unknown event: \(event.description)")
     }
