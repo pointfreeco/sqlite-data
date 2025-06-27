@@ -28,10 +28,10 @@
       )
       case willFetchChanges
       case willFetchRecordZoneChanges(zoneID: CKRecordZone.ID)
-      case didFetchRecordZoneChanges(zoneID: CKRecordZone.ID, error: CKError?)
       case didFetchChanges
-      case willSendChanges(WillSendChanges)
-      case didSendChanges(DidSendChanges)
+      case didFetchRecordZoneChanges(zoneID: CKRecordZone.ID, error: CKError?)
+      case willSendChanges(context: CKSyncEngine.SendChangesContext)
+      case didSendChanges(context: CKSyncEngine.SendChangesContext)
 
       init?(_ event: CKSyncEngine.Event) {
         switch event {
@@ -69,14 +69,14 @@
           self = .willFetchChanges
         case .willFetchRecordZoneChanges(let event):
           self = .willFetchRecordZoneChanges(zoneID: event.zoneID)
-        case .didFetchRecordZoneChanges(let event):
-          self = .didFetchRecordZoneChanges(zoneID: event.zoneID, error: event.error)
         case .didFetchChanges:
           self = .didFetchChanges
+        case .didFetchRecordZoneChanges(let event):
+          self = .didFetchRecordZoneChanges(zoneID: event.zoneID, error: event.error)
         case .willSendChanges(let event):
-          self = .willSendChanges(WillSendChanges(context: event.context))
+          self = .willSendChanges(context: event.context)
         case .didSendChanges(let event):
-          self = .didSendChanges(DidSendChanges(context: event.context))
+          self = .didSendChanges(context: event.context)
         @unknown default:
           return nil
         }
@@ -109,13 +109,6 @@
         case .didSendChanges:
           return "didSendChanges"
         }
-      }
-
-      package struct WillSendChanges: Sendable {
-        package let context: CKSyncEngine.SendChangesContext
-      }
-      package struct DidSendChanges: Sendable {
-        package let context: CKSyncEngine.SendChangesContext
       }
     }
   }

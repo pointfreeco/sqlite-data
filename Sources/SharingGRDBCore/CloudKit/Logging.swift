@@ -211,10 +211,10 @@ extension Logger {
       )
     case .didFetchChanges:
       debug("\(prefix) didFetchChanges")
-    case .willSendChanges(let event):
-      debug("\(prefix) willSendChanges: \(event.context.reason.description)")
-    case .didSendChanges(let event):
-      debug("\(prefix) didSendChanges: \(event.context.reason.description)")
+    case .willSendChanges(let context):
+      debug("\(prefix) willSendChanges: \(context.reason.description)")
+    case .didSendChanges(let context):
+      debug("\(prefix) didSendChanges: \(context.reason.description)")
     @unknown default:
       warning("\(prefix) ⚠️ unknown event: \(event.description)")
     }
