@@ -118,9 +118,6 @@
         }
       }
 
-      package struct StateUpdate: Sendable {
-        package let stateSerialization: CKSyncEngine.State.Serialization
-      }
       package struct AccountChange: Sendable {
         package let changeType: CKSyncEngine.Event.AccountChange.ChangeType
       }
@@ -135,28 +132,6 @@
           package var reason: CKDatabase.DatabaseChange.Deletion.Reason
         }
       }
-//      package struct FetchedRecordZoneChanges: Sendable {
-//        package let modifications: [Modification]
-//        package let deletions: [Deletion]
-//        package struct Modification: Sendable {
-//          package var record: CKRecord
-//          package init(record: CKRecord) {
-//            self.record = record
-//          }
-//        }
-//        package struct Deletion: Sendable {
-//          package var recordID: CKRecord.ID
-//          package var recordType: CKRecord.RecordType
-//          package init(recordID: CKRecord.ID, recordType: CKRecord.RecordType) {
-//            self.recordID = recordID
-//            self.recordType = recordType
-//          }
-//        }
-//        package init(modifications: [Modification] = [], deletions: [Deletion] = []) {
-//          self.modifications = modifications
-//          self.deletions = deletions
-//        }
-//      }
       package struct SentDatabaseChanges: Sendable {
         package let savedZones: [CKRecordZone]
         package let failedZoneSaves: [FailedZoneSave]
