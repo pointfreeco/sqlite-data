@@ -9,8 +9,8 @@ extension Logger {
     switch event {
     case .stateUpdate:
       debug("\(prefix) stateUpdate")
-    case .accountChange(let event):
-      switch event.changeType {
+    case .accountChange(let changeType):
+      switch changeType {
       case .signIn(let currentUser):
         debug(
           """

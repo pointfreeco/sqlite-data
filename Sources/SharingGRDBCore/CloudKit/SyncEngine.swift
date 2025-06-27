@@ -413,8 +413,8 @@ extension SyncEngine: CKSyncEngineDelegate {
     logger.log(event, syncEngine: syncEngine)
 
     switch event {
-    case .accountChange(let event):
-      await handleAccountChange(event)
+    case .accountChange(let changeType):
+      await handleAccountChange(changeType: changeType)
     case .stateUpdate(let stateSerialization):
       handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
     case .fetchedDatabaseChanges(let event):
@@ -579,8 +579,8 @@ extension SyncEngine: CKSyncEngineDelegate {
     return batch
   }
 
-  package func handleAccountChange(_ event: Event.AccountChange) async {
-    switch event.changeType {
+  package func handleAccountChange(changeType: CKSyncEngine.Event.AccountChange.ChangeType) async {
+    switch changeType {
     case .signIn:
       syncEngines.withValue {
         $0.private?.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])

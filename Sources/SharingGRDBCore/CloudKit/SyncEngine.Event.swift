@@ -5,7 +5,7 @@
   extension SyncEngine {
     package enum Event: CustomStringConvertible, Sendable {
       case stateUpdate(stateSerialization: CKSyncEngine.State.Serialization)
-      case accountChange(AccountChange)
+      case accountChange(changeType: CKSyncEngine.Event.AccountChange.ChangeType)
       case fetchedDatabaseChanges(FetchedDatabaseChanges)
       case fetchedRecordZoneChanges(
         modifications: [CKRecord],
@@ -25,7 +25,7 @@
         case .stateUpdate(let event):
           self = .stateUpdate(stateSerialization: event.stateSerialization)
         case .accountChange(let event):
-          self = .accountChange(AccountChange(changeType: event.changeType))
+          self = .accountChange(changeType: event.changeType)
         case .fetchedDatabaseChanges(let event):
           self = .fetchedDatabaseChanges(
             FetchedDatabaseChanges(
@@ -118,9 +118,6 @@
         }
       }
 
-      package struct AccountChange: Sendable {
-        package let changeType: CKSyncEngine.Event.AccountChange.ChangeType
-      }
       package struct FetchedDatabaseChanges: Sendable {
         package let modifications: [Modification]
         package let deletions: [Deletion]
