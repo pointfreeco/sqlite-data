@@ -7,7 +7,10 @@
       case stateUpdate(StateUpdate)
       case accountChange(AccountChange)
       case fetchedDatabaseChanges(FetchedDatabaseChanges)
-      case fetchedRecordZoneChanges(FetchedRecordZoneChanges)
+      case fetchedRecordZoneChanges(
+        modifications: [CKRecord],
+        deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)]
+      )
       case sentDatabaseChanges(SentDatabaseChanges)
       case sentRecordZoneChanges(SentRecordZoneChanges)
       case willFetchChanges(WillFetchChanges)
@@ -32,12 +35,10 @@
           )
         case .fetchedRecordZoneChanges(let event):
           self = .fetchedRecordZoneChanges(
-            FetchedRecordZoneChanges.init(
-              modifications: event.modifications.map { .init(record: $0.record) },
-              deletions: event.deletions.map {
-                .init(recordID: $0.recordID, recordType: $0.recordType)
-              }
-            )
+            modifications: event.modifications.map(\.record),
+            deletions: event.deletions.map {
+              (recordID: $0.recordID, recordType: $0.recordType)
+            }
           )
         case .sentDatabaseChanges(let event):
           self = .sentDatabaseChanges(
@@ -134,28 +135,28 @@
           package var reason: CKDatabase.DatabaseChange.Deletion.Reason
         }
       }
-      package struct FetchedRecordZoneChanges: Sendable {
-        package let modifications: [Modification]
-        package let deletions: [Deletion]
-        package struct Modification: Sendable {
-          package var record: CKRecord
-          package init(record: CKRecord) {
-            self.record = record
-          }
-        }
-        package struct Deletion: Sendable {
-          package var recordID: CKRecord.ID
-          package var recordType: CKRecord.RecordType
-          package init(recordID: CKRecord.ID, recordType: CKRecord.RecordType) {
-            self.recordID = recordID
-            self.recordType = recordType
-          }
-        }
-        package init(modifications: [Modification] = [], deletions: [Deletion] = []) {
-          self.modifications = modifications
-          self.deletions = deletions
-        }
-      }
+//      package struct FetchedRecordZoneChanges: Sendable {
+//        package let modifications: [Modification]
+//        package let deletions: [Deletion]
+//        package struct Modification: Sendable {
+//          package var record: CKRecord
+//          package init(record: CKRecord) {
+//            self.record = record
+//          }
+//        }
+//        package struct Deletion: Sendable {
+//          package var recordID: CKRecord.ID
+//          package var recordType: CKRecord.RecordType
+//          package init(recordID: CKRecord.ID, recordType: CKRecord.RecordType) {
+//            self.recordID = recordID
+//            self.recordType = recordType
+//          }
+//        }
+//        package init(modifications: [Modification] = [], deletions: [Deletion] = []) {
+//          self.modifications = modifications
+//          self.deletions = deletions
+//        }
+//      }
       package struct SentDatabaseChanges: Sendable {
         package let savedZones: [CKRecordZone]
         package let failedZoneSaves: [FailedZoneSave]

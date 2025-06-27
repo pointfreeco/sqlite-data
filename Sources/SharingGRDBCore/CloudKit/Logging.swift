@@ -51,29 +51,29 @@ extension Logger {
           \(deletions)
         """
       )
-    case .fetchedRecordZoneChanges(let event):
+    case .fetchedRecordZoneChanges(let modifications, let deletions):
       let deletionsByRecordType = Dictionary(
-        grouping: event.deletions,
+        grouping: deletions,
         by: \.recordType
       )
       let recordTypeDeletions = deletionsByRecordType.keys.sorted()
         .map { recordType in "\(recordType) (\(deletionsByRecordType[recordType]!.count))" }
         .joined(separator: ", ")
       let deletions =
-        event.deletions.isEmpty
-        ? "⚪️ No deletions" : "✅ Records deleted (\(event.deletions.count)): \(recordTypeDeletions)"
+        deletions.isEmpty
+        ? "⚪️ No deletions" : "✅ Records deleted (\(deletions.count)): \(recordTypeDeletions)"
 
       let modificationsByRecordType = Dictionary(
-        grouping: event.modifications,
-        by: \.record.recordType
+        grouping: modifications,
+        by: \.recordType
       )
       let recordTypeModifications = modificationsByRecordType.keys.sorted()
         .map { recordType in "\(recordType) (\(modificationsByRecordType[recordType]!.count))" }
         .joined(separator: ", ")
       let modifications =
-        event.modifications.isEmpty
+        modifications.isEmpty
         ? "⚪️ No modifications"
-        : "✅ Records modified (\(event.modifications.count)): \(recordTypeModifications)"
+        : "✅ Records modified (\(modifications.count)): \(recordTypeModifications)"
 
       debug(
         """

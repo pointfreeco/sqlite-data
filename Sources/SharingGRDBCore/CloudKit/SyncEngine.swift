@@ -420,8 +420,11 @@ extension SyncEngine: CKSyncEngineDelegate {
       handleFetchedDatabaseChanges(event)
     case .sentDatabaseChanges:
       break
-    case .fetchedRecordZoneChanges(let event):
-      await handleFetchedRecordZoneChanges(event)
+    case .fetchedRecordZoneChanges(let modifications, let deletions):
+      await handleFetchedRecordZoneChanges(
+        modifications: modifications,
+        deletions: deletions
+      )
     case .sentRecordZoneChanges(let event):
       handleSentRecordZoneChanges(event, syncEngine: syncEngine)
     case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
@@ -436,13 +439,13 @@ extension SyncEngine: CKSyncEngineDelegate {
     _ context: CKSyncEngine.SendChangesContext,
     syncEngine: CKSyncEngine
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-    await _nextRecordZoneChangeBatch(
+    await nextRecordZoneChangeBatch(
       SendChangesContext(context: context),
       syncEngine: syncEngine
     )
   }
 
-  package func _nextRecordZoneChangeBatch(
+  package func nextRecordZoneChangeBatch(
     _ context: SendChangesContext,
     syncEngine: any SyncEngineProtocol
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
@@ -654,18 +657,21 @@ extension SyncEngine: CKSyncEngineDelegate {
     }
   }
 
-  package func handleFetchedRecordZoneChanges(_ event: Event.FetchedRecordZoneChanges) async {
+  package func handleFetchedRecordZoneChanges(
+    modifications: [CKRecord] = [],
+    deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = []
+  ) async {
     await $isUpdatingWithServerRecord.withValue(true) {
-      for modification in event.modifications {
-        if let share = modification.record as? CKShare {
+      for record in modifications {
+        if let share = record as? CKShare {
           await withErrorReporting {
             try await cacheShare(share)
           }
         } else {
-          upsertFromServerRecord(modification.record)
-          refreshLastKnownServerRecord(modification.record)
+          upsertFromServerRecord(record)
+          refreshLastKnownServerRecord(record)
         }
-        if let shareReference = modification.record.share,
+        if let shareReference = record.share,
            // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
           let shareRecord = try? await container.database(for: shareReference.recordID)
             .record(for: shareReference.recordID),
@@ -677,8 +683,7 @@ extension SyncEngine: CKSyncEngineDelegate {
         }
       }
 
-      for deletion in event.deletions {
-        let (recordID, recordType) = (deletion.recordID, deletion.recordType)
+      for (recordID, recordType) in deletions {
         if let table = tablesByName[recordType] {
           guard let recordName = SyncMetadata.RecordName(recordID: recordID)
           else {
