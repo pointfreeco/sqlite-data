@@ -209,12 +209,8 @@ extension Logger {
           ✅ Zone: \(event.zoneID.zoneName):\(event.zoneID.ownerName)\(error)
         """
       )
-    case .didFetchChanges(let event):
-      if #available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *) {
-        debug("\(prefix) didFetchChanges: \(event.context.reason.description)")
-      } else {
-        debug("\(prefix) didFetchChanges")
-      }
+    case .didFetchChanges:
+      debug("\(prefix) didFetchChanges")
     case .willSendChanges(let event):
       debug("\(prefix) willSendChanges: \(event.context.reason.description)")
     case .didSendChanges(let event):

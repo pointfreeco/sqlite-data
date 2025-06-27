@@ -28,8 +28,8 @@
       )
       case willFetchChanges
       case willFetchRecordZoneChanges(zoneID: CKRecordZone.ID)
-      case didFetchRecordZoneChanges(DidFetchRecordZoneChanges)
-      case didFetchChanges(DidFetchChanges)
+      case didFetchRecordZoneChanges(zoneID: CKRecordZone.ID, error: CKError?)
+      case didFetchChanges
       case willSendChanges(WillSendChanges)
       case didSendChanges(DidSendChanges)
 
@@ -70,18 +70,9 @@
         case .willFetchRecordZoneChanges(let event):
           self = .willFetchRecordZoneChanges(zoneID: event.zoneID)
         case .didFetchRecordZoneChanges(let event):
-          self = .didFetchRecordZoneChanges(
-            DidFetchRecordZoneChanges(
-              zoneID: event.zoneID,
-              error: event.error
-            )
-          )
-        case .didFetchChanges(let event):
-          if #available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *) {
-            self = .didFetchChanges(DidFetchChanges(context: event.context))
-          } else {
-            self = .didFetchChanges(DidFetchChanges())
-          }
+          self = .didFetchRecordZoneChanges(zoneID: event.zoneID, error: event.error)
+        case .didFetchChanges:
+          self = .didFetchChanges
         case .willSendChanges(let event):
           self = .willSendChanges(WillSendChanges(context: event.context))
         case .didSendChanges(let event):
@@ -120,24 +111,6 @@
         }
       }
 
-      package struct DidFetchRecordZoneChanges: Sendable {
-        package let zoneID: CKRecordZone.ID
-        package let error: CKError?
-      }
-      package struct DidFetchChanges: Sendable {
-        private var _context: (any Sendable)?
-        @available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *)
-        package var context: CKSyncEngine.FetchChangesContext {
-          _context as! CKSyncEngine.FetchChangesContext
-        }
-        @available(macOS 14.2, iOS 17.2, tvOS 17.2, watchOS 10.2, *)
-        init(context: CKSyncEngine.FetchChangesContext) {
-          _context = context
-        }
-        init() {
-          _context = nil
-        }
-      }
       package struct WillSendChanges: Sendable {
         package let context: CKSyncEngine.SendChangesContext
       }
