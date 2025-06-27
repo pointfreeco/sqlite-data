@@ -14,7 +14,7 @@ struct FetchTests {
     @FetchAll var records: [Record]
     #expect(records == [Record(id: 1), Record(id: 2), Record(id: 3)])
 
-    try await database.write { try Record.delete().execute($0) }
+    try await database.asyncWrite { try Record.delete().execute($0) }
     try await $records.load()
     #expect(records == [])
   }
@@ -23,7 +23,7 @@ struct FetchTests {
     @FetchAll(Record.where { $0.id > 1 }) var records: [Record]
     #expect(records == [Record(id: 2), Record(id: 3)])
 
-    try await database.write { try Record.delete().execute($0) }
+    try await database.asyncWrite { try Record.delete().execute($0) }
     try await $records.load()
     #expect(records == [])
   }
@@ -32,7 +32,7 @@ struct FetchTests {
     @FetchOne(Record.where { $0.id > 1 }.count()) var recordsCount = 0
     #expect(recordsCount == 2)
 
-    try await database.write { try Record.delete().execute($0) }
+    try await database.asyncWrite { try Record.delete().execute($0) }
     try await $recordsCount.load()
     #expect(recordsCount == 0)
   }
@@ -42,7 +42,7 @@ struct FetchTests {
     #expect(record == Record(id: 1))
     print(#line)
 
-    try await database.write { try Record.delete().execute($0) }
+    try await database.asyncWrite { try Record.delete().execute($0) }
     try await $record.load()
     #expect(record == nil)
   }
@@ -52,7 +52,7 @@ struct FetchTests {
     try await $record.load()
     #expect(record == Record(id: 1))
 
-    try await database.write { try Record.delete().execute($0) }
+    try await database.asyncWrite { try Record.delete().execute($0) }
     await #expect(throws: NotFound.self) {
       try await $record.load()
     }
@@ -64,7 +64,7 @@ struct FetchTests {
     @FetchOne(#sql("SELECT * FROM records LIMIT 1")) var record: Record?
     #expect(record == Record(id: 1))
     
-    try await database.write { try Record.delete().execute($0) }
+    try await database.asyncWrite { try Record.delete().execute($0) }
     try await $record.load()
     #expect(record == nil)
   }
