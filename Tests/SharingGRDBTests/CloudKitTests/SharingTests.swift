@@ -13,7 +13,7 @@ extension BaseCloudKitTests {
     @Test func shareNonRootRecord() async throws {
       let reminder = Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
       let user = User(id: UUID(1))
-      try database.syncWrite { db in
+      try await database.asyncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           reminder
@@ -83,7 +83,7 @@ extension BaseCloudKitTests {
         deletions: []
       )
 
-      try database.syncWrite { db in
+      try await database.asyncWrite { db in
         try db.seed {
           Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
         }
@@ -162,7 +162,7 @@ extension BaseCloudKitTests {
         ])
       )
 
-      try database.syncWrite { db in
+      try await database.asyncWrite { db in
         try Reminder.find(UUID(1)).delete().execute(db)
       }
 

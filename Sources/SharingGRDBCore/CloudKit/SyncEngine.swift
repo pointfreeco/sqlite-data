@@ -9,6 +9,9 @@ public final class SyncEngine: Sendable {
     zoneName: "co.pointfree.SQLiteData.defaultZone"
   )
 
+  // TODO: Rename to isUpdatingFromServer / isHandlingServerUpdates
+  @TaskLocal static var isUpdatingWithServerRecord = false
+
   let database: any DatabaseWriter
   let logger: Logger
   let metadatabase: any DatabaseReader
@@ -240,22 +243,20 @@ public final class SyncEngine: Sendable {
     //       recommends limiting to <400 records and <2mb data posted
     // TODO: Should we do this in batches now that we save the full 'lastKnowServerRecord'?
     // TODO: Or should we denormalize zoneID into the metadata table for easy access?
-    let lastKnownServerRecords = try {
-      try metadatabase.read { db in
-        try SyncMetadata
-          .where {
-            $0.recordType.in(recordTypesChanged.map(\.tableName))
-            && $0.lastKnownServerRecord.isNot(nil)
-          }
-          .select {
-            SQLQueryExpression(
-              "\($0.lastKnownServerRecord)",
-              as: CKRecord.DataRepresentation.self
-            )
-          }
-          .fetchAll(db)
-      }
-    }()
+    let lastKnownServerRecords = try await metadatabase.read { db in
+      try SyncMetadata
+        .where {
+          $0.recordType.in(recordTypesChanged.map(\.tableName))
+          && $0.lastKnownServerRecord.isNot(nil)
+        }
+        .select {
+          SQLQueryExpression(
+            "\($0.lastKnownServerRecord)",
+            as: CKRecord.DataRepresentation.self
+          )
+        }
+        .fetchAll(db)
+    }
     let recordIDs = lastKnownServerRecords.map(\.recordID)
     let recordIDsByDatabase = Dictionary(grouping: recordIDs) {
       AnyCloudDatabase(container.database(for: $0))
@@ -280,7 +281,7 @@ public final class SyncEngine: Sendable {
     async let privateCancellation: Void? = syncEngines.private?.cancelOperations()
     async let sharedCancellation: Void? = syncEngines.shared?.cancelOperations()
 
-    try await database.write { db in
+    try await database.asyncWrite { db in
       for table in self.tables {
         try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
       }
@@ -292,7 +293,7 @@ public final class SyncEngine: Sendable {
       db.remove(function: .isUpdatingWithServerRecord)
       db.remove(function: .datetime)
     }
-    try await database.write { db in
+    try await database.asyncWrite { db in
       // TODO: Do an `.erase()` + re-migrate
       try SyncMetadata.delete().execute(db)
       try RecordType.delete().execute(db)
@@ -637,7 +638,7 @@ extension SyncEngine: CKSyncEngineDelegate {
 
   package func handleFetchedDatabaseChanges(_ event: Event.FetchedDatabaseChanges) {
     // TODO: How to handle this?
-    $isUpdatingWithServerRecord.withValue(true) {
+    Self.$isUpdatingWithServerRecord.withValue(true) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
         try database.write { db in
           for deletion in event.deletions {
@@ -661,7 +662,7 @@ extension SyncEngine: CKSyncEngineDelegate {
     modifications: [CKRecord] = [],
     deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = []
   ) async {
-    await $isUpdatingWithServerRecord.withValue(true) {
+    await Self.$isUpdatingWithServerRecord.withValue(true) {
       for record in modifications {
         if let share = record as? CKShare {
           await withErrorReporting {
@@ -754,7 +755,7 @@ extension SyncEngine: CKSyncEngineDelegate {
 
       func clearServerRecord() {
         withErrorReporting {
-          try $isUpdatingWithServerRecord.withValue(true) {
+          try Self.$isUpdatingWithServerRecord.withValue(true) {
             try database.write { db in
               try SyncMetadata
                 .find(recordName)
@@ -821,14 +822,12 @@ extension SyncEngine: CKSyncEngineDelegate {
       return
     }
 
-    try {
-      try database.write { db in
-        try SyncMetadata
-          .find(recordName)
-          .update { $0.share = share }
-          .execute(db)
-      }
-    }()
+    try await database.asyncWrite { db in
+      try SyncMetadata
+        .find(recordName)
+        .update { $0.share = share }
+        .execute(db)
+    }
   }
 
   private func deleteShare(recordID: CKRecord.ID, recordType: String) throws {
@@ -848,7 +847,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func upsertFromServerRecord(_ record: CKRecord) {
-    $isUpdatingWithServerRecord.withValue(true) {
+    Self.$isUpdatingWithServerRecord.withValue(true) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
         guard let table = tablesByName[record.recordType]
         else {
@@ -952,7 +951,7 @@ extension SyncEngine: CKSyncEngineDelegate {
   }
 
   private func refreshLastKnownServerRecord(_ record: CKRecord) {
-    $isUpdatingWithServerRecord.withValue(true) {
+    Self.$isUpdatingWithServerRecord.withValue(true) {
       guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
       else {
         reportIssue(
@@ -1029,7 +1028,7 @@ extension DatabaseFunction {
   fileprivate static var isUpdatingWithServerRecord: Self {
     Self(.sqliteDataCloudKitSchemaName + "_" + "isUpdatingWithServerRecord", argumentCount: 0) {
       _ in
-      SharingGRDBCore.isUpdatingWithServerRecord
+      isUpdatingWithServerRecord
     }
   }
 
@@ -1064,9 +1063,6 @@ extension DatabaseFunction {
     }
   }
 }
-
-// TODO: Rename to isUpdatingFromServer / isHandlingServerUpdates
-@TaskLocal private var isUpdatingWithServerRecord = false
 
 extension String {
   package static let sqliteDataCloudKitSchemaName = "sqlitedata_icloud"

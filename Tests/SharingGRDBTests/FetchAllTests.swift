@@ -15,7 +15,7 @@ struct FetchAllTests {
   @MainActor
   @Test func concurrency() async throws {
     let count = 1_000
-    try await database.write { db in
+    try await database.asyncWrite { db in
       try Record.delete().execute(db)
     }
 
@@ -24,7 +24,7 @@ struct FetchAllTests {
     await withThrowingTaskGroup { group in
       for index in 1...count {
         group.addTask {
-          try await database.write { db in
+          try await database.asyncWrite { db in
             try Record.insert { Record(id: index) }.execute(db)
           }
         }
@@ -37,7 +37,7 @@ struct FetchAllTests {
     await withThrowingTaskGroup { group in
       for index in 1...(count / 2) {
         group.addTask {
-          try await database.write { db in
+          try await database.asyncWrite { db in
             try Record.find(index * 2).delete().execute(db)
           }
         }

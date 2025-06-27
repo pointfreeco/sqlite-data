@@ -15,7 +15,6 @@ class RemindersDetailModel: HashableObject {
   let detailType: DetailType
   var isNewReminderSheetPresented = false
   var sharedRecord: SharedRecord?
-  var sharedRecord: SharedRecord?
 
   @ObservationIgnored @Dependency(\.defaultDatabase) private var database
   @ObservationIgnored @Dependency(\.defaultSyncEngine) private var syncEngine
