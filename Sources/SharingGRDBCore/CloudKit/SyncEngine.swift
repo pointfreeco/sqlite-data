@@ -341,6 +341,7 @@
     }
 
     func didDelete(recordName: SyncMetadata.RecordName, zoneID: CKRecordZone.ID?) {
+      print("didDelete", recordName)
       let zoneID = zoneID ?? Self.defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -477,10 +478,22 @@
         }
       }
       // TODO: why did we do this again? can we test it?
+      // TODO: this needs a topological sort to make sure we delete all leaf nodes before parents
       allChangesByIsDeleted[true]?.reverse()
       let changes = allChangesByIsDeleted.reduce(into: []) { changes, keyValue in
         changes += keyValue.value
       }
+
+      print("didDelete", "pendingDeletes", allChangesByIsDeleted[true]?.compactMap { x -> String? in
+        switch x {
+        case .saveRecord(_):
+          return nil
+        case .deleteRecord(let record):
+          return String(record.recordName.split(separator: ":")[1])
+        @unknown default:
+          return nil
+        }
+      })
 
       #if DEBUG
         struct State {
@@ -814,6 +827,9 @@
         }
       }
       // TODO: handle event.failedRecordDeletes ? look at apple sample code
+      if !failedRecordDeletes.isEmpty {
+        print("?!?!?!!?!")
+      }
     }
 
     private func cacheShare(_ share: CKShare) async throws {
