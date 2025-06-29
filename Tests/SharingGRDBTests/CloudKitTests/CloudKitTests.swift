@@ -469,6 +469,8 @@ extension BaseCloudKitTests {
       record.encryptedValues["title"] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(-60.0)
       record.userModificationDate = serverModificationDate
+      // NB: Manually setting '_recordChangeTag' simulates another devices saving a record.
+      record._recordChangeTag = UUID().uuidString
       _ = await syncEngine.modifyRecords(scope: .private, saving: [record])
 
       expectNoDifference(
@@ -484,7 +486,6 @@ extension BaseCloudKitTests {
         }
       )
       #expect(metadata.userModificationDate == userModificationDate)
-      // TODO: The title below should be work.
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -497,8 +498,8 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Work",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:30:30.000Z)
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
