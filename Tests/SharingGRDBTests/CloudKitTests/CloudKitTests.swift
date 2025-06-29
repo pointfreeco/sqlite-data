@@ -128,9 +128,31 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1)))
-      ])
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
 
       try await database.asyncWrite { db in
         let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
@@ -153,25 +175,34 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1)))
-      ])
-
-      let record = CKRecord(
-        recordType: "remindersLists",
-        recordID: RemindersList.recordID(for: UUID(1))
-      )
-      await syncEngine.handleFetchedRecordZoneChanges(
-        modifications: [record],
-        syncEngine: syncEngine.private
-      )
-      expectNoDifference(
-        try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
-        RemindersList(id: UUID(1), title: "Personal")
-      )
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
 
       let metadata =
-        try await database.asyncWrite { db in
+        try await database.read { db in
           try SyncMetadata.find(RemindersList.recordName(for: UUID(1))).fetchOne(db)
         }
       #expect(metadata != nil)
@@ -218,33 +249,91 @@ extension BaseCloudKitTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func insertUpdateDelete() throws {
-      try database.write { db in
+    @Test func insertUpdateDelete() async throws {
+      try await database.asyncWrite { db in
         try RemindersList
           .insert { RemindersList(id: UUID(1), title: "Personal") }
           .execute(db)
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1)))
-      ])
-      try database.write { db in
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try await database.asyncWrite { db in
         try RemindersList
           .find(UUID(1))
           .update { $0.title = "Work" }
           .execute(db)
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1)))
-      ])
-      try database.write { db in
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Work",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try await database.asyncWrite { db in
         try RemindersList
           .find(UUID(1))
           .delete()
           .execute(db)
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .deleteRecord(RemindersList.recordID(for: UUID(1)))
-      ])
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -254,16 +343,34 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1)))
-      ])
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
 
-      let record = CKRecord(
-        recordType: "remindersLists",
-        recordID: RemindersList.recordID(for: UUID(1))
-      )
       let userModificationDate = try #require(
-        try await database.asyncWrite { db in
+        try await database.read { db in
           try SyncMetadata
             .find(RemindersList.recordName(for: UUID(1)))
             .select(\.userModificationDate)
@@ -271,29 +378,49 @@ extension BaseCloudKitTests {
         }
       )
 
-      // TODO: Should we omit primary key from `encryptedValues` since it already exists on recordName?
-      record.encryptedValues[RemindersList.columns.id.name] = UUID(1).uuidString
-      record.encryptedValues[RemindersList.columns.title.name] = "Work"
+      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
+      record.encryptedValues["title"] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(60)
       record.userModificationDate = serverModificationDate
-      await syncEngine.handleFetchedRecordZoneChanges(
-        modifications: [record],
-        syncEngine: syncEngine.private
-      )
+      _ = await syncEngine.modifyRecords(scope: .private, saving: [record])
+
       expectNoDifference(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
         RemindersList(id: UUID(1), title: "Work")
       )
 
       let metadata = try #require(
-        try await database.asyncWrite { db in
+        try await database.read { db in
           try SyncMetadata
             .find(RemindersList.recordName(for: UUID(1)))
             .fetchOne(db)
         }
       )
-      // TODO: Control dates in SQLite in order to get consistent passing on float comparison
-      #expect(abs(metadata.userModificationDate!.timeIntervalSince(serverModificationDate)) < 0.1)
+      #expect(metadata.userModificationDate == serverModificationDate)
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Work",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -303,13 +430,32 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1)))
-      ])
-      let record = CKRecord(
-        recordType: "remindersLists",
-        recordID: RemindersList.recordID(for: UUID(1))
-      )
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
       let userModificationDate = try #require(
         try await database.asyncWrite { db in
           try SyncMetadata
@@ -319,15 +465,12 @@ extension BaseCloudKitTests {
         }
       )
 
-      // TODO: Should we omit primary key from `encryptedValues` since it already exists on recordName?
-      record.encryptedValues[RemindersList.columns.id.name] = UUID(1).uuidString
-      record.encryptedValues[RemindersList.columns.title.name] = "Work"
+      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
+      record.encryptedValues["title"] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(-60.0)
       record.userModificationDate = serverModificationDate
-      await syncEngine.handleFetchedRecordZoneChanges(
-        modifications: [record],
-        syncEngine: syncEngine.private
-      )
+      _ = await syncEngine.modifyRecords(scope: .private, saving: [record])
+
       expectNoDifference(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
         RemindersList(id: UUID(1), title: "Personal")
@@ -341,6 +484,31 @@ extension BaseCloudKitTests {
         }
       )
       #expect(metadata.userModificationDate == userModificationDate)
+      // TODO: The title below should be work.
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Work",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:30:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -350,21 +518,38 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1)))
-      ])
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
 
-      let record = CKRecord(
-        recordType: "remindersLists",
-        recordID: RemindersList.recordID(for: UUID(1))
-      )
-      await syncEngine.handleFetchedRecordZoneChanges(
-        deletions: [(recordID: record.recordID, recordType: record.recordType)],
-        syncEngine: syncEngine.private
-      )
+      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
+      _ = await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID])
+
       #expect(
-        try { try database.read { db in try RemindersList.find(UUID(1)).fetchCount(db) } }()
-          == 0
+        try await database.read { db in try RemindersList.find(UUID(1)).fetchAll(db) }
+          == []
       )
       let metadata = try await database.asyncWrite { db in
         try SyncMetadata
@@ -372,6 +557,20 @@ extension BaseCloudKitTests {
           .fetchOne(db)
       }
       #expect(metadata == nil)
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
     }
   }
 

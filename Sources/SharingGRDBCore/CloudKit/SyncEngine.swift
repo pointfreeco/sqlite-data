@@ -23,7 +23,7 @@
     let defaultSyncEngines:
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
-    let container: any CloudContainer
+    package let container: any CloudContainer
 
     public convenience init(
       container: CKContainer,

@@ -21,11 +21,8 @@ extension BaseCloudKitTests {
           user
         }
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1))),
-        .saveRecord(Reminder.recordID(for: UUID(1))),
-        .saveRecord(User.recordID(for: UUID(1))),
-      ])
+
+      await syncEngine.processBatch()
 
       await #expect(throws: SyncEngine.RecordMustBeRoot.self) {
         _ = try await self.syncEngine.share(record: reminder, configure: { _ in })
@@ -80,11 +77,8 @@ extension BaseCloudKitTests {
       remindersListRecord.encryptedValues["isCompleted"] = false
       remindersListRecord.encryptedValues["title"] = "Personal"
       remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
-      await syncEngine.handleFetchedRecordZoneChanges(
-        modifications: [remindersListRecord],
-        deletions: [],
-        syncEngine: syncEngine.private
-      )
+
+      await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
 
       try await database.asyncWrite { db in
         try db.seed {
@@ -92,43 +86,41 @@ extension BaseCloudKitTests {
         }
       }
 
-      let batch = await syncEngine.nextRecordZoneChangeBatch(
-        options: CKSyncEngine.SendChangesOptions(
-          scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
-        ),
-        syncEngine: syncEngine.shared
-      )
-      assertInlineSnapshot(of: batch, as: .customDump) {
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
-        CKSyncEngine.RecordZoneChangeBatch(
-          atomicByZone: false,
-          recordIDsToDelete: [],
-          recordsToSave: [
-            [0]: CKRecord(
-              recordID: CKRecordID(
-                recordName: "00000000-0000-0000-0000-000000000001:reminders",
-                zoneID: CKRecordZoneID(
-                  zoneName: "external.zone",
-                  ownerName: "external.owner"
-                )
-              ),
-              recordType: "reminders",
-              share: nil,
-              parent: CKReference(
-                recordID: CKRecordID(
-                  recordName: "00000000-0000-0000-0000-000000000001:remindersLists",
-                  zoneID: CKRecordZoneID(
-                    zoneName: "external.zone",
-                    ownerName: "external.owner"
-                  )
-                )
-              ),
-              id: "00000000-0000-0000-0000-000000000001",
-              remindersListID: "00000000-0000-0000-0000-000000000001",
-              sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-              title: "Get milk"
-            )
-          ]
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                isCompleted: 0,
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                title: "Get milk",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          )
         )
         """
       }
@@ -157,38 +149,35 @@ extension BaseCloudKitTests {
       reminderRecord.encryptedValues["title"] = "Get milk"
       reminderRecord.encryptedValues["remindersListID"] = UUID(1).uuidString.lowercased()
       remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
-      await syncEngine.handleFetchedRecordZoneChanges(
-        modifications: [
-          remindersListRecord,
-          reminderRecord
-        ],
-        syncEngine: syncEngine.private
-      )
+
+      await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
 
       try await database.asyncWrite { db in
         try Reminder.find(UUID(1)).delete().execute(db)
       }
 
-      let batch = await syncEngine.nextRecordZoneChangeBatch(
-        options: CKSyncEngine.SendChangesOptions(
-          scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
-        ),
-        syncEngine: syncEngine.shared
-      )
-      assertInlineSnapshot(of: batch, as: .customDump) {
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
-        CKSyncEngine.RecordZoneChangeBatch(
-          atomicByZone: false,
-          recordIDsToDelete: [
-            [0]: CKRecordID(
-              recordName: "00000000-0000-0000-0000-000000000001:reminders",
-              zoneID: CKRecordZoneID(
-                zoneName: "external.zone",
-                ownerName: "external.owner"
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
               )
-            )
-          ],
-          recordsToSave: []
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
         )
         """
       }

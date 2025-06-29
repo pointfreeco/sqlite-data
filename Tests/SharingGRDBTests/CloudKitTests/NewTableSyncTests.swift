@@ -18,8 +18,45 @@ extension BaseCloudKitTests {
       )
     }
 
-    @Test(.snapshots(record: .missing))
+    @Test
     func initialSync() async throws {
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                title: "Write blog post",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
       let metadata = try await database.read { db in
         try SyncMetadata.all.order(by: \.primaryKey).fetchAll(db)
       }
@@ -36,7 +73,12 @@ extension BaseCloudKitTests {
               recordType: "remindersLists",
               id: UUID(00000000-0000-0000-0000-000000000001)
             ),
-            lastKnownServerRecord: nil,
+            lastKnownServerRecord: CKRecord(
+              recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordType: "reminders",
+              parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+              share: nil
+            ),
             share: nil,
             userModificationDate: Date(2009-02-13T23:31:30.000Z)
           ),
@@ -47,62 +89,16 @@ extension BaseCloudKitTests {
               id: UUID(00000000-0000-0000-0000-000000000001)
             ),
             parentRecordName: nil,
-            lastKnownServerRecord: nil,
+            lastKnownServerRecord: CKRecord(
+              recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordType: "remindersLists",
+              parent: nil,
+              share: nil
+            ),
             share: nil,
             userModificationDate: Date(2009-02-13T23:31:30.000Z)
           )
         ]
-        """
-      }
-      let batch = await syncEngine.nextRecordZoneChangeBatch(syncEngine: syncEngine.private)
-      assertInlineSnapshot(of: batch, as: .customDump) {
-        """
-        CKSyncEngine.RecordZoneChangeBatch(
-          atomicByZone: false,
-          recordIDsToDelete: [],
-          recordsToSave: [
-            [0]: CKRecord(
-              recordID: CKRecordID(
-                recordName: "00000000-0000-0000-0000-000000000001:reminders",
-                zoneID: CKRecordZoneID(
-                  zoneName: "co.pointfree.SQLiteData.defaultZone",
-                  ownerName: "__defaultOwner__"
-                )
-              ),
-              recordType: "reminders",
-              share: nil,
-              parent: CKReference(
-                recordID: CKRecordID(
-                  recordName: "00000000-0000-0000-0000-000000000001:remindersLists",
-                  zoneID: CKRecordZoneID(
-                    zoneName: "co.pointfree.SQLiteData.defaultZone",
-                    ownerName: "__defaultOwner__"
-                  )
-                )
-              ),
-              id: "00000000-0000-0000-0000-000000000001",
-              isCompleted: 0,
-              remindersListID: "00000000-0000-0000-0000-000000000001",
-              sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-              title: "Write blog post"
-            ),
-            [1]: CKRecord(
-              recordID: CKRecordID(
-                recordName: "00000000-0000-0000-0000-000000000001:remindersLists",
-                zoneID: CKRecordZoneID(
-                  zoneName: "co.pointfree.SQLiteData.defaultZone",
-                  ownerName: "__defaultOwner__"
-                )
-              ),
-              recordType: "remindersLists",
-              share: nil,
-              parent: nil,
-              id: "00000000-0000-0000-0000-000000000001",
-              sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-              title: "Personal"
-            )
-          ]
-        )
         """
       }
     }

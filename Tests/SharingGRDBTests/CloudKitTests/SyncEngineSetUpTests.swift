@@ -21,7 +21,8 @@ extension BaseCloudKitTests {
           reminder
         }
       }
-      _ = await syncEngine.nextRecordZoneChangeBatch(syncEngine: syncEngine.private)
+
+      await syncEngine.processBatch()
 
       let personalListRecord = try syncEngine.private.database.record(
         for: RemindersList.recordID(for: UUID(1))

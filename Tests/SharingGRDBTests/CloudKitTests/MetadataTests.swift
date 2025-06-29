@@ -11,21 +11,62 @@ extension BaseCloudKitTests {
   @MainActor
   final class MetadataTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func parentRecordName() throws {
-      try database.write { db in
+    @Test func parentRecordName() async throws {
+      try await database.asyncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           RemindersList(id: UUID(2), title: "Work")
           Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
         }
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1))),
-        .saveRecord(RemindersList.recordID(for: UUID(2))),
-        .saveRecord(Reminder.recordID(for: UUID(1))),
-      ])
 
-      try database.write { db in
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                title: "Groceries",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [2]: CKRecord(
+                recordID: CKRecord.ID(2:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000002",
+                title: "Work",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try await database.read { db in
         let reminderMetadata = try #require(
           try SyncMetadata
             .find(Reminder.recordName(for: UUID(1)))
@@ -34,7 +75,7 @@ extension BaseCloudKitTests {
         #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(1)))
       }
 
-      try database.write { db in
+      try await database.asyncWrite { db in
         try Reminder.find(UUID(1))
           .update { $0.remindersListID = UUID(2) }
           .execute(db)
@@ -45,13 +86,56 @@ extension BaseCloudKitTests {
         )
         #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(2)))
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(Reminder.recordID(for: UUID(1)))
-      ])
+      
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(2:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000002",
+                title: "Groceries",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [2]: CKRecord(
+                recordID: CKRecord.ID(2:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000002",
+                title: "Work",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
     }
 
-    @Test func noParentRecordForRecordsWithMultipleForeignKeys() throws {
-      try database.write { db in
+    @Test func noParentRecordForRecordsWithMultipleForeignKeys() async throws {
+      try await database.asyncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
@@ -59,31 +143,74 @@ extension BaseCloudKitTests {
           ReminderTag(id: UUID(1), reminderID: UUID(1), tagID: UUID(1))
         }
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1))),
-        .saveRecord(Reminder.recordID(for: UUID(1))),
-        .saveRecord(Tag.recordID(for: UUID(1))),
-        .saveRecord(ReminderTag.recordID(for: UUID(1))),
-      ])
 
-      try database.write { db in
-        let tagMetadata = try #require(
-          try SyncMetadata
-            .find(Tag.recordName(for: UUID(1)))
-            .fetchOne(db)
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminderTags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminderTags",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                reminderID: "00000000-0000-0000-0000-000000000001",
+                tagID: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                title: "Groceries",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [2]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [3]: CKRecord(
+                recordID: CKRecord.ID(1:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "tags",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "weekend",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
         )
-        #expect(tagMetadata.parentRecordName == nil)
-        let reminderTagMetadata = try #require(
-          try SyncMetadata
-            .find(Tag.recordName(for: UUID(1)))
-            .fetchOne(db)
-        )
-        #expect(reminderTagMetadata.parentRecordName == nil)
+        """
       }
+
+      let parentRecordNames = try await database.read { db in
+        try SyncMetadata
+          .where { $0.recordType != Reminder.tableName }
+          .select(\.parentRecordName)
+          .fetchAll(db)
+      }
+      #expect(parentRecordNames.allSatisfy { $0 == nil })
     }
 
-    @Test func recordType() throws {
-      try database.write { db in
+    @Test func recordType() async throws {
+      try await database.asyncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
@@ -91,30 +218,25 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
         }
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1))),
-        .saveRecord(Reminder.recordID(for: UUID(2))),
-        .saveRecord(Reminder.recordID(for: UUID(3))),
-        .saveRecord(Reminder.recordID(for: UUID(4))),
-      ])
 
-      try database.read { db in
-        let reminderMetadata =
+      await syncEngine.processBatch()
+
+      let reminderMetadata = try await database.read { db in
         try SyncMetadata
           .where { $0.recordType == Reminder.tableName }
           .fetchAll(db)
-        #expect(
-          reminderMetadata.map(\.recordName) == [
-            Reminder.recordName(for: UUID(2)),
-            Reminder.recordName(for: UUID(3)),
-            Reminder.recordName(for: UUID(4)),
-          ]
-        )
       }
+      #expect(
+        reminderMetadata.map(\.recordName) == [
+          Reminder.recordName(for: UUID(2)),
+          Reminder.recordName(for: UUID(3)),
+          Reminder.recordName(for: UUID(4)),
+        ]
+      )
     }
 
-    @Test func parentRecordType() throws {
-      try database.write { db in
+    @Test func parentRecordType() async throws {
+      try await database.asyncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
@@ -122,14 +244,10 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
         }
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1))),
-        .saveRecord(Reminder.recordID(for: UUID(2))),
-        .saveRecord(Reminder.recordID(for: UUID(3))),
-        .saveRecord(Reminder.recordID(for: UUID(4))),
-      ])
 
-      try database.read { db in
+      await syncEngine.processBatch()
+
+      try await database.read { db in
         let reminderMetadata =
         try SyncMetadata
           .where { $0.parentRecordType == RemindersList.tableName }
@@ -144,8 +262,8 @@ extension BaseCloudKitTests {
       }
     }
 
-    @Test func parentRecordPrimaryKey() throws {
-      try database.write { db in
+    @Test func parentRecordPrimaryKey() async throws {
+      try await database.asyncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
@@ -153,14 +271,10 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
         }
       }
-      syncEngine.private.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1))),
-        .saveRecord(Reminder.recordID(for: UUID(2))),
-        .saveRecord(Reminder.recordID(for: UUID(3))),
-        .saveRecord(Reminder.recordID(for: UUID(4))),
-      ])
 
-      try database.read { db in
+      await syncEngine.processBatch()
+
+      try await database.read { db in
         let reminderMetadata =
         try SyncMetadata
           .where { $0.parentRecordPrimaryKey == UUID(1) }
