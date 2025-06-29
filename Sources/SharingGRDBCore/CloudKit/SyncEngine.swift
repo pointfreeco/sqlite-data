@@ -444,7 +444,7 @@
         let deletedRecordIDs,
         let failedRecordDeletes
       ):
-        handleSentRecordZoneChanges(
+        await handleSentRecordZoneChanges(
           savedRecords: savedRecords,
           failedRecordSaves: failedRecordSaves,
           deletedRecordIDs: deletedRecordIDs,
@@ -546,7 +546,7 @@
 
         guard
           let recordName = SyncMetadata.RecordName(recordID: recordID),
-          let metadata = metadataFor(recordName: recordName)
+          let metadata = await metadataFor(recordName: recordName)
         else {
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           return nil
@@ -593,7 +593,7 @@
             with: T(queryOutput: row),
             userModificationDate: metadata.userModificationDate
           )
-          refreshLastKnownServerRecord(record)
+          await refreshLastKnownServerRecord(record)
           sentRecord = recordID
           return record
         }
@@ -700,7 +700,7 @@
             }
           } else {
             upsertFromServerRecord(record)
-            refreshLastKnownServerRecord(record)
+            await refreshLastKnownServerRecord(record)
           }
           if let shareReference = record.share,
             // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
@@ -755,9 +755,9 @@
       deletedRecordIDs: [CKRecord.ID] = [],
       failedRecordDeletes: [CKRecord.ID: CKError] = [:],
       syncEngine: any SyncEngineProtocol
-    ) {
+    ) async {
       for savedRecord in savedRecords {
-        refreshLastKnownServerRecord(savedRecord)
+        await refreshLastKnownServerRecord(savedRecord)
       }
 
       var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
@@ -791,7 +791,7 @@
           guard let serverRecord = failedRecordSave.error.serverRecord else { continue }
           // TODO: do per-field merging here
           upsertFromServerRecord(serverRecord)
-          refreshLastKnownServerRecord(serverRecord)
+          await refreshLastKnownServerRecord(serverRecord)
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
 
         case .zoneNotFound:
@@ -817,6 +817,10 @@
         }
       }
       // TODO: handle event.failedRecordDeletes ? look at apple sample code
+
+      if !failedRecordDeletes.isEmpty {
+        print("!!!!")
+      }
     }
 
     private func cacheShare(_ share: CKShare) async throws {
@@ -961,13 +965,13 @@
       }
     }
 
-    private func refreshLastKnownServerRecord(_ record: CKRecord) {
-      Self.$isUpdatingWithServerRecord.withValue(true) {
+    private func refreshLastKnownServerRecord(_ record: CKRecord) async {
+      await Self.$isUpdatingWithServerRecord.withValue(true) {
         guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
         else {
           return
         }
-        let metadata = metadataFor(recordName: recordName)
+        let metadata = await metadataFor(recordName: recordName)
 
         func updateLastKnownServerRecord() {
           withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -990,9 +994,9 @@
       }
     }
 
-    private func metadataFor(recordName: SyncMetadata.RecordName) -> SyncMetadata? {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try metadatabase.read { db in
+    private func metadataFor(recordName: SyncMetadata.RecordName) async -> SyncMetadata? {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await metadatabase.read { db in
           try SyncMetadata.find(recordName).fetchOne(db)
         }
       }
