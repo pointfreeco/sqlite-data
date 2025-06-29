@@ -2,6 +2,7 @@ import CloudKit
 import ConcurrencyExtras
 import CustomDump
 import InlineSnapshotTesting
+import OrderedCollections
 import SharingGRDB
 import SnapshotTestingCustomDump
 import Testing
@@ -53,6 +54,7 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "reminders" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "isCompleted" INTEGER NOT NULL DEFAULT 0,
                 "title" TEXT NOT NULL DEFAULT '',
                 "remindersListID" TEXT NOT NULL, 
                 
@@ -126,10 +128,10 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
-      
+
       try await database.asyncWrite { db in
         let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
         #expect(metadataCount == 1)
@@ -151,16 +153,18 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
-
 
       let record = CKRecord(
         recordType: "remindersLists",
         recordID: RemindersList.recordID(for: UUID(1))
       )
-      await syncEngine.handleFetchedRecordZoneChanges(modifications: [record])
+      await syncEngine.handleFetchedRecordZoneChanges(
+        modifications: [record],
+        syncEngine: syncEngine.private
+      )
       expectNoDifference(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
         RemindersList(id: UUID(1), title: "Personal")
@@ -220,7 +224,7 @@ extension BaseCloudKitTests {
           .insert { RemindersList(id: UUID(1), title: "Personal") }
           .execute(db)
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
       try database.write { db in
@@ -229,7 +233,7 @@ extension BaseCloudKitTests {
           .update { $0.title = "Work" }
           .execute(db)
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
       try database.write { db in
@@ -238,7 +242,7 @@ extension BaseCloudKitTests {
           .delete()
           .execute(db)
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .deleteRecord(RemindersList.recordID(for: UUID(1)))
       ])
     }
@@ -250,7 +254,7 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
 
@@ -272,7 +276,10 @@ extension BaseCloudKitTests {
       record.encryptedValues[RemindersList.columns.title.name] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(60)
       record.userModificationDate = serverModificationDate
-      await syncEngine.handleFetchedRecordZoneChanges(modifications: [record])
+      await syncEngine.handleFetchedRecordZoneChanges(
+        modifications: [record],
+        syncEngine: syncEngine.private
+      )
       expectNoDifference(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
         RemindersList(id: UUID(1), title: "Work")
@@ -296,7 +303,7 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
       let record = CKRecord(
@@ -317,7 +324,10 @@ extension BaseCloudKitTests {
       record.encryptedValues[RemindersList.columns.title.name] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(-60.0)
       record.userModificationDate = serverModificationDate
-      await syncEngine.handleFetchedRecordZoneChanges(modifications: [record])
+      await syncEngine.handleFetchedRecordZoneChanges(
+        modifications: [record],
+        syncEngine: syncEngine.private
+      )
       expectNoDifference(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
         RemindersList(id: UUID(1), title: "Personal")
@@ -340,7 +350,7 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1)))
       ])
 
@@ -349,7 +359,8 @@ extension BaseCloudKitTests {
         recordID: RemindersList.recordID(for: UUID(1))
       )
       await syncEngine.handleFetchedRecordZoneChanges(
-        deletions: [(recordID: record.recordID, recordType: record.recordType)]
+        deletions: [(recordID: record.recordID, recordType: record.recordType)],
+        syncEngine: syncEngine.private
       )
       #expect(
         try { try database.read { db in try RemindersList.find(UUID(1)).fetchCount(db) } }()
@@ -366,5 +377,3 @@ extension BaseCloudKitTests {
 
   // TODO: Test what happens when we delete locally and then an edit comes in from the server
 }
-
-

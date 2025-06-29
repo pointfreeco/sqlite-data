@@ -18,7 +18,8 @@ extension BaseCloudKitTests {
       )
     }
 
-    @Test func initialSync() async throws {
+    @Test(.snapshots(record: .missing))
+    func initialSync() async throws {
       let metadata = try await database.read { db in
         try SyncMetadata.all.order(by: \.primaryKey).fetchAll(db)
       }
@@ -53,7 +54,7 @@ extension BaseCloudKitTests {
         ]
         """
       }
-      let batch = await syncEngine.nextRecordZoneChangeBatch(syncEngine: privateSyncEngine)
+      let batch = await syncEngine.nextRecordZoneChangeBatch(syncEngine: syncEngine.private)
       assertInlineSnapshot(of: batch, as: .customDump) {
         """
         CKSyncEngine.RecordZoneChangeBatch(
@@ -80,6 +81,7 @@ extension BaseCloudKitTests {
                 )
               ),
               id: "00000000-0000-0000-0000-000000000001",
+              isCompleted: 0,
               remindersListID: "00000000-0000-0000-0000-000000000001",
               sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
               title: "Write blog post"

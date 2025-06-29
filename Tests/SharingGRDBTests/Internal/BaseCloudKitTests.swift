@@ -1,32 +1,22 @@
 import CloudKit
 import DependenciesTestSupport
+import OrderedCollections
+import os
 import SharingGRDB
 import SnapshotTesting
 import Testing
 
 @Suite(
-  .snapshots(record: .failed),
+  .snapshots(record: .missing),
   .dependency(\.date.now, Date(timeIntervalSince1970: 1234567890))
 )
 class BaseCloudKitTests: @unchecked Sendable {
   let database: any DatabaseWriter
   private let _syncEngine: any Sendable
-  private let _privateSyncEngine: any Sendable
-  private let _sharedSyncEngine: any Sendable
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   var syncEngine: SyncEngine {
     _syncEngine as! SyncEngine
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  var privateSyncEngine: MockSyncEngine {
-    _privateSyncEngine as! MockSyncEngine
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  var sharedSyncEngine: MockSyncEngine {
-    _sharedSyncEngine as! MockSyncEngine
   }
 
   typealias SendablePrimaryKeyedTable<T> = PrimaryKeyedTable<T> & Sendable
@@ -42,25 +32,15 @@ class BaseCloudKitTests: @unchecked Sendable {
         try db.seed { seeds }
       }
     }()
-    let privateSyncEngine = MockSyncEngine(
-      database: MockCloudDatabase(databaseScope: .private),
-      scope: .private,
-      state: MockSyncEngineState()
-    )
-    let sharedSyncEngine = MockSyncEngine(
-      database: MockCloudDatabase(databaseScope: .shared),
-      scope: .shared,
-      state: MockSyncEngineState()
-    )
-    _privateSyncEngine = privateSyncEngine
-    _sharedSyncEngine = sharedSyncEngine
+    let privateDatabase = MockCloudDatabase(databaseScope: .private)
+    let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
     _syncEngine = try await SyncEngine(
       container: MockCloudContainer(
-        privateCloudDatabase: privateSyncEngine.database,
-        sharedCloudDatabase: sharedSyncEngine.database
+        privateCloudDatabase: privateDatabase,
+        sharedCloudDatabase: sharedDatabase
       ),
-      privateSyncEngine: privateSyncEngine,
-      sharedSyncEngine: sharedSyncEngine,
+      privateDatabase: privateDatabase,
+      sharedDatabase: sharedDatabase,
       database: database,
       metadatabaseURL: URL.metadatabase(containerIdentifier: testContainerIdentifier),
       tables: [
@@ -82,16 +62,60 @@ class BaseCloudKitTests: @unchecked Sendable {
 
   deinit {
     if #available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) {
-      sharedSyncEngine.assertFetchChangesScopes([])
-      sharedSyncEngine.state.assertPendingDatabaseChanges([])
-      sharedSyncEngine.state.assertPendingRecordZoneChanges([])
-      sharedSyncEngine.assertAcceptedShareMetadata([])
-      privateSyncEngine.assertFetchChangesScopes([])
-      privateSyncEngine.state.assertPendingDatabaseChanges([])
-      privateSyncEngine.state.assertPendingRecordZoneChanges([])
-      privateSyncEngine.assertAcceptedShareMetadata([])
+      syncEngine.shared.assertFetchChangesScopes([])
+      syncEngine.shared.state.assertPendingDatabaseChanges([])
+      syncEngine.shared.state.assertPendingRecordZoneChanges([])
+      syncEngine.shared.assertAcceptedShareMetadata([])
+      syncEngine.private.assertFetchChangesScopes([])
+      syncEngine.private.state.assertPendingDatabaseChanges([])
+      syncEngine.private.state.assertPendingRecordZoneChanges([])
+      syncEngine.private.assertAcceptedShareMetadata([])
     } else {
       Issue.record("Tests must be run on iOS 17+,m macOS 14+, tvOS 17+ and watchOS 10+.")
     }
+  }
+}
+
+extension SyncEngine {
+  var `private`: MockSyncEngine {
+    syncEngines.private as! MockSyncEngine
+  }
+  var shared: MockSyncEngine {
+    syncEngines.shared as! MockSyncEngine
+  }
+  convenience init(
+    container: any CloudContainer,
+    privateDatabase: MockCloudDatabase,
+    sharedDatabase: MockCloudDatabase,
+    database: any DatabaseWriter,
+    metadatabaseURL: URL,
+    tables: [any PrimaryKeyedTable<UUID>.Type],
+    privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
+  ) async throws {
+    try self.init(
+      container: container,
+      defaultSyncEngines: { _, syncEngine in
+        (
+          MockSyncEngine(
+            database: privateDatabase,
+            delegate: syncEngine,
+            scope: .private,
+            state: MockSyncEngineState()
+          ),
+          MockSyncEngine(
+            database:sharedDatabase,
+            delegate: syncEngine,
+            scope: .shared,
+            state: MockSyncEngineState()
+          )
+        )
+      },
+      database: database,
+      logger: Logger(.disabled),
+      metadatabaseURL: metadatabaseURL,
+      tables: tables,
+      privateTables: privateTables
+    )
+    try await setUpSyncEngine(database: database, metadatabase: metadatabase)?.value
   }
 }

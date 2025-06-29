@@ -2,6 +2,7 @@ import CloudKit
 import CustomDump
 import Foundation
 import InlineSnapshotTesting
+import OrderedCollections
 import SharingGRDB
 import SnapshotTestingCustomDump
 import Testing
@@ -18,7 +19,7 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1))),
         .saveRecord(RemindersList.recordID(for: UUID(2))),
         .saveRecord(Reminder.recordID(for: UUID(1))),
@@ -44,7 +45,7 @@ extension BaseCloudKitTests {
         )
         #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(2)))
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(Reminder.recordID(for: UUID(1)))
       ])
     }
@@ -58,7 +59,7 @@ extension BaseCloudKitTests {
           ReminderTag(id: UUID(1), reminderID: UUID(1), tagID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1))),
         .saveRecord(Reminder.recordID(for: UUID(1))),
         .saveRecord(Tag.recordID(for: UUID(1))),
@@ -90,7 +91,7 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1))),
         .saveRecord(Reminder.recordID(for: UUID(2))),
         .saveRecord(Reminder.recordID(for: UUID(3))),
@@ -121,7 +122,7 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1))),
         .saveRecord(Reminder.recordID(for: UUID(2))),
         .saveRecord(Reminder.recordID(for: UUID(3))),
@@ -152,7 +153,7 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1))),
         .saveRecord(Reminder.recordID(for: UUID(2))),
         .saveRecord(Reminder.recordID(for: UUID(3))),

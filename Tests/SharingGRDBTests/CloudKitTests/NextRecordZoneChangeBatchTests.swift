@@ -10,7 +10,7 @@ extension BaseCloudKitTests {
   @MainActor
   final class NextRecordZoneChangeBatchTests: BaseCloudKitTests, @unchecked Sendable {
     @Test func noMetadataForRecord() async throws {
-      privateSyncEngine.state.add(
+      syncEngine.private.state.add(
         pendingRecordZoneChanges: [.saveRecord(Reminder.recordID(for: UUID(1)))]
       )
 
@@ -18,7 +18,7 @@ extension BaseCloudKitTests {
         options: CKSyncEngine.SendChangesOptions(
           scope: .recordIDs([Reminder.recordID(for: UUID(1))])
         ),
-        syncEngine: privateSyncEngine
+        syncEngine: syncEngine.private
       )
       assertInlineSnapshot(of: batch, as: .customDump) {
         """
@@ -41,7 +41,7 @@ extension BaseCloudKitTests {
         }
         .execute(db)
       }
-      assertInlineSnapshot(of: privateSyncEngine.state, as: .customDump) {
+      assertInlineSnapshot(of: syncEngine.private.state, as: .customDump) {
         """
         MockSyncEngineState(
           pendingRecordZoneChanges: [
@@ -64,7 +64,7 @@ extension BaseCloudKitTests {
         options: CKSyncEngine.SendChangesOptions(
           scope: .recordIDs([UnrecognizedTable.recordID(for: UUID(1))])
         ),
-        syncEngine: privateSyncEngine
+        syncEngine: syncEngine.private
       )
       assertInlineSnapshot(of: batch, as: .customDump) {
         """
@@ -87,7 +87,7 @@ extension BaseCloudKitTests {
         }
         .execute(db)
       }
-      assertInlineSnapshot(of: privateSyncEngine.state, as: .customDump) {
+      assertInlineSnapshot(of: syncEngine.private.state, as: .customDump) {
         """
         MockSyncEngineState(
           pendingRecordZoneChanges: [
@@ -110,7 +110,7 @@ extension BaseCloudKitTests {
         options: CKSyncEngine.SendChangesOptions(
           scope: .recordIDs([RemindersList.recordID(for: UUID(1))])
         ),
-        syncEngine: privateSyncEngine
+        syncEngine: syncEngine.private
       )
       assertInlineSnapshot(of: batch, as: .customDump) {
         """
@@ -129,7 +129,7 @@ extension BaseCloudKitTests {
           RemindersList(id: UUID(1), title: "Personal")
         }
       }
-      assertInlineSnapshot(of: privateSyncEngine.state, as: .customDump) {
+      assertInlineSnapshot(of: syncEngine.private.state, as: .customDump) {
         """
         MockSyncEngineState(
           pendingRecordZoneChanges: [
@@ -152,7 +152,7 @@ extension BaseCloudKitTests {
         options: CKSyncEngine.SendChangesOptions(
           scope: .recordIDs([RemindersList.recordID(for: UUID(1))])
         ),
-        syncEngine: privateSyncEngine
+        syncEngine: syncEngine.private
       )
       assertInlineSnapshot(of: batch, as: .customDump) {
         """
@@ -181,14 +181,15 @@ extension BaseCloudKitTests {
       }
     }
 
-    @Test func saveRecordWithParent() async throws {
+    @Test(.snapshots(record: .missing))
+    func saveRecordWithParent() async throws {
       try await database.asyncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
         }
       }
-      assertInlineSnapshot(of: privateSyncEngine.state, as: .customDump) {
+      assertInlineSnapshot(of: syncEngine.private.state, as: .customDump) {
         """
         MockSyncEngineState(
           pendingRecordZoneChanges: [
@@ -223,7 +224,7 @@ extension BaseCloudKitTests {
             Reminder.recordID(for: UUID(1)),
           ])
         ),
-        syncEngine: privateSyncEngine
+        syncEngine: syncEngine.private
       )
       assertInlineSnapshot(of: batch, as: .customDump) {
         """
@@ -251,6 +252,7 @@ extension BaseCloudKitTests {
                 )
               ),
               id: "00000000-0000-0000-0000-000000000001",
+              isCompleted: 0,
               remindersListID: "00000000-0000-0000-0000-000000000001",
               sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
               title: "Get milk"
@@ -283,7 +285,7 @@ extension BaseCloudKitTests {
           RemindersListPrivate(id: UUID(1), position: 42, remindersListID: UUID(1))
         }
       }
-      assertInlineSnapshot(of: privateSyncEngine.state, as: .customDump) {
+      assertInlineSnapshot(of: syncEngine.private.state, as: .customDump) {
         """
         MockSyncEngineState(
           pendingRecordZoneChanges: [
@@ -318,7 +320,7 @@ extension BaseCloudKitTests {
             Reminder.recordID(for: UUID(1)),
           ])
         ),
-        syncEngine: privateSyncEngine
+        syncEngine: syncEngine.private
       )
       assertInlineSnapshot(of: batch, as: .customDump) {
         """

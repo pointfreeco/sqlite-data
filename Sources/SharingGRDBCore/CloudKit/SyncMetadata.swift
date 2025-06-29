@@ -76,12 +76,16 @@ extension SyncMetadata {
     }
 
     public init?(rawValue: String) {
-      guard let colonIndex = rawValue.firstIndex(of: ":")
+      guard
+        let colonIndex = rawValue.firstIndex(of: ":"),
+        let id = UUID(uuidString: String(rawValue[rawValue.startIndex..<colonIndex]))
       else {
-        return nil
-      }
-      guard let id = UUID(uuidString: String(rawValue[rawValue.startIndex..<colonIndex]))
-      else {
+        reportIssue(
+          """
+          'recordName' in invalid format: \(rawValue.debugDescription)
+          'recordName' should be formatted as "uuid:tableName". 
+          """
+        )
         return nil
       }
 

@@ -3,6 +3,7 @@ import SharingGRDB
 
 @Table struct Reminder: Equatable, Identifiable {
   let id: UUID
+  var isCompleted = false
   var title = ""
   var remindersListID: RemindersList.ID
 }
@@ -94,6 +95,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       """
       CREATE TABLE "reminders" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "isCompleted" INTEGER NOT NULL DEFAULT 0,
         "title" TEXT NOT NULL DEFAULT '',
         "remindersListID" TEXT NOT NULL, 
         

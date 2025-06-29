@@ -2,6 +2,7 @@ import CloudKit
 import CustomDump
 import Foundation
 import InlineSnapshotTesting
+import OrderedCollections
 import SharingGRDB
 import SnapshotTestingCustomDump
 import Testing
@@ -20,7 +21,7 @@ extension BaseCloudKitTests {
           user
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1))),
         .saveRecord(Reminder.recordID(for: UUID(1))),
         .saveRecord(User.recordID(for: UUID(1))),
@@ -75,12 +76,14 @@ extension BaseCloudKitTests {
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
       )
-      remindersListRecord.encryptedValues["title"] = "Personal"
       remindersListRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
+      remindersListRecord.encryptedValues["isCompleted"] = false
+      remindersListRecord.encryptedValues["title"] = "Personal"
       remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
       await syncEngine.handleFetchedRecordZoneChanges(
         modifications: [remindersListRecord],
-        deletions: []
+        deletions: [],
+        syncEngine: syncEngine.private
       )
 
       try await database.asyncWrite { db in
@@ -93,7 +96,7 @@ extension BaseCloudKitTests {
         options: CKSyncEngine.SendChangesOptions(
           scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
         ),
-        syncEngine: sharedSyncEngine
+        syncEngine: syncEngine.shared
       )
       assertInlineSnapshot(of: batch, as: .customDump) {
         """
@@ -150,13 +153,17 @@ extension BaseCloudKitTests {
         recordID: Reminder.recordID(for: UUID(1), zoneID: externalZoneID)
       )
       reminderRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
+      reminderRecord.encryptedValues["isCompleted"] = false
       reminderRecord.encryptedValues["title"] = "Get milk"
       reminderRecord.encryptedValues["remindersListID"] = UUID(1).uuidString.lowercased()
       remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
-      await syncEngine.handleFetchedRecordZoneChanges(modifications: [
-        remindersListRecord,
-        reminderRecord
-      ])
+      await syncEngine.handleFetchedRecordZoneChanges(
+        modifications: [
+          remindersListRecord,
+          reminderRecord
+        ],
+        syncEngine: syncEngine.private
+      )
 
       try await database.asyncWrite { db in
         try Reminder.find(UUID(1)).delete().execute(db)
@@ -166,7 +173,7 @@ extension BaseCloudKitTests {
         options: CKSyncEngine.SendChangesOptions(
           scope: .recordIDs([Reminder.recordID(for: UUID(1), zoneID: externalZoneID)])
         ),
-        syncEngine: sharedSyncEngine
+        syncEngine: syncEngine.shared
       )
       assertInlineSnapshot(of: batch, as: .customDump) {
         """

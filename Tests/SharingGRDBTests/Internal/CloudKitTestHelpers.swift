@@ -1,7 +1,9 @@
 import CloudKit
 import ConcurrencyExtras
 import CustomDump
+import OrderedCollections
 import SharingGRDBCore
+import Testing
 
 extension PrimaryKeyedTable<UUID> {
   static func recordID(for id: UUID, zoneID: CKRecordZone.ID? = nil) -> CKRecord.ID {
@@ -15,17 +17,20 @@ extension PrimaryKeyedTable<UUID> {
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 final class MockSyncEngine: SyncEngineProtocol {
   let database: MockCloudDatabase
+  let delegate: any SyncEngineDelegate
   private let _state: LockIsolated<MockSyncEngineState>
-  private let _fetchChangesScopes = LockIsolated<Set<CKSyncEngine.FetchChangesOptions.Scope>>([])
+  private let _fetchChangesScopes = LockIsolated<[CKSyncEngine.FetchChangesOptions.Scope]>([])
   private let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
   let scope: CKDatabase.Scope
 
   init(
     database: MockCloudDatabase,
+    delegate: any SyncEngineDelegate,
     scope: CKDatabase.Scope,
     state: MockSyncEngineState
   ) {
     self.database = database
+    self.delegate = delegate
     self.scope = scope
     self._state = LockIsolated(state)
   }
@@ -38,36 +43,84 @@ final class MockSyncEngine: SyncEngineProtocol {
     _ = _acceptedShareMetadata.withValue { $0.insert(metadata) }
   }
 
+  func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws {
+    // TODO: do something here
+  }
+
   func recordZoneChangeBatch(
     pendingChanges: [CKSyncEngine.PendingRecordZoneChange],
     recordProvider: @Sendable (CKRecord.ID) async -> CKRecord?
   ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-    let savedRecordIDs: [CKRecord.ID] = state.pendingRecordZoneChanges.compactMap {
-      guard case .saveRecord(let recordID) = $0
-      else { return nil }
-      return recordID
-    }
     var recordsToSave: [CKRecord] = []
-    for recordID in savedRecordIDs {
-      guard let record = await recordProvider(recordID)
-      else { continue }
-      recordsToSave.append(record)
+    var recordIDsSkipped: [CKRecord.ID] = []
+    var recordIDsToDelete: [CKRecord.ID] = []
+    for pendingChange in pendingChanges {
+      switch pendingChange {
+      case .saveRecord(let recordID):
+        guard let record = await recordProvider(recordID)
+        else {
+          recordIDsSkipped.append(recordID)
+          continue
+        }
+        recordsToSave.append(record)
+      case .deleteRecord(let recordID):
+        recordIDsToDelete.append(recordID)
+      @unknown default:
+        fatalError()
+      }
     }
-    let recordIDsToDelete: [CKRecord.ID] = state.pendingRecordZoneChanges.compactMap {
-      guard case .deleteRecord(let recordID) = $0
-      else { return nil }
-      return recordID
-    }
-
-    state.remove(pendingRecordZoneChanges: recordsToSave.map { .saveRecord($0.recordID) })
-    state.remove(pendingRecordZoneChanges: recordIDsToDelete.map { .deleteRecord($0) })
-    
-    _ = await database.modifyRecords(
+    let (saveResults, deleteResults) = database.modifyRecords(
       saving: recordsToSave,
       deleting: recordIDsToDelete,
       savePolicy: .ifServerRecordUnchanged,
       atomically: true
     )
+
+    var savedRecords: [CKRecord] = []
+    var failedRecordSaves: [(record: CKRecord, error: CKError)] = []
+    var deletedRecordIDs: [CKRecord.ID] = []
+    var failedRecordDeletes: [CKRecord.ID: CKError] = [:]
+    for (recordID, result) in saveResults {
+      switch result {
+      case .success(let record):
+        savedRecords.append(record)
+      case .failure(let error as CKError):
+        guard let record = recordsToSave.first(where: { $0.recordID == recordID })
+        else { fatalError("\(recordID.debugDescription) not found in pending changes") }
+        failedRecordSaves.append((record: record, error: error))
+      case .failure:
+        fatalError("Mocks should only raise 'CKError' values.")
+      }
+    }
+    for (recordID, result) in deleteResults {
+      switch result {
+      case .success:
+        deletedRecordIDs.append(recordID)
+      case .failure(let error as CKError):
+        failedRecordDeletes[recordID] = error
+      case .failure:
+        fatalError("Mocks should only raise 'CKError' values.")
+      }
+    }
+
+    state.remove(
+      pendingRecordZoneChanges: savedRecords.map { .saveRecord($0.recordID) }
+      + recordIDsSkipped.map { .saveRecord($0) }
+    )
+    state.remove(
+      pendingRecordZoneChanges: deletedRecordIDs.map { .deleteRecord($0) }
+    )
+
+    await delegate
+      .handleEvent(
+        .sentRecordZoneChanges(
+          savedRecords: savedRecords,
+          failedRecordSaves: failedRecordSaves,
+          deletedRecordIDs: deletedRecordIDs,
+          failedRecordDeletes: failedRecordDeletes
+        ),
+        syncEngine: self
+      )
 
     return CKSyncEngine.RecordZoneChangeBatch(
       recordsToSave: recordsToSave,
@@ -76,7 +129,7 @@ final class MockSyncEngine: SyncEngineProtocol {
   }
 
   func assertFetchChangesScopes(
-    _ scopes: Set<CKSyncEngine.FetchChangesOptions.Scope>,
+    _ scopes: [CKSyncEngine.FetchChangesOptions.Scope],
     fileID: StaticString = #fileID,
     filePath: StaticString = #filePath,
     line: UInt = #line,
@@ -121,9 +174,9 @@ final class MockSyncEngine: SyncEngineProtocol {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectable {
-  private let _pendingRecordZoneChanges = LockIsolated<Set<CKSyncEngine.PendingRecordZoneChange>>([]
+  private let _pendingRecordZoneChanges = LockIsolated<OrderedSet<CKSyncEngine.PendingRecordZoneChange>>([]
   )
-  private let _pendingDatabaseChanges = LockIsolated<Set<CKSyncEngine.PendingDatabaseChange>>([])
+  private let _pendingDatabaseChanges = LockIsolated<OrderedSet<CKSyncEngine.PendingDatabaseChange>>([])
   private let fileID: StaticString
   private let filePath: StaticString
   private let line: UInt
@@ -142,7 +195,7 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
   }
 
   func assertPendingRecordZoneChanges(
-    _ changes: Set<CKSyncEngine.PendingRecordZoneChange>,
+    _ changes: OrderedSet<CKSyncEngine.PendingRecordZoneChange>,
     fileID: StaticString = #fileID,
     filePath: StaticString = #filePath,
     line: UInt = #line,
@@ -150,8 +203,8 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
   ) {
     _pendingRecordZoneChanges.withValue {
       expectNoDifference(
-        changes,
-        $0,
+        Set(changes),
+        Set($0),
         fileID: fileID,
         filePath: filePath,
         line: line,
@@ -162,7 +215,7 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
   }
 
   func assertPendingDatabaseChanges(
-    _ changes: Set<CKSyncEngine.PendingDatabaseChange>,
+    _ changes: OrderedSet<CKSyncEngine.PendingDatabaseChange>,
     fileID: StaticString = #fileID,
     filePath: StaticString = #filePath,
     line: UInt = #line,
@@ -170,8 +223,8 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
   ) {
     _pendingDatabaseChanges.withValue {
       expectNoDifference(
-        changes,
-        $0,
+        Set(changes),
+        Set($0),
         fileID: fileID,
         filePath: filePath,
         line: line,
@@ -187,7 +240,7 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
 
   func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
     self._pendingRecordZoneChanges.withValue {
-      $0.formUnion(pendingRecordZoneChanges)
+      $0.append(contentsOf: pendingRecordZoneChanges)
     }
   }
   func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
@@ -197,7 +250,7 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
   }
   func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
     self._pendingDatabaseChanges.withValue {
-      $0.formUnion(pendingDatabaseChanges)
+      $0.append(contentsOf: pendingDatabaseChanges)
     }
   }
   func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
@@ -227,8 +280,8 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
   }
 }
 
-actor MockCloudDatabase: CloudDatabase {
-  var storage: [CKRecord.ID: CKRecord] = [:]
+final class MockCloudDatabase: CloudDatabase {
+  let storage = LockIsolated<[CKRecord.ID: CKRecord]>([:])
   let databaseScope: CKDatabase.Scope
 
   struct RecordNotFound: Error {}
@@ -240,14 +293,16 @@ actor MockCloudDatabase: CloudDatabase {
   func record(for recordID: CKRecord.ID) throws -> CKRecord {
     guard let record = storage[recordID]
     else { throw RecordNotFound() }
+    guard let record = record.copy() as? CKRecord
+    else { fatalError("Could not copy CKRecord.") }
     return record
   }
 
   func records(
     for ids: [CKRecord.ID],
     desiredKeys: [CKRecord.FieldKey]?
-  ) throws -> [CKRecord.ID : Result<CKRecord, any Error>] {
-    var results: [CKRecord.ID : Result<CKRecord, any Error>] = [:]
+  ) throws -> [CKRecord.ID: Result<CKRecord, any Error>] {
+    var results: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
     for id in ids {
       results[id] = Result { try record(for: id) }
     }
@@ -255,28 +310,92 @@ actor MockCloudDatabase: CloudDatabase {
   }
 
   func modifyRecords(
-    saving recordsToSave: [CKRecord],
-    deleting recordIDsToDelete: [CKRecord.ID],
-    savePolicy: CKModifyRecordsOperation.RecordSavePolicy,
-    atomically: Bool
+    saving recordsToSave: [CKRecord] = [],
+    deleting recordIDsToDelete: [CKRecord.ID] = [],
+    savePolicy: CKModifyRecordsOperation.RecordSavePolicy = .ifServerRecordUnchanged,
+    atomically: Bool = true
   ) -> (
-    saveResults: [CKRecord.ID : Result<CKRecord, any Error>],
-    deleteResults: [CKRecord.ID : Result<Void, any Error>]
+    saveResults: [CKRecord.ID: Result<CKRecord, any Error>],
+    deleteResults: [CKRecord.ID: Result<Void, any Error>]
   ) {
-    for recordToSave in recordsToSave {
-      storage[recordToSave.recordID] = recordToSave
+    storage.withValue { storage in
+      var saveResults: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
+      var deleteResults: [CKRecord.ID: Result<Void, any Error>] = [:]
+
+      switch savePolicy {
+      case .ifServerRecordUnchanged:
+        for recordToSave in recordsToSave {
+          let existingRecord = storage[recordToSave.recordID]
+
+          func saveRecordToDatabase() {
+            guard let copy = recordToSave.copy() as? CKRecord
+            else { fatalError("Could not copy CKRecord.") }
+            copy._recordChangeTag = UUID().uuidString
+            storage[recordToSave.recordID] = copy
+            saveResults[recordToSave.recordID] = .success(copy)
+          }
+
+          switch (existingRecord, recordToSave._recordChangeTag) {
+          case (.some(let existingRecord), .some(let recordToSaveChangeTag)):
+            // We are trying to save a record with a change tag that also already exists in the
+            // DB. If the tags match, we can save the record. Otherwise, we notify the sync engine
+            // that the server record has changed since it was last synced.
+            if existingRecord._recordChangeTag == recordToSaveChangeTag {
+              precondition(existingRecord._recordChangeTag != nil)
+              saveRecordToDatabase()
+            } else {
+              saveResults[recordToSave.recordID] = .failure(
+                CKError(
+                  .serverRecordChanged,
+                  userInfo: [
+                    CKRecordChangedErrorServerRecordKey: existingRecord as Any,
+                    CKRecordChangedErrorClientRecordKey: recordToSave,
+                  ]
+                )
+              )
+            }
+            break
+          case (.some(let existingRecord), .none):
+            // We are trying to save a record that does not have a change tag yet also already
+            // exists in the DB. This means the user has created a new CKRecord from scratch,
+            // giving it a new identity, rather than leveraging an existing CKRecord.
+            Issue.record(
+              """
+              A new identity was created for an existing 'CKRecord'. Rather than creating
+              'CKRecord' from scratch for an existing record, use the database to fetch the
+              current record.
+              """
+            )
+            saveResults[recordToSave.recordID] = .failure(
+              CKError(
+                .serverRejectedRequest,
+                userInfo: [
+                  CKRecordChangedErrorServerRecordKey: existingRecord as Any,
+                  CKRecordChangedErrorClientRecordKey: recordToSave,
+                ]
+              )
+            )
+          case (.none, .some):
+            // We are trying to save a record with a change tag but it does not exist in the DB.
+            // This means the record was deleted by another device.
+            saveResults[recordToSave.recordID] = .failure(CKError(.unknownItem))
+          case (.none, .none):
+            // We are trying to save a record with no change tag and no existing record in the DB.
+            // This means it's a brand new record.
+            saveRecordToDatabase()
+          }
+        }
+      case .allKeys, .changedKeys:
+        fatalError()
+      @unknown default:
+        fatalError()
+      }
+      for recordIDToDelete in recordIDsToDelete {
+        storage[recordIDToDelete] = nil
+        deleteResults[recordIDToDelete] = .success(())
+      }
+      return (saveResults: saveResults, deleteResults: deleteResults)
     }
-    for recordIDToDelete in recordIDsToDelete {
-      storage[recordIDToDelete] = nil
-    }
-    return (
-      saveResults: Dictionary(
-        uniqueKeysWithValues: recordsToSave.map { ($0.recordID, .success($0)) }
-      ),
-      deleteResults: Dictionary(
-        uniqueKeysWithValues: recordIDsToDelete.map { ($0, .success(())) }
-      )
-    )
   }
 
   nonisolated static func == (lhs: MockCloudDatabase, rhs: MockCloudDatabase) -> Bool {
@@ -285,6 +404,25 @@ actor MockCloudDatabase: CloudDatabase {
 
   nonisolated func hash(into hasher: inout Hasher) {
     hasher.combine(ObjectIdentifier(self))
+  }
+}
+
+extension MockCloudDatabase: CustomDumpReflectable {
+  var customDumpMirror: Mirror {
+    Mirror(
+      self,
+      children: [
+        "databaseScope": databaseScope,
+        "storage": storage
+          .value
+          .sorted {
+            ($0.value.recordType, $0.value.recordID.recordName)
+            < ($1.value.recordType, $1.value.recordID.recordName)
+          }
+          .map(\.value),
+      ],
+      displayStyle: .struct
+    )
   }
 }
 
@@ -305,12 +443,47 @@ final class MockCloudContainer: CloudContainer {
     fatalError()
   }
 
+  func accept(_ metadata: CKShare.Metadata) async throws -> CKShare {
+    fatalError()
+  }
+
+  func createContainer(identifier containerIdentifier: String) -> Self {
+    @Dependency(\.mockCloudContainers) var mockCloudContainers
+    return mockCloudContainers.withValue { storage in
+      let container =
+      storage[containerIdentifier]
+      ?? MockCloudContainer(
+        privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+        sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+      )
+      storage[containerIdentifier] = container
+      // TODO: possible to work around?
+      return container as! Self
+    }
+  }
+
   static func == (lhs: MockCloudContainer, rhs: MockCloudContainer) -> Bool {
     lhs === rhs
   }
 
   func hash(into hasher: inout Hasher) {
     hasher.combine(ObjectIdentifier(self))
+  }
+}
+
+private enum MockCloudContainersKey: TestDependencyKey {
+  static var testValue: LockIsolated<[String: MockCloudContainer]> {
+    LockIsolated<[String: MockCloudContainer]>([:])
+  }
+}
+extension DependencyValues {
+  var mockCloudContainers: LockIsolated<[String: MockCloudContainer]> {
+    get {
+      self[MockCloudContainersKey.self]
+    }
+    set {
+      self[MockCloudContainersKey.self] = newValue
+    }
   }
 }
 
@@ -346,37 +519,5 @@ private func comparePendingDatabaseChange(
     false
   default:
     false
-  }
-}
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension CKSyncEngine.FetchChangesOptions.Scope: @retroactive Hashable {
-  public static func == (lhs: Self, rhs: Self) -> Bool {
-    switch (lhs, rhs) {
-    case (.all, .all):
-      return true
-    case (.allExcluding(let lhs), .allExcluding(let rhs)):
-      return lhs == rhs
-    case (.zoneIDs(let lhs), .zoneIDs(let rhs)):
-      return lhs == rhs
-    case (.all, _), (.allExcluding, _), (.zoneIDs, _):
-      return false
-    @unknown default:
-      return false
-    }
-  }
-  public func hash(into hasher: inout Hasher) {
-    switch self {
-    case .all:
-      hasher.combine(0)
-    case .allExcluding(let zoneIDs):
-      hasher.combine(1)
-      hasher.combine(zoneIDs)
-    case .zoneIDs(let zoneIDs):
-      hasher.combine(2)
-      hasher.combine(zoneIDs)
-    @unknown default:
-      hasher.combine(3)
-    }
   }
 }

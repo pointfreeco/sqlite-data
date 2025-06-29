@@ -2,6 +2,7 @@ import CloudKit
 import CustomDump
 import Foundation
 import InlineSnapshotTesting
+import OrderedCollections
 import SharingGRDB
 import SnapshotTestingCustomDump
 import Testing
@@ -19,7 +20,7 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(3), title: "Haircut", remindersListID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1))),
         .saveRecord(Reminder.recordID(for: UUID(1))),
         .saveRecord(Reminder.recordID(for: UUID(2))),
@@ -31,7 +32,7 @@ extension BaseCloudKitTests {
       try database.read { db in
         try #expect(Reminder.all.fetchAll(db) == [])
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .deleteRecord(RemindersList.recordID(for: UUID(1))),
         .deleteRecord(Reminder.recordID(for: UUID(1))),
         .deleteRecord(Reminder.recordID(for: UUID(2))),
@@ -47,7 +48,7 @@ extension BaseCloudKitTests {
           ChildWithOnDeleteSetNull(id: UUID(1), parentID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(Parent.recordID(for: UUID(1))),
         .saveRecord(ChildWithOnDeleteSetNull.recordID(for: UUID(1))),
       ])
@@ -62,7 +63,7 @@ extension BaseCloudKitTests {
           ]
         )
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .deleteRecord(Parent.recordID(for: UUID(1))),
         .saveRecord(ChildWithOnDeleteSetNull.recordID(for: UUID(1))),
       ])
@@ -78,7 +79,7 @@ extension BaseCloudKitTests {
           Reminder(id: UUID(4), title: "Haircut", remindersListID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(1))),
         .saveRecord(Reminder.recordID(for: UUID(2))),
         .saveRecord(Reminder.recordID(for: UUID(3))),
@@ -97,7 +98,7 @@ extension BaseCloudKitTests {
           ]
         )
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(RemindersList.recordID(for: UUID(9))),
         .saveRecord(Reminder.recordID(for: UUID(2))),
         .saveRecord(Reminder.recordID(for: UUID(3))),
@@ -113,7 +114,7 @@ extension BaseCloudKitTests {
           ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(Parent.recordID(for: UUID(1))),
         .saveRecord(ChildWithOnDeleteRestrict.recordID(for: UUID(1))),
       ])
@@ -143,7 +144,7 @@ extension BaseCloudKitTests {
           ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
+      syncEngine.private.state.assertPendingRecordZoneChanges([
         .saveRecord(Parent.recordID(for: UUID(1))),
         .saveRecord(ChildWithOnDeleteRestrict.recordID(for: UUID(1))),
       ])
