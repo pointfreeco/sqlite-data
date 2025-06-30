@@ -8,8 +8,11 @@ extension CKRecord {
     public let queryOutput: CKRecord
 
     public var queryBinding: QueryBinding {
-      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
+      let archiver = NSKeyedArchiver(requiringSecureCoding: !isTesting)
       queryOutput.encodeSystemFields(with: archiver)
+      if isTesting {
+        archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
+      }
       return archiver.encodedData.queryBinding
     }
 
@@ -22,9 +25,12 @@ extension CKRecord {
         throw QueryDecodingError.missingRequiredColumn
       }
       let coder = try NSKeyedUnarchiver(forReadingFrom: data)
-      coder.requiresSecureCoding = true
+      coder.requiresSecureCoding = !isTesting
       guard let queryOutput = CKRecord(coder: coder) else {
         throw DecodingError()
+      }
+      if isTesting {
+        queryOutput._recordChangeTag = coder.decodeObject(forKey: "_recordChangeTag") as? String
       }
       self.init(queryOutput: queryOutput)
     }
@@ -67,6 +73,27 @@ extension CKRecord? {
 
 extension CKShare? {
   public typealias ShareDataRepresentation = CKShare.ShareDataRepresentation?
+}
+
+extension CKDatabase.Scope {
+  public struct RawValueRepresentation: QueryBindable, QueryRepresentable {
+    public let queryOutput: CKDatabase.Scope
+    public var queryBinding: QueryBinding {
+      queryOutput.rawValue.queryBinding
+    }
+    public init(queryOutput: CKDatabase.Scope) {
+      self.queryOutput = queryOutput
+    }
+    public init(decoder: inout some QueryDecoder) throws {
+      guard
+        let rawValue = try Int?(decoder: &decoder),
+        let scope = CKDatabase.Scope(rawValue: rawValue)
+      else {
+        throw QueryDecodingError.missingRequiredColumn
+      }
+      self.init(queryOutput: scope)
+    }
+  }
 }
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
@@ -148,79 +175,10 @@ extension __CKRecordObjCValue {
 
 private struct Unbindable: Error {}
 
-// TODO: Move to custom-dump?
-@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
-extension CKRecord: @retroactive CustomDumpReflectable {
-  public var customDumpMirror: Mirror {
-    return Mirror(
-      self,
-      children: [
-        ("recordID", recordID as Any),
-        ("recordType", recordType as Any),
-        ("share", share as Any),
-        ("parent", parent as Any),
-      ] + self.encryptedValues.allKeys().sorted().map {
-        ($0, self.encryptedValues[$0] as Any)
-      },
-      displayStyle: .struct
-    )
-  }
-}
-
-extension CKRecord.Reference: @retroactive CustomDumpReflectable {
-  public var customDumpMirror: Mirror {
-    return Mirror(
-      self,
-      children: [
-        ("recordID", recordID as Any),
-      ],
-      displayStyle: .struct
-    )
-  }
-}
-
-@available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
-extension CKSyncEngine.RecordZoneChangeBatch: @retroactive CustomDumpReflectable {
-  public var customDumpMirror: Mirror {
-    Mirror(
-      self,
-      children: [
-        ("atomicByZone", atomicByZone as Any),
-        ("recordIDsToDelete", recordIDsToDelete.sorted { lhs, rhs in
-          lhs.recordName < rhs.recordName
-        } as Any),
-        ("recordsToSave", recordsToSave.sorted { lhs, rhs in
-          lhs.recordID.recordName < rhs.recordID.recordName
-        } as Any),
-      ],
-      displayStyle: .struct
-    )
-  }
-}
-
-extension CKRecord.ID: @retroactive CustomDumpReflectable {
-  public var customDumpMirror: Mirror {
-    Mirror(
-      self,
-      children: [
-        "recordName": recordName,
-        "zoneID": zoneID,
-      ],
-      displayStyle: .struct
-    )
-  }
-}
-
-extension CKRecordZone.ID: @retroactive CustomDumpReflectable {
-  public var customDumpMirror: Mirror {
-    Mirror(
-      self,
-      children: [
-        "zoneName": zoneName,
-        "ownerName": ownerName,
-      ],
-      displayStyle: .struct
-    )
+extension CKRecord {
+  package var _recordChangeTag: String? {
+    get { self[#function] }
+    set { self[#function] = newValue }
   }
 }
 #endif

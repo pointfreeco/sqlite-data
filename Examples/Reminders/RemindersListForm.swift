@@ -86,6 +86,7 @@ struct RemindersListForm: View {
                   reportIssue("No 'remindersListID'")
                   return
                 }
+                // TODO: would be nice to have UNIQUE constraint on RemindersListAsset.remindersListID
                 let existingAsset = try RemindersListAsset
                   .where { $0.remindersListID.eq(remindersListID) }
                   .fetchOne(db)

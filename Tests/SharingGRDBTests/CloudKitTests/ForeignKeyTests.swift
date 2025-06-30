@@ -2,6 +2,7 @@ import CloudKit
 import CustomDump
 import Foundation
 import InlineSnapshotTesting
+import OrderedCollections
 import SharingGRDB
 import SnapshotTestingCustomDump
 import Testing
@@ -10,51 +11,134 @@ extension BaseCloudKitTests {
   @MainActor
   final class ForeignKeyTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func deleteCascade() throws {
-      try database.write { db in
+    @Test func deleteCascade() async throws {
+      try await database.asyncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
           Reminder(id: UUID(2), title: "Walk", remindersListID: UUID(1))
-          Reminder(id: UUID(3), title: "Haircut", remindersListID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1))),
-        .saveRecord(Reminder.recordID(for: UUID(1))),
-        .saveRecord(Reminder.recordID(for: UUID(2))),
-        .saveRecord(Reminder.recordID(for: UUID(3))),
-      ])
-      try database.write { db in
+
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                title: "Groceries",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(2:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000002",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                title: "Walk",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [2]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try await database.asyncWrite { db in
         try RemindersList.find(UUID(1)).delete().execute(db)
       }
-      try database.read { db in
+      try await database.read { db in
         try #expect(Reminder.all.fetchAll(db) == [])
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .deleteRecord(RemindersList.recordID(for: UUID(1))),
-        .deleteRecord(Reminder.recordID(for: UUID(1))),
-        .deleteRecord(Reminder.recordID(for: UUID(2))),
-        .deleteRecord(Reminder.recordID(for: UUID(3))),
-      ])
+
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func deleteSetNull() throws {
-      try database.write { db in
+    @Test func deleteSetNull() async throws {
+      try await database.asyncWrite { db in
         try db.seed {
           Parent(id: UUID(1))
           ChildWithOnDeleteSetNull(id: UUID(1), parentID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(Parent.recordID(for: UUID(1))),
-        .saveRecord(ChildWithOnDeleteSetNull.recordID(for: UUID(1))),
-      ])
-      try database.write { db in
+
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:childWithOnDeleteSetNulls/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "childWithOnDeleteSetNulls",
+                parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                parentID: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "parents",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try await database.asyncWrite { db in
         try Parent.find(UUID(1)).delete().execute(db)
       }
-      try database.read { db in
+      try await database.read { db in
         try expectNoDifference(
           ChildWithOnDeleteSetNull.all.fetchAll(db),
           [
@@ -62,32 +146,95 @@ extension BaseCloudKitTests {
           ]
         )
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .deleteRecord(Parent.recordID(for: UUID(1))),
-        .saveRecord(ChildWithOnDeleteSetNull.recordID(for: UUID(1))),
-      ])
+
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:childWithOnDeleteSetNulls/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "childWithOnDeleteSetNulls",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func updateCascade() throws {
-      try database.write { db in
+    @Test func updateCascade() async throws {
+      try await database.asyncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
           Reminder(id: UUID(3), title: "Walk", remindersListID: UUID(1))
-          Reminder(id: UUID(4), title: "Haircut", remindersListID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(1))),
-        .saveRecord(Reminder.recordID(for: UUID(2))),
-        .saveRecord(Reminder.recordID(for: UUID(3))),
-        .saveRecord(Reminder.recordID(for: UUID(4))),
-      ])
-      try database.write { db in
+
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(2:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000002",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                title: "Groceries",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(3:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000003",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                title: "Walk",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [2]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try await database.asyncWrite { db in
         try RemindersList.find(UUID(1)).update { $0.id = UUID(9) }.execute(db)
       }
-      try database.read { db in
+      try await database.read { db in
         try expectNoDifference(
           Reminder.all.fetchAll(db),
           [
@@ -97,56 +244,200 @@ extension BaseCloudKitTests {
           ]
         )
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(RemindersList.recordID(for: UUID(9))),
-        .saveRecord(Reminder.recordID(for: UUID(2))),
-        .saveRecord(Reminder.recordID(for: UUID(3))),
-        .saveRecord(Reminder.recordID(for: UUID(4))),
-      ])
-    }
 
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func deleteRestrict() throws {
-      try database.write { db in
-        try db.seed {
-          Parent(id: UUID(1))
-          ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
-        }
-      }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(Parent.recordID(for: UUID(1))),
-        .saveRecord(ChildWithOnDeleteRestrict.recordID(for: UUID(1))),
-      ])
-      do {
-        let error = #expect(throws: DatabaseError.self) {
-          try self.database.write { db in
-            try Parent.find(UUID(1)).delete().execute(db)
-          }
-        }
-        #expect(try #require(error).localizedDescription.contains("FOREIGN KEY constraint failed"))
-        try database.read { db in
-          try expectNoDifference(
-            ChildWithOnDeleteRestrict.all.fetchAll(db),
-            [
-              ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(2:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(9:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000002",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000009",
+                title: "Groceries",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(3:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(9:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000003",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000009",
+                title: "Walk",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [2]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [3]: CKRecord(
+                recordID: CKRecord.ID(9:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000009",
+                title: "Personal",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
             ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
           )
-        }
+        )
+        """
       }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func updateRestrict() throws {
-      try database.write { db in
+    @Test func deleteRestrict() async throws {
+      try await database.asyncWrite { db in
         try db.seed {
           Parent(id: UUID(1))
           ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
         }
       }
-      privateSyncEngine.state.assertPendingRecordZoneChanges([
-        .saveRecord(Parent.recordID(for: UUID(1))),
-        .saveRecord(ChildWithOnDeleteRestrict.recordID(for: UUID(1))),
-      ])
+
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:childWithOnDeleteRestricts/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "childWithOnDeleteRestricts",
+                parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                parentID: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "parents",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      let error = #expect(throws: DatabaseError.self) {
+        try self.database.write { db in
+          try Parent.find(UUID(1)).delete().execute(db)
+        }
+      }
+      #expect(try #require(error).localizedDescription.contains("FOREIGN KEY constraint failed"))
+      try await database.read { db in
+        try expectNoDifference(
+          ChildWithOnDeleteRestrict.all.fetchAll(db),
+          [
+            ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
+          ]
+        )
+      }
+      
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:childWithOnDeleteRestricts/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "childWithOnDeleteRestricts",
+                parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                parentID: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "parents",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func updateRestrict() async throws {
+      try await database.asyncWrite { db in
+        try db.seed {
+          Parent(id: UUID(1))
+          ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
+        }
+      }
+
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:childWithOnDeleteRestricts/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "childWithOnDeleteRestricts",
+                parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                parentID: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "parents",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
 
       let error = #expect(throws: DatabaseError.self) {
         try self.database.write { db in
@@ -154,13 +445,47 @@ extension BaseCloudKitTests {
         }
       }
       #expect(try #require(error).localizedDescription.contains("FOREIGN KEY constraint failed"))
-      try database.read { db in
+      try await database.read { db in
         try expectNoDifference(
           ChildWithOnDeleteRestrict.all.fetchAll(db),
           [
             ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
           ]
         )
+      }
+
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:childWithOnDeleteRestricts/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "childWithOnDeleteRestricts",
+                parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                parentID: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "parents",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
       }
     }
   }

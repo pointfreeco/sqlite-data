@@ -21,27 +21,28 @@ extension BaseCloudKitTests {
           reminder
         }
       }
-      _ = await syncEngine.nextRecordZoneChangeBatch(syncEngine: privateSyncEngine)
 
-      let personalListRecord = CKRecord(
-        recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: UUID(1))
+      await syncEngine.processBatch()
+
+      let personalListRecord = try syncEngine.private.database.record(
+        for: RemindersList.recordID(for: UUID(1))
       )
-      personalListRecord.update(with: personalList, userModificationDate: Date())
+      personalListRecord.userModificationDate = Date()
       personalListRecord.encryptedValues["position"] = 1
-      let businessListRecord = CKRecord(
-        recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: UUID(2))
+
+      let businessListRecord = try syncEngine.private.database.record(
+        for: RemindersList.recordID(for: UUID(2))
       )
-      businessListRecord.update(with: businessList, userModificationDate: Date())
+      businessListRecord.userModificationDate = Date()
       businessListRecord.encryptedValues["position"] = 2
-      let reminderRecord = CKRecord(
-        recordType: Reminder.tableName,
-        recordID: Reminder.recordID(for: UUID(1))
+
+      let reminderRecord = try syncEngine.private.database.record(
+        for: Reminder.recordID(for: UUID(1))
       )
-      reminderRecord.update(with: reminder, userModificationDate: Date())
+      reminderRecord.userModificationDate = Date()
       reminderRecord.encryptedValues["position"] = 3
-      _ = await privateSyncEngine.database.modifyRecords(
+
+      _ = syncEngine.private.database.modifyRecords(
         saving: [personalListRecord, businessListRecord, reminderRecord],
         deleting: [],
         savePolicy: .ifServerRecordUnchanged,
@@ -66,7 +67,7 @@ extension BaseCloudKitTests {
       }
 
       try await syncEngine.setUpSyncEngine()
-      let batch = await syncEngine.nextRecordZoneChangeBatch(syncEngine: privateSyncEngine)
+      let batch = await syncEngine.nextRecordZoneChangeBatch(syncEngine: syncEngine.private)
       #expect(batch == nil)
 
       let remindersLists = try await database.read { db in

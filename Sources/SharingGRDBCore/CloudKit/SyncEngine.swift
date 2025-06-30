@@ -15,17 +15,17 @@
 
     let database: any DatabaseWriter
     let logger: Logger
-    let metadatabase: any DatabaseReader
+    package let metadatabase: any DatabaseReader
     let tables: [any PrimaryKeyedTable<UUID>.Type]
     let privateTables: [any PrimaryKeyedTable<UUID>.Type]
     let tablesByName: [String: any PrimaryKeyedTable<UUID>.Type]
     private let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
-    let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
+    package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
     let defaultSyncEngines:
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
-    let container: any CloudContainer
+    package let container: any CloudContainer
 
     public convenience init(
       container: CKContainer,
@@ -42,7 +42,10 @@
               CKSyncEngine.Configuration(
                 database: container.privateCloudDatabase,
                 stateSerialization: try? metadatabase.read { db in
-                  try StateSerialization.find(CKDatabase.Scope.private).select(\.data).fetchOne(db)
+                  try StateSerialization
+                    .find(BindQueryExpression(CKDatabase.Scope.private))
+                    .select(\.data)
+                    .fetchOne(db)
                 },
                 delegate: syncEngine
               )
@@ -51,7 +54,10 @@
               CKSyncEngine.Configuration(
                 database: container.sharedCloudDatabase,
                 stateSerialization: try? metadatabase.read { db in
-                  try StateSerialization.find(CKDatabase.Scope.shared).select(\.data).fetchOne(db)
+                  try StateSerialization
+                    .find(BindQueryExpression(CKDatabase.Scope.shared))
+                    .select(\.data)
+                    .fetchOne(db)
                 },
                 delegate: syncEngine
               )
@@ -70,28 +76,7 @@
       )
     }
 
-    package convenience init(
-      container: any CloudContainer,
-      privateSyncEngine: any SyncEngineProtocol,
-      sharedSyncEngine: any SyncEngineProtocol,
-      database: any DatabaseWriter,
-      metadatabaseURL: URL,
-      tables: [any PrimaryKeyedTable<UUID>.Type],
-      privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
-    ) async throws {
-      try self.init(
-        container: container,
-        defaultSyncEngines: { _, _ in (privateSyncEngine, sharedSyncEngine) },
-        database: database,
-        logger: Logger(.disabled),
-        metadatabaseURL: metadatabaseURL,
-        tables: tables,
-        privateTables: privateTables
-      )
-      try await setUpSyncEngine(database: database, metadatabase: metadatabase)?.value
-    }
-
-    private init(
+    package init(
       container: any CloudContainer,
       defaultSyncEngines: @escaping @Sendable (
         any DatabaseReader,
@@ -116,8 +101,9 @@
       self.database = database
       self.logger = logger
       self.metadatabase = try defaultMetadatabase(logger: logger, url: metadatabaseURL)
-      self.tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
+      let tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
         .map(\.type)
+      self.tables = tables
       self.privateTables = privateTables
       self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
       self.foreignKeysByTableName = Dictionary(
@@ -141,7 +127,7 @@
       try await setUpSyncEngine(database: database, metadatabase: metadatabase)?.value
     }
 
-    nonisolated func setUpSyncEngine(
+    nonisolated package func setUpSyncEngine(
       database: any DatabaseWriter,
       metadatabase: any DatabaseReader
     ) throws -> Task<Void, Never>? {
@@ -249,8 +235,6 @@
       // TODO: do batches for sake of CKDatabase
       //       only docs we found was about modifies: https://developer.apple.com/documentation/cloudkit/ckmodifyrecordsoperation
       //       recommends limiting to <400 records and <2mb data posted
-      // TODO: Should we do this in batches now that we save the full 'lastKnowServerRecord'?
-      // TODO: Or should we denormalize zoneID into the metadata table for easy access?
       let lastKnownServerRecords = try await metadatabase.read { db in
         try SyncMetadata
           .where {
@@ -363,6 +347,28 @@
         ]
       )
     }
+
+    package func acceptShare(metadata: ShareMetadata) async throws {
+      guard let metadata = metadata.rawValue
+      else {
+        reportIssue("TODO")
+        return
+      }
+      guard let rootRecordID = metadata.hierarchicalRootRecordID
+      else {
+        reportIssue("TODO")
+        return
+      }
+      let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
+      // TODO: do something with the CKShare returned?
+      _ = try await container.accept(metadata)
+      try await syncEngines.shared?.fetchChanges(
+        .init(
+          scope: .zoneIDs([rootRecordID.zoneID]),
+          operationGroup: nil
+        )
+      )
+    }
   }
 
   extension PrimaryKeyedTable<UUID> {
@@ -408,7 +414,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension SyncEngine: CKSyncEngineDelegate {
+  extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
     public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
       guard let event = Event(event)
       else {
@@ -423,17 +429,22 @@
 
       switch event {
       case .accountChange(let changeType):
-        await handleAccountChange(changeType: changeType)
+        await handleAccountChange(changeType: changeType, syncEngine: syncEngine)
       case .stateUpdate(let stateSerialization):
         handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
       case .fetchedDatabaseChanges(let modifications, let deletions):
-        handleFetchedDatabaseChanges(modifications: modifications, deletions: deletions)
+        handleFetchedDatabaseChanges(
+          modifications: modifications,
+          deletions: deletions,
+          syncEngine: syncEngine
+        )
       case .sentDatabaseChanges:
         break
       case .fetchedRecordZoneChanges(let modifications, let deletions):
         await handleFetchedRecordZoneChanges(
           modifications: modifications,
-          deletions: deletions
+          deletions: deletions,
+          syncEngine: syncEngine
         )
       case .sentRecordZoneChanges(
         let savedRecords,
@@ -441,7 +452,7 @@
         let deletedRecordIDs,
         let failedRecordDeletes
       ):
-        handleSentRecordZoneChanges(
+        await handleSentRecordZoneChanges(
           savedRecords: savedRecords,
           failedRecordSaves: failedRecordSaves,
           deletedRecordIDs: deletedRecordIDs,
@@ -478,7 +489,7 @@
 
       let changes = allChanges.sorted { lhs, rhs in
         switch (lhs, rhs) {
-        case (.saveRecord(let lhs), .saveRecord(let rhs)):
+        case (.saveRecord, .saveRecord):
           return true
         case (.deleteRecord(let lhs), .deleteRecord(let rhs)):
           guard
@@ -551,7 +562,7 @@
 
         guard
           let recordName = SyncMetadata.RecordName(recordID: recordID),
-          let metadata = metadataFor(recordName: recordName)
+          let metadata = await metadataFor(recordName: recordName)
         else {
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           return nil
@@ -598,7 +609,7 @@
             with: T(queryOutput: row),
             userModificationDate: metadata.userModificationDate
           )
-          refreshLastKnownServerRecord(record)
+          await refreshLastKnownServerRecord(record)
           sentRecord = recordID
           return record
         }
@@ -607,8 +618,10 @@
       return batch
     }
 
-    package func handleAccountChange(changeType: CKSyncEngine.Event.AccountChange.ChangeType) async
-    {
+    package func handleAccountChange(
+      changeType: CKSyncEngine.Event.AccountChange.ChangeType,
+      syncEngine: any SyncEngineProtocol
+    ) async {
       switch changeType {
       case .signIn:
         syncEngines.withValue {
@@ -625,18 +638,16 @@
               }
               return try open(table)
             }
-            syncEngines.withValue {
-              $0.private?.state.add(
-                pendingRecordZoneChanges: recordNames.map {
-                  .saveRecord(
-                    CKRecord.ID(
-                      recordName: $0.rawValue,
-                      zoneID: Self.defaultZone.zoneID
-                    )
+            syncEngine.state.add(
+              pendingRecordZoneChanges: recordNames.map {
+                .saveRecord(
+                  CKRecord.ID(
+                    recordName: $0.rawValue,
+                    zoneID: Self.defaultZone.zoneID
                   )
-                }
-              )
-            }
+                )
+              }
+            )
           }
         }
       case .signOut, .switchAccounts:
@@ -667,7 +678,8 @@
 
     package func handleFetchedDatabaseChanges(
       modifications: [CKRecordZone.ID],
-      deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)]
+      deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)],
+      syncEngine: any SyncEngineProtocol
     ) {
       // TODO: How to handle this?
       Self.$isUpdatingWithServerRecord.withValue(true) {
@@ -692,7 +704,8 @@
 
     package func handleFetchedRecordZoneChanges(
       modifications: [CKRecord] = [],
-      deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = []
+      deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
+      syncEngine: any SyncEngineProtocol
     ) async {
       await Self.$isUpdatingWithServerRecord.withValue(true) {
         for record in modifications {
@@ -702,10 +715,11 @@
             }
           } else {
             upsertFromServerRecord(record)
-            refreshLastKnownServerRecord(record)
+            await refreshLastKnownServerRecord(record)
           }
           if let shareReference = record.share,
             // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
+            // TODO: could we use 'syncEngine.database' here instead of container?
             let shareRecord = try? await container.database(for: shareReference.recordID)
               .record(for: shareReference.recordID),
             let share = shareRecord as? CKShare
@@ -720,13 +734,6 @@
           if let table = tablesByName[recordType] {
             guard let recordName = SyncMetadata.RecordName(recordID: recordID)
             else {
-              reportIssue(
-                """
-                Received 'recordName' in invalid format: \(recordID.recordName)
-
-                'recordName' should be formatted as "uuid:tableName".
-                """
-              )
               continue
             }
             func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) {
@@ -763,9 +770,9 @@
       deletedRecordIDs: [CKRecord.ID] = [],
       failedRecordDeletes: [CKRecord.ID: CKError] = [:],
       syncEngine: any SyncEngineProtocol
-    ) {
+    ) async {
       for savedRecord in savedRecords {
-        refreshLastKnownServerRecord(savedRecord)
+        await refreshLastKnownServerRecord(savedRecord)
       }
 
       var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
@@ -778,13 +785,6 @@
         let failedRecord = failedRecordSave.record
         guard let recordName = SyncMetadata.RecordName(rawValue: failedRecord.recordID.recordName)
         else {
-          reportIssue(
-            """
-            Attempted to delete record with invalid 'recordName': \(failedRecord.recordID.recordName)
-
-            'recordName' should be formatted as "uuid:tableName".
-            """
-          )
           continue
         }
 
@@ -804,19 +804,22 @@
         switch failedRecordSave.error.code {
         case .serverRecordChanged:
           guard let serverRecord = failedRecordSave.error.serverRecord else { continue }
+          // TODO: do per-field merging here
           upsertFromServerRecord(serverRecord)
-          refreshLastKnownServerRecord(serverRecord)
+          await refreshLastKnownServerRecord(serverRecord)
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
 
         case .zoneNotFound:
           let zone = CKRecordZone(zoneID: failedRecord.recordID.zoneID)
-          // TODO: handle this
-          //newPendingDatabaseChanges.append(.saveZone(zone))
+          newPendingDatabaseChanges.append(.saveZone(zone))
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
           clearServerRecord()
 
         case .unknownItem:
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
+          clearServerRecord()
+
+        case .serverRejectedRequest:
           clearServerRecord()
 
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
@@ -829,8 +832,9 @@
         }
       }
       // TODO: handle event.failedRecordDeletes ? look at apple sample code
+
       if !failedRecordDeletes.isEmpty {
-        print("?!?!?!!?!")
+        print("!!!!")
       }
     }
 
@@ -852,13 +856,6 @@
       else { return }
       guard let recordName = SyncMetadata.RecordName(recordID: rootRecord.recordID)
       else {
-        reportIssue(
-          """
-          Attempted to delete record with invalid 'recordName': \(rootRecord.recordID.recordName)
-
-          'recordName' should be formatted as "uuid:tableName".
-          """
-        )
         return
       }
 
@@ -886,30 +883,23 @@
       }
     }
 
-    private func upsertFromServerRecord(_ record: CKRecord) {
+    private func upsertFromServerRecord(_ serverRecord: CKRecord) {
       Self.$isUpdatingWithServerRecord.withValue(true) {
         withErrorReporting(.sqliteDataCloudKitFailure) {
-          guard let table = tablesByName[record.recordType]
+          guard let table = tablesByName[serverRecord.recordType]
           else {
             // TODO: Should we be reporting this? What if another device makes changes to a table this device doesn't know about?
             reportIssue(
               .sqliteDataCloudKitFailure.appending(
                 """
-                : No table to merge from: "\(record.recordType)"
+                : No table to merge from: "\(serverRecord.recordType)"
                 """
               )
             )
             return
           }
-          guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
+          guard let recordName = SyncMetadata.RecordName(recordID: serverRecord.recordID)
           else {
-            reportIssue(
-              """
-              Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
-
-              'recordName' should be formatted as "uuid:tableName".
-              """
-            )
             return
           }
           let userModificationDate =
@@ -921,7 +911,7 @@
             ?? nil
           guard
             let userModificationDate,
-            userModificationDate > record.userModificationDate ?? .distantPast
+            userModificationDate > serverRecord.userModificationDate ?? .distantPast
           else {
             // TODO: This should be fetched early and held onto (like 'ForeignKey')
             let columnNames = try database.read { db in
@@ -937,11 +927,11 @@
             var query: QueryFragment = "INSERT INTO \(table) ("
             query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
             query.append(") VALUES (")
-            let encryptedValues = record.encryptedValues
+            let encryptedValues = serverRecord.encryptedValues
             query.append(
               columnNames
                 .map { columnName in
-                  if let asset = record[columnName] as? CKAsset {
+                  if let asset = serverRecord[columnName] as? CKAsset {
                     return (try? asset.fileURL.map { try Data(contentsOf: $0) })?
                       .queryFragment ?? "NULL"
                   } else {
@@ -968,7 +958,7 @@
             )
             // TODO: Append more ON CONFLICT clauses for each unique constraint?
             // TODO: Use WHERE to scope the update?
-            guard let metadata = SyncMetadata(record: record)
+            guard let metadata = SyncMetadata(record: serverRecord)
             else {
               reportIssue("???")
               return
@@ -979,8 +969,8 @@
                 .insert {
                   metadata
                 } onConflictDoUpdate: {
-                  $0.lastKnownServerRecord = record
-                  $0.userModificationDate = record.userModificationDate
+                  $0.lastKnownServerRecord = serverRecord
+                  $0.userModificationDate = serverRecord.userModificationDate
                 }
                 .execute(db)
             }
@@ -990,20 +980,13 @@
       }
     }
 
-    private func refreshLastKnownServerRecord(_ record: CKRecord) {
-      Self.$isUpdatingWithServerRecord.withValue(true) {
+    private func refreshLastKnownServerRecord(_ record: CKRecord) async {
+      await Self.$isUpdatingWithServerRecord.withValue(true) {
         guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
         else {
-          reportIssue(
-            """
-            Attempted to delete record with invalid 'recordName': \(record.recordID.recordName)
-
-            'recordName' should be formatted as "uuid:tableName".
-            """
-          )
           return
         }
-        let metadata = metadataFor(recordName: recordName)
+        let metadata = await metadataFor(recordName: recordName)
 
         func updateLastKnownServerRecord() {
           withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -1026,9 +1009,9 @@
       }
     }
 
-    private func metadataFor(recordName: SyncMetadata.RecordName) -> SyncMetadata? {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try metadatabase.read { db in
+    private func metadataFor(recordName: SyncMetadata.RecordName) async -> SyncMetadata? {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await metadatabase.read { db in
           try SyncMetadata.find(recordName).fetchOne(db)
         }
       }
@@ -1084,13 +1067,6 @@
         }
         guard let recordName = SyncMetadata.RecordName(rawValue: recordName)
         else {
-          reportIssue(
-            """
-            Received 'recordName' in invalid format: \(recordName)
-
-            'recordName' should be formatted as "uuid:tableName". 
-            """
-          )
           return nil
         }
         let zoneID = try Data.fromDatabaseValue(arguments[1]).flatMap {
@@ -1130,7 +1106,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  struct SyncEngines {
+  package struct SyncEngines {
     let _private: (any SyncEngineProtocol)?
     let _shared: (any SyncEngineProtocol)?
     init() {
@@ -1141,7 +1117,7 @@
       self._private = `private`
       self._shared = shared
     }
-    var `private`: (any SyncEngineProtocol)? {
+    package var `private`: (any SyncEngineProtocol)? {
       guard let _private
       else {
         reportIssue("Private sync engine has not been set.")
@@ -1149,7 +1125,7 @@
       }
       return _private
     }
-    var `shared`: (any SyncEngineProtocol)? {
+    package var `shared`: (any SyncEngineProtocol)? {
       guard let _shared
       else {
         reportIssue("Shared sync engine has not been set.")
