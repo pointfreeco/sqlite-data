@@ -491,9 +491,7 @@
           return nil
         }
       }
-      .sorted { lhs, rhs in
-        lhs.index > rhs.index
-      }
+      .sorted { lhs, rhs in lhs.index > rhs.index }
       .map(\.change)
 
       #if DEBUG
@@ -1310,8 +1308,8 @@
       }
 
       marked.insert(table)
-      for neighbor in tableDependencies[table] ?? [] {
-        try visit(table: HashablePrimaryKeyedTableType(neighbor))
+      for dependency in tableDependencies[table] ?? [] {
+        try visit(table: HashablePrimaryKeyedTableType(dependency))
       }
       marked.remove(table)
       visited.insert(table)
