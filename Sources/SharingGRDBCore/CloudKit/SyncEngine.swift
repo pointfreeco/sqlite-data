@@ -1303,6 +1303,7 @@
       else { return }
       guard !marked.contains(table)
       else {
+        // TODO: Can possibly allow cycles by assigning all elements in the cycle the same level and forcing "DELETE CASCADE" on the relationships.
         struct CycleError: Error {}
         throw CycleError()
       }
