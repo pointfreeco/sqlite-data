@@ -29,6 +29,7 @@ extension CKRecord {
       }
       /*
        TODO: Find a workaround for this
+       TODO: see if turning off secure coding gets rid of it
        *** -[NSKeyedUnarchiver validateAllowedClass:forKey:] allowed unarchiving safe plist type ''NSString' (0x1f14d83b0) [/System/Library/Frameworks/Foundation.framework]' for key '_recordChangeTag', even though it was not explicitly included in the client allowed classes set: '{(
        )}'. This will be disallowed in the future.
        */

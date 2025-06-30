@@ -7,7 +7,7 @@ package protocol CloudContainer<Database>: AnyObject, Equatable, Hashable, Senda
   var rawValue: CKContainer { get }
   var privateCloudDatabase: Database { get }
   func accept(_ metadata: CKShare.Metadata) async throws -> CKShare
-  func createContainer(identifier containerIdentifier: String) -> Self
+  static func createContainer(identifier containerIdentifier: String) -> Self
   var sharedCloudDatabase: Database { get }
   @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
   func shareMetadata(for url: URL, shouldFetchRootRecord: Bool) async throws -> CKShare.Metadata
@@ -22,7 +22,7 @@ extension CloudContainer {
 }
 
 extension CKContainer: CloudContainer {
-  package func createContainer(identifier containerIdentifier: String) -> Self {
+  package static func createContainer(identifier containerIdentifier: String) -> Self {
     Self(identifier: containerIdentifier)
   }
 

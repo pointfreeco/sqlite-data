@@ -351,7 +351,7 @@
         reportIssue("TODO")
         return
       }
-      let container = container.createContainer(identifier: metadata.containerIdentifier)
+      let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
       // TODO: do something with the CKShare returned?
       _ = try await container.accept(metadata)
       try await syncEngines.shared?.fetchChanges(

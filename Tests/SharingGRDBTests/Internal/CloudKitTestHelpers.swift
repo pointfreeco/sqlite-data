@@ -402,7 +402,7 @@ final class MockCloudContainer: CloudContainer {
     fatalError()
   }
 
-  func createContainer(identifier containerIdentifier: String) -> Self {
+  static func createContainer(identifier containerIdentifier: String) -> Self {
     @Dependency(\.mockCloudContainers) var mockCloudContainers
     return mockCloudContainers.withValue { storage in
       let container =
