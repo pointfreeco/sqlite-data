@@ -1,6 +1,7 @@
 #if canImport(CloudKit)
   import CloudKit
   import ConcurrencyExtras
+  import CustomDump
   import OSLog
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -15,9 +16,10 @@
     let database: any DatabaseWriter
     let logger: Logger
     let metadatabase: any DatabaseReader
-    let tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
-    let privateTables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
-    let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
+    let tables: [any PrimaryKeyedTable<UUID>.Type]
+    let privateTables: [any PrimaryKeyedTable<UUID>.Type]
+    let tablesByName: [String: any PrimaryKeyedTable<UUID>.Type]
+    private let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
     let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
     let defaultSyncEngines:
@@ -114,9 +116,8 @@
       self.database = database
       self.logger = logger
       self.metadatabase = try defaultMetadatabase(logger: logger, url: metadatabaseURL)
-      self.tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init)).map(
-        \.type
-      )
+      self.tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
+        .map(\.type)
       self.privateTables = privateTables
       self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
       self.foreignKeysByTableName = Dictionary(
@@ -128,6 +129,11 @@
             )
           }
         }
+      )
+      tablesByOrder = try SharingGRDBCore.tablesByOrder(
+        database: database,
+        tables: tables,
+        tablesByName: tablesByName
       )
     }
 
@@ -470,30 +476,26 @@
       guard !allChanges.isEmpty
       else { return nil }
 
-      var allChangesByIsDeleted = Dictionary(grouping: allChanges) {
-        switch $0 {
-        case .deleteRecord: true
-        case .saveRecord: false
-        @unknown default: false
+      let changes = allChanges.sorted { lhs, rhs in
+        switch (lhs, rhs) {
+        case (.saveRecord(let lhs), .saveRecord(let rhs)):
+          return true
+        case (.deleteRecord(let lhs), .deleteRecord(let rhs)):
+          guard
+            let lhsRecordName = SyncMetadata.RecordName(rawValue: lhs.recordName),
+            let lhsIndex = tablesByOrder[lhsRecordName.recordType],
+            let rhsRecordName = SyncMetadata.RecordName(rawValue: rhs.recordName),
+            let rhsIndex = tablesByOrder[rhsRecordName.recordType]
+          else { return true }
+          return lhsIndex > rhsIndex
+        case (.saveRecord, .deleteRecord):
+          return false
+        case (.deleteRecord, .saveRecord):
+          return true
+        default:
+          return true
         }
       }
-      // TODO: why did we do this again? can we test it?
-      // TODO: this needs a topological sort to make sure we delete all leaf nodes before parents
-      allChangesByIsDeleted[true]?.reverse()
-      let changes = allChangesByIsDeleted.reduce(into: []) { changes, keyValue in
-        changes += keyValue.value
-      }
-
-      print("didDelete", "pendingDeletes", allChangesByIsDeleted[true]?.compactMap { x -> String? in
-        switch x {
-        case .saveRecord(_):
-          return nil
-        case .deleteRecord(let record):
-          return String(record.recordName.split(separator: ":")[1])
-        @unknown default:
-          return nil
-        }
-      })
 
       #if DEBUG
         struct State {
@@ -1255,11 +1257,67 @@
 
   private struct HashablePrimaryKeyedTableType: Hashable {
     let type: any PrimaryKeyedTable<UUID>.Type
+    init(_ type: any PrimaryKeyedTable<UUID>.Type) {
+      self.type = type
+    }
     func hash(into hasher: inout Hasher) {
       hasher.combine(ObjectIdentifier(type))
     }
     static func == (lhs: Self, rhs: Self) -> Bool {
       lhs.type == rhs.type
+    }
+  }
+
+  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
+  private func tablesByOrder(
+    database: any DatabaseReader,
+    tables: [any PrimaryKeyedTable<UUID>.Type],
+    tablesByName: [String: any PrimaryKeyedTable<UUID>.Type]
+  ) throws -> [String: Int] {
+    let tableDependencies = try database.read { db in
+      var dependencies: [HashablePrimaryKeyedTableType: [any PrimaryKeyedTable<UUID>.Type]] = [:]
+      for table in tables {
+        let toTables = try SQLQueryExpression(
+          """
+          SELECT "table" FROM pragma_foreign_key_list(\(quote: table.tableName, delimiter: .text))
+          """,
+          as: String.self
+        )
+        .fetchAll(db)
+        for toTable in toTables {
+          guard let toTableType = tablesByName[toTable]
+          else { continue }
+          dependencies[HashablePrimaryKeyedTableType(table), default: []].append(toTableType)
+        }
+      }
+      return dependencies
+    }
+
+    var visited = Set<HashablePrimaryKeyedTableType>()
+    var marked = Set<HashablePrimaryKeyedTableType>()
+    var result: [String: Int] = [:]
+    for table in tableDependencies.keys {
+      try visit(table: table)
+    }
+    return result
+
+    func visit(table: HashablePrimaryKeyedTableType) throws {
+      guard !visited.contains(table)
+      else { return }
+      guard !marked.contains(table)
+      else {
+        // TODO: Can possibly allow cycles by assigning all elements in the cycle the same level and forcing "DELETE CASCADE" on the relationships.
+        struct CycleError: Error {}
+        throw CycleError()
+      }
+
+      marked.insert(table)
+      for dependency in tableDependencies[table] ?? [] {
+        try visit(table: HashablePrimaryKeyedTableType(dependency))
+      }
+      marked.remove(table)
+      visited.insert(table)
+      result[table.type.tableName] = result.count
     }
   }
 

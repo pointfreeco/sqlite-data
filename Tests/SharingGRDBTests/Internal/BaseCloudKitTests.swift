@@ -68,7 +68,6 @@ class BaseCloudKitTests: @unchecked Sendable {
         RemindersList.self,
         Tag.self,
         ReminderTag.self,
-        User.self,
         Parent.self,
         ChildWithOnDeleteRestrict.self,
         ChildWithOnDeleteSetNull.self,

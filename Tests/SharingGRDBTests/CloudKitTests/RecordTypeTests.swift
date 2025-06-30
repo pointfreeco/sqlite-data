@@ -37,18 +37,6 @@ extension BaseCloudKitTests {
               """
           ),
           [2]: RecordType(
-            tableName: "users",
-            schema: """
-              CREATE TABLE "users" (
-                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "name" TEXT NOT NULL DEFAULT '',
-                "parentUserID" TEXT,
-              
-                FOREIGN KEY("parentUserID") REFERENCES "users"("id") ON DELETE SET DEFAULT ON UPDATE CASCADE 
-              ) STRICT
-              """
-          ),
-          [3]: RecordType(
             tableName: "reminders",
             schema: """
               CREATE TABLE "reminders" (
@@ -60,7 +48,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [4]: RecordType(
+          [3]: RecordType(
             tableName: "tags",
             schema: """
               CREATE TABLE "tags" (
@@ -69,7 +57,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [5]: RecordType(
+          [4]: RecordType(
             tableName: "reminderTags",
             schema: """
               CREATE TABLE "reminderTags" (
@@ -79,7 +67,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [6]: RecordType(
+          [5]: RecordType(
             tableName: "parents",
             schema: """
               CREATE TABLE "parents"(
@@ -87,7 +75,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [7]: RecordType(
+          [6]: RecordType(
             tableName: "childWithOnDeleteRestricts",
             schema: """
               CREATE TABLE "childWithOnDeleteRestricts"(
@@ -96,7 +84,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [8]: RecordType(
+          [7]: RecordType(
             tableName: "childWithOnDeleteSetNulls",
             schema: """
               CREATE TABLE "childWithOnDeleteSetNulls"(
@@ -105,7 +93,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [9]: RecordType(
+          [8]: RecordType(
             tableName: "childWithOnDeleteSetDefaults",
             schema: """
               CREATE TABLE "childWithOnDeleteSetDefaults"(

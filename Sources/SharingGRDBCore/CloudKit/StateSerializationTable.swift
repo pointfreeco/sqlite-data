@@ -15,7 +15,7 @@ extension CKDatabase.Scope: @retroactive QueryBindable {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension StateSerialization: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
+extension StateSerialization: StructuredQueriesCore.Table, PrimaryKeyedTable {
   public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore
       .PrimaryKeyedTableDefinition
   {
