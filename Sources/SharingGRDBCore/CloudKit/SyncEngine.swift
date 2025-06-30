@@ -101,8 +101,9 @@
       self.database = database
       self.logger = logger
       self.metadatabase = try defaultMetadatabase(logger: logger, url: metadatabaseURL)
-      self.tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
+      let tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
         .map(\.type)
+      self.tables = tables
       self.privateTables = privateTables
       self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
       self.foreignKeysByTableName = Dictionary(
@@ -620,8 +621,7 @@
     package func handleAccountChange(
       changeType: CKSyncEngine.Event.AccountChange.ChangeType,
       syncEngine: any SyncEngineProtocol
-    ) async
-    {
+    ) async {
       switch changeType {
       case .signIn:
         syncEngines.withValue {

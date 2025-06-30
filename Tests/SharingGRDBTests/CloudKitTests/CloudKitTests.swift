@@ -565,24 +565,71 @@ extension BaseCloudKitTests {
     @Test func cascadingDeletionOrder() async throws {
       try await database.asyncWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
-          Reminder(id: UUID(2), title: "", remindersListID: UUID(1))
-          Reminder(id: UUID(3), title: "", remindersListID: UUID(1))
-          Reminder(id: UUID(4), title: "", remindersListID: UUID(1))
           Tag(id: UUID(1), title: "")
           Tag(id: UUID(2), title: "")
-          ReminderTag(id: UUID(1), reminderID: UUID(1), tagID: UUID(1))
-          ReminderTag(id: UUID(2), reminderID: UUID(2), tagID: UUID(1))
-          ReminderTag(id: UUID(3), reminderID: UUID(3), tagID: UUID(1))
-          ReminderTag(id: UUID(4), reminderID: UUID(4), tagID: UUID(1))
-          ReminderTag(id: UUID(5), reminderID: UUID(1), tagID: UUID(2))
-          ReminderTag(id: UUID(6), reminderID: UUID(2), tagID: UUID(2))
-          ReminderTag(id: UUID(7), reminderID: UUID(3), tagID: UUID(2))
-          ReminderTag(id: UUID(8), reminderID: UUID(4), tagID: UUID(2))
         }
       }
-      // TODO: finish test after 'cleanup' branch is merged
+      for _ in 1...100 {
+        try await database.asyncWrite { db in
+          try db.seed {
+            RemindersList(id: UUID(1), title: "Personal")
+            RemindersListPrivate(id: UUID(1), position: 1, remindersListID: UUID(1))
+            Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
+            Reminder(id: UUID(2), title: "", remindersListID: UUID(1))
+            Reminder(id: UUID(3), title: "", remindersListID: UUID(1))
+            Reminder(id: UUID(4), title: "", remindersListID: UUID(1))
+            ReminderTag(id: UUID(1), reminderID: UUID(1), tagID: UUID(1))
+            ReminderTag(id: UUID(2), reminderID: UUID(2), tagID: UUID(1))
+            ReminderTag(id: UUID(3), reminderID: UUID(3), tagID: UUID(1))
+            ReminderTag(id: UUID(4), reminderID: UUID(4), tagID: UUID(1))
+            ReminderTag(id: UUID(5), reminderID: UUID(1), tagID: UUID(2))
+            ReminderTag(id: UUID(6), reminderID: UUID(2), tagID: UUID(2))
+            ReminderTag(id: UUID(7), reminderID: UUID(3), tagID: UUID(2))
+            ReminderTag(id: UUID(8), reminderID: UUID(4), tagID: UUID(2))
+          }
+        }
+
+        await syncEngine.processBatch()
+
+        try await database.asyncWrite { db in
+          try RemindersList.find(UUID(1)).delete().execute(db)
+        }
+
+        await syncEngine.processBatch()
+        assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "tags",
+                  parent: nil,
+                  share: nil,
+                  id: "00000000-0000-0000-0000-000000000001",
+                  title: "",
+                  sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(2:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "tags",
+                  parent: nil,
+                  share: nil,
+                  id: "00000000-0000-0000-0000-000000000002",
+                  title: "",
+                  sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
     }
   }
 

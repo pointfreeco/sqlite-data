@@ -72,13 +72,6 @@ final class MockSyncEngine: SyncEngineProtocol {
 
     state.remove(pendingRecordZoneChanges: recordIDsSkipped.map { .saveRecord($0) })
 
-    _ = database.modifyRecords(
-      saving: recordsToSave,
-      deleting: recordIDsToDelete,
-      savePolicy: .ifServerRecordUnchanged,
-      atomically: true
-    )
-
     return CKSyncEngine.RecordZoneChangeBatch(
       recordsToSave: recordsToSave,
       recordIDsToDelete: recordIDsToDelete
