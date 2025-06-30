@@ -476,43 +476,25 @@
       guard !allChanges.isEmpty
       else { return nil }
 
-      var recordNamesToSave: [CKRecord.ID] = []
-      var recordNamesToDelete: [(tableName: String, recordID: CKRecord.ID)] = []
-      for change in allChanges {
+      let changes = allChanges.compactMap {
+        change -> (change: CKSyncEngine.PendingRecordZoneChange, index: Int)? in
         switch change {
         case .saveRecord(let recordID):
-          recordNamesToSave.append(recordID)
+          return (change, Int.max)
         case .deleteRecord(let recordID):
-          guard let recordName = SyncMetadata.RecordName(rawValue: recordID.recordName)
-          else { continue }
-          recordNamesToDelete.append((recordName.recordType, recordID))
+          guard
+            let recordName = SyncMetadata.RecordName(rawValue: recordID.recordName),
+            let index = tablesByOrder[recordName.recordType]
+          else { return nil }
+          return (change, index)
         @unknown default:
-          continue
+          return nil
         }
       }
-
-      recordNamesToDelete.sort { lhs, rhs in
-        (self.tablesByOrder[lhs.tableName] ?? 0) < (self.tablesByOrder[rhs.tableName] ?? 0)
+      .sorted { lhs, rhs in
+        lhs.index > rhs.index
       }
-
-      let changes: [CKSyncEngine.PendingRecordZoneChange] = recordNamesToDelete
-        .map { _, recordID in .deleteRecord(recordID) }
-      + recordNamesToSave.map { .saveRecord($0) }
-
-      print(
-        "didDelete",
-        "pendingDeletes",
-        changes.compactMap { x -> String? in
-          switch x {
-          case .saveRecord(_):
-            return nil
-          case .deleteRecord(let record):
-            return String(record.recordName.split(separator: ":")[1])
-          @unknown default:
-            return nil
-          }
-        }
-      )
+      .map(\.change)
 
       #if DEBUG
         struct State {
@@ -1315,9 +1297,6 @@
     var result: [String: Int] = [:]
     for table in tableDependencies.keys {
       try visit(table: table)
-    }
-    for (table, order) in result {
-      result[table] = result.count - order - 1
     }
     return result
 
