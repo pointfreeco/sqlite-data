@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
 import CloudKit
+import CryptoKit
 import CustomDump
 import StructuredQueriesCore
 
@@ -8,7 +9,7 @@ extension CKRecord {
     public let queryOutput: CKRecord
 
     public var queryBinding: QueryBinding {
-      let archiver = NSKeyedArchiver(requiringSecureCoding: !isTesting)
+      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encodeSystemFields(with: archiver)
       if isTesting {
         archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
@@ -25,12 +26,14 @@ extension CKRecord {
         throw QueryDecodingError.missingRequiredColumn
       }
       let coder = try NSKeyedUnarchiver(forReadingFrom: data)
-      coder.requiresSecureCoding = !isTesting
+      coder.requiresSecureCoding = true
       guard let queryOutput = CKRecord(coder: coder) else {
         throw DecodingError()
       }
       if isTesting {
-        queryOutput._recordChangeTag = coder.decodeObject(forKey: "_recordChangeTag") as? String
+        queryOutput._recordChangeTag = coder
+          .decodeObject(of: NSString.self, forKey: "_recordChangeTag")
+        as? String
       }
       self.init(queryOutput: queryOutput)
     }
@@ -96,6 +99,53 @@ extension CKDatabase.Scope {
   }
 }
 
+extension CKRecordKeyValueSetting {
+  package func setValue(
+    _ newValue: some CKRecordValueProtocol & Equatable,
+    forKey key: CKRecord.FieldKey,
+    at userModificationDate: Date?
+  ) {
+    if self[key] != newValue {
+      self[key] = newValue
+      self[
+        "\(String.sqliteDataCloudKitSchemaName)_userModificationDate_\(key)"
+      ] = userModificationDate
+    }
+  }
+
+  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+  package func setValue(
+    _ newValue: [UInt8],
+    forKey key: CKRecord.FieldKey,
+    at userModificationDate: Date?
+  ) {
+    let hash = SHA256.hash(data: newValue).compactMap { String(format: "%02hhx", $0) }.joined()
+    let blobURL = URL.temporaryDirectory.appendingPathComponent(hash)
+    let asset = CKAsset(fileURL: blobURL)
+    if (self[key] as? CKAsset)?.fileURL != blobURL {
+      withErrorReporting {
+        try Data(newValue).write(to: blobURL)
+      }
+      self[key] = asset
+      self[
+        "\(String.sqliteDataCloudKitSchemaName)_userModificationDate_\(key)"
+      ] = userModificationDate
+    }
+  }
+
+  package func removeValue(
+    forKey key: CKRecord.FieldKey,
+    at userModificationDate: Date?
+  ) {
+    if self[key] != nil {
+      self[key] = nil
+      self[
+        "\(String.sqliteDataCloudKitSchemaName)_userModificationDate_\(key)"
+      ] = userModificationDate
+    }
+  }
+}
+
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 extension CKRecord {
   package func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date?) {
@@ -106,23 +156,23 @@ extension CKRecord {
         let value = Value(queryOutput: row[keyPath: column.keyPath])
         switch value.queryBinding {
         case .blob(let value):
-          let blobURL = URL.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).data")
-          withErrorReporting {
-            try Data(value).write(to: blobURL)
-          }
-          self[column.name] = CKAsset(fileURL: blobURL)
+          encryptedValues.setValue(value, forKey: column.name, at: userModificationDate)
         case .double(let value):
-          encryptedValues[column.name] = value
+          encryptedValues.setValue(value, forKey: column.name, at: userModificationDate)
         case .date(let value):
-          encryptedValues[column.name] = value
+          encryptedValues.setValue(value, forKey: column.name, at: userModificationDate)
         case .int(let value):
-          encryptedValues[column.name] = value
+          encryptedValues.setValue(value, forKey: column.name, at: userModificationDate)
         case .null:
-          encryptedValues[column.name] = nil
+          encryptedValues.removeValue(forKey: column.name, at: userModificationDate)
         case .text(let value):
-          encryptedValues[column.name] = value
+          encryptedValues.setValue(value, forKey: column.name, at: userModificationDate)
         case .uuid(let value):
-          encryptedValues[column.name] = value.uuidString.lowercased()
+          encryptedValues.setValue(
+            value.uuidString.lowercased(),
+            forKey: column.name,
+            at: userModificationDate
+          )
         case .invalid(let error):
           reportIssue(error)
         }
