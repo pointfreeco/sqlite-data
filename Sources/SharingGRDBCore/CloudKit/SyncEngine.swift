@@ -16,9 +16,9 @@
     let database: any DatabaseWriter
     let logger: Logger
     let metadatabase: any DatabaseReader
-    let tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
-    let privateTables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
-    let tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
+    let tables: [any PrimaryKeyedTable<UUID>.Type]
+    let privateTables: [any PrimaryKeyedTable<UUID>.Type]
+    let tablesByName: [String: any PrimaryKeyedTable<UUID>.Type]
     private let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
     let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
@@ -476,23 +476,26 @@
       guard !allChanges.isEmpty
       else { return nil }
 
-      let changes = allChanges.compactMap {
-        change -> (change: CKSyncEngine.PendingRecordZoneChange, index: Int)? in
-        switch change {
-        case .saveRecord(let recordID):
-          return (change, Int.max)
-        case .deleteRecord(let recordID):
+      let changes = allChanges.sorted { lhs, rhs in
+        switch (lhs, rhs) {
+        case (.saveRecord(let lhs), .saveRecord(let rhs)):
+          return true
+        case (.deleteRecord(let lhs), .deleteRecord(let rhs)):
           guard
-            let recordName = SyncMetadata.RecordName(rawValue: recordID.recordName),
-            let index = tablesByOrder[recordName.recordType]
-          else { return nil }
-          return (change, index)
-        @unknown default:
-          return nil
+            let lhsRecordName = SyncMetadata.RecordName(rawValue: lhs.recordName),
+            let lhsIndex = tablesByOrder[lhsRecordName.recordType],
+            let rhsRecordName = SyncMetadata.RecordName(rawValue: rhs.recordName),
+            let rhsIndex = tablesByOrder[rhsRecordName.recordType]
+          else { return true }
+          return lhsIndex > rhsIndex
+        case (.saveRecord, .deleteRecord):
+          return false
+        case (.deleteRecord, .saveRecord):
+          return true
+        default:
+          return true
         }
       }
-      .sorted { lhs, rhs in lhs.index > rhs.index }
-      .map(\.change)
 
       #if DEBUG
         struct State {
@@ -1268,8 +1271,8 @@
   @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
   private func tablesByOrder(
     database: any DatabaseReader,
-    tables: [any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type],
-    tablesByName: [String: any StructuredQueriesCore.PrimaryKeyedTable<UUID>.Type]
+    tables: [any PrimaryKeyedTable<UUID>.Type],
+    tablesByName: [String: any PrimaryKeyedTable<UUID>.Type]
   ) throws -> [String: Int] {
     let tableDependencies = try database.read { db in
       var dependencies: [HashablePrimaryKeyedTableType: [any PrimaryKeyedTable<UUID>.Type]] = [:]
