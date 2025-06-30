@@ -122,14 +122,6 @@ extension BaseCloudKitTests {
           END
           """,
           [12]: """
-          CREATE TRIGGER "sqlitedata_icloud_after_delete_on_users"
-          AFTER DELETE ON "users"
-          FOR EACH ROW BEGIN
-            DELETE FROM "sqlitedata_icloud_metadata"
-            WHERE ("sqlitedata_icloud_metadata"."recordName" =  "old"."id" || ':' || 'users');
-          END
-          """,
-          [13]: """
           CREATE TRIGGER "sqlitedata_icloud_after_insert_on_childWithOnDeleteRestricts"
           AFTER INSERT ON "childWithOnDeleteRestricts"
           FOR EACH ROW BEGIN
@@ -140,7 +132,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [14]: """
+          [13]: """
           CREATE TRIGGER "sqlitedata_icloud_after_insert_on_childWithOnDeleteSetDefaults"
           AFTER INSERT ON "childWithOnDeleteSetDefaults"
           FOR EACH ROW BEGIN
@@ -151,7 +143,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [15]: """
+          [14]: """
           CREATE TRIGGER "sqlitedata_icloud_after_insert_on_childWithOnDeleteSetNulls"
           AFTER INSERT ON "childWithOnDeleteSetNulls"
           FOR EACH ROW BEGIN
@@ -162,7 +154,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [16]: """
+          [15]: """
           CREATE TRIGGER "sqlitedata_icloud_after_insert_on_parents"
           AFTER INSERT ON "parents"
           FOR EACH ROW BEGIN
@@ -173,7 +165,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [17]: """
+          [16]: """
           CREATE TRIGGER "sqlitedata_icloud_after_insert_on_reminderTags"
           AFTER INSERT ON "reminderTags"
           FOR EACH ROW BEGIN
@@ -184,7 +176,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [18]: """
+          [17]: """
           CREATE TRIGGER "sqlitedata_icloud_after_insert_on_reminders"
           AFTER INSERT ON "reminders"
           FOR EACH ROW BEGIN
@@ -195,7 +187,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [19]: """
+          [18]: """
           CREATE TRIGGER "sqlitedata_icloud_after_insert_on_remindersListPrivates"
           AFTER INSERT ON "remindersListPrivates"
           FOR EACH ROW BEGIN
@@ -206,7 +198,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [20]: """
+          [19]: """
           CREATE TRIGGER "sqlitedata_icloud_after_insert_on_remindersLists"
           AFTER INSERT ON "remindersLists"
           FOR EACH ROW BEGIN
@@ -217,7 +209,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [21]: """
+          [20]: """
           CREATE TRIGGER "sqlitedata_icloud_after_insert_on_tags"
           AFTER INSERT ON "tags"
           FOR EACH ROW BEGIN
@@ -228,18 +220,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [22]: """
-          CREATE TRIGGER "sqlitedata_icloud_after_insert_on_users"
-          AFTER INSERT ON "users"
-          FOR EACH ROW BEGIN
-            INSERT INTO "sqlitedata_icloud_metadata"
-            ("recordType", "recordName", "parentRecordName", "userModificationDate")
-            SELECT 'users',  "new"."id" || ':' || 'users', "new"."parentUserID" || ':' || 'users' AS "foreignKey", sqlitedata_icloud_datetime()
-            ON CONFLICT ("recordName")
-            DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
-          END
-          """,
-          [23]: """
+          [21]: """
           CREATE TRIGGER "sqlitedata_icloud_after_update_on_childWithOnDeleteRestricts"
           AFTER UPDATE ON "childWithOnDeleteRestricts"
           FOR EACH ROW BEGIN
@@ -250,7 +231,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [24]: """
+          [22]: """
           CREATE TRIGGER "sqlitedata_icloud_after_update_on_childWithOnDeleteSetDefaults"
           AFTER UPDATE ON "childWithOnDeleteSetDefaults"
           FOR EACH ROW BEGIN
@@ -261,7 +242,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [25]: """
+          [23]: """
           CREATE TRIGGER "sqlitedata_icloud_after_update_on_childWithOnDeleteSetNulls"
           AFTER UPDATE ON "childWithOnDeleteSetNulls"
           FOR EACH ROW BEGIN
@@ -272,7 +253,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [26]: """
+          [24]: """
           CREATE TRIGGER "sqlitedata_icloud_after_update_on_parents"
           AFTER UPDATE ON "parents"
           FOR EACH ROW BEGIN
@@ -283,7 +264,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [27]: """
+          [25]: """
           CREATE TRIGGER "sqlitedata_icloud_after_update_on_reminderTags"
           AFTER UPDATE ON "reminderTags"
           FOR EACH ROW BEGIN
@@ -294,7 +275,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [28]: """
+          [26]: """
           CREATE TRIGGER "sqlitedata_icloud_after_update_on_reminders"
           AFTER UPDATE ON "reminders"
           FOR EACH ROW BEGIN
@@ -305,7 +286,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [29]: """
+          [27]: """
           CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersListPrivates"
           AFTER UPDATE ON "remindersListPrivates"
           FOR EACH ROW BEGIN
@@ -316,7 +297,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [30]: """
+          [28]: """
           CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersLists"
           AFTER UPDATE ON "remindersLists"
           FOR EACH ROW BEGIN
@@ -327,7 +308,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [31]: """
+          [29]: """
           CREATE TRIGGER "sqlitedata_icloud_after_update_on_tags"
           AFTER UPDATE ON "tags"
           FOR EACH ROW BEGIN
@@ -338,18 +319,7 @@ extension BaseCloudKitTests {
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
           """,
-          [32]: """
-          CREATE TRIGGER "sqlitedata_icloud_after_update_on_users"
-          AFTER UPDATE ON "users"
-          FOR EACH ROW BEGIN
-            INSERT INTO "sqlitedata_icloud_metadata"
-            ("recordType", "recordName", "parentRecordName", "userModificationDate")
-            SELECT 'users',  "new"."id" || ':' || 'users', "new"."parentUserID" || ':' || 'users' AS "foreignKey", sqlitedata_icloud_datetime()
-            ON CONFLICT ("recordName")
-            DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
-          END
-          """,
-          [33]: """
+          [30]: """
           CREATE TRIGGER "sqlitedata_icloud_childWithOnDeleteRestricts_belongsTo_parents_onDeleteRestrict"
           BEFORE DELETE ON "parents"
           FOR EACH ROW BEGIN
@@ -358,7 +328,7 @@ extension BaseCloudKitTests {
             WHERE "parentID" = "old"."id";
           END
           """,
-          [34]: """
+          [31]: """
           CREATE TRIGGER "sqlitedata_icloud_childWithOnDeleteRestricts_belongsTo_parents_onUpdateRestrict"
           BEFORE UPDATE ON "parents"
           FOR EACH ROW BEGIN
@@ -367,7 +337,7 @@ extension BaseCloudKitTests {
             WHERE "parentID" = "old"."id";
           END
           """,
-          [35]: """
+          [32]: """
           CREATE TRIGGER "sqlitedata_icloud_childWithOnDeleteSetDefaults_belongsTo_parents_onDeleteSetDefault"
           AFTER DELETE ON "parents"
           FOR EACH ROW BEGIN
@@ -376,7 +346,7 @@ extension BaseCloudKitTests {
             WHERE "parentID" = "old"."id";
           END
           """,
-          [36]: """
+          [33]: """
           CREATE TRIGGER "sqlitedata_icloud_childWithOnDeleteSetDefaults_belongsTo_parents_onUpdateSetDefault"
           AFTER UPDATE ON "parents"
           FOR EACH ROW BEGIN
@@ -385,7 +355,7 @@ extension BaseCloudKitTests {
             WHERE "parentID" = "old"."id";
           END
           """,
-          [37]: """
+          [34]: """
           CREATE TRIGGER "sqlitedata_icloud_childWithOnDeleteSetNulls_belongsTo_parents_onDeleteSetNull"
           AFTER DELETE ON "parents"
           FOR EACH ROW BEGIN
@@ -394,7 +364,7 @@ extension BaseCloudKitTests {
             WHERE "parentID" = "old"."id";
           END
           """,
-          [38]: """
+          [35]: """
           CREATE TRIGGER "sqlitedata_icloud_childWithOnDeleteSetNulls_belongsTo_parents_onUpdateSetNull"
           AFTER UPDATE ON "parents"
           FOR EACH ROW BEGIN
@@ -403,7 +373,7 @@ extension BaseCloudKitTests {
             WHERE "parentID" = "old"."id";
           END
           """,
-          [39]: """
+          [36]: """
           CREATE TRIGGER "sqlitedata_icloud_reminderTags_belongsTo_reminders_onDeleteCascade"
           AFTER DELETE ON "reminders"
           FOR EACH ROW BEGIN
@@ -411,7 +381,7 @@ extension BaseCloudKitTests {
             WHERE "reminderID" = "old"."id";
           END
           """,
-          [40]: """
+          [37]: """
           CREATE TRIGGER "sqlitedata_icloud_reminderTags_belongsTo_tags_onDeleteCascade"
           AFTER DELETE ON "tags"
           FOR EACH ROW BEGIN
@@ -419,7 +389,7 @@ extension BaseCloudKitTests {
             WHERE "tagID" = "old"."id";
           END
           """,
-          [41]: """
+          [38]: """
           CREATE TRIGGER "sqlitedata_icloud_reminders_belongsTo_remindersLists_onDeleteCascade"
           AFTER DELETE ON "remindersLists"
           FOR EACH ROW BEGIN
@@ -427,31 +397,13 @@ extension BaseCloudKitTests {
             WHERE "remindersListID" = "old"."id";
           END
           """,
-          [42]: """
+          [39]: """
           CREATE TRIGGER "sqlitedata_icloud_reminders_belongsTo_remindersLists_onUpdateCascade"
           AFTER UPDATE ON "remindersLists"
           FOR EACH ROW BEGIN
             UPDATE "reminders"
             SET "remindersListID" = "new"."id"
             WHERE "remindersListID" = "old"."id";
-          END
-          """,
-          [43]: """
-          CREATE TRIGGER "sqlitedata_icloud_users_belongsTo_users_onDeleteSetDefault"
-          AFTER DELETE ON "users"
-          FOR EACH ROW BEGIN
-            UPDATE "users"
-            SET "parentUserID" = NULL
-            WHERE "parentUserID" = "old"."id";
-          END
-          """,
-          [44]: """
-          CREATE TRIGGER "sqlitedata_icloud_users_belongsTo_users_onUpdateCascade"
-          AFTER UPDATE ON "users"
-          FOR EACH ROW BEGIN
-            UPDATE "users"
-            SET "parentUserID" = "new"."id"
-            WHERE "parentUserID" = "old"."id";
           END
           """
         ]

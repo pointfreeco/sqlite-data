@@ -13,12 +13,10 @@ extension BaseCloudKitTests {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareNonRootRecord() async throws {
       let reminder = Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
-      let user = User(id: UUID(1))
       try await database.asyncWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           reminder
-          user
         }
       }
 
@@ -26,9 +24,6 @@ extension BaseCloudKitTests {
 
       await #expect(throws: SyncEngine.RecordMustBeRoot.self) {
         _ = try await self.syncEngine.share(record: reminder, configure: { _ in })
-      }
-      await #expect(throws: SyncEngine.RecordMustBeRoot.self) {
-        _ = try await self.syncEngine.share(record: user, configure: { _ in })
       }
     }
 

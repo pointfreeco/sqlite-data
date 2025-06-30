@@ -72,6 +72,13 @@ final class MockSyncEngine: SyncEngineProtocol {
 
     state.remove(pendingRecordZoneChanges: recordIDsSkipped.map { .saveRecord($0) })
 
+    _ = database.modifyRecords(
+      saving: recordsToSave,
+      deleting: recordIDsToDelete,
+      savePolicy: .ifServerRecordUnchanged,
+      atomically: true
+    )
+
     return CKSyncEngine.RecordZoneChangeBatch(
       recordsToSave: recordsToSave,
       recordIDsToDelete: recordIDsToDelete
@@ -314,11 +321,11 @@ final class MockCloudDatabase: CloudDatabase {
             // exists in the DB. This means the user has created a new CKRecord from scratch,
             // giving it a new identity, rather than leveraging an existing CKRecord.
             Issue.record(
-              """
-              A new identity was created for an existing 'CKRecord'. Rather than creating
-              'CKRecord' from scratch for an existing record, use the database to fetch the
-              current record.
-              """
+                  """
+                  A new identity was created for an existing 'CKRecord'. Rather than creating
+                  'CKRecord' from scratch for an existing record, use the database to fetch the
+                  current record.
+                  """
             )
             saveResults[recordToSave.recordID] = .failure(
               CKError(
@@ -345,6 +352,15 @@ final class MockCloudDatabase: CloudDatabase {
         fatalError()
       }
       for recordIDToDelete in recordIDsToDelete {
+        let recordExistsReferencingRecordToDelete = storage.values.contains { record in
+          record.recordID != recordIDToDelete
+          && record.parent?.recordID == recordIDToDelete
+        }
+        guard !recordExistsReferencingRecordToDelete
+        else {
+          deleteResults[recordIDToDelete] = .failure(CKError(.referenceViolation))
+          continue
+        }
         storage[recordIDToDelete] = nil
         deleteResults[recordIDToDelete] = .success(())
       }

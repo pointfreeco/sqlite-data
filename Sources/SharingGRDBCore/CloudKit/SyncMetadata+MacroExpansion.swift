@@ -3,7 +3,7 @@ import CloudKit
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncMetadata {
-  public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore.PrimaryKeyedTableDefinition {
+  public struct TableColumns: StructuredQueriesCore.TableDefinition, PrimaryKeyedTableDefinition {
     public typealias QueryValue = SyncMetadata
     public let recordType = StructuredQueriesCore.TableColumn<QueryValue, String>("recordType", keyPath: \QueryValue.recordType)
     public let recordName = StructuredQueriesCore.TableColumn<QueryValue, RecordName>("recordName", keyPath: \QueryValue.recordName)
@@ -90,7 +90,7 @@ extension SyncMetadata {
   }
 }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) extension SyncMetadata: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) extension SyncMetadata: StructuredQueriesCore.Table, PrimaryKeyedTable {
   public static let columns = TableColumns()
   public static let tableName = "sqlitedata_icloud_metadata"
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {

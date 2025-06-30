@@ -38,18 +38,6 @@ extension BaseCloudKitTests {
               """
           ),
           [2]: RecordType(
-            tableName: "users",
-            schema: """
-              CREATE TABLE "users" (
-                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "name" TEXT NOT NULL DEFAULT '',
-                "parentUserID" TEXT,
-              
-                FOREIGN KEY("parentUserID") REFERENCES "users"("id") ON DELETE SET DEFAULT ON UPDATE CASCADE 
-              ) STRICT
-              """
-          ),
-          [3]: RecordType(
             tableName: "reminders",
             schema: """
               CREATE TABLE "reminders" (
@@ -62,7 +50,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [4]: RecordType(
+          [3]: RecordType(
             tableName: "tags",
             schema: """
               CREATE TABLE "tags" (
@@ -71,7 +59,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [5]: RecordType(
+          [4]: RecordType(
             tableName: "reminderTags",
             schema: """
               CREATE TABLE "reminderTags" (
@@ -81,7 +69,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [6]: RecordType(
+          [5]: RecordType(
             tableName: "parents",
             schema: """
               CREATE TABLE "parents"(
@@ -89,7 +77,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [7]: RecordType(
+          [6]: RecordType(
             tableName: "childWithOnDeleteRestricts",
             schema: """
               CREATE TABLE "childWithOnDeleteRestricts"(
@@ -98,7 +86,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [8]: RecordType(
+          [7]: RecordType(
             tableName: "childWithOnDeleteSetNulls",
             schema: """
               CREATE TABLE "childWithOnDeleteSetNulls"(
@@ -107,7 +95,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [9]: RecordType(
+          [8]: RecordType(
             tableName: "childWithOnDeleteSetDefaults",
             schema: """
               CREATE TABLE "childWithOnDeleteSetDefaults"(
@@ -572,6 +560,29 @@ extension BaseCloudKitTests {
         )
         """
       }
+    }
+
+    @Test func cascadingDeletionOrder() async throws {
+      try await database.asyncWrite { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "Personal")
+          Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
+          Reminder(id: UUID(2), title: "", remindersListID: UUID(1))
+          Reminder(id: UUID(3), title: "", remindersListID: UUID(1))
+          Reminder(id: UUID(4), title: "", remindersListID: UUID(1))
+          Tag(id: UUID(1), title: "")
+          Tag(id: UUID(2), title: "")
+          ReminderTag(id: UUID(1), reminderID: UUID(1), tagID: UUID(1))
+          ReminderTag(id: UUID(2), reminderID: UUID(2), tagID: UUID(1))
+          ReminderTag(id: UUID(3), reminderID: UUID(3), tagID: UUID(1))
+          ReminderTag(id: UUID(4), reminderID: UUID(4), tagID: UUID(1))
+          ReminderTag(id: UUID(5), reminderID: UUID(1), tagID: UUID(2))
+          ReminderTag(id: UUID(6), reminderID: UUID(2), tagID: UUID(2))
+          ReminderTag(id: UUID(7), reminderID: UUID(3), tagID: UUID(2))
+          ReminderTag(id: UUID(8), reminderID: UUID(4), tagID: UUID(2))
+        }
+      }
+      // TODO: finish test after 'cleanup' branch is merged
     }
   }
 

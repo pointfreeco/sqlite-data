@@ -25,11 +25,6 @@ import SharingGRDB
   var reminderID: Reminder.ID
   var tagID: Tag.ID
 }
-@Table struct User: Equatable, Identifiable {
-  let id: UUID
-  var name = ""
-  var parentUserID: User.ID?
-}
 
 @Table struct Parent: Equatable, Identifiable {
   let id: UUID
@@ -75,18 +70,6 @@ func database(containerIdentifier: String) throws -> DatabasePool {
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "position" INTEGER NOT NULL DEFAULT 0,
         "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
-      ) STRICT
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TABLE "users" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "name" TEXT NOT NULL DEFAULT '',
-        "parentUserID" TEXT,
-      
-        FOREIGN KEY("parentUserID") REFERENCES "users"("id") ON DELETE SET DEFAULT ON UPDATE CASCADE 
       ) STRICT
       """
     )
