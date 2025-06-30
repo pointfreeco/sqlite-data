@@ -8,9 +8,11 @@ extension CKRecord {
     public let queryOutput: CKRecord
 
     public var queryBinding: QueryBinding {
-      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
+      let archiver = NSKeyedArchiver(requiringSecureCoding: !isTesting)
       queryOutput.encodeSystemFields(with: archiver)
-      archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
+      if isTesting {
+        archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
+      }
       return archiver.encodedData.queryBinding
     }
 
@@ -23,17 +25,13 @@ extension CKRecord {
         throw QueryDecodingError.missingRequiredColumn
       }
       let coder = try NSKeyedUnarchiver(forReadingFrom: data)
-      coder.requiresSecureCoding = true
+      coder.requiresSecureCoding = !isTesting
       guard let queryOutput = CKRecord(coder: coder) else {
         throw DecodingError()
       }
-      /*
-       TODO: Find a workaround for this
-       TODO: see if turning off secure coding gets rid of it
-       *** -[NSKeyedUnarchiver validateAllowedClass:forKey:] allowed unarchiving safe plist type ''NSString' (0x1f14d83b0) [/System/Library/Frameworks/Foundation.framework]' for key '_recordChangeTag', even though it was not explicitly included in the client allowed classes set: '{(
-       )}'. This will be disallowed in the future.
-       */
-      queryOutput._recordChangeTag = coder.decodeObject(forKey: "_recordChangeTag") as? String
+      if isTesting {
+        queryOutput._recordChangeTag = coder.decodeObject(forKey: "_recordChangeTag") as? String
+      }
       self.init(queryOutput: queryOutput)
     }
 
