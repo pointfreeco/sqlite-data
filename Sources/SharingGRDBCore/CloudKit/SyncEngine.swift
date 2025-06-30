@@ -1111,14 +1111,16 @@
   extension URL {
     package static func metadatabase(containerIdentifier: String?) throws -> Self {
       @Dependency(\.context) var context
-      try FileManager.default.createDirectory(
-        at: .applicationSupportDirectory,
-        withIntermediateDirectories: true
-      )
-      let base: URL =
-        context == .live
-        ? .applicationSupportDirectory
-        : .temporaryDirectory
+      let base: URL
+      if context == .live {
+        try FileManager.default.createDirectory(
+          at: .applicationSupportDirectory,
+          withIntermediateDirectories: true
+        )
+        base = .applicationSupportDirectory
+      } else {
+        base = .temporaryDirectory
+      }
       return base.appending(
         component: "\(containerIdentifier.map { "\($0)." } ?? "")sqlite-data-icloud.sqlite"
       )
