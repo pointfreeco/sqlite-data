@@ -263,11 +263,23 @@ actor MockCloudDatabase: CloudDatabase {
     saveResults: [CKRecord.ID : Result<CKRecord, any Error>],
     deleteResults: [CKRecord.ID : Result<Void, any Error>]
   ) {
+    var deleteResults: [CKRecord.ID : Result<Void, any Error>] = [:]
+
     for recordToSave in recordsToSave {
       storage[recordToSave.recordID] = recordToSave
     }
     for recordIDToDelete in recordIDsToDelete {
+      let recordExistsReferencingRecordToDelete = storage.values.contains { record in
+        record.recordID != recordIDToDelete
+        && record.parent?.recordID == recordIDToDelete
+      }
+      guard !recordExistsReferencingRecordToDelete
+      else {
+        deleteResults[recordIDToDelete] = .failure(CKError(.referenceViolation))
+        continue
+      }
       storage[recordIDToDelete] = nil
+      deleteResults[recordIDToDelete] = .success(())
     }
     return (
       saveResults: Dictionary(
