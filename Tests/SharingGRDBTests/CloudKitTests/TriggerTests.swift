@@ -19,7 +19,7 @@ extension BaseCloudKitTests {
           [0]: """
           CREATE TRIGGER "after_delete_on_sqlitedata_icloud_metadata"
           AFTER DELETE ON "sqlitedata_icloud_metadata"
-          FOR EACH ROW WHEN NOT (sqlitedata_icloud_isUpdatingWithServerRecord()) BEGIN
+          FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsUpdatingRecord()) BEGIN
             SELECT sqlitedata_icloud_didDelete("old"."recordName", coalesce("old"."lastKnownServerRecord", (
               SELECT "sqlitedata_icloud_metadata"."lastKnownServerRecord"
               FROM "sqlitedata_icloud_metadata"
@@ -30,7 +30,7 @@ extension BaseCloudKitTests {
           [1]: """
           CREATE TRIGGER "after_insert_on_sqlitedata_icloud_metadata"
           AFTER INSERT ON "sqlitedata_icloud_metadata"
-          FOR EACH ROW WHEN NOT (sqlitedata_icloud_isUpdatingWithServerRecord()) BEGIN
+          FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsUpdatingRecord()) BEGIN
             SELECT sqlitedata_icloud_didUpdate("new"."recordName", coalesce("new"."lastKnownServerRecord", (
               SELECT "sqlitedata_icloud_metadata"."lastKnownServerRecord"
               FROM "sqlitedata_icloud_metadata"
@@ -41,7 +41,7 @@ extension BaseCloudKitTests {
           [2]: """
           CREATE TRIGGER "after_update_on_sqlitedata_icloud_metadata"
           AFTER UPDATE ON "sqlitedata_icloud_metadata"
-          FOR EACH ROW WHEN NOT (sqlitedata_icloud_isUpdatingWithServerRecord()) BEGIN
+          FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsUpdatingRecord()) BEGIN
             SELECT sqlitedata_icloud_didUpdate("new"."recordName", coalesce("new"."lastKnownServerRecord", (
               SELECT "sqlitedata_icloud_metadata"."lastKnownServerRecord"
               FROM "sqlitedata_icloud_metadata"
