@@ -11,7 +11,7 @@ import Testing
   .dependency(\.date.now, Date(timeIntervalSince1970: 1234567890))
 )
 class BaseCloudKitTests: @unchecked Sendable {
-  let database: any DatabaseWriter
+  let database: UserDatabase
   private let _syncEngine: any Sendable
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -26,7 +26,7 @@ class BaseCloudKitTests: @unchecked Sendable {
     let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
 
     let database = try SharingGRDBTests.database(containerIdentifier: testContainerIdentifier)
-    self.database = database
+    self.database = UserDatabase(database: database)
     try { [seeds] in
       try database.write { db in
         try db.seed { seeds }
@@ -41,7 +41,7 @@ class BaseCloudKitTests: @unchecked Sendable {
       ),
       privateDatabase: privateDatabase,
       sharedDatabase: sharedDatabase,
-      database: database,
+      database: self.database,
       metadatabaseURL: URL.metadatabase(containerIdentifier: testContainerIdentifier),
       tables: [
         Reminder.self,
@@ -86,7 +86,7 @@ extension SyncEngine {
     container: any CloudContainer,
     privateDatabase: MockCloudDatabase,
     sharedDatabase: MockCloudDatabase,
-    database: any DatabaseWriter,
+    database: UserDatabase,
     metadatabaseURL: URL,
     tables: [any PrimaryKeyedTable<UUID>.Type],
     privateTables: [any PrimaryKeyedTable<UUID>.Type] = []

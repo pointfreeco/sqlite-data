@@ -13,7 +13,8 @@
     // TODO: Rename to isUpdatingFromServer / isHandlingServerUpdates
     @TaskLocal static var isUpdatingWithServerRecord = false
 
-    let database: any DatabaseWriter
+    // TODO: rename to 'userDatabase'
+    let database: UserDatabase
     let logger: Logger
     package let metadatabase: any DatabaseReader
     let tables: [any PrimaryKeyedTable<UUID>.Type]
@@ -34,6 +35,7 @@
       tables: [any PrimaryKeyedTable<UUID>.Type],
       privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
     ) throws {
+      let userDatabase = UserDatabase(database: database)
       try self.init(
         container: container,
         defaultSyncEngines: { metadatabase, syncEngine in
@@ -64,14 +66,14 @@
             )
           )
         },
-        database: database,
+        database: userDatabase,
         logger: logger,
         metadatabaseURL: URL.metadatabase(containerIdentifier: container.containerIdentifier),
         tables: tables,
         privateTables: privateTables
       )
       _ = try setUpSyncEngine(
-        database: database,
+        database: userDatabase,
         metadatabase: metadatabase
       )
     }
@@ -82,7 +84,7 @@
         any DatabaseReader,
         SyncEngine
       ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
-      database: any DatabaseWriter,
+      database: UserDatabase,
       logger: Logger,
       metadatabaseURL: URL,
       tables: [any PrimaryKeyedTable<UUID>.Type],
@@ -128,7 +130,7 @@
     }
 
     nonisolated package func setUpSyncEngine(
-      database: any DatabaseWriter,
+      database: UserDatabase,
       metadatabase: any DatabaseReader
     ) throws -> Task<Void, Never>? {
       try database.write { db in
@@ -273,7 +275,7 @@
       async let privateCancellation: Void? = syncEngines.private?.cancelOperations()
       async let sharedCancellation: Void? = syncEngines.shared?.cancelOperations()
 
-      try await database.asyncWrite { db in
+      try await database.write { db in
         for table in self.tables {
           try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
         }
@@ -285,7 +287,7 @@
         db.remove(function: .isUpdatingWithServerRecord)
         db.remove(function: .datetime)
       }
-      try await database.asyncWrite { db in
+      try await database.write { db in
         // TODO: Do an `.erase()` + re-migrate
         try SyncMetadata.delete().execute(db)
         try RecordType.delete().execute(db)
@@ -859,7 +861,7 @@
         return
       }
 
-      try await database.asyncWrite { db in
+      try await database.write { db in
         try SyncMetadata
           .find(recordName)
           .update { $0.share = share }
@@ -1175,9 +1177,10 @@
     }
   }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func validateSchema(
     tables: [any PrimaryKeyedTable.Type],
-    database: any DatabaseReader
+    database: UserDatabase
   ) throws {
     try database.read { db in
       for table in tables {
@@ -1244,9 +1247,9 @@
     }
   }
 
-  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func tablesByOrder(
-    database: any DatabaseReader,
+    database: UserDatabase,
     tables: [any PrimaryKeyedTable<UUID>.Type],
     tablesByName: [String: any PrimaryKeyedTable<UUID>.Type]
   ) throws -> [String: Int] {

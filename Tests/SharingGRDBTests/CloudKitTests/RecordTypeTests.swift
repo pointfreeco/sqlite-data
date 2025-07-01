@@ -11,7 +11,7 @@ extension BaseCloudKitTests {
   final class RecordTypeTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func setUp() async throws {
-      let recordTypes = try await database.asyncWrite { db in
+      let recordTypes = try await database.userWrite { db in
         try RecordType.all.fetchAll(db)
       }
       assertInlineSnapshot(of: recordTypes, as: .customDump) {
@@ -110,29 +110,29 @@ extension BaseCloudKitTests {
 
     @Test func tearDown() async throws {
       try await syncEngine.tearDownSyncEngine()
-      try await database.asyncWrite { db in
+      try await database.userWrite { db in
         try #expect(RecordType.all.fetchAll(db) == [])
       }
     }
 
     @Test func resetUp() async throws {
-      let recordTypes = try await database.asyncWrite { db in
+      let recordTypes = try await database.userWrite { db in
         try RecordType.all.fetchAll(db)
       }
       try await syncEngine.tearDownSyncEngine()
       try await syncEngine.setUpSyncEngine()
-      let recordTypesAfterReSetup = try await database.asyncWrite { db in
+      let recordTypesAfterReSetup = try await database.userWrite { db in
         try RecordType.all.fetchAll(db)
       }
       expectNoDifference(recordTypes, recordTypesAfterReSetup)
     }
 
     @Test func migration() async throws {
-      let recordTypes = try await database.asyncWrite { db in
+      let recordTypes = try await database.userWrite { db in
         try RecordType.order(by: \.tableName).fetchAll(db)
       }
       try await syncEngine.tearDownSyncEngine()
-      try await database.asyncWrite { db in
+      try await database.userWrite { db in
         try #sql(
           """
           ALTER TABLE "reminders" ADD COLUMN "newFeature" INTEGER NOT NULL 
@@ -142,7 +142,7 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.setUpSyncEngine()
 
-      let recordTypesAfterMigration = try await database.asyncWrite { db in
+      let recordTypesAfterMigration = try await database.userWrite { db in
         try RecordType.order(by: \.tableName).fetchAll(db)
       }
       let remindersTableIndex = try #require(

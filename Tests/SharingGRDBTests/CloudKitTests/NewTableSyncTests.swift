@@ -26,28 +26,7 @@ extension BaseCloudKitTests {
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
-            storage: [
-              [0]: CKRecord(
-                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "reminders",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
-                share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
-                title: "Write blog post",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
-              ),
-              [1]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "remindersLists",
-                parent: nil,
-                share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
-              )
-            ]
+            storage: []
           ),
           sharedCloudDatabase: MockCloudDatabase(
             databaseScope: .shared,
@@ -57,7 +36,7 @@ extension BaseCloudKitTests {
         """
       }
 
-      let metadata = try await database.read { db in
+      let metadata = try await database.userRead { db in
         try SyncMetadata.all.order(by: \.primaryKey).fetchAll(db)
       }
       assertInlineSnapshot(of: metadata, as: .customDump) {
@@ -73,12 +52,7 @@ extension BaseCloudKitTests {
               recordType: "remindersLists",
               id: UUID(00000000-0000-0000-0000-000000000001)
             ),
-            lastKnownServerRecord: CKRecord(
-              recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-              recordType: "reminders",
-              parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
-              share: nil
-            ),
+            lastKnownServerRecord: nil,
             share: nil,
             userModificationDate: Date(2009-02-13T23:31:30.000Z)
           ),
@@ -89,12 +63,7 @@ extension BaseCloudKitTests {
               id: UUID(00000000-0000-0000-0000-000000000001)
             ),
             parentRecordName: nil,
-            lastKnownServerRecord: CKRecord(
-              recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-              recordType: "remindersLists",
-              parent: nil,
-              share: nil
-            ),
+            lastKnownServerRecord: nil,
             share: nil,
             userModificationDate: Date(2009-02-13T23:31:30.000Z)
           )

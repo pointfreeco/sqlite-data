@@ -22,7 +22,7 @@ import Testing
     try await $record.load()
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
-    try await database.asyncWrite { try Record.delete().execute($0) }
+    try await database.write { try Record.delete().execute($0) }
     await #expect(throws: NotFound.self) {
       try await $record.load()
     }
@@ -35,7 +35,7 @@ import Testing
     try await $record.load()
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
-    try await database.asyncWrite { try Record.delete().execute($0) }
+    try await database.write { try Record.delete().execute($0) }
     try await $record.load()
     #expect(record == nil)
     #expect($record.loadError == nil)
@@ -46,7 +46,7 @@ import Testing
     try await $record.load()
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
-    try await database.asyncWrite { try Record.delete().execute($0) }
+    try await database.write { try Record.delete().execute($0) }
     try await $record.load()
     #expect(record == nil)
     #expect($record.loadError == nil)
@@ -57,7 +57,7 @@ import Testing
     try await $record.load()
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
-    try await database.asyncWrite { try Record.delete().execute($0) }
+    try await database.write { try Record.delete().execute($0) }
     await #expect(throws: NotFound.self) {
       try await $record.load()
     }
@@ -76,7 +76,7 @@ import Testing
     try await $recordDate.load()
     #expect(recordDate.timeIntervalSince1970 == 42)
     #expect($recordDate.loadError == nil)
-    try await database.asyncWrite { try Record.delete().execute($0) }
+    try await database.write { try Record.delete().execute($0) }
     await #expect(throws: NotFound.self) {
       try await $recordDate.load()
     }
@@ -95,7 +95,7 @@ import Testing
     try await $recordDate.load()
     #expect(recordDate?.timeIntervalSince1970 == 42)
     #expect($recordDate.loadError == nil)
-    try await database.asyncWrite { try Record.delete().execute($0) }
+    try await database.write { try Record.delete().execute($0) }
     try await $recordDate.load()
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
@@ -110,7 +110,7 @@ import Testing
     try await $recordDate.load()
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
-    try await database.asyncWrite { try Record.delete().execute($0) }
+    try await database.write { try Record.delete().execute($0) }
     try await $recordDate.load()
     #expect(recordDate?.timeIntervalSince1970 == nil)
     #expect($recordDate.loadError == nil)
@@ -125,7 +125,7 @@ import Testing
     try await $recordID.load()
     #expect(recordID == 1)
     #expect($recordID.loadError == nil)
-    try await database.asyncWrite { try Record.delete().execute($0) }
+    try await database.write { try Record.delete().execute($0) }
     await #expect(throws: NotFound.self) {
       try await $recordID.load()
     }
@@ -144,7 +144,7 @@ import Testing
     try await $record.load()
     #expect(record == Record(id: 1))
     #expect($record.loadError == nil)
-    try await database.asyncWrite { try Record.delete().execute($0) }
+    try await database.write { try Record.delete().execute($0) }
     try await $record.load()
     #expect(record == nil)
     #expect($record.loadError == nil)
@@ -159,7 +159,7 @@ import Testing
     try await $id.load()
     #expect(id == nil)
     #expect($id.loadError == nil)
-    try await database.asyncWrite { try Record.delete().execute($0) }
+    try await database.write { try Record.delete().execute($0) }
     try await $id.load()
     #expect(id == nil)
     #expect($id.loadError == nil)

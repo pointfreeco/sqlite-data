@@ -12,7 +12,7 @@ extension BaseCloudKitTests {
   final class MetadataTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func parentRecordName() async throws {
-      try await database.asyncWrite { db in
+      try await database.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           RemindersList(id: UUID(2), title: "Work")
@@ -66,7 +66,7 @@ extension BaseCloudKitTests {
         """
       }
 
-      try await database.read { db in
+      try await database.userRead { db in
         let reminderMetadata = try #require(
           try SyncMetadata
             .find(Reminder.recordName(for: UUID(1)))
@@ -75,7 +75,7 @@ extension BaseCloudKitTests {
         #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(1)))
       }
 
-      try await database.asyncWrite { db in
+      try await database.userWrite { db in
         try Reminder.find(UUID(1))
           .update { $0.remindersListID = UUID(2) }
           .execute(db)
@@ -135,7 +135,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func noParentRecordForRecordsWithMultipleForeignKeys() async throws {
-      try await database.asyncWrite { db in
+      try await database.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
@@ -200,7 +200,7 @@ extension BaseCloudKitTests {
         """
       }
 
-      let parentRecordNames = try await database.read { db in
+      let parentRecordNames = try await database.userRead { db in
         try SyncMetadata
           .where { $0.recordType != Reminder.tableName }
           .select(\.parentRecordName)
@@ -210,7 +210,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func recordType() async throws {
-      try await database.asyncWrite { db in
+      try await database.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
@@ -221,7 +221,7 @@ extension BaseCloudKitTests {
 
       await syncEngine.processBatch()
 
-      let reminderMetadata = try await database.read { db in
+      let reminderMetadata = try await database.userRead { db in
         try SyncMetadata
           .where { $0.recordType == Reminder.tableName }
           .fetchAll(db)
@@ -236,7 +236,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func parentRecordType() async throws {
-      try await database.asyncWrite { db in
+      try await database.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
@@ -247,7 +247,7 @@ extension BaseCloudKitTests {
 
       await syncEngine.processBatch()
 
-      try await database.read { db in
+      try await database.userRead { db in
         let reminderMetadata =
         try SyncMetadata
           .where { $0.parentRecordType == RemindersList.tableName }
@@ -263,7 +263,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func parentRecordPrimaryKey() async throws {
-      try await database.asyncWrite { db in
+      try await database.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
@@ -274,7 +274,7 @@ extension BaseCloudKitTests {
 
       await syncEngine.processBatch()
 
-      try await database.read { db in
+      try await database.userRead { db in
         let reminderMetadata =
         try SyncMetadata
           .where { $0.parentRecordPrimaryKey == UUID(1) }
