@@ -25,13 +25,13 @@ class BaseCloudKitTests: @unchecked Sendable {
   init(seeds: [any SendablePrimaryKeyedTable<UUID>] = []) async throws {
     let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
 
-    let database = try SharingGRDBTests.database(containerIdentifier: testContainerIdentifier)
-    self.database = UserDatabase(database: database)
-    try { [seeds] in
-      try database.write { db in
-        try db.seed { seeds }
-      }
-    }()
+    let database = UserDatabase(
+      database: try SharingGRDBTests.database(containerIdentifier: testContainerIdentifier)
+    )
+    self.database = database
+    try await database.userWrite { db in
+      try db.seed { seeds }
+    }
     let privateDatabase = MockCloudDatabase(databaseScope: .private)
     let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
     _syncEngine = try await SyncEngine(

@@ -207,7 +207,7 @@
       else { return nil }
 
       withErrorReporting(.sqliteDataCloudKitFailure) {
-        try database.write { db in
+        try database.userWrite { db in
           for (recordType, isNewTable) in recordTypesToFetch {
             try RecordType
               .upsert { RecordType.Draft(recordType) }
