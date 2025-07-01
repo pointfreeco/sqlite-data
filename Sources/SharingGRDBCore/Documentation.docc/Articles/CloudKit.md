@@ -280,9 +280,9 @@ CREATE TABLE "reminders" (
 )
 ```
 
-…and while the constraint will not be enforced, the "ON DELETE CASCADE" will still be implemented,
-i.e. when a reminders list is deleted, all of its associated reminders will also be deleted, 
-and everything will be synchronized to all devices.
+…and while the constraint will not be enforced, the "ON DELETE CASCADE" will still be implemented by
+``ForeignKey`` triggers created in ``SyncEngine`` setup, i.e. when a reminders list is deleted, all 
+of its associated reminders will also be deleted, and everything will be synchronized to all devices.
 
 ## Record conflicts
 
