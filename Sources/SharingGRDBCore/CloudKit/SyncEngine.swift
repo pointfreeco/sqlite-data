@@ -10,8 +10,6 @@
       zoneName: "co.pointfree.SQLiteData.defaultZone"
     )
 
-    @TaskLocal package static var _isUpdatingRecord = false
-
     let userDatabase: UserDatabase
     let logger: Logger
     package let metadatabase: any DatabaseReader
@@ -122,6 +120,8 @@
         tablesByName: tablesByName
       )
     }
+
+    @TaskLocal package static var _isUpdatingRecord = false
 
     package func setUpSyncEngine() async throws {
       try await setUpSyncEngine(userDatabase: userDatabase, metadatabase: metadatabase)?.value
