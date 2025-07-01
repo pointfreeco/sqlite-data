@@ -12,7 +12,7 @@ extension BaseCloudKitTests {
   final class ForeignKeyTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func deleteCascade() async throws {
-      try await database.userWrite { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
@@ -68,10 +68,10 @@ extension BaseCloudKitTests {
         """
       }
 
-      try await database.userWrite { db in
+      try await userDatabase.userWrite { db in
         try RemindersList.find(UUID(1)).delete().execute(db)
       }
-      try await database.userRead { db in
+      try await userDatabase.userRead { db in
         try #expect(Reminder.all.fetchAll(db) == [])
       }
 
@@ -94,7 +94,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func deleteSetNull() async throws {
-      try await database.userWrite { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           Parent(id: UUID(1))
           ChildWithOnDeleteSetNull(id: UUID(1), parentID: UUID(1))
@@ -135,10 +135,10 @@ extension BaseCloudKitTests {
         """
       }
 
-      try await database.userWrite { db in
+      try await userDatabase.userWrite { db in
         try Parent.find(UUID(1)).delete().execute(db)
       }
-      try await database.userRead { db in
+      try await userDatabase.userRead { db in
         try expectNoDifference(
           ChildWithOnDeleteSetNull.all.fetchAll(db),
           [
@@ -175,7 +175,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func updateCascade() async throws {
-      try await database.userWrite { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
@@ -231,10 +231,10 @@ extension BaseCloudKitTests {
         """
       }
 
-      try await database.userWrite { db in
+      try await userDatabase.userWrite { db in
         try RemindersList.find(UUID(1)).update { $0.id = UUID(9) }.execute(db)
       }
-      try await database.userRead { db in
+      try await userDatabase.userRead { db in
         try expectNoDifference(
           Reminder.all.fetchAll(db),
           [
@@ -305,7 +305,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func deleteRestrict() async throws {
-      try await database.userWrite { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           Parent(id: UUID(1))
           ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
@@ -347,12 +347,12 @@ extension BaseCloudKitTests {
       }
 
       let error = #expect(throws: DatabaseError.self) {
-        try self.database.userWrite { db in
+        try self.userDatabase.userWrite { db in
           try Parent.find(UUID(1)).delete().execute(db)
         }
       }
       #expect(try #require(error).localizedDescription.contains("FOREIGN KEY constraint failed"))
-      try await database.userRead { db in
+      try await userDatabase.userRead { db in
         try expectNoDifference(
           ChildWithOnDeleteRestrict.all.fetchAll(db),
           [
@@ -398,7 +398,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func updateRestrict() async throws {
-      try await database.userWrite { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           Parent(id: UUID(1))
           ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
@@ -440,12 +440,12 @@ extension BaseCloudKitTests {
       }
 
       let error = #expect(throws: DatabaseError.self) {
-        try self.database.userWrite { db in
+        try self.userDatabase.userWrite { db in
           try Parent.find(UUID(1)).update { $0.id = UUID(2) }.execute(db)
         }
       }
       #expect(try #require(error).localizedDescription.contains("FOREIGN KEY constraint failed"))
-      try await database.userRead { db in
+      try await userDatabase.userRead { db in
         try expectNoDifference(
           ChildWithOnDeleteRestrict.all.fetchAll(db),
           [

@@ -10,7 +10,7 @@ extension BaseCloudKitTests {
   final class TriggerTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func triggers() async throws {
-      let triggersAfterSetUp = try await database.userWrite { db in
+      let triggersAfterSetUp = try await userDatabase.userWrite { db in
         try #sql("SELECT sql FROM sqlite_temp_master ORDER BY sql", as: String?.self).fetchAll(db)
       }
       assertInlineSnapshot(of: triggersAfterSetUp, as: .customDump) {
@@ -419,7 +419,7 @@ extension BaseCloudKitTests {
       }
 
       try await syncEngine.tearDownSyncEngine()
-      let triggersAfterTearDown = try await database.userWrite { db in
+      let triggersAfterTearDown = try await userDatabase.userWrite { db in
         try #sql("SELECT sql FROM sqlite_temp_master", as: String?.self).fetchAll(db)
       }
       assertInlineSnapshot(of: triggersAfterTearDown, as: .customDump) {
@@ -429,7 +429,7 @@ extension BaseCloudKitTests {
       }
 
       try await syncEngine.setUpSyncEngine()
-      let triggersAfterReSetUp = try await database.userWrite { db in
+      let triggersAfterReSetUp = try await userDatabase.userWrite { db in
         try #sql("SELECT sql FROM sqlite_temp_master ORDER BY sql", as: String?.self).fetchAll(db)
       }
       expectNoDifference(triggersAfterReSetUp, triggersAfterSetUp)

@@ -91,7 +91,7 @@ extension SyncEngine {
       saving: [sharedRecord, rootRecord],
       deleting: []
     )
-    try await database.write { db in
+    try await userDatabase.write { db in
       try SyncMetadata
         .find(recordName)
         .update { $0.share = sharedRecord }

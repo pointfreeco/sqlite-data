@@ -11,7 +11,7 @@ import Testing
   .dependency(\.date.now, Date(timeIntervalSince1970: 1234567890))
 )
 class BaseCloudKitTests: @unchecked Sendable {
-  let database: UserDatabase
+  let userDatabase: UserDatabase
   private let _syncEngine: any Sendable
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -28,7 +28,7 @@ class BaseCloudKitTests: @unchecked Sendable {
     let database = UserDatabase(
       database: try SharingGRDBTests.database(containerIdentifier: testContainerIdentifier)
     )
-    self.database = database
+    self.userDatabase = database
     try await database.userWrite { db in
       try db.seed { seeds }
     }
@@ -41,7 +41,7 @@ class BaseCloudKitTests: @unchecked Sendable {
       ),
       privateDatabase: privateDatabase,
       sharedDatabase: sharedDatabase,
-      database: self.database,
+      userDatabase: self.userDatabase,
       metadatabaseURL: URL.metadatabase(containerIdentifier: testContainerIdentifier),
       tables: [
         Reminder.self,
@@ -86,7 +86,7 @@ extension SyncEngine {
     container: any CloudContainer,
     privateDatabase: MockCloudDatabase,
     sharedDatabase: MockCloudDatabase,
-    database: UserDatabase,
+    userDatabase: UserDatabase,
     metadatabaseURL: URL,
     tables: [any PrimaryKeyedTable<UUID>.Type],
     privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
@@ -109,12 +109,12 @@ extension SyncEngine {
           )
         )
       },
-      database: database,
+      userDatabase: userDatabase,
       logger: Logger(.disabled),
       metadatabaseURL: metadatabaseURL,
       tables: tables,
       privateTables: privateTables
     )
-    try await setUpSyncEngine(database: database, metadatabase: metadatabase)?.value
+    try await setUpSyncEngine(userDatabase: userDatabase, metadatabase: metadatabase)?.value
   }
 }
