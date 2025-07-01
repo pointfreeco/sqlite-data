@@ -86,7 +86,7 @@ extension SyncMetadata {
     after: .insert { new in
       Values(.didUpdate(new))
     } when: { _ in
-      !isUpdatingWithServerRecord()
+      !SyncEngine.isUpdatingRecord()
     }
   )
 
@@ -96,7 +96,7 @@ extension SyncMetadata {
     after: .update { _, new in
       Values(.didUpdate(new))
     } when: { _, _ in
-      !isUpdatingWithServerRecord()
+      !SyncEngine.isUpdatingRecord()
     }
   )
 
@@ -106,7 +106,7 @@ extension SyncMetadata {
     after: .delete { old in
       Values(.didDelete(old))
     } when: { _ in
-      !isUpdatingWithServerRecord()
+      !SyncEngine.isUpdatingRecord()
     }
   )
 }
@@ -161,4 +161,11 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
 
 private func isUpdatingWithServerRecord() -> SQLQueryExpression<Bool> {
   SQLQueryExpression("\(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+}
+
+extension QueryExpression {
+  fileprivate static func datetime<D: _OptionalPromotable<Date?>>() -> Self
+  where Self == SQLQueryExpression<D> {
+    Self("\(raw: .sqliteDataCloudKitSchemaName)_datetime()")
+  }
 }

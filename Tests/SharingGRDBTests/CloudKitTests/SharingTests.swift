@@ -13,7 +13,7 @@ extension BaseCloudKitTests {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareNonRootRecord() async throws {
       let reminder = Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
-      try await database.asyncWrite { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           reminder
@@ -75,7 +75,7 @@ extension BaseCloudKitTests {
 
       await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
 
-      try await database.asyncWrite { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
         }
@@ -147,7 +147,7 @@ extension BaseCloudKitTests {
 
       await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
 
-      try await database.asyncWrite { db in
+      try await userDatabase.userWrite { db in
         try Reminder.find(UUID(1)).delete().execute(db)
       }
 

@@ -32,7 +32,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func nonExistentTable() async throws {
-      try await database.asyncWrite { db in
+      try await userDatabase.userWrite { db in
         try SyncMetadata.insert {
           SyncMetadata(
             recordType: UnrecognizedTable.tableName,
@@ -61,7 +61,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func metadataRowWithNoCorrespondingRecordRow() async throws {
-      try await database.asyncWrite { db in
+      try await userDatabase.userWrite { db in
         try SyncMetadata.insert {
           SyncMetadata(
             recordType: RemindersList.tableName,
@@ -90,7 +90,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func saveRecord() async throws {
-      try await database.asyncWrite { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
         }
@@ -125,7 +125,7 @@ extension BaseCloudKitTests {
 
     @Test
     func saveRecordWithParent() async throws {
-      try await database.asyncWrite { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
@@ -171,7 +171,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func savePrivateRecord() async throws {
-      try await database.asyncWrite { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "Personal")
           RemindersListPrivate(id: UUID(1), position: 42, remindersListID: UUID(1))
@@ -188,7 +188,7 @@ extension BaseCloudKitTests {
               [0]: CKRecord(
                 recordID: CKRecord.ID(1:remindersListPrivates/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "remindersListPrivates",
-                parent: nil,
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 position: 42,

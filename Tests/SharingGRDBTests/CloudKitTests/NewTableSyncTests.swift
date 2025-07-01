@@ -57,7 +57,7 @@ extension BaseCloudKitTests {
         """
       }
 
-      let metadata = try await database.read { db in
+      let metadata = try await userDatabase.userRead { db in
         try SyncMetadata.all.order(by: \.primaryKey).fetchAll(db)
       }
       assertInlineSnapshot(of: metadata, as: .customDump) {
