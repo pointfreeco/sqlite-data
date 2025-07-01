@@ -264,8 +264,7 @@
                       parentForeignKey.map { parentForeignKey in
                         SQLQueryExpression(
                           """
-                          \(quote: T.tableName, delimiter: .identifier)\
-                          .\(quote: parentForeignKey.from, delimiter: .identifier) \
+                          \(T.self).\(quote: parentForeignKey.from, delimiter: .identifier) \
                           || ':' || \(quote: parentForeignKey.table, delimiter: .text) 
                           """,
                           as: SyncMetadata.RecordName?.self
