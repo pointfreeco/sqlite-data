@@ -244,7 +244,7 @@
           .select {
             SQLQueryExpression(
               "\($0.lastKnownServerRecord)",
-              as: CKRecord.DataRepresentation.self
+              as: CKRecord.SystemFieldsRepresentation.self
             )
           }
           .fetchAll(db)

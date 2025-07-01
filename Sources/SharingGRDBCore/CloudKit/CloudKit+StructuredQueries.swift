@@ -5,18 +5,18 @@ import CustomDump
 import StructuredQueriesCore
 
 extension _CKRecord where Self == CKRecord {
-  public typealias DataRepresentation = _DataRepresentation<CKRecord>
+  public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKRecord>
 }
 
 extension _CKRecord where Self == CKShare {
-  public typealias DataRepresentation = _DataRepresentation<CKRecord>
+  public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKRecord>
 }
 
 extension Optional where Wrapped: CKRecord {
-  public typealias DataRepresentation = _DataRepresentation<Wrapped>?
+  public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<Wrapped>?
 }
 
-public struct _DataRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
+public struct _SystemFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
   public let queryOutput: Record
 
   public var queryBinding: QueryBinding {
@@ -55,7 +55,7 @@ public struct _DataRepresentation<Record: CKRecord>: QueryBindable, QueryReprese
 extension CKRecord: _CKRecord {}
 
 public protocol _CKRecord {
-  associatedtype DataRepresentation
+  associatedtype SystemFieldsRepresentation
 }
 
 extension CKDatabase.Scope {

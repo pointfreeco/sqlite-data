@@ -144,7 +144,7 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private static func didUpdate(
     recordName: some QueryExpression<SyncMetadata.RecordName>,
-    lastKnownServerRecord: some QueryExpression<CKRecord.DataRepresentation?>
+    lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>
   ) -> Self {
     Self("\(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(recordName), \(lastKnownServerRecord))")
   }
@@ -152,7 +152,7 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private static func didDelete(
     recordName: some QueryExpression<SyncMetadata.RecordName>,
-    lastKnownServerRecord: some QueryExpression<CKRecord.DataRepresentation?>
+    lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>
   )
   -> Self
   {
