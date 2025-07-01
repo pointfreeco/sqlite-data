@@ -10,7 +10,7 @@ extension BaseCloudKitTests {
   final class TriggerTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func triggers() async throws {
-      let triggersAfterSetUp = try await database.asyncWrite { db in
+      let triggersAfterSetUp = try await userDatabase.userWrite { db in
         try #sql("SELECT sql FROM sqlite_temp_master ORDER BY sql", as: String?.self).fetchAll(db)
       }
       assertInlineSnapshot(of: triggersAfterSetUp, as: .customDump) {
@@ -19,7 +19,7 @@ extension BaseCloudKitTests {
           [0]: """
           CREATE TRIGGER "after_delete_on_sqlitedata_icloud_metadata"
           AFTER DELETE ON "sqlitedata_icloud_metadata"
-          FOR EACH ROW WHEN NOT (sqlitedata_icloud_isUpdatingWithServerRecord()) BEGIN
+          FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsUpdatingRecord()) BEGIN
             SELECT sqlitedata_icloud_didDelete("old"."recordName", coalesce("old"."lastKnownServerRecord", (
               SELECT "sqlitedata_icloud_metadata"."lastKnownServerRecord"
               FROM "sqlitedata_icloud_metadata"
@@ -30,7 +30,7 @@ extension BaseCloudKitTests {
           [1]: """
           CREATE TRIGGER "after_insert_on_sqlitedata_icloud_metadata"
           AFTER INSERT ON "sqlitedata_icloud_metadata"
-          FOR EACH ROW WHEN NOT (sqlitedata_icloud_isUpdatingWithServerRecord()) BEGIN
+          FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsUpdatingRecord()) BEGIN
             SELECT sqlitedata_icloud_didUpdate("new"."recordName", coalesce("new"."lastKnownServerRecord", (
               SELECT "sqlitedata_icloud_metadata"."lastKnownServerRecord"
               FROM "sqlitedata_icloud_metadata"
@@ -41,7 +41,7 @@ extension BaseCloudKitTests {
           [2]: """
           CREATE TRIGGER "after_update_on_sqlitedata_icloud_metadata"
           AFTER UPDATE ON "sqlitedata_icloud_metadata"
-          FOR EACH ROW WHEN NOT (sqlitedata_icloud_isUpdatingWithServerRecord()) BEGIN
+          FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsUpdatingRecord()) BEGIN
             SELECT sqlitedata_icloud_didUpdate("new"."recordName", coalesce("new"."lastKnownServerRecord", (
               SELECT "sqlitedata_icloud_metadata"."lastKnownServerRecord"
               FROM "sqlitedata_icloud_metadata"
@@ -419,7 +419,7 @@ extension BaseCloudKitTests {
       }
 
       try await syncEngine.tearDownSyncEngine()
-      let triggersAfterTearDown = try await database.asyncWrite { db in
+      let triggersAfterTearDown = try await userDatabase.userWrite { db in
         try #sql("SELECT sql FROM sqlite_temp_master", as: String?.self).fetchAll(db)
       }
       assertInlineSnapshot(of: triggersAfterTearDown, as: .customDump) {
@@ -429,7 +429,7 @@ extension BaseCloudKitTests {
       }
 
       try await syncEngine.setUpSyncEngine()
-      let triggersAfterReSetUp = try await database.asyncWrite { db in
+      let triggersAfterReSetUp = try await userDatabase.userWrite { db in
         try #sql("SELECT sql FROM sqlite_temp_master ORDER BY sql", as: String?.self).fetchAll(db)
       }
       expectNoDifference(triggersAfterReSetUp, triggersAfterSetUp)

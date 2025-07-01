@@ -406,6 +406,34 @@ It is possible to
 
 ## Separating schema migrations from data migrations
 
+## Tips and tricks
+
+### Updating triggers to be compatible with synchronization
+
+<!-- todo: finish -->
+
+```swift
+#sql("""
+  CREATE TEMPORARY TRIGGER "…"
+  AFTER DELETE ON "…""
+  FOR EACH ROW WHEN NOT \(SyncEngine.isUpdatingRecord())
+  BEGIN
+    …
+  END
+  """)
+```
+
+```swift
+createTemporaryTrigger(
+  "…",
+  after: .insert { new in
+    …
+  } when: { _ in
+    !SyncEngine.isUpdatingRecord()
+  }
+)
+```
+
 ## Topics
 
 ### Go deeper
