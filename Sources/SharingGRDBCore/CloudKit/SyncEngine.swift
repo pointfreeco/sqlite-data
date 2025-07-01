@@ -1192,7 +1192,7 @@
         let isValid =
         sql
           .lowercased()
-          .contains("not (\(DatabaseFunction.syncEngineIsUpdatingRecord.name)())".lowercased())
+          .contains("\(DatabaseFunction.syncEngineIsUpdatingRecord.name)()".lowercased())
         return isValid ? nil : name
       }
       guard invalidTriggers.isEmpty
