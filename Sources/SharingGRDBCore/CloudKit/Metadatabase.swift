@@ -40,8 +40,9 @@ func defaultMetadatabase(
         "recordName" TEXT NOT NULL PRIMARY KEY,
         "parentRecordName" TEXT,
         "lastKnownServerRecord" BLOB,
+        "_lastKnownServerRecordAllFields" BLOB,
         "share" BLOB,
-        "userModificationDate" TEXT
+        "userModificationDate" TEXT NOT NULL DEFAULT (\(.datetime()))
       ) STRICT
       """
     )
@@ -76,4 +77,11 @@ func defaultMetadatabase(
   }
   try migrator.migrate(metadatabase)
   return metadatabase
+}
+
+
+extension QueryFragment {
+  static func datetime() -> Self {
+    Self("\(raw: .sqliteDataCloudKitSchemaName)_datetime()")
+  }
 }

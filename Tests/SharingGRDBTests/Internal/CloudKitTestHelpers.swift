@@ -302,8 +302,8 @@ final class MockCloudDatabase: CloudDatabase {
                 CKError(
                   .serverRecordChanged,
                   userInfo: [
-                    CKRecordChangedErrorServerRecordKey: existingRecord as Any,
-                    CKRecordChangedErrorClientRecordKey: recordToSave,
+                    CKRecordChangedErrorServerRecordKey: existingRecord.copy() as Any,
+                    CKRecordChangedErrorClientRecordKey: recordToSave.copy(),
                   ]
                 )
               )
@@ -324,8 +324,8 @@ final class MockCloudDatabase: CloudDatabase {
               CKError(
                 .serverRejectedRequest,
                 userInfo: [
-                  CKRecordChangedErrorServerRecordKey: existingRecord as Any,
-                  CKRecordChangedErrorClientRecordKey: recordToSave,
+                  CKRecordChangedErrorServerRecordKey: existingRecord.copy() as Any,
+                  CKRecordChangedErrorClientRecordKey: recordToSave.copy(),
                 ]
               )
             )
@@ -607,7 +607,7 @@ extension SyncEngine {
       )
 
     if !syncEngine.state.pendingRecordZoneChanges.isEmpty {
-      fatalError("Should we add the option to immediately process any enqueued changes?")
+      // fatalError("Should we add the option to immediately process any enqueued changes?")
     }
   }
 

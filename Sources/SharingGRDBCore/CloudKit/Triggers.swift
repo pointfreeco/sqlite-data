@@ -51,13 +51,12 @@ extension SyncMetadata {
         #""new"."\#($0.from)" || ':' || '\#($0.table)'"#
       } ?? "NULL"
     return insert {
-      ($0.recordType, $0.recordName, $0.parentRecordName, $0.userModificationDate)
+      ($0.recordType, $0.recordName, $0.parentRecordName)
     } select: {
       Values(
         T.tableName,
         new.recordName,
-        SQLQueryExpression(#"\#(raw: parentForeignKey) AS "foreignKey""#),
-        .datetime()
+        SQLQueryExpression(#"\#(raw: parentForeignKey) AS "foreignKey""#)
       )
     } onConflict: {
       $0.recordName
@@ -162,11 +161,4 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
 
 private func isUpdatingWithServerRecord() -> SQLQueryExpression<Bool> {
   SQLQueryExpression("\(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
-}
-
-extension QueryExpression {
-  fileprivate static func datetime<D: _OptionalPromotable<Date?>>() -> Self
-  where Self == SQLQueryExpression<D> {
-    Self("\(raw: .sqliteDataCloudKitSchemaName)_datetime()")
-  }
 }

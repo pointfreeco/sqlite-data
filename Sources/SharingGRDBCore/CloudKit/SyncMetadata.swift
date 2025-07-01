@@ -45,7 +45,7 @@ public struct SyncMetadata: Hashable, Sendable {
   public var share: CKShare?
 
   /// The date the user last modified the record.
-  public var userModificationDate: Date?
+  public var userModificationDate: Date
 
   package init(
     recordType: String,
@@ -53,7 +53,7 @@ public struct SyncMetadata: Hashable, Sendable {
     parentRecordName: RecordName? = nil,
     lastKnownServerRecord: CKRecord? = nil,
     share: CKShare? = nil,
-    userModificationDate: Date? = nil
+    userModificationDate: Date
   ) {
     self.recordType = recordType
     self.recordName = recordName
@@ -120,6 +120,12 @@ extension SyncMetadata.TableColumns {
 
   public var parentRecordType: some QueryExpression<String?> {
     SQLQueryExpression("substr(\(parentRecordName), 38)")
+  }
+
+  package var _lastKnownServerRecordAllFields: some QueryExpression<
+    CKRecord?.AllFieldsRepresentation
+  > {
+    SQLQueryExpression("\(SyncMetadata.self).\(quote: "_lastKnownServerRecordAllFields")")
   }
 }
 

@@ -36,7 +36,8 @@ extension BaseCloudKitTests {
         try SyncMetadata.insert {
           SyncMetadata(
             recordType: UnrecognizedTable.tableName,
-            recordName: SyncMetadata.RecordName(UnrecognizedTable.self, id: UUID(1))
+            recordName: SyncMetadata.RecordName(UnrecognizedTable.self, id: UUID(1)),
+            userModificationDate: .distantPast
           )
         }
         .execute(db)
@@ -64,7 +65,8 @@ extension BaseCloudKitTests {
         try SyncMetadata.insert {
           SyncMetadata(
             recordType: RemindersList.tableName,
-            recordName: SyncMetadata.RecordName(RemindersList.self, id: UUID(1))
+            recordName: SyncMetadata.RecordName(RemindersList.self, id: UUID(1)),
+            userModificationDate: .distantPast
           )
         }
         .execute(db)
