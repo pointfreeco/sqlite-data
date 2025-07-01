@@ -12,7 +12,7 @@ package struct UserDatabase {
     database.configuration
   }
 
-  func write<T: Sendable>(
+  package func write<T: Sendable>(
     _ updates: @escaping @Sendable (Database) throws -> T
   ) async throws -> T {
     try await withEscapedDependencies { dependencies in
@@ -26,7 +26,7 @@ package struct UserDatabase {
     }
   }
 
-  func read<T: Sendable>(
+  package func read<T: Sendable>(
     _ updates: @escaping @Sendable (Database) throws -> T
   ) async throws -> T {
     try await withEscapedDependencies { dependencies in
@@ -41,7 +41,7 @@ package struct UserDatabase {
   }
 
   @_disfavoredOverload
-  func write<T>(
+  package func write<T>(
     _ updates: (Database) throws -> T
   ) throws -> T {
     try withEscapedDependencies { dependencies in
@@ -56,7 +56,7 @@ package struct UserDatabase {
   }
 
   @_disfavoredOverload
-  func read<T>(
+  package func read<T>(
     _ updates: (Database) throws -> T
   ) throws -> T {
     try withEscapedDependencies { dependencies in
@@ -65,56 +65,6 @@ package struct UserDatabase {
           try dependencies.yield {
             try updates(db)
           }
-        }
-      }
-    }
-  }
-
-  package func userWrite<T: Sendable>(
-    _ updates: @escaping @Sendable (Database) throws -> T
-  ) async throws -> T {
-    try await withEscapedDependencies { dependencies in
-      try await database.write { db in
-        try dependencies.yield {
-          try updates(db)
-        }
-      }
-    }
-  }
-
-  package func userRead<T: Sendable>(
-    _ updates: @escaping @Sendable (Database) throws -> T
-  ) async throws -> T {
-    try await withEscapedDependencies { dependencies in
-      try await database.read { db in
-        try dependencies.yield {
-          try updates(db)
-        }
-      }
-    }
-  }
-
-  @_disfavoredOverload
-  package func userWrite<T>(
-    _ updates: (Database) throws -> T
-  ) throws -> T {
-    try withEscapedDependencies { dependencies in
-      try database.write { db in
-        try dependencies.yield {
-          try updates(db)
-        }
-      }
-    }
-  }
-
-  @_disfavoredOverload
-  package func userRead<T>(
-    _ updates: (Database) throws -> T
-  ) throws -> T {
-    try withEscapedDependencies { dependencies in
-      try database.read { db in
-        try dependencies.yield {
-          try updates(db)
         }
       }
     }

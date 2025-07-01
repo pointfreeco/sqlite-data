@@ -10,7 +10,7 @@
       zoneName: "co.pointfree.SQLiteData.defaultZone"
     )
 
-    @TaskLocal static var _isUpdatingRecord = false
+    @TaskLocal package static var _isUpdatingRecord = false
 
     let userDatabase: UserDatabase
     let logger: Logger
@@ -205,18 +205,20 @@
       else { return nil }
 
       withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.userWrite { db in
-          for (recordType, isNewTable) in recordTypesToFetch {
-            try RecordType
-              .upsert { RecordType.Draft(recordType) }
-              .execute(db)
-            if isNewTable, let table = tablesByName[recordType.tableName] {
-              func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
-                try T
-                  .update { $0.primaryKey = $0.primaryKey }
-                  .execute(db)
+        try userDatabase.write { db in
+          try Self.$_isUpdatingRecord.withValue(false) {
+            for (recordType, isNewTable) in recordTypesToFetch {
+              try RecordType
+                .upsert { RecordType.Draft(recordType) }
+                .execute(db)
+              if isNewTable, let table = tablesByName[recordType.tableName] {
+                func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+                  try T
+                    .update { $0.primaryKey = $0.primaryKey }
+                    .execute(db)
+                }
+                try open(table)
               }
-              try open(table)
             }
           }
         }
