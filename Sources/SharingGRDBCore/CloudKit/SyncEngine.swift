@@ -1296,5 +1296,4 @@
       result[table.type.tableName] = result.count
     }
   }
-
 #endif

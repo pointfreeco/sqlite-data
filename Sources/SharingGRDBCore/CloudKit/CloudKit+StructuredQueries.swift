@@ -99,21 +99,21 @@ extension CKDatabase.Scope {
   }
 }
 
-extension CKRecordKeyValueSetting {
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+extension CKRecord {
   package func setValue(
     _ newValue: some CKRecordValueProtocol & Equatable,
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date?
   ) {
-    if self[key] != newValue {
-      self[key] = newValue
-      self[
+    if encryptedValues[key] != newValue {
+      encryptedValues[key] = newValue
+      encryptedValues[
         "\(String.sqliteDataCloudKitSchemaName)_userModificationDate_\(key)"
       ] = userModificationDate
     }
   }
 
-  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   package func setValue(
     _ newValue: [UInt8],
     forKey key: CKRecord.FieldKey,
@@ -127,6 +127,7 @@ extension CKRecordKeyValueSetting {
         try Data(newValue).write(to: blobURL)
       }
       self[key] = asset
+      // TODO: This should be 'encryptedValues['
       self[
         "\(String.sqliteDataCloudKitSchemaName)_userModificationDate_\(key)"
       ] = userModificationDate
@@ -137,17 +138,14 @@ extension CKRecordKeyValueSetting {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date?
   ) {
-    if self[key] != nil {
-      self[key] = nil
-      self[
+    if encryptedValues[key] != nil {
+      encryptedValues[key] = nil
+      encryptedValues[
         "\(String.sqliteDataCloudKitSchemaName)_userModificationDate_\(key)"
       ] = userModificationDate
     }
   }
-}
 
-@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
-extension CKRecord {
   package func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date?) {
     self.userModificationDate = userModificationDate
     for column in T.TableColumns.allColumns {
@@ -156,19 +154,19 @@ extension CKRecord {
         let value = Value(queryOutput: row[keyPath: column.keyPath])
         switch value.queryBinding {
         case .blob(let value):
-          encryptedValues.setValue(value, forKey: column.name, at: userModificationDate)
+          setValue(value, forKey: column.name, at: userModificationDate)
         case .double(let value):
-          encryptedValues.setValue(value, forKey: column.name, at: userModificationDate)
+          setValue(value, forKey: column.name, at: userModificationDate)
         case .date(let value):
-          encryptedValues.setValue(value, forKey: column.name, at: userModificationDate)
+          setValue(value, forKey: column.name, at: userModificationDate)
         case .int(let value):
-          encryptedValues.setValue(value, forKey: column.name, at: userModificationDate)
+          setValue(value, forKey: column.name, at: userModificationDate)
         case .null:
-          encryptedValues.removeValue(forKey: column.name, at: userModificationDate)
+          removeValue(forKey: column.name, at: userModificationDate)
         case .text(let value):
-          encryptedValues.setValue(value, forKey: column.name, at: userModificationDate)
+          setValue(value, forKey: column.name, at: userModificationDate)
         case .uuid(let value):
-          encryptedValues.setValue(
+          setValue(
             value.uuidString.lowercased(),
             forKey: column.name,
             at: userModificationDate
@@ -184,6 +182,19 @@ extension CKRecord {
   package var userModificationDate: Date? {
     get { encryptedValues[Self.userModificationDateKey] as? Date }
     set { encryptedValues[Self.userModificationDateKey] = newValue }
+  }
+
+  package var userModificationDates: [String: Date] {
+    var userModificationDates: [String: Date] = [:]
+    for key in encryptedValues.allKeys() {
+      guard
+        key.hasPrefix("\(CKRecord.userModificationDateKey)_"),
+        let date = encryptedValues[key] as? Date
+      else { continue }
+      let key = String(key.dropFirst(CKRecord.userModificationDateKey.count + 1))
+      userModificationDates[key] = date
+    }
+    return userModificationDates
   }
 
   private static let userModificationDateKey =
