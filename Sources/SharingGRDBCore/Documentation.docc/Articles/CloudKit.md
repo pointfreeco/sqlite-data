@@ -410,6 +410,8 @@ It is possible to
 
 ### Updating triggers to be compatible with synchronization
 
+<!-- todo: finish -->
+
 ```swift
 #sql("""
   CREATE TEMPORARY TRIGGER "…"
