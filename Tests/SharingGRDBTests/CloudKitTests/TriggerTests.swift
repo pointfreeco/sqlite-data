@@ -193,7 +193,7 @@ extension BaseCloudKitTests {
           FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
             ("recordType", "recordName", "parentRecordName", "userModificationDate")
-            SELECT 'remindersListPrivates',  "new"."id" || ':' || 'remindersListPrivates', NULL AS "foreignKey", sqlitedata_icloud_datetime()
+            SELECT 'remindersListPrivates',  "new"."id" || ':' || 'remindersListPrivates', "new"."remindersListID" || ':' || 'remindersLists' AS "foreignKey", sqlitedata_icloud_datetime()
             ON CONFLICT ("recordName")
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
@@ -292,7 +292,7 @@ extension BaseCloudKitTests {
           FOR EACH ROW BEGIN
             INSERT INTO "sqlitedata_icloud_metadata"
             ("recordType", "recordName", "parentRecordName", "userModificationDate")
-            SELECT 'remindersListPrivates',  "new"."id" || ':' || 'remindersListPrivates', NULL AS "foreignKey", sqlitedata_icloud_datetime()
+            SELECT 'remindersListPrivates',  "new"."id" || ':' || 'remindersListPrivates', "new"."remindersListID" || ':' || 'remindersLists' AS "foreignKey", sqlitedata_icloud_datetime()
             ON CONFLICT ("recordName")
             DO UPDATE SET "recordName" = "excluded"."recordName", "parentRecordName" = "excluded"."parentRecordName", "userModificationDate" = "excluded"."userModificationDate";
           END
@@ -390,6 +390,14 @@ extension BaseCloudKitTests {
           END
           """,
           [38]: """
+          CREATE TRIGGER "sqlitedata_icloud_remindersListPrivates_belongsTo_remindersLists_onDeleteCascade"
+          AFTER DELETE ON "remindersLists"
+          FOR EACH ROW BEGIN
+            DELETE FROM "remindersListPrivates"
+            WHERE "remindersListID" = "old"."id";
+          END
+          """,
+          [39]: """
           CREATE TRIGGER "sqlitedata_icloud_reminders_belongsTo_remindersLists_onDeleteCascade"
           AFTER DELETE ON "remindersLists"
           FOR EACH ROW BEGIN
@@ -397,7 +405,7 @@ extension BaseCloudKitTests {
             WHERE "remindersListID" = "old"."id";
           END
           """,
-          [39]: """
+          [40]: """
           CREATE TRIGGER "sqlitedata_icloud_reminders_belongsTo_remindersLists_onUpdateCascade"
           AFTER UPDATE ON "remindersLists"
           FOR EACH ROW BEGIN

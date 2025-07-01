@@ -186,7 +186,7 @@ extension BaseCloudKitTests {
               [0]: CKRecord(
                 recordID: CKRecord.ID(1:remindersListPrivates/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "remindersListPrivates",
-                parent: nil,
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 position: 42,
