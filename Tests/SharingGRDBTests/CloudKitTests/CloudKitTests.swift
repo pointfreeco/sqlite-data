@@ -635,7 +635,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func merge() async throws {
-      try await database.asyncWrite { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: UUID(1), title: "")
           Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
@@ -693,7 +693,7 @@ extension BaseCloudKitTests {
       try await withDependencies {
         $0.date.now = now.addingTimeInterval(30)
       } operation: {
-        try await database.asyncWrite { db in
+        try await userDatabase.userWrite { db in
           try Reminder.find(UUID(1)).update { $0.isCompleted = true }.execute(db)
         }
       }

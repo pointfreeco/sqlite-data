@@ -992,8 +992,8 @@
                 \(serverRecord.userModificationDate)
               )
               ON CONFLICT DO UPDATE SET
-                \(quote: SyncMetadata.lastKnownServerRecord.name) = "excluded".\(quote: SyncMetadata.lastKnownServerRecord.name)
-                "_lastKnownServerRecordAllFields" = "excluded"."_lastKnownServerRecordAllFields"
+                \(quote: SyncMetadata.lastKnownServerRecord.name) = "excluded".\(quote: SyncMetadata.lastKnownServerRecord.name),
+                "_lastKnownServerRecordAllFields" = "excluded"."_lastKnownServerRecordAllFields",
                 \(quote: SyncMetadata.userModificationDate.name) = "excluded".\(quote: SyncMetadata.userModificationDate.name)
               """
             )
