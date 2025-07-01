@@ -213,12 +213,16 @@ func appDatabase() throws -> any DatabaseWriter {
       RemindersList
         .update { $0.position = RemindersList.select { ($0.position.max() ?? -1) + 1} }
         .where { $0.id.eq(new.id) }
+    } when: { _ in
+      !SyncEngine.isUpdatingRecord()
     })
     .execute(db)
     try Reminder.createTemporaryTrigger(after: .insert { new in
       Reminder
         .update { $0.position = Reminder.select { ($0.position.max() ?? -1) + 1} }
         .where { $0.id.eq(new.id) }
+    } when: { _ in
+      !SyncEngine.isUpdatingRecord()
     })
     .execute(db)
     try RemindersList.createTemporaryTrigger(
@@ -228,6 +232,7 @@ func appDatabase() throws -> any DatabaseWriter {
         }
       } when: { _ in
         RemindersList.count().eq(0)
+          && !SyncEngine.isUpdatingRecord()
       }
     )
     .execute(db)

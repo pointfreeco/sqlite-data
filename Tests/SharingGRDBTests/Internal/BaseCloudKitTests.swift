@@ -22,16 +22,15 @@ class BaseCloudKitTests: @unchecked Sendable {
   typealias SendablePrimaryKeyedTable<T> = PrimaryKeyedTable<T> & Sendable
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  init(seeds: [any SendablePrimaryKeyedTable<UUID>] = []) async throws {
+  init(
+    setUpUserDatabase: @Sendable (UserDatabase) async throws -> Void = { _ in }
+  ) async throws {
     let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
 
-    let database = UserDatabase(
+    self.userDatabase = UserDatabase(
       database: try SharingGRDBTests.database(containerIdentifier: testContainerIdentifier)
     )
-    self.userDatabase = database
-    try await database.userWrite { db in
-      try db.seed { seeds }
-    }
+    try await setUpUserDatabase(userDatabase)
     let privateDatabase = MockCloudDatabase(databaseScope: .private)
     let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
     _syncEngine = try await SyncEngine(
@@ -39,8 +38,6 @@ class BaseCloudKitTests: @unchecked Sendable {
         privateCloudDatabase: privateDatabase,
         sharedCloudDatabase: sharedDatabase
       ),
-      privateDatabase: privateDatabase,
-      sharedDatabase: sharedDatabase,
       userDatabase: self.userDatabase,
       metadatabaseURL: URL.metadatabase(containerIdentifier: testContainerIdentifier),
       tables: [
@@ -84,8 +81,6 @@ extension SyncEngine {
   }
   convenience init(
     container: any CloudContainer,
-    privateDatabase: MockCloudDatabase,
-    sharedDatabase: MockCloudDatabase,
     userDatabase: UserDatabase,
     metadatabaseURL: URL,
     tables: [any PrimaryKeyedTable<UUID>.Type],
@@ -96,13 +91,13 @@ extension SyncEngine {
       defaultSyncEngines: { _, syncEngine in
         (
           MockSyncEngine(
-            database: privateDatabase,
+            database: container.privateCloudDatabase as! MockCloudDatabase,
             delegate: syncEngine,
             scope: .private,
             state: MockSyncEngineState()
           ),
           MockSyncEngine(
-            database:sharedDatabase,
+            database: container.sharedCloudDatabase as! MockCloudDatabase,
             delegate: syncEngine,
             scope: .shared,
             state: MockSyncEngineState()

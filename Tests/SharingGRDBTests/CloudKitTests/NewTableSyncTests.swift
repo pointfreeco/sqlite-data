@@ -11,10 +11,14 @@ extension BaseCloudKitTests {
   final class NewTableSyncTests: BaseCloudKitTests, @unchecked Sendable {
     init() async throws {
       try await super.init(
-        seeds: [
-          RemindersList(id: UUID(1), title: "Personal"),
-          Reminder(id: UUID(1), title: "Write blog post", remindersListID: UUID(1))
-        ]
+        setUpUserDatabase: { userDatabase in
+          try await userDatabase.userWrite { db in
+            try db.seed {
+              RemindersList(id: UUID(1), title: "Personal")
+              Reminder(id: UUID(1), title: "Write blog post", remindersListID: UUID(1))
+            }
+          }
+        }
       )
     }
 
