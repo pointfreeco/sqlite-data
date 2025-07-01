@@ -24,15 +24,21 @@ extension BaseCloudKitTests {
               """
             )
             .execute(db)
-            try RemindersList.createTemporaryTrigger(
-              after: .delete { _ in
-                RemindersList.insert {
-                  RemindersList.Draft(title: "Personal")
-                }
-              } when: { _ in
-                RemindersList.count().eq(0)
-              }
-            )
+            try #sql("""
+              CREATE TRIGGER "non_temporary_trigger"
+              AFTER UPDATE ON "remindersLists"
+              FOR EACH ROW BEGIN
+                SELECT 1;
+              END
+              """)
+            .execute(db)
+            try #sql("""
+              CREATE TEMPORARY TRIGGER "temporary_trigger"
+              AFTER UPDATE ON "remindersLists"
+              FOR EACH ROW BEGIN
+                SELECT 1;
+              END
+              """)
             .execute(db)
           }
           let _ = try await SyncEngine.init(
@@ -53,7 +59,7 @@ extension BaseCloudKitTests {
         error.localizedDescription.hasPrefix(
           """
           Triggers must include 'WHEN NOT sqlitedata_icloud_syncEngineIsUpdatingRecord()' clause: \
-          'after_delete_on_remindersLists@SharingGRDBTests
+          'non_temporary_trigger', 'temporary_trigger'
           """
         )
       )

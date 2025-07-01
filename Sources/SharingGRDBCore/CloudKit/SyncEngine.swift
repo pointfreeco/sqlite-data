@@ -1175,39 +1175,32 @@
     userDatabase: UserDatabase
   ) throws {
     try userDatabase.write { db in
-      for table in tables {
-        let triggers = try SQLQueryExpression(
+      let triggers = try SQLQueryExpression(
           """
           SELECT "name", "sql"
           FROM "sqlite_master"
           WHERE "type" = 'trigger'
-          """,
-          as: (String, String).self
-        )
-        .fetchAll(db)
-        let temporaryTriggers = try SQLQueryExpression(
-          """
+          UNION
           SELECT "name", "sql"
           FROM "sqlite_temp_master"
           WHERE "type" = 'trigger'
           """,
           as: (String, String).self
-        )
+      )
         .fetchAll(db)
-
-        let allTriggers = triggers + temporaryTriggers
-        let invalidTriggers = allTriggers.compactMap { name, sql in
-          let isValid =
-            sql
-            .lowercased()
-            .contains("not (\(DatabaseFunction.syncEngineIsUpdatingRecord.name)())".lowercased())
-          return isValid ? nil : name
-        }
-        guard invalidTriggers.isEmpty
-        else {
-          throw InvalidUserTriggers(triggers: invalidTriggers)
-        }
-
+      let invalidTriggers = triggers.compactMap { name, sql in
+        let isValid =
+        sql
+          .lowercased()
+          .contains("not (\(DatabaseFunction.syncEngineIsUpdatingRecord.name)())".lowercased())
+        return isValid ? nil : name
+      }
+      guard invalidTriggers.isEmpty
+      else {
+        throw InvalidUserTriggers(triggers: invalidTriggers)
+      }
+      
+      for table in tables {
         //      // TODO: write tests for this
         //      let columnsWithUniqueConstraints =
         //        try SQLQueryExpression(
