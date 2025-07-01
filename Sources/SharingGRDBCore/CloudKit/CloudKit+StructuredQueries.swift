@@ -4,78 +4,58 @@ import CryptoKit
 import CustomDump
 import StructuredQueriesCore
 
-extension CKRecord {
-  public struct DataRepresentation: QueryBindable, QueryRepresentable {
-    public let queryOutput: CKRecord
+extension _CKRecord where Self == CKRecord {
+  public typealias DataRepresentation = _DataRepresentation<CKRecord>
+}
 
-    public var queryBinding: QueryBinding {
-      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
-      queryOutput.encodeSystemFields(with: archiver)
-      if isTesting {
-        archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
-      }
-      return archiver.encodedData.queryBinding
+extension _CKRecord where Self == CKShare {
+  public typealias DataRepresentation = _DataRepresentation<CKRecord>
+}
+
+extension Optional where Wrapped: CKRecord {
+  public typealias DataRepresentation = _DataRepresentation<Wrapped>?
+}
+
+public struct _DataRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
+  public let queryOutput: Record
+
+  public var queryBinding: QueryBinding {
+    let archiver = NSKeyedArchiver(requiringSecureCoding: true)
+    queryOutput.encodeSystemFields(with: archiver)
+    if isTesting {
+      archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
     }
-
-    public init(queryOutput: CKRecord) {
-      self.queryOutput = queryOutput
-    }
-
-    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-      guard let data = try Data?(decoder: &decoder) else {
-        throw QueryDecodingError.missingRequiredColumn
-      }
-      let coder = try NSKeyedUnarchiver(forReadingFrom: data)
-      coder.requiresSecureCoding = true
-      guard let queryOutput = CKRecord(coder: coder) else {
-        throw DecodingError()
-      }
-      if isTesting {
-        queryOutput._recordChangeTag = coder
-          .decodeObject(of: NSString.self, forKey: "_recordChangeTag")
-        as? String
-      }
-      self.init(queryOutput: queryOutput)
-    }
-
-    private struct DecodingError: Error {}
+    return archiver.encodedData.queryBinding
   }
-}
 
-extension CKShare {
-  // TODO: Confirm that it's not possible to name this 'DataRepresentation'
-  public struct ShareDataRepresentation: QueryBindable, QueryRepresentable {
-    public let queryOutput: CKShare
-
-    public var queryBinding: QueryBinding {
-      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
-      queryOutput.encodeSystemFields(with: archiver)
-      return archiver.encodedData.queryBinding
-    }
-
-    public init(queryOutput: CKShare) {
-      self.queryOutput = queryOutput
-    }
-
-    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-      guard let data = try Data?(decoder: &decoder) else {
-        throw QueryDecodingError.missingRequiredColumn
-      }
-      let coder = try NSKeyedUnarchiver(forReadingFrom: data)
-      coder.requiresSecureCoding = true
-      self.init(queryOutput: CKShare(coder: coder))
-    }
-
-    private struct DecodingError: Error {}
+  public init(queryOutput: Record) {
+    self.queryOutput = queryOutput
   }
+
+  public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    guard let data = try Data?(decoder: &decoder) else {
+      throw QueryDecodingError.missingRequiredColumn
+    }
+    let coder = try NSKeyedUnarchiver(forReadingFrom: data)
+    coder.requiresSecureCoding = true
+    guard let queryOutput = Record(coder: coder) else {
+      throw DecodingError()
+    }
+    if isTesting {
+      queryOutput._recordChangeTag = coder
+        .decodeObject(of: NSString.self, forKey: "_recordChangeTag")
+      as? String
+    }
+    self.init(queryOutput: queryOutput)
+  }
+
+  private struct DecodingError: Error {}
 }
 
-extension CKRecord? {
-  public typealias DataRepresentation = CKRecord.DataRepresentation?
-}
+extension CKRecord: _CKRecord {}
 
-extension CKShare? {
-  public typealias ShareDataRepresentation = CKShare.ShareDataRepresentation?
+public protocol _CKRecord {
+  associatedtype DataRepresentation
 }
 
 extension CKDatabase.Scope {

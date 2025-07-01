@@ -9,7 +9,7 @@ extension SyncMetadata {
     public let recordName = StructuredQueriesCore.TableColumn<QueryValue, RecordName>("recordName", keyPath: \QueryValue.recordName)
     public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, RecordName?>("parentRecordName", keyPath: \QueryValue.parentRecordName)
     public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<QueryValue, CKRecord?.DataRepresentation>("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
-    public let share = StructuredQueriesCore.TableColumn<QueryValue, CKShare?.ShareDataRepresentation>("share", keyPath: \QueryValue.share)
+    public let share = StructuredQueriesCore.TableColumn<QueryValue, CKShare?.DataRepresentation>("share", keyPath: \QueryValue.share)
     public let userModificationDate = StructuredQueriesCore.TableColumn<QueryValue, Date?>("userModificationDate", keyPath: \QueryValue.userModificationDate)
     public var primaryKey: StructuredQueriesCore.TableColumn<QueryValue, RecordName> {
       self.recordName
@@ -33,7 +33,7 @@ extension SyncMetadata {
       public let recordName = StructuredQueriesCore.TableColumn<QueryValue, RecordName?>("recordName", keyPath: \QueryValue.recordName)
       public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, RecordName?>("parentRecordName", keyPath: \QueryValue.parentRecordName)
       public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<QueryValue, CKRecord?.DataRepresentation>("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
-      public let share = StructuredQueriesCore.TableColumn<QueryValue, CKShare?.ShareDataRepresentation>("share", keyPath: \QueryValue.share)
+      public let share = StructuredQueriesCore.TableColumn<QueryValue, CKShare?.DataRepresentation>("share", keyPath: \QueryValue.share)
       public let userModificationDate = StructuredQueriesCore.TableColumn<QueryValue, Date?>("userModificationDate", keyPath: \QueryValue.userModificationDate)
       public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
         [QueryValue.columns.recordType, QueryValue.columns.recordName, QueryValue.columns.parentRecordName, QueryValue.columns.lastKnownServerRecord, QueryValue.columns.share, QueryValue.columns.userModificationDate]
@@ -48,7 +48,7 @@ extension SyncMetadata {
       self.recordName = try decoder.decode(RecordName.self)
       self.parentRecordName = try decoder.decode(RecordName.self)
       let lastKnownServerRecord = try decoder.decode(CKRecord?.DataRepresentation.self)
-      let share = try decoder.decode(CKShare?.ShareDataRepresentation.self)
+      let share = try decoder.decode(CKShare?.DataRepresentation.self)
       self.userModificationDate = try decoder.decode(Date.self)
       guard let recordType else {
         throw QueryDecodingError.missingRequiredColumn
@@ -98,7 +98,7 @@ extension SyncMetadata {
     let recordName = try decoder.decode(RecordName.self)
     self.parentRecordName = try decoder.decode(RecordName.self)
     let lastKnownServerRecord = try decoder.decode(CKRecord?.DataRepresentation.self)
-    let share = try decoder.decode(CKShare?.ShareDataRepresentation.self)
+    let share = try decoder.decode(CKShare?.DataRepresentation.self)
     self.userModificationDate = try decoder.decode(Date.self)
     guard let recordType else {
       throw QueryDecodingError.missingRequiredColumn
