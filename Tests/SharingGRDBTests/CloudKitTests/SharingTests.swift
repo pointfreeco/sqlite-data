@@ -75,11 +75,15 @@ extension BaseCloudKitTests {
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
       remindersListRecord.userModificationDate = now
 
-      await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
+      await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
 
-      try await userDatabase.userWrite { db in
-        try db.seed {
-          Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+          }
         }
       }
 
@@ -89,21 +93,25 @@ extension BaseCloudKitTests {
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
                 recordType: "reminders",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
                 title: "Get milk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:32:30.000Z)
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
@@ -119,10 +127,6 @@ extension BaseCloudKitTests {
                 sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
           )
         )
         """
@@ -153,18 +157,26 @@ extension BaseCloudKitTests {
       reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "remindersListID", at: now)
       remindersListRecord.userModificationDate = now
 
-      await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
+      await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
 
-      try await userDatabase.userWrite { db in
-        try Reminder.find(UUID(1)).delete().execute(db)
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try Reminder.find(UUID(1)).delete().execute(db)
+        }
       }
 
       await syncEngine.processBatch()
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump, record: .all) {
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
             storage: [
               [0]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
@@ -178,10 +190,6 @@ extension BaseCloudKitTests {
                 sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
           )
         )
         """
