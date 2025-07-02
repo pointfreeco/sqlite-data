@@ -295,7 +295,7 @@
           }
         }
         for table in self.tables {
-          try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
+          try table.dropTriggers(db: db)
         }
         for trigger in SyncMetadata.callbackTriggers.reversed() {
           try trigger.drop().execute(db)
@@ -410,27 +410,10 @@
       for trigger in metadataTriggers(parentForeignKey: parentForeignKey) {
         try trigger.execute(db)
       }
-
-//      let foreignKeys = foreignKeysByTableName[tableName] ?? []
-//      for foreignKey in foreignKeys {
-//        guard let parent = tablesByName[foreignKey.table] else {
-//          reportIssue("TODO")
-//          continue
-//        }
-//        try foreignKey.createTriggers(Self.self, belongsTo: parent, db: db)
-//      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    fileprivate static func dropTriggers(
-      foreignKeysByTableName: [String: [ForeignKey]],
-      db: Database
-    ) throws {
-//      let foreignKeys = foreignKeysByTableName[tableName] ?? []
-//      for foreignKey in foreignKeys.reversed() {
-//        try foreignKey.dropTriggers(for: Self.self, db: db)
-//      }
-
+    fileprivate static func dropTriggers(db: Database) throws {
       for trigger in metadataTriggers(parentForeignKey: nil).reversed() {
         try trigger.drop().execute(db)
       }
