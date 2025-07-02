@@ -69,9 +69,9 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
           "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onDeleteCascade"
-        AFTER DELETE ON \(quote: parentTableName, delimiter: .identifier)
+        AFTER DELETE ON \(quote: parentTableName)
         FOR EACH ROW BEGIN
-          DELETE FROM \(quote: childTableName, delimiter: .identifier)
+          DELETE FROM \(quote: childTableName)
           WHERE \(quote: from) = "old".\(quote: to);
         END
         """
@@ -83,10 +83,10 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
           "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onDeleteRestrict"
-        BEFORE DELETE ON \(quote: parentTableName, delimiter: .identifier)
+        BEFORE DELETE ON \(quote: parentTableName)
         FOR EACH ROW BEGIN
           SELECT RAISE(ABORT, 'FOREIGN KEY constraint failed')
-          FROM \(quote: childTableName, delimiter: .identifier)
+          FROM \(quote: childTableName)
           WHERE \(quote: from) = "old".\(quote: to);
         END
         """
@@ -109,9 +109,9 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
           "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onDeleteSetDefault"
-        AFTER DELETE ON \(quote: parentTableName, delimiter: .identifier)
+        AFTER DELETE ON \(quote: parentTableName)
         FOR EACH ROW BEGIN
-          UPDATE \(quote: childTableName, delimiter: .identifier)
+          UPDATE \(quote: childTableName)
           SET \(quote: from) = \(raw: defaultValue ?? "NULL")
           WHERE \(quote: from) = "old".\(quote: to);
         END
@@ -124,9 +124,9 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
           "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onDeleteSetNull"
-        AFTER DELETE ON \(quote: parentTableName, delimiter: .identifier)
+        AFTER DELETE ON \(quote: parentTableName)
         FOR EACH ROW BEGIN
-          UPDATE \(quote: childTableName, delimiter: .identifier)
+          UPDATE \(quote: childTableName)
           SET \(quote: from) = NULL
           WHERE \(quote: from) = "old".\(quote: to);
         END
@@ -143,9 +143,9 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
           "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onUpdateCascade"
-        AFTER UPDATE ON \(quote: parentTableName, delimiter: .identifier)
+        AFTER UPDATE ON \(quote: parentTableName)
         FOR EACH ROW BEGIN
-          UPDATE \(quote: childTableName, delimiter: .identifier)
+          UPDATE \(quote: childTableName)
           SET \(quote: from) = "new".\(quote: to)
           WHERE \(quote: from) = "old".\(quote: to);
         END
@@ -158,10 +158,10 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
           "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onUpdateRestrict"
-        BEFORE UPDATE ON \(quote: parentTableName, delimiter: .identifier)
+        BEFORE UPDATE ON \(quote: parentTableName)
         FOR EACH ROW BEGIN
           SELECT RAISE(ABORT, 'FOREIGN KEY constraint failed')
-          FROM \(quote: childTableName, delimiter: .identifier)
+          FROM \(quote: childTableName)
           WHERE \(quote: from) = "old".\(quote: to);
         END
         """
@@ -184,9 +184,9 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
           "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onUpdateSetDefault"
-        AFTER UPDATE ON \(quote: parentTableName, delimiter: .identifier)
+        AFTER UPDATE ON \(quote: parentTableName)
         FOR EACH ROW BEGIN
-          UPDATE \(quote: childTableName, delimiter: .identifier)
+          UPDATE \(quote: childTableName)
           SET \(quote: from) = \(raw: defaultValue ?? "NULL")
           WHERE \(quote: from) = "old".\(quote: to);
         END
@@ -199,9 +199,9 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
           "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onUpdateSetNull"
-        AFTER UPDATE ON \(quote: parentTableName, delimiter: .identifier)
+        AFTER UPDATE ON \(quote: parentTableName)
         FOR EACH ROW BEGIN
-          UPDATE \(quote: childTableName, delimiter: .identifier)
+          UPDATE \(quote: childTableName)
           SET \(quote: from) = NULL
           WHERE \(quote: from) = "old".\(quote: to);
         END
