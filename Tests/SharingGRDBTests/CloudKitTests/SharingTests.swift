@@ -89,6 +89,21 @@ extension BaseCloudKitTests {
             databaseScope: .private,
             storage: [
               [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                title: "Get milk",
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+              ),
+              [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                 recordType: "remindersLists",
                 parent: nil,
@@ -102,19 +117,7 @@ extension BaseCloudKitTests {
           ),
           sharedCloudDatabase: MockCloudDatabase(
             databaseScope: .shared,
-            storage: [
-              [0]: CKRecord(
-                recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
-                recordType: "reminders",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
-                share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
-                title: "Get milk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
-              )
-            ]
+            storage: []
           )
         )
         """

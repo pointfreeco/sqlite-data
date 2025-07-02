@@ -24,7 +24,7 @@ extension BaseCloudKitTests {
 //            metadatabaseURL: URL.temporaryDirectory,
 //            tables: []
 //          )
-//        }
+        }
         #expect(
           String(decoding: try #require(result).standardOutputContent, as: UTF8.self)
             == "Foreign key support must be disabled to synchronize with CloudKit."

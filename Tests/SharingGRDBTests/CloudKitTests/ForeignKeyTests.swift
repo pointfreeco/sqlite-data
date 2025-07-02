@@ -36,7 +36,11 @@ extension BaseCloudKitTests {
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
                 title: "Groceries",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(2:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -47,7 +51,11 @@ extension BaseCloudKitTests {
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
                 title: "Walk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               ),
               [2]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -56,7 +64,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -68,8 +78,12 @@ extension BaseCloudKitTests {
         """
       }
 
-      try await userDatabase.userWrite { db in
-        try RemindersList.find(UUID(1)).delete().execute(db)
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try RemindersList.find(UUID(1)).delete().execute(db)
+        }
       }
       try await userDatabase.userRead { db in
         try #expect(Reminder.all.fetchAll(db) == [])
@@ -115,7 +129,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 parentID: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:31:30.000Z)
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -123,7 +139,8 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -135,8 +152,12 @@ extension BaseCloudKitTests {
         """
       }
 
-      try await userDatabase.userWrite { db in
-        try Parent.find(UUID(1)).delete().execute(db)
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try Parent.find(UUID(1)).delete().execute(db)
+        }
       }
       try await userDatabase.userRead { db in
         try expectNoDifference(
@@ -160,7 +181,9 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:32:30.000Z)
               )
             ]
           ),
@@ -199,7 +222,11 @@ extension BaseCloudKitTests {
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
                 title: "Groceries",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(3:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -210,7 +237,11 @@ extension BaseCloudKitTests {
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
                 title: "Walk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               ),
               [2]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -219,7 +250,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -231,8 +264,12 @@ extension BaseCloudKitTests {
         """
       }
 
-      try await userDatabase.userWrite { db in
-        try RemindersList.find(UUID(1)).update { $0.id = UUID(9) }.execute(db)
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try RemindersList.find(UUID(1)).update { $0.id = UUID(9) }.execute(db)
+        }
       }
       try await userDatabase.userRead { db in
         try expectNoDifference(
@@ -261,7 +298,11 @@ extension BaseCloudKitTests {
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000009",
                 title: "Groceries",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(3:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -272,7 +313,11 @@ extension BaseCloudKitTests {
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000009",
                 title: "Walk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               ),
               [2]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -281,7 +326,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               ),
               [3]: CKRecord(
                 recordID: CKRecord.ID(9:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -290,7 +337,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000009",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:32:30.000Z)
               )
             ]
           ),
@@ -326,7 +375,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 parentID: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:31:30.000Z)
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -334,7 +385,8 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -345,10 +397,13 @@ extension BaseCloudKitTests {
         )
         """
       }
-
       let error = #expect(throws: DatabaseError.self) {
-        try self.userDatabase.userWrite { db in
-          try Parent.find(UUID(1)).delete().execute(db)
+        try withDependencies {
+          $0.date.now.addTimeInterval(60)
+        } operation: {
+          try self.userDatabase.userWrite { db in
+            try Parent.find(UUID(1)).delete().execute(db)
+          }
         }
       }
       #expect(try #require(error).localizedDescription.contains("FOREIGN KEY constraint failed"))
@@ -375,7 +430,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 parentID: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:31:30.000Z)
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -383,7 +440,8 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -419,7 +477,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 parentID: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:31:30.000Z)
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -427,7 +487,8 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -438,10 +499,13 @@ extension BaseCloudKitTests {
         )
         """
       }
-
       let error = #expect(throws: DatabaseError.self) {
-        try self.userDatabase.userWrite { db in
-          try Parent.find(UUID(1)).update { $0.id = UUID(2) }.execute(db)
+        try withDependencies {
+          $0.date.now.addTimeInterval(60)
+        } operation: {
+          try self.userDatabase.userWrite { db in
+            try Parent.find(UUID(1)).update { $0.id = UUID(2) }.execute(db)
+          }
         }
       }
       #expect(try #require(error).localizedDescription.contains("FOREIGN KEY constraint failed"))
@@ -468,7 +532,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 parentID: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:31:30.000Z)
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -476,7 +542,8 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
