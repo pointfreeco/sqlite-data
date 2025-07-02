@@ -579,7 +579,7 @@
               }
             }
           )
-          ?? nil
+            ?? nil
         else {
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           return nil
@@ -732,9 +732,9 @@
           await refreshLastKnownServerRecord(record)
         }
         if let shareReference = record.share,
-           // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
-           let shareRecord = try? await syncEngine.database.record(for: shareReference.recordID),
-           let share = shareRecord as? CKShare
+          // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
+          let shareRecord = try? await syncEngine.database.record(for: shareReference.recordID),
+          let share = shareRecord as? CKShare
         {
           await withErrorReporting {
             try await cacheShare(share)
@@ -766,9 +766,9 @@
           // TODO: Should we be reporting this? What if another device deletes from a table this device doesn't know about?
           reportIssue(
             .sqliteDataCloudKitFailure.appending(
-                """
-                : No table to delete from: "\(recordType)"
-                """
+              """
+              : No table to delete from: "\(recordType)"
+              """
             )
           )
         }
@@ -802,23 +802,16 @@
         func clearServerRecord() {
           withErrorReporting {
             try userDatabase.write { db in
-              try SQLQueryExpression(
-                  """
-                  UPDATE \(SyncMetadata.self) SET
-                  \(quote: SyncMetadata.lastKnownServerRecord.name) = NULL,
-                  "_lastKnownServerRecordAllFields" = NULL,
-                  \(quote: SyncMetadata.share.name) = NULL
-                  WHERE \(SyncMetadata.recordName) = \(recordName)
-                  """
-              )
-              .execute(db)
-              // try SyncMetadata
-              //   .find(recordName)
-              //   .update { $0.lastKnownServerRecord = nil }
-              //   .execute(db)
+              try SyncMetadata
+                .find(recordName)
+                .update {
+                  $0.lastKnownServerRecord = nil
+                  $0._lastKnownServerRecordAllFields = nil
+                }
+                .execute(db)
             }
           }
-      }
+        }
 
         switch failedRecordSave.error.code {
         case .serverRecordChanged:
@@ -976,44 +969,29 @@
           }
           try userDatabase.write { db in
             try SQLQueryExpression(query).execute(db)
-            try SQLQueryExpression(
-              """
-              INSERT INTO \(SyncMetadata.self) (
-                \(quote: SyncMetadata.recordType.name),
-                \(quote: SyncMetadata.recordName.name),
-                \(quote: SyncMetadata.lastKnownServerRecord.name),
-                "_lastKnownServerRecordAllFields",
-                \(quote: SyncMetadata.userModificationDate.name)
-              ) VALUES (
-                \(bind: serverRecord.recordType),
-                \(recordName),
-                \(serverRecord, as: CKRecord.SystemFieldsRepresentation.self),
-                \(serverRecord, as: CKRecord.AllFieldsRepresentation.self),
-                \(serverRecord.userModificationDate)
-              )
-              ON CONFLICT DO UPDATE SET
-                \(quote: SyncMetadata.lastKnownServerRecord.name) = "excluded".\(quote: SyncMetadata.lastKnownServerRecord.name),
-                "_lastKnownServerRecordAllFields" = "excluded"."_lastKnownServerRecordAllFields",
-                \(quote: SyncMetadata.userModificationDate.name) = "excluded".\(quote: SyncMetadata.userModificationDate.name)
-              """
-            )
-            .execute(db)
-            // TODO: Can't use '_lastKnownServerRecordAllFields' yet
-            // try SyncMetadata
-            //   .insert {
-            //     ($0.recordType, $0.recordName, $0.lastKnownServerRecord, $0.userModificationDate)
-            //   } values: {
-            //     (
-            //       serverRecord.recordType,
-            //       recordName,
-            //       serverRecord,
-            //       serverRecord.userModificationDate
-            //     )
-            //   } onConflictDoUpdate: {
-            //     $0.lastKnownServerRecord = serverRecord
-            //     $0.userModificationDate = serverRecord.userModificationDate
-            //   }
-            //   .execute(db)
+            try SyncMetadata
+              .insert {
+                (
+                  $0.recordType,
+                  $0.recordName,
+                  $0.lastKnownServerRecord,
+                  $0._lastKnownServerRecordAllFields,
+                  $0.userModificationDate
+                )
+              } values: {
+                (
+                  serverRecord.recordType,
+                  recordName,
+                  serverRecord,
+                  serverRecord,
+                  serverRecord.userModificationDate
+                )
+              } onConflictDoUpdate: {
+                $0.lastKnownServerRecord = serverRecord
+                $0._lastKnownServerRecordAllFields = serverRecord
+                $0.userModificationDate = serverRecord.userModificationDate
+              }
+              .execute(db)
           }
         }
         try open(table)
@@ -1030,19 +1008,13 @@
       func updateLastKnownServerRecord() {
         withErrorReporting(.sqliteDataCloudKitFailure) {
           try userDatabase.write { db in
-            try SQLQueryExpression(
-              """
-              UPDATE \(SyncMetadata.self) SET
-              \(quote: SyncMetadata.lastKnownServerRecord.name) = \(record, as: CKRecord.SystemFieldsRepresentation.self),
-              "_lastKnownServerRecordAllFields" = \(record, as: CKRecord.AllFieldsRepresentation.self)
-              WHERE \(SyncMetadata.recordName) = \(recordName)
-              """
-            )
-            .execute(db)
-            // try SyncMetadata
-            //   .find(recordName)
-            //   .update { $0.lastKnownServerRecord = record }
-            //   .execute(db)
+            try SyncMetadata
+              .find(recordName)
+              .update {
+                $0.lastKnownServerRecord = record
+                $0._lastKnownServerRecordAllFields = record
+              }
+              .execute(db)
           }
         }
       }
@@ -1345,13 +1317,13 @@
     }
   }
 
-// TODO: Remove when available on 'main'
-extension QueryFragment.StringInterpolation {
-  public mutating func appendInterpolation<QueryValue: QueryBindable>(
-    _ queryOutput: QueryValue.QueryOutput,
-    as representableType: QueryValue.Type
-  ) {
-    appendInterpolation(QueryValue(queryOutput: queryOutput))
+  // TODO: Remove when available on 'main'
+  extension QueryFragment.StringInterpolation {
+    public mutating func appendInterpolation<QueryValue: QueryBindable>(
+      _ queryOutput: QueryValue.QueryOutput,
+      as representableType: QueryValue.Type
+    ) {
+      appendInterpolation(QueryValue(queryOutput: queryOutput))
+    }
   }
-}
 #endif

@@ -36,9 +36,12 @@ public struct SyncMetadata: Hashable, Sendable {
   /// ```
   public var parentRecordName: RecordName?
 
+  // TODO: lastKnownSystemFields
   /// The last known `CKRecord` received from the server.
   // @Column(as: CKRecord?.DataRepresentation.self)
   public var lastKnownServerRecord: CKRecord?
+
+  // TODO: _lastKnownAllFields
 
   /// The `CKShare` associated with this record, if it is shared.
   // @Column(as: CKShare?.ShareDataRepresentation.self)
@@ -46,6 +49,10 @@ public struct SyncMetadata: Hashable, Sendable {
 
   /// The date the user last modified the record.
   public var userModificationDate: Date
+
+  var _lastKnownServerRecordAllFields: CKRecord? {
+    fatalError()
+  }
 
   package init(
     recordType: String,
@@ -122,10 +129,14 @@ extension SyncMetadata.TableColumns {
     SQLQueryExpression("substr(\(parentRecordName), 38)")
   }
 
-  package var _lastKnownServerRecordAllFields: some QueryExpression<
+  package var _lastKnownServerRecordAllFields: StructuredQueriesCore.TableColumn<
+    SyncMetadata,
     CKRecord?.AllFieldsRepresentation
   > {
-    SQLQueryExpression("\(SyncMetadata.self).\(quote: "_lastKnownServerRecordAllFields")")
+    StructuredQueriesCore.TableColumn(
+      "_lastKnownServerRecordAllFields",
+      keyPath: \._lastKnownServerRecordAllFields
+    )
   }
 }
 

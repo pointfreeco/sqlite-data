@@ -132,7 +132,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -179,7 +181,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -259,7 +263,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -271,11 +277,15 @@ extension BaseCloudKitTests {
         """
       }
 
-      try await userDatabase.userWrite { db in
-        try RemindersList
-          .find(UUID(1))
-          .update { $0.title = "Work" }
-          .execute(db)
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try RemindersList
+            .find(UUID(1))
+            .update { $0.title = "Work" }
+            .execute(db)
+        }
       }
       await syncEngine.processBatch()
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
@@ -291,7 +301,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Work",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:32:30.000Z)
               )
             ]
           ),
@@ -347,7 +359,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -400,7 +414,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Work",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -434,7 +450,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -489,7 +507,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -523,7 +543,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -611,7 +633,9 @@ extension BaseCloudKitTests {
                   share: nil,
                   id: "00000000-0000-0000-0000-000000000001",
                   title: "",
-                  sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                  sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                  sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                  sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(2:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -620,7 +644,9 @@ extension BaseCloudKitTests {
                   share: nil,
                   id: "00000000-0000-0000-0000-000000000002",
                   title: "",
-                  sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                  sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                  sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                  sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
                 )
               ]
             ),
