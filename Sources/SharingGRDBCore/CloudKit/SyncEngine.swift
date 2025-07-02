@@ -362,7 +362,7 @@
         return
       }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
-      // TODO: do something with the CKShare returned?
+      // TODO: do something with the CKShare returned? save it in SyncMetadata?
       _ = try await container.accept(metadata)
       try await syncEngines.shared?.fetchChanges(
         .init(
@@ -711,6 +711,7 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
+      let shares: [CKShare] = []
       for record in modifications {
         if let share = record as? CKShare {
           await withErrorReporting {
