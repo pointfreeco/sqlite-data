@@ -391,10 +391,16 @@ extension MockCloudDatabase: CustomDumpReflectable {
 }
 
 final class MockCloudContainer: CloudContainer {
+  let containerIdentifier: String?
   let privateCloudDatabase: MockCloudDatabase
   let sharedCloudDatabase: MockCloudDatabase
 
-  init(privateCloudDatabase: MockCloudDatabase, sharedCloudDatabase: MockCloudDatabase) {
+  init(
+    containerIdentifier: String?,
+    privateCloudDatabase: MockCloudDatabase,
+    sharedCloudDatabase: MockCloudDatabase
+  ) {
+    self.containerIdentifier = containerIdentifier
     self.privateCloudDatabase = privateCloudDatabase
     self.sharedCloudDatabase = sharedCloudDatabase
   }
@@ -417,6 +423,7 @@ final class MockCloudContainer: CloudContainer {
       let container =
         storage[containerIdentifier]
         ?? MockCloudContainer(
+          containerIdentifier: containerIdentifier,
           privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
           sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
         )

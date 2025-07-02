@@ -36,6 +36,7 @@ class BaseCloudKitTests: @unchecked Sendable {
     let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
     _syncEngine = try await SyncEngine(
       container: MockCloudContainer(
+        containerIdentifier: testContainerIdentifier,
         privateCloudDatabase: privateDatabase,
         sharedCloudDatabase: sharedDatabase
       ),

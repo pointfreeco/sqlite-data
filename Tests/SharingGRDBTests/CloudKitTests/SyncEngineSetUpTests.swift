@@ -28,19 +28,19 @@ extension BaseCloudKitTests {
         for: RemindersList.recordID(for: UUID(1))
       )
       personalListRecord.userModificationDate = Date()
-      personalListRecord.encryptedValues["position"] = 1
+      personalListRecord.setValue(1, forKey: "position", at: Date())
 
       let businessListRecord = try syncEngine.private.database.record(
         for: RemindersList.recordID(for: UUID(2))
       )
       businessListRecord.userModificationDate = Date()
-      businessListRecord.encryptedValues["position"] = 2
+      businessListRecord.setValue(2, forKey: "position", at: Date())
 
       let reminderRecord = try syncEngine.private.database.record(
         for: Reminder.recordID(for: UUID(1))
       )
       reminderRecord.userModificationDate = Date()
-      reminderRecord.encryptedValues["position"] = 3
+      reminderRecord.setValue(3, forKey: "position", at: Date())
 
       _ = syncEngine.private.database.modifyRecords(
         saving: [personalListRecord, businessListRecord, reminderRecord],
@@ -66,9 +66,33 @@ extension BaseCloudKitTests {
         .execute(db)
       }
 
-      try await syncEngine.setUpSyncEngine()
-      let batch = await syncEngine.nextRecordZoneChangeBatch(syncEngine: syncEngine.private)
-      #expect(batch == nil)
+      let relaunchedSyncEngine = try await SyncEngine(
+        container: MockCloudContainer(
+          containerIdentifier: syncEngine.container.containerIdentifier,
+          privateCloudDatabase: syncEngine.container.privateCloudDatabase as! MockCloudDatabase,
+          sharedCloudDatabase: syncEngine.container.sharedCloudDatabase as! MockCloudDatabase
+        ),
+        privateDatabase: syncEngine.container.privateCloudDatabase as! MockCloudDatabase,
+        sharedDatabase: syncEngine.container.sharedCloudDatabase as! MockCloudDatabase,
+        userDatabase: self.userDatabase,
+        metadatabaseURL: URL
+          .metadatabase(containerIdentifier: syncEngine.container.containerIdentifier!),
+        tables: [
+          MigratedReminder.self,
+          MigratedRemindersList.self,
+          Tag.self,
+          ReminderTag.self,
+          Parent.self,
+          ChildWithOnDeleteRestrict.self,
+          ChildWithOnDeleteSetNull.self,
+          ChildWithOnDeleteSetDefault.self,
+        ],
+        privateTables: [
+          RemindersListPrivate.self
+        ]
+      )
+
+      await relaunchedSyncEngine.processBatch()
 
       let remindersLists = try await userDatabase.userRead { db in
         try MigratedRemindersList.order(by: \.id).fetchAll(db)
