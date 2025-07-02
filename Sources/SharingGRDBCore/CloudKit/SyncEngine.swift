@@ -729,7 +729,6 @@
           }
         } else {
           upsertFromServerRecord(record)
-          await refreshLastKnownServerRecord(record)
         }
         if let shareReference = record.share,
           // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
@@ -818,7 +817,6 @@
           guard let serverRecord = failedRecordSave.error.serverRecord else { continue }
           // TODO: do per-field merging here
           upsertFromServerRecord(serverRecord)
-          await refreshLastKnownServerRecord(serverRecord)
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
 
         case .zoneNotFound:
@@ -1013,6 +1011,7 @@
               .update {
                 $0.lastKnownServerRecord = record
                 $0._lastKnownServerRecordAllFields = record
+                $0.userModificationDate = record.userModificationDate
               }
               .execute(db)
           }
