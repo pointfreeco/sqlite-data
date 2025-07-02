@@ -156,7 +156,7 @@ class RemindersListsModel {
     var id: RemindersList.ID { remindersList.id }
     var remindersCount: Int
     var remindersList: RemindersList
-    @Column(as: CKShare?.ShareDataRepresentation.self)
+    @Column(as: CKShare?.SystemFieldsRepresentation.self)
     var share: CKShare?
   }
 

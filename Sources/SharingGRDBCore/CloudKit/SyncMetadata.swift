@@ -44,7 +44,7 @@ public struct SyncMetadata: Hashable, Sendable {
   // TODO: _lastKnownAllFields
 
   /// The `CKShare` associated with this record, if it is shared.
-  // @Column(as: CKShare?.ShareDataRepresentation.self)
+  // @Column(as: CKShare?.SystemFieldsRepresentation.self)
   public var share: CKShare?
 
   /// The date the user last modified the record.

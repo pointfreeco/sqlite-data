@@ -963,16 +963,13 @@
         else {
           return
         }
-        guard
-          let (_, allFields) =
-            try metadatabase.read({ db in
-              try SyncMetadata
-                .find(recordName)
-                .select { ($0, $0._lastKnownServerRecordAllFields) }
-                .fetchOne(db)
-            })
-            ?? nil
-        else { return }
+        let allFields = try metadatabase.read { db in
+          try SyncMetadata
+            .find(recordName)
+            .select(\._lastKnownServerRecordAllFields)
+            .fetchOne(db)
+        }
+        ?? nil
 
         func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
           var columnNames = T.TableColumns.allColumns.map(\.name)
