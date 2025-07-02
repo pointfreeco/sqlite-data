@@ -10,6 +10,8 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class SharingTests: BaseCloudKitTests, @unchecked Sendable {
+    @Dependency(\.date.now) var now
+
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareNonRootRecord() async throws {
       let reminder = Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
@@ -68,10 +70,10 @@ extension BaseCloudKitTests {
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
       )
-      remindersListRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
-      remindersListRecord.encryptedValues["isCompleted"] = false
-      remindersListRecord.encryptedValues["title"] = "Personal"
-      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
+      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
+      remindersListRecord.setValue("Personal", forKey: "title", at: now)
+      remindersListRecord.userModificationDate = now
 
       await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
 
@@ -111,7 +113,10 @@ extension BaseCloudKitTests {
                 id: "00000000-0000-0000-0000-000000000001",
                 isCompleted: 0,
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),
@@ -135,18 +140,18 @@ extension BaseCloudKitTests {
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
       )
-      remindersListRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
-      remindersListRecord.encryptedValues["title"] = "Personal"
-      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
+      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue("Personal", forKey: "title", at: now)
+      remindersListRecord.userModificationDate = now
       let reminderRecord = CKRecord(
         recordType: Reminder.tableName,
         recordID: Reminder.recordID(for: UUID(1), zoneID: externalZoneID)
       )
-      reminderRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
-      reminderRecord.encryptedValues["isCompleted"] = false
-      reminderRecord.encryptedValues["title"] = "Get milk"
-      reminderRecord.encryptedValues["remindersListID"] = UUID(1).uuidString.lowercased()
-      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
+      reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      reminderRecord.setValue(false, forKey: "isCompleted", at: now)
+      reminderRecord.setValue("Get milk", forKey: "title", at: now)
+      reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "remindersListID", at: now)
+      remindersListRecord.userModificationDate = now
 
       await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
 
@@ -155,7 +160,7 @@ extension BaseCloudKitTests {
       }
 
       await syncEngine.processBatch()
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump, record: .all) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -168,7 +173,9 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
                 title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
               )
             ]
           ),

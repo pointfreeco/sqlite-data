@@ -965,7 +965,7 @@
           return
         }
         guard
-          let (metadata, allFields) =
+          let (_, allFields) =
             try metadatabase.read({ db in
               try SyncMetadata
                 .find(recordName)

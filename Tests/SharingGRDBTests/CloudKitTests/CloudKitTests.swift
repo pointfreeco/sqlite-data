@@ -383,8 +383,8 @@ extension BaseCloudKitTests {
       )
 
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
-      record.encryptedValues["title"] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(60)
+      record.setValue("Work", forKey: "title", at: serverModificationDate)
       record.userModificationDate = serverModificationDate
       _ = await syncEngine.modifyRecords(scope: .private, saving: [record])
 
@@ -416,7 +416,7 @@ extension BaseCloudKitTests {
                 title: "Work",
                 sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
                 sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:32:30.000Z)
               )
             ]
           ),
