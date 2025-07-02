@@ -488,5 +488,24 @@ extension BaseCloudKitTests {
         """
       }
     }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func nonSyncTable() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          LocalUser(id: UUID(1), name: "Blob", parentID: nil)
+          LocalUser(id: UUID(2), name: "Blob Jr", parentID: UUID(1))
+        }
+      }
+      try await self.userDatabase.userWrite { db in
+        try LocalUser.find(UUID(1)).delete().execute(db)
+      }
+      try await userDatabase.userRead { db in
+        try expectNoDifference(
+          LocalUser.all.fetchAll(db),
+          []
+        )
+      }
+    }
   }
 }

@@ -38,14 +38,14 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
     case noAction = "NO ACTION"
   }
 
-  static func all<T: StructuredQueriesCore.Table>(
-    _ table: T.Type
+  static func all(
+    _ tableName: String
   ) -> some StructuredQueriesCore.Statement<Self> {
     SQLQueryExpression(
       """
       SELECT \(ForeignKey.columns) 
-      FROM pragma_foreign_key_list(\(bind: table.tableName)) AS "foreign_keys"
-      JOIN pragma_table_info(\(bind: table.tableName)) AS "table_info" 
+      FROM pragma_foreign_key_list(\(bind: tableName)) AS "foreign_keys"
+      JOIN pragma_table_info(\(bind: tableName)) AS "table_info" 
         ON "foreign_keys"."from" = "table_info"."name"
       """,
       as: ForeignKey.self
@@ -58,9 +58,9 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
     """
   }
 
-  func createTriggers<C: PrimaryKeyedTable<UUID>, P: PrimaryKeyedTable<UUID>>(
-    _: C.Type,
-    belongsTo _: P.Type,
+  func createTriggers(
+    _ childTableName: String,
+    belongsTo parentTableName: String,
     db: Database
   ) throws {
     switch onDelete {
@@ -68,10 +68,10 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: C.tableName)_belongsTo_\(raw: P.tableName)_onDeleteCascade"
-        AFTER DELETE ON \(P.self)
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onDeleteCascade"
+        AFTER DELETE ON \(quote: parentTableName, delimiter: .identifier)
         FOR EACH ROW BEGIN
-          DELETE FROM \(C.self)
+          DELETE FROM \(quote: childTableName, delimiter: .identifier)
           WHERE \(quote: from) = "old".\(quote: to);
         END
         """
@@ -82,11 +82,11 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: C.tableName)_belongsTo_\(raw: P.tableName)_onDeleteRestrict"
-        BEFORE DELETE ON \(P.self)
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onDeleteRestrict"
+        BEFORE DELETE ON \(quote: parentTableName, delimiter: .identifier)
         FOR EACH ROW BEGIN
           SELECT RAISE(ABORT, 'FOREIGN KEY constraint failed')
-          FROM \(C.self)
+          FROM \(quote: childTableName, delimiter: .identifier)
           WHERE \(quote: from) = "old".\(quote: to);
         END
         """
@@ -98,7 +98,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         try SQLQueryExpression(
           """
           SELECT "dflt_value"
-          FROM pragma_table_info(\(bind: C.tableName))
+          FROM pragma_table_info(\(bind: childTableName))
           WHERE "name" = \(bind: from)
           """,
           as: String?.self
@@ -108,10 +108,10 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: C.tableName)_belongsTo_\(raw: P.tableName)_onDeleteSetDefault"
-        AFTER DELETE ON \(P.self)
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onDeleteSetDefault"
+        AFTER DELETE ON \(quote: parentTableName, delimiter: .identifier)
         FOR EACH ROW BEGIN
-          UPDATE \(C.self)
+          UPDATE \(quote: childTableName, delimiter: .identifier)
           SET \(quote: from) = \(raw: defaultValue ?? "NULL")
           WHERE \(quote: from) = "old".\(quote: to);
         END
@@ -123,10 +123,10 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: C.tableName)_belongsTo_\(raw: P.tableName)_onDeleteSetNull"
-        AFTER DELETE ON \(P.self)
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onDeleteSetNull"
+        AFTER DELETE ON \(quote: parentTableName, delimiter: .identifier)
         FOR EACH ROW BEGIN
-          UPDATE \(C.self)
+          UPDATE \(quote: childTableName, delimiter: .identifier)
           SET \(quote: from) = NULL
           WHERE \(quote: from) = "old".\(quote: to);
         END
@@ -142,10 +142,10 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: C.tableName)_belongsTo_\(raw: P.tableName)_onUpdateCascade"
-        AFTER UPDATE ON \(P.self)
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onUpdateCascade"
+        AFTER UPDATE ON \(quote: parentTableName, delimiter: .identifier)
         FOR EACH ROW BEGIN
-          UPDATE \(C.self)
+          UPDATE \(quote: childTableName, delimiter: .identifier)
           SET \(quote: from) = "new".\(quote: to)
           WHERE \(quote: from) = "old".\(quote: to);
         END
@@ -157,11 +157,11 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: C.tableName)_belongsTo_\(raw: P.tableName)_onUpdateRestrict"
-        BEFORE UPDATE ON \(P.self)
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onUpdateRestrict"
+        BEFORE UPDATE ON \(quote: parentTableName, delimiter: .identifier)
         FOR EACH ROW BEGIN
           SELECT RAISE(ABORT, 'FOREIGN KEY constraint failed')
-          FROM \(C.self)
+          FROM \(quote: childTableName, delimiter: .identifier)
           WHERE \(quote: from) = "old".\(quote: to);
         END
         """
@@ -173,7 +173,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
         try SQLQueryExpression(
           """
           SELECT "dflt_value"
-          FROM pragma_table_info(\(bind: C.tableName))
+          FROM pragma_table_info(\(bind: childTableName))
           WHERE "name" = \(bind: from)
           """,
           as: String?.self
@@ -183,10 +183,10 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: C.tableName)_belongsTo_\(raw: P.tableName)_onUpdateSetDefault"
-        AFTER UPDATE ON \(P.self)
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onUpdateSetDefault"
+        AFTER UPDATE ON \(quote: parentTableName, delimiter: .identifier)
         FOR EACH ROW BEGIN
-          UPDATE \(C.self)
+          UPDATE \(quote: childTableName, delimiter: .identifier)
           SET \(quote: from) = \(raw: defaultValue ?? "NULL")
           WHERE \(quote: from) = "old".\(quote: to);
         END
@@ -198,10 +198,10 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         CREATE TEMPORARY TRIGGER IF NOT EXISTS
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: C.tableName)_belongsTo_\(raw: P.tableName)_onUpdateSetNull"
-        AFTER UPDATE ON \(P.self)
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: parentTableName)_onUpdateSetNull"
+        AFTER UPDATE ON \(quote: parentTableName, delimiter: .identifier)
         FOR EACH ROW BEGIN
-          UPDATE \(C.self)
+          UPDATE \(quote: childTableName, delimiter: .identifier)
           SET \(quote: from) = NULL
           WHERE \(quote: from) = "old".\(quote: to);
         END
@@ -213,13 +213,13 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
     }
   }
 
-  func dropTriggers<T: PrimaryKeyedTable>(for _: T.Type, db: Database) throws {
+  func dropTriggers(for childTableName: String, db: Database) throws {
     switch onDelete {
     case .cascade:
       try SQLQueryExpression(
         """
         DROP TRIGGER
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteCascade"
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: table)_onDeleteCascade"
         """
       )
       .execute(db)
@@ -228,7 +228,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         DROP TRIGGER
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteSetNull"
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: table)_onDeleteSetNull"
         """
       )
       .execute(db)
@@ -237,7 +237,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         DROP TRIGGER
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteSetDefault"
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: table)_onDeleteSetDefault"
         """
       )
       .execute(db)
@@ -246,7 +246,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         DROP TRIGGER
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onDeleteRestrict"
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: table)_onDeleteRestrict"
         """
       )
       .execute(db)
@@ -260,7 +260,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         DROP TRIGGER
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateCascade"
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: table)_onUpdateCascade"
         """
       )
       .execute(db)
@@ -269,7 +269,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         DROP TRIGGER
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateSetNull"
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: table)_onUpdateSetNull"
         """
       )
       .execute(db)
@@ -278,7 +278,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         DROP TRIGGER
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateSetDefault"
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: table)_onUpdateSetDefault"
         """
       )
       .execute(db)
@@ -287,7 +287,7 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
       try SQLQueryExpression(
         """
         DROP TRIGGER
-          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: T.tableName)_belongsTo_\(raw: table)_onUpdateRestrict"
+          "\(raw: .sqliteDataCloudKitSchemaName)_\(raw: childTableName)_belongsTo_\(raw: table)_onUpdateRestrict"
         """
       )
       .execute(db)
