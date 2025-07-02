@@ -129,7 +129,7 @@ extension SyncMetadata.TableColumns {
     SQLQueryExpression("substr(\(parentRecordName), 38)")
   }
 
-  package var _lastKnownServerRecordAllFields: StructuredQueriesCore.TableColumn<
+  var _lastKnownServerRecordAllFields: StructuredQueriesCore.TableColumn<
     SyncMetadata,
     CKRecord?.AllFieldsRepresentation
   > {
