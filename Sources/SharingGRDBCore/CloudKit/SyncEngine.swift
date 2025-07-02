@@ -103,12 +103,20 @@
         .map(\.type)
       self.tables = tables
       self.privateTables = privateTables
+
+      let allTables = try userDatabase.read { db in
+        try SQLQueryExpression("""
+          SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
+          """, as: String.self)
+        .fetchAll(db)
+      }
+
       self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
       self.foreignKeysByTableName = Dictionary(
         uniqueKeysWithValues: try userDatabase.read { db in
-          try tables.map { table -> (String, [ForeignKey]) in
+          try allTables.map { table -> (String, [ForeignKey]) in
             (
-              table.tableName,
+              table,
               try ForeignKey.all(table).fetchAll(db)
             )
           }
@@ -165,6 +173,11 @@
             tablesByName: tablesByName,
             db: db
           )
+        }
+        for (childTableName, foreignKeys) in foreignKeysByTableName {
+          for foreignKey in foreignKeys {
+            try foreignKey.createTriggers(childTableName, belongsTo: foreignKey.table, db: db)
+          }
         }
       }
 
@@ -326,8 +339,13 @@
       async let sharedCancellation: Void? = syncEngines.shared?.cancelOperations()
 
       try await userDatabase.write { db in
+        for (childTableName, foreignKeys) in self.foreignKeysByTableName {
+          for foreignKey in foreignKeys {
+            try foreignKey.dropTriggers(for: childTableName, db: db)
+          }
+        }
         for table in self.tables {
-          try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
+          try table.dropTriggers(db: db)
         }
         for trigger in SyncMetadata.callbackTriggers.reversed() {
           try trigger.drop().execute(db)
@@ -442,27 +460,10 @@
       for trigger in metadataTriggers(parentForeignKey: parentForeignKey) {
         try trigger.execute(db)
       }
-
-      let foreignKeys = foreignKeysByTableName[tableName] ?? []
-      for foreignKey in foreignKeys {
-        guard let parent = tablesByName[foreignKey.table] else {
-          reportIssue("TODO")
-          continue
-        }
-        try foreignKey.createTriggers(Self.self, belongsTo: parent, db: db)
-      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    fileprivate static func dropTriggers(
-      foreignKeysByTableName: [String: [ForeignKey]],
-      db: Database
-    ) throws {
-      let foreignKeys = foreignKeysByTableName[tableName] ?? []
-      for foreignKey in foreignKeys.reversed() {
-        try foreignKey.dropTriggers(for: Self.self, db: db)
-      }
-
+    fileprivate static func dropTriggers(db: Database) throws {
       for trigger in metadataTriggers(parentForeignKey: nil).reversed() {
         try trigger.drop().execute(db)
       }

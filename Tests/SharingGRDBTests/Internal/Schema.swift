@@ -41,6 +41,11 @@ import SharingGRDB
   let id: UUID
   let parentID: Parent.ID
 }
+@Table struct LocalUser: Equatable, Identifiable {
+  let id: UUID
+  var name = ""
+  var parentID: LocalUser.ID?
+}
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 func database(containerIdentifier: String) throws -> DatabasePool {
@@ -133,8 +138,16 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       ) STRICT
       """)
     .execute(db)
-
-    
+    try #sql(
+      """
+      CREATE TABLE "localUsers" (
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "name" TEXT NOT NULL DEFAULT '',
+        "parentID" TEXT REFERENCES "localUsers"("id") ON DELETE CASCADE
+      ) STRICT
+      """
+    )
+    .execute(db)
   }
   return database
 }
