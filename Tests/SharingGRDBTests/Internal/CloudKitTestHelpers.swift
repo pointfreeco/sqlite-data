@@ -390,7 +390,7 @@ extension MockCloudDatabase: CustomDumpReflectable {
   }
 }
 
-final class MockCloudContainer: CloudContainer {
+final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
   let containerIdentifier: String?
   let privateCloudDatabase: MockCloudDatabase
   let sharedCloudDatabase: MockCloudDatabase
@@ -439,6 +439,16 @@ final class MockCloudContainer: CloudContainer {
 
   func hash(into hasher: inout Hasher) {
     hasher.combine(ObjectIdentifier(self))
+  }
+  var customDumpMirror: Mirror {
+    Mirror.init(
+      self,
+      children: [
+        ("privateCloudDatabase", privateCloudDatabase),
+        ("sharedCloudDatabase", sharedCloudDatabase),
+      ],
+      displayStyle: .struct
+    )
   }
 }
 
