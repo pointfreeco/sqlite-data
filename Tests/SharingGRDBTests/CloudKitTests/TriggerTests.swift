@@ -374,6 +374,14 @@ extension BaseCloudKitTests {
           END
           """,
           [36]: """
+          CREATE TRIGGER "sqlitedata_icloud_localUsers_belongsTo_localUsers_onDeleteCascade"
+          AFTER DELETE ON "localUsers"
+          FOR EACH ROW BEGIN
+            DELETE FROM "localUsers"
+            WHERE "parentID" = "old"."id";
+          END
+          """,
+          [37]: """
           CREATE TRIGGER "sqlitedata_icloud_reminderTags_belongsTo_reminders_onDeleteCascade"
           AFTER DELETE ON "reminders"
           FOR EACH ROW BEGIN
@@ -381,7 +389,7 @@ extension BaseCloudKitTests {
             WHERE "reminderID" = "old"."id";
           END
           """,
-          [37]: """
+          [38]: """
           CREATE TRIGGER "sqlitedata_icloud_reminderTags_belongsTo_tags_onDeleteCascade"
           AFTER DELETE ON "tags"
           FOR EACH ROW BEGIN
@@ -389,7 +397,7 @@ extension BaseCloudKitTests {
             WHERE "tagID" = "old"."id";
           END
           """,
-          [38]: """
+          [39]: """
           CREATE TRIGGER "sqlitedata_icloud_remindersListPrivates_belongsTo_remindersLists_onDeleteCascade"
           AFTER DELETE ON "remindersLists"
           FOR EACH ROW BEGIN
@@ -397,7 +405,7 @@ extension BaseCloudKitTests {
             WHERE "remindersListID" = "old"."id";
           END
           """,
-          [39]: """
+          [40]: """
           CREATE TRIGGER "sqlitedata_icloud_reminders_belongsTo_remindersLists_onDeleteCascade"
           AFTER DELETE ON "remindersLists"
           FOR EACH ROW BEGIN
@@ -405,7 +413,7 @@ extension BaseCloudKitTests {
             WHERE "remindersListID" = "old"."id";
           END
           """,
-          [40]: """
+          [41]: """
           CREATE TRIGGER "sqlitedata_icloud_reminders_belongsTo_remindersLists_onUpdateCascade"
           AFTER UPDATE ON "remindersLists"
           FOR EACH ROW BEGIN

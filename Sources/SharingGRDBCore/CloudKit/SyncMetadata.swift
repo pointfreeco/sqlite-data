@@ -21,7 +21,7 @@ public struct SyncMetadata: Hashable, Sendable {
   /// the format "tableName:primaryKey", for example:
   ///
   /// ```swift
-  /// "reminders:8c4d1e4e-49b2-4f60-b6df-3c23881b87c6"
+  /// "8c4d1e4e-49b2-4f60-b6df-3c23881b87c6:reminders"
   /// ```
   // @Column(primaryKey: true)
   public var recordName: RecordName
@@ -32,7 +32,7 @@ public struct SyncMetadata: Hashable, Sendable {
   /// "tableName:primaryKey", for example:
   ///
   /// ```swift
-  /// "remindersLists:d35e1f81-46e4-45d1-904b-2b7df1661e3e"
+  /// "d35e1f81-46e4-45d1-904b-2b7df1661e3e:remindersLists"
   /// ```
   public var parentRecordName: RecordName?
 

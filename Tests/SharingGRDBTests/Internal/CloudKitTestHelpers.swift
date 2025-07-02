@@ -417,7 +417,7 @@ final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
     fatalError()
   }
 
-  static func createContainer(identifier containerIdentifier: String) -> Self {
+  static func createContainer(identifier containerIdentifier: String) -> MockCloudContainer {
     @Dependency(\.mockCloudContainers) var mockCloudContainers
     return mockCloudContainers.withValue { storage in
       let container =
@@ -428,8 +428,7 @@ final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
           sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
         )
       storage[containerIdentifier] = container
-      // TODO: possible to work around?
-      return container as! Self
+      return container
     }
   }
 

@@ -103,12 +103,20 @@
         .map(\.type)
       self.tables = tables
       self.privateTables = privateTables
+
+      let allTables = try userDatabase.read { db in
+        try SQLQueryExpression("""
+          SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
+          """, as: String.self)
+        .fetchAll(db)
+      }
+
       self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
       self.foreignKeysByTableName = Dictionary(
         uniqueKeysWithValues: try userDatabase.read { db in
-          try tables.map { table -> (String, [ForeignKey]) in
+          try allTables.map { table -> (String, [ForeignKey]) in
             (
-              table.tableName,
+              table,
               try ForeignKey.all(table).fetchAll(db)
             )
           }
@@ -166,6 +174,11 @@
             db: db
           )
         }
+        for (childTableName, foreignKeys) in foreignKeysByTableName {
+          for foreignKey in foreignKeys {
+            try foreignKey.createTriggers(childTableName, belongsTo: foreignKey.table, db: db)
+          }
+        }
       }
 
       let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
@@ -204,43 +217,93 @@
       guard !recordTypesToFetch.isEmpty
       else { return nil }
 
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.write { db in
-          try Self.$_isUpdatingRecord.withValue(false) {
-            for (recordType, isNewTable) in recordTypesToFetch {
-              try RecordType
-                .upsert { RecordType.Draft(recordType) }
-                .execute(db)
-              if isNewTable, let table = tablesByName[recordType.tableName] {
-                func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
-                  try T
-                    .update { $0.primaryKey = $0.primaryKey }
-                    .execute(db)
-                }
-                try open(table)
-              }
-            }
-          }
+      try cacheUserTables(recordTypes: recordTypesToFetch.map(\.0))
+      try uploadRecordsToCloudKit(
+        recordTypes: recordTypesToFetch.compactMap { recordType, isNewTable in
+          isNewTable ? recordType : nil
         }
-      }
-
+      )
       return Task {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await fetchChangesFromSchemaChange(
-            recordTypesChanged: recordTypesToFetch.filter { !$0.isNewTable }.map(\.0)
+            recordTypes: recordTypesToFetch.compactMap { recordType, isNewTable in
+              !isNewTable ? recordType : nil
+            }
           )
         }
       }
     }
 
-    private func fetchChangesFromSchemaChange(recordTypesChanged: [RecordType]) async throws {
+    private func cacheUserTables(recordTypes: [RecordType]) throws {
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        try userDatabase.write { db in
+          try RecordType
+            .upsert { recordTypes.map { RecordType.Draft($0) } }
+            .execute(db)
+        }
+      }
+    }
+
+    private func uploadRecordsToCloudKit(recordTypes: [RecordType]) throws {
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        try userDatabase.write { db in
+          try Self.$_isUpdatingRecord.withValue(false) {
+            for recordType in recordTypes {
+              guard let table = tablesByName[recordType.tableName]
+              else { continue }
+
+              let parentForeignKey =
+                foreignKeysByTableName[recordType.tableName]?.count == 1
+                ? foreignKeysByTableName[recordType.tableName]?.first
+                : nil
+
+              func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+                try SyncMetadata.insert { columns in
+                  (
+                    columns.recordType,
+                    columns.recordName,
+                    columns.parentRecordName
+                  )
+                } select: {
+                  T.select { columns in
+                    (
+                      SQLQueryExpression("\(quote: T.tableName, delimiter: .text)"),
+                      SQLQueryExpression(
+                        """
+                        \(columns.primaryKey) || ':' || \(quote: T.tableName, delimiter: .text)
+                        """,
+                        as: SyncMetadata.RecordName.self
+                      ),
+                      parentForeignKey.map { parentForeignKey in
+                        SQLQueryExpression(
+                          """
+                          \(T.self).\(quote: parentForeignKey.from, delimiter: .identifier) \
+                          || ':' || \(quote: parentForeignKey.table, delimiter: .text) 
+                          """,
+                          as: SyncMetadata.RecordName?.self
+                        )
+                      }
+                        ?? SQLQueryExpression("NULL")
+                    )
+                  }
+                }
+                .execute(db)
+              }
+              try open(table)
+            }
+          }
+        }
+      }
+    }
+
+    private func fetchChangesFromSchemaChange(recordTypes: [RecordType]) async throws {
       // TODO: do batches for sake of CKDatabase
       //       only docs we found was about modifies: https://developer.apple.com/documentation/cloudkit/ckmodifyrecordsoperation
       //       recommends limiting to <400 records and <2mb data posted
       let lastKnownServerRecords = try await metadatabase.read { db in
         try SyncMetadata
           .where {
-            $0.recordType.in(recordTypesChanged.map(\.tableName))
+            $0.recordType.in(recordTypes.map(\.tableName))
               && $0.lastKnownServerRecord.isNot(nil)
           }
           .select {
@@ -276,8 +339,13 @@
       async let sharedCancellation: Void? = syncEngines.shared?.cancelOperations()
 
       try await userDatabase.write { db in
+        for (childTableName, foreignKeys) in self.foreignKeysByTableName {
+          for foreignKey in foreignKeys {
+            try foreignKey.dropTriggers(for: childTableName, db: db)
+          }
+        }
         for table in self.tables {
-          try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
+          try table.dropTriggers(db: db)
         }
         for trigger in SyncMetadata.callbackTriggers.reversed() {
           try trigger.drop().execute(db)
@@ -362,7 +430,7 @@
         return
       }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
-      // TODO: do something with the CKShare returned?
+      // TODO: do something with the CKShare returned? save it in SyncMetadata?
       _ = try await container.accept(metadata)
       try await syncEngines.shared?.fetchChanges(
         .init(
@@ -392,27 +460,10 @@
       for trigger in metadataTriggers(parentForeignKey: parentForeignKey) {
         try trigger.execute(db)
       }
-
-      let foreignKeys = foreignKeysByTableName[tableName] ?? []
-      for foreignKey in foreignKeys {
-        guard let parent = tablesByName[foreignKey.table] else {
-          reportIssue("TODO")
-          continue
-        }
-        try foreignKey.createTriggers(Self.self, belongsTo: parent, db: db)
-      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    fileprivate static func dropTriggers(
-      foreignKeysByTableName: [String: [ForeignKey]],
-      db: Database
-    ) throws {
-      let foreignKeys = foreignKeysByTableName[tableName] ?? []
-      for foreignKey in foreignKeys.reversed() {
-        try foreignKey.dropTriggers(for: Self.self, db: db)
-      }
-
+    fileprivate static func dropTriggers(db: Database) throws {
       for trigger in metadataTriggers(parentForeignKey: nil).reversed() {
         try trigger.drop().execute(db)
       }
@@ -722,6 +773,7 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
+      let shares: [CKShare] = []
       for record in modifications {
         if let share = record as? CKShare {
           await withErrorReporting {

@@ -86,7 +86,7 @@ extension BaseCloudKitTests {
               share: nil
             ),
             share: nil,
-            userModificationDate: Date(2009-02-13T23:31:30.000Z)
+            userModificationDate: nil
           ),
           [1]: SyncMetadata(
             recordType: "remindersLists",
@@ -102,7 +102,7 @@ extension BaseCloudKitTests {
               share: nil
             ),
             share: nil,
-            userModificationDate: Date(2009-02-13T23:31:30.000Z)
+            userModificationDate: nil
           )
         ]
         """
