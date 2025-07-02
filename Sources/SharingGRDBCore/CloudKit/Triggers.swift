@@ -162,10 +162,3 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
 private func isUpdatingWithServerRecord() -> SQLQueryExpression<Bool> {
   SQLQueryExpression("\(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
 }
-
-extension QueryExpression {
-  fileprivate static func datetime<D: _OptionalPromotable<Date?>>() -> Self
-  where Self == SQLQueryExpression<D> {
-    Self("\(raw: .sqliteDataCloudKitSchemaName)_datetime()")
-  }
-}

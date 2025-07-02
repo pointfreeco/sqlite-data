@@ -80,7 +80,7 @@ func defaultMetadatabase(
 }
 
 extension QueryFragment {
-  static func datetime() -> Self {
+  fileprivate static func datetime() -> Self {
     Self("\(raw: .sqliteDataCloudKitSchemaName)_datetime()")
   }
 }
