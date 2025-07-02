@@ -867,7 +867,6 @@
         switch failedRecordSave.error.code {
         case .serverRecordChanged:
           guard let serverRecord = failedRecordSave.error.serverRecord else { continue }
-          // TODO: do per-field merging here
           upsertFromServerRecord(serverRecord)
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
 

@@ -151,8 +151,7 @@ extension CKRecord {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date
   ) -> Bool {
-    // TODO: This should be 'encryptedValues['
-    guard self[at: key] < userModificationDate else { return false }
+    guard encryptedValues[at: key] < userModificationDate else { return false }
     let hash = SHA256.hash(data: newValue).compactMap { String(format: "%02hhx", $0) }.joined()
     let blobURL = URL.temporaryDirectory.appendingPathComponent(hash)
     let asset = CKAsset(fileURL: blobURL)
@@ -161,8 +160,7 @@ extension CKRecord {
         try Data(newValue).write(to: blobURL)
       }
       self[key] = asset
-      // TODO: This should be 'encryptedValues['
-      self[at: key] = userModificationDate
+      encryptedValues[at: key] = userModificationDate
       return true
     }
     return false
@@ -175,12 +173,10 @@ extension CKRecord {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date
   ) -> Bool {
-    // TODO: This should be 'encryptedValues['
-    guard self[at: key] < userModificationDate else { return false }
+    guard encryptedValues[at: key] < userModificationDate else { return false }
     if (self[key] as? CKAsset)?.fileURL != newValue.fileURL {
       self[key] = newValue
-      // TODO: This should be 'encryptedValues['
-      self[at: key] = userModificationDate
+      encryptedValues[at: key] = userModificationDate
       return true
     }
     return false
@@ -191,8 +187,7 @@ extension CKRecord {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date
   ) -> Bool {
-    // TODO: 'self[at: key]' should always be 'encryptedValues[at: key]'
-    guard Swift.max(encryptedValues[at: key], self[at: key]) < userModificationDate
+    guard Swift.max(encryptedValues[at: key], encryptedValues[at: key]) < userModificationDate
     else { return false }
     if encryptedValues[key] != nil {
       encryptedValues[key] = nil
@@ -200,7 +195,7 @@ extension CKRecord {
       return true
     } else if self[key] != nil {
       self[key] = nil
-      self[at: key] = userModificationDate
+      encryptedValues[at: key] = userModificationDate
       return true
     }
     return false
@@ -251,8 +246,7 @@ extension CKRecord {
     self.userModificationDate = other.userModificationDate
     for key in other.versionedKeys() {
       let didSet = if let value = other[key] as? CKAsset {
-        // TODO: This should be 'other.encryptedValues['
-        setValue(value, forKey: key, at: other[at: key])
+        setValue(value, forKey: key, at: other.encryptedValues[at: key])
       } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
         setValue(value, forKey: key, at: other.encryptedValues[at: key])
       } else if other.encryptedValues[key] == nil {
