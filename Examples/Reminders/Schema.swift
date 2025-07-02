@@ -105,8 +105,8 @@ func appDatabase() throws -> any DatabaseWriter {
   var configuration = Configuration()
   configuration.foreignKeysEnabled = context != .live
   configuration.prepareDatabase { db in
-    #if DEBUG
     try db.attachMetadatabase(containerIdentifier: "iCloud.co.pointfree.SQLiteData.demos.Reminders")
+    #if DEBUG
       db.trace(options: .profile) {
         if context == .live {
           logger.debug("\($0.expandedDescription)")
