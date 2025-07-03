@@ -185,7 +185,7 @@ extension CKRecord {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date
   ) -> Bool {
-    guard Swift.max(encryptedValues[at: key], encryptedValues[at: key]) < userModificationDate
+    guard encryptedValues[at: key] < userModificationDate
     else { return false }
     if encryptedValues[key] != nil {
       encryptedValues[key] = nil
