@@ -126,6 +126,84 @@ extension CKRecordKeyValueSetting {
   }
 }
 
+extension CKRecord {
+  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+  package func merge<T: PrimaryKeyedTable<UUID>>(
+    from record: CKRecord? = nil,
+    tableRow: T,
+    userModificationDate: Date
+  ) {
+    typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
+
+    self.userModificationDate = userModificationDate
+    for column in T.TableColumns.allColumns {
+      func open<Root, Value>(_ column: some TableColumnExpression<Root, Value>) {
+        let key = column.name
+        let column = column as! any TableColumnExpression<T, Value>
+        let lastKnownValue = record?.encryptedValues[key]
+        let localTableValue = Value(queryOutput: tableRow[keyPath: column.keyPath])
+        let localValue: (any CKRecordValueProtocol)? = switch localTableValue.queryBinding {
+        case .blob(let value):
+          value
+        case .double(let value):
+          value
+        case .date(let value):
+          value
+        case .int(let value):
+          value
+        case .null:
+          nil
+        case .text(let value):
+          value
+        case .uuid(let value):
+          value.uuidString.lowercased()
+        case .invalid(_):
+          // TODO: make `merge` throwing or report error?
+          nil
+        }
+
+
+        if record != nil, SharingGRDBCore.isEqual(lastKnownValue, localValue) == false {
+
+        }
+
+        // if lastKnowValue != localValue, merge table value into self
+        // otherwise, check timestamps and merge record value into self
+
+        switch localTableValue.queryBinding {
+        case .blob(let value):
+          setValue(value, forKey: column.name, at: userModificationDate)
+        case .double(let value):
+          setValue(value, forKey: column.name, at: userModificationDate)
+        case .date(let value):
+          setValue(value, forKey: column.name, at: userModificationDate)
+        case .int(let value):
+          if record != nil, SharingGRDBCore.isEqual(lastKnownValue, localValue) == false {
+            encryptedValues[key] = localValue
+            encryptedValues[at: key] = userModificationDate
+          } else {
+            setValue(value, forKey: column.name, at: userModificationDate)
+          }
+        case .null:
+          removeValue(forKey: column.name, at: userModificationDate)
+        case .text(let value):
+          setValue(value, forKey: column.name, at: userModificationDate)
+        case .uuid(let value):
+          setValue(
+            value.uuidString.lowercased(),
+            forKey: column.name,
+            at: userModificationDate
+          )
+        case .invalid(let error):
+          reportIssue(error)
+        }
+      }
+      open(column)
+    }
+  }
+
+}
+
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 extension CKRecord {
   @discardableResult
@@ -136,9 +214,8 @@ extension CKRecord {
   ) -> Bool {
     print("!!!")
     guard
-      encryptedValues[at: key] < userModificationDate
-//        ,
-//      encryptedValues[key] != newValue
+      encryptedValues[at: key] < userModificationDate,
+      encryptedValues[key] != newValue
     else { return false }
     encryptedValues[key] = newValue
     encryptedValues[at: key] = userModificationDate
@@ -221,6 +298,7 @@ extension CKRecord {
         case .null:
           removeValue(forKey: column.name, at: userModificationDate)
         case .text(let value):
+          // self t=1, t=2
           setValue(value, forKey: column.name, at: userModificationDate)
         case .uuid(let value):
           setValue(
@@ -245,93 +323,16 @@ extension CKRecord {
       }
   }
 
-  package func update2<T: PrimaryKeyedTable<UUID>>(
-    with other: CKRecord,
-    row: T,
-    columnNames: inout [String]
-  ) {
-    typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
-
-    self.userModificationDate = other.userModificationDate
-
-    for column in T.TableColumns.allColumns {
-      func open<Root, Value>(_ column: some TableColumnExpression<Root, Value>) {
-        let key = column.name
-        let column = column as! any TableColumnExpression<T, Value>
-        let localValue = Value(queryOutput: row[keyPath: column.keyPath])
-        let lastKnownValue = other.encryptedValues[key] as? Value
-
-        print(key, localValue, lastKnownValue)
-        print("!!!")
-        if key == "title" || key == "isCompleted" {
-          print("!!!!")
-        }
-        var didSet = if let value = other[key] as? CKAsset {
-          setValue(value, forKey: key, at: other.encryptedValues[at: key])
-        } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
-          setValue(value, forKey: key, at: other.encryptedValues[at: key])
-        } else if other.encryptedValues[key] == nil {
-          removeValue(forKey: key, at: other.encryptedValues[at: key])
-        } else {
-          false
-        }
-        if !didSet && (SharingGRDBCore.isEqual(localValue, lastKnownValue) == false) {
-          switch localValue.queryBinding {
-          case .blob(_):
-            fatalError()
-          case .double(let value):
-            encryptedValues[key] = value
-          case .date(let value):
-            encryptedValues[key] = value
-          case .int(let value):
-            encryptedValues[key] = value
-          case .null:
-            encryptedValues[key] = nil
-          case .text(let value):
-            encryptedValues[key] = value
-          case .uuid(let value):
-            encryptedValues[key] = value.uuidString.lowercased()
-          case .invalid:
-            fatalError()
-          }
-        }
-        if didSet {
-          columnNames.removeAll(where: { $0 == key })
-        }
-
-//        switch localValue.queryBinding {
-//        case .blob(let value):
-//          setValue(value, forKey: column.name, at: userModificationDate)
+//  package func update<T: PrimaryKeyedTable<UUID>>(
+//    with other: CKRecord,
+//      row: T,
+//    columnNames: inout [String]
+//  ) {
+//    typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
 //
-//        case .double(let value):
-//          setValue(value, forKey: column.name, at: userModificationDate)
-//        case .date(let value):
-//          setValue(value, forKey: column.name, at: userModificationDate)
-//        case .int(let value):
-//          setValue(value, forKey: column.name, at: userModificationDate)
-//        case .null:
-//          removeValue(forKey: column.name, at: userModificationDate)
-//        case .text(let value):
-//          setValue(value, forKey: column.name, at: userModificationDate)
-//        case .uuid(let value):
-//          setValue(
-//            value.uuidString.lowercased(),
-//            forKey: column.name,
-//            at: userModificationDate
-//          )
-//        case .invalid(let error):
-//          reportIssue(error)
-//          false
-//        }
-      }
-      open(column)
-    }
-
+//    self.userModificationDate = other.userModificationDate
 //    for key in other.versionedKeys() {
-//      if key == "title" || key == "isCompleted" {
-//        print("!!!!")
-//      }
-//      var didSet = if let value = other[key] as? CKAsset {
+//      let didSet = if let value = other[key] as? CKAsset {
 //        setValue(value, forKey: key, at: other.encryptedValues[at: key])
 //      } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
 //        setValue(value, forKey: key, at: other.encryptedValues[at: key])
@@ -344,6 +345,71 @@ extension CKRecord {
 //        columnNames.removeAll(where: { $0 == key })
 //      }
 //    }
+//  }
+
+
+  package func update2<T: PrimaryKeyedTable<UUID>>(
+    with other: CKRecord,
+    row: T,
+    columnNames: inout [String]
+  ) {
+    typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
+
+    self.userModificationDate = other.userModificationDate
+
+    for column in T.TableColumns.allColumns {
+      func open<Root, Value>(_ column: some TableColumnExpression<Root, Value>) {
+        let key = column.name
+        if key == "title" {
+          print("!!!")
+        }
+        let column = column as! any TableColumnExpression<T, Value>
+        let localValue = Value(queryOutput: row[keyPath: column.keyPath])
+        let lastKnownValue = other.encryptedValues[key] as? Value
+        let didSet: Bool
+        if let value = other[key] as? CKAsset {
+          didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
+        } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
+          print(encryptedValues[key], value, key)
+          didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
+        } else if other.encryptedValues[key] == nil {
+          didSet = removeValue(forKey: key, at: other.encryptedValues[at: key])
+        } else {
+          didSet = false
+        }
+//        if key != "id" && !didSet &&  {
+//          switch localValue.queryBinding {
+//          case .blob(_):
+//            fatalError()
+//          case .double(let value):
+////            encryptedValues[key] = value
+////            encryptedValues[at: key] = other.encryptedValues[at: key]
+//            setValue(value, forKey: key, at: userModificationDate)
+//          case .date(let value):
+//            encryptedValues[key] = value
+//          case .int(let value):
+//            encryptedValues[key] = value
+//          case .null:
+//            encryptedValues[key] = nil
+//          case .text(let value):
+////            encryptedValues[key] = value
+//            setValue(value, forKey: key, at: userModificationDate)
+//          case .uuid(let value):
+//            encryptedValues[key] = value.uuidString.lowercased()
+//          case .invalid:
+//            fatalError()
+//          }
+//        }
+        // TODO: Handle lastKnownValue correctly, currently cast to Value fails on anything not base SQLite type
+        if (key == "id" || key == "remindersListID") {
+          return
+        }
+          if (didSet || !(SharingGRDBCore.isEqual(localValue, lastKnownValue) ?? false)) {
+            columnNames.removeAll(where: { $0 == key })
+          }
+      }
+      open(column)
+    }
   }
 
   package var userModificationDate: Date {
@@ -386,7 +452,7 @@ extension CKRecord {
 #endif
 
 
-private func isEqual<T>(_ lhs: T, _ rhs: T) -> Bool? {
+private func isEqual(_ lhs: Any?, _ rhs: Any?) -> Bool? {
   guard let lhs = lhs as? any Equatable
   else { return nil }
 

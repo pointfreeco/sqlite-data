@@ -7,7 +7,7 @@ import SnapshotTesting
 import Testing
 
 @Suite(
-  .snapshots(record: .missing),
+  .snapshots(record: .failed),
   .dependency(\.date.now, Date(timeIntervalSince1970: 0))
 )
 class BaseCloudKitTests: @unchecked Sendable {
