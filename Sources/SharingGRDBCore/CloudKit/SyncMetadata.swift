@@ -50,10 +50,6 @@ public struct SyncMetadata: Hashable, Sendable {
   /// The date the user last modified the record.
   public var userModificationDate: Date
 
-  var _lastKnownServerRecordAllFields: CKRecord? {
-    fatalError()
-  }
-
   package init(
     recordType: String,
     recordName: RecordName,
@@ -137,6 +133,16 @@ extension SyncMetadata.TableColumns {
       "_lastKnownServerRecordAllFields",
       keyPath: \._lastKnownServerRecordAllFields
     )
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncMetadata {
+  fileprivate var _lastKnownServerRecordAllFields: CKRecord? {
+    fatalError("""
+      Never invoke this directly. Use 'SyncMetadata.TableColumns._lastKnownServerRecordAllFields' \
+      instead.
+      """)
   }
 }
 

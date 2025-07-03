@@ -35,12 +35,7 @@ extension BaseCloudKitTests {
                 id: "00000000-0000-0000-0000-000000000001",
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
-                title: "Groceries",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title: "Groceries"
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(2:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -50,12 +45,7 @@ extension BaseCloudKitTests {
                 id: "00000000-0000-0000-0000-000000000002",
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
-                title: "Walk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title: "Walk"
               ),
               [2]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -63,10 +53,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title: "Personal"
               )
             ]
           ),
@@ -128,19 +115,14 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                parentID: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:31:30.000Z)
+                parentID: "00000000-0000-0000-0000-000000000001"
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "parents",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z)
+                id: "00000000-0000-0000-0000-000000000001"
               )
             ]
           ),
@@ -180,10 +162,7 @@ extension BaseCloudKitTests {
                 recordType: "childWithOnDeleteSetNulls",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:32:30.000Z)
+                id: "00000000-0000-0000-0000-000000000001"
               )
             ]
           ),
@@ -221,12 +200,7 @@ extension BaseCloudKitTests {
                 id: "00000000-0000-0000-0000-000000000002",
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
-                title: "Groceries",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title: "Groceries"
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(3:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -236,12 +210,7 @@ extension BaseCloudKitTests {
                 id: "00000000-0000-0000-0000-000000000003",
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
-                title: "Walk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title: "Walk"
               ),
               [2]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -249,10 +218,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title: "Personal"
               )
             ]
           ),
@@ -297,12 +263,7 @@ extension BaseCloudKitTests {
                 id: "00000000-0000-0000-0000-000000000002",
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000009",
-                title: "Groceries",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:32:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title: "Groceries"
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(3:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -312,12 +273,7 @@ extension BaseCloudKitTests {
                 id: "00000000-0000-0000-0000-000000000003",
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000009",
-                title: "Walk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:32:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title: "Walk"
               ),
               [2]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -325,10 +281,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title: "Personal"
               ),
               [3]: CKRecord(
                 recordID: CKRecord.ID(9:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -336,10 +289,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000009",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:32:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:32:30.000Z)
+                title: "Personal"
               )
             ]
           ),
@@ -374,19 +324,14 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                parentID: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:31:30.000Z)
+                parentID: "00000000-0000-0000-0000-000000000001"
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "parents",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z)
+                id: "00000000-0000-0000-0000-000000000001"
               )
             ]
           ),
@@ -429,19 +374,14 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                parentID: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:31:30.000Z)
+                parentID: "00000000-0000-0000-0000-000000000001"
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "parents",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z)
+                id: "00000000-0000-0000-0000-000000000001"
               )
             ]
           ),
@@ -476,19 +416,14 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                parentID: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:31:30.000Z)
+                parentID: "00000000-0000-0000-0000-000000000001"
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "parents",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z)
+                id: "00000000-0000-0000-0000-000000000001"
               )
             ]
           ),
@@ -531,19 +466,14 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                parentID: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_parentID: Date(2009-02-13T23:31:30.000Z)
+                parentID: "00000000-0000-0000-0000-000000000001"
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "parents",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z)
+                id: "00000000-0000-0000-0000-000000000001"
               )
             ]
           ),

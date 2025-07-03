@@ -234,8 +234,11 @@ extension CKRecord {
 
   func versionedKeys() -> [FieldKey] {
     allKeys()
-      .filter { $0.hasPrefix("\(Self.userModificationDateKey)_") }
-      .map { String($0.dropFirst("\(Self.userModificationDateKey)_".count)) }
+      .compactMap {
+        $0.hasPrefix("\(Self.userModificationDateKey)_")
+        ? String($0.dropFirst("\(Self.userModificationDateKey)_".count))
+        : nil
+      }
   }
 
   package func update(with other: CKRecord, columnNames: inout [String]) {
@@ -265,7 +268,7 @@ extension CKRecord {
     }
   }
 
-  fileprivate static let userModificationDateKey =
+  package static let userModificationDateKey =
     "\(String.sqliteDataCloudKitSchemaName)_userModificationDate"
 }
 

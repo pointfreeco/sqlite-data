@@ -20,14 +20,20 @@
 
   @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
   extension CKRecord: @retroactive CustomDumpReflectable {
+    @TaskLocal static var printTimestamps = false
+
     public var customDumpMirror: Mirror {
       let keys = encryptedValues.allKeys()
+        .filter { key in
+          CKRecord.printTimestamps
+          || !key.hasPrefix(CKRecord.userModificationDateKey)
+        }
         .sorted { lhs, rhs in
           (
-            lhs.hasPrefix("\(String.sqliteDataCloudKitSchemaName)_userModificationDate") ? 1 : 0,
+            lhs.hasPrefix(CKRecord.userModificationDateKey) ? 1 : 0,
             lhs
           ) < (
-            rhs.hasPrefix("\(String.sqliteDataCloudKitSchemaName)_userModificationDate") ? 1 : 0,
+            rhs.hasPrefix(CKRecord.userModificationDateKey) ? 1 : 0,
             rhs
           )
         }
