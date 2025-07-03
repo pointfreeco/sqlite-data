@@ -12,7 +12,7 @@ extension BaseCloudKitTests {
   final class CloudKitTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func setUp() throws {
-      let zones = try userDatabase.userWrite { db in
+      let zones = try userDatabase.userRead { db in
         try RecordType.all.fetchAll(db)
       }
       assertInlineSnapshot(of: zones, as: .customDump) {
@@ -142,12 +142,12 @@ extension BaseCloudKitTests {
         """
       }
 
-      try await userDatabase.userWrite { db in
+      try await userDatabase.userRead { db in
         let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
         #expect(metadataCount == 1)
       }
       try await syncEngine.tearDownSyncEngine()
-      try await self.userDatabase.userWrite { db in
+      try await self.userDatabase.userRead { db in
         let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
         #expect(metadataCount == 0)
       }
@@ -207,7 +207,7 @@ extension BaseCloudKitTests {
         as: String.self
       )
       assertInlineSnapshot(
-        of: try { try userDatabase.userWrite { try query.fetchAll($0) } }(),
+        of: try { try userDatabase.userRead { try query.fetchAll($0) } }(),
         as: .customDump
       ) {
         """
@@ -222,7 +222,7 @@ extension BaseCloudKitTests {
       try await syncEngine.tearDownSyncEngine()
 
       assertInlineSnapshot(
-        of: try { try userDatabase.userWrite { try query.fetchAll($0) } }(),
+        of: try { try userDatabase.userRead { try query.fetchAll($0) } }(),
         as: .customDump
       ) {
         """
@@ -445,7 +445,7 @@ extension BaseCloudKitTests {
       }
 
       let userModificationDate = try #require(
-        try await userDatabase.userWrite { db in
+        try await userDatabase.userRead { db in
           try SyncMetadata
             .find(RemindersList.recordName(for: UUID(1)))
             .select(\.userModificationDate)
@@ -467,7 +467,7 @@ extension BaseCloudKitTests {
       )
 
       let metadata = try #require(
-        try await userDatabase.userWrite { db in
+        try await userDatabase.userRead { db in
           try SyncMetadata
             .find(RemindersList.recordName(for: UUID(1)))
             .fetchOne(db)
@@ -540,7 +540,7 @@ extension BaseCloudKitTests {
         try await userDatabase.userRead { db in try RemindersList.find(UUID(1)).fetchAll(db) }
           == []
       )
-      let metadata = try await userDatabase.userWrite { db in
+      let metadata = try await userDatabase.userRead { db in
         try SyncMetadata
           .find(RemindersList.recordName(for: UUID(1)))
           .fetchOne(db)
