@@ -46,8 +46,7 @@ public struct _SystemFieldsRepresentation<Record: CKRecord>: QueryBindable, Quer
     }
     if isTesting {
       queryOutput._recordChangeTag = coder
-        .decodeObject(of: NSString.self, forKey: "_recordChangeTag")
-      as? String
+        .decodeObject(of: NSString.self, forKey: "_recordChangeTag") as? String
     }
     self.init(queryOutput: queryOutput)
   }
@@ -82,8 +81,7 @@ public struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRe
     }
     if isTesting {
       queryOutput._recordChangeTag = coder
-        .decodeObject(of: NSString.self, forKey: "_recordChangeTag")
-      as? String
+        .decodeObject(of: NSString.self, forKey: "_recordChangeTag") as? String
     }
     self.init(queryOutput: queryOutput)
   }
@@ -136,13 +134,13 @@ extension CKRecord {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date
   ) -> Bool {
-    guard encryptedValues[at: key] < userModificationDate else { return false }
-    if encryptedValues[key] != newValue {
-      encryptedValues[key] = newValue
-      encryptedValues[at: key] = userModificationDate
-      return true
-    }
-    return false
+    guard
+      encryptedValues[at: key] < userModificationDate,
+      encryptedValues[key] != newValue
+    else { return false }
+    encryptedValues[key] = newValue
+    encryptedValues[at: key] = userModificationDate
+    return true
   }
 
   @discardableResult
@@ -173,13 +171,13 @@ extension CKRecord {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date
   ) -> Bool {
-    guard encryptedValues[at: key] < userModificationDate else { return false }
-    if (self[key] as? CKAsset)?.fileURL != newValue.fileURL {
-      self[key] = newValue
-      encryptedValues[at: key] = userModificationDate
-      return true
-    }
-    return false
+    guard
+      encryptedValues[at: key] < userModificationDate,
+      (self[key] as? CKAsset)?.fileURL != newValue.fileURL
+    else { return false }
+    self[key] = newValue
+    encryptedValues[at: key] = userModificationDate
+    return true
   }
 
   @discardableResult
