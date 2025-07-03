@@ -11,7 +11,7 @@ extension BaseCloudKitTests {
   final class RecordTypeTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func setUp() async throws {
-      let recordTypes = try await userDatabase.userWrite { db in
+      let recordTypes = try await userDatabase.userRead { db in
         try RecordType.all.fetchAll(db)
       }
       assertInlineSnapshot(of: recordTypes, as: .customDump) {
@@ -110,25 +110,25 @@ extension BaseCloudKitTests {
 
     @Test func tearDown() async throws {
       try await syncEngine.tearDownSyncEngine()
-      try await userDatabase.userWrite { db in
+      try await userDatabase.userRead { db in
         try #expect(RecordType.all.fetchAll(db) == [])
       }
     }
 
     @Test func resetUp() async throws {
-      let recordTypes = try await userDatabase.userWrite { db in
+      let recordTypes = try await userDatabase.userRead { db in
         try RecordType.all.fetchAll(db)
       }
       try await syncEngine.tearDownSyncEngine()
       try await syncEngine.setUpSyncEngine()
-      let recordTypesAfterReSetup = try await userDatabase.userWrite { db in
+      let recordTypesAfterReSetup = try await userDatabase.userRead { db in
         try RecordType.all.fetchAll(db)
       }
       expectNoDifference(recordTypes, recordTypesAfterReSetup)
     }
 
     @Test func migration() async throws {
-      let recordTypes = try await userDatabase.userWrite { db in
+      let recordTypes = try await userDatabase.userRead { db in
         try RecordType.order(by: \.tableName).fetchAll(db)
       }
       try await syncEngine.tearDownSyncEngine()
@@ -142,7 +142,7 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.setUpSyncEngine()
 
-      let recordTypesAfterMigration = try await userDatabase.userWrite { db in
+      let recordTypesAfterMigration = try await userDatabase.userRead { db in
         try RecordType.order(by: \.tableName).fetchAll(db)
       }
       let remindersTableIndex = try #require(
