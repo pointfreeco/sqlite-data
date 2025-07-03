@@ -134,9 +134,11 @@ extension CKRecord {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date
   ) -> Bool {
+    print("!!!")
     guard
-      encryptedValues[at: key] < userModificationDate,
-      encryptedValues[key] != newValue
+      encryptedValues[at: key] < userModificationDate
+//        ,
+//      encryptedValues[key] != newValue
     else { return false }
     encryptedValues[key] = newValue
     encryptedValues[at: key] = userModificationDate
@@ -149,19 +151,19 @@ extension CKRecord {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date
   ) -> Bool {
+    print("!!!")
     guard encryptedValues[at: key] < userModificationDate else { return false }
     let hash = SHA256.hash(data: newValue).compactMap { String(format: "%02hhx", $0) }.joined()
     let blobURL = URL.temporaryDirectory.appendingPathComponent(hash)
     let asset = CKAsset(fileURL: blobURL)
-    if (self[key] as? CKAsset)?.fileURL != blobURL {
-      withErrorReporting {
-        try Data(newValue).write(to: blobURL)
-      }
-      self[key] = asset
-      encryptedValues[at: key] = userModificationDate
-      return true
+    guard (self[key] as? CKAsset)?.fileURL != blobURL
+    else { return false }
+    withErrorReporting {
+      try Data(newValue).write(to: blobURL)
     }
-    return false
+    self[key] = asset
+    encryptedValues[at: key] = userModificationDate
+    return true
   }
 
   @discardableResult
@@ -171,6 +173,7 @@ extension CKRecord {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date
   ) -> Bool {
+    print("!!!")
     guard
       encryptedValues[at: key] < userModificationDate,
       (self[key] as? CKAsset)?.fileURL != newValue.fileURL
@@ -185,6 +188,7 @@ extension CKRecord {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date
   ) -> Bool {
+    print("!!!")
     guard Swift.max(encryptedValues[at: key], encryptedValues[at: key]) < userModificationDate
     else { return false }
     if encryptedValues[key] != nil {
@@ -241,24 +245,105 @@ extension CKRecord {
       }
   }
 
-  package func update(with other: CKRecord, columnNames: inout [String]) {
+  package func update2<T: PrimaryKeyedTable<UUID>>(
+    with other: CKRecord,
+    row: T,
+    columnNames: inout [String]
+  ) {
     typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
 
     self.userModificationDate = other.userModificationDate
-    for key in other.versionedKeys() {
-      let didSet = if let value = other[key] as? CKAsset {
-        setValue(value, forKey: key, at: other.encryptedValues[at: key])
-      } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
-        setValue(value, forKey: key, at: other.encryptedValues[at: key])
-      } else if other.encryptedValues[key] == nil {
-        removeValue(forKey: key, at: other.encryptedValues[at: key])
-      } else {
-        false
+
+    for column in T.TableColumns.allColumns {
+      func open<Root, Value>(_ column: some TableColumnExpression<Root, Value>) {
+        let key = column.name
+        let column = column as! any TableColumnExpression<T, Value>
+        let localValue = Value(queryOutput: row[keyPath: column.keyPath])
+        let lastKnownValue = other.encryptedValues[key] as? Value
+
+        print(key, localValue, lastKnownValue)
+        print("!!!")
+        if key == "title" || key == "isCompleted" {
+          print("!!!!")
+        }
+        var didSet = if let value = other[key] as? CKAsset {
+          setValue(value, forKey: key, at: other.encryptedValues[at: key])
+        } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
+          setValue(value, forKey: key, at: other.encryptedValues[at: key])
+        } else if other.encryptedValues[key] == nil {
+          removeValue(forKey: key, at: other.encryptedValues[at: key])
+        } else {
+          false
+        }
+        if !didSet && (SharingGRDBCore.isEqual(localValue, lastKnownValue) == false) {
+          switch localValue.queryBinding {
+          case .blob(_):
+            fatalError()
+          case .double(let value):
+            encryptedValues[key] = value
+          case .date(let value):
+            encryptedValues[key] = value
+          case .int(let value):
+            encryptedValues[key] = value
+          case .null:
+            encryptedValues[key] = nil
+          case .text(let value):
+            encryptedValues[key] = value
+          case .uuid(let value):
+            encryptedValues[key] = value.uuidString.lowercased()
+          case .invalid:
+            fatalError()
+          }
+        }
+        if didSet {
+          columnNames.removeAll(where: { $0 == key })
+        }
+
+//        switch localValue.queryBinding {
+//        case .blob(let value):
+//          setValue(value, forKey: column.name, at: userModificationDate)
+//
+//        case .double(let value):
+//          setValue(value, forKey: column.name, at: userModificationDate)
+//        case .date(let value):
+//          setValue(value, forKey: column.name, at: userModificationDate)
+//        case .int(let value):
+//          setValue(value, forKey: column.name, at: userModificationDate)
+//        case .null:
+//          removeValue(forKey: column.name, at: userModificationDate)
+//        case .text(let value):
+//          setValue(value, forKey: column.name, at: userModificationDate)
+//        case .uuid(let value):
+//          setValue(
+//            value.uuidString.lowercased(),
+//            forKey: column.name,
+//            at: userModificationDate
+//          )
+//        case .invalid(let error):
+//          reportIssue(error)
+//          false
+//        }
       }
-      if didSet {
-        columnNames.removeAll(where: { $0 == key })
-      }
+      open(column)
     }
+
+//    for key in other.versionedKeys() {
+//      if key == "title" || key == "isCompleted" {
+//        print("!!!!")
+//      }
+//      var didSet = if let value = other[key] as? CKAsset {
+//        setValue(value, forKey: key, at: other.encryptedValues[at: key])
+//      } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
+//        setValue(value, forKey: key, at: other.encryptedValues[at: key])
+//      } else if other.encryptedValues[key] == nil {
+//        removeValue(forKey: key, at: other.encryptedValues[at: key])
+//      } else {
+//        false
+//      }
+//      if didSet {
+//        columnNames.removeAll(where: { $0 == key })
+//      }
+//    }
   }
 
   package var userModificationDate: Date {
@@ -299,3 +384,14 @@ extension CKRecord {
   }
 }
 #endif
+
+
+private func isEqual<T>(_ lhs: T, _ rhs: T) -> Bool? {
+  guard let lhs = lhs as? any Equatable
+  else { return nil }
+
+  func open<S: Equatable>(_ lhs: S) -> Bool? {
+    (rhs as? S).map { lhs == $0 }
+  }
+  return open(lhs)
+}

@@ -793,6 +793,7 @@
         }
       }
 
+      // TODO: Group by recordType and delete in batches
       for (recordID, recordType) in deletions {
         if let table = tablesByName[recordType] {
           guard let recordName = SyncMetadata.RecordName(recordID: recordID)
@@ -960,9 +961,7 @@
           return
         }
         guard let recordName = SyncMetadata.RecordName(recordID: serverRecord.recordID)
-        else {
-          return
-        }
+        else { return }
         let allFields = try metadatabase.read { db in
           try SyncMetadata
             .find(recordName)
@@ -975,7 +974,15 @@
           var columnNames = T.TableColumns.allColumns.map(\.name)
 
           if let allFields {
-            serverRecord.update(with: allFields, columnNames: &columnNames)
+            let row = try userDatabase.read { db in
+              try T.find(recordName.id).fetchOne(db)
+            }
+            guard let row
+            else {
+              fatalError()
+              return
+            }
+            serverRecord.update2(with: allFields, row: T(queryOutput: row), columnNames: &columnNames)
           }
 
           var query: QueryFragment = "INSERT INTO \(T.self) ("
@@ -1008,13 +1015,9 @@
           )
           // TODO: Append more ON CONFLICT clauses for each unique constraint?
           // TODO: Use WHERE to scope the update?
-          guard let recordName = SyncMetadata.RecordName(recordID: serverRecord.recordID)
-          else {
-            reportIssue("???")
-            return
-          }
           try userDatabase.write { db in
             try SQLQueryExpression(query).execute(db)
+            // TODO: Do we need to update parentRecordName too in case it changed?
             try SyncMetadata
               .insert {
                 (

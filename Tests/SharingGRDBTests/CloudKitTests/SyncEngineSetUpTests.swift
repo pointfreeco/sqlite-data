@@ -42,11 +42,9 @@ extension BaseCloudKitTests {
       reminderRecord.userModificationDate = Date()
       reminderRecord.setValue(3, forKey: "position", at: Date())
 
-      _ = syncEngine.private.database.modifyRecords(
-        saving: [personalListRecord, businessListRecord, reminderRecord],
-        deleting: [],
-        savePolicy: .ifServerRecordUnchanged,
-        atomically: true
+      _ = await syncEngine.modifyRecords(
+        scope: .private,
+        saving: [personalListRecord, businessListRecord, reminderRecord]
       )
 
       try await userDatabase.userWrite { db in
@@ -67,11 +65,7 @@ extension BaseCloudKitTests {
       }
 
       let relaunchedSyncEngine = try await SyncEngine(
-        container: MockCloudContainer(
-          containerIdentifier: syncEngine.container.containerIdentifier,
-          privateCloudDatabase: syncEngine.container.privateCloudDatabase as! MockCloudDatabase,
-          sharedCloudDatabase: syncEngine.container.sharedCloudDatabase as! MockCloudDatabase
-        ),
+        container: syncEngine.container,
         privateDatabase: syncEngine.container.privateCloudDatabase as! MockCloudDatabase,
         sharedDatabase: syncEngine.container.sharedCloudDatabase as! MockCloudDatabase,
         userDatabase: self.userDatabase,

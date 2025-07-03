@@ -503,11 +503,27 @@ private func comparePendingDatabaseChange(
 }
 
 extension SyncEngine {
+  @_disfavoredOverload
   func modifyRecords(
     scope: CKDatabase.Scope,
     saving recordsToSave: [CKRecord] = [],
     deleting recordIDsToDelete: [CKRecord.ID] = []
   ) async {
+    await modifyRecords(scope: scope, saving: recordsToSave, deleting: recordIDsToDelete)()
+  }
+
+  struct ModifyRecordsCallback {
+    let operation: @Sendable () async -> Void
+    func callAsFunction() async {
+      await operation()
+    }
+  }
+
+  func modifyRecords(
+    scope: CKDatabase.Scope,
+    saving recordsToSave: [CKRecord] = [],
+    deleting recordIDsToDelete: [CKRecord.ID] = []
+  ) -> ModifyRecordsCallback {
     let syncEngine = syncEngine(for: scope)
     let recordsToDeleteByID = Dictionary(
       grouping: syncEngine.database.storage.withValue { storage in
@@ -515,28 +531,30 @@ extension SyncEngine {
       },
       by: \.recordID
     )
-    .compactMapValues(\.first)
+      .compactMapValues(\.first)
 
     let (saveResults, deleteResults) = syncEngine.database.modifyRecords(
       saving: recordsToSave,
       deleting: recordIDsToDelete
     )
 
-    await syncEngine.delegate.handleEvent(
-      .fetchedRecordZoneChanges(
-        modifications: saveResults.values.compactMap { try? $0.get() },
-        deletions: deleteResults.compactMap { recordID, result in
-          syncEngine.database.storage.withValue { storage in
-            (recordsToDeleteByID[recordID]?.recordType).flatMap { recordType in
-              (try? result.get()) != nil
+    return ModifyRecordsCallback {
+      await syncEngine.delegate.handleEvent(
+        .fetchedRecordZoneChanges(
+          modifications: saveResults.values.compactMap { try? $0.get() },
+          deletions: deleteResults.compactMap { recordID, result in
+            syncEngine.database.storage.withValue { storage in
+              (recordsToDeleteByID[recordID]?.recordType).flatMap { recordType in
+                (try? result.get()) != nil
                 ? (recordID, recordType)
                 : nil
+              }
             }
           }
-        }
-      ),
-      syncEngine: syncEngine
-    )
+        ),
+        syncEngine: syncEngine
+      )
+    }
   }
 
   func processBatch(

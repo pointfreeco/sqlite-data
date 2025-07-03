@@ -9,8 +9,7 @@ import Testing
 
 extension BaseCloudKitTests {
   @MainActor
-  @Suite(.printTimestamps)
-  final class MergeConflictTests: BaseCloudKitTests, @unchecked Sendable {
+  @Suite(.printTimestamps) final class MergeConflictTests: BaseCloudKitTests, @unchecked Sendable {
     @Dependency(\.date.now) var now
 
     @Test func merge_clientRecordUpdatedBeforeServerRecord() async throws {
@@ -33,14 +32,14 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 isCompleted: 0,
+                isCompleted🗓️: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID🗓️: 0,
                 title: "",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title🗓️: 0,
+                🗓️: 0
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -48,10 +47,10 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 title: "",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title🗓️: 0,
+                🗓️: 0
               )
             ]
           ),
@@ -67,7 +66,7 @@ extension BaseCloudKitTests {
       let userModificationDate = now.addingTimeInterval(60)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
       record.userModificationDate = userModificationDate
-      _ = syncEngine.private.database.modifyRecords(saving: [record])
+      let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
 
       try await withDependencies {
         $0.date.now = now.addingTimeInterval(30)
@@ -90,14 +89,14 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 isCompleted: 0,
+                isCompleted🗓️: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID🗓️: 0,
                 title: "Buy milk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:32:30.000Z)
+                title🗓️: 60,
+                🗓️: 60
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -105,10 +104,10 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 title: "",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title🗓️: 0,
+                🗓️: 0
               )
             ]
           ),
@@ -121,6 +120,7 @@ extension BaseCloudKitTests {
       }
 
       await syncEngine.processBatch()
+      await modificationCallback()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -134,14 +134,14 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 isCompleted: 1,
+                isCompleted🗓️: 30,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID🗓️: 0,
                 title: "Buy milk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:32:00.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:32:30.000Z)
+                title🗓️: 60,
+                🗓️: 60
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -149,10 +149,10 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 title: "",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title🗓️: 0,
+                🗓️: 0
               )
             ]
           ),
@@ -185,14 +185,14 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 isCompleted: 0,
+                isCompleted🗓️: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID🗓️: 0,
                 title: "",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title🗓️: 0,
+                🗓️: 0
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -200,10 +200,10 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 title: "",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title🗓️: 0,
+                🗓️: 0
               )
             ]
           ),
@@ -219,7 +219,7 @@ extension BaseCloudKitTests {
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
       record.userModificationDate = userModificationDate
-      _ = syncEngine.private.database.modifyRecords(saving: [record])
+      let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
 
       try await withDependencies {
         $0.date.now = now.addingTimeInterval(60)
@@ -242,14 +242,14 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 isCompleted: 0,
+                isCompleted🗓️: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID🗓️: 0,
                 title: "Buy milk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:00.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:32:00.000Z)
+                title🗓️: 30,
+                🗓️: 30
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -257,10 +257,10 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 title: "",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title🗓️: 0,
+                🗓️: 0
               )
             ]
           ),
@@ -272,6 +272,75 @@ extension BaseCloudKitTests {
         """
       }
 
+      await syncEngine.processBatch()
+      await modificationCallback()
+
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
+                isCompleted: 1,
+                isCompleted🗓️: 60,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID🗓️: 0,
+                title: "Buy milk",
+                title🗓️: 30,
+                🗓️: 60
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
+                title: "",
+                title🗓️: 0,
+                🗓️: 0
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+    }
+
+    @Test func foo() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "")
+          Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
+        }
+      }
+      await syncEngine.processBatch()
+
+      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
+      let userModificationDate = now.addingTimeInterval(30)
+      record.setValue("Buy milk", forKey: "title", at: userModificationDate)
+      record.userModificationDate = userModificationDate
+      let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
+
+      try await withDependencies {
+        $0.date.now = now.addingTimeInterval(60)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try Reminder.find(UUID(1)).update { $0.isCompleted = true }.execute(db)
+        }
+      }
+      await modificationCallback()
       await syncEngine.processBatch()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
@@ -286,14 +355,14 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 isCompleted: 1,
+                isCompleted🗓️: 60,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID🗓️: 0,
                 title: "Buy milk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_isCompleted: Date(2009-02-13T23:32:30.000Z),
-                sqlitedata_icloud_userModificationDate_remindersListID: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:32:00.000Z)
+                title🗓️: 30,
+                🗓️: 60
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -301,10 +370,10 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
                 title: "",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_id: Date(2009-02-13T23:31:30.000Z),
-                sqlitedata_icloud_userModificationDate_title: Date(2009-02-13T23:31:30.000Z)
+                title🗓️: 0,
+                🗓️: 0
               )
             ]
           ),
@@ -315,6 +384,11 @@ extension BaseCloudKitTests {
         )
         """
       }
+
+//      await syncEngine.processBatch()
+//      await modificationCallback()
+//
+//      assertInlineSnapshot(of: syncEngine.container, as: .customDump)
     }
   }
 }
