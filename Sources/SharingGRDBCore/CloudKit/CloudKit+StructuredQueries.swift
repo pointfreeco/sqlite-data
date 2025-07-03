@@ -404,7 +404,8 @@ extension CKRecord {
         if (key == "id" || key == "remindersListID") {
           return
         }
-          if (didSet || !(SharingGRDBCore.isEqual(localValue, lastKnownValue) ?? false)) {
+        let localValueIsNewerThanServer = didSet || !(SharingGRDBCore.isEqual(localValue, lastKnownValue) ?? false)
+          if localValueIsNewerThanServer {
             columnNames.removeAll(where: { $0 == key })
           }
       }
