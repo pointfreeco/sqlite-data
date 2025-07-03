@@ -29,13 +29,19 @@
           || !key.hasPrefix(CKRecord.userModificationDateKey)
         }
         .sorted { lhs, rhs in
-          (
-            lhs.hasPrefix(CKRecord.userModificationDateKey) ? 1 : 0,
-            lhs
-          ) < (
-            rhs.hasPrefix(CKRecord.userModificationDateKey) ? 1 : 0,
-            rhs
-          )
+          guard lhs != CKRecord.userModificationDateKey
+          else { return false }
+          guard rhs != CKRecord.userModificationDateKey
+          else { return true }
+          let lhsHasPrefix = lhs.hasPrefix(CKRecord.userModificationDateKey)
+          let baseLHS = lhsHasPrefix
+          ? String(lhs.dropFirst(CKRecord.userModificationDateKey.count + 1))
+          : lhs
+          let rhsHasPrefix = rhs.hasPrefix(CKRecord.userModificationDateKey)
+          let baseRHS = rhsHasPrefix
+          ? String(rhs.dropFirst(CKRecord.userModificationDateKey.count + 1))
+          : rhs
+          return (baseLHS, lhsHasPrefix ? 1 : 0) < (baseRHS, rhsHasPrefix ? 1 : 0)
         }
       return Mirror(
         self,
@@ -47,7 +53,15 @@
         ]
           + keys
           .map {
-            ($0, self.encryptedValues[$0] as Any)
+            $0.hasPrefix(CKRecord.userModificationDateKey)
+            ? (
+              String($0.dropFirst(CKRecord.userModificationDateKey.count + 1)) + "🗓️",
+              (self.encryptedValues[$0] as? Date).map(\.timeIntervalSince1970).map(Int.init) as Any
+            )
+            : (
+              $0,
+              self.encryptedValues[$0] as Any
+            )
           },
         displayStyle: .struct
       )

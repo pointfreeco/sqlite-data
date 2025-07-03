@@ -297,9 +297,7 @@
     }
 
     private func fetchChangesFromSchemaChange(recordTypes: [RecordType]) async throws {
-      // TODO: do batches for sake of CKDatabase
-      //       only docs we found was about modifies: https://developer.apple.com/documentation/cloudkit/ckmodifyrecordsoperation
-      //       recommends limiting to <400 records and <2mb data posted
+      // TODO: update data from local server records, do not fetch from CloudKit
       let lastKnownServerRecords = try await metadatabase.read { db in
         try SyncMetadata
           .where {
@@ -673,10 +671,15 @@
               action: .none
             )
           }
+
           record.update(
             with: T(queryOutput: row),
             userModificationDate: metadata.userModificationDate
           )
+//          record.merge(
+//            tableRow: T(queryOutput: row),
+//            userModificationDate: metadata.userModificationDate
+//          )
           await refreshLastKnownServerRecord(record)
           sentRecord = recordID
           return record
@@ -793,6 +796,7 @@
         }
       }
 
+      // TODO: Group by recordType and delete in batches
       for (recordID, recordType) in deletions {
         if let table = tablesByName[recordType] {
           guard let recordName = SyncMetadata.RecordName(recordID: recordID)
@@ -960,22 +964,49 @@
           return
         }
         guard let recordName = SyncMetadata.RecordName(recordID: serverRecord.recordID)
-        else {
-          return
-        }
-        let allFields = try metadatabase.read { db in
-          try SyncMetadata
-            .find(recordName)
-            .select(\._lastKnownServerRecordAllFields)
-            .fetchOne(db)
-        }
-        ?? nil
+        else { return }
+//        let metadata = try metadatabase.read { db in
+//          try SyncMetadata
+//            .find(recordName)
+//            .select(\._lastKnownServerRecordAllFields)
+//            .fetchOne(db)
+//        }
+//        ?? nil
+
+        let result = try metadatabase.read { db in
+                try SyncMetadata
+                  .find(recordName)
+                  .select { ($0, $0._lastKnownServerRecordAllFields) }
+                  .fetchOne(db)
+              }
+        let metadata = result?.0
+        let allFields = result?.1
+        serverRecord.userModificationDate = metadata?.userModificationDate ?? serverRecord.userModificationDate
 
         func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
           var columnNames = T.TableColumns.allColumns.map(\.name)
 
           if let allFields {
-            serverRecord.update(with: allFields, columnNames: &columnNames)
+            let row = try userDatabase.read { db in
+              try T.find(recordName.id).fetchOne(db)
+            }
+            guard let row
+            else {
+              fatalError()
+              return
+            }
+
+            serverRecord.update2(
+              with: allFields,
+              row: T(queryOutput: row),
+              columnNames: &columnNames
+            )
+
+//            serverRecord.merge(
+//              from: allFields,
+//              tableRow: T(queryOutput: row),
+//              userModificationDate: allFields.userModificationDate
+//            )
           }
 
           var query: QueryFragment = "INSERT INTO \(T.self) ("
@@ -1008,13 +1039,9 @@
           )
           // TODO: Append more ON CONFLICT clauses for each unique constraint?
           // TODO: Use WHERE to scope the update?
-          guard let recordName = SyncMetadata.RecordName(recordID: serverRecord.recordID)
-          else {
-            reportIssue("???")
-            return
-          }
           try userDatabase.write { db in
             try SQLQueryExpression(query).execute(db)
+            // TODO: Do we need to update parentRecordName too in case it changed?
             try SyncMetadata
               .insert {
                 (
