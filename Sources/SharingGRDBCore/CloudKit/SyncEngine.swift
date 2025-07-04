@@ -676,10 +676,6 @@
             with: T(queryOutput: row),
             userModificationDate: metadata.userModificationDate
           )
-//          record.merge(
-//            tableRow: T(queryOutput: row),
-//            userModificationDate: metadata.userModificationDate
-//          )
           await refreshLastKnownServerRecord(record)
           sentRecord = recordID
           return record
@@ -965,48 +961,33 @@
         }
         guard let recordName = SyncMetadata.RecordName(recordID: serverRecord.recordID)
         else { return }
-//        let metadata = try metadatabase.read { db in
-//          try SyncMetadata
-//            .find(recordName)
-//            .select(\._lastKnownServerRecordAllFields)
-//            .fetchOne(db)
-//        }
-//        ?? nil
 
         let result = try metadatabase.read { db in
-                try SyncMetadata
-                  .find(recordName)
-                  .select { ($0, $0._lastKnownServerRecordAllFields) }
-                  .fetchOne(db)
-              }
+          try SyncMetadata
+            .find(recordName)
+            .select { ($0, $0._lastKnownServerRecordAllFields) }
+            .fetchOne(db)
+        }
         let metadata = result?.0
         let allFields = result?.1
         serverRecord.userModificationDate = metadata?.userModificationDate ?? serverRecord.userModificationDate
 
         func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
           var columnNames = T.TableColumns.allColumns.map(\.name)
-
           if let allFields {
             let row = try userDatabase.read { db in
               try T.find(recordName.id).fetchOne(db)
             }
             guard let row
             else {
-              fatalError()
+              reportIssue("Local database record could not be found for '\(recordName.rawValue)'.")
               return
             }
-
-            serverRecord.update2(
+            serverRecord.update(
               with: allFields,
               row: T(queryOutput: row),
               columnNames: &columnNames
             )
-
-//            serverRecord.merge(
-//              from: allFields,
-//              tableRow: T(queryOutput: row),
-//              userModificationDate: allFields.userModificationDate
-//            )
           }
 
           var query: QueryFragment = "INSERT INTO \(T.self) ("
