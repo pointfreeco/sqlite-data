@@ -51,7 +51,7 @@ extension BaseCloudKitTests {
           scope: .private,
           saving: [personalListRecord, businessListRecord, reminderRecord]
         )
-        
+
         try await userDatabase.userWrite { db in
           try #sql(
           """

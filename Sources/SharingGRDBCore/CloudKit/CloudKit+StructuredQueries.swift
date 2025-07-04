@@ -15,7 +15,7 @@ extension _CKRecord where Self == CKShare {
 }
 
 extension Optional where Wrapped: CKRecord {
-  typealias AllFieldsRepresentation = _AllFieldsRepresentation<Wrapped>?
+  package typealias AllFieldsRepresentation = _AllFieldsRepresentation<Wrapped>?
   public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<Wrapped>?
 }
 
