@@ -85,7 +85,7 @@ class RemindersDetailModel: HashableObject {
       .withTags
       .where { reminder, _, tag in
         switch detailType {
-        case .all: !reminder.isCompleted
+        case .all: if false { SQLQueryExpression("") } // break will not compile
         case .completed: reminder.isCompleted
         case .flagged: reminder.isFlagged
         case .remindersList(let list): reminder.remindersListID.eq(list.id)
