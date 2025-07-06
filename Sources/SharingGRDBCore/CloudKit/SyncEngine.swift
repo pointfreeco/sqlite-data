@@ -855,10 +855,7 @@
             try userDatabase.write { db in
               try SyncMetadata
                 .find(recordName)
-                .update {
-                  $0.lastKnownServerRecord = nil
-                  $0._lastKnownServerRecordAllFields = nil
-                }
+                .update { $0.setLastKnownServerRecord(nil) }
                 .execute(db)
             }
           }
@@ -1022,30 +1019,15 @@
           // TODO: Use WHERE to scope the update?
           try userDatabase.write { db in
             try SQLQueryExpression(query).execute(db)
-            // TODO: Do we need to update parentRecordName too in case it changed?
             try SyncMetadata
-              .insert {
-                (
-                  $0.recordType,
-                  $0.recordName,
-                  $0.lastKnownServerRecord,
-                  $0._lastKnownServerRecordAllFields,
-                  $0.userModificationDate
-                )
-              } values: {
-                (
-                  serverRecord.recordType,
-                  recordName,
-                  serverRecord,
-                  serverRecord,
-                  serverRecord.userModificationDate
-                )
-              } onConflictDoUpdate: {
-                $0.lastKnownServerRecord = serverRecord
-                $0._lastKnownServerRecordAllFields = serverRecord
-                $0.userModificationDate = serverRecord.userModificationDate
-              }
-              .execute(db)
+              .find(recordName)
+              .update {
+              $0.parentRecordName = (serverRecord.parent?.recordID.recordName)
+                .flatMap(SyncMetadata.RecordName.init(rawValue:))
+              $0.setLastKnownServerRecord(serverRecord)
+              $0.userModificationDate = serverRecord.userModificationDate
+            }
+            .execute(db)
           }
         }
         try open(table)
@@ -1065,8 +1047,7 @@
             try SyncMetadata
               .find(recordName)
               .update {
-                $0.lastKnownServerRecord = record
-                $0._lastKnownServerRecordAllFields = record
+                $0.setLastKnownServerRecord(record)
                 $0.userModificationDate = record.userModificationDate
               }
               .execute(db)
@@ -1381,4 +1362,12 @@
       appendInterpolation(QueryValue(queryOutput: queryOutput))
     }
   }
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension Updates<SyncMetadata> {
+  mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
+    self.lastKnownServerRecord = lastKnownServerRecord
+    self._lastKnownServerRecordAllFields = lastKnownServerRecord
+  }
+}
 #endif

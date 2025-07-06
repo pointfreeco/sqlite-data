@@ -232,15 +232,6 @@ extension CKRecord {
     }
   }
 
-  func versionedKeys() -> [FieldKey] {
-    allKeys()
-      .compactMap {
-        $0.hasPrefix("\(Self.userModificationDateKey)_")
-        ? String($0.dropFirst("\(Self.userModificationDateKey)_".count))
-        : nil
-      }
-  }
-
   package func update<T: PrimaryKeyedTable<UUID>>(
     with other: CKRecord,
     row: T,
@@ -267,22 +258,15 @@ extension CKRecord {
         var localValue: (any CKRecordValueProtocol)? {
           let value = Value(queryOutput: row[keyPath: column.keyPath])
           switch value.queryBinding {
-          case .blob(let value):
-            return value
-          case .double(let value):
-            return value
-          case .date(let value):
-            return value
-          case .int(let value):
-            return value
-          case .null:
-            return nil
-          case .text(let value):
-            return value
-          case .uuid(let value):
-            return value.uuidString.lowercased()
-          case .invalid(_):
-            // TODO: make `merge` throwing or report error?
+          case .blob(let value): return value
+          case .double(let value): return value
+          case .date(let value): return value
+          case .int(let value): return value
+          case .null: return nil
+          case .text(let value): return value
+          case .uuid(let value): return value.uuidString.lowercased()
+          case .invalid(let error):
+            reportIssue(error)
             return nil
           }
         }
