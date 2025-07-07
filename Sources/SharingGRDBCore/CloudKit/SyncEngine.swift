@@ -1228,7 +1228,34 @@
     tables: [any PrimaryKeyedTable.Type],
     userDatabase: UserDatabase
   ) throws {
-    try userDatabase.read { db in
+    let tableNames = Set(tables.map { $0.tableName })
+    try userDatabase.write { db in
+      let triggers = try SQLQueryExpression(
+        """
+        SELECT "name", "tbl_name", "sql"
+          FROM "sqlite_master"
+          WHERE "type" = 'trigger'
+        UNION
+        SELECT "name", "tbl_name", "sql"
+          FROM "sqlite_temp_master"
+          WHERE "type" = 'trigger'
+        """,
+        as: (String, String, String).self
+      )
+      .fetchAll(db)
+      .filter { _, tableName, _ in tableNames.contains(tableName) }
+      let invalidTriggers = triggers.compactMap { name, _, sql in
+        let isValid =
+        sql
+          .lowercased()
+          .contains("\(DatabaseFunction.syncEngineIsUpdatingRecord.name)()".lowercased())
+        return isValid ? nil : name
+      }
+      guard invalidTriggers.isEmpty
+      else {
+        throw InvalidUserTriggers(triggers: invalidTriggers)
+      }
+      
       for table in tables {
         //      // TODO: write tests for this
         //      let columnsWithUniqueConstraints =
@@ -1258,6 +1285,17 @@
         //        throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
         //      }
       }
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public struct InvalidUserTriggers: LocalizedError {
+    let triggers: [String]
+    public var localizedDescription: String {
+      """
+      Triggers must include 'WHEN NOT \(DatabaseFunction.syncEngineIsUpdatingRecord.name)()' \
+      clause: \(triggers.map { "'\($0)'" }.joined(separator: ", "))
+      """
     }
   }
 
