@@ -127,11 +127,11 @@ extension CKRecordKeyValueSetting {
 }
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
-extension CKAsset {
-  convenience init(data: some DataProtocol) {
+extension URL {
+  init(hash data: some DataProtocol) {
     @Dependency(\.dataManager) var dataManager
     let hash = SHA256.hash(data: data).compactMap { String(format: "%02hhx", $0) }.joined()
-    self.init(fileURL: dataManager.temporaryDirectory.appendingPathComponent(hash))
+    self = dataManager.temporaryDirectory.appendingPathComponent(hash)
   }
 }
 
@@ -161,7 +161,8 @@ extension CKRecord {
     @Dependency(\.dataManager) var dataManager
 
     guard encryptedValues[at: key] < userModificationDate else { return false }
-    let asset = CKAsset(data: newValue)
+
+    let asset = CKAsset(fileURL: URL(hash: newValue))
     guard let fileURL = asset.fileURL, (self[key] as? CKAsset)?.fileURL != fileURL
     else { return false }
     withErrorReporting {
@@ -262,23 +263,29 @@ extension CKRecord {
         } else {
           didSet = false
         }
-        let lastKnownValue: (any CKRecordValueProtocol)? = other.encryptedValues[key]
-        var localValue: (any CKRecordValueProtocol)? {
-          let value = Value(queryOutput: row[keyPath: column.keyPath])
-          switch value.queryBinding {
-          case .blob(let value): return CKAsset(data: value)
-          case .double(let value): return value
-          case .date(let value): return value
-          case .int(let value): return value
-          case .null: return nil
-          case .text(let value): return value
-          case .uuid(let value): return value.uuidString.lowercased()
+        /// The row value has been modified more recently than the last known record.
+        var isRowValueModified: Bool {
+          switch Value(queryOutput: row[keyPath: column.keyPath]).queryBinding {
+          case .blob(let value):
+            return (other[key] as? CKAsset)?.fileURL != URL(hash: value)
+          case .double(let value):
+            return other.encryptedValues[key] != value
+          case .date(let value):
+            return other.encryptedValues[key] != value
+          case .int(let value):
+            return other.encryptedValues[key] != value
+          case .null:
+            return other.encryptedValues[key] != nil
+          case .text(let value):
+            return other.encryptedValues[key] != value
+          case .uuid(let value):
+            return other.encryptedValues[key] != value.uuidString.lowercased()
           case .invalid(let error):
             reportIssue(error)
-            return nil
+            return false
           }
         }
-        if didSet || !_isEqual(localValue, lastKnownValue) {
+        if didSet || isRowValueModified {
           columnNames.removeAll(where: { $0 == key })
         }
       }
@@ -324,18 +331,3 @@ extension CKRecord {
   }
 }
 #endif
-
-// TODO: test
-private func _isEqual(_ lhs: Any?, _ rhs: Any?) -> Bool {
-  guard let lhs, let rhs
-  else {
-    return lhs == nil && rhs == nil
-  }
-  guard let lhs = lhs as? any Equatable
-  else { return false }
-
-  func open<S: Equatable>(_ lhs: S) -> Bool {
-    (rhs as? S).map { lhs == $0 } ?? false
-  }
-  return open(lhs)
-}
