@@ -68,8 +68,6 @@ extension BaseCloudKitTests {
         
         let relaunchedSyncEngine = try await SyncEngine(
           container: syncEngine.container,
-          privateDatabase: syncEngine.container.privateCloudDatabase as! MockCloudDatabase,
-          sharedDatabase: syncEngine.container.sharedCloudDatabase as! MockCloudDatabase,
           userDatabase: self.userDatabase,
           metadatabaseURL: URL
             .metadatabase(containerIdentifier: syncEngine.container.containerIdentifier!),

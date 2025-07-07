@@ -1229,7 +1229,7 @@
     userDatabase: UserDatabase
   ) throws {
     let tableNames = Set(tables.map { $0.tableName })
-    try userDatabase.write { db in
+    try userDatabase.read { db in
       let triggers = try SQLQueryExpression(
         """
         SELECT "name", "tbl_name", "sql"

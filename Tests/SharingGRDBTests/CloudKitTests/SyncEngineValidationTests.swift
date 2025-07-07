@@ -47,8 +47,9 @@ extension BaseCloudKitTests {
             )
             .execute(db)
           }
-          let _ = try await SyncEngine.init(
+          let _ = try await SyncEngine(
             container: MockCloudContainer(
+              containerIdentifier: "deadbeef",
               privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
@@ -106,6 +107,7 @@ extension BaseCloudKitTests {
       }
       let _ = try await SyncEngine.init(
         container: MockCloudContainer(
+          containerIdentifier: "deadbeef",
           privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
           sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
         ),
