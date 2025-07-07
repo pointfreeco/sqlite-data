@@ -861,17 +861,6 @@
           }
         }
 
-        // device A (title: A)
-        // device B (notes: B)
-
-        /*
-
-         --->(device A saves)------>(batch goes out)----->(receive: fails)---->
-
-         ------>(device B saves)------>(batch goes out)----->(receive: fails)
-
-         */
-
         switch failedRecordSave.error.code {
         case .serverRecordChanged:
           guard let serverRecord = failedRecordSave.error.serverRecord else { continue }

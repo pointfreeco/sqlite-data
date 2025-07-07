@@ -466,9 +466,9 @@ extension BaseCloudKitTests {
       record.encryptedValues["title"] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(-60.0)
       record.userModificationDate = serverModificationDate
-      // NB: Manually setting '_recordChangeTag' simulates another devices saving a record.
+      // NB: Manually setting '_recordChangeTag' simulates another device saving a record.
       record._recordChangeTag = UUID().uuidString
-      _ = await syncEngine.modifyRecords(scope: .private, saving: [record])
+      await syncEngine.modifyRecords(scope: .private, saving: [record])
 
       expectNoDifference(
         try { try userDatabase.userRead { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),

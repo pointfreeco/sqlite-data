@@ -385,10 +385,10 @@ extension BaseCloudKitTests {
         """
       }
 
-//      await syncEngine.processBatch()
-//      await modificationCallback()
-//
-//      assertInlineSnapshot(of: syncEngine.container, as: .customDump)
+      //      await syncEngine.processBatch()
+      //      await modificationCallback()
+      //
+      //      assertInlineSnapshot(of: syncEngine.container, as: .customDump)
     }
 
     @Test func bar() async throws {
@@ -419,7 +419,7 @@ extension BaseCloudKitTests {
       try await userDatabase.userWrite { db in
         try #expect(
           Reminder.find(UUID(1)).fetchOne(db)
-          == Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+            == Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
         )
       }
 
@@ -464,7 +464,7 @@ extension BaseCloudKitTests {
         )
         """
       }
-      
+
       await syncEngine.processBatch()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
@@ -577,49 +577,145 @@ extension BaseCloudKitTests {
         """
       }
 
-//      await syncEngine.processBatch()
-//
-//      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
-//        """
-//        MockCloudContainer(
-//          privateCloudDatabase: MockCloudDatabase(
-//            databaseScope: .private,
-//            storage: [
-//              [0]: CKRecord(
-//                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-//                recordType: "reminders",
-//                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
-//                share: nil,
-//                id: "00000000-0000-0000-0000-000000000001",
-//                id🗓️: 0,
-//                isCompleted: 0,
-//                isCompleted🗓️: 0,
-//                remindersListID: "00000000-0000-0000-0000-000000000001",
-//                remindersListID🗓️: 0,
-//                title: "Buy milk",
-//                title🗓️: 30,
-//                🗓️: 30
-//              ),
-//              [1]: CKRecord(
-//                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-//                recordType: "remindersLists",
-//                parent: nil,
-//                share: nil,
-//                id: "00000000-0000-0000-0000-000000000001",
-//                id🗓️: 0,
-//                title: "",
-//                title🗓️: 0,
-//                🗓️: 0
-//              )
-//            ]
-//          ),
-//          sharedCloudDatabase: MockCloudDatabase(
-//            databaseScope: .shared,
-//            storage: []
-//          )
-//        )
-//        """
-//      }
+      //      await syncEngine.processBatch()
+      //
+      //      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      //        """
+      //        MockCloudContainer(
+      //          privateCloudDatabase: MockCloudDatabase(
+      //            databaseScope: .private,
+      //            storage: [
+      //              [0]: CKRecord(
+      //                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+      //                recordType: "reminders",
+      //                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+      //                share: nil,
+      //                id: "00000000-0000-0000-0000-000000000001",
+      //                id🗓️: 0,
+      //                isCompleted: 0,
+      //                isCompleted🗓️: 0,
+      //                remindersListID: "00000000-0000-0000-0000-000000000001",
+      //                remindersListID🗓️: 0,
+      //                title: "Buy milk",
+      //                title🗓️: 30,
+      //                🗓️: 30
+      //              ),
+      //              [1]: CKRecord(
+      //                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+      //                recordType: "remindersLists",
+      //                parent: nil,
+      //                share: nil,
+      //                id: "00000000-0000-0000-0000-000000000001",
+      //                id🗓️: 0,
+      //                title: "",
+      //                title🗓️: 0,
+      //                🗓️: 0
+      //              )
+      //            ]
+      //          ),
+      //          sharedCloudDatabase: MockCloudDatabase(
+      //            databaseScope: .shared,
+      //            storage: []
+      //          )
+      //        )
+      //        """
+      //      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func mergeWithNullableFields() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "Personal")
+          Reminder(id: UUID(1), remindersListID: UUID(1))
+        }
+      }
+      await syncEngine.processBatch()
+
+      let reminderRecord = try syncEngine.private.database.record(
+        for: Reminder.recordID(for: UUID(1))
+      )
+      reminderRecord.setValue(
+        now.addingTimeInterval(30),
+        forKey: "dueDate",
+        at: now.addingTimeInterval(1)
+      )
+      reminderRecord.userModificationDate = now.addingTimeInterval(1)
+      let modificationsFinished = {
+        syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
+      }()
+
+      try withDependencies {
+        $0.date.now.addTimeInterval(2)
+      } operation: {
+        try userDatabase.userWrite { db in
+          try Reminder.find(UUID(1)).update { $0.priority = 3 }.execute(db)
+        }
+      }
+
+      await modificationsFinished()
+      await syncEngine.processBatch()
+
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                dueDate: Date(1970-01-01T00:00:30.000Z),
+                dueDate🗓️: 1,
+                id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
+                isCompleted: 0,
+                isCompleted🗓️: 0,
+                priority: 3,
+                priority🗓️: 2,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID🗓️: 0,
+                title: "",
+                title🗓️: 0,
+                🗓️: 2
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
+                title: "Personal",
+                title🗓️: 0,
+                🗓️: 0
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try {
+        try userDatabase.read { db in
+          let reminder = try #require(try Reminder.find(UUID(1)).fetchOne(db))
+          #expect(
+            reminder
+            == Reminder(
+              id: UUID(1),
+              dueDate: Date(timeIntervalSince1970: 30),
+              priority: 3,
+              remindersListID: UUID(1)
+            )
+          )
+        }
+      }()
     }
   }
 }
