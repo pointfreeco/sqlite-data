@@ -995,7 +995,8 @@
             columnNames
               .map { columnName in
                 if let asset = serverRecord[columnName] as? CKAsset {
-                  return (try? asset.fileURL.map { try Data(contentsOf: $0) })?
+                  @Dependency(\.dataManager) var dataManager
+                  return (try? asset.fileURL.map { try dataManager.load($0) })?
                     .queryFragment ?? "NULL"
                 } else {
                   return encryptedValues[columnName]?.queryFragment ?? "NULL"
@@ -1022,12 +1023,10 @@
             try SyncMetadata
               .find(recordName)
               .update {
-              $0.parentRecordName = (serverRecord.parent?.recordID.recordName)
-                .flatMap(SyncMetadata.RecordName.init(rawValue:))
-              $0.setLastKnownServerRecord(serverRecord)
-              $0.userModificationDate = serverRecord.userModificationDate
-            }
-            .execute(db)
+                $0.setLastKnownServerRecord(serverRecord)
+                $0.userModificationDate = serverRecord.userModificationDate
+              }
+              .execute(db)
           }
         }
         try open(table)
@@ -1368,6 +1367,9 @@ extension Updates<SyncMetadata> {
   mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
     self.lastKnownServerRecord = lastKnownServerRecord
     self._lastKnownServerRecordAllFields = lastKnownServerRecord
+    if let lastKnownServerRecord {
+      self.userModificationDate = lastKnownServerRecord.userModificationDate
+    }
   }
 }
 #endif

@@ -43,6 +43,9 @@
           : rhs
           return (baseLHS, lhsHasPrefix ? 1 : 0) < (baseRHS, rhsHasPrefix ? 1 : 0)
         }
+      let nonEncryptedKeys = Set(allKeys())
+        .subtracting(encryptedValues.allKeys())
+        .subtracting(["_recordChangeTag"])
       return Mirror(
         self,
         children: [
@@ -62,11 +65,36 @@
               $0,
               self.encryptedValues[$0] as Any
             )
+          } + nonEncryptedKeys.map {
+            (
+              $0,
+              self[$0] as Any
+            )
           },
         displayStyle: .struct
       )
     }
   }
+
+extension CKAsset: @retroactive CustomDumpReflectable {
+  public var customDumpMirror: Mirror {
+    @Dependency(\.dataManager) var dataManager
+    return Mirror(
+      self,
+      children: [
+        (
+          "fileURL",
+          fileURL as Any
+        ),
+        (
+          "dataString",
+          String(decoding: fileURL.flatMap { try? dataManager.load($0) } ?? Data(), as: UTF8.self)
+        )
+      ],
+      displayStyle: .struct
+    )
+  }
+}
 
   extension CKRecord.Reference: @retroactive CustomDumpReflectable {
     public var customDumpMirror: Mirror {

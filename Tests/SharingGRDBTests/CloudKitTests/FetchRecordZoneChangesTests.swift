@@ -324,5 +324,111 @@ extension BaseCloudKitTests {
         }
       }()
     }
+
+    @Test func receiveNewRecordFromCloudKit_ChildBeforeParent() async throws {
+      let reminderRecord = CKRecord(
+        recordType: Reminder.tableName,
+        recordID: Reminder.recordID(for: UUID(1))
+      )
+      reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      reminderRecord.setValue("Get milk", forKey: "title", at: now)
+      reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "remindersListID", at: now)
+      reminderRecord.userModificationDate = now
+      reminderRecord.parent = CKRecord.Reference(
+        recordID: RemindersList.recordID(for: UUID(1)),
+        action: .none
+      )
+
+      await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
+
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID🗓️: 0,
+                title: "Get milk",
+                title🗓️: 0,
+                🗓️: 0
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try {
+        try userDatabase.read { db in
+          let metadata = try #require(
+            try SyncMetadata.find(Reminder.recordName(for: UUID(1))).fetchOne(db)
+          )
+          #expect(metadata.recordName == Reminder.recordName(for: UUID(1)))
+          #expect(metadata.parentRecordName == RemindersList.recordName(for: UUID(1)))
+          let reminder = try #require(try Reminder.find(UUID(1)).fetchOne(db))
+          #expect(reminder == Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1)))
+        }
+      }()
+
+      try await withDependencies {
+        $0.date.now.addTimeInterval(1)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try Reminder.find(UUID(1)).update { $0.title = "Buy milk" }.execute(db)
+        }
+
+        await syncEngine.processBatch()
+      }
+
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                id🗓️: 0,
+                isCompleted: 0,
+                isCompleted🗓️: 1,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID🗓️: 0,
+                title: "Buy milk",
+                title🗓️: 1,
+                🗓️: 1
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try {
+        try userDatabase.read { db in
+          let reminder = try #require(try Reminder.find(UUID(1)).fetchOne(db))
+          #expect(reminder == Reminder.init(id: UUID(1), title: "Buy milk", remindersListID: UUID(1)))
+        }
+      }()
+    }
   }
 }

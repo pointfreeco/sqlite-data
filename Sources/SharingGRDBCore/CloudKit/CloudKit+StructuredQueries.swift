@@ -149,14 +149,16 @@ extension CKRecord {
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date
   ) -> Bool {
+    @Dependency(\.dataManager) var dataManager
+
     guard encryptedValues[at: key] < userModificationDate else { return false }
     let hash = SHA256.hash(data: newValue).compactMap { String(format: "%02hhx", $0) }.joined()
-    let blobURL = URL.temporaryDirectory.appendingPathComponent(hash)
+    let blobURL = dataManager.temporaryDirectory.appendingPathComponent(hash)
     let asset = CKAsset(fileURL: blobURL)
     guard (self[key] as? CKAsset)?.fileURL != blobURL
     else { return false }
     withErrorReporting {
-      try Data(newValue).write(to: blobURL)
+      try dataManager.save(Data(newValue), to: blobURL)
     }
     self[key] = asset
     encryptedValues[at: key] = userModificationDate

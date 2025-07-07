@@ -8,7 +8,10 @@ import Testing
 
 @Suite(
   .snapshots(record: .missing),
-  .dependency(\.date.now, Date(timeIntervalSince1970: 0))
+  .dependencies {
+    $0.date.now = Date(timeIntervalSince1970: 0)
+    $0.dataManager = InMemoryDataManager()
+  }
 )
 class BaseCloudKitTests: @unchecked Sendable {
   let userDatabase: UserDatabase
@@ -47,6 +50,7 @@ class BaseCloudKitTests: @unchecked Sendable {
       tables: [
         Reminder.self,
         RemindersList.self,
+        RemindersListAsset.self,
         Tag.self,
         ReminderTag.self,
         Parent.self,
