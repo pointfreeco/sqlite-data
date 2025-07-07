@@ -210,7 +210,6 @@ extension BaseCloudKitTests {
       )
       remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
-      remindersListRecord.userModificationDate = now
 
       await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
 
@@ -299,7 +298,6 @@ extension BaseCloudKitTests {
       reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
       reminderRecord.setValue("Get milk", forKey: "title", at: now)
       reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "remindersListID", at: now)
-      reminderRecord.userModificationDate = now
       reminderRecord.parent = CKRecord.Reference(
         recordID: RemindersList.recordID(for: UUID(1)),
         action: .none

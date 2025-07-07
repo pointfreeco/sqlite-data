@@ -149,6 +149,7 @@ extension CKRecord {
     else { return false }
     encryptedValues[key] = newValue
     encryptedValues[at: key] = userModificationDate
+    self.userModificationDate = userModificationDate
     return true
   }
 
@@ -170,6 +171,7 @@ extension CKRecord {
     }
     self[key] = asset
     encryptedValues[at: key] = userModificationDate
+    self.userModificationDate = userModificationDate
     return true
   }
 
@@ -186,6 +188,7 @@ extension CKRecord {
     else { return false }
     self[key] = newValue
     encryptedValues[at: key] = userModificationDate
+    self.userModificationDate = userModificationDate
     return true
   }
 
@@ -199,17 +202,18 @@ extension CKRecord {
     if encryptedValues[key] != nil {
       encryptedValues[key] = nil
       encryptedValues[at: key] = userModificationDate
+      self.userModificationDate = userModificationDate
       return true
     } else if self[key] != nil {
       self[key] = nil
       encryptedValues[at: key] = userModificationDate
+      self.userModificationDate = userModificationDate
       return true
     }
     return false
   }
 
   package func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date) {
-    self.userModificationDate = userModificationDate
     for column in T.TableColumns.allColumns {
       func open<Root, Value>(_ column: some TableColumnExpression<Root, Value>) {
         let column = column as! any TableColumnExpression<T, Value>

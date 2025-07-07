@@ -32,19 +32,16 @@ extension BaseCloudKitTests {
         let personalListRecord = try syncEngine.private.database.record(
           for: RemindersList.recordID(for: UUID(1))
         )
-        personalListRecord.userModificationDate = now
         personalListRecord.setValue(1, forKey: "position", at: now)
         
         let businessListRecord = try syncEngine.private.database.record(
           for: RemindersList.recordID(for: UUID(2))
         )
-        businessListRecord.userModificationDate = now
         businessListRecord.setValue(2, forKey: "position", at: now)
         
         let reminderRecord = try syncEngine.private.database.record(
           for: Reminder.recordID(for: UUID(1))
         )
-        reminderRecord.userModificationDate = now
         reminderRecord.setValue(3, forKey: "position", at: now)
         
         await syncEngine.modifyRecords(

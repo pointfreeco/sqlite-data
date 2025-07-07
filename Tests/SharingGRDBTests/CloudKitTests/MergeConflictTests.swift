@@ -65,7 +65,6 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
       let userModificationDate = now.addingTimeInterval(60)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      record.userModificationDate = userModificationDate
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
 
       try await withDependencies {
@@ -218,7 +217,6 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      record.userModificationDate = userModificationDate
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
 
       try await withDependencies {
@@ -330,7 +328,6 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      record.userModificationDate = userModificationDate
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
 
       try await withDependencies {
@@ -398,7 +395,6 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
       let userModificationDate = now.addingTimeInterval(60)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      record.userModificationDate = userModificationDate
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
 
       try await withDependencies {
@@ -517,7 +513,6 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      record.userModificationDate = userModificationDate
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
 
       try await withDependencies {
@@ -585,7 +580,6 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      record.userModificationDate = userModificationDate
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
 
       try await withDependencies {
@@ -660,7 +654,6 @@ extension BaseCloudKitTests {
         forKey: "dueDate",
         at: now.addingTimeInterval(1)
       )
-      reminderRecord.userModificationDate = now.addingTimeInterval(1)
       let modificationsFinished = {
         syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
       }()

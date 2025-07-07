@@ -382,7 +382,6 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
       let serverModificationDate = userModificationDate.addingTimeInterval(60)
       record.setValue("Work", forKey: "title", at: serverModificationDate)
-      record.userModificationDate = serverModificationDate
       _ = await syncEngine.modifyRecords(scope: .private, saving: [record])
 
       expectNoDifference(
@@ -467,7 +466,6 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
       record.encryptedValues["title"] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(-60.0)
-      record.userModificationDate = serverModificationDate
       // NB: Manually setting '_recordChangeTag' simulates another device saving a record.
       record._recordChangeTag = UUID().uuidString
       await syncEngine.modifyRecords(scope: .private, saving: [record])
