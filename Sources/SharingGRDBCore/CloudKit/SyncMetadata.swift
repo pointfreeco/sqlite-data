@@ -37,7 +37,7 @@ public struct SyncMetadata: Hashable, Sendable {
   public var parentRecordName: RecordName?
 
   /// The last known `CKRecord` received from the server.
-  // @Column(as: CKRecord?.DataRepresentation.self)
+  // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
   public var lastKnownServerRecord: CKRecord?
 
   /// The `CKShare` associated with this record, if it is shared.
