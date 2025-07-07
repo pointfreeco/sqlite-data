@@ -15,7 +15,7 @@ extension _CKRecord where Self == CKShare {
 }
 
 extension Optional where Wrapped: CKRecord {
-  package typealias AllFieldsRepresentation = _AllFieldsRepresentation<Wrapped>?
+  typealias AllFieldsRepresentation = _AllFieldsRepresentation<Wrapped>?
   public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<Wrapped>?
 }
 
@@ -54,7 +54,7 @@ public struct _SystemFieldsRepresentation<Record: CKRecord>: QueryBindable, Quer
   private struct DecodingError: Error {}
 }
 
-public struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
+struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
   public let queryOutput: Record
 
   public var queryBinding: QueryBinding {
