@@ -15,7 +15,7 @@ extension _CKRecord where Self == CKShare {
 }
 
 extension Optional where Wrapped: CKRecord {
-  typealias AllFieldsRepresentation = _AllFieldsRepresentation<Wrapped>?
+  package typealias AllFieldsRepresentation = _AllFieldsRepresentation<Wrapped>?
   public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<Wrapped>?
 }
 
@@ -54,10 +54,10 @@ public struct _SystemFieldsRepresentation<Record: CKRecord>: QueryBindable, Quer
   private struct DecodingError: Error {}
 }
 
-struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
-  public let queryOutput: Record
+package struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
+  package let queryOutput: Record
 
-  public var queryBinding: QueryBinding {
+  package var queryBinding: QueryBinding {
     let archiver = NSKeyedArchiver(requiringSecureCoding: true)
     queryOutput.encode(with: archiver)
     if isTesting {
@@ -66,11 +66,11 @@ struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresent
     return archiver.encodedData.queryBinding
   }
 
-  public init(queryOutput: Record) {
+  package init(queryOutput: Record) {
     self.queryOutput = queryOutput
   }
 
-  public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+  package init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
     guard let data = try Data?(decoder: &decoder) else {
       throw QueryDecodingError.missingRequiredColumn
     }

@@ -9,7 +9,7 @@ import Testing
 
 extension BaseCloudKitTests {
   @MainActor
-  @Suite(.printTimestamps)
+  @Suite
   final class FetchRecordZoneChangeTests: BaseCloudKitTests, @unchecked Sendable {
     @Dependency(\.date.now) var now
 
@@ -44,16 +44,10 @@ extension BaseCloudKitTests {
               parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
               share: nil,
               id: "00000000-0000-0000-0000-000000000001",
-              id🗓️: 0,
               isCompleted: 0,
-              isCompleted🗓️: 0,
               newField: "Hello world! 🌎🌎🌎",
-              newField🗓️: 0,
               remindersListID: "00000000-0000-0000-0000-000000000001",
-              remindersListID🗓️: 0,
-              title: "Get milk",
-              title🗓️: 0,
-              🗓️: 0
+              title: "Get milk"
             ),
             [1]: CKRecord(
               recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -61,10 +55,7 @@ extension BaseCloudKitTests {
               parent: nil,
               share: nil,
               id: "00000000-0000-0000-0000-000000000001",
-              id🗓️: 0,
-              title: "Personal",
-              title🗓️: 0,
-              🗓️: 0
+              title: "Personal"
             )
           ]
           """
@@ -96,16 +87,10 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                id🗓️: 0,
                 isCompleted: 1,
-                isCompleted🗓️: 1,
                 newField: "Hello world! 🌎🌎🌎",
-                newField🗓️: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
-                remindersListID🗓️: 0,
-                title: "Get milk",
-                title🗓️: 0,
-                🗓️: 1
+                title: "Get milk"
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -113,10 +98,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                id🗓️: 0,
-                title: "Personal",
-                title🗓️: 0,
-                🗓️: 0
+                title: "Personal"
               )
             ]
             """
@@ -160,14 +142,9 @@ extension BaseCloudKitTests {
           parent: CKReference(recordID: CKRecord.ID(2:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
           share: nil,
           id: "00000000-0000-0000-0000-000000000001",
-          id🗓️: 0,
           isCompleted: 0,
-          isCompleted🗓️: 0,
           remindersListID: "00000000-0000-0000-0000-000000000002",
-          remindersListID🗓️: 1,
-          title: "Get milk",
-          title🗓️: 0,
-          🗓️: 0
+          title: "Get milk"
         )
         """
       }
@@ -200,14 +177,9 @@ extension BaseCloudKitTests {
           parent: CKReference(recordID: CKRecord.ID(2:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
           share: nil,
           id: "00000000-0000-0000-0000-000000000001",
-          id🗓️: 0,
           isCompleted: 0,
-          isCompleted🗓️: 0,
           remindersListID: "00000000-0000-0000-0000-000000000002",
-          remindersListID🗓️: 1,
-          title: "Get milk",
-          title🗓️: 0,
-          🗓️: 0
+          title: "Get milk"
         )
         """
       }
@@ -254,10 +226,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                id🗓️: 0,
-                title: "Personal",
-                title🗓️: 0,
-                🗓️: 0
+                title: "Personal"
               )
             ]
           ),
@@ -302,10 +271,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                id🗓️: 0,
-                title: "My stuff",
-                title🗓️: 1,
-                🗓️: 1
+                title: "My stuff"
               )
             ]
           ),
@@ -353,12 +319,8 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                id🗓️: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
-                remindersListID🗓️: 0,
-                title: "Get milk",
-                title🗓️: 0,
-                🗓️: 0
+                title: "Get milk"
               )
             ]
           ),
@@ -404,14 +366,9 @@ extension BaseCloudKitTests {
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                id🗓️: 0,
                 isCompleted: 0,
-                isCompleted🗓️: 1,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
-                remindersListID🗓️: 0,
-                title: "Buy milk",
-                title🗓️: 1,
-                🗓️: 1
+                title: "Buy milk"
               )
             ]
           ),
