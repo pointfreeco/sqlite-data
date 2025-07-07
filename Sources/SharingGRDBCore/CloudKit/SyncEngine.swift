@@ -1022,10 +1022,7 @@
             try SQLQueryExpression(query).execute(db)
             try SyncMetadata
               .find(recordName)
-              .update {
-                $0.setLastKnownServerRecord(serverRecord)
-                $0.userModificationDate = serverRecord.userModificationDate
-              }
+              .update { $0.setLastKnownServerRecord(serverRecord) }
               .execute(db)
           }
         }
@@ -1045,10 +1042,7 @@
           try userDatabase.write { db in
             try SyncMetadata
               .find(recordName)
-              .update {
-                $0.setLastKnownServerRecord(record)
-                $0.userModificationDate = record.userModificationDate
-              }
+              .update { $0.setLastKnownServerRecord(record) }
               .execute(db)
           }
         }
