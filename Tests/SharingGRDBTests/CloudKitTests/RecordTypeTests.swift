@@ -51,7 +51,9 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "reminders" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "dueDate" TEXT,
                 "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+                "priority" INTEGER,
                 "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
                 "remindersListID" TEXT NOT NULL, 
                 
@@ -168,7 +170,9 @@ extension BaseCloudKitTests {
           schema: """
             CREATE TABLE "reminders" (
               "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+              "dueDate" TEXT,
               "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+              "priority" INTEGER,
               "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
               "remindersListID" TEXT NOT NULL, "newFeature" INTEGER NOT NULL, 
               
