@@ -1177,19 +1177,19 @@
     let tableNames = Set(tables.map { $0.tableName })
     try userDatabase.write { db in
       let triggers = try SQLQueryExpression(
-          """
-          SELECT  "name", "tbl_name", "sql"
+        """
+        SELECT "name", "tbl_name", "sql"
           FROM "sqlite_master"
           WHERE "type" = 'trigger'
-          UNION
-          SELECT "name", "tbl_name", "sql"
+        UNION
+        SELECT "name", "tbl_name", "sql"
           FROM "sqlite_temp_master"
           WHERE "type" = 'trigger'
-          """,
-          as: (String, String, String).self
+        """,
+        as: (String, String, String).self
       )
-        .fetchAll(db)
-        .filter { _, tableName, _ in tableNames.contains(tableName) }
+      .fetchAll(db)
+      .filter { _, tableName, _ in tableNames.contains(tableName) }
       let invalidTriggers = triggers.compactMap { name, _, sql in
         let isValid =
         sql
