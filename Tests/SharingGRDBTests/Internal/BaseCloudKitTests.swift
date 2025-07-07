@@ -7,7 +7,7 @@ import SnapshotTesting
 import Testing
 
 @Suite(
-  .snapshots(record: .missing),
+  .snapshots(record: .failed),
   .dependencies {
     $0.date.now = Date(timeIntervalSince1970: 0)
     $0.dataManager = InMemoryDataManager()

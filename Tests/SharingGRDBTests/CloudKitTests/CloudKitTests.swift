@@ -25,43 +25,53 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "remindersLists" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "title" TEXT NOT NULL DEFAULT ''
+                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
               ) STRICT
               """
           ),
           [1]: RecordType(
-            tableName: "remindersListPrivates",
+            tableName: "remindersListAssets",
             schema: """
-              CREATE TABLE "remindersListPrivates" (
+              CREATE TABLE "remindersListAssets" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "position" INTEGER NOT NULL DEFAULT 0,
+                "coverImage" BLOB NOT NULL,
                 "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
               ) STRICT
               """
           ),
           [2]: RecordType(
+            tableName: "remindersListPrivates",
+            schema: """
+              CREATE TABLE "remindersListPrivates" (
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+                "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+              ) STRICT
+              """
+          ),
+          [3]: RecordType(
             tableName: "reminders",
             schema: """
               CREATE TABLE "reminders" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "isCompleted" INTEGER NOT NULL DEFAULT 0,
-                "title" TEXT NOT NULL DEFAULT '',
+                "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
                 "remindersListID" TEXT NOT NULL, 
                 
                 FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
               ) STRICT
               """
           ),
-          [3]: RecordType(
+          [4]: RecordType(
             tableName: "tags",
             schema: """
               CREATE TABLE "tags" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "title" TEXT NOT NULL DEFAULT ''
+                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
               ) STRICT
               """
           ),
-          [4]: RecordType(
+          [5]: RecordType(
             tableName: "reminderTags",
             schema: """
               CREATE TABLE "reminderTags" (
@@ -71,7 +81,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [5]: RecordType(
+          [6]: RecordType(
             tableName: "parents",
             schema: """
               CREATE TABLE "parents"(
@@ -79,7 +89,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [6]: RecordType(
+          [7]: RecordType(
             tableName: "childWithOnDeleteRestricts",
             schema: """
               CREATE TABLE "childWithOnDeleteRestricts"(
@@ -88,7 +98,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [7]: RecordType(
+          [8]: RecordType(
             tableName: "childWithOnDeleteSetNulls",
             schema: """
               CREATE TABLE "childWithOnDeleteSetNulls"(
@@ -97,7 +107,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [8]: RecordType(
+          [9]: RecordType(
             tableName: "childWithOnDeleteSetDefaults",
             schema: """
               CREATE TABLE "childWithOnDeleteSetDefaults"(
