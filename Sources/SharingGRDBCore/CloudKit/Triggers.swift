@@ -51,13 +51,12 @@ extension SyncMetadata {
         #""new"."\#($0.from)" || ':' || '\#($0.table)'"#
       } ?? "NULL"
     return insert {
-      ($0.recordType, $0.recordName, $0.parentRecordName, $0.userModificationDate)
+      ($0.recordType, $0.recordName, $0.parentRecordName)
     } select: {
       Values(
         T.tableName,
         new.recordName,
-        SQLQueryExpression(#"\#(raw: parentForeignKey) AS "foreignKey""#),
-        .datetime()
+        SQLQueryExpression(#"\#(raw: parentForeignKey) AS "foreignKey""#)
       )
     } onConflict: {
       $0.recordName
@@ -144,7 +143,7 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private static func didUpdate(
     recordName: some QueryExpression<SyncMetadata.RecordName>,
-    lastKnownServerRecord: some QueryExpression<CKRecord.DataRepresentation?>
+    lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>
   ) -> Self {
     Self("\(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(recordName), \(lastKnownServerRecord))")
   }
@@ -152,7 +151,7 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private static func didDelete(
     recordName: some QueryExpression<SyncMetadata.RecordName>,
-    lastKnownServerRecord: some QueryExpression<CKRecord.DataRepresentation?>
+    lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>
   )
   -> Self
   {
@@ -160,9 +159,6 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
   }
 }
 
-extension QueryExpression {
-  fileprivate static func datetime<D: _OptionalPromotable<Date?>>() -> Self
-  where Self == SQLQueryExpression<D> {
-    Self("\(raw: .sqliteDataCloudKitSchemaName)_datetime()")
-  }
+private func isUpdatingWithServerRecord() -> SQLQueryExpression<Bool> {
+  SQLQueryExpression("\(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
 }

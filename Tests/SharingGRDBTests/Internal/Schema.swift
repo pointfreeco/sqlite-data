@@ -3,13 +3,20 @@ import SharingGRDB
 
 @Table struct Reminder: Equatable, Identifiable {
   let id: UUID
+  var dueDate: Date?
   var isCompleted = false
+  var priority: Int?
   var title = ""
   var remindersListID: RemindersList.ID
 }
 @Table struct RemindersList: Equatable, Identifiable {
   let id: UUID
   var title = ""
+}
+@Table struct RemindersListAsset: Equatable, Identifiable {
+  let id: UUID
+  var coverImage: Data?
+  var remindersListID: RemindersList.ID
 }
 @Table struct RemindersListPrivate: Equatable, Identifiable {
   let id: UUID
@@ -64,7 +71,17 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       """
       CREATE TABLE "remindersLists" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "title" TEXT NOT NULL DEFAULT ''
+        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
+      ) STRICT
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TABLE "remindersListAssets" (
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "coverImage" BLOB NOT NULL,
+        "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
       """
     )
@@ -73,7 +90,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       """
       CREATE TABLE "remindersListPrivates" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "position" INTEGER NOT NULL DEFAULT 0,
+        "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
       """
@@ -83,8 +100,10 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       """
       CREATE TABLE "reminders" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "isCompleted" INTEGER NOT NULL DEFAULT 0,
-        "title" TEXT NOT NULL DEFAULT '',
+        "dueDate" TEXT,
+        "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+        "priority" INTEGER,
+        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
         "remindersListID" TEXT NOT NULL, 
         
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
@@ -96,7 +115,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       """
       CREATE TABLE "tags" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "title" TEXT NOT NULL DEFAULT ''
+        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
       ) STRICT
       """
     )
@@ -142,7 +161,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       """
       CREATE TABLE "localUsers" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "name" TEXT NOT NULL DEFAULT '',
+        "name" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
         "parentID" TEXT REFERENCES "localUsers"("id") ON DELETE CASCADE
       ) STRICT
       """

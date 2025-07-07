@@ -297,9 +297,7 @@
     }
 
     private func fetchChangesFromSchemaChange(recordTypes: [RecordType]) async throws {
-      // TODO: do batches for sake of CKDatabase
-      //       only docs we found was about modifies: https://developer.apple.com/documentation/cloudkit/ckmodifyrecordsoperation
-      //       recommends limiting to <400 records and <2mb data posted
+      // TODO: update data from local server records, do not fetch from CloudKit
       let lastKnownServerRecords = try await metadatabase.read { db in
         try SyncMetadata
           .where {
@@ -309,7 +307,7 @@
           .select {
             SQLQueryExpression(
               "\($0.lastKnownServerRecord)",
-              as: CKRecord.DataRepresentation.self
+              as: CKRecord.SystemFieldsRepresentation.self
             )
           }
           .fetchAll(db)
@@ -619,7 +617,18 @@
 
         guard
           let recordName = SyncMetadata.RecordName(recordID: recordID),
-          let metadata = await metadataFor(recordName: recordName)
+          let (metadata, allFields) = await withErrorReporting(
+            .sqliteDataCloudKitFailure,
+            catching: {
+              try await metadatabase.read { db in
+                try SyncMetadata
+                  .find(recordName)
+                  .select { ($0, $0._lastKnownServerRecordAllFields) }
+                  .fetchOne(db)
+              }
+            }
+          )
+            ?? nil
         else {
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           return nil
@@ -646,7 +655,7 @@
           }
 
           let record =
-            metadata.lastKnownServerRecord
+            allFields
             ?? CKRecord(
               recordType: metadata.recordType,
               recordID: recordID
@@ -662,6 +671,7 @@
               action: .none
             )
           }
+
           record.update(
             with: T(queryOutput: row),
             userModificationDate: metadata.userModificationDate
@@ -770,7 +780,6 @@
           }
         } else {
           upsertFromServerRecord(record)
-          await refreshLastKnownServerRecord(record)
         }
         if let shareReference = record.share,
           // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
@@ -783,6 +792,7 @@
         }
       }
 
+      // TODO: Group by recordType and delete in batches
       for (recordID, recordType) in deletions {
         if let table = tablesByName[recordType] {
           guard let recordName = SyncMetadata.RecordName(recordID: recordID)
@@ -845,7 +855,7 @@
             try userDatabase.write { db in
               try SyncMetadata
                 .find(recordName)
-                .update { $0.lastKnownServerRecord = nil }
+                .update { $0.setLastKnownServerRecord(nil) }
                 .execute(db)
             }
           }
@@ -854,9 +864,7 @@
         switch failedRecordSave.error.code {
         case .serverRecordChanged:
           guard let serverRecord = failedRecordSave.error.serverRecord else { continue }
-          // TODO: do per-field merging here
           upsertFromServerRecord(serverRecord)
-          await refreshLastKnownServerRecord(serverRecord)
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
 
         case .zoneNotFound:
@@ -937,7 +945,8 @@
       withErrorReporting(.sqliteDataCloudKitFailure) {
         guard let table = tablesByName[serverRecord.recordType]
         else {
-          // TODO: Should we be reporting this? What if another device makes changes to a table this device doesn't know about?
+          // TODO: Should we be reporting this?
+          // What if another device makes changes to a table this device doesn't know about?
           reportIssue(
             .sqliteDataCloudKitFailure.appending(
               """
@@ -948,32 +957,37 @@
           return
         }
         guard let recordName = SyncMetadata.RecordName(recordID: serverRecord.recordID)
-        else {
-          return
+        else { return }
+
+        let result = try metadatabase.read { db in
+          try SyncMetadata
+            .find(recordName)
+            .select { ($0, $0._lastKnownServerRecordAllFields) }
+            .fetchOne(db)
         }
-        let userModificationDate =
-          try metadatabase.read { db in
-            try SyncMetadata.find(recordName).select(\.userModificationDate).fetchOne(
-              db
+        let metadata = result?.0
+        let allFields = result?.1
+        serverRecord.userModificationDate = metadata?.userModificationDate ?? serverRecord.userModificationDate
+
+        func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+          var columnNames = T.TableColumns.allColumns.map(\.name)
+          if let allFields {
+            let row = try userDatabase.read { db in
+              try T.find(recordName.id).fetchOne(db)
+            }
+            guard let row
+            else {
+              reportIssue("Local database record could not be found for '\(recordName.rawValue)'.")
+              return
+            }
+            serverRecord.update(
+              with: allFields,
+              row: T(queryOutput: row),
+              columnNames: &columnNames
             )
           }
-          ?? nil
-        guard
-          let userModificationDate,
-          userModificationDate > serverRecord.userModificationDate ?? .distantPast
-        else {
-          // TODO: This should be fetched early and held onto (like 'ForeignKey')
-          let columnNames = try userDatabase.read { db in
-            try SQLQueryExpression(
-              """
-              SELECT "name" 
-              FROM pragma_table_info(\(bind: table.tableName))    
-              """,
-              as: String.self
-            )
-            .fetchAll(db)
-          }
-          var query: QueryFragment = "INSERT INTO \(table) ("
+
+          var query: QueryFragment = "INSERT INTO \(T.self) ("
           query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
           query.append(") VALUES (")
           let encryptedValues = serverRecord.encryptedValues
@@ -981,7 +995,8 @@
             columnNames
               .map { columnName in
                 if let asset = serverRecord[columnName] as? CKAsset {
-                  return (try? asset.fileURL.map { try Data(contentsOf: $0) })?
+                  @Dependency(\.dataManager) var dataManager
+                  return (try? asset.fileURL.map { try dataManager.load($0) })?
                     .queryFragment ?? "NULL"
                 } else {
                   return encryptedValues[columnName]?.queryFragment ?? "NULL"
@@ -989,15 +1004,11 @@
               }
               .joined(separator: ", ")
           )
-          func open<T: PrimaryKeyedTable>(_: T.Type) -> String {
-            T.columns.primaryKey.name
-          }
-          let primaryKeyName = open(table)
-          query.append(") ON CONFLICT(\(quote: primaryKeyName)) DO UPDATE SET ")
+          query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
 
           query.append(
             columnNames
-              .filter { columnName in columnName != primaryKeyName }
+              .filter { columnName in columnName != T.columns.primaryKey.name }
               .map {
                 """
                 \(quote: $0) = "excluded".\(quote: $0)
@@ -1007,24 +1018,15 @@
           )
           // TODO: Append more ON CONFLICT clauses for each unique constraint?
           // TODO: Use WHERE to scope the update?
-          guard let metadata = SyncMetadata(record: serverRecord)
-          else {
-            reportIssue("???")
-            return
-          }
           try userDatabase.write { db in
             try SQLQueryExpression(query).execute(db)
             try SyncMetadata
-              .insert {
-                metadata
-              } onConflictDoUpdate: {
-                $0.lastKnownServerRecord = serverRecord
-                $0.userModificationDate = serverRecord.userModificationDate
-              }
+              .find(recordName)
+              .update { $0.setLastKnownServerRecord(serverRecord) }
               .execute(db)
           }
-          return
         }
+        try open(table)
       }
     }
 
@@ -1040,7 +1042,7 @@
           try userDatabase.write { db in
             try SyncMetadata
               .find(recordName)
-              .update { $0.lastKnownServerRecord = record }
+              .update { $0.setLastKnownServerRecord(record) }
               .execute(db)
           }
         }
@@ -1344,4 +1346,14 @@
     }
   }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension Updates<SyncMetadata> {
+  mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
+    self.lastKnownServerRecord = lastKnownServerRecord
+    self._lastKnownServerRecordAllFields = lastKnownServerRecord
+    if let lastKnownServerRecord {
+      self.userModificationDate = lastKnownServerRecord.userModificationDate
+    }
+  }
+}
 #endif

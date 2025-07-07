@@ -10,6 +10,8 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class CloudKitTests: BaseCloudKitTests, @unchecked Sendable {
+    @Dependency(\.date.now) var now
+
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func setUp() throws {
       let zones = try userDatabase.userRead { db in
@@ -23,43 +25,55 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "remindersLists" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "title" TEXT NOT NULL DEFAULT ''
+                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
               ) STRICT
               """
           ),
           [1]: RecordType(
-            tableName: "remindersListPrivates",
+            tableName: "remindersListAssets",
             schema: """
-              CREATE TABLE "remindersListPrivates" (
+              CREATE TABLE "remindersListAssets" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "position" INTEGER NOT NULL DEFAULT 0,
+                "coverImage" BLOB NOT NULL,
                 "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
               ) STRICT
               """
           ),
           [2]: RecordType(
+            tableName: "remindersListPrivates",
+            schema: """
+              CREATE TABLE "remindersListPrivates" (
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+                "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+              ) STRICT
+              """
+          ),
+          [3]: RecordType(
             tableName: "reminders",
             schema: """
               CREATE TABLE "reminders" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "isCompleted" INTEGER NOT NULL DEFAULT 0,
-                "title" TEXT NOT NULL DEFAULT '',
+                "dueDate" TEXT,
+                "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+                "priority" INTEGER,
+                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
                 "remindersListID" TEXT NOT NULL, 
                 
                 FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
               ) STRICT
               """
           ),
-          [3]: RecordType(
+          [4]: RecordType(
             tableName: "tags",
             schema: """
               CREATE TABLE "tags" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "title" TEXT NOT NULL DEFAULT ''
+                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
               ) STRICT
               """
           ),
-          [4]: RecordType(
+          [5]: RecordType(
             tableName: "reminderTags",
             schema: """
               CREATE TABLE "reminderTags" (
@@ -69,7 +83,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [5]: RecordType(
+          [6]: RecordType(
             tableName: "parents",
             schema: """
               CREATE TABLE "parents"(
@@ -77,7 +91,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [6]: RecordType(
+          [7]: RecordType(
             tableName: "childWithOnDeleteRestricts",
             schema: """
               CREATE TABLE "childWithOnDeleteRestricts"(
@@ -86,7 +100,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [7]: RecordType(
+          [8]: RecordType(
             tableName: "childWithOnDeleteSetNulls",
             schema: """
               CREATE TABLE "childWithOnDeleteSetNulls"(
@@ -95,7 +109,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [8]: RecordType(
+          [9]: RecordType(
             tableName: "childWithOnDeleteSetDefaults",
             schema: """
               CREATE TABLE "childWithOnDeleteSetDefaults"(
@@ -129,8 +143,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                title: "Personal"
               )
             ]
           ),
@@ -176,8 +189,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                title: "Personal"
               )
             ]
           ),
@@ -190,9 +202,9 @@ extension BaseCloudKitTests {
       }
 
       let metadata =
-        try await userDatabase.userRead { db in
-          try SyncMetadata.find(RemindersList.recordName(for: UUID(1))).fetchOne(db)
-        }
+      try await userDatabase.userRead { db in
+        try SyncMetadata.find(RemindersList.recordName(for: UUID(1))).fetchOne(db)
+      }
       #expect(metadata != nil)
     }
 
@@ -256,8 +268,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                title: "Personal"
               )
             ]
           ),
@@ -269,11 +280,15 @@ extension BaseCloudKitTests {
         """
       }
 
-      try await userDatabase.userWrite { db in
-        try RemindersList
-          .find(UUID(1))
-          .update { $0.title = "Work" }
-          .execute(db)
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try RemindersList
+            .find(UUID(1))
+            .update { $0.title = "Work" }
+            .execute(db)
+        }
       }
       await syncEngine.processBatch()
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
@@ -288,8 +303,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Work",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                title: "Work"
               )
             ]
           ),
@@ -344,8 +358,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                title: "Personal"
               )
             ]
           ),
@@ -367,9 +380,8 @@ extension BaseCloudKitTests {
       )
 
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
-      record.encryptedValues["title"] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(60)
-      record.userModificationDate = serverModificationDate
+      record.setValue("Work", forKey: "title", at: serverModificationDate)
       _ = await syncEngine.modifyRecords(scope: .private, saving: [record])
 
       expectNoDifference(
@@ -397,8 +409,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Work",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:32:30.000Z)
+                title: "Work"
               )
             ]
           ),
@@ -431,8 +442,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                title: "Personal"
               )
             ]
           ),
@@ -456,10 +466,9 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
       record.encryptedValues["title"] = "Work"
       let serverModificationDate = userModificationDate.addingTimeInterval(-60.0)
-      record.userModificationDate = serverModificationDate
-      // NB: Manually setting '_recordChangeTag' simulates another devices saving a record.
+      // NB: Manually setting '_recordChangeTag' simulates another device saving a record.
       record._recordChangeTag = UUID().uuidString
-      _ = await syncEngine.modifyRecords(scope: .private, saving: [record])
+      await syncEngine.modifyRecords(scope: .private, saving: [record])
 
       expectNoDifference(
         try { try userDatabase.userRead { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
@@ -486,8 +495,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                title: "Personal"
               )
             ]
           ),
@@ -520,8 +528,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                title: "Personal"
               )
             ]
           ),
@@ -534,11 +541,11 @@ extension BaseCloudKitTests {
       }
 
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
-      _ = await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID])
+      await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID])
 
       #expect(
         try await userDatabase.userRead { db in try RemindersList.find(UUID(1)).fetchAll(db) }
-          == []
+        == []
       )
       let metadata = try await userDatabase.userRead { db in
         try SyncMetadata
@@ -608,8 +615,7 @@ extension BaseCloudKitTests {
                   parent: nil,
                   share: nil,
                   id: "00000000-0000-0000-0000-000000000001",
-                  title: "",
-                  sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                  title: ""
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(2:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -617,8 +623,7 @@ extension BaseCloudKitTests {
                   parent: nil,
                   share: nil,
                   id: "00000000-0000-0000-0000-000000000002",
-                  title: "",
-                  sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                  title: ""
                 )
               ]
             ),

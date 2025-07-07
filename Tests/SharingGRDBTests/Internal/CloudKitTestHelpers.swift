@@ -302,8 +302,8 @@ final class MockCloudDatabase: CloudDatabase {
                 CKError(
                   .serverRecordChanged,
                   userInfo: [
-                    CKRecordChangedErrorServerRecordKey: existingRecord as Any,
-                    CKRecordChangedErrorClientRecordKey: recordToSave,
+                    CKRecordChangedErrorServerRecordKey: existingRecord.copy() as Any,
+                    CKRecordChangedErrorClientRecordKey: recordToSave.copy(),
                   ]
                 )
               )
@@ -324,8 +324,8 @@ final class MockCloudDatabase: CloudDatabase {
               CKError(
                 .serverRejectedRequest,
                 userInfo: [
-                  CKRecordChangedErrorServerRecordKey: existingRecord as Any,
-                  CKRecordChangedErrorClientRecordKey: recordToSave,
+                  CKRecordChangedErrorServerRecordKey: existingRecord.copy() as Any,
+                  CKRecordChangedErrorClientRecordKey: recordToSave.copy(),
                 ]
               )
             )
@@ -390,11 +390,17 @@ extension MockCloudDatabase: CustomDumpReflectable {
   }
 }
 
-final class MockCloudContainer: CloudContainer {
+final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
+  let containerIdentifier: String?
   let privateCloudDatabase: MockCloudDatabase
   let sharedCloudDatabase: MockCloudDatabase
 
-  init(privateCloudDatabase: MockCloudDatabase, sharedCloudDatabase: MockCloudDatabase) {
+  init(
+    containerIdentifier: String?,
+    privateCloudDatabase: MockCloudDatabase,
+    sharedCloudDatabase: MockCloudDatabase
+  ) {
+    self.containerIdentifier = containerIdentifier
     self.privateCloudDatabase = privateCloudDatabase
     self.sharedCloudDatabase = sharedCloudDatabase
   }
@@ -417,6 +423,7 @@ final class MockCloudContainer: CloudContainer {
       let container =
         storage[containerIdentifier]
         ?? MockCloudContainer(
+          containerIdentifier: containerIdentifier,
           privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
           sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
         )
@@ -431,6 +438,16 @@ final class MockCloudContainer: CloudContainer {
 
   func hash(into hasher: inout Hasher) {
     hasher.combine(ObjectIdentifier(self))
+  }
+  var customDumpMirror: Mirror {
+    Mirror.init(
+      self,
+      children: [
+        ("privateCloudDatabase", privateCloudDatabase),
+        ("sharedCloudDatabase", sharedCloudDatabase),
+      ],
+      displayStyle: .struct
+    )
   }
 }
 
@@ -486,11 +503,27 @@ private func comparePendingDatabaseChange(
 }
 
 extension SyncEngine {
+  @_disfavoredOverload
   func modifyRecords(
     scope: CKDatabase.Scope,
     saving recordsToSave: [CKRecord] = [],
     deleting recordIDsToDelete: [CKRecord.ID] = []
   ) async {
+    await modifyRecords(scope: scope, saving: recordsToSave, deleting: recordIDsToDelete)()
+  }
+
+  struct ModifyRecordsCallback {
+    let operation: @Sendable () async -> Void
+    func callAsFunction() async {
+      await operation()
+    }
+  }
+
+  func modifyRecords(
+    scope: CKDatabase.Scope,
+    saving recordsToSave: [CKRecord] = [],
+    deleting recordIDsToDelete: [CKRecord.ID] = []
+  ) -> ModifyRecordsCallback {
     let syncEngine = syncEngine(for: scope)
     let recordsToDeleteByID = Dictionary(
       grouping: syncEngine.database.storage.withValue { storage in
@@ -498,28 +531,30 @@ extension SyncEngine {
       },
       by: \.recordID
     )
-    .compactMapValues(\.first)
+      .compactMapValues(\.first)
 
     let (saveResults, deleteResults) = syncEngine.database.modifyRecords(
       saving: recordsToSave,
       deleting: recordIDsToDelete
     )
 
-    await syncEngine.delegate.handleEvent(
-      .fetchedRecordZoneChanges(
-        modifications: saveResults.values.compactMap { try? $0.get() },
-        deletions: deleteResults.compactMap { recordID, result in
-          syncEngine.database.storage.withValue { storage in
-            (recordsToDeleteByID[recordID]?.recordType).flatMap { recordType in
-              (try? result.get()) != nil
+    return ModifyRecordsCallback {
+      await syncEngine.delegate.handleEvent(
+        .fetchedRecordZoneChanges(
+          modifications: saveResults.values.compactMap { try? $0.get() },
+          deletions: deleteResults.compactMap { recordID, result in
+            syncEngine.database.storage.withValue { storage in
+              (recordsToDeleteByID[recordID]?.recordType).flatMap { recordType in
+                (try? result.get()) != nil
                 ? (recordID, recordType)
                 : nil
+              }
             }
           }
-        }
-      ),
-      syncEngine: syncEngine
-    )
+        ),
+        syncEngine: syncEngine
+      )
+    }
   }
 
   func processBatch(
@@ -604,10 +639,6 @@ extension SyncEngine {
         ),
         syncEngine: syncEngine
       )
-
-    if !syncEngine.state.pendingRecordZoneChanges.isEmpty {
-      fatalError("Should we add the option to immediately process any enqueued changes?")
-    }
   }
 
   private func syncEngine(for scope: CKDatabase.Scope) -> MockSyncEngine {
