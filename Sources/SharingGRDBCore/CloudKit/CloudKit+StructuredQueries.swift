@@ -256,7 +256,8 @@ extension CKRecord {
         } else {
           didSet = false
         }
-        let lastKnownValue = other.encryptedValues[key]
+        // TODO: handle assets here
+        let lastKnownValue: (any CKRecordValueProtocol)? = other.encryptedValues[key]
         var localValue: (any CKRecordValueProtocol)? {
           let value = Value(queryOutput: row[keyPath: column.keyPath])
           switch value.queryBinding {
@@ -271,6 +272,9 @@ extension CKRecord {
             reportIssue(error)
             return nil
           }
+        }
+        if !_isEqual(localValue, lastKnownValue) {
+          print(localValue, lastKnownValue)
         }
         if didSet || !_isEqual(localValue, lastKnownValue) {
           columnNames.removeAll(where: { $0 == key })
@@ -319,8 +323,12 @@ extension CKRecord {
 }
 #endif
 
-
+// TODO: test
 private func _isEqual(_ lhs: Any?, _ rhs: Any?) -> Bool {
+  guard let lhs, let rhs
+  else {
+    return lhs == nil && rhs == nil
+  }
   guard let lhs = lhs as? any Equatable
   else { return false }
 
