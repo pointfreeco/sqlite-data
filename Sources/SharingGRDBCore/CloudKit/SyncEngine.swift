@@ -1346,16 +1346,6 @@
     }
   }
 
-  // TODO: Remove when available on 'main'
-  extension QueryFragment.StringInterpolation {
-    public mutating func appendInterpolation<QueryValue: QueryBindable>(
-      _ queryOutput: QueryValue.QueryOutput,
-      as representableType: QueryValue.Type
-    ) {
-      appendInterpolation(QueryValue(queryOutput: queryOutput))
-    }
-  }
-
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension Updates<SyncMetadata> {
   mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
