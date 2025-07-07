@@ -127,6 +127,15 @@ extension CKRecordKeyValueSetting {
 }
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+extension CKAsset {
+  convenience init(data: some DataProtocol) {
+    @Dependency(\.dataManager) var dataManager
+    let hash = SHA256.hash(data: data).compactMap { String(format: "%02hhx", $0) }.joined()
+    self.init(fileURL: dataManager.temporaryDirectory.appendingPathComponent(hash))
+  }
+}
+
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 extension CKRecord {
   @discardableResult
   package func setValue(
@@ -152,13 +161,11 @@ extension CKRecord {
     @Dependency(\.dataManager) var dataManager
 
     guard encryptedValues[at: key] < userModificationDate else { return false }
-    let hash = SHA256.hash(data: newValue).compactMap { String(format: "%02hhx", $0) }.joined()
-    let blobURL = dataManager.temporaryDirectory.appendingPathComponent(hash)
-    let asset = CKAsset(fileURL: blobURL)
-    guard (self[key] as? CKAsset)?.fileURL != blobURL
+    let asset = CKAsset(data: newValue)
+    guard let fileURL = asset.fileURL, (self[key] as? CKAsset)?.fileURL != fileURL
     else { return false }
     withErrorReporting {
-      try dataManager.save(Data(newValue), to: blobURL)
+      try dataManager.save(Data(newValue), to: fileURL)
     }
     self[key] = asset
     encryptedValues[at: key] = userModificationDate
@@ -218,7 +225,6 @@ extension CKRecord {
         case .null:
           removeValue(forKey: column.name, at: userModificationDate)
         case .text(let value):
-          // self t=1, t=2
           setValue(value, forKey: column.name, at: userModificationDate)
         case .uuid(let value):
           setValue(
@@ -256,12 +262,11 @@ extension CKRecord {
         } else {
           didSet = false
         }
-        // TODO: handle assets here
         let lastKnownValue: (any CKRecordValueProtocol)? = other.encryptedValues[key]
         var localValue: (any CKRecordValueProtocol)? {
           let value = Value(queryOutput: row[keyPath: column.keyPath])
           switch value.queryBinding {
-          case .blob(let value): return value
+          case .blob(let value): return CKAsset(data: value)
           case .double(let value): return value
           case .date(let value): return value
           case .int(let value): return value
@@ -272,9 +277,6 @@ extension CKRecord {
             reportIssue(error)
             return nil
           }
-        }
-        if !_isEqual(localValue, lastKnownValue) {
-          print(localValue, lastKnownValue)
         }
         if didSet || !_isEqual(localValue, lastKnownValue) {
           columnNames.removeAll(where: { $0 == key })
