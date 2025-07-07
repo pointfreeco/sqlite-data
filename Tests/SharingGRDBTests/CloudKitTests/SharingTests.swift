@@ -10,6 +10,8 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class SharingTests: BaseCloudKitTests, @unchecked Sendable {
+    @Dependency(\.date.now) var now
+
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareNonRootRecord() async throws {
       let reminder = Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
@@ -68,16 +70,19 @@ extension BaseCloudKitTests {
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
       )
-      remindersListRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
-      remindersListRecord.encryptedValues["isCompleted"] = false
-      remindersListRecord.encryptedValues["title"] = "Personal"
-      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
+      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
+      remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
-      await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
+      await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
 
-      try await userDatabase.userWrite { db in
-        try db.seed {
-          Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+          }
         }
       }
 
@@ -87,18 +92,7 @@ extension BaseCloudKitTests {
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
-            storage: [
-              [0]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-                recordType: "remindersLists",
-                parent: nil,
-                share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                isCompleted: 0,
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
-              )
-            ]
+            storage: []
           ),
           sharedCloudDatabase: MockCloudDatabase(
             databaseScope: .shared,
@@ -111,8 +105,16 @@ extension BaseCloudKitTests {
                 id: "00000000-0000-0000-0000-000000000001",
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
-                title: "Get milk",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                title: "Get milk"
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                isCompleted: 0,
+                title: "Personal"
               )
             ]
           )
@@ -132,23 +134,25 @@ extension BaseCloudKitTests {
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
       )
-      remindersListRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
-      remindersListRecord.encryptedValues["title"] = "Personal"
-      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
+      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue("Personal", forKey: "title", at: now)
       let reminderRecord = CKRecord(
         recordType: Reminder.tableName,
         recordID: Reminder.recordID(for: UUID(1), zoneID: externalZoneID)
       )
-      reminderRecord.encryptedValues["id"] = UUID(1).uuidString.lowercased()
-      reminderRecord.encryptedValues["isCompleted"] = false
-      reminderRecord.encryptedValues["title"] = "Get milk"
-      reminderRecord.encryptedValues["remindersListID"] = UUID(1).uuidString.lowercased()
-      remindersListRecord.userModificationDate = Date(timeIntervalSince1970: 1_234_567_890)
+      reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      reminderRecord.setValue(false, forKey: "isCompleted", at: now)
+      reminderRecord.setValue("Get milk", forKey: "title", at: now)
+      reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "remindersListID", at: now)
 
-      await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
+      await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
 
-      try await userDatabase.userWrite { db in
-        try Reminder.find(UUID(1)).delete().execute(db)
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try Reminder.find(UUID(1)).delete().execute(db)
+        }
       }
 
       await syncEngine.processBatch()
@@ -157,6 +161,10 @@ extension BaseCloudKitTests {
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
             storage: [
               [0]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
@@ -164,14 +172,9 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 id: "00000000-0000-0000-0000-000000000001",
-                title: "Personal",
-                sqlitedata_icloud_userModificationDate: Date(2009-02-13T23:31:30.000Z)
+                title: "Personal"
               )
             ]
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
           )
         )
         """

@@ -11,7 +11,7 @@ extension BaseCloudKitTests {
   final class RecordTypeTests: BaseCloudKitTests, @unchecked Sendable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func setUp() async throws {
-      let recordTypes = try await userDatabase.userWrite { db in
+      let recordTypes = try await userDatabase.userRead { db in
         try RecordType.all.fetchAll(db)
       }
       assertInlineSnapshot(of: recordTypes, as: .customDump) {
@@ -22,43 +22,55 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "remindersLists" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "title" TEXT NOT NULL DEFAULT ''
+                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
               ) STRICT
               """
           ),
           [1]: RecordType(
-            tableName: "remindersListPrivates",
+            tableName: "remindersListAssets",
             schema: """
-              CREATE TABLE "remindersListPrivates" (
+              CREATE TABLE "remindersListAssets" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "position" INTEGER NOT NULL DEFAULT 0,
+                "coverImage" BLOB NOT NULL,
                 "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
               ) STRICT
               """
           ),
           [2]: RecordType(
+            tableName: "remindersListPrivates",
+            schema: """
+              CREATE TABLE "remindersListPrivates" (
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+                "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+              ) STRICT
+              """
+          ),
+          [3]: RecordType(
             tableName: "reminders",
             schema: """
               CREATE TABLE "reminders" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "isCompleted" INTEGER NOT NULL DEFAULT 0,
-                "title" TEXT NOT NULL DEFAULT '',
+                "dueDate" TEXT,
+                "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+                "priority" INTEGER,
+                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
                 "remindersListID" TEXT NOT NULL, 
                 
                 FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
               ) STRICT
               """
           ),
-          [3]: RecordType(
+          [4]: RecordType(
             tableName: "tags",
             schema: """
               CREATE TABLE "tags" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-                "title" TEXT NOT NULL DEFAULT ''
+                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
               ) STRICT
               """
           ),
-          [4]: RecordType(
+          [5]: RecordType(
             tableName: "reminderTags",
             schema: """
               CREATE TABLE "reminderTags" (
@@ -68,7 +80,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [5]: RecordType(
+          [6]: RecordType(
             tableName: "parents",
             schema: """
               CREATE TABLE "parents"(
@@ -76,7 +88,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [6]: RecordType(
+          [7]: RecordType(
             tableName: "childWithOnDeleteRestricts",
             schema: """
               CREATE TABLE "childWithOnDeleteRestricts"(
@@ -85,7 +97,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [7]: RecordType(
+          [8]: RecordType(
             tableName: "childWithOnDeleteSetNulls",
             schema: """
               CREATE TABLE "childWithOnDeleteSetNulls"(
@@ -94,7 +106,7 @@ extension BaseCloudKitTests {
               ) STRICT
               """
           ),
-          [8]: RecordType(
+          [9]: RecordType(
             tableName: "childWithOnDeleteSetDefaults",
             schema: """
               CREATE TABLE "childWithOnDeleteSetDefaults"(
@@ -110,25 +122,25 @@ extension BaseCloudKitTests {
 
     @Test func tearDown() async throws {
       try await syncEngine.tearDownSyncEngine()
-      try await userDatabase.userWrite { db in
+      try await userDatabase.userRead { db in
         try #expect(RecordType.all.fetchAll(db) == [])
       }
     }
 
     @Test func resetUp() async throws {
-      let recordTypes = try await userDatabase.userWrite { db in
+      let recordTypes = try await userDatabase.userRead { db in
         try RecordType.all.fetchAll(db)
       }
       try await syncEngine.tearDownSyncEngine()
       try await syncEngine.setUpSyncEngine()
-      let recordTypesAfterReSetup = try await userDatabase.userWrite { db in
+      let recordTypesAfterReSetup = try await userDatabase.userRead { db in
         try RecordType.all.fetchAll(db)
       }
       expectNoDifference(recordTypes, recordTypesAfterReSetup)
     }
 
     @Test func migration() async throws {
-      let recordTypes = try await userDatabase.userWrite { db in
+      let recordTypes = try await userDatabase.userRead { db in
         try RecordType.order(by: \.tableName).fetchAll(db)
       }
       try await syncEngine.tearDownSyncEngine()
@@ -142,7 +154,7 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.setUpSyncEngine()
 
-      let recordTypesAfterMigration = try await userDatabase.userWrite { db in
+      let recordTypesAfterMigration = try await userDatabase.userRead { db in
         try RecordType.order(by: \.tableName).fetchAll(db)
       }
       let remindersTableIndex = try #require(
@@ -158,8 +170,10 @@ extension BaseCloudKitTests {
           schema: """
             CREATE TABLE "reminders" (
               "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-              "isCompleted" INTEGER NOT NULL DEFAULT 0,
-              "title" TEXT NOT NULL DEFAULT '',
+              "dueDate" TEXT,
+              "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+              "priority" INTEGER,
+              "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
               "remindersListID" TEXT NOT NULL, "newFeature" INTEGER NOT NULL, 
               
               FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE

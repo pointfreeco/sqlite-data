@@ -13,7 +13,9 @@ struct RemindersApp: App {
       try! prepareDependencies {
         $0.defaultDatabase = try Reminders.appDatabase()
         $0.defaultSyncEngine = try SyncEngine(
-          container: CKContainer(identifier: "iCloud.co.pointfree.SQLiteData.demos.Reminders"),
+          container: CKContainer(
+            identifier: "iCloud.co.pointfree.SQLiteData.demos.field-timestamps-2.Reminders"
+          ),
           database: $0.defaultDatabase,
           tables: [
             RemindersList.self,

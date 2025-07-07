@@ -7,8 +7,11 @@ import SnapshotTesting
 import Testing
 
 @Suite(
-  .snapshots(record: .failed),
-  .dependency(\.date.now, Date(timeIntervalSince1970: 1234567890))
+  .snapshots(record: .missing),
+  .dependencies {
+    $0.date.now = Date(timeIntervalSince1970: 0)
+    $0.dataManager = InMemoryDataManager()
+  }
 )
 class BaseCloudKitTests: @unchecked Sendable {
   let userDatabase: UserDatabase
@@ -35,6 +38,7 @@ class BaseCloudKitTests: @unchecked Sendable {
     let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
     _syncEngine = try await SyncEngine(
       container: MockCloudContainer(
+        containerIdentifier: testContainerIdentifier,
         privateCloudDatabase: privateDatabase,
         sharedCloudDatabase: sharedDatabase
       ),
@@ -43,6 +47,7 @@ class BaseCloudKitTests: @unchecked Sendable {
       tables: [
         Reminder.self,
         RemindersList.self,
+        RemindersListAsset.self,
         Tag.self,
         ReminderTag.self,
         Parent.self,

@@ -103,12 +103,20 @@
         .map(\.type)
       self.tables = tables
       self.privateTables = privateTables
+
+      let allTables = try userDatabase.read { db in
+        try SQLQueryExpression("""
+          SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
+          """, as: String.self)
+        .fetchAll(db)
+      }
+
       self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
       self.foreignKeysByTableName = Dictionary(
         uniqueKeysWithValues: try userDatabase.read { db in
-          try tables.map { table -> (String, [ForeignKey]) in
+          try allTables.map { table -> (String, [ForeignKey]) in
             (
-              table.tableName,
+              table,
               try ForeignKey.all(table).fetchAll(db)
             )
           }
@@ -166,6 +174,11 @@
             db: db
           )
         }
+        for (childTableName, foreignKeys) in foreignKeysByTableName {
+          for foreignKey in foreignKeys {
+            try foreignKey.createTriggers(childTableName, belongsTo: foreignKey.table, db: db)
+          }
+        }
       }
 
       let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
@@ -204,49 +217,97 @@
       guard !recordTypesToFetch.isEmpty
       else { return nil }
 
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.write { db in
-          try Self.$_isUpdatingRecord.withValue(false) {
-            for (recordType, isNewTable) in recordTypesToFetch {
-              try RecordType
-                .upsert { RecordType.Draft(recordType) }
-                .execute(db)
-              if isNewTable, let table = tablesByName[recordType.tableName] {
-                func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
-                  try T
-                    .update { $0.primaryKey = $0.primaryKey }
-                    .execute(db)
-                }
-                try open(table)
-              }
-            }
-          }
+      try cacheUserTables(recordTypes: recordTypesToFetch.map(\.0))
+      try uploadRecordsToCloudKit(
+        recordTypes: recordTypesToFetch.compactMap { recordType, isNewTable in
+          isNewTable ? recordType : nil
         }
-      }
-
+      )
       return Task {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await fetchChangesFromSchemaChange(
-            recordTypesChanged: recordTypesToFetch.filter { !$0.isNewTable }.map(\.0)
+            recordTypes: recordTypesToFetch.compactMap { recordType, isNewTable in
+              !isNewTable ? recordType : nil
+            }
           )
         }
       }
     }
 
-    private func fetchChangesFromSchemaChange(recordTypesChanged: [RecordType]) async throws {
-      // TODO: do batches for sake of CKDatabase
-      //       only docs we found was about modifies: https://developer.apple.com/documentation/cloudkit/ckmodifyrecordsoperation
-      //       recommends limiting to <400 records and <2mb data posted
+    private func cacheUserTables(recordTypes: [RecordType]) throws {
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        try userDatabase.write { db in
+          try RecordType
+            .upsert { recordTypes.map { RecordType.Draft($0) } }
+            .execute(db)
+        }
+      }
+    }
+
+    private func uploadRecordsToCloudKit(recordTypes: [RecordType]) throws {
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        try userDatabase.write { db in
+          try Self.$_isUpdatingRecord.withValue(false) {
+            for recordType in recordTypes {
+              guard let table = tablesByName[recordType.tableName]
+              else { continue }
+
+              let parentForeignKey =
+                foreignKeysByTableName[recordType.tableName]?.count == 1
+                ? foreignKeysByTableName[recordType.tableName]?.first
+                : nil
+
+              func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+                try SyncMetadata.insert { columns in
+                  (
+                    columns.recordType,
+                    columns.recordName,
+                    columns.parentRecordName
+                  )
+                } select: {
+                  T.select { columns in
+                    (
+                      SQLQueryExpression("\(quote: T.tableName, delimiter: .text)"),
+                      SQLQueryExpression(
+                        """
+                        \(columns.primaryKey) || ':' || \(quote: T.tableName, delimiter: .text)
+                        """,
+                        as: SyncMetadata.RecordName.self
+                      ),
+                      parentForeignKey.map { parentForeignKey in
+                        SQLQueryExpression(
+                          """
+                          \(T.self).\(quote: parentForeignKey.from, delimiter: .identifier) \
+                          || ':' || \(quote: parentForeignKey.table, delimiter: .text) 
+                          """,
+                          as: SyncMetadata.RecordName?.self
+                        )
+                      }
+                        ?? SQLQueryExpression("NULL")
+                    )
+                  }
+                }
+                .execute(db)
+              }
+              try open(table)
+            }
+          }
+        }
+      }
+    }
+
+    private func fetchChangesFromSchemaChange(recordTypes: [RecordType]) async throws {
+      // TODO: update data from local server records, do not fetch from CloudKit
       let lastKnownServerRecords = try await metadatabase.read { db in
         try SyncMetadata
           .where {
-            $0.recordType.in(recordTypesChanged.map(\.tableName))
+            $0.recordType.in(recordTypes.map(\.tableName))
               && $0.lastKnownServerRecord.isNot(nil)
           }
           .select {
             SQLQueryExpression(
               "\($0.lastKnownServerRecord)",
-              as: CKRecord.DataRepresentation.self
+              as: CKRecord.SystemFieldsRepresentation.self
             )
           }
           .fetchAll(db)
@@ -276,8 +337,13 @@
       async let sharedCancellation: Void? = syncEngines.shared?.cancelOperations()
 
       try await userDatabase.write { db in
+        for (childTableName, foreignKeys) in self.foreignKeysByTableName {
+          for foreignKey in foreignKeys {
+            try foreignKey.dropTriggers(for: childTableName, db: db)
+          }
+        }
         for table in self.tables {
-          try table.dropTriggers(foreignKeysByTableName: self.foreignKeysByTableName, db: db)
+          try table.dropTriggers(db: db)
         }
         for trigger in SyncMetadata.callbackTriggers.reversed() {
           try trigger.drop().execute(db)
@@ -362,7 +428,7 @@
         return
       }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
-      // TODO: do something with the CKShare returned?
+      // TODO: do something with the CKShare returned? save it in SyncMetadata?
       _ = try await container.accept(metadata)
       try await syncEngines.shared?.fetchChanges(
         .init(
@@ -392,27 +458,10 @@
       for trigger in metadataTriggers(parentForeignKey: parentForeignKey) {
         try trigger.execute(db)
       }
-
-      let foreignKeys = foreignKeysByTableName[tableName] ?? []
-      for foreignKey in foreignKeys {
-        guard let parent = tablesByName[foreignKey.table] else {
-          reportIssue("TODO")
-          continue
-        }
-        try foreignKey.createTriggers(Self.self, belongsTo: parent, db: db)
-      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    fileprivate static func dropTriggers(
-      foreignKeysByTableName: [String: [ForeignKey]],
-      db: Database
-    ) throws {
-      let foreignKeys = foreignKeysByTableName[tableName] ?? []
-      for foreignKey in foreignKeys.reversed() {
-        try foreignKey.dropTriggers(for: Self.self, db: db)
-      }
-
+    fileprivate static func dropTriggers(db: Database) throws {
       for trigger in metadataTriggers(parentForeignKey: nil).reversed() {
         try trigger.drop().execute(db)
       }
@@ -568,7 +617,18 @@
 
         guard
           let recordName = SyncMetadata.RecordName(recordID: recordID),
-          let metadata = await metadataFor(recordName: recordName)
+          let (metadata, allFields) = await withErrorReporting(
+            .sqliteDataCloudKitFailure,
+            catching: {
+              try await metadatabase.read { db in
+                try SyncMetadata
+                  .find(recordName)
+                  .select { ($0, $0._lastKnownServerRecordAllFields) }
+                  .fetchOne(db)
+              }
+            }
+          )
+            ?? nil
         else {
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           return nil
@@ -595,7 +655,7 @@
           }
 
           let record =
-            metadata.lastKnownServerRecord
+            allFields
             ?? CKRecord(
               recordType: metadata.recordType,
               recordID: recordID
@@ -611,6 +671,7 @@
               action: .none
             )
           }
+
           record.update(
             with: T(queryOutput: row),
             userModificationDate: metadata.userModificationDate
@@ -711,6 +772,7 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
+      let shares: [CKShare] = []
       for record in modifications {
         if let share = record as? CKShare {
           await withErrorReporting {
@@ -718,12 +780,11 @@
           }
         } else {
           upsertFromServerRecord(record)
-          await refreshLastKnownServerRecord(record)
         }
         if let shareReference = record.share,
-           // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
-           let shareRecord = try? await syncEngine.database.record(for: shareReference.recordID),
-           let share = shareRecord as? CKShare
+          // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
+          let shareRecord = try? await syncEngine.database.record(for: shareReference.recordID),
+          let share = shareRecord as? CKShare
         {
           await withErrorReporting {
             try await cacheShare(share)
@@ -731,6 +792,7 @@
         }
       }
 
+      // TODO: Group by recordType and delete in batches
       for (recordID, recordType) in deletions {
         if let table = tablesByName[recordType] {
           guard let recordName = SyncMetadata.RecordName(recordID: recordID)
@@ -755,9 +817,9 @@
           // TODO: Should we be reporting this? What if another device deletes from a table this device doesn't know about?
           reportIssue(
             .sqliteDataCloudKitFailure.appending(
-                """
-                : No table to delete from: "\(recordType)"
-                """
+              """
+              : No table to delete from: "\(recordType)"
+              """
             )
           )
         }
@@ -793,7 +855,7 @@
             try userDatabase.write { db in
               try SyncMetadata
                 .find(recordName)
-                .update { $0.lastKnownServerRecord = nil }
+                .update { $0.setLastKnownServerRecord(nil) }
                 .execute(db)
             }
           }
@@ -802,9 +864,7 @@
         switch failedRecordSave.error.code {
         case .serverRecordChanged:
           guard let serverRecord = failedRecordSave.error.serverRecord else { continue }
-          // TODO: do per-field merging here
           upsertFromServerRecord(serverRecord)
-          await refreshLastKnownServerRecord(serverRecord)
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
 
         case .zoneNotFound:
@@ -885,43 +945,49 @@
       withErrorReporting(.sqliteDataCloudKitFailure) {
         guard let table = tablesByName[serverRecord.recordType]
         else {
-          // TODO: Should we be reporting this? What if another device makes changes to a table this device doesn't know about?
+          // TODO: Should we be reporting this?
+          // What if another device makes changes to a table this device doesn't know about?
           reportIssue(
             .sqliteDataCloudKitFailure.appending(
-                """
-                : No table to merge from: "\(serverRecord.recordType)"
-                """
+              """
+              : No table to merge from: "\(serverRecord.recordType)"
+              """
             )
           )
           return
         }
         guard let recordName = SyncMetadata.RecordName(recordID: serverRecord.recordID)
-        else {
-          return
+        else { return }
+
+        let result = try metadatabase.read { db in
+          try SyncMetadata
+            .find(recordName)
+            .select { ($0, $0._lastKnownServerRecordAllFields) }
+            .fetchOne(db)
         }
-        let userModificationDate =
-        try metadatabase.read { db in
-          try SyncMetadata.find(recordName).select(\.userModificationDate).fetchOne(
-            db
-          )
-        }
-        ?? nil
-        guard
-          let userModificationDate,
-          userModificationDate > serverRecord.userModificationDate ?? .distantPast
-        else {
-          // TODO: This should be fetched early and held onto (like 'ForeignKey')
-          let columnNames = try userDatabase.read { db in
-            try SQLQueryExpression(
-                """
-                SELECT "name" 
-                FROM pragma_table_info(\(bind: table.tableName))    
-                """,
-                as: String.self
+        let metadata = result?.0
+        let allFields = result?.1
+        serverRecord.userModificationDate = metadata?.userModificationDate ?? serverRecord.userModificationDate
+
+        func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+          var columnNames = T.TableColumns.allColumns.map(\.name)
+          if let allFields {
+            let row = try userDatabase.read { db in
+              try T.find(recordName.id).fetchOne(db)
+            }
+            guard let row
+            else {
+              reportIssue("Local database record could not be found for '\(recordName.rawValue)'.")
+              return
+            }
+            serverRecord.update(
+              with: allFields,
+              row: T(queryOutput: row),
+              columnNames: &columnNames
             )
-            .fetchAll(db)
           }
-          var query: QueryFragment = "INSERT INTO \(table) ("
+
+          var query: QueryFragment = "INSERT INTO \(T.self) ("
           query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
           query.append(") VALUES (")
           let encryptedValues = serverRecord.encryptedValues
@@ -929,7 +995,8 @@
             columnNames
               .map { columnName in
                 if let asset = serverRecord[columnName] as? CKAsset {
-                  return (try? asset.fileURL.map { try Data(contentsOf: $0) })?
+                  @Dependency(\.dataManager) var dataManager
+                  return (try? asset.fileURL.map { try dataManager.load($0) })?
                     .queryFragment ?? "NULL"
                 } else {
                   return encryptedValues[columnName]?.queryFragment ?? "NULL"
@@ -937,42 +1004,29 @@
               }
               .joined(separator: ", ")
           )
-          func open<T: PrimaryKeyedTable>(_: T.Type) -> String {
-            T.columns.primaryKey.name
-          }
-          let primaryKeyName = open(table)
-          query.append(") ON CONFLICT(\(quote: primaryKeyName)) DO UPDATE SET ")
+          query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
 
           query.append(
             columnNames
-              .filter { columnName in columnName != primaryKeyName }
+              .filter { columnName in columnName != T.columns.primaryKey.name }
               .map {
-                  """
-                  \(quote: $0) = "excluded".\(quote: $0)
-                  """
+                """
+                \(quote: $0) = "excluded".\(quote: $0)
+                """
               }
               .joined(separator: ",")
           )
           // TODO: Append more ON CONFLICT clauses for each unique constraint?
           // TODO: Use WHERE to scope the update?
-          guard let metadata = SyncMetadata(record: serverRecord)
-          else {
-            reportIssue("???")
-            return
-          }
           try userDatabase.write { db in
             try SQLQueryExpression(query).execute(db)
             try SyncMetadata
-              .insert {
-                metadata
-              } onConflictDoUpdate: {
-                $0.lastKnownServerRecord = serverRecord
-                $0.userModificationDate = serverRecord.userModificationDate
-              }
+              .find(recordName)
+              .update { $0.setLastKnownServerRecord(serverRecord) }
               .execute(db)
           }
-          return
         }
+        try open(table)
       }
     }
 
@@ -988,7 +1042,7 @@
           try userDatabase.write { db in
             try SyncMetadata
               .find(recordName)
-              .update { $0.lastKnownServerRecord = record }
+              .update { $0.setLastKnownServerRecord(record) }
               .execute(db)
           }
         }
@@ -1330,4 +1384,14 @@
     }
   }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension Updates<SyncMetadata> {
+  mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
+    self.lastKnownServerRecord = lastKnownServerRecord
+    self._lastKnownServerRecordAllFields = lastKnownServerRecord
+    if let lastKnownServerRecord {
+      self.userModificationDate = lastKnownServerRecord.userModificationDate
+    }
+  }
+}
 #endif

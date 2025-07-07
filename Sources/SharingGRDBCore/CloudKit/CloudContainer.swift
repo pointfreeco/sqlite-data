@@ -4,6 +4,7 @@ import CloudKit
 package protocol CloudContainer<Database>: AnyObject, Equatable, Hashable, Sendable {
   associatedtype Database: CloudDatabase
 
+  var containerIdentifier: String? { get }
   var rawValue: CKContainer { get }
   var privateCloudDatabase: Database { get }
   func accept(_ metadata: CKShare.Metadata) async throws -> CKShare

@@ -21,7 +21,7 @@ public struct SyncMetadata: Hashable, Sendable {
   /// the format "tableName:primaryKey", for example:
   ///
   /// ```swift
-  /// "reminders:8c4d1e4e-49b2-4f60-b6df-3c23881b87c6"
+  /// "8c4d1e4e-49b2-4f60-b6df-3c23881b87c6:reminders"
   /// ```
   // @Column(primaryKey: true)
   public var recordName: RecordName
@@ -32,7 +32,7 @@ public struct SyncMetadata: Hashable, Sendable {
   /// "tableName:primaryKey", for example:
   ///
   /// ```swift
-  /// "remindersLists:d35e1f81-46e4-45d1-904b-2b7df1661e3e"
+  /// "d35e1f81-46e4-45d1-904b-2b7df1661e3e:remindersLists"
   /// ```
   public var parentRecordName: RecordName?
 
@@ -41,11 +41,11 @@ public struct SyncMetadata: Hashable, Sendable {
   public var lastKnownServerRecord: CKRecord?
 
   /// The `CKShare` associated with this record, if it is shared.
-  // @Column(as: CKShare?.ShareDataRepresentation.self)
+  // @Column(as: CKShare?.SystemFieldsRepresentation.self)
   public var share: CKShare?
 
   /// The date the user last modified the record.
-  public var userModificationDate: Date?
+  public var userModificationDate: Date
 
   package init(
     recordType: String,
@@ -53,7 +53,7 @@ public struct SyncMetadata: Hashable, Sendable {
     parentRecordName: RecordName? = nil,
     lastKnownServerRecord: CKRecord? = nil,
     share: CKShare? = nil,
-    userModificationDate: Date? = nil
+    userModificationDate: Date
   ) {
     self.recordType = recordType
     self.recordName = recordName
@@ -120,6 +120,26 @@ extension SyncMetadata.TableColumns {
 
   public var parentRecordType: some QueryExpression<String?> {
     SQLQueryExpression("substr(\(parentRecordName), 38)")
+  }
+
+  package var _lastKnownServerRecordAllFields: StructuredQueriesCore.TableColumn<
+    SyncMetadata,
+    CKRecord?.AllFieldsRepresentation
+  > {
+    StructuredQueriesCore.TableColumn(
+      "_lastKnownServerRecordAllFields",
+      keyPath: \._lastKnownServerRecordAllFields
+    )
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncMetadata {
+  fileprivate var _lastKnownServerRecordAllFields: CKRecord? {
+    fatalError("""
+      Never invoke this directly. Use 'SyncMetadata.TableColumns._lastKnownServerRecordAllFields' \
+      instead.
+      """)
   }
 }
 
