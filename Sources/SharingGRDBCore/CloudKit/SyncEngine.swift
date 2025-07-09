@@ -105,9 +105,12 @@
       self.privateTables = privateTables
 
       let allTables = try userDatabase.read { db in
-        try SQLQueryExpression("""
+        try SQLQueryExpression(
+          """
           SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
-          """, as: String.self)
+          """,
+          as: String.self
+        )
         .fetchAll(db)
       }
 
@@ -181,6 +184,10 @@
         }
       }
 
+      /*
+      
+       */
+
       let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
       syncEngines.withValue {
         $0 = SyncEngines(
@@ -192,16 +199,18 @@
         try RecordType.all.fetchAll(db)
       }
       let currentRecordTypes = try userDatabase.read { db in
-        try SQLQueryExpression(
-          """
-          SELECT "name", "sql"
-          FROM "sqlite_master"
-          WHERE "type" = 'table'
-          AND "name" IN (\(tablesByName.keys.map(\.queryFragment).joined(separator: ", ")))
-          """,
-          as: RecordType.self
-        )
-        .fetchAll(db)
+        let namesAndSchemas = try SQLiteSchema.all
+          .fetchAll(db)
+          .filter { $0.type == "table" }
+        return try namesAndSchemas.compactMap { schema -> RecordType? in
+          guard let sql = schema.sql
+          else { return nil }
+          return RecordType(
+            tableName: schema.name,
+            schema: sql,
+            tableInfo: try TableInfo.all(schema.name).fetchAll(db)
+          )
+        }
       }
       let recordTypesToFetch = currentRecordTypes.compactMap { currentRecordType in
         guard
@@ -217,7 +226,6 @@
       guard !recordTypesToFetch.isEmpty
       else { return nil }
 
-      try cacheUserTables(recordTypes: recordTypesToFetch.map(\.0))
       try uploadRecordsToCloudKit(
         recordTypes: recordTypesToFetch.compactMap { recordType, isNewTable in
           isNewTable ? recordType : nil
@@ -226,15 +234,14 @@
       return Task {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await fetchChangesFromSchemaChange(
-            recordTypes: recordTypesToFetch.compactMap { recordType, isNewTable in
-              !isNewTable ? recordType : nil
-            }
+            previousRecordTypes: previousRecordTypes,
+            currentRecordTypes: currentRecordTypes
           )
         }
       }
     }
 
-    private func cacheUserTables(recordTypes: [RecordType]) throws {
+    private func cacheUserTables(recordTypes: [RecordType]) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
         try userDatabase.write { db in
           try RecordType
@@ -296,39 +303,41 @@
       }
     }
 
-    private func fetchChangesFromSchemaChange(recordTypes: [RecordType]) async throws {
-      // TODO: update data from local server records, do not fetch from CloudKit
-      let lastKnownServerRecords = try await metadatabase.read { db in
-        try SyncMetadata
-          .where {
-            $0.recordType.in(recordTypes.map(\.tableName))
-              && $0.lastKnownServerRecord.isNot(nil)
-          }
-          .select {
-            SQLQueryExpression(
-              "\($0.lastKnownServerRecord)",
-              as: CKRecord.SystemFieldsRepresentation.self
-            )
-          }
-          .fetchAll(db)
-      }
-      let recordIDs = lastKnownServerRecords.map(\.recordID)
-      let recordIDsByDatabase = Dictionary(grouping: recordIDs) {
-        AnyCloudDatabase(container.database(for: $0))
-      }
-      for (database, recordIDs) in recordIDsByDatabase {
-        let results = try await database.records(for: recordIDs)
-        for (_, result) in results {
-          switch result {
-          case .success(let record):
-            upsertFromServerRecord(record)
-            break
-          case .failure(let error):
-            reportIssue(error)
-            break
-          }
+    private func fetchChangesFromSchemaChange(
+      previousRecordTypes: [RecordType],
+      currentRecordTypes: [RecordType]
+    ) async throws {
+      print("!!!")
+      for currentRecordType in currentRecordTypes {
+        guard let previousRecordType = previousRecordTypes.first(
+          where: { $0.tableName == currentRecordType.tableName }
+        ) else {
+          continue
+        }
+
+        if currentRecordType.tableInfo != previousRecordType.tableInfo {
+          print("!!!")
         }
       }
+
+//      // TODO: update data from local server records, do not fetch from CloudKit
+//      let lastKnownServerRecords = try await metadatabase.read { db in
+//        try SyncMetadata
+//          .where {
+//            $0.recordType.in(recordTypes.map(\.tableName))
+//              && $0._lastKnownServerRecordAllFields.isNot(nil)
+//          }
+//          .select {
+//            SQLQueryExpression(
+//              "\($0._lastKnownServerRecordAllFields)",
+//              as: CKRecord.AllFieldsRepresentation.self
+//            )
+//          }
+//          .fetchAll(db)
+//      }
+//      for record in lastKnownServerRecords {
+//        //upsertFromServerRecord(record)
+//      }
     }
 
     package func tearDownSyncEngine() async throws {
@@ -967,7 +976,8 @@
         }
         let metadata = result?.0
         let allFields = result?.1
-        serverRecord.userModificationDate = metadata?.userModificationDate ?? serverRecord.userModificationDate
+        serverRecord.userModificationDate =
+          metadata?.userModificationDate ?? serverRecord.userModificationDate
 
         func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
           var columnNames = T.TableColumns.allColumns.map(\.name)
@@ -1246,7 +1256,7 @@
       .filter { _, tableName, _ in tableNames.contains(tableName) }
       let invalidTriggers = triggers.compactMap { name, _, sql in
         let isValid =
-        sql
+          sql
           .lowercased()
           .contains("\(DatabaseFunction.syncEngineIsUpdatingRecord.name)()".lowercased())
         return isValid ? nil : name
@@ -1255,7 +1265,7 @@
       else {
         throw InvalidUserTriggers(triggers: invalidTriggers)
       }
-      
+
       for table in tables {
         //      // TODO: write tests for this
         //      let columnsWithUniqueConstraints =
@@ -1384,14 +1394,14 @@
     }
   }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension Updates<SyncMetadata> {
-  mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
-    self.lastKnownServerRecord = lastKnownServerRecord
-    self._lastKnownServerRecordAllFields = lastKnownServerRecord
-    if let lastKnownServerRecord {
-      self.userModificationDate = lastKnownServerRecord.userModificationDate
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension Updates<SyncMetadata> {
+    mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
+      self.lastKnownServerRecord = lastKnownServerRecord
+      self._lastKnownServerRecordAllFields = lastKnownServerRecord
+      if let lastKnownServerRecord {
+        self.userModificationDate = lastKnownServerRecord.userModificationDate
+      }
     }
   }
-}
 #endif

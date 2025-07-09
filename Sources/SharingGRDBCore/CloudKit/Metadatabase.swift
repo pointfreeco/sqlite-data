@@ -60,7 +60,8 @@ func defaultMetadatabase(
       """
       CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_recordTypes" (
         "tableName" TEXT NOT NULL PRIMARY KEY,
-        "schema" TEXT NOT NULL
+        "schema" TEXT NOT NULL,
+        "tableInfo" TEXT NOT NULL
       ) STRICT
       """
     )
