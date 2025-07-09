@@ -45,6 +45,15 @@ struct ModelAView: View {
         }
         .buttonStyle(.plain)
       }
+      .onDelete { indexSet in
+        for index in indexSet {
+          withErrorReporting {
+            try database.write { db in
+              try ModelA.find(models[index].id).delete().execute(db)
+            }
+          }
+        }
+      }
     }
     .sheet(item: $sharedRecord) { sharedRecord in
       CloudSharingView(sharedRecord: sharedRecord)

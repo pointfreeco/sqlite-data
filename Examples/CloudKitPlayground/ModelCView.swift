@@ -27,6 +27,15 @@ struct ModelCView: View {
         }
         .buttonStyle(.plain)
       }
+      .onDelete { indexSet in
+        for index in indexSet {
+          withErrorReporting {
+            try database.write { db in
+              try ModelC.find(models[index].id).delete().execute(db)
+            }
+          }
+        }
+      }
     }
     .toolbar {
       Button("Add") {

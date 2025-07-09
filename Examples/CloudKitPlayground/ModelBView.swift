@@ -32,12 +32,36 @@ struct ModelBView: View {
         }
         .buttonStyle(.plain)
       }
+      .onDelete { indexSet in
+        for index in indexSet {
+          withErrorReporting {
+            try database.write { db in
+              try ModelB.find(models[index].id).delete().execute(db)
+            }
+          }
+        }
+      }
     }
     .toolbar {
       Button("Add") {
         withErrorReporting {
           try database.write { db in
             try ModelB.insert { ModelB.Draft(modelAID: modelA.id) }.execute(db)
+          }
+        }
+      }
+      Button("Special") {
+        withErrorReporting {
+          try database.write { db in
+            let modelB = try ModelB.insert { ModelB.Draft(modelAID: modelA.id) }.returning(\.self).fetchOne(db)
+            guard let modelB
+            else { return }
+
+            for index in 1...5 {
+              try ModelC
+                .insert { ModelC.Draft.init(title: index.description, modelBID: modelB.id) }
+                .execute(db)
+            }
           }
         }
       }
