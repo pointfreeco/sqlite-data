@@ -62,10 +62,7 @@ public struct SyncMetadata: Hashable, Sendable {
     self.share = share
     self.userModificationDate = userModificationDate
   }
-}
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension SyncMetadata {
   public struct RecordName: RawRepresentable, Sendable, Hashable, QueryBindable {
     public var recordType: String
     public var id: UUID
@@ -105,6 +102,14 @@ extension SyncMetadata {
     public var rawValue: String {
       "\(id.uuidString.lowercased()):\(recordType)"
     }
+  }
+
+  // @Selection @Table
+  struct AncestorMetadata {
+    let recordName: SyncMetadata.RecordName
+    let parentRecordName: SyncMetadata.RecordName?
+    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let lastKnownServerRecord: CKRecord?
   }
 }
 

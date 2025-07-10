@@ -477,6 +477,7 @@ extension DependencyValues {
   }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 private func comparePendingRecordZoneChange(
   _ lhs: CKSyncEngine.PendingRecordZoneChange,
   _ rhs: CKSyncEngine.PendingRecordZoneChange
@@ -494,6 +495,7 @@ private func comparePendingRecordZoneChange(
   }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 private func comparePendingDatabaseChange(
   _ lhs: CKSyncEngine.PendingDatabaseChange,
   _ rhs: CKSyncEngine.PendingDatabaseChange
