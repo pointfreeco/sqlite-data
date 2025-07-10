@@ -155,7 +155,7 @@ extension BaseCloudKitTests {
 
       await syncEngine.modifyRecords(
         scope: .private,
-        saving: [remindersListRecord, remindersListAssetRecord, ]
+        saving: [remindersListRecord, remindersListAssetRecord]
       )
 
       try {
