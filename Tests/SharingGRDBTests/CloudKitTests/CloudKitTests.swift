@@ -117,6 +117,35 @@ extension BaseCloudKitTests {
                 "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
               ) STRICT
               """
+          ),
+          [10]: RecordType(
+            tableName: "modelAs",
+            schema: """
+              CREATE TABLE "modelAs" (
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "count" INTEGER NOT NULL
+              )
+              """
+          ),
+          [11]: RecordType(
+            tableName: "modelBs",
+            schema: """
+              CREATE TABLE "modelBs" (
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "isOn" INTEGER NOT NULL,
+                "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
+              )
+              """
+          ),
+          [12]: RecordType(
+            tableName: "modelCs",
+            schema: """
+              CREATE TABLE "modelCs" (
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "title" TEXT NOT NULL,
+                "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
+              )
+              """
           )
         ]
         """#
@@ -423,6 +452,51 @@ extension BaseCloudKitTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func remoteServerSendsRecordWithNoChanges() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "Personal")
+        }
+      }
+      await syncEngine.processBatch()
+
+      try await withDependencies {
+        $0.date.now.addTimeInterval(1)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try RemindersList.find(UUID(1)).update { $0.title = "My stuff" }.execute(db)
+        }
+      }
+
+      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
+      await syncEngine.modifyRecords(scope: .private, saving: [record])
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "My stuff"
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func remoteServerRecordUpdateWithOldRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -465,7 +539,6 @@ extension BaseCloudKitTests {
 
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
       record.encryptedValues["title"] = "Work"
-      let serverModificationDate = userModificationDate.addingTimeInterval(-60.0)
       // NB: Manually setting '_recordChangeTag' simulates another device saving a record.
       record._recordChangeTag = UUID().uuidString
       await syncEngine.modifyRecords(scope: .private, saving: [record])

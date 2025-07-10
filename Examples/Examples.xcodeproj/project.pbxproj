@@ -11,6 +11,10 @@
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
 		CA42392E2DF7219E000AF560 /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA42392D2DF7219E000AF560 /* SwiftUINavigation */; };
+		CA9102EB2E1F299900F85DD0 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA9102EA2E1F299900F85DD0 /* SharingGRDB */; };
+		CA9102ED2E1F29A400F85DD0 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA9102EC2E1F29A400F85DD0 /* SharingGRDB */; };
+		CA9102EF2E1F29AA00F85DD0 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA9102EE2E1F29AA00F85DD0 /* SharingGRDB */; };
+		CA9102F12E1F29E300F85DD0 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA9102F02E1F29E300F85DD0 /* SharingGRDB */; };
 		CA9F99D82DF915D300934431 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CA9F99D72DF915D300934431 /* DependenciesTestSupport */; };
 		CA9F99DD2DF9185A00934431 /* SnapshotTestingCustomDump in Frameworks */ = {isa = PBXBuildFile; productRef = CA9F99DC2DF9185A00934431 /* SnapshotTestingCustomDump */; };
 		CA9F99DF2DF9190C00934431 /* InlineSnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = CA9F99DE2DF9190C00934431 /* InlineSnapshotTesting */; };
@@ -19,8 +23,6 @@
 		DC7082542E035FC500A66B7D /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = DC7082532E035FC500A66B7D /* SwiftUINavigation */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
 		DCD9AC8B2E02176700FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8A2E02176700FB20F8 /* SharingGRDB */; };
-		DCD9AC8D2E02177200FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8C2E02177200FB20F8 /* SharingGRDB */; };
-		DCD9AC8F2E02177900FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8E2E02177900FB20F8 /* SharingGRDB */; };
 		DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = DCF267382D48437300B680BE /* SwiftUINavigation */; };
 /* End PBXBuildFile section */
 
@@ -59,6 +61,8 @@
 		CA11469F2DF38CFE0054BA77 /* CloudKitDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudKitDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA1146AC2DF38D000054BA77 /* CloudKitDemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CloudKitDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA5F37542D5AFBBC002E1A9E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		CA9101C82E1F270100F85DD0 /* CloudKitPlayground.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudKitPlayground.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA9102E62E1F28FE00F85DD0 /* sharing-grdb-icloud */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sharing-grdb-icloud"; path = "/Users/brandon/projects/sharing-grdb-icloud"; sourceTree = "<absolute>"; };
 		CA9F99482DF9134D00934431 /* RemindersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemindersTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAF836982D4735620047AEB5 /* CaseStudies.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CaseStudies.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -74,6 +78,13 @@
 				Info.plist,
 			);
 			target = CA11469E2DF38CFE0054BA77 /* CloudKitDemo */;
+		};
+		CA9101D52E1F272700F85DD0 /* Exceptions for "CloudKitPlayground" folder in "CloudKitPlayground" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CA9101C72E1F270100F85DD0 /* CloudKitPlayground */;
 		};
 		CAD4819A2D584B510004799A /* Exceptions for "CaseStudies" folder in "CaseStudies" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -112,6 +123,14 @@
 		CA1146AF2DF38D000054BA77 /* CloudKitDemoTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = CloudKitDemoTests;
+			sourceTree = "<group>";
+		};
+		CA9101C92E1F270100F85DD0 /* CloudKitPlayground */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CA9101D52E1F272700F85DD0 /* Exceptions for "CloudKitPlayground" folder in "CloudKitPlayground" target */,
+			);
+			path = CloudKitPlayground;
 			sourceTree = "<group>";
 		};
 		CA9F99492DF9134D00934431 /* RemindersTests */ = {
@@ -172,6 +191,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CA9101C52E1F270100F85DD0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA9102F12E1F29E300F85DD0 /* SharingGRDB in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CA9F99452DF9134D00934431 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -195,6 +222,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DCD9AC8B2E02176700FB20F8 /* SharingGRDB in Frameworks */,
+				CA9102EB2E1F299900F85DD0 /* SharingGRDB in Frameworks */,
 				CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -211,7 +239,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */,
-				DCD9AC8D2E02177200FB20F8 /* SharingGRDB in Frameworks */,
+				CA9102ED2E1F29A400F85DD0 /* SharingGRDB in Frameworks */,
 				DC7082542E035FC500A66B7D /* SwiftUINavigation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -222,7 +250,7 @@
 			files = (
 				DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */,
 				DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */,
-				DCD9AC8F2E02177900FB20F8 /* SharingGRDB in Frameworks */,
+				CA9102EF2E1F29AA00F85DD0 /* SharingGRDB in Frameworks */,
 				DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -242,6 +270,7 @@
 				CAD0017E2D874E6F00FA977A /* SyncUpTests */,
 				CA1146A02DF38CFE0054BA77 /* CloudKitDemo */,
 				CA1146AF2DF38D000054BA77 /* CloudKitDemoTests */,
+				CA9101C92E1F270100F85DD0 /* CloudKitPlayground */,
 				CAF837022D4735C00047AEB5 /* Frameworks */,
 				CAF836992D4735620047AEB5 /* Products */,
 			);
@@ -258,6 +287,7 @@
 				CA11469F2DF38CFE0054BA77 /* CloudKitDemo.app */,
 				CA1146AC2DF38D000054BA77 /* CloudKitDemoTests.xctest */,
 				CA9F99482DF9134D00934431 /* RemindersTests.xctest */,
+				CA9101C82E1F270100F85DD0 /* CloudKitPlayground.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -265,6 +295,7 @@
 		CAF837022D4735C00047AEB5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				CA9102E62E1F28FE00F85DD0 /* sharing-grdb-icloud */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -318,6 +349,29 @@
 			productName = CloudKitDemoTests;
 			productReference = CA1146AC2DF38D000054BA77 /* CloudKitDemoTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CA9101C72E1F270100F85DD0 /* CloudKitPlayground */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA9101D22E1F270200F85DD0 /* Build configuration list for PBXNativeTarget "CloudKitPlayground" */;
+			buildPhases = (
+				CA9101C42E1F270100F85DD0 /* Sources */,
+				CA9101C52E1F270100F85DD0 /* Frameworks */,
+				CA9101C62E1F270100F85DD0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CA9101C92E1F270100F85DD0 /* CloudKitPlayground */,
+			);
+			name = CloudKitPlayground;
+			packageProductDependencies = (
+				CA9102F02E1F29E300F85DD0 /* SharingGRDB */,
+			);
+			productName = CloudKitPlayground;
+			productReference = CA9101C82E1F270100F85DD0 /* CloudKitPlayground.app */;
+			productType = "com.apple.product-type.application";
 		};
 		CA9F99472DF9134D00934431 /* RemindersTests */ = {
 			isa = PBXNativeTarget;
@@ -388,6 +442,7 @@
 			packageProductDependencies = (
 				CA2908C82D4AF70E003F165F /* UIKitNavigation */,
 				DCD9AC8A2E02176700FB20F8 /* SharingGRDB */,
+				CA9102EA2E1F299900F85DD0 /* SharingGRDB */,
 			);
 			productName = Examples;
 			productReference = CAF836982D4735620047AEB5 /* CaseStudies.app */;
@@ -434,8 +489,8 @@
 			name = Reminders;
 			packageProductDependencies = (
 				CA14DBC82DA884C400E36852 /* CasePaths */,
-				DCD9AC8C2E02177200FB20F8 /* SharingGRDB */,
 				DC7082532E035FC500A66B7D /* SwiftUINavigation */,
+				CA9102EC2E1F29A400F85DD0 /* SharingGRDB */,
 			);
 			productName = Reminders;
 			productReference = CAF836D82D4735AB0047AEB5 /* Reminders.app */;
@@ -461,7 +516,7 @@
 				DCBE8A132D4842BF0071F499 /* CasePaths */,
 				DCF267382D48437300B680BE /* SwiftUINavigation */,
 				DC5FA7472D4C63D60082743E /* DependenciesMacros */,
-				DCD9AC8E2E02177900FB20F8 /* SharingGRDB */,
+				CA9102EE2E1F29AA00F85DD0 /* SharingGRDB */,
 			);
 			productName = SyncUps;
 			productReference = DCBE89CC2D483FB90071F499 /* SyncUps.app */;
@@ -483,6 +538,9 @@
 					CA1146AB2DF38D000054BA77 = {
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = CA11469E2DF38CFE0054BA77;
+					};
+					CA9101C72E1F270100F85DD0 = {
+						CreatedOnToolsVersion = 16.4;
 					};
 					CA9F99472DF9134D00934431 = {
 						CreatedOnToolsVersion = 16.4;
@@ -520,7 +578,7 @@
 				DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */,
 				DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */,
 				DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */,
-				DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */,
+				CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference "../../sharing-grdb-icloud" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CAF836992D4735620047AEB5 /* Products */;
@@ -535,6 +593,7 @@
 				CAD0017C2D874E6F00FA977A /* SyncUpTests */,
 				CA11469E2DF38CFE0054BA77 /* CloudKitDemo */,
 				CA1146AB2DF38D000054BA77 /* CloudKitDemoTests */,
+				CA9101C72E1F270100F85DD0 /* CloudKitPlayground */,
 			);
 		};
 /* End PBXProject section */
@@ -548,6 +607,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		CA1146AA2DF38D000054BA77 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA9101C62E1F270100F85DD0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -607,6 +673,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		CA1146A82DF38D000054BA77 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA9101C42E1F270100F85DD0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -804,6 +877,68 @@
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CloudKitDemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CloudKitDemo";
 				XROS_DEPLOYMENT_TARGET = 2.5;
+			};
+			name = Release;
+		};
+		CA9101D02E1F270200F85DD0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CloudKitPlayground/CloudKitPlayground.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CloudKitPlayground/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitPlayground;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CA9101D12E1F270200F85DD0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CloudKitPlayground/CloudKitPlayground.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CloudKitPlayground/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitPlayground;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -1223,6 +1358,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		CA9101D22E1F270200F85DD0 /* Build configuration list for PBXNativeTarget "CloudKitPlayground" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA9101D02E1F270200F85DD0 /* Debug */,
+				CA9101D12E1F270200F85DD0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CA9F99502DF9134D00934431 /* Build configuration list for PBXNativeTarget "RemindersTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -1289,9 +1433,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */ = {
+		CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference "../../sharing-grdb-icloud" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ..;
+			relativePath = "../../sharing-grdb-icloud";
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -1350,6 +1494,25 @@
 			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
 			productName = SwiftUINavigation;
 		};
+		CA9102EA2E1F299900F85DD0 /* SharingGRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SharingGRDB;
+		};
+		CA9102EC2E1F29A400F85DD0 /* SharingGRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference "../../sharing-grdb-icloud" */;
+			productName = SharingGRDB;
+		};
+		CA9102EE2E1F29AA00F85DD0 /* SharingGRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference "../../sharing-grdb-icloud" */;
+			productName = SharingGRDB;
+		};
+		CA9102F02E1F29E300F85DD0 /* SharingGRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference "../../sharing-grdb-icloud" */;
+			productName = SharingGRDB;
+		};
 		CA9F99D72DF915D300934431 /* DependenciesTestSupport */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */;
@@ -1387,16 +1550,6 @@
 		};
 		DCD9AC8A2E02176700FB20F8 /* SharingGRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = SharingGRDB;
-		};
-		DCD9AC8C2E02177200FB20F8 /* SharingGRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */;
-			productName = SharingGRDB;
-		};
-		DCD9AC8E2E02177900FB20F8 /* SharingGRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */;
 			productName = SharingGRDB;
 		};
 		DCF267382D48437300B680BE /* SwiftUINavigation */ = {

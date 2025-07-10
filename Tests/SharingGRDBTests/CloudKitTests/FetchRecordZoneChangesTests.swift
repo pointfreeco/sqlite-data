@@ -291,6 +291,13 @@ extension BaseCloudKitTests {
     }
 
     @Test func receiveNewRecordFromCloudKit_ChildBeforeParent() async throws {
+      let remindersListRecord = CKRecord(
+        recordType: RemindersList.tableName,
+        recordID: RemindersList.recordID(for: UUID(1))
+      )
+      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
       let reminderRecord = CKRecord(
         recordType: Reminder.tableName,
         recordID: Reminder.recordID(for: UUID(1))
@@ -303,6 +310,7 @@ extension BaseCloudKitTests {
         action: .none
       )
 
+      let remindersListModification = { syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]) }()
       await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
@@ -319,6 +327,14 @@ extension BaseCloudKitTests {
                 id: "00000000-0000-0000-0000-000000000001",
                 remindersListID: "00000000-0000-0000-0000-000000000001",
                 title: "Get milk"
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal"
               )
             ]
           ),
@@ -330,15 +346,27 @@ extension BaseCloudKitTests {
         """
       }
 
+      await remindersListModification()
+
       try {
         try userDatabase.read { db in
-          let metadata = try #require(
+          let reminderMetadata = try #require(
             try SyncMetadata.find(Reminder.recordName(for: UUID(1))).fetchOne(db)
           )
-          #expect(metadata.recordName == Reminder.recordName(for: UUID(1)))
-          #expect(metadata.parentRecordName == RemindersList.recordName(for: UUID(1)))
+          #expect(reminderMetadata.recordName == Reminder.recordName(for: UUID(1)))
+          #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(1)))
+
+          let remindersListMetadata = try #require(
+            try SyncMetadata.find(RemindersList.recordName(for: UUID(1))).fetchOne(db)
+          )
+          #expect(remindersListMetadata.recordName == RemindersList.recordName(for: UUID(1)))
+          #expect(remindersListMetadata.parentRecordName == nil)
+
           let reminder = try #require(try Reminder.find(UUID(1)).fetchOne(db))
           #expect(reminder == Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1)))
+
+          let remindersList = try #require(try RemindersList.find(UUID(1)).fetchOne(db))
+          #expect(remindersList == RemindersList(id: UUID(1), title: "Personal"))
         }
       }()
 
@@ -367,6 +395,14 @@ extension BaseCloudKitTests {
                 isCompleted: 0,
                 remindersListID: "00000000-0000-0000-0000-000000000001",
                 title: "Buy milk"
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "Personal"
               )
             ]
           ),

@@ -106,8 +106,8 @@ extension SyncEngine {
   }
 }
 
-#if canImport(UIKit)
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+#if canImport(UIKit) && !os(watchOS)
+  @available(iOS 17, macOS 14, tvOS 17, *)
   public struct CloudSharingView: UIViewControllerRepresentable {
     let sharedRecord: SharedRecord
     let didFinish: (Result<Void, Error>) -> Void
@@ -149,7 +149,7 @@ extension SyncEngine {
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @available(iOS 17, macOS 14, tvOS 17, *)
   public final class CloudSharingDelegate: NSObject, UICloudSharingControllerDelegate {
     let share: CKShare
     let didFinish: (Result<Void, Error>) -> Void

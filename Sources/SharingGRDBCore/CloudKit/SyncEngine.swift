@@ -553,8 +553,14 @@
 
       let changes = allChanges.sorted { lhs, rhs in
         switch (lhs, rhs) {
-        case (.saveRecord, .saveRecord):
-          return true
+        case (.saveRecord(let lhs), .saveRecord(let rhs)):
+          guard
+            let lhsRecordName = SyncMetadata.RecordName(rawValue: lhs.recordName),
+            let lhsIndex = tablesByOrder[lhsRecordName.recordType],
+            let rhsRecordName = SyncMetadata.RecordName(rawValue: rhs.recordName),
+            let rhsIndex = tablesByOrder[rhsRecordName.recordType]
+          else { return true }
+          return lhsIndex < rhsIndex
         case (.deleteRecord(let lhs), .deleteRecord(let rhs)):
           guard
             let lhsRecordName = SyncMetadata.RecordName(rawValue: lhs.recordName),
@@ -890,11 +896,15 @@
           clearServerRecord()
 
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .notAuthenticated,
-          .operationCancelled, .batchRequestFailed:
+          .notAuthenticated, .referenceViolation, .operationCancelled, .batchRequestFailed,
+          .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
+          .permissionFailure, .invalidArguments, .resultsTruncated, .assetFileNotFound,
+          .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
+          .badDatabase, .quotaExceeded, .limitExceeded, .userDeletedZone, .tooManyParticipants,
+          .alreadyShared, .managedAccountRestricted, .participantMayNeedVerification,
+          .serverResponseLost, .assetNotAvailable, .accountTemporarilyUnavailable:
           continue
-
-        default:
+        @unknown default:
           continue
         }
       }
@@ -997,39 +1007,41 @@
             )
           }
 
-          var query: QueryFragment = "INSERT INTO \(T.self) ("
-          query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
-          query.append(") VALUES (")
-          let encryptedValues = serverRecord.encryptedValues
-          query.append(
-            columnNames
-              .map { columnName in
-                if let asset = serverRecord[columnName] as? CKAsset {
-                  @Dependency(\.dataManager) var dataManager
-                  return (try? asset.fileURL.map { try dataManager.load($0) })?
-                    .queryFragment ?? "NULL"
-                } else {
-                  return encryptedValues[columnName]?.queryFragment ?? "NULL"
-                }
-              }
-              .joined(separator: ", ")
-          )
-          query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
-
-          query.append(
-            columnNames
-              .filter { columnName in columnName != T.columns.primaryKey.name }
-              .map {
-                """
-                \(quote: $0) = "excluded".\(quote: $0)
-                """
-              }
-              .joined(separator: ",")
-          )
           // TODO: Append more ON CONFLICT clauses for each unique constraint?
           // TODO: Use WHERE to scope the update?
           try userDatabase.write { db in
-            try SQLQueryExpression(query).execute(db)
+            // TODO: Write a test for this: server sends record with nothing changed
+            if columnNames.contains(where: { $0 != T.columns.primaryKey.name }) {
+              var query: QueryFragment = "INSERT INTO \(T.self) ("
+              query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+              query.append(") VALUES (")
+              let encryptedValues = serverRecord.encryptedValues
+              query.append(
+                columnNames
+                  .map { columnName in
+                    if let asset = serverRecord[columnName] as? CKAsset {
+                      @Dependency(\.dataManager) var dataManager
+                      return (try? asset.fileURL.map { try dataManager.load($0) })?
+                        .queryFragment ?? "NULL"
+                    } else {
+                      return encryptedValues[columnName]?.queryFragment ?? "NULL"
+                    }
+                  }
+                  .joined(separator: ", ")
+              )
+              query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
+              query.append(
+                columnNames
+                  .filter { columnName in columnName != T.columns.primaryKey.name }
+                  .map {
+                    """
+                    \(quote: $0) = "excluded".\(quote: $0)
+                    """
+                  }
+                  .joined(separator: ",")
+              )
+              try SQLQueryExpression(query).execute(db)
+            }
             try SyncMetadata
               .find(recordName)
               .update { $0.setLastKnownServerRecord(serverRecord) }
