@@ -111,55 +111,6 @@ extension SyncMetadata {
   )
 }
 
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-func rootServerRecord(
-  recordName: some QueryExpression<SyncMetadata.RecordName>
-) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
-  With {
-    SyncMetadata
-      .find(recordName)
-      .select {
-        SyncMetadata.AncestorMetadata.Columns(
-          recordName: $0.recordName,
-          parentRecordName: $0.parentRecordName,
-          lastKnownServerRecord: $0.lastKnownServerRecord
-        )
-      }
-      .union(
-        all: true,
-        SyncMetadata
-          .select {
-            SyncMetadata.AncestorMetadata.Columns(
-              recordName: $0.recordName,
-              parentRecordName: $0.parentRecordName,
-              lastKnownServerRecord: $0.lastKnownServerRecord
-            )
-          }
-          .join(SyncMetadata.AncestorMetadata.all) { $0.recordName.is($1.parentRecordName) }
-      )
-  } query: {
-    SyncMetadata.AncestorMetadata
-      .select(\.lastKnownServerRecord)
-      .where { $0.parentRecordName.is(nil) }
-  }
-}
-
-/*
- WITH RECURSIVE ancestry(recordName, parentRecordName) AS (
- SELECT recordName, parentRecordName FROM sqlitedata_icloud_metadata WHERE recordName = 'fadbb91c-4565-4292-aa6e-579957f82371:modelCs'
- UNION ALL
- SELECT u.recordName, u.parentRecordName FROM sqlitedata_icloud_metadata u
- JOIN ancestry a ON u.recordName = a.parentRecordName
- )
- SELECT recordName FROM ancestry
- WHERE parentRecordName IS NULL;
- */
-
-
-
-
-
 // TODO: can we remove a layer of didUpdate/didDelete?
 extension QueryExpression where Self == SQLQueryExpression<()> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -207,4 +158,37 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
 
 private func isUpdatingWithServerRecord() -> SQLQueryExpression<Bool> {
   SQLQueryExpression("\(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+private func rootServerRecord(
+  recordName: some QueryExpression<SyncMetadata.RecordName>
+) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
+  With {
+    SyncMetadata
+      .find(recordName)
+      .select {
+        SyncMetadata.AncestorMetadata.Columns(
+          recordName: $0.recordName,
+          parentRecordName: $0.parentRecordName,
+          lastKnownServerRecord: $0.lastKnownServerRecord
+        )
+      }
+      .union(
+        all: true,
+        SyncMetadata
+          .select {
+            SyncMetadata.AncestorMetadata.Columns(
+              recordName: $0.recordName,
+              parentRecordName: $0.parentRecordName,
+              lastKnownServerRecord: $0.lastKnownServerRecord
+            )
+          }
+          .join(SyncMetadata.AncestorMetadata.all) { $0.recordName.is($1.parentRecordName) }
+      )
+  } query: {
+    SyncMetadata.AncestorMetadata
+      .select(\.lastKnownServerRecord)
+      .where { $0.parentRecordName.is(nil) }
+  }
 }
