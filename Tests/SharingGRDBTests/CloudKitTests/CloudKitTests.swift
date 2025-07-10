@@ -452,6 +452,51 @@ extension BaseCloudKitTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func remoteServerSendsRecordWithNoChanges() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          RemindersList(id: UUID(1), title: "Personal")
+        }
+      }
+      await syncEngine.processBatch()
+
+      try await withDependencies {
+        $0.date.now.addTimeInterval(1)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try RemindersList.find(UUID(1)).update { $0.title = "My stuff" }.execute(db)
+        }
+      }
+
+      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
+      await syncEngine.modifyRecords(scope: .private, saving: [record])
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                title: "My stuff"
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func remoteServerRecordUpdateWithOldRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
