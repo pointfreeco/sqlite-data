@@ -36,13 +36,19 @@ func defaultMetadatabase(
     try SQLQueryExpression(
       """
       CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
+        "recordPrimaryKey" TEXT NOT NULL,
         "recordType" TEXT NOT NULL,
-        "recordName" TEXT NOT NULL PRIMARY KEY,
-        "parentRecordName" TEXT,
+        "recordName" TEXT NOT NULL AS ("recordPrimaryKey" || ':' || "recordType"),
+        "parentRecordPrimaryKey" TEXT,
+        "parentRecordType" TEXT,
+        "parentRecordName" TEXT AS ("parentRecordPrimaryKey" || ':' || "parentRecordType"),
         "lastKnownServerRecord" BLOB,
         "_lastKnownServerRecordAllFields" BLOB,
         "share" BLOB,
-        "userModificationDate" TEXT NOT NULL DEFAULT (\(.datetime()))
+        "userModificationDate" TEXT NOT NULL DEFAULT (\(.datetime())),
+
+        PRIMARY KEY ("recordPrimaryKey", "recordType"),
+        UNIQUE ("recordName")
       ) STRICT
       """
     )

@@ -258,32 +258,24 @@
                 : nil
 
               func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+                let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
+                parentForeignKey
+                  .map { ("\(T.self).\(quote: $0.from)", "\(bind: $0.table)") }
+                  ?? ("NULL", "NULL")
                 try SyncMetadata.insert { columns in
                   (
+                    columns.recordPrimaryKey,
                     columns.recordType,
-                    columns.recordName,
-                    columns.parentRecordName
+                    columns.parentRecordPrimaryKey,
+                    columns.parentRecordType
                   )
                 } select: {
                   T.select { columns in
                     (
-                      SQLQueryExpression("\(quote: T.tableName, delimiter: .text)"),
-                      SQLQueryExpression(
-                        """
-                        \(columns.primaryKey) || ':' || \(quote: T.tableName, delimiter: .text)
-                        """,
-                        as: SyncMetadata.RecordName.self
-                      ),
-                      parentForeignKey.map { parentForeignKey in
-                        SQLQueryExpression(
-                          """
-                          \(T.self).\(quote: parentForeignKey.from, delimiter: .identifier) \
-                          || ':' || \(quote: parentForeignKey.table, delimiter: .text) 
-                          """,
-                          as: SyncMetadata.RecordName?.self
-                        )
-                      }
-                        ?? SQLQueryExpression("NULL")
+                      SQLQueryExpression("\(columns.primaryKey)"),
+                      T.tableName,
+                      SQLQueryExpression(parentRecordPrimaryKey),
+                      SQLQueryExpression(parentRecordType)
                     )
                   }
                 }
@@ -381,7 +373,7 @@
       }
     #endif
 
-    func didUpdate(recordName: SyncMetadata.RecordName, zoneID: CKRecordZone.ID?) {
+    func didUpdate(recordName: String, zoneID: CKRecordZone.ID?) {
       let zoneID = zoneID ?? Self.defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -390,7 +382,7 @@
         pendingRecordZoneChanges: [
           .saveRecord(
             CKRecord.ID(
-              recordName: recordName.rawValue,
+              recordName: recordName,
               zoneID: zoneID
             )
           )
@@ -398,7 +390,7 @@
       )
     }
 
-    func didDelete(recordName: SyncMetadata.RecordName, zoneID: CKRecordZone.ID?) {
+    func didDelete(recordName: String, zoneID: CKRecordZone.ID?) {
       print("didDelete", recordName)
       let zoneID = zoneID ?? Self.defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
@@ -408,7 +400,7 @@
         pendingRecordZoneChanges: [
           .deleteRecord(
             CKRecord.ID(
-              recordName: recordName.rawValue,
+              recordName: recordName,
               zoneID: zoneID
             )
           )
@@ -548,10 +540,10 @@
           return true
         case (.deleteRecord(let lhs), .deleteRecord(let rhs)):
           guard
-            let lhsRecordName = SyncMetadata.RecordName(rawValue: lhs.recordName),
-            let lhsIndex = tablesByOrder[lhsRecordName.recordType],
-            let rhsRecordName = SyncMetadata.RecordName(rawValue: rhs.recordName),
-            let rhsIndex = tablesByOrder[rhsRecordName.recordType]
+            let lhsRecordType = lhs.recordType,
+            let lhsIndex = tablesByOrder[lhsRecordType],
+            let rhsRecordType = rhs.recordType,
+            let rhsIndex = tablesByOrder[rhsRecordType]
           else { return true }
           return lhsIndex > rhsIndex
         case (.saveRecord, .deleteRecord):
@@ -616,13 +608,12 @@
         #endif
 
         guard
-          let recordName = SyncMetadata.RecordName(recordID: recordID),
           let (metadata, allFields) = await withErrorReporting(
             .sqliteDataCloudKitFailure,
             catching: {
               try await metadatabase.read { db in
                 try SyncMetadata
-                  .find(recordName)
+                  .where { $0.recordName.eq(recordID.recordName) }
                   .select { ($0, $0._lastKnownServerRecordAllFields) }
                   .fetchOne(db)
               }
@@ -643,7 +634,11 @@
           let row =
             withErrorReporting {
               try userDatabase.read { db in
-                try T.find(recordName.id).fetchOne(db)
+                try T
+                  .where {
+                    SQLQueryExpression("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
+                  }
+                  .fetchOne(db)
               }
             }
             ?? nil
@@ -660,16 +655,19 @@
               recordType: metadata.recordType,
               recordID: recordID
             )
-          record.parent = metadata.parentRecordName.flatMap { parentRecordName in
-            guard !privateTables.contains(where: { $0.tableName == parentRecordName.recordType })
-            else { return nil }
-            return CKRecord.Reference(
+          if let parentRecordName = metadata.parentRecordName,
+            let parentRecordType = metadata.parentRecordType,
+            !privateTables.contains(where: { $0.tableName == parentRecordType })
+          {
+            record.parent = CKRecord.Reference(
               recordID: CKRecord.ID(
-                recordName: parentRecordName.rawValue,
+                recordName: parentRecordName,
                 zoneID: record.recordID.zoneID
               ),
               action: .none
             )
+          } else {
+            record.parent = nil
           }
 
           record.update(
@@ -697,7 +695,7 @@
         for table in tables {
           withErrorReporting(.sqliteDataCloudKitFailure) {
             let recordNames = try userDatabase.read { db in
-              func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws -> [SyncMetadata.RecordName] {
+              func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws -> [String] {
                 try T
                   .select(\.primaryKey)
                   .fetchAll(db)
@@ -709,7 +707,7 @@
               pendingRecordZoneChanges: recordNames.map {
                 .saveRecord(
                   CKRecord.ID(
-                    recordName: $0.rawValue,
+                    recordName: $0,
                     zoneID: Self.defaultZone.zoneID
                   )
                 )
@@ -795,14 +793,17 @@
       // TODO: Group by recordType and delete in batches
       for (recordID, recordType) in deletions {
         if let table = tablesByName[recordType] {
-          guard let recordName = SyncMetadata.RecordName(recordID: recordID)
-          else {
-            continue
-          }
           func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try userDatabase.write { db in
-                try T.find(recordName.id)
+                try T
+                  .where {
+                    SQLQueryExpression("\($0.primaryKey)").eq(
+                      SyncMetadata
+                        .where { $0.recordName.eq(recordID.recordName) }
+                        .select(\.recordPrimaryKey)
+                    )
+                  }
                   .delete()
                   .execute(db)
               }
@@ -845,16 +846,11 @@
       }
       for failedRecordSave in failedRecordSaves {
         let failedRecord = failedRecordSave.record
-        guard let recordName = SyncMetadata.RecordName(rawValue: failedRecord.recordID.recordName)
-        else {
-          continue
-        }
-
         func clearServerRecord() {
           withErrorReporting {
             try userDatabase.write { db in
               try SyncMetadata
-                .find(recordName)
+                .where { $0.recordName.eq(failedRecord.recordID.recordName) }
                 .update { $0.setLastKnownServerRecord(nil) }
                 .execute(db)
             }
@@ -912,14 +908,9 @@
 
       guard let rootRecord = metadata.rootRecord
       else { return }
-      guard let recordName = SyncMetadata.RecordName(recordID: rootRecord.recordID)
-      else {
-        return
-      }
-
       try await userDatabase.write { db in
         try SyncMetadata
-          .find(recordName)
+          .where { $0.recordName.eq(rootRecord.recordID.recordName) }
           .update { $0.share = share }
           .execute(db)
       }
@@ -935,7 +926,8 @@
           .first(where: { $0.share?.recordID == recordID }) ?? nil
         guard let metadata
         else { return }
-        try SyncMetadata.find(metadata.recordName)
+        try SyncMetadata
+          .where { $0.recordName.eq(metadata.recordName) }
           .update { $0.share = nil }
           .execute(db)
       }
@@ -956,12 +948,10 @@
           )
           return
         }
-        guard let recordName = SyncMetadata.RecordName(recordID: serverRecord.recordID)
-        else { return }
 
         let result = try metadatabase.read { db in
           try SyncMetadata
-            .find(recordName)
+            .where { $0.recordName.eq(serverRecord.recordID.recordName) }
             .select { ($0, $0._lastKnownServerRecordAllFields) }
             .fetchOne(db)
         }
@@ -971,13 +961,17 @@
 
         func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
           var columnNames = T.TableColumns.allColumns.map(\.name)
-          if let allFields {
+          if let metadata, let allFields {
             let row = try userDatabase.read { db in
-              try T.find(recordName.id).fetchOne(db)
+              try T.find(SQLQueryExpression("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
             }
             guard let row
             else {
-              reportIssue("Local database record could not be found for '\(recordName.rawValue)'.")
+              reportIssue(
+                """
+                Local database record could not be found for '\(serverRecord.recordID.recordName)'.
+                """
+              )
               return
             }
             serverRecord.update(
@@ -1021,7 +1015,7 @@
           try userDatabase.write { db in
             try SQLQueryExpression(query).execute(db)
             try SyncMetadata
-              .find(recordName)
+              .where { $0.recordName.eq(serverRecord.recordID.recordName) }
               .update { $0.setLastKnownServerRecord(serverRecord) }
               .execute(db)
           }
@@ -1031,17 +1025,13 @@
     }
 
     private func refreshLastKnownServerRecord(_ record: CKRecord) async {
-      guard let recordName = SyncMetadata.RecordName(recordID: record.recordID)
-      else {
-        return
-      }
-      let metadata = await metadataFor(recordName: recordName)
+      let metadata = await metadataFor(recordName: record.recordID.recordName)
 
       func updateLastKnownServerRecord() {
         withErrorReporting(.sqliteDataCloudKitFailure) {
           try userDatabase.write { db in
             try SyncMetadata
-              .find(recordName)
+              .where { $0.recordName.eq(record.recordID.recordName) }
               .update { $0.setLastKnownServerRecord(record) }
               .execute(db)
           }
@@ -1057,13 +1047,40 @@
       }
     }
 
-    private func metadataFor(recordName: SyncMetadata.RecordName) async -> SyncMetadata? {
+    private func metadataFor(recordName: String) async -> SyncMetadata? {
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await metadatabase.read { db in
-          try SyncMetadata.find(recordName).fetchOne(db)
+          try SyncMetadata.where { $0.recordName.eq(recordName) }.fetchOne(db)
         }
       }
         ?? nil
+    }
+  }
+
+  @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
+  extension CKSyncEngine.PendingRecordZoneChange {
+    var id: CKRecord.ID? {
+      switch self {
+      case .saveRecord(let id):
+        return id
+      case .deleteRecord(let id):
+        return id
+      @unknown default:
+        return nil
+      }
+    }
+  }
+
+  @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
+  extension CKRecord.ID {
+    var recordType: String? {
+      guard
+        let i = recordName.utf8.lastIndex(of: .init(ascii: ":")),
+        let j = recordName.utf8.index(i, offsetBy: 1, limitedBy: recordName.utf8.endIndex)
+      else { return nil }
+      let recordTypeBytes = recordName.utf8[j...]
+      guard !recordTypeBytes.isEmpty else { return nil }
+      return String(Substring(recordTypeBytes))
     }
   }
 
@@ -1105,15 +1122,11 @@
 
     private convenience init(
       _ name: String,
-      function: @escaping @Sendable (SyncMetadata.RecordName, CKRecordZone.ID?) -> Void
+      function: @escaping @Sendable (String, CKRecordZone.ID?) -> Void
     ) {
       self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 2) { arguments in
         guard
           let recordName = String.fromDatabaseValue(arguments[0])
-        else {
-          return nil
-        }
-        guard let recordName = SyncMetadata.RecordName(rawValue: recordName)
         else {
           return nil
         }
@@ -1229,6 +1242,11 @@
     userDatabase: UserDatabase
   ) throws {
     let tableNames = Set(tables.map { $0.tableName })
+    for tableName in tableNames {
+      if tableName.contains(":") {
+        throw InvalidTableName(tableName: tableName)
+      }
+    }
     try userDatabase.read { db in
       let triggers = try SQLQueryExpression(
         """
@@ -1289,12 +1307,22 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public struct InvalidTableName: LocalizedError {
+    let tableName: String
+    public var localizedDescription: String {
+      """
+      Table name \(tableName.debugDescription) contains invalid character ':'.
+      """
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public struct InvalidUserTriggers: LocalizedError {
     let triggers: [String]
     public var localizedDescription: String {
       """
-      Triggers must include 'WHEN NOT \(DatabaseFunction.syncEngineIsUpdatingRecord.name)()' \
-      clause: \(triggers.map { "'\($0)'" }.joined(separator: ", "))
+      Triggers must include '\(DatabaseFunction.syncEngineIsUpdatingRecord.name)()' check: \
+      \(triggers.map { "'\($0)'" }.joined(separator: ", "))
       """
     }
   }

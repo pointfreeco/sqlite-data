@@ -35,8 +35,10 @@ extension BaseCloudKitTests {
       try await userDatabase.userWrite { db in
         try SyncMetadata.insert {
           SyncMetadata(
+            recordPrimaryKey: UUID(1).uuidString.lowercased(),
             recordType: UnrecognizedTable.tableName,
-            recordName: SyncMetadata.RecordName(UnrecognizedTable.self, id: UUID(1)),
+            recordName: UnrecognizedTable.recordName(for: UUID(1)),
+            parentRecordName: nil,
             userModificationDate: .distantPast
           )
         }
@@ -64,8 +66,10 @@ extension BaseCloudKitTests {
       try await userDatabase.userWrite { db in
         try SyncMetadata.insert {
           SyncMetadata(
+            recordPrimaryKey: UUID(1).uuidString.lowercased(),
             recordType: RemindersList.tableName,
-            recordName: SyncMetadata.RecordName(RemindersList.self, id: UUID(1)),
+            recordName: RemindersList.recordName(for: UUID(1)),
+            parentRecordName: nil,
             userModificationDate: .distantPast
           )
         }

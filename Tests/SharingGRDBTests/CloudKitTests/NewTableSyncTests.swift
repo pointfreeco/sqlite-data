@@ -60,21 +60,18 @@ extension BaseCloudKitTests {
       }
 
       let metadata = try await userDatabase.userRead { db in
-        try SyncMetadata.all.order(by: \.primaryKey).fetchAll(db)
+        try SyncMetadata.order(by: \.recordName).fetchAll(db)
       }
       assertInlineSnapshot(of: metadata, as: .customDump) {
         """
         [
           [0]: SyncMetadata(
+            recordPrimaryKey: "00000000-0000-0000-0000-000000000001",
             recordType: "reminders",
-            recordName: SyncMetadata.RecordName(
-              recordType: "reminders",
-              id: UUID(00000000-0000-0000-0000-000000000001)
-            ),
-            parentRecordName: SyncMetadata.RecordName(
-              recordType: "remindersLists",
-              id: UUID(00000000-0000-0000-0000-000000000001)
-            ),
+            recordName: "00000000-0000-0000-0000-000000000001:reminders",
+            parentRecordPrimaryKey: "00000000-0000-0000-0000-000000000001",
+            parentRecordType: "remindersLists",
+            parentRecordName: "00000000-0000-0000-0000-000000000001:remindersLists",
             lastKnownServerRecord: CKRecord(
               recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
               recordType: "reminders",
@@ -85,11 +82,11 @@ extension BaseCloudKitTests {
             userModificationDate: Date(1970-01-01T00:00:00.000Z)
           ),
           [1]: SyncMetadata(
+            recordPrimaryKey: "00000000-0000-0000-0000-000000000001",
             recordType: "remindersLists",
-            recordName: SyncMetadata.RecordName(
-              recordType: "remindersLists",
-              id: UUID(00000000-0000-0000-0000-000000000001)
-            ),
+            recordName: "00000000-0000-0000-0000-000000000001:remindersLists",
+            parentRecordPrimaryKey: nil,
+            parentRecordType: nil,
             parentRecordName: nil,
             lastKnownServerRecord: CKRecord(
               recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),

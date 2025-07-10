@@ -33,7 +33,10 @@ extension PrimaryKeyedTable<UUID> {
       ifNotExists: true,
       after: .delete { old in
         SyncMetadata
-          .find(old.recordName)
+          .where {
+            $0.recordPrimaryKey.eq(SQLQueryExpression("\(old.primaryKey)"))
+              && $0.recordType.eq(tableName)
+          }
           .delete()
       }
     )
@@ -46,23 +49,24 @@ extension SyncMetadata {
     new: TemporaryTrigger<T>.Operation.New,
     parentForeignKey: ForeignKey?,
   ) -> some StructuredQueriesCore.Statement {
-    let parentForeignKey =
-      parentForeignKey.map {
-        #""new"."\#($0.from)" || ':' || '\#($0.table)'"#
-      } ?? "NULL"
+    let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
+      parentForeignKey
+        .map { (#""new".\#(quote: $0.from)"#, "\(bind: $0.table)") }
+        ?? ("NULL", "NULL")
     return insert {
-      ($0.recordType, $0.recordName, $0.parentRecordName)
+      ($0.recordPrimaryKey, $0.recordType, $0.parentRecordPrimaryKey, $0.parentRecordType)
     } select: {
       Values(
+        SQLQueryExpression("\(new.primaryKey)"),
         T.tableName,
-        new.recordName,
-        SQLQueryExpression(#"\#(raw: parentForeignKey) AS "foreignKey""#)
+        SQLQueryExpression(parentRecordPrimaryKey),
+        SQLQueryExpression(parentRecordType)
       )
     } onConflict: {
-      $0.recordName
+      ($0.recordPrimaryKey, $0.recordType)
     } doUpdate: {
-      $0.recordName = SQLQueryExpression(#""excluded"."recordName""#)
-      $0.parentRecordName = SQLQueryExpression(#""excluded"."parentRecordName""#)
+      $0.parentRecordPrimaryKey = SQLQueryExpression(#""excluded"."parentRecordPrimaryKey""#)
+      $0.parentRecordType = SQLQueryExpression(#""excluded"."parentRecordType""#)
       $0.userModificationDate = SQLQueryExpression(#""excluded"."userModificationDate""#)
     }
   }
@@ -111,16 +115,24 @@ extension SyncMetadata {
   )
 }
 
+//extension StructuredQueriesCore.TableAlias.TableColumns {
+//  public subscript<Member>(
+//    dynamicMember keyPath: KeyPath<Base.TableColumns, Member>
+//  ) -> Member {
+//    Base.columns[keyPath: keyPath]
+//  }
+//}
+
 extension QueryExpression where Self == SQLQueryExpression<()> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   fileprivate static func didUpdate(
     _ new: StructuredQueriesCore.TableAlias<SyncMetadata, TemporaryTrigger<SyncMetadata>.Operation._New>.TableColumns
   ) -> Self {
     .didUpdate(
-      recordName: new.recordName,
+      recordName: SQLQueryExpression(#""new"."recordName""#),
       lastKnownServerRecord: new.lastKnownServerRecord
       ?? SyncMetadata
-        .where { $0.recordName.is(new.parentRecordName) }
+        .where { $0.recordName.is(SQLQueryExpression(#""new"."parentRecordName""#)) }
         .select(\.lastKnownServerRecord)
     )
   }
@@ -132,17 +144,17 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
   -> Self
   {
     .didDelete(
-      recordName: old.recordName,
+      recordName: SQLQueryExpression(#""old"."recordName""#),
       lastKnownServerRecord: old.lastKnownServerRecord
       ?? SyncMetadata
-        .where { $0.recordName.is(old.parentRecordName) }
+        .where { $0.recordName.is(SQLQueryExpression(#""old"."parentRecordName""#)) }
         .select(\.lastKnownServerRecord)
     )
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private static func didUpdate(
-    recordName: some QueryExpression<SyncMetadata.RecordName>,
+    recordName: some QueryExpression<String>,
     lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>
   ) -> Self {
     Self("\(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(recordName), \(lastKnownServerRecord))")
@@ -150,7 +162,7 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private static func didDelete(
-    recordName: some QueryExpression<SyncMetadata.RecordName>,
+    recordName: some QueryExpression<String>,
     lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>
   )
   -> Self
