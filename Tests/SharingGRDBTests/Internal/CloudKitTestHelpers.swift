@@ -282,6 +282,16 @@ final class MockCloudDatabase: CloudDatabase {
           let existingRecord = storage[recordToSave.recordID]
 
           func saveRecordToDatabase() {
+            let parentRecordExists = recordToSave.parent == nil || storage.values.contains { record in
+              record.recordID != recordToSave.recordID
+              && recordToSave.parent?.recordID == record.recordID
+            }
+            guard parentRecordExists
+            else {
+              saveResults[recordToSave.recordID] = .failure(CKError(.referenceViolation))
+              return
+            }
+
             guard let copy = recordToSave.copy() as? CKRecord
             else { fatalError("Could not copy CKRecord.") }
             copy._recordChangeTag = UUID().uuidString

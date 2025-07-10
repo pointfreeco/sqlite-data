@@ -544,8 +544,14 @@
 
       let changes = allChanges.sorted { lhs, rhs in
         switch (lhs, rhs) {
-        case (.saveRecord, .saveRecord):
-          return true
+        case (.saveRecord(let lhs), .saveRecord(let rhs)):
+          guard
+            let lhsRecordName = SyncMetadata.RecordName(rawValue: lhs.recordName),
+            let lhsIndex = tablesByOrder[lhsRecordName.recordType],
+            let rhsRecordName = SyncMetadata.RecordName(rawValue: rhs.recordName),
+            let rhsIndex = tablesByOrder[rhsRecordName.recordType]
+          else { return true }
+          return lhsIndex < rhsIndex
         case (.deleteRecord(let lhs), .deleteRecord(let rhs)):
           guard
             let lhsRecordName = SyncMetadata.RecordName(rawValue: lhs.recordName),
