@@ -53,6 +53,10 @@ public struct SyncMetadata: Hashable, Sendable {
   // @Column(as: CKShare?.SystemFieldsRepresentation.self)
   public var share: CKShare?
 
+  // TODO: Add generated column and index it instead of current 'WHERE IS NOT NULL' index
+  // @Column(generated: .virtual)
+  // public let isShared: Bool
+
   /// The date the user last modified the record.
   public var userModificationDate: Date
 
@@ -76,6 +80,14 @@ public struct SyncMetadata: Hashable, Sendable {
     self.lastKnownServerRecord = lastKnownServerRecord
     self.share = share
     self.userModificationDate = userModificationDate
+  }
+
+  // @Selection @Table
+  struct AncestorMetadata {
+    let recordName: String
+    let parentRecordName: String?
+    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let lastKnownServerRecord: CKRecord?
   }
 }
 

@@ -97,4 +97,58 @@
       self.userModificationDate = userModificationDate
     }
   }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncMetadata.AncestorMetadata: StructuredQueriesCore.Table {
+    public struct Columns: StructuredQueriesCore.QueryExpression {
+      public typealias QueryValue = SyncMetadata.AncestorMetadata
+      public let queryFragment: StructuredQueriesCore.QueryFragment
+      public init(
+        recordName: some StructuredQueriesCore.QueryExpression<String>,
+        parentRecordName: some StructuredQueriesCore.QueryExpression<String?>,
+        lastKnownServerRecord: some StructuredQueriesCore.QueryExpression<CKRecord?.SystemFieldsRepresentation>
+      ) {
+        self.queryFragment = """
+          \(recordName.queryFragment) AS "recordName", \(parentRecordName.queryFragment) AS "parentRecordName", \(lastKnownServerRecord.queryFragment) AS "lastKnownServerRecord"
+          """
+      }
+    }
+
+    public struct TableColumns: StructuredQueriesCore.TableDefinition {
+      public typealias QueryValue = SyncMetadata.AncestorMetadata
+      public let recordName = StructuredQueriesCore.TableColumn<
+        QueryValue, String
+      >("recordName", keyPath: \QueryValue.recordName)
+      public let parentRecordName = StructuredQueriesCore.TableColumn<
+        QueryValue, String?
+      >("parentRecordName", keyPath: \QueryValue.parentRecordName)
+      public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<QueryValue, CKRecord?.SystemFieldsRepresentation>(
+        "lastKnownServerRecord",
+        keyPath: \QueryValue.lastKnownServerRecord
+      )
+      public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
+        [QueryValue.columns.recordName, QueryValue.columns.parentRecordName]
+      }
+    }
+
+    public static let columns = TableColumns()
+    public static let tableName = "ancestorMetadatas"
+    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+      let recordName = try decoder.decode(String.self)
+      let parentRecordName = try decoder.decode(String?.self)
+      let lastKnownServerRecord = try decoder.decode(CKRecord?.SystemFieldsRepresentation.self)
+      guard let recordName else {
+        throw QueryDecodingError.missingRequiredColumn
+      }
+      guard let parentRecordName else {
+        throw QueryDecodingError.missingRequiredColumn
+      }
+      guard let lastKnownServerRecord else {
+        throw QueryDecodingError.missingRequiredColumn
+      }
+      self.recordName = recordName
+      self.parentRecordName = parentRecordName
+      self.lastKnownServerRecord = lastKnownServerRecord
+    }
+  }
 #endif

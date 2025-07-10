@@ -282,6 +282,16 @@ final class MockCloudDatabase: CloudDatabase {
           let existingRecord = storage[recordToSave.recordID]
 
           func saveRecordToDatabase() {
+            let parentRecordExists = recordToSave.parent == nil || storage.values.contains { record in
+              record.recordID != recordToSave.recordID
+              && recordToSave.parent?.recordID == record.recordID
+            }
+            guard parentRecordExists
+            else {
+              saveResults[recordToSave.recordID] = .failure(CKError(.referenceViolation))
+              return
+            }
+
             guard let copy = recordToSave.copy() as? CKRecord
             else { fatalError("Could not copy CKRecord.") }
             copy._recordChangeTag = UUID().uuidString
@@ -467,6 +477,7 @@ extension DependencyValues {
   }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 private func comparePendingRecordZoneChange(
   _ lhs: CKSyncEngine.PendingRecordZoneChange,
   _ rhs: CKSyncEngine.PendingRecordZoneChange
@@ -484,6 +495,7 @@ private func comparePendingRecordZoneChange(
   }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 private func comparePendingDatabaseChange(
   _ lhs: CKSyncEngine.PendingDatabaseChange,
   _ rhs: CKSyncEngine.PendingDatabaseChange

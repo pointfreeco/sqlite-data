@@ -114,6 +114,35 @@ extension BaseCloudKitTests {
                 "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
               ) STRICT
               """
+          ),
+          [10]: RecordType(
+            tableName: "modelAs",
+            schema: """
+              CREATE TABLE "modelAs" (
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "count" INTEGER NOT NULL
+              )
+              """
+          ),
+          [11]: RecordType(
+            tableName: "modelBs",
+            schema: """
+              CREATE TABLE "modelBs" (
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "isOn" INTEGER NOT NULL,
+                "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
+              )
+              """
+          ),
+          [12]: RecordType(
+            tableName: "modelCs",
+            schema: """
+              CREATE TABLE "modelCs" (
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "title" TEXT NOT NULL,
+                "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
+              )
+              """
           )
         ]
         """#

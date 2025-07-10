@@ -115,14 +115,7 @@ extension SyncMetadata {
   )
 }
 
-//extension StructuredQueriesCore.TableAlias.TableColumns {
-//  public subscript<Member>(
-//    dynamicMember keyPath: KeyPath<Base.TableColumns, Member>
-//  ) -> Member {
-//    Base.columns[keyPath: keyPath]
-//  }
-//}
-
+// TODO: can we remove a layer of didUpdate/didDelete?
 extension QueryExpression where Self == SQLQueryExpression<()> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   fileprivate static func didUpdate(
@@ -131,9 +124,7 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
     .didUpdate(
       recordName: SQLQueryExpression(#""new"."recordName""#),
       lastKnownServerRecord: new.lastKnownServerRecord
-      ?? SyncMetadata
-        .where { $0.recordName.is(SQLQueryExpression(#""new"."parentRecordName""#)) }
-        .select(\.lastKnownServerRecord)
+      ?? rootServerRecord(recordName: SQLQueryExpression(#""new"."recordName""#))
     )
   }
 
@@ -146,9 +137,7 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
     .didDelete(
       recordName: SQLQueryExpression(#""old"."recordName""#),
       lastKnownServerRecord: old.lastKnownServerRecord
-      ?? SyncMetadata
-        .where { $0.recordName.is(SQLQueryExpression(#""old"."parentRecordName""#)) }
-        .select(\.lastKnownServerRecord)
+      ?? rootServerRecord(recordName: SQLQueryExpression(#""old"."recordName""#))
     )
   }
 
@@ -173,4 +162,37 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
 
 private func isUpdatingWithServerRecord() -> SQLQueryExpression<Bool> {
   SQLQueryExpression("\(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+private func rootServerRecord(
+  recordName: some QueryExpression<String>
+) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
+  With {
+    SyncMetadata
+      .where { $0.recordName.eq(recordName) }
+      .select {
+        SyncMetadata.AncestorMetadata.Columns(
+          recordName: $0.recordName,
+          parentRecordName: $0.parentRecordName,
+          lastKnownServerRecord: $0.lastKnownServerRecord
+        )
+      }
+      .union(
+        all: true,
+        SyncMetadata
+          .select {
+            SyncMetadata.AncestorMetadata.Columns(
+              recordName: $0.recordName,
+              parentRecordName: $0.parentRecordName,
+              lastKnownServerRecord: $0.lastKnownServerRecord
+            )
+          }
+          .join(SyncMetadata.AncestorMetadata.all) { $0.recordName.is($1.parentRecordName) }
+      )
+  } query: {
+    SyncMetadata.AncestorMetadata
+      .select(\.lastKnownServerRecord)
+      .where { $0.parentRecordName.is(nil) }
+  }
 }

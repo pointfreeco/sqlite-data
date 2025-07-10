@@ -105,9 +105,12 @@
       self.privateTables = privateTables
 
       let allTables = try userDatabase.read { db in
-        try SQLQueryExpression("""
+        try SQLQueryExpression(
+          """
           SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
-          """, as: String.self)
+          """,
+          as: String.self
+        )
         .fetchAll(db)
       }
 
@@ -536,8 +539,14 @@
 
       let changes = allChanges.sorted { lhs, rhs in
         switch (lhs, rhs) {
-        case (.saveRecord, .saveRecord):
-          return true
+        case (.saveRecord(let lhs), .saveRecord(let rhs)):
+          guard
+            let lhsRecordType = lhs.recordType,
+            let lhsIndex = tablesByOrder[lhsRecordType],
+            let rhsRecordType = rhs.recordType,
+            let rhsIndex = tablesByOrder[rhsRecordType]
+          else { return true }
+          return lhsIndex < rhsIndex
         case (.deleteRecord(let lhs), .deleteRecord(let rhs)):
           guard
             let lhsRecordType = lhs.recordType,
@@ -877,11 +886,15 @@
           clearServerRecord()
 
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .notAuthenticated,
-          .operationCancelled, .batchRequestFailed:
+          .notAuthenticated, .referenceViolation, .operationCancelled, .batchRequestFailed,
+          .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
+          .permissionFailure, .invalidArguments, .resultsTruncated, .assetFileNotFound,
+          .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
+          .badDatabase, .quotaExceeded, .limitExceeded, .userDeletedZone, .tooManyParticipants,
+          .alreadyShared, .managedAccountRestricted, .participantMayNeedVerification,
+          .serverResponseLost, .assetNotAvailable, .accountTemporarilyUnavailable:
           continue
-
-        default:
+        @unknown default:
           continue
         }
       }
@@ -957,7 +970,8 @@
         }
         let metadata = result?.0
         let allFields = result?.1
-        serverRecord.userModificationDate = metadata?.userModificationDate ?? serverRecord.userModificationDate
+        serverRecord.userModificationDate =
+          metadata?.userModificationDate ?? serverRecord.userModificationDate
 
         func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
           var columnNames = T.TableColumns.allColumns.map(\.name)
@@ -981,39 +995,41 @@
             )
           }
 
-          var query: QueryFragment = "INSERT INTO \(T.self) ("
-          query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
-          query.append(") VALUES (")
-          let encryptedValues = serverRecord.encryptedValues
-          query.append(
-            columnNames
-              .map { columnName in
-                if let asset = serverRecord[columnName] as? CKAsset {
-                  @Dependency(\.dataManager) var dataManager
-                  return (try? asset.fileURL.map { try dataManager.load($0) })?
-                    .queryFragment ?? "NULL"
-                } else {
-                  return encryptedValues[columnName]?.queryFragment ?? "NULL"
-                }
-              }
-              .joined(separator: ", ")
-          )
-          query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
-
-          query.append(
-            columnNames
-              .filter { columnName in columnName != T.columns.primaryKey.name }
-              .map {
-                """
-                \(quote: $0) = "excluded".\(quote: $0)
-                """
-              }
-              .joined(separator: ",")
-          )
           // TODO: Append more ON CONFLICT clauses for each unique constraint?
           // TODO: Use WHERE to scope the update?
           try userDatabase.write { db in
-            try SQLQueryExpression(query).execute(db)
+            // TODO: Write a test for this: server sends record with nothing changed
+            if columnNames.contains(where: { $0 != T.columns.primaryKey.name }) {
+              var query: QueryFragment = "INSERT INTO \(T.self) ("
+              query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+              query.append(") VALUES (")
+              let encryptedValues = serverRecord.encryptedValues
+              query.append(
+                columnNames
+                  .map { columnName in
+                    if let asset = serverRecord[columnName] as? CKAsset {
+                      @Dependency(\.dataManager) var dataManager
+                      return (try? asset.fileURL.map { try dataManager.load($0) })?
+                        .queryFragment ?? "NULL"
+                    } else {
+                      return encryptedValues[columnName]?.queryFragment ?? "NULL"
+                    }
+                  }
+                  .joined(separator: ", ")
+              )
+              query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
+              query.append(
+                columnNames
+                  .filter { columnName in columnName != T.columns.primaryKey.name }
+                  .map {
+                    """
+                    \(quote: $0) = "excluded".\(quote: $0)
+                    """
+                  }
+                  .joined(separator: ",")
+              )
+              try SQLQueryExpression(query).execute(db)
+            }
             try SyncMetadata
               .where { $0.recordName.eq(serverRecord.recordID.recordName) }
               .update { $0.setLastKnownServerRecord(serverRecord) }
@@ -1264,7 +1280,7 @@
       .filter { _, tableName, _ in tableNames.contains(tableName) }
       let invalidTriggers = triggers.compactMap { name, _, sql in
         let isValid =
-        sql
+          sql
           .lowercased()
           .contains("\(DatabaseFunction.syncEngineIsUpdatingRecord.name)()".lowercased())
         return isValid ? nil : name
@@ -1273,7 +1289,7 @@
       else {
         throw InvalidUserTriggers(triggers: invalidTriggers)
       }
-      
+
       for table in tables {
         //      // TODO: write tests for this
         //      let columnsWithUniqueConstraints =
@@ -1412,14 +1428,14 @@
     }
   }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension Updates<SyncMetadata> {
-  mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
-    self.lastKnownServerRecord = lastKnownServerRecord
-    self._lastKnownServerRecordAllFields = lastKnownServerRecord
-    if let lastKnownServerRecord {
-      self.userModificationDate = lastKnownServerRecord.userModificationDate
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension Updates<SyncMetadata> {
+    mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
+      self.lastKnownServerRecord = lastKnownServerRecord
+      self._lastKnownServerRecordAllFields = lastKnownServerRecord
+      if let lastKnownServerRecord {
+        self.userModificationDate = lastKnownServerRecord.userModificationDate
+      }
     }
   }
-}
 #endif

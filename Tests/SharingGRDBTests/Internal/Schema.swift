@@ -53,6 +53,20 @@ import SharingGRDB
   var name = ""
   var parentID: LocalUser.ID?
 }
+@Table struct ModelA: Identifiable {
+  let id: UUID
+  var count = 0
+}
+@Table struct ModelB: Identifiable {
+  let id: UUID
+  var isOn = false
+  var modelAID: ModelA.ID
+}
+@Table struct ModelC: Identifiable {
+  let id: UUID
+  var title = ""
+  var modelBID: ModelB.ID
+}
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 func database(containerIdentifier: String) throws -> DatabasePool {
@@ -166,6 +180,29 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       ) STRICT
       """
     )
+    .execute(db)
+    try #sql("""
+      CREATE TABLE "modelAs" (
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "count" INTEGER NOT NULL
+      )
+      """)
+    .execute(db)
+    try #sql("""
+      CREATE TABLE "modelBs" (
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "isOn" INTEGER NOT NULL,
+        "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
+      )
+      """)
+    .execute(db)
+    try #sql("""
+      CREATE TABLE "modelCs" (
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "title" TEXT NOT NULL,
+        "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
+      )
+      """)
     .execute(db)
   }
   return database
