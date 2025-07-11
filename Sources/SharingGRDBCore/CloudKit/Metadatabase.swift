@@ -55,8 +55,13 @@ func defaultMetadatabase(
       """
     )
     .execute(db)
-    // TODO: Should we add an index to recordType?
-    // TODO: Do we ever query for "parentRecordName"? should we add an index?
+    try SQLQueryExpression(
+      """
+      CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_parentRecordName"
+      ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("parentRecordName")
+      """
+    )
+    .execute(db)
     try SQLQueryExpression(
       """
       CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_isShared"
