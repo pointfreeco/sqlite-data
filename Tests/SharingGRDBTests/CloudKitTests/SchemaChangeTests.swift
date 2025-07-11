@@ -10,6 +10,10 @@ extension BaseCloudKitTests {
   @MainActor
   final class SchemaChangeTests: BaseCloudKitTests, @unchecked Sendable {
     @Dependency(\.date.now) var now
+    @Dependency(\.dataManager) var dataManager
+    var inMemoryDataManager: InMemoryDataManager {
+      dataManager as! InMemoryDataManager
+    }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func addColumnToRemindersAndRemindersLists() async throws {
@@ -77,41 +81,166 @@ extension BaseCloudKitTests {
         await relaunchedSyncEngine.processBatch()
 
         let remindersLists = try await userDatabase.userRead { db in
-          try MigratedRemindersList.order(by: \.id).fetchAll(db)
+          try RemindersListWithPosition.order(by: \.id).fetchAll(db)
         }
         let reminders = try await userDatabase.userRead { db in
-          try MigratedReminder.order(by: \.id).fetchAll(db)
+          try ReminderWithPosition.order(by: \.id).fetchAll(db)
         }
 
         expectNoDifference(
           remindersLists,
           [
-            MigratedRemindersList(id: UUID(1), title: "Personal", position: 1),
-            MigratedRemindersList(id: UUID(2), title: "Business", position: 2),
+            RemindersListWithPosition(id: UUID(1), title: "Personal", position: 1),
+            RemindersListWithPosition(id: UUID(2), title: "Business", position: 2),
           ]
         )
         expectNoDifference(
           reminders,
           [
-            MigratedReminder(id: UUID(1), title: "Get milk", position: 3, remindersListID: UUID(1)),
+            ReminderWithPosition(id: UUID(1), title: "Get milk", position: 3, remindersListID: UUID(1)),
           ]
         )
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func addAssetToRemindersList() async throws {
+      let personalList = RemindersList(id: UUID(1), title: "Personal")
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          personalList
+        }
+      }
+
+      await syncEngine.processBatch()
+
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        let personalListRecord = try syncEngine.private.database.record(
+          for: RemindersList.recordID(for: UUID(1))
+        )
+        personalListRecord.setValue(Array("image".utf8), forKey: "image", at: now)
+
+        await syncEngine.modifyRecords(
+          scope: .private,
+          saving: [personalListRecord]
+        )
+
+        try await userDatabase.userWrite { db in
+          try #sql(
+          """
+          ALTER TABLE "remindersLists" 
+          ADD COLUMN "image" BLOB NOT NULL ON CONFLICT REPLACE DEFAULT X''
+          """
+          )
+          .execute(db)
+        }
+
+        let relaunchedSyncEngine = try await SyncEngine(
+          container: syncEngine.container,
+          userDatabase: syncEngine.userDatabase,
+          metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
+          tables: syncEngine.tables,
+          privateTables: syncEngine.privateTables
+        )
+
+        await relaunchedSyncEngine.processBatch()
+
+        let remindersLists = try await userDatabase.userRead { db in
+          try RemindersListWithData.order(by: \.id).fetchAll(db)
+        }
+
+        expectNoDifference(
+          remindersLists,
+          [
+            RemindersListWithData(id: UUID(1), image: Data("image".utf8), title: "Personal"),
+          ]
+        )
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func addAssetToRemindersList_RemovedFromStorage() async throws {
+      let personalList = RemindersList(id: UUID(1), title: "Personal")
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          personalList
+        }
+      }
+
+      await syncEngine.processBatch()
+
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        let personalListRecord = try syncEngine.private.database.record(
+          for: RemindersList.recordID(for: UUID(1))
+        )
+        personalListRecord.setValue(Array("image".utf8), forKey: "image", at: now)
+
+        await syncEngine.modifyRecords(
+          scope: .private,
+          saving: [personalListRecord]
+        )
+
+        inMemoryDataManager.storage.withValue { $0.removeAll() }
+
+        try await userDatabase.userWrite { db in
+          try #sql(
+          """
+          ALTER TABLE "remindersLists" 
+          ADD COLUMN "image" BLOB NOT NULL ON CONFLICT REPLACE DEFAULT X''
+          """
+          )
+          .execute(db)
+        }
+
+        let relaunchedSyncEngine = try await SyncEngine(
+          container: syncEngine.container,
+          userDatabase: syncEngine.userDatabase,
+          metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
+          tables: syncEngine.tables,
+          privateTables: syncEngine.privateTables
+        )
+
+        await relaunchedSyncEngine.processBatch()
+
+        let remindersLists = try await userDatabase.userRead { db in
+          try RemindersListWithData.order(by: \.id).fetchAll(db)
+        }
+
+        withKnownIssue("TODO: Handle assets that need to be re-downloaded") {
+          expectNoDifference(
+            remindersLists,
+            [
+              RemindersListWithData(id: UUID(1), image: Data("image".utf8), title: "Personal"),
+            ]
+          )
+        }
       }
     }
   }
 }
 
 @Table("remindersLists")
-fileprivate struct MigratedRemindersList: Equatable, Identifiable {
+fileprivate struct RemindersListWithPosition: Equatable, Identifiable {
   let id: UUID
   var title = ""
   var position = 0
 }
 
 @Table("reminders")
-fileprivate struct MigratedReminder: Equatable, Identifiable {
+fileprivate struct ReminderWithPosition: Equatable, Identifiable {
   let id: UUID
   var title = ""
   var position = 0
   var remindersListID: RemindersList.ID
+}
+
+@Table("remindersLists")
+fileprivate struct RemindersListWithData: Equatable, Identifiable {
+  let id: UUID
+  var image: Data
+  var title = ""
 }

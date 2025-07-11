@@ -176,23 +176,6 @@ extension CKRecord {
   }
 
   @discardableResult
-  package func setValue(
-    _ newValue: CKAsset,
-    data: @autoclosure () -> [UInt8],
-    forKey key: CKRecord.FieldKey,
-    at userModificationDate: Date
-  ) -> Bool {
-    guard
-      encryptedValues[at: key] < userModificationDate,
-      (self[key] as? CKAsset)?.fileURL != newValue.fileURL
-    else { return false }
-    self[key] = newValue
-    encryptedValues[at: key] = userModificationDate
-    self.userModificationDate = userModificationDate
-    return true
-  }
-
-  @discardableResult
   package func removeValue(
     forKey key: CKRecord.FieldKey,
     at userModificationDate: Date

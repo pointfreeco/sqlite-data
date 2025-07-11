@@ -184,10 +184,6 @@
         }
       }
 
-      /*
-      
-       */
-
       let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
       syncEngines.withValue {
         $0 = SyncEngines(
@@ -340,38 +336,6 @@
         }
         try await open(table)
       }
-
-      //      print("!!!")
-      //      for currentRecordType in currentRecordTypes {
-      //        guard let previousRecordType = previousRecordTypes.first(
-      //          where: { $0.tableName == currentRecordType.tableName }
-      //        ) else {
-      //          continue
-      //        }
-      //
-      //        if currentRecordType.tableInfo != previousRecordType.tableInfo {
-      //          print("!!!")
-      //        }
-      //      }
-
-      //      // TODO: update data from local server records, do not fetch from CloudKit
-      //      let lastKnownServerRecords = try await metadatabase.read { db in
-      //        try SyncMetadata
-      //          .where {
-      //            $0.recordType.in(recordTypes.map(\.tableName))
-      //              && $0._lastKnownServerRecordAllFields.isNot(nil)
-      //          }
-      //          .select {
-      //            SQLQueryExpression(
-      //              "\($0._lastKnownServerRecordAllFields)",
-      //              as: CKRecord.AllFieldsRepresentation.self
-      //            )
-      //          }
-      //          .fetchAll(db)
-      //      }
-      //      for record in lastKnownServerRecords {
-      //        //upsertFromServerRecord(record)
-      //      }
     }
 
     package func tearDownSyncEngine() async throws {
@@ -1482,6 +1446,7 @@
             @Dependency(\.dataManager) var dataManager
             let data = try? asset.fileURL.map { try dataManager.load($0) }
             if data == nil {
+              // TODO: Handle assets that need to be re-downloaded
               reportIssue("Asset data not found on disk")
             }
             return """
