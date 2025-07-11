@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import CloudKit
 import Foundation
 
@@ -196,3 +197,4 @@ private func rootServerRecord(
       .where { $0.parentRecordName.is(nil) }
   }
 }
+#endif

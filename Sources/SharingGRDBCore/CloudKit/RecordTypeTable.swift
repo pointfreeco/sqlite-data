@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 // @Table("\(String.sqliteDataCloudKitSchemaName)_recordTypes")
 package struct RecordType: Hashable {
   // @Column(primaryKey: true)
@@ -100,3 +101,4 @@ extension RecordType: StructuredQueriesCore.Table, StructuredQueriesCore.Primary
     self.schema = schema
   }
 }
+#endif

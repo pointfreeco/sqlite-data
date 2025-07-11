@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import Foundation
 import os
 
@@ -91,3 +92,4 @@ extension QueryFragment {
     Self("\(raw: .sqliteDataCloudKitSchemaName)_datetime()")
   }
 }
+#endif

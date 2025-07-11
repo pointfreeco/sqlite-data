@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import Foundation
 import StructuredQueriesCore
 
@@ -297,3 +298,4 @@ struct ForeignKey: QueryDecodable, QueryRepresentable {
     }
   }
 }
+#endif
