@@ -4,23 +4,21 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension StateSerialization {
-    public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore
-        .PrimaryKeyedTableDefinition
-    {
+    public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore.PrimaryKeyedTableDefinition {
       public typealias QueryValue = StateSerialization
-      public let scope = StructuredQueriesCore.TableColumn<
-        QueryValue, CKDatabase.Scope.RawValueRepresentation
-      >("scope", keyPath: \QueryValue.scope)
-      public let data = StructuredQueriesCore.TableColumn<
-        QueryValue, CKSyncEngine.State.Serialization.JSONRepresentation
-      >("data", keyPath: \QueryValue.data)
-      public var primaryKey:
-        StructuredQueriesCore.TableColumn<QueryValue, CKDatabase.Scope.RawValueRepresentation>
-      {
+      public let scope = StructuredQueriesCore.TableColumn<QueryValue, CKDatabase.Scope.RawValueRepresentation>("scope", keyPath: \QueryValue.scope)
+      public let data = StructuredQueriesCore.TableColumn<QueryValue, CKSyncEngine.State.Serialization.JSONRepresentation>("data", keyPath: \QueryValue.data)
+      public var primaryKey: StructuredQueriesCore.TableColumn<QueryValue, CKDatabase.Scope.RawValueRepresentation> {
         self.scope
       }
       public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
         [QueryValue.columns.scope, QueryValue.columns.data]
+      }
+      public static var writableColumns: [any StructuredQueriesCore.WritableTableColumnExpression] {
+        [QueryValue.columns.scope, QueryValue.columns.data]
+      }
+      public var queryFragment: QueryFragment {
+        "\(self.scope), \(self.data)"
       }
     }
 
@@ -30,14 +28,16 @@
       package var data: CKSyncEngine.State.Serialization
       public struct TableColumns: StructuredQueriesCore.TableDefinition {
         public typealias QueryValue = Draft
-        public let scope = StructuredQueriesCore.TableColumn<
-          QueryValue, CKDatabase.Scope.RawValueRepresentation?
-        >("scope", keyPath: \QueryValue.scope)
-        public let data = StructuredQueriesCore.TableColumn<
-          QueryValue, CKSyncEngine.State.Serialization.JSONRepresentation
-        >("data", keyPath: \QueryValue.data)
+        public let scope = StructuredQueriesCore.TableColumn<QueryValue, CKDatabase.Scope.RawValueRepresentation?>("scope", keyPath: \QueryValue.scope)
+        public let data = StructuredQueriesCore.TableColumn<QueryValue, CKSyncEngine.State.Serialization.JSONRepresentation>("data", keyPath: \QueryValue.data)
         public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
           [QueryValue.columns.scope, QueryValue.columns.data]
+        }
+        public static var writableColumns: [any StructuredQueriesCore.WritableTableColumnExpression] {
+          [QueryValue.columns.scope, QueryValue.columns.data]
+        }
+        public var queryFragment: QueryFragment {
+          "\(self.scope), \(self.data)"
         }
       }
       public static let columns = TableColumns()
@@ -67,9 +67,7 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension StateSerialization: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable
-  {
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) extension StateSerialization: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
     public static let columns = TableColumns()
     public static let tableName = "sqlitedata_icloud_stateSerialization"
     public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {

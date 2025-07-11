@@ -8,7 +8,7 @@ import Testing
 extension PrimaryKeyedTable<UUID> {
   static func recordID(for id: UUID, zoneID: CKRecordZone.ID? = nil) -> CKRecord.ID {
     CKRecord.ID(
-      recordName: self.recordName(for: id).rawValue,
+      recordName: self.recordName(for: id),
       zoneID: zoneID ?? SyncEngine.defaultZone.zoneID
     )
   }

@@ -66,7 +66,7 @@ extension BaseCloudKitTests {
       try await userDatabase.userRead { db in
         let reminderMetadata = try #require(
           try SyncMetadata
-            .find(Reminder.recordName(for: UUID(1)))
+            .where { $0.recordName.eq(Reminder.recordName(for: UUID(1))) }
             .fetchOne(db)
         )
         #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(1)))
@@ -75,17 +75,19 @@ extension BaseCloudKitTests {
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
       } operation: {
-        try await userDatabase.userWrite { db in
-          try Reminder.find(UUID(1))
-            .update { $0.remindersListID = UUID(2) }
-            .execute(db)
-          let reminderMetadata = try #require(
-            try SyncMetadata
-              .find(Reminder.recordName(for: UUID(1)))
-              .fetchOne(db)
-          )
-          #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(2)))
-        }
+        _ = try {
+          try userDatabase.userWrite { db in
+            try Reminder.find(UUID(1))
+              .update { $0.remindersListID = UUID(2) }
+              .execute(db)
+            let reminderMetadata = try #require(
+              try SyncMetadata
+                .where { $0.recordName.eq(Reminder.recordName(for: UUID(1))) }
+                .fetchOne(db)
+            )
+            #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(2)))
+          }
+        }()
       }
 
       await syncEngine.processBatch()
@@ -271,7 +273,7 @@ extension BaseCloudKitTests {
       try await userDatabase.userRead { db in
         let reminderMetadata =
         try SyncMetadata
-          .where { $0.parentRecordPrimaryKey == UUID(1) }
+          .where { $0.parentRecordPrimaryKey.eq(UUID(1).uuidString.lowercased()) }
           .fetchAll(db)
         #expect(
           reminderMetadata.map(\.recordName) == [

@@ -152,7 +152,7 @@ extension BaseCloudKitTests {
       try {
         try userDatabase.read { db in
           let metadata = try #require(
-            try SyncMetadata.find(Reminder.recordName(for: UUID(1))).fetchOne(db)
+            try SyncMetadata.find(UUID(1), table: Reminder.self).fetchOne(db)
           )
           #expect(metadata.parentRecordName == RemindersList.recordName(for: UUID(2)))
           let reminder = try #require(try Reminder.find(UUID(1)).fetchOne(db))
@@ -187,7 +187,7 @@ extension BaseCloudKitTests {
       try {
         try userDatabase.read { db in
           let metadata = try #require(
-            try SyncMetadata.find(Reminder.recordName(for: UUID(1))).fetchOne(db)
+            try SyncMetadata.find(UUID(1), table: Reminder.self).fetchOne(db)
           )
           #expect(metadata.parentRecordName == RemindersList.recordName(for: UUID(2)))
           let reminder = try #require(try Reminder.find(UUID(1)).fetchOne(db))
@@ -240,7 +240,7 @@ extension BaseCloudKitTests {
       try {
         try userDatabase.read { db in
           let metadata = try #require(
-            try SyncMetadata.find(RemindersList.recordName(for: UUID(1))).fetchOne(db)
+            try SyncMetadata.find(UUID(1), table: RemindersList.self).fetchOne(db)
           )
           #expect(metadata.recordName == RemindersList.recordName(for: UUID(1)))
           let remindersList = try #require(try RemindersList.find(UUID(1)).fetchOne(db))
@@ -351,13 +351,13 @@ extension BaseCloudKitTests {
       try {
         try userDatabase.read { db in
           let reminderMetadata = try #require(
-            try SyncMetadata.find(Reminder.recordName(for: UUID(1))).fetchOne(db)
+            try SyncMetadata.find(UUID(1), table: Reminder.self).fetchOne(db)
           )
           #expect(reminderMetadata.recordName == Reminder.recordName(for: UUID(1)))
           #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(1)))
 
           let remindersListMetadata = try #require(
-            try SyncMetadata.find(RemindersList.recordName(for: UUID(1))).fetchOne(db)
+            try SyncMetadata.find(UUID(1), table: RemindersList.self).fetchOne(db)
           )
           #expect(remindersListMetadata.recordName == RemindersList.recordName(for: UUID(1)))
           #expect(remindersListMetadata.parentRecordName == nil)

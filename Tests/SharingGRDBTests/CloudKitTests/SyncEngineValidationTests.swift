@@ -7,10 +7,41 @@ import SnapshotTestingCustomDump
 import Testing
 
 extension BaseCloudKitTests {
+  @Table("invalid:table")
+  struct InvalidTable {
+    let id: UUID
+  }
+
   @MainActor
   struct SyncEngineValidationTests {
-    @Test
-    func userTriggerValidation() async throws {
+    @Test func tableNameValidation() async throws {
+      let error = try #require(
+        await #expect(throws: InvalidTableName.self) {
+          var configuration = Configuration()
+          configuration.foreignKeysEnabled = false
+          let database = try DatabaseQueue(configuration: configuration)
+          _ = try await SyncEngine(
+            container: MockCloudContainer(
+              containerIdentifier: "deadbeef",
+              privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+              sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+            ),
+            userDatabase: UserDatabase(database: database),
+            metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
+            tables: [InvalidTable.self]
+          )
+        }
+      )
+      #expect(
+        error.localizedDescription.hasPrefix(
+          """
+          Table name "invalid:table" contains invalid character ':'.
+          """
+        )
+      )
+    }
+
+    @Test func userTriggerValidation() async throws {
       let error = try await #require(
         #expect(throws: InvalidUserTriggers.self) {
           var configuration = Configuration()
@@ -63,7 +94,7 @@ extension BaseCloudKitTests {
       #expect(
         error.localizedDescription.hasPrefix(
           """
-          Triggers must include 'WHEN NOT sqlitedata_icloud_syncEngineIsUpdatingRecord()' clause: \
+          Triggers must include 'sqlitedata_icloud_syncEngineIsUpdatingRecord()' check: \
           'non_temporary_trigger', 'temporary_trigger'
           """
         )
