@@ -170,11 +170,12 @@ extension BaseCloudKitTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func addAssetToRemindersList_RemovedFromStorage() async throws {
-      let personalList = RemindersList(id: UUID(1), title: "Personal")
+    @Test func addAssetToRemindersList_Redownload() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          personalList
+          RemindersList(id: UUID(1), title: "Personal")
+          RemindersList(id: UUID(2), title: "Business")
+          RemindersList(id: UUID(3), title: "Secret")
         }
       }
 
@@ -186,11 +187,19 @@ extension BaseCloudKitTests {
         let personalListRecord = try syncEngine.private.database.record(
           for: RemindersList.recordID(for: UUID(1))
         )
-        personalListRecord.setValue(Array("image".utf8), forKey: "image", at: now)
+        personalListRecord.setValue(Array("personal-image".utf8), forKey: "image", at: now)
+        let businessListRecord = try syncEngine.private.database.record(
+          for: RemindersList.recordID(for: UUID(2))
+        )
+        businessListRecord.setValue(Array("business-image".utf8), forKey: "image", at: now)
+        let secretListRecord = try syncEngine.private.database.record(
+          for: RemindersList.recordID(for: UUID(3))
+        )
+        secretListRecord.setValue(Array("secret-image".utf8), forKey: "image", at: now)
 
         await syncEngine.modifyRecords(
           scope: .private,
-          saving: [personalListRecord]
+          saving: [personalListRecord, businessListRecord, secretListRecord]
         )
 
         inMemoryDataManager.storage.withValue { $0.removeAll() }
@@ -209,7 +218,9 @@ extension BaseCloudKitTests {
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
           metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
-          tables: syncEngine.tables,
+          tables: syncEngine.tables
+            .filter { $0 != RemindersList.self }
+          + [RemindersListWithData.self],
           privateTables: syncEngine.privateTables
         )
 
@@ -222,13 +233,71 @@ extension BaseCloudKitTests {
         expectNoDifference(
           remindersLists,
           [
-            RemindersListWithData(id: UUID(1), image: Data("image".utf8), title: "Personal")
+            RemindersListWithData(id: UUID(1), image: Data("personal-image".utf8), title: "Personal"),
+            RemindersListWithData(id: UUID(2), image: Data("business-image".utf8), title: "Business"),
+            RemindersListWithData(id: UUID(3), image: Data("secret-image".utf8), title: "Secret"),
           ]
         )
       }
     }
 
-    // TODO: tests with multiple assets
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func newTable() async throws {
+      await syncEngine.processBatch()
+
+      try await withDependencies {
+        $0.date.now.addTimeInterval(60)
+      } operation: {
+        let imageRecord = CKRecord(
+          recordType: "images",
+          recordID: Image.recordID(for: UUID(1))
+        )
+        imageRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+        imageRecord.setValue("A good image", forKey: "caption", at: now)
+        imageRecord.setValue(Data("image".utf8), forKey: "image", at: now)
+
+        await syncEngine.modifyRecords(
+          scope: .private,
+          saving: [imageRecord]
+        )
+
+        inMemoryDataManager.storage.withValue { $0.removeAll() }
+
+        try await userDatabase.userWrite { db in
+          try #sql(
+            """
+            CREATE TABLE "images" (
+              "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+              "caption" TEXT NOT NULL,
+              "image" BLOB NOT NULL
+            )
+            """
+          )
+          .execute(db)
+        }
+
+        let relaunchedSyncEngine = try await SyncEngine(
+          container: syncEngine.container,
+          userDatabase: syncEngine.userDatabase,
+          metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
+          tables: syncEngine.tables + [Image.self],
+          privateTables: syncEngine.privateTables
+        )
+
+        await relaunchedSyncEngine.processBatch()
+
+        let images = try await userDatabase.userRead { db in
+          try Image.order(by: \.id).fetchAll(db)
+        }
+
+        expectNoDifference(
+          images,
+          [
+            Image(id: UUID(1), image: Data("image".utf8), caption: "A good image")
+          ]
+        )
+      }
+    }
   }
 }
 
@@ -252,4 +321,11 @@ private struct RemindersListWithData: Equatable, Identifiable {
   let id: UUID
   var image: Data
   var title = ""
+}
+
+@Table
+private struct Image: Equatable, Identifiable {
+  let id: UUID
+  var image: Data
+  var caption = ""
 }

@@ -36,6 +36,9 @@
       public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<
         QueryValue, CKRecord?.SystemFieldsRepresentation
       >("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
+      package let _lastKnownServerRecordAllFields = StructuredQueriesCore.TableColumn<
+        QueryValue, CKRecord?.AllFieldsRepresentation
+      >("_lastKnownServerRecordAllFields", keyPath: \QueryValue._lastKnownServerRecordAllFields)
       public let share = StructuredQueriesCore.TableColumn<
         QueryValue, CKShare?.SystemFieldsRepresentation
       >("share", keyPath: \QueryValue.share)
@@ -54,7 +57,9 @@
           QueryValue.columns.recordPrimaryKey, QueryValue.columns.recordType,
           QueryValue.columns.recordName, QueryValue.columns.parentRecordPrimaryKey,
           QueryValue.columns.parentRecordType, QueryValue.columns.parentRecordName,
-          QueryValue.columns.lastKnownServerRecord, QueryValue.columns.share,
+          QueryValue.columns.lastKnownServerRecord,
+          QueryValue.columns._lastKnownServerRecordAllFields,
+          QueryValue.columns.share,
           QueryValue.columns.isShared, QueryValue.columns.userModificationDate,
         ]
       }
@@ -62,12 +67,14 @@
         [
           QueryValue.columns.recordPrimaryKey, QueryValue.columns.recordType,
           QueryValue.columns.parentRecordPrimaryKey, QueryValue.columns.parentRecordType,
-          QueryValue.columns.lastKnownServerRecord, QueryValue.columns.share,
+          QueryValue.columns.lastKnownServerRecord,
+          QueryValue.columns._lastKnownServerRecordAllFields,
+          QueryValue.columns.share,
           QueryValue.columns.userModificationDate,
         ]
       }
       public var queryFragment: QueryFragment {
-        "\(self.recordPrimaryKey), \(self.recordType), \(self.recordName), \(self.parentRecordPrimaryKey), \(self.parentRecordType), \(self.parentRecordName), \(self.lastKnownServerRecord), \(self.share), \(self.isShared), \(self.userModificationDate)"
+        "\(self.recordPrimaryKey), \(self.recordType), \(self.recordName), \(self.parentRecordPrimaryKey), \(self.parentRecordType), \(self.parentRecordName), \(self.lastKnownServerRecord), \(self._lastKnownServerRecordAllFields), \(self.share), \(self.isShared), \(self.userModificationDate)"
       }
     }
   }
@@ -84,6 +91,9 @@
       self.parentRecordType = try decoder.decode(String.self)
       self.parentRecordName = try decoder.decode(String.self)
       let lastKnownServerRecord = try decoder.decode(CKRecord?.SystemFieldsRepresentation.self)
+      let _lastKnownServerRecordAllFields = try decoder.decode(
+        CKRecord?.AllFieldsRepresentation.self
+      )
       let share = try decoder.decode(CKShare?.SystemFieldsRepresentation.self)
       let isShared = try decoder.decode(Bool.self)
       let userModificationDate = try decoder.decode(Date.self)
@@ -99,6 +109,9 @@
       guard let lastKnownServerRecord else {
         throw QueryDecodingError.missingRequiredColumn
       }
+      guard let _lastKnownServerRecordAllFields else {
+        throw QueryDecodingError.missingRequiredColumn
+      }
       guard let share else {
         throw QueryDecodingError.missingRequiredColumn
       }
@@ -112,6 +125,7 @@
       self.recordType = recordType
       self.recordName = recordName
       self.lastKnownServerRecord = lastKnownServerRecord
+      self._lastKnownServerRecordAllFields = _lastKnownServerRecordAllFields
       self.share = share
       self.isShared = isShared
       self.userModificationDate = userModificationDate
