@@ -24,6 +24,8 @@
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
 
+    let dataManager = Dependency(\.dataManager)
+
     public convenience init(
       container: CKContainer,
       database: any DatabaseWriter,
@@ -259,15 +261,15 @@
             else { continue }
 
             let parentForeignKey =
-            foreignKeysByTableName[tableName]?.count == 1
-            ? foreignKeysByTableName[tableName]?.first
-            : nil
+              foreignKeysByTableName[tableName]?.count == 1
+              ? foreignKeysByTableName[tableName]?.first
+              : nil
 
             func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
               let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
-              parentForeignKey
+                parentForeignKey
                 .map { ("\(T.self).\(quote: $0.from)", "\(bind: $0.table)") }
-              ?? ("NULL", "NULL")
+                ?? ("NULL", "NULL")
               try SyncMetadata.insert { columns in
                 (
                   columns.recordPrimaryKey,
@@ -313,15 +315,17 @@
           let lastKnownServerRecords = try await metadatabase.read { db in
             try SyncMetadata
               .where { $0.recordType.eq(tableName) }
+            // TODO: make this a regular column
               .select(\._lastKnownServerRecordAllFields)
               .fetchAll(db)
               .compactMap(\.self)
           }
           for lastKnownServerRecord in lastKnownServerRecords {
             let query = try await updateQuery(
-              T.self,
+              for: T.self,
               record: lastKnownServerRecord,
-              columnNames: changedColumns
+              columnNames: T.TableColumns.allColumns.map(\.name),
+              changedColumnNames: changedColumns
             )
             try await userDatabase.write { db in
               try SQLQueryExpression(query).execute(db)
@@ -952,18 +956,12 @@
     }
 
     private func upsertFromServerRecord(_ serverRecord: CKRecord) {
-      // TODO: Upfront cache this server record regardless if table is recognized
       withErrorReporting(.sqliteDataCloudKitFailure) {
         guard let table = tablesByName[serverRecord.recordType]
         else {
-          // TODO: Do not report this
-          reportIssue(
-            .sqliteDataCloudKitFailure.appending(
-              """
-              : No table to merge from: "\(serverRecord.recordType)"
-              """
-            )
-          )
+          // TODO: Upfront cache this server record regardless if table is recognized
+          // TODO: test
+
           return
         }
 
@@ -1048,54 +1046,61 @@
     }
 
     private func updateQuery<T: PrimaryKeyedTable<UUID>>(
-      _: T.Type,
+      for _: T.Type,
       record: CKRecord,
-      columnNames: some Collection<String>
+      columnNames: some Collection<String>,
+      changedColumnNames: some Collection<String>
     ) async throws -> QueryFragment {
-      @Dependency(\.dataManager) var dataManager
-
-      let nonPrimaryKeyColumns = columnNames.filter { $0 != T.columns.primaryKey.name }
+      let nonPrimaryKeyChangedColumns =
+        changedColumnNames
+        .filter { $0 != T.columns.primaryKey.name }
       guard
-        !nonPrimaryKeyColumns.isEmpty,
-        let id = record.encryptedValues[T.columns.primaryKey.name] as? String
+        !nonPrimaryKeyChangedColumns.isEmpty
       else {
         return ""
       }
-      var query: QueryFragment = "UPDATE \(T.self) SET "
-
-
       var record = record
-      let recordHasAsset = nonPrimaryKeyColumns.contains { columnName in
+      let recordHasAsset = nonPrimaryKeyChangedColumns.contains { columnName in
         record[columnName] is CKAsset
       }
       if recordHasAsset {
         record = try await container.database(for: record.recordID).record(for: record.recordID)
       }
 
-      var columnAssignments: [QueryFragment] = []
-      for columnName in nonPrimaryKeyColumns {
-        if let asset = record[columnName] as? CKAsset {
-          let data = try? asset.fileURL.map { try dataManager.load($0) }
-          if data == nil {
-            // TODO: Handle assets that need to be re-downloaded
-            reportIssue("Asset data not found on disk")
+      var query: QueryFragment = "INSERT INTO \(T.self) ("
+      query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+      query.append(") VALUES (")
+      query.append(
+        columnNames
+          .map { columnName in
+            if let asset = record[columnName] as? CKAsset {
+              let data = try? asset.fileURL.map { try dataManager.wrappedValue.load($0) }
+              if data == nil {
+                reportIssue("Asset data not found on disk")
+              }
+              return data?.queryFragment ?? "NULL"
+            } else {
+              return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
+            }
           }
-          columnAssignments.append(
-          """
-          \(quote: columnName) = \(data?.queryFragment ?? "NULL")
-          """
-          )
-        } else {
-          columnAssignments.append(
-          """
-          \(quote: columnName) = \(record.encryptedValues[columnName]?.queryFragment ?? "NULL") 
-          """
-          )
-        }
-      }
-
-      query.append(columnAssignments.joined(separator: ","))
-      query.append(" WHERE \(T.columns.primaryKey) = \(bind: id)")
+          .joined(separator: ", ")
+      )
+      query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
+      query.append(
+        nonPrimaryKeyChangedColumns
+          .map { columnName in
+            if let asset = record[columnName] as? CKAsset {
+              let data = try? asset.fileURL.map { try dataManager.wrappedValue.load($0) }
+              if data == nil {
+                reportIssue("Asset data not found on disk")
+              }
+              return "\(quote: columnName) = \(data?.queryFragment ?? "NULL")"
+            } else {
+              return "\(quote: columnName) = \(record.encryptedValues[columnName]?.queryFragment ?? "NULL")"
+            }
+          }
+          .joined(separator: ",")
+      )
       return query
     }
   }

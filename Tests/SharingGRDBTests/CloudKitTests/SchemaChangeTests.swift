@@ -74,7 +74,9 @@ extension BaseCloudKitTests {
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
           metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
-          tables: syncEngine.tables,
+          tables: syncEngine.tables
+            .filter { $0 != Reminder.self && $0 != RemindersList.self }
+          + [ReminderWithPosition.self, RemindersListWithPosition.self],
           privateTables: syncEngine.privateTables
         )
 
@@ -146,7 +148,9 @@ extension BaseCloudKitTests {
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
           metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
-          tables: syncEngine.tables,
+          tables: syncEngine.tables
+            .filter { $0 != RemindersList.self }
+          + [RemindersListWithData.self],
           privateTables: syncEngine.privateTables
         )
 
@@ -183,14 +187,14 @@ extension BaseCloudKitTests {
           for: RemindersList.recordID(for: UUID(1))
         )
         personalListRecord.setValue(Array("image".utf8), forKey: "image", at: now)
-        
+
         await syncEngine.modifyRecords(
           scope: .private,
           saving: [personalListRecord]
         )
-        
+
         inMemoryDataManager.storage.withValue { $0.removeAll() }
-        
+
         try await userDatabase.userWrite { db in
           try #sql(
             """
@@ -200,7 +204,7 @@ extension BaseCloudKitTests {
           )
           .execute(db)
         }
-        
+
         let relaunchedSyncEngine = try await SyncEngine(
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
@@ -208,13 +212,13 @@ extension BaseCloudKitTests {
           tables: syncEngine.tables,
           privateTables: syncEngine.privateTables
         )
-        
+
         await relaunchedSyncEngine.processBatch()
-        
+
         let remindersLists = try await userDatabase.userRead { db in
           try RemindersListWithData.order(by: \.id).fetchAll(db)
         }
-        
+
         expectNoDifference(
           remindersLists,
           [
@@ -223,6 +227,8 @@ extension BaseCloudKitTests {
         )
       }
     }
+
+    // TODO: tests with multiple assets
   }
 }
 
