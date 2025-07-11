@@ -109,36 +109,29 @@ extension SyncMetadata {
     "after_delete_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
     after: .delete { old in
-      Values(.didDelete(old))
+      Values(.didDelete(
+        recordName: old.recordName,
+        lastKnownServerRecord: old.lastKnownServerRecord
+        ?? rootServerRecord(recordName: old.recordName)
+      ))
     } when: { _ in
       !SyncEngine.isUpdatingRecord()
     }
   )
 }
 
-// TODO: can we remove a layer of didUpdate/didDelete?
 extension QueryExpression where Self == SQLQueryExpression<()> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   fileprivate static func didUpdate(
-    _ new: StructuredQueriesCore.TableAlias<SyncMetadata, TemporaryTrigger<SyncMetadata>.Operation._New>.TableColumns
+    _ new: StructuredQueriesCore.TableAlias<
+      SyncMetadata, TemporaryTrigger<SyncMetadata>.Operation._New
+    >
+    .TableColumns
   ) -> Self {
     .didUpdate(
       recordName: new.recordName,
       lastKnownServerRecord: new.lastKnownServerRecord
       ?? rootServerRecord(recordName: new.recordName)
-    )
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  fileprivate static func didDelete(
-    _ old: StructuredQueriesCore.TableAlias<SyncMetadata, TemporaryTrigger<SyncMetadata>.Operation._Old>.TableColumns
-  )
-  -> Self
-  {
-    .didDelete(
-      recordName: SQLQueryExpression(old.recordName),
-      lastKnownServerRecord: old.lastKnownServerRecord
-      ?? rootServerRecord(recordName: SQLQueryExpression(old.recordName))
     )
   }
 
@@ -151,12 +144,10 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private static func didDelete(
+  fileprivate static func didDelete(
     recordName: some QueryExpression<String>,
     lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>
-  )
-  -> Self
-  {
+  ) -> Self {
     Self("\(raw: .sqliteDataCloudKitSchemaName)_didDelete(\(recordName), \(lastKnownServerRecord))")
   }
 }
