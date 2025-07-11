@@ -172,29 +172,28 @@ private func rootServerRecord(
   With {
     SyncMetadata
       .where { $0.recordName.eq(recordName) }
-      .select {
-        SyncMetadata.AncestorMetadata.Columns(
-          recordName: $0.recordName,
-          parentRecordName: $0.parentRecordName,
-          lastKnownServerRecord: $0.lastKnownServerRecord
-        )
-      }
+      .select { SyncMetadata.AncestorMetadata.Columns($0) }
       .union(
         all: true,
         SyncMetadata
-          .select {
-            SyncMetadata.AncestorMetadata.Columns(
-              recordName: $0.recordName,
-              parentRecordName: $0.parentRecordName,
-              lastKnownServerRecord: $0.lastKnownServerRecord
-            )
-          }
+          .select { SyncMetadata.AncestorMetadata.Columns($0) }
           .join(SyncMetadata.AncestorMetadata.all) { $0.recordName.is($1.parentRecordName) }
       )
   } query: {
     SyncMetadata.AncestorMetadata
       .select(\.lastKnownServerRecord)
       .where { $0.parentRecordName.is(nil) }
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncMetadata.AncestorMetadata.Columns {
+  fileprivate init(_ metadata: SyncMetadata.TableColumns) {
+    self.init(
+      recordName: metadata.recordName,
+      parentRecordName: metadata.parentRecordName,
+      lastKnownServerRecord: metadata.lastKnownServerRecord
+    )
   }
 }
 #endif
