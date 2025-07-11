@@ -16,7 +16,7 @@ extension PrimaryKeyedTable<UUID> {
     createTemporaryTrigger(
       "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_\(tableName)",
       ifNotExists: true,
-      after: .insert { new in SyncMetadata.insert(new: new, parentForeignKey: parentForeignKey) }
+      after: .insert { new in SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey) }
     )
   }
 
@@ -24,7 +24,7 @@ extension PrimaryKeyedTable<UUID> {
     createTemporaryTrigger(
       "\(String.sqliteDataCloudKitSchemaName)_after_update_on_\(tableName)",
       ifNotExists: true,
-      after: .update { _, new in SyncMetadata.insert(new: new, parentForeignKey: parentForeignKey) }
+      after: .update { _, new in SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey) }
     )
   }
 
@@ -46,7 +46,7 @@ extension PrimaryKeyedTable<UUID> {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncMetadata {
-  fileprivate static func insert<T: PrimaryKeyedTable<UUID>>(
+  fileprivate static func upsert<T: PrimaryKeyedTable<UUID>>(
     new: TemporaryTrigger<T>.Operation.New,
     parentForeignKey: ForeignKey?,
   ) -> some StructuredQueriesCore.Statement {
