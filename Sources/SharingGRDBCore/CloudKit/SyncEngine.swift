@@ -1460,7 +1460,7 @@
         }
         .joined(separator: ",")
     )
-    query.append("WHERE \(T.columns.primaryKey) = \(bind: id)")
+    query.append(" WHERE \(T.columns.primaryKey) = \(bind: id)")
     return query
   }
 #endif

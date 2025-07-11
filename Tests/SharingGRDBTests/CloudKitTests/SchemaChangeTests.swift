@@ -55,17 +55,17 @@ extension BaseCloudKitTests {
 
         try await userDatabase.userWrite { db in
           try #sql(
-          """
-          ALTER TABLE "remindersLists" 
-          ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
-          """
+            """
+            ALTER TABLE "remindersLists" 
+            ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+            """
           )
           .execute(db)
           try #sql(
-          """
-          ALTER TABLE "reminders" 
-          ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
-          """
+            """
+            ALTER TABLE "reminders" 
+            ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+            """
           )
           .execute(db)
         }
@@ -97,7 +97,12 @@ extension BaseCloudKitTests {
         expectNoDifference(
           reminders,
           [
-            ReminderWithPosition(id: UUID(1), title: "Get milk", position: 3, remindersListID: UUID(1)),
+            ReminderWithPosition(
+              id: UUID(1),
+              title: "Get milk",
+              position: 3,
+              remindersListID: UUID(1)
+            )
           ]
         )
       }
@@ -129,10 +134,10 @@ extension BaseCloudKitTests {
 
         try await userDatabase.userWrite { db in
           try #sql(
-          """
-          ALTER TABLE "remindersLists" 
-          ADD COLUMN "image" BLOB NOT NULL ON CONFLICT REPLACE DEFAULT X''
-          """
+            """
+            ALTER TABLE "remindersLists" 
+            ADD COLUMN "image" BLOB NOT NULL ON CONFLICT REPLACE DEFAULT X''
+            """
           )
           .execute(db)
         }
@@ -154,7 +159,7 @@ extension BaseCloudKitTests {
         expectNoDifference(
           remindersLists,
           [
-            RemindersListWithData(id: UUID(1), image: Data("image".utf8), title: "Personal"),
+            RemindersListWithData(id: UUID(1), image: Data("image".utf8), title: "Personal")
           ]
         )
       }
@@ -188,33 +193,33 @@ extension BaseCloudKitTests {
 
         try await userDatabase.userWrite { db in
           try #sql(
-          """
-          ALTER TABLE "remindersLists" 
-          ADD COLUMN "image" BLOB NOT NULL ON CONFLICT REPLACE DEFAULT X''
-          """
+            """
+            ALTER TABLE "remindersLists" 
+            ADD COLUMN "image" BLOB NOT NULL ON CONFLICT REPLACE DEFAULT X''
+            """
           )
           .execute(db)
         }
 
-        let relaunchedSyncEngine = try await SyncEngine(
-          container: syncEngine.container,
-          userDatabase: syncEngine.userDatabase,
-          metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
-          tables: syncEngine.tables,
-          privateTables: syncEngine.privateTables
-        )
+        await withKnownIssue("TODO: Handle assets that need to be re-downloaded") {
+          let relaunchedSyncEngine = try await SyncEngine(
+            container: syncEngine.container,
+            userDatabase: syncEngine.userDatabase,
+            metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
+            tables: syncEngine.tables,
+            privateTables: syncEngine.privateTables
+          )
 
-        await relaunchedSyncEngine.processBatch()
+          await relaunchedSyncEngine.processBatch()
 
-        let remindersLists = try await userDatabase.userRead { db in
-          try RemindersListWithData.order(by: \.id).fetchAll(db)
-        }
+          let remindersLists = try await userDatabase.userRead { db in
+            try RemindersListWithData.order(by: \.id).fetchAll(db)
+          }
 
-        withKnownIssue("TODO: Handle assets that need to be re-downloaded") {
           expectNoDifference(
             remindersLists,
             [
-              RemindersListWithData(id: UUID(1), image: Data("image".utf8), title: "Personal"),
+              RemindersListWithData(id: UUID(1), image: Data("image".utf8), title: "Personal")
             ]
           )
         }
@@ -224,14 +229,14 @@ extension BaseCloudKitTests {
 }
 
 @Table("remindersLists")
-fileprivate struct RemindersListWithPosition: Equatable, Identifiable {
+private struct RemindersListWithPosition: Equatable, Identifiable {
   let id: UUID
   var title = ""
   var position = 0
 }
 
 @Table("reminders")
-fileprivate struct ReminderWithPosition: Equatable, Identifiable {
+private struct ReminderWithPosition: Equatable, Identifiable {
   let id: UUID
   var title = ""
   var position = 0
@@ -239,7 +244,7 @@ fileprivate struct ReminderWithPosition: Equatable, Identifiable {
 }
 
 @Table("remindersLists")
-fileprivate struct RemindersListWithData: Equatable, Identifiable {
+private struct RemindersListWithData: Equatable, Identifiable {
   let id: UUID
   var image: Data
   var title = ""
