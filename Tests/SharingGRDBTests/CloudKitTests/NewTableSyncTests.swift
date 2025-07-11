@@ -79,6 +79,7 @@ extension BaseCloudKitTests {
               share: nil
             ),
             share: nil,
+            isShared: false,
             userModificationDate: Date(1970-01-01T00:00:00.000Z)
           ),
           [1]: SyncMetadata(
@@ -95,6 +96,7 @@ extension BaseCloudKitTests {
               share: nil
             ),
             share: nil,
+            isShared: false,
             userModificationDate: Date(1970-01-01T00:00:00.000Z)
           )
         ]

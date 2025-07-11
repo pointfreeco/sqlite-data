@@ -122,9 +122,9 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
     _ new: StructuredQueriesCore.TableAlias<SyncMetadata, TemporaryTrigger<SyncMetadata>.Operation._New>.TableColumns
   ) -> Self {
     .didUpdate(
-      recordName: SQLQueryExpression(#""new"."recordName""#),
+      recordName: new.recordName,
       lastKnownServerRecord: new.lastKnownServerRecord
-      ?? rootServerRecord(recordName: SQLQueryExpression(#""new"."recordName""#))
+      ?? rootServerRecord(recordName: new.recordName)
     )
   }
 
@@ -135,9 +135,9 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
   -> Self
   {
     .didDelete(
-      recordName: SQLQueryExpression(#""old"."recordName""#),
+      recordName: SQLQueryExpression(old.recordName),
       lastKnownServerRecord: old.lastKnownServerRecord
-      ?? rootServerRecord(recordName: SQLQueryExpression(#""old"."recordName""#))
+      ?? rootServerRecord(recordName: SQLQueryExpression(old.recordName))
     )
   }
 

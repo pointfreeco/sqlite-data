@@ -45,6 +45,7 @@ func defaultMetadatabase(
         "lastKnownServerRecord" BLOB,
         "_lastKnownServerRecordAllFields" BLOB,
         "share" BLOB,
+        "isShared" INTEGER NOT NULL AS ("share" IS NOT NULL),
         "userModificationDate" TEXT NOT NULL DEFAULT (\(.datetime())),
 
         PRIMARY KEY ("recordPrimaryKey", "recordType"),
@@ -57,8 +58,8 @@ func defaultMetadatabase(
     // TODO: Do we ever query for "parentRecordName"? should we add an index?
     try SQLQueryExpression(
       """
-      CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_share"
-      ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("share") WHERE "share" IS NOT NULL
+      CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_isShared"
+      ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("isShared")
       """
     )
     .execute(db)

@@ -37,8 +37,6 @@ extension BaseCloudKitTests {
           SyncMetadata(
             recordPrimaryKey: UUID(1).uuidString.lowercased(),
             recordType: UnrecognizedTable.tableName,
-            recordName: UnrecognizedTable.recordName(for: UUID(1)),
-            parentRecordName: nil,
             userModificationDate: .distantPast
           )
         }
@@ -68,8 +66,6 @@ extension BaseCloudKitTests {
           SyncMetadata(
             recordPrimaryKey: UUID(1).uuidString.lowercased(),
             recordType: RemindersList.tableName,
-            recordName: RemindersList.recordName(for: UUID(1)),
-            parentRecordName: nil,
             userModificationDate: .distantPast
           )
         }

@@ -43,6 +43,7 @@ public struct SyncMetadata: Hashable, Sendable {
   /// ```swift
   /// "d35e1f81-46e4-45d1-904b-2b7df1661e3e:remindersLists"
   /// ```
+  // @Column(generated: .virtual)
   public let parentRecordName: String?
 
   /// The last known `CKRecord` received from the server.
@@ -53,9 +54,8 @@ public struct SyncMetadata: Hashable, Sendable {
   // @Column(as: CKShare?.SystemFieldsRepresentation.self)
   public var share: CKShare?
 
-  // TODO: Add generated column and index it instead of current 'WHERE IS NOT NULL' index
   // @Column(generated: .virtual)
-  // public let isShared: Bool
+  public let isShared: Bool
 
   /// The date the user last modified the record.
   public var userModificationDate: Date
@@ -63,22 +63,25 @@ public struct SyncMetadata: Hashable, Sendable {
   package init(
     recordPrimaryKey: String,
     recordType: String,
-    recordName: String,
     parentRecordPrimaryKey: String? = nil,
     parentRecordType: String? = nil,
-    parentRecordName: String?,
     lastKnownServerRecord: CKRecord? = nil,
     share: CKShare? = nil,
     userModificationDate: Date
   ) {
     self.recordPrimaryKey = recordPrimaryKey
     self.recordType = recordType
-    self.recordName = recordName
+    self.recordName = "\(recordPrimaryKey):\(recordType)"
     self.parentRecordPrimaryKey = parentRecordPrimaryKey
     self.parentRecordType = parentRecordType
-    self.parentRecordName = parentRecordName
+    if let parentRecordPrimaryKey, let parentRecordType {
+      self.parentRecordName = "\(parentRecordPrimaryKey):\(parentRecordType)"
+    } else {
+      self.parentRecordName = nil
+    }
     self.lastKnownServerRecord = lastKnownServerRecord
     self.share = share
+    self.isShared = share != nil
     self.userModificationDate = userModificationDate
   }
 
