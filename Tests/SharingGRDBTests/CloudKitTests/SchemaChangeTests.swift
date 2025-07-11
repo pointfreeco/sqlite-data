@@ -8,11 +8,11 @@ import Testing
 
 extension BaseCloudKitTests {
   @MainActor
-  final class SetUpTests: BaseCloudKitTests, @unchecked Sendable {
+  final class SchemaChangeTests: BaseCloudKitTests, @unchecked Sendable {
     @Dependency(\.date.now) var now
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func schemaChange() async throws {
+    @Test func addColumnToRemindersAndRemindersLists() async throws {
       let personalList = RemindersList(id: UUID(1), title: "Personal")
       let businessList = RemindersList(id: UUID(2), title: "Business")
       let reminder = Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
@@ -68,22 +68,10 @@ extension BaseCloudKitTests {
 
         let relaunchedSyncEngine = try await SyncEngine(
           container: syncEngine.container,
-          userDatabase: self.userDatabase,
-          metadatabaseURL: URL
-            .metadatabase(containerIdentifier: syncEngine.container.containerIdentifier!),
-          tables: [
-            MigratedReminder.self,
-            MigratedRemindersList.self,
-            Tag.self,
-            ReminderTag.self,
-            Parent.self,
-            ChildWithOnDeleteRestrict.self,
-            ChildWithOnDeleteSetNull.self,
-            ChildWithOnDeleteSetDefault.self,
-          ],
-          privateTables: [
-            RemindersListPrivate.self
-          ]
+          userDatabase: syncEngine.userDatabase,
+          metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
+          tables: syncEngine.tables,
+          privateTables: syncEngine.privateTables
         )
 
         await relaunchedSyncEngine.processBatch()
