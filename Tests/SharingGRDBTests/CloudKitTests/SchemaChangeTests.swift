@@ -183,14 +183,14 @@ extension BaseCloudKitTests {
           for: RemindersList.recordID(for: UUID(1))
         )
         personalListRecord.setValue(Array("image".utf8), forKey: "image", at: now)
-
+        
         await syncEngine.modifyRecords(
           scope: .private,
           saving: [personalListRecord]
         )
-
+        
         inMemoryDataManager.storage.withValue { $0.removeAll() }
-
+        
         try await userDatabase.userWrite { db in
           try #sql(
             """
@@ -200,29 +200,27 @@ extension BaseCloudKitTests {
           )
           .execute(db)
         }
-
-        await withKnownIssue("TODO: Handle assets that need to be re-downloaded") {
-          let relaunchedSyncEngine = try await SyncEngine(
-            container: syncEngine.container,
-            userDatabase: syncEngine.userDatabase,
-            metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
-            tables: syncEngine.tables,
-            privateTables: syncEngine.privateTables
-          )
-
-          await relaunchedSyncEngine.processBatch()
-
-          let remindersLists = try await userDatabase.userRead { db in
-            try RemindersListWithData.order(by: \.id).fetchAll(db)
-          }
-
-          expectNoDifference(
-            remindersLists,
-            [
-              RemindersListWithData(id: UUID(1), image: Data("image".utf8), title: "Personal")
-            ]
-          )
+        
+        let relaunchedSyncEngine = try await SyncEngine(
+          container: syncEngine.container,
+          userDatabase: syncEngine.userDatabase,
+          metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
+          tables: syncEngine.tables,
+          privateTables: syncEngine.privateTables
+        )
+        
+        await relaunchedSyncEngine.processBatch()
+        
+        let remindersLists = try await userDatabase.userRead { db in
+          try RemindersListWithData.order(by: \.id).fetchAll(db)
         }
+        
+        expectNoDifference(
+          remindersLists,
+          [
+            RemindersListWithData(id: UUID(1), image: Data("image".utf8), title: "Personal")
+          ]
+        )
       }
     }
   }

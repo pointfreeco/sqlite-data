@@ -208,7 +208,7 @@
           )
         }
       }
-      cacheUserTables(recordTypes: currentRecordTypes)
+      defer { cacheUserTables(recordTypes: currentRecordTypes) }
       let previousRecordTypeByTableName = Dictionary(
         uniqueKeysWithValues: previousRecordTypes.map {
           ($0.tableName, $0)
@@ -306,20 +306,19 @@
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
     ) async throws {
-
       let tablesWithChangedSchemas = currentRecordTypeByTableName.filter { tableName, recordType in
         previousRecordTypeByTableName[tableName]?.schema != recordType.schema
       }
 
-      for (tableName, recordType) in tablesWithChangedSchemas {
+      for (tableName, currentRecordType) in tablesWithChangedSchemas {
         guard let table = tablesByName[tableName]
         else { continue }
         func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) async throws {
           let previousRecordType = previousRecordTypeByTableName[tableName]
-          let changedColumns =
-            [T.columns.primaryKey.name]
-            + recordType.tableInfo.subtracting(previousRecordType?.tableInfo ?? [])
-            .map(\.name)
+          let changedColumns = currentRecordType.tableInfo.subtracting(
+            previousRecordType?.tableInfo ?? []
+          )
+          .map(\.name)
           let lastKnownServerRecords = try await metadatabase.read { db in
             try SyncMetadata
               .where { $0.recordType.eq(tableName) }
@@ -328,7 +327,11 @@
               .compactMap(\.self)
           }
           for lastKnownServerRecord in lastKnownServerRecords {
-            let query = update(T.self, record: lastKnownServerRecord, columnNames: changedColumns)
+            let query = try await updateQuery(
+              T.self,
+              record: lastKnownServerRecord,
+              columnNames: changedColumns
+            )
             try await userDatabase.write { db in
               try SQLQueryExpression(query).execute(db)
             }
@@ -783,6 +786,7 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
+      // TODO: If a CKShare comes in before a CKRecord with a share, then the cacheShare will not write anything
       let shares: [CKShare] = []
       for record in modifications {
         if let share = record as? CKShare {
@@ -957,11 +961,11 @@
     }
 
     private func upsertFromServerRecord(_ serverRecord: CKRecord) {
+      // TODO: Upfront cache this server record regardless if table is recognized
       withErrorReporting(.sqliteDataCloudKitFailure) {
         guard let table = tablesByName[serverRecord.recordType]
         else {
-          // TODO: Should we be reporting this?
-          // What if another device makes changes to a table this device doesn't know about?
+          // TODO: Do not report this
           reportIssue(
             .sqliteDataCloudKitFailure.appending(
               """
@@ -1052,6 +1056,58 @@
         }
       }
         ?? nil
+    }
+
+    private func updateQuery<T: PrimaryKeyedTable<UUID>>(
+      _: T.Type,
+      record: CKRecord,
+      columnNames: some Collection<String>
+    ) async throws -> QueryFragment {
+      @Dependency(\.dataManager) var dataManager
+
+      let nonPrimaryKeyColumns = columnNames.filter { $0 != T.columns.primaryKey.name }
+      guard
+        !nonPrimaryKeyColumns.isEmpty,
+        let id = record.encryptedValues[T.columns.primaryKey.name] as? String
+      else {
+        return ""
+      }
+      var query: QueryFragment = "UPDATE \(T.self) SET "
+
+
+      var record = record
+      let recordHasAsset = nonPrimaryKeyColumns.contains { columnName in
+        record[columnName] is CKAsset
+      }
+      if recordHasAsset {
+        record = try await container.database(for: record.recordID).record(for: record.recordID)
+      }
+
+      var columnAssignments: [QueryFragment] = []
+      for columnName in nonPrimaryKeyColumns {
+        if let asset = record[columnName] as? CKAsset {
+          let data = try? asset.fileURL.map { try dataManager.load($0) }
+          if data == nil {
+            // TODO: Handle assets that need to be re-downloaded
+            reportIssue("Asset data not found on disk")
+          }
+          columnAssignments.append(
+          """
+          \(quote: columnName) = \(data?.queryFragment ?? "NULL")
+          """
+          )
+        } else {
+          columnAssignments.append(
+          """
+          \(quote: columnName) = \(record.encryptedValues[columnName]?.queryFragment ?? "NULL") 
+          """
+          )
+        }
+      }
+
+      query.append(columnAssignments.joined(separator: ","))
+      query.append(" WHERE \(T.columns.primaryKey) = \(bind: id)")
+      return query
     }
   }
 
@@ -1421,46 +1477,6 @@
         }
         .joined(separator: ",")
     )
-    return query
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func update<T: PrimaryKeyedTable<UUID>>(
-    _: T.Type,
-    record: CKRecord,
-    columnNames: some Collection<String>
-  ) -> QueryFragment {
-    let nonPrimaryKeyColumns = columnNames.filter { $0 != T.columns.primaryKey.name }
-    guard
-      !nonPrimaryKeyColumns.isEmpty,
-      let id = record.encryptedValues[T.columns.primaryKey.name] as? String
-    else {
-      return ""
-    }
-    var query: QueryFragment = "UPDATE \(T.self) SET "
-    query.append(
-      columnNames
-        .filter { columnName in columnName != T.columns.primaryKey.name }
-        .map { columnName in
-          if let asset = record[columnName] as? CKAsset {
-            @Dependency(\.dataManager) var dataManager
-            let data = try? asset.fileURL.map { try dataManager.load($0) }
-            if data == nil {
-              // TODO: Handle assets that need to be re-downloaded
-              reportIssue("Asset data not found on disk")
-            }
-            return """
-              \(quote: columnName) = \(data?.queryFragment ?? "NULL")
-              """
-          } else {
-            return """
-              \(quote: columnName) = \(record.encryptedValues[columnName]?.queryFragment ?? "NULL") 
-              """
-          }
-        }
-        .joined(separator: ",")
-    )
-    query.append(" WHERE \(T.columns.primaryKey) = \(bind: id)")
     return query
   }
 #endif

@@ -236,7 +236,15 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
 
 final class MockCloudDatabase: CloudDatabase {
   let storage = LockIsolated<[CKRecord.ID: CKRecord]>([:])
+  let assets = LockIsolated<[AssetID: Data]>([:])
   let databaseScope: CKDatabase.Scope
+
+  let dataManager = Dependency(\.dataManager)
+
+  struct AssetID: Hashable {
+    let recordID: CKRecord.ID
+    let key: String
+  }
 
   struct RecordNotFound: Error {}
 
@@ -249,6 +257,17 @@ final class MockCloudDatabase: CloudDatabase {
     else { throw RecordNotFound() }
     guard let record = record.copy() as? CKRecord
     else { fatalError("Could not copy CKRecord.") }
+
+    try assets.withValue { assets in
+      for key in record.allKeys() {
+        guard let assetData = assets[AssetID(recordID: record.recordID, key: key)]
+        else { continue }
+        let url = URL(filePath: UUID().uuidString.lowercased())
+        try dataManager.wrappedValue.save(assetData, to: url)
+        record[key] = CKAsset(fileURL: url)
+      }
+    }
+
     return record
   }
 
@@ -295,6 +314,14 @@ final class MockCloudDatabase: CloudDatabase {
             guard let copy = recordToSave.copy() as? CKRecord
             else { fatalError("Could not copy CKRecord.") }
             copy._recordChangeTag = UUID().uuidString
+            assets.withValue { assets in
+              for key in copy.allKeys() {
+                guard let assetURL = (copy[key] as? CKAsset)?.fileURL
+                else { continue }
+                assets[AssetID(recordID: copy.recordID, key: key)] = try? dataManager.wrappedValue
+                  .load(assetURL)
+              }
+            }
             storage[recordToSave.recordID] = copy
             saveResults[recordToSave.recordID] = .success(copy)
           }
