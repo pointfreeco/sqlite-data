@@ -1,3 +1,4 @@
+#if canImport(CloudKit)
 import CloudKit
 import Foundation
 
@@ -15,7 +16,7 @@ extension PrimaryKeyedTable<UUID> {
     createTemporaryTrigger(
       "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_\(tableName)",
       ifNotExists: true,
-      after: .insert { new in SyncMetadata.insert(new: new, parentForeignKey: parentForeignKey) }
+      after: .insert { new in SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey) }
     )
   }
 
@@ -23,7 +24,7 @@ extension PrimaryKeyedTable<UUID> {
     createTemporaryTrigger(
       "\(String.sqliteDataCloudKitSchemaName)_after_update_on_\(tableName)",
       ifNotExists: true,
-      after: .update { _, new in SyncMetadata.insert(new: new, parentForeignKey: parentForeignKey) }
+      after: .update { _, new in SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey) }
     )
   }
 
@@ -33,7 +34,10 @@ extension PrimaryKeyedTable<UUID> {
       ifNotExists: true,
       after: .delete { old in
         SyncMetadata
-          .find(old.recordName)
+          .where {
+            $0.recordPrimaryKey.eq(SQLQueryExpression("\(old.primaryKey)"))
+              && $0.recordType.eq(tableName)
+          }
           .delete()
       }
     )
@@ -42,27 +46,28 @@ extension PrimaryKeyedTable<UUID> {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncMetadata {
-  fileprivate static func insert<T: PrimaryKeyedTable<UUID>>(
+  fileprivate static func upsert<T: PrimaryKeyedTable<UUID>>(
     new: TemporaryTrigger<T>.Operation.New,
     parentForeignKey: ForeignKey?,
   ) -> some StructuredQueriesCore.Statement {
-    let parentForeignKey =
-      parentForeignKey.map {
-        #""new"."\#($0.from)" || ':' || '\#($0.table)'"#
-      } ?? "NULL"
+    let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
+      parentForeignKey
+        .map { (#""new".\#(quote: $0.from)"#, "\(bind: $0.table)") }
+        ?? ("NULL", "NULL")
     return insert {
-      ($0.recordType, $0.recordName, $0.parentRecordName)
+      ($0.recordPrimaryKey, $0.recordType, $0.parentRecordPrimaryKey, $0.parentRecordType)
     } select: {
       Values(
+        SQLQueryExpression("\(new.primaryKey)"),
         T.tableName,
-        new.recordName,
-        SQLQueryExpression(#"\#(raw: parentForeignKey) AS "foreignKey""#)
+        SQLQueryExpression(parentRecordPrimaryKey),
+        SQLQueryExpression(parentRecordType)
       )
     } onConflict: {
-      $0.recordName
+      ($0.recordPrimaryKey, $0.recordType)
     } doUpdate: {
-      $0.recordName = SQLQueryExpression(#""excluded"."recordName""#)
-      $0.parentRecordName = SQLQueryExpression(#""excluded"."parentRecordName""#)
+      $0.parentRecordPrimaryKey = SQLQueryExpression(#""excluded"."parentRecordPrimaryKey""#)
+      $0.parentRecordType = SQLQueryExpression(#""excluded"."parentRecordType""#)
       $0.userModificationDate = SQLQueryExpression(#""excluded"."userModificationDate""#)
     }
   }
@@ -104,18 +109,24 @@ extension SyncMetadata {
     "after_delete_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
     after: .delete { old in
-      Values(.didDelete(old))
+      Values(.didDelete(
+        recordName: old.recordName,
+        lastKnownServerRecord: old.lastKnownServerRecord
+        ?? rootServerRecord(recordName: old.recordName)
+      ))
     } when: { _ in
       !SyncEngine.isUpdatingRecord()
     }
   )
 }
 
-// TODO: can we remove a layer of didUpdate/didDelete?
 extension QueryExpression where Self == SQLQueryExpression<()> {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   fileprivate static func didUpdate(
-    _ new: StructuredQueriesCore.TableAlias<SyncMetadata, TemporaryTrigger<SyncMetadata>.Operation._New>.TableColumns
+    _ new: StructuredQueriesCore.TableAlias<
+      SyncMetadata, TemporaryTrigger<SyncMetadata>.Operation._New
+    >
+    .TableColumns
   ) -> Self {
     .didUpdate(
       recordName: new.recordName,
@@ -125,33 +136,18 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  fileprivate static func didDelete(
-    _ old: StructuredQueriesCore.TableAlias<SyncMetadata, TemporaryTrigger<SyncMetadata>.Operation._Old>.TableColumns
-  )
-  -> Self
-  {
-    .didDelete(
-      recordName: old.recordName,
-      lastKnownServerRecord: old.lastKnownServerRecord
-      ?? rootServerRecord(recordName: old.recordName)
-    )
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private static func didUpdate(
-    recordName: some QueryExpression<SyncMetadata.RecordName>,
+    recordName: some QueryExpression<String>,
     lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>
   ) -> Self {
     Self("\(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(recordName), \(lastKnownServerRecord))")
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private static func didDelete(
-    recordName: some QueryExpression<SyncMetadata.RecordName>,
+  fileprivate static func didDelete(
+    recordName: some QueryExpression<String>,
     lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>
-  )
-  -> Self
-  {
+  ) -> Self {
     Self("\(raw: .sqliteDataCloudKitSchemaName)_didDelete(\(recordName), \(lastKnownServerRecord))")
   }
 }
@@ -162,28 +158,16 @@ private func isUpdatingWithServerRecord() -> SQLQueryExpression<Bool> {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 private func rootServerRecord(
-  recordName: some QueryExpression<SyncMetadata.RecordName>
+  recordName: some QueryExpression<String>
 ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
   With {
     SyncMetadata
-      .find(recordName)
-      .select {
-        SyncMetadata.AncestorMetadata.Columns(
-          recordName: $0.recordName,
-          parentRecordName: $0.parentRecordName,
-          lastKnownServerRecord: $0.lastKnownServerRecord
-        )
-      }
+      .where { $0.recordName.eq(recordName) }
+      .select { SyncMetadata.AncestorMetadata.Columns($0) }
       .union(
         all: true,
         SyncMetadata
-          .select {
-            SyncMetadata.AncestorMetadata.Columns(
-              recordName: $0.recordName,
-              parentRecordName: $0.parentRecordName,
-              lastKnownServerRecord: $0.lastKnownServerRecord
-            )
-          }
+          .select { SyncMetadata.AncestorMetadata.Columns($0) }
           .join(SyncMetadata.AncestorMetadata.all) { $0.recordName.is($1.parentRecordName) }
       )
   } query: {
@@ -192,3 +176,15 @@ private func rootServerRecord(
       .where { $0.parentRecordName.is(nil) }
   }
 }
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncMetadata.AncestorMetadata.Columns {
+  fileprivate init(_ metadata: SyncMetadata.TableColumns) {
+    self.init(
+      recordName: metadata.recordName,
+      parentRecordName: metadata.parentRecordName,
+      lastKnownServerRecord: metadata.lastKnownServerRecord
+    )
+  }
+}
+#endif

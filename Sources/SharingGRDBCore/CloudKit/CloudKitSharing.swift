@@ -43,11 +43,11 @@ extension SyncEngine {
     guard foreignKeys.isEmpty
     else { throw RecordMustBeRoot() }
 
-    let recordName = SyncMetadata.RecordName(record: record)
+    let recordName = record.recordName
     let metadata =
       try await metadatabase.read { db in
         try SyncMetadata
-          .find(recordName)
+          .where { $0.recordName.eq(recordName) }
           .fetchOne(db)
       } ?? nil
 
@@ -63,7 +63,7 @@ extension SyncEngine {
       ?? CKRecord(
         recordType: metadata.recordType,
         recordID: CKRecord.ID(
-          recordName: metadata.recordName.rawValue,
+          recordName: metadata.recordName,
           zoneID: Self.defaultZone.zoneID
         )
       )
@@ -93,7 +93,7 @@ extension SyncEngine {
     )
     try await userDatabase.write { db in
       try SyncMetadata
-        .find(recordName)
+        .where { $0.recordName.eq(recordName) }
         .update { $0.share = sharedRecord }
         .execute(db)
     }

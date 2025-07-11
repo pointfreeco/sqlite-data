@@ -6,13 +6,13 @@ package protocol CloudDatabase: AnyObject, Hashable, Sendable {
   
   func record(for recordID: CKRecord.ID) async throws -> CKRecord
 
-  @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
+  @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
   func records(
     for ids: [CKRecord.ID],
     desiredKeys: [CKRecord.FieldKey]?
   ) async throws -> [CKRecord.ID : Result<CKRecord, any Error>]
 
-  @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
+  @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
   func modifyRecords(
     saving recordsToSave: [CKRecord],
     deleting recordIDsToDelete: [CKRecord.ID],
@@ -25,7 +25,7 @@ package protocol CloudDatabase: AnyObject, Hashable, Sendable {
 }
 
 extension CloudDatabase {
-  @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
+  @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
   func modifyRecords(
     saving recordsToSave: [CKRecord],
     deleting recordIDsToDelete: [CKRecord.ID]
@@ -41,7 +41,7 @@ extension CloudDatabase {
     )
   }
 
-  @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
+  @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
   package func records(
     for ids: [CKRecord.ID]
   ) async throws -> [CKRecord.ID : Result<CKRecord, any Error>] {
@@ -65,7 +65,7 @@ final class AnyCloudDatabase: CloudDatabase {
     try await rawValue.record(for: recordID)
   }
 
-  @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
+  @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
   func records(
     for ids: [CKRecord.ID],
     desiredKeys: [CKRecord.FieldKey]?
@@ -73,7 +73,7 @@ final class AnyCloudDatabase: CloudDatabase {
     try await rawValue.records(for: ids)
   }
 
-  @available(macOS 12.0, iOS 15.0, tvOS 15.0, watchOS 8.0, *)
+  @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
   func modifyRecords(
     saving recordsToSave: [CKRecord],
     deleting recordIDsToDelete: [CKRecord.ID],

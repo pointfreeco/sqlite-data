@@ -529,7 +529,7 @@ extension BaseCloudKitTests {
 
       let metadata =
       try await userDatabase.userRead { db in
-        try SyncMetadata.find(RemindersList.recordName(for: UUID(1))).fetchOne(db)
+        try SyncMetadata.find(UUID(1), table: RemindersList.self).fetchOne(db)
       }
       #expect(metadata != nil)
     }
@@ -699,7 +699,7 @@ extension BaseCloudKitTests {
       let userModificationDate = try #require(
         try await userDatabase.userRead { db in
           try SyncMetadata
-            .find(RemindersList.recordName(for: UUID(1)))
+            .find(UUID(1), table: RemindersList.self)
             .select(\.userModificationDate)
             .fetchOne(db) ?? nil
         }
@@ -718,7 +718,7 @@ extension BaseCloudKitTests {
       let metadata = try #require(
         try await userDatabase.userRead { db in
           try SyncMetadata
-            .find(RemindersList.recordName(for: UUID(1)))
+            .find(UUID(1), table: RemindersList.self)
             .fetchOne(db)
         }
       )
@@ -828,7 +828,7 @@ extension BaseCloudKitTests {
       let userModificationDate = try #require(
         try await userDatabase.userRead { db in
           try SyncMetadata
-            .find(RemindersList.recordName(for: UUID(1)))
+            .find(UUID(1), table: RemindersList.self)
             .select(\.userModificationDate)
             .fetchOne(db) ?? nil
         }
@@ -848,7 +848,7 @@ extension BaseCloudKitTests {
       let metadata = try #require(
         try await userDatabase.userRead { db in
           try SyncMetadata
-            .find(RemindersList.recordName(for: UUID(1)))
+            .find(UUID(1), table: RemindersList.self)
             .fetchOne(db)
         }
       )
@@ -919,7 +919,7 @@ extension BaseCloudKitTests {
       )
       let metadata = try await userDatabase.userRead { db in
         try SyncMetadata
-          .find(RemindersList.recordName(for: UUID(1)))
+          .find(UUID(1), table: RemindersList.self)
           .fetchOne(db)
       }
       #expect(metadata == nil)

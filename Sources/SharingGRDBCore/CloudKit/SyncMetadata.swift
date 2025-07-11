@@ -12,29 +12,39 @@ import CloudKit
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 // @Table("\(String.sqliteDataCloudKitSchemaName)_metadata")
 public struct SyncMetadata: Hashable, Sendable {
-  /// The type of the record synchronized, i.e. the table name.
+  /// The unique identifier of the record synchronized.
+  public var recordPrimaryKey: String
+
+  /// The type of the record synchronized, _i.e._ its table name.
   public var recordType: String
 
   /// The name of the record synchronized.
   ///
   /// This field encodes both the table name and primary key of the record synchronized in
-  /// the format "tableName:primaryKey", for example:
+  /// the format "primaryKey:tableName", for example:
   ///
   /// ```swift
   /// "8c4d1e4e-49b2-4f60-b6df-3c23881b87c6:reminders"
   /// ```
-  // @Column(primaryKey: true)
-  public var recordName: RecordName
+  // @Column(generated: .virtual)
+  public let recordName: String
 
-  /// The name of the record that this record belongs to.
+  /// The unique identifier of this record's parent, if any.
+  public var parentRecordPrimaryKey: String?
+
+  /// The type of this record's parent, _i.e._ its table name, if any.
+  public var parentRecordType: String?
+
+  /// The name of this record's parent, if any.
   ///
   /// This field encodes both the table name and primary key of the parent record in the format
-  /// "tableName:primaryKey", for example:
+  /// "primaryKey:tableName", for example:
   ///
   /// ```swift
   /// "d35e1f81-46e4-45d1-904b-2b7df1661e3e:remindersLists"
   /// ```
-  public var parentRecordName: RecordName?
+  // @Column(generated: .virtual)
+  public let parentRecordName: String?
 
   /// The last known `CKRecord` received from the server.
   // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
@@ -44,70 +54,41 @@ public struct SyncMetadata: Hashable, Sendable {
   // @Column(as: CKShare?.SystemFieldsRepresentation.self)
   public var share: CKShare?
 
+  // @Column(generated: .virtual)
+  public let isShared: Bool
+
   /// The date the user last modified the record.
   public var userModificationDate: Date
 
   package init(
+    recordPrimaryKey: String,
     recordType: String,
-    recordName: RecordName,
-    parentRecordName: RecordName? = nil,
+    parentRecordPrimaryKey: String? = nil,
+    parentRecordType: String? = nil,
     lastKnownServerRecord: CKRecord? = nil,
     share: CKShare? = nil,
     userModificationDate: Date
   ) {
+    self.recordPrimaryKey = recordPrimaryKey
     self.recordType = recordType
-    self.recordName = recordName
-    self.parentRecordName = parentRecordName
+    self.recordName = "\(recordPrimaryKey):\(recordType)"
+    self.parentRecordPrimaryKey = parentRecordPrimaryKey
+    self.parentRecordType = parentRecordType
+    if let parentRecordPrimaryKey, let parentRecordType {
+      self.parentRecordName = "\(parentRecordPrimaryKey):\(parentRecordType)"
+    } else {
+      self.parentRecordName = nil
+    }
     self.lastKnownServerRecord = lastKnownServerRecord
     self.share = share
+    self.isShared = share != nil
     self.userModificationDate = userModificationDate
-  }
-
-  public struct RecordName: RawRepresentable, Sendable, Hashable, QueryBindable {
-    public var recordType: String
-    public var id: UUID
-
-    public init<T: PrimaryKeyedTable<UUID>>(_ table: T.Type, id: UUID) {
-      recordType = T.tableName
-      self.id = id
-    }
-
-    public init?(rawValue: String) {
-      guard
-        let colonIndex = rawValue.firstIndex(of: ":"),
-        let id = UUID(uuidString: String(rawValue[rawValue.startIndex..<colonIndex]))
-      else {
-        reportIssue(
-          """
-          'recordName' in invalid format: \(rawValue.debugDescription)
-          'recordName' should be formatted as "uuid:tableName". 
-          """
-        )
-        return nil
-      }
-
-      recordType = String(rawValue[rawValue.index(after: colonIndex)...])
-      self.id = id
-    }
-
-    public init<T: PrimaryKeyedTable<UUID>>(record: T) {
-      recordType = T.tableName
-      id = record[keyPath: T.columns.primaryKey.keyPath]
-    }
-
-    public init?(recordID: CKRecord.ID) {
-      self.init(rawValue: recordID.recordName)
-    }
-
-    public var rawValue: String {
-      "\(id.uuidString.lowercased()):\(recordType)"
-    }
   }
 
   // @Selection @Table
   struct AncestorMetadata {
-    let recordName: SyncMetadata.RecordName
-    let parentRecordName: SyncMetadata.RecordName?
+    let recordName: String
+    let parentRecordName: String?
     // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
     let lastKnownServerRecord: CKRecord?
   }
@@ -115,18 +96,6 @@ public struct SyncMetadata: Hashable, Sendable {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncMetadata.TableColumns {
-  public var parentRecordPrimaryKey: some QueryExpression<UUID?> {
-    SQLQueryExpression("substr(\(parentRecordName), 1, 36)")
-  }
-
-  public var recordPrimaryKey: some QueryExpression<UUID> {
-    SQLQueryExpression("substr(\(recordName), 1, 36)")
-  }
-
-  public var parentRecordType: some QueryExpression<String?> {
-    SQLQueryExpression("substr(\(parentRecordName), 38)")
-  }
-
   package var _lastKnownServerRecordAllFields: StructuredQueriesCore.TableColumn<
     SyncMetadata,
     CKRecord?.AllFieldsRepresentation
@@ -141,10 +110,26 @@ extension SyncMetadata.TableColumns {
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncMetadata {
   fileprivate var _lastKnownServerRecordAllFields: CKRecord? {
-    fatalError("""
+    fatalError(
+      """
       Never invoke this directly. Use 'SyncMetadata.TableColumns._lastKnownServerRecordAllFields' \
       instead.
-      """)
+      """
+    )
+  }
+
+  package static func find<T: PrimaryKeyedTable>(
+    _ primaryKey: T.PrimaryKey.QueryOutput,
+    table _: T.Type,
+  ) -> Where<Self> {
+    Self.where {
+      SQLQueryExpression(
+        """
+        \($0.recordPrimaryKey) = \(T.PrimaryKey(queryOutput: primaryKey)) \
+        AND \($0.recordType) = \(bind: T.tableName)
+        """
+      )
+    }
   }
 }
 
@@ -153,14 +138,18 @@ extension PrimaryKeyedTable<UUID> {
   /// Constructs a ``SyncMetadata/RecordName-swift.struct`` for a primary keyed table give an ID.
   ///
   /// - Parameter id: The ID of the record.
-  public static func recordName(for id: UUID) -> SyncMetadata.RecordName {
-    SyncMetadata.RecordName(Self.self, id: id)
+  public static func recordName(for id: UUID) -> String {
+    "\(id.uuidString.lowercased()):\(tableName)"
+  }
+
+  var recordName: String {
+    Self.recordName(for: self[keyPath: Self.columns.primaryKey.keyPath])
   }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension PrimaryKeyedTableDefinition<UUID> {
-  public var recordName: some QueryExpression<SyncMetadata.RecordName> {
+  public var recordName: some QueryExpression<String> {
     SQLQueryExpression(" \(primaryKey) || ':' || \(quote: QueryValue.tableName, delimiter: .text)")
   }
 }
