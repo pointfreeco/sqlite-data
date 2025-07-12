@@ -89,13 +89,13 @@
       privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
     ) throws {
       try validateSchema(tables: tables, userDatabase: userDatabase)
-//      // TODO: Explain why / link to documentation?
-//      precondition(
-//        !userDatabase.configuration.foreignKeysEnabled,
-//        """
-//        Foreign key support must be disabled to synchronize with CloudKit.
-//        """
-//      )
+      // TODO: Explain why / link to documentation?
+      precondition(
+        !userDatabase.configuration.foreignKeysEnabled,
+        """
+        Foreign key support must be disabled to synchronize with CloudKit.
+        """
+      )
       self.container = container
       self.defaultSyncEngines = defaultSyncEngines
       self.userDatabase = userDatabase
@@ -786,16 +786,6 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
-      let modifications = modifications.sorted { lhs, rhs in
-        guard
-          let lhsRecordType = lhs.recordID.tableName,
-          let lhsIndex = tablesByOrder[lhsRecordType],
-          let rhsRecordType = rhs.recordID.tableName,
-          let rhsIndex = tablesByOrder[rhsRecordType]
-        else { return true }
-        return lhsIndex < rhsIndex
-      }
-
       // TODO: If a CKShare comes in before a CKRecord with a share, then the cacheShare will not write anything
       let shares: [CKShare] = []
       for record in modifications {
