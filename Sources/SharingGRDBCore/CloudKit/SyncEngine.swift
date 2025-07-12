@@ -323,7 +323,7 @@
             let query = try await updateQuery(
               for: T.self,
               record: lastKnownServerRecord,
-              columnNames: T.TableColumns.allColumns.map(\.name),
+              columnNames: T.TableColumns.writableColumns.map(\.name),
               changedColumnNames: changedColumns
             )
             try await userDatabase.write { db in
@@ -994,7 +994,7 @@
           metadata?.userModificationDate ?? serverRecord.userModificationDate
 
         func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
-          var columnNames = T.TableColumns.allColumns.map(\.name)
+          var columnNames = T.TableColumns.writableColumns.map(\.name)
           if let metadata, let allFields {
             let row = try userDatabase.read { db in
               try T.find(SQLQueryExpression("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)

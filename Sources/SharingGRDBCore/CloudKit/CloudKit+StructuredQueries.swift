@@ -197,9 +197,9 @@ extension CKRecord {
   }
 
   package func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date) {
-    for column in T.TableColumns.allColumns {
-      func open<Root, Value>(_ column: some TableColumnExpression<Root, Value>) {
-        let column = column as! any TableColumnExpression<T, Value>
+    for column in T.TableColumns.writableColumns {
+      func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
+        let column = column as! any WritableTableColumnExpression<T, Value>
         let value = Value(queryOutput: row[keyPath: column.keyPath])
         switch value.queryBinding {
         case .blob(let value):
@@ -236,10 +236,10 @@ extension CKRecord {
     typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
 
     self.userModificationDate = other.userModificationDate
-    for column in T.TableColumns.allColumns {
-      func open<Root, Value>(_ column: some TableColumnExpression<Root, Value>) {
+    for column in T.TableColumns.writableColumns {
+      func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
         let key = column.name
-        let column = column as! any TableColumnExpression<T, Value>
+        let column = column as! any WritableTableColumnExpression<T, Value>
         let didSet: Bool
         if let value = other[key] as? CKAsset {
           didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
