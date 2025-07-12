@@ -66,9 +66,9 @@ extension SyncMetadata {
     } onConflict: {
       ($0.recordPrimaryKey, $0.recordType)
     } doUpdate: {
-      $0.parentRecordPrimaryKey = SQLQueryExpression(#""excluded"."parentRecordPrimaryKey""#)
-      $0.parentRecordType = SQLQueryExpression(#""excluded"."parentRecordType""#)
-      $0.userModificationDate = SQLQueryExpression(#""excluded"."userModificationDate""#)
+      $0.parentRecordPrimaryKey = $1.parentRecordPrimaryKey
+      $0.parentRecordType = $1.parentRecordType
+      $0.userModificationDate = $1.userModificationDate
     }
   }
 }
