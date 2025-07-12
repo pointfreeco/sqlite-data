@@ -418,6 +418,7 @@
       )
     }
 
+    // TODO: Possible to get test coverage on this?
     package func acceptShare(metadata: ShareMetadata) async throws {
       guard let metadata = metadata.rawValue
       else {
@@ -430,8 +431,13 @@
         return
       }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
-      // TODO: do something with the CKShare returned? save it in SyncMetadata?
-      _ = try await container.accept(metadata)
+      let share = try await container.accept(metadata)
+      try await userDatabase.write { db in
+        try SyncMetadata
+          .where { $0.recordName.eq(rootRecordID.recordName) }
+          .update { $0.share = share }
+          .execute(db)
+      }
       try await syncEngines.shared?.fetchChanges(
         .init(
           scope: .zoneIDs([rootRecordID.zoneID]),
@@ -786,23 +792,39 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
-      // TODO: If a CKShare comes in before a CKRecord with a share, then the cacheShare will not write anything
-      let shares: [CKShare] = []
+      enum ShareOrReference {
+        case share(CKShare)
+        case reference(CKShare.Reference)
+      }
+      var shares: [ShareOrReference] = []
       for record in modifications {
         if let share = record as? CKShare {
-          await withErrorReporting {
-            try await cacheShare(share)
-          }
+          shares.append(.share(share))
         } else {
           upsertFromServerRecord(record)
+          if let shareReference = record.share {
+            shares.append(.reference(shareReference))
+          }
         }
-        if let shareReference = record.share,
-          // TODO: do this in parallel to not hold everything up? i think this is the cause of records staggering in
-          let shareRecord = try? await syncEngine.database.record(for: shareReference.recordID),
-          let share = shareRecord as? CKShare
-        {
-          await withErrorReporting {
-            try await cacheShare(share)
+      }
+
+      await withTaskGroup(of: Void.self) { group in
+        for share in shares {
+          group.addTask {
+            switch share {
+            case .share(let share):
+              await withErrorReporting {
+                try await self.cacheShare(share)
+              }
+            case .reference(let shareReference):
+              guard
+                let record = try? await syncEngine.database.record(for: shareReference.recordID),
+                let share = record as? CKShare
+              else { return }
+              await withErrorReporting {
+                try await self.cacheShare(share)
+              }
+            }
           }
         }
       }
@@ -829,7 +851,7 @@
           open(table)
         } else if recordType == CKRecord.SystemType.share {
           withErrorReporting {
-            try deleteShare(recordID: recordID, recordType: recordType)
+            try deleteShare(recordID: recordID)
           }
         } else {
           // TODO: Should we be reporting this? What if another device deletes from a table this device doesn't know about?
@@ -937,18 +959,18 @@
       }
     }
 
-    private func deleteShare(recordID: CKRecord.ID, recordType: String) throws {
-      // TODO: more efficient way to do this?
+    private func deleteShare(recordID: CKRecord.ID) throws {
       try userDatabase.write { db in
-        let metadata =
+        let shareAndRecordName =
           try SyncMetadata
-          .where { $0.share.isNot(nil) }
+          .where(\.isShared)
+          .select { ($0.share, $0.recordName) }
           .fetchAll(db)
-          .first(where: { $0.share?.recordID == recordID }) ?? nil
-        guard let metadata
+          .first(where: { share, _ in share?.recordID == recordID }) ?? nil
+        guard let (_, recordName) = shareAndRecordName
         else { return }
         try SyncMetadata
-          .where { $0.recordName.eq(metadata.recordName) }
+          .where { $0.recordName.eq(recordName) }
           .update { $0.share = nil }
           .execute(db)
       }
