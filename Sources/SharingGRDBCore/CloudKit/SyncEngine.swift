@@ -89,13 +89,13 @@
       privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
     ) throws {
       try validateSchema(tables: tables, userDatabase: userDatabase)
-      // TODO: Explain why / link to documentation?
-      precondition(
-        !userDatabase.configuration.foreignKeysEnabled,
-        """
-        Foreign key support must be disabled to synchronize with CloudKit.
-        """
-      )
+//      // TODO: Explain why / link to documentation?
+//      precondition(
+//        !userDatabase.configuration.foreignKeysEnabled,
+//        """
+//        Foreign key support must be disabled to synchronize with CloudKit.
+//        """
+//      )
       self.container = container
       self.defaultSyncEngines = defaultSyncEngines
       self.userDatabase = userDatabase
@@ -548,17 +548,17 @@
         switch (lhs, rhs) {
         case (.saveRecord(let lhs), .saveRecord(let rhs)):
           guard
-            let lhsRecordType = lhs.recordType,
+            let lhsRecordType = lhs.tableName,
             let lhsIndex = tablesByOrder[lhsRecordType],
-            let rhsRecordType = rhs.recordType,
+            let rhsRecordType = rhs.tableName,
             let rhsIndex = tablesByOrder[rhsRecordType]
           else { return true }
           return lhsIndex < rhsIndex
         case (.deleteRecord(let lhs), .deleteRecord(let rhs)):
           guard
-            let lhsRecordType = lhs.recordType,
+            let lhsRecordType = lhs.tableName,
             let lhsIndex = tablesByOrder[lhsRecordType],
-            let rhsRecordType = rhs.recordType,
+            let rhsRecordType = rhs.tableName,
             let rhsIndex = tablesByOrder[rhsRecordType]
           else { return true }
           return lhsIndex > rhsIndex
@@ -786,6 +786,16 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
+      let modifications = modifications.sorted { lhs, rhs in
+        guard
+          let lhsRecordType = lhs.recordID.tableName,
+          let lhsIndex = tablesByOrder[lhsRecordType],
+          let rhsRecordType = rhs.recordID.tableName,
+          let rhsIndex = tablesByOrder[rhsRecordType]
+        else { return true }
+        return lhsIndex < rhsIndex
+      }
+
       // TODO: If a CKShare comes in before a CKRecord with a share, then the cacheShare will not write anything
       let shares: [CKShare] = []
       for record in modifications {
@@ -832,14 +842,7 @@
             try deleteShare(recordID: recordID, recordType: recordType)
           }
         } else {
-          // TODO: Should we be reporting this? What if another device deletes from a table this device doesn't know about?
-          reportIssue(
-            .sqliteDataCloudKitFailure.appending(
-              """
-              : No table to delete from: "\(recordType)"
-              """
-            )
-          )
+          // NB: Deleting a record from a table we do not currently recognize.
         }
       }
     }
@@ -893,8 +896,11 @@
         case .serverRejectedRequest:
           clearServerRecord()
 
+        case .referenceViolation:
+          reportIssue("Reference violation")
+
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .notAuthenticated, .referenceViolation, .operationCancelled, .batchRequestFailed,
+          .notAuthenticated, .operationCancelled, .batchRequestFailed,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .permissionFailure, .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
@@ -966,7 +972,7 @@
                 recordPrimaryKey: recordPrimaryKey,
                 recordType: serverRecord.recordType,
                 parentRecordPrimaryKey: serverRecord.parent?.recordID.recordPrimaryKey,
-                parentRecordType: serverRecord.parent?.recordID.recordType,
+                parentRecordType: serverRecord.parent?.recordID.tableName,
                 lastKnownServerRecord: serverRecord,
                 _lastKnownServerRecordAllFields: serverRecord,
                 share: nil,
@@ -1137,7 +1143,7 @@
   }
 
   extension CKRecord.ID {
-    var recordType: String? {
+    var tableName: String? {
       guard
         let i = recordName.utf8.lastIndex(of: .init(ascii: ":")),
         let j = recordName.utf8.index(i, offsetBy: 1, limitedBy: recordName.utf8.endIndex)
@@ -1149,8 +1155,7 @@
 
     var recordPrimaryKey: String? {
       guard
-        let i = recordName.utf8.lastIndex(of: .init(ascii: ":")),
-        let j = recordName.utf8.index(i, offsetBy: 1, limitedBy: recordName.utf8.endIndex)
+        let i = recordName.utf8.lastIndex(of: .init(ascii: ":"))
       else { return nil }
       let recordPrimaryKeyBytes = recordName.utf8[..<i]
       guard

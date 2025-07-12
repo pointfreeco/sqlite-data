@@ -305,6 +305,10 @@ final class MockCloudDatabase: CloudDatabase {
               record.recordID != recordToSave.recordID
               && recordToSave.parent?.recordID == record.recordID
             }
+            || recordsToSave.contains { record in
+              record.recordID != recordToSave.recordID
+              && recordToSave.parent?.recordID == record.recordID
+            }
             guard parentRecordExists
             else {
               saveResults[recordToSave.recordID] = .failure(CKError(.referenceViolation))
@@ -382,9 +386,16 @@ final class MockCloudDatabase: CloudDatabase {
         fatalError()
       }
       for recordIDToDelete in recordIDsToDelete {
-        let recordExistsReferencingRecordToDelete = storage.values.contains { record in
+        let recordExistsReferencingRecordToDelete =
+        // NB: Storage does not contain the parent of the record we are deleting
+        storage.values.contains { record in
           record.recordID != recordIDToDelete
           && record.parent?.recordID == recordIDToDelete
+        }
+        // NB: Records we are deleting does not contain parent of this record
+        && !recordIDsToDelete.contains { recordID in
+          recordID != recordIDToDelete
+          && storage[recordID]?.parent?.recordID == recordIDToDelete
         }
         guard !recordExistsReferencingRecordToDelete
         else {
@@ -576,6 +587,47 @@ extension SyncEngine {
       saving: recordsToSave,
       deleting: recordIDsToDelete
     )
+
+    let saveErrors = saveResults.compactMapValues { result -> (any Error)? in
+      guard case .failure(let error) = result
+      else { return nil }
+      return error
+    }
+    let deleteErrors = deleteResults.compactMapValues { result -> (any Error)? in
+      guard case .failure(let error) = result
+      else { return nil }
+      return error
+    }
+    if !saveErrors.isEmpty || !deleteErrors.isEmpty {
+      var message = "Error modifying records:\n"
+      if !saveErrors.isEmpty {
+        message.append("\nSave errors:\n")
+        message.append(
+          saveErrors.keys.sorted(by: { $0.recordName < $1.recordName })
+            .map { key in
+              """
+                - \(key)
+                  \(saveErrors[key]!)
+              """
+            }
+            .joined(separator: "\n")
+        )
+      }
+      if !deleteErrors.isEmpty {
+        message.append("\n\nDelete errors:\n")
+        message.append(
+          deleteErrors.keys.sorted(by: { $0.recordName < $1.recordName })
+            .map { key in
+              """
+                - \(key)
+                  \(deleteErrors[key]!)
+              """
+            }
+            .joined(separator: "\n")
+        )
+      }
+      reportIssue(message)
+    }
 
     return ModifyRecordsCallback {
       await syncEngine.delegate.handleEvent(
