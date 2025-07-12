@@ -588,47 +588,6 @@ extension SyncEngine {
       deleting: recordIDsToDelete
     )
 
-    let saveErrors = saveResults.compactMapValues { result -> (any Error)? in
-      guard case .failure(let error) = result
-      else { return nil }
-      return error
-    }
-    let deleteErrors = deleteResults.compactMapValues { result -> (any Error)? in
-      guard case .failure(let error) = result
-      else { return nil }
-      return error
-    }
-    if !saveErrors.isEmpty || !deleteErrors.isEmpty {
-      var message = "Error modifying records:\n"
-      if !saveErrors.isEmpty {
-        message.append("\nSave errors:\n")
-        message.append(
-          saveErrors.keys.sorted(by: { $0.recordName < $1.recordName })
-            .map { key in
-              """
-                - \(key)
-                  \(saveErrors[key]!)
-              """
-            }
-            .joined(separator: "\n")
-        )
-      }
-      if !deleteErrors.isEmpty {
-        message.append("\n\nDelete errors:\n")
-        message.append(
-          deleteErrors.keys.sorted(by: { $0.recordName < $1.recordName })
-            .map { key in
-              """
-                - \(key)
-                  \(deleteErrors[key]!)
-              """
-            }
-            .joined(separator: "\n")
-        )
-      }
-      reportIssue(message)
-    }
-
     return ModifyRecordsCallback {
       await syncEngine.delegate.handleEvent(
         .fetchedRecordZoneChanges(
