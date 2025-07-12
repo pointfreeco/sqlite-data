@@ -886,11 +886,8 @@
         case .serverRejectedRequest:
           clearServerRecord()
 
-        case .referenceViolation:
-          reportIssue("Reference violation")
-
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .notAuthenticated, .operationCancelled, .batchRequestFailed,
+          .notAuthenticated, .referenceViolation, .operationCancelled, .batchRequestFailed,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .permissionFailure, .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
