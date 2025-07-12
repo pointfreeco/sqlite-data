@@ -10,11 +10,11 @@
       zoneName: "co.pointfree.SQLiteData.defaultZone"
     )
 
-    let userDatabase: UserDatabase
-    let logger: Logger
+    package let userDatabase: UserDatabase
+    package let logger: Logger
     package let metadatabase: any DatabaseReader
-    let tables: [any PrimaryKeyedTable<UUID>.Type]
-    let privateTables: [any PrimaryKeyedTable<UUID>.Type]
+    package let tables: [any PrimaryKeyedTable<UUID>.Type]
+    package let privateTables: [any PrimaryKeyedTable<UUID>.Type]
     let tablesByName: [String: any PrimaryKeyedTable<UUID>.Type]
     private let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
@@ -23,6 +23,8 @@
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
+
+    let dataManager = Dependency(\.dataManager)
 
     public convenience init(
       container: CKContainer,
@@ -195,49 +197,46 @@
         try RecordType.all.fetchAll(db)
       }
       let currentRecordTypes = try userDatabase.read { db in
-        try SQLQueryExpression(
-          """
-          SELECT "name", "sql"
-          FROM "sqlite_master"
-          WHERE "type" = 'table'
-          AND "name" IN (\(tablesByName.keys.map(\.queryFragment).joined(separator: ", ")))
-          """,
-          as: RecordType.self
-        )
-        .fetchAll(db)
-      }
-      let recordTypesToFetch = currentRecordTypes.compactMap { currentRecordType in
-        guard
-          let existingRecordType = previousRecordTypes.first(where: { previousRecordType in
-            currentRecordType.tableName == previousRecordType.tableName
-          })
-        else { return (currentRecordType, isNewTable: true) }
-        return existingRecordType.schema == currentRecordType.schema
-          ? nil
-          : (currentRecordType, isNewTable: false)
-      }
-
-      guard !recordTypesToFetch.isEmpty
-      else { return nil }
-
-      try cacheUserTables(recordTypes: recordTypesToFetch.map(\.0))
-      try uploadRecordsToCloudKit(
-        recordTypes: recordTypesToFetch.compactMap { recordType, isNewTable in
-          isNewTable ? recordType : nil
+        let namesAndSchemas = try SQLiteSchema.all
+          .fetchAll(db)
+          .filter { $0.type == "table" }
+        return try namesAndSchemas.compactMap { schema -> RecordType? in
+          guard let sql = schema.sql
+          else { return nil }
+          return RecordType(
+            tableName: schema.name,
+            schema: sql,
+            tableInfo: Set(try TableInfo.all(schema.name).fetchAll(db))
+          )
         }
+      }
+      // TODO: don't update record type if migration wasn't successful
+      defer { cacheUserTables(recordTypes: currentRecordTypes) }
+      let previousRecordTypeByTableName = Dictionary(
+        uniqueKeysWithValues: previousRecordTypes.map {
+          ($0.tableName, $0)
+        }
+      )
+      let currentRecordTypeByTableName = Dictionary(
+        uniqueKeysWithValues: currentRecordTypes.map {
+          ($0.tableName, $0)
+        }
+      )
+      try uploadRecordsToCloudKit(
+        previousRecordTypeByTableName: previousRecordTypeByTableName,
+        currentRecordTypeByTableName: currentRecordTypeByTableName
       )
       return Task {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await fetchChangesFromSchemaChange(
-            recordTypes: recordTypesToFetch.compactMap { recordType, isNewTable in
-              !isNewTable ? recordType : nil
-            }
+            previousRecordTypeByTableName: previousRecordTypeByTableName,
+            currentRecordTypeByTableName: currentRecordTypeByTableName
           )
         }
       }
     }
 
-    private func cacheUserTables(recordTypes: [RecordType]) throws {
+    private func cacheUserTables(recordTypes: [RecordType]) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
         try userDatabase.write { db in
           try RecordType
@@ -247,82 +246,92 @@
       }
     }
 
-    private func uploadRecordsToCloudKit(recordTypes: [RecordType]) throws {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.write { db in
-          try Self.$_isUpdatingRecord.withValue(false) {
-            for recordType in recordTypes {
-              guard let table = tablesByName[recordType.tableName]
-              else { continue }
+    private func uploadRecordsToCloudKit(
+      previousRecordTypeByTableName: [String: RecordType],
+      currentRecordTypeByTableName: [String: RecordType]
+    ) throws {
+      let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
+        previousRecordTypeByTableName[tableName] == nil
+      }
 
-              let parentForeignKey =
-                foreignKeysByTableName[recordType.tableName]?.count == 1
-                ? foreignKeysByTableName[recordType.tableName]?.first
-                : nil
+      try userDatabase.write { db in
+        try Self.$_isUpdatingRecord.withValue(false) {
+          for tableName in newTableNames {
+            guard let table = tablesByName[tableName]
+            else { continue }
 
-              func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
-                let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
+            let parentForeignKey =
+              foreignKeysByTableName[tableName]?.count == 1
+              ? foreignKeysByTableName[tableName]?.first
+              : nil
+
+            func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+              let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
                 parentForeignKey
-                  .map { ("\(T.self).\(quote: $0.from)", "\(bind: $0.table)") }
-                  ?? ("NULL", "NULL")
-                try SyncMetadata.insert { columns in
+                .map { ("\(T.self).\(quote: $0.from)", "\(bind: $0.table)") }
+                ?? ("NULL", "NULL")
+              try SyncMetadata.insert { columns in
+                (
+                  columns.recordPrimaryKey,
+                  columns.recordType,
+                  columns.parentRecordPrimaryKey,
+                  columns.parentRecordType
+                )
+              } select: {
+                T.select { columns in
                   (
-                    columns.recordPrimaryKey,
-                    columns.recordType,
-                    columns.parentRecordPrimaryKey,
-                    columns.parentRecordType
+                    SQLQueryExpression("\(columns.primaryKey)"),
+                    T.tableName,
+                    SQLQueryExpression(parentRecordPrimaryKey),
+                    SQLQueryExpression(parentRecordType)
                   )
-                } select: {
-                  T.select { columns in
-                    (
-                      SQLQueryExpression("\(columns.primaryKey)"),
-                      T.tableName,
-                      SQLQueryExpression(parentRecordPrimaryKey),
-                      SQLQueryExpression(parentRecordType)
-                    )
-                  }
                 }
-                .execute(db)
               }
-              try open(table)
+              .execute(db)
             }
+            try open(table)
           }
         }
       }
     }
 
-    private func fetchChangesFromSchemaChange(recordTypes: [RecordType]) async throws {
-      // TODO: update data from local server records, do not fetch from CloudKit
-      let lastKnownServerRecords = try await metadatabase.read { db in
-        try SyncMetadata
-          .where {
-            $0.recordType.in(recordTypes.map(\.tableName))
-              && $0.lastKnownServerRecord.isNot(nil)
+    private func fetchChangesFromSchemaChange(
+      previousRecordTypeByTableName: [String: RecordType],
+      currentRecordTypeByTableName: [String: RecordType]
+    ) async throws {
+      let tablesWithChangedSchemas = currentRecordTypeByTableName.filter { tableName, recordType in
+        previousRecordTypeByTableName[tableName]?.schema != recordType.schema
+      }
+
+      for (tableName, currentRecordType) in tablesWithChangedSchemas {
+        guard let table = tablesByName[tableName]
+        else { continue }
+        func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) async throws {
+          let previousRecordType = previousRecordTypeByTableName[tableName]
+          let changedColumns = currentRecordType.tableInfo.subtracting(
+            previousRecordType?.tableInfo ?? []
+          )
+          .map(\.name)
+          let lastKnownServerRecords = try await metadatabase.read { db in
+            try SyncMetadata
+              .where { $0.recordType.eq(tableName) }
+              .select(\._lastKnownServerRecordAllFields)
+              .fetchAll(db)
+              .compactMap(\.self)
           }
-          .select {
-            SQLQueryExpression(
-              "\($0.lastKnownServerRecord)",
-              as: CKRecord.SystemFieldsRepresentation.self
+          for lastKnownServerRecord in lastKnownServerRecords {
+            let query = try await updateQuery(
+              for: T.self,
+              record: lastKnownServerRecord,
+              columnNames: T.TableColumns.allColumns.map(\.name),
+              changedColumnNames: changedColumns
             )
-          }
-          .fetchAll(db)
-      }
-      let recordIDs = lastKnownServerRecords.map(\.recordID)
-      let recordIDsByDatabase = Dictionary(grouping: recordIDs) {
-        AnyCloudDatabase(container.database(for: $0))
-      }
-      for (database, recordIDs) in recordIDsByDatabase {
-        let results = try await database.records(for: recordIDs)
-        for (_, result) in results {
-          switch result {
-          case .success(let record):
-            upsertFromServerRecord(record)
-            break
-          case .failure(let error):
-            reportIssue(error)
-            break
+            try await userDatabase.write { db in
+              try SQLQueryExpression(query).execute(db)
+            }
           }
         }
+        try await open(table)
       }
     }
 
@@ -357,24 +366,22 @@
       _ = await (privateCancellation, sharedCancellation)
     }
 
-    #if DEBUG
-      public func deleteLocalData() async throws {
-        try await tearDownSyncEngine()
-        withErrorReporting(.sqliteDataCloudKitFailure) {
-          try userDatabase.write { db in
-            for table in tables {
-              func open<T: PrimaryKeyedTable>(_: T.Type) {
-                withErrorReporting(.sqliteDataCloudKitFailure) {
-                  try T.delete().execute(db)
-                }
+    func deleteLocalData() async throws {
+      try await tearDownSyncEngine()
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        try userDatabase.write { db in
+          for table in tables {
+            func open<T: PrimaryKeyedTable>(_: T.Type) {
+              withErrorReporting(.sqliteDataCloudKitFailure) {
+                try T.delete().execute(db)
               }
-              open(table)
             }
+            open(table)
           }
         }
-        try await setUpSyncEngine()
       }
-    #endif
+      try await setUpSyncEngine()
+    }
 
     func didUpdate(recordName: String, zoneID: CKRecordZone.ID?) {
       let zoneID = zoneID ?? Self.defaultZone.zoneID
@@ -779,6 +786,7 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
+      // TODO: If a CKShare comes in before a CKRecord with a share, then the cacheShare will not write anything
       let shares: [CKShare] = []
       for record in modifications {
         if let share = record as? CKShare {
@@ -950,15 +958,27 @@
       withErrorReporting(.sqliteDataCloudKitFailure) {
         guard let table = tablesByName[serverRecord.recordType]
         else {
-          // TODO: Should we be reporting this?
-          // What if another device makes changes to a table this device doesn't know about?
-          reportIssue(
-            .sqliteDataCloudKitFailure.appending(
-              """
-              : No table to merge from: "\(serverRecord.recordType)"
-              """
-            )
-          )
+          guard let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey
+          else { return }
+          try userDatabase.write { db in
+            try SyncMetadata.insert {
+              SyncMetadata(
+                recordPrimaryKey: recordPrimaryKey,
+                recordType: serverRecord.recordType,
+                parentRecordPrimaryKey: serverRecord.parent?.recordID.recordPrimaryKey,
+                parentRecordType: serverRecord.parent?.recordID.recordType,
+                lastKnownServerRecord: serverRecord,
+                _lastKnownServerRecordAllFields: serverRecord,
+                share: nil,
+                userModificationDate: serverRecord.userModificationDate
+              )
+            } onConflict: {
+              ($0.recordPrimaryKey, $0.recordType)
+            } doUpdate: {
+              $0.setLastKnownServerRecord(serverRecord)
+            }
+            .execute(db)
+          }
           return
         }
 
@@ -998,38 +1018,8 @@
           // TODO: Append more ON CONFLICT clauses for each unique constraint?
           // TODO: Use WHERE to scope the update?
           try userDatabase.write { db in
-            // TODO: Write a test for this: server sends record with nothing changed
-            if columnNames.contains(where: { $0 != T.columns.primaryKey.name }) {
-              var query: QueryFragment = "INSERT INTO \(T.self) ("
-              query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
-              query.append(") VALUES (")
-              let encryptedValues = serverRecord.encryptedValues
-              query.append(
-                columnNames
-                  .map { columnName in
-                    if let asset = serverRecord[columnName] as? CKAsset {
-                      @Dependency(\.dataManager) var dataManager
-                      return (try? asset.fileURL.map { try dataManager.load($0) })?
-                        .queryFragment ?? "NULL"
-                    } else {
-                      return encryptedValues[columnName]?.queryFragment ?? "NULL"
-                    }
-                  }
-                  .joined(separator: ", ")
-              )
-              query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
-              query.append(
-                columnNames
-                  .filter { columnName in columnName != T.columns.primaryKey.name }
-                  .map {
-                    """
-                    \(quote: $0) = "excluded".\(quote: $0)
-                    """
-                  }
-                  .joined(separator: ",")
-              )
-              try SQLQueryExpression(query).execute(db)
-            }
+            let query = upsert(T.self, record: serverRecord, columnNames: columnNames)
+            try SQLQueryExpression(query).execute(db)
             try SyncMetadata
               .where { $0.recordName.eq(serverRecord.recordID.recordName) }
               .update { $0.setLastKnownServerRecord(serverRecord) }
@@ -1071,6 +1061,65 @@
       }
         ?? nil
     }
+
+    private func updateQuery<T: PrimaryKeyedTable<UUID>>(
+      for _: T.Type,
+      record: CKRecord,
+      columnNames: some Collection<String>,
+      changedColumnNames: some Collection<String>
+    ) async throws -> QueryFragment {
+      let nonPrimaryKeyChangedColumns =
+        changedColumnNames
+        .filter { $0 != T.columns.primaryKey.name }
+      guard
+        !nonPrimaryKeyChangedColumns.isEmpty
+      else {
+        return ""
+      }
+      var record = record
+      let recordHasAsset = nonPrimaryKeyChangedColumns.contains { columnName in
+        record[columnName] is CKAsset
+      }
+      if recordHasAsset {
+        record = try await container.database(for: record.recordID).record(for: record.recordID)
+      }
+
+      var query: QueryFragment = "INSERT INTO \(T.self) ("
+      query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+      query.append(") VALUES (")
+      query.append(
+        columnNames
+          .map { columnName in
+            if let asset = record[columnName] as? CKAsset {
+              let data = try? asset.fileURL.map { try dataManager.wrappedValue.load($0) }
+              if data == nil {
+                reportIssue("Asset data not found on disk")
+              }
+              return data?.queryFragment ?? "NULL"
+            } else {
+              return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
+            }
+          }
+          .joined(separator: ", ")
+      )
+      query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
+      query.append(
+        nonPrimaryKeyChangedColumns
+          .map { columnName in
+            if let asset = record[columnName] as? CKAsset {
+              let data = try? asset.fileURL.map { try dataManager.wrappedValue.load($0) }
+              if data == nil {
+                reportIssue("Asset data not found on disk")
+              }
+              return "\(quote: columnName) = \(data?.queryFragment ?? "NULL")"
+            } else {
+              return "\(quote: columnName) = \(record.encryptedValues[columnName]?.queryFragment ?? "NULL")"
+            }
+          }
+          .joined(separator: ",")
+      )
+      return query
+    }
   }
 
   @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
@@ -1096,6 +1145,18 @@
       let recordTypeBytes = recordName.utf8[j...]
       guard !recordTypeBytes.isEmpty else { return nil }
       return String(Substring(recordTypeBytes))
+    }
+
+    var recordPrimaryKey: String? {
+      guard
+        let i = recordName.utf8.lastIndex(of: .init(ascii: ":")),
+        let j = recordName.utf8.index(i, offsetBy: 1, limitedBy: recordName.utf8.endIndex)
+      else { return nil }
+      let recordPrimaryKeyBytes = recordName.utf8[..<i]
+      guard
+        !recordPrimaryKeyBytes.isEmpty
+      else { return nil }
+      return String(Substring(recordPrimaryKeyBytes))
     }
   }
 
@@ -1436,5 +1497,46 @@
         self.userModificationDate = lastKnownServerRecord.userModificationDate
       }
     }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func upsert<T: PrimaryKeyedTable<UUID>>(
+    _: T.Type,
+    record: CKRecord,
+    columnNames: some Collection<String>
+  ) -> QueryFragment {
+    guard
+      columnNames.contains(where: { $0 != T.columns.primaryKey.name })
+    else {
+      return ""
+    }
+    var query: QueryFragment = "INSERT INTO \(T.self) ("
+    query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+    query.append(") VALUES (")
+    query.append(
+      columnNames
+        .map { columnName in
+          if let asset = record[columnName] as? CKAsset {
+            @Dependency(\.dataManager) var dataManager
+            return (try? asset.fileURL.map { try dataManager.load($0) })?
+              .queryFragment ?? "NULL"
+          } else {
+            return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
+          }
+        }
+        .joined(separator: ", ")
+    )
+    query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
+    query.append(
+      columnNames
+        .filter { columnName in columnName != T.columns.primaryKey.name }
+        .map {
+          """
+          \(quote: $0) = "excluded".\(quote: $0)
+          """
+        }
+        .joined(separator: ",")
+    )
+    return query
   }
 #endif

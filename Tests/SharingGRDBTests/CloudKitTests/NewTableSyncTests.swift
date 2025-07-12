@@ -78,6 +78,16 @@ extension BaseCloudKitTests {
               parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
               share: nil
             ),
+            _lastKnownServerRecordAllFields: CKRecord(
+              recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordType: "reminders",
+              parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+              share: nil,
+              id: "00000000-0000-0000-0000-000000000001",
+              isCompleted: 0,
+              remindersListID: "00000000-0000-0000-0000-000000000001",
+              title: "Write blog post"
+            ),
             share: nil,
             isShared: false,
             userModificationDate: Date(1970-01-01T00:00:00.000Z)
@@ -94,6 +104,14 @@ extension BaseCloudKitTests {
               recordType: "remindersLists",
               parent: nil,
               share: nil
+            ),
+            _lastKnownServerRecordAllFields: CKRecord(
+              recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordType: "remindersLists",
+              parent: nil,
+              share: nil,
+              id: "00000000-0000-0000-0000-000000000001",
+              title: "Personal"
             ),
             share: nil,
             isShared: false,

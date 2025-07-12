@@ -3,6 +3,7 @@ import CloudKit
 
 package protocol CloudDatabase: AnyObject, Hashable, Sendable {
   var databaseScope: CKDatabase.Scope { get }
+  
   func record(for recordID: CKRecord.ID) async throws -> CKRecord
 
   @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)

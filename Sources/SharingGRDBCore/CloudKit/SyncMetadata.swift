@@ -47,8 +47,14 @@ public struct SyncMetadata: Hashable, Sendable {
   public let parentRecordName: String?
 
   /// The last known `CKRecord` received from the server.
+  ///
+  /// This record holds only the fields that are archived when using `encodeSystemFields(with:)`.
   // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
   public var lastKnownServerRecord: CKRecord?
+
+  /// The last known `CKRecord` received from the server with all fields archived.
+  // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+  package var _lastKnownServerRecordAllFields: CKRecord?
 
   /// The `CKShare` associated with this record, if it is shared.
   // @Column(as: CKShare?.SystemFieldsRepresentation.self)
@@ -66,6 +72,7 @@ public struct SyncMetadata: Hashable, Sendable {
     parentRecordPrimaryKey: String? = nil,
     parentRecordType: String? = nil,
     lastKnownServerRecord: CKRecord? = nil,
+    _lastKnownServerRecordAllFields: CKRecord? = nil,
     share: CKShare? = nil,
     userModificationDate: Date
   ) {
@@ -80,6 +87,7 @@ public struct SyncMetadata: Hashable, Sendable {
       self.parentRecordName = nil
     }
     self.lastKnownServerRecord = lastKnownServerRecord
+    self._lastKnownServerRecordAllFields = _lastKnownServerRecordAllFields
     self.share = share
     self.isShared = share != nil
     self.userModificationDate = userModificationDate
@@ -95,29 +103,7 @@ public struct SyncMetadata: Hashable, Sendable {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension SyncMetadata.TableColumns {
-  package var _lastKnownServerRecordAllFields: StructuredQueriesCore.TableColumn<
-    SyncMetadata,
-    CKRecord?.AllFieldsRepresentation
-  > {
-    StructuredQueriesCore.TableColumn(
-      "_lastKnownServerRecordAllFields",
-      keyPath: \._lastKnownServerRecordAllFields
-    )
-  }
-}
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncMetadata {
-  fileprivate var _lastKnownServerRecordAllFields: CKRecord? {
-    fatalError(
-      """
-      Never invoke this directly. Use 'SyncMetadata.TableColumns._lastKnownServerRecordAllFields' \
-      instead.
-      """
-    )
-  }
-
   package static func find<T: PrimaryKeyedTable>(
     _ primaryKey: T.PrimaryKey.QueryOutput,
     table _: T.Type,

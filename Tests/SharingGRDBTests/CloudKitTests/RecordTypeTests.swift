@@ -24,7 +24,23 @@ extension BaseCloudKitTests {
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
               ) STRICT
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [1]: TableInfo(
+                defaultValue: "\'\'",
+                isPrimaryKey: false,
+                name: "title",
+                notNull: true,
+                type: "TEXT"
+              )
+            ]
           ),
           [1]: RecordType(
             tableName: "remindersListAssets",
@@ -34,7 +50,30 @@ extension BaseCloudKitTests {
                 "coverImage" BLOB NOT NULL,
                 "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
               ) STRICT
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "coverImage",
+                notNull: true,
+                type: "BLOB"
+              ),
+              [1]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [2]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "remindersListID",
+                notNull: true,
+                type: "TEXT"
+              )
+            ]
           ),
           [2]: RecordType(
             tableName: "remindersListPrivates",
@@ -44,7 +83,30 @@ extension BaseCloudKitTests {
                 "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
                 "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
               ) STRICT
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [1]: TableInfo(
+                defaultValue: "0",
+                isPrimaryKey: false,
+                name: "position",
+                notNull: true,
+                type: "INTEGER"
+              ),
+              [2]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "remindersListID",
+                notNull: true,
+                type: "TEXT"
+              )
+            ]
           ),
           [3]: RecordType(
             tableName: "reminders",
@@ -59,7 +121,51 @@ extension BaseCloudKitTests {
                 
                 FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
               ) STRICT
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "dueDate",
+                notNull: false,
+                type: "TEXT"
+              ),
+              [1]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [2]: TableInfo(
+                defaultValue: "0",
+                isPrimaryKey: false,
+                name: "isCompleted",
+                notNull: true,
+                type: "INTEGER"
+              ),
+              [3]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "priority",
+                notNull: false,
+                type: "INTEGER"
+              ),
+              [4]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "remindersListID",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [5]: TableInfo(
+                defaultValue: "\'\'",
+                isPrimaryKey: false,
+                name: "title",
+                notNull: true,
+                type: "TEXT"
+              )
+            ]
           ),
           [4]: RecordType(
             tableName: "tags",
@@ -68,7 +174,23 @@ extension BaseCloudKitTests {
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
               ) STRICT
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [1]: TableInfo(
+                defaultValue: "\'\'",
+                isPrimaryKey: false,
+                name: "title",
+                notNull: true,
+                type: "TEXT"
+              )
+            ]
           ),
           [5]: RecordType(
             tableName: "reminderTags",
@@ -78,7 +200,30 @@ extension BaseCloudKitTests {
                 "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
                 "tagID" TEXT NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
               ) STRICT
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [1]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "reminderID",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [2]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "tagID",
+                notNull: true,
+                type: "TEXT"
+              )
+            ]
           ),
           [6]: RecordType(
             tableName: "parents",
@@ -86,7 +231,16 @@ extension BaseCloudKitTests {
               CREATE TABLE "parents"(
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid())
               ) STRICT
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              )
+            ]
           ),
           [7]: RecordType(
             tableName: "childWithOnDeleteRestricts",
@@ -95,7 +249,23 @@ extension BaseCloudKitTests {
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "parentID" TEXT NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
               ) STRICT
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [1]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "parentID",
+                notNull: true,
+                type: "TEXT"
+              )
+            ]
           ),
           [8]: RecordType(
             tableName: "childWithOnDeleteSetNulls",
@@ -104,7 +274,23 @@ extension BaseCloudKitTests {
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
               ) STRICT
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [1]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "parentID",
+                notNull: false,
+                type: "TEXT"
+              )
+            ]
           ),
           [9]: RecordType(
             tableName: "childWithOnDeleteSetDefaults",
@@ -113,18 +299,83 @@ extension BaseCloudKitTests {
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT '00000000-0000-0000-0000-000000000000',
                 "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
               ) STRICT
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: "\'00000000-0000-0000-0000-000000000000\'",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [1]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "parentID",
+                notNull: false,
+                type: "TEXT"
+              )
+            ]
           ),
           [10]: RecordType(
+            tableName: "localUsers",
+            schema: """
+              CREATE TABLE "localUsers" (
+                "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+                "name" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
+                "parentID" TEXT REFERENCES "localUsers"("id") ON DELETE CASCADE
+              ) STRICT
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [1]: TableInfo(
+                defaultValue: "\'\'",
+                isPrimaryKey: false,
+                name: "name",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [2]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "parentID",
+                notNull: false,
+                type: "TEXT"
+              )
+            ]
+          ),
+          [11]: RecordType(
             tableName: "modelAs",
             schema: """
               CREATE TABLE "modelAs" (
                 "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
                 "count" INTEGER NOT NULL
               )
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "count",
+                notNull: true,
+                type: "INTEGER"
+              ),
+              [1]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              )
+            ]
           ),
-          [11]: RecordType(
+          [12]: RecordType(
             tableName: "modelBs",
             schema: """
               CREATE TABLE "modelBs" (
@@ -132,9 +383,32 @@ extension BaseCloudKitTests {
                 "isOn" INTEGER NOT NULL,
                 "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
               )
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [1]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "isOn",
+                notNull: true,
+                type: "INTEGER"
+              ),
+              [2]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "modelAID",
+                notNull: true,
+                type: "INTEGER"
+              )
+            ]
           ),
-          [12]: RecordType(
+          [13]: RecordType(
             tableName: "modelCs",
             schema: """
               CREATE TABLE "modelCs" (
@@ -142,7 +416,30 @@ extension BaseCloudKitTests {
                 "title" TEXT NOT NULL,
                 "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
               )
-              """
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: "uuid()",
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "TEXT"
+              ),
+              [1]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "modelBID",
+                notNull: true,
+                type: "INTEGER"
+              ),
+              [2]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: false,
+                name: "title",
+                notNull: true,
+                type: "TEXT"
+              )
+            ]
           )
         ]
         """#
@@ -207,7 +504,58 @@ extension BaseCloudKitTests {
               
               FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
             ) STRICT
-            """
+            """,
+          tableInfo: [
+            [0]: TableInfo(
+              defaultValue: nil,
+              isPrimaryKey: false,
+              name: "dueDate",
+              notNull: false,
+              type: "TEXT"
+            ),
+            [1]: TableInfo(
+              defaultValue: "uuid()",
+              isPrimaryKey: true,
+              name: "id",
+              notNull: true,
+              type: "TEXT"
+            ),
+            [2]: TableInfo(
+              defaultValue: "0",
+              isPrimaryKey: false,
+              name: "isCompleted",
+              notNull: true,
+              type: "INTEGER"
+            ),
+            [3]: TableInfo(
+              defaultValue: nil,
+              isPrimaryKey: false,
+              name: "newFeature",
+              notNull: true,
+              type: "INTEGER"
+            ),
+            [4]: TableInfo(
+              defaultValue: nil,
+              isPrimaryKey: false,
+              name: "priority",
+              notNull: false,
+              type: "INTEGER"
+            ),
+            [5]: TableInfo(
+              defaultValue: nil,
+              isPrimaryKey: false,
+              name: "remindersListID",
+              notNull: true,
+              type: "TEXT"
+            ),
+            [6]: TableInfo(
+              defaultValue: "\'\'",
+              isPrimaryKey: false,
+              name: "title",
+              notNull: true,
+              type: "TEXT"
+            )
+          ]
         )
         """#
       }
