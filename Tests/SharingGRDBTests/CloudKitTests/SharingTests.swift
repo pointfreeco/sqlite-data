@@ -124,6 +124,137 @@ extension BaseCloudKitTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func shareDelieveredBeforeRecord() async throws {
+      let externalZoneID = CKRecordZone.ID(
+        zoneName: "external.zone",
+        ownerName: "external.owner"
+      )
+
+      let remindersListRecord = CKRecord(
+        recordType: RemindersList.tableName,
+        recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
+      )
+      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
+      remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+      let share = CKShare.init(
+        rootRecord: remindersListRecord,
+        shareID: CKRecord.ID(
+          recordName: "Share-\(UUID(1).uuidString.lowercased())",
+          zoneID: externalZoneID
+        )
+      )
+
+      await syncEngine.modifyRecords(scope: .shared, saving: [share, remindersListRecord])
+
+      await syncEngine.processBatch()
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner),
+                recordType: "cloudkit.share",
+                parent: nil,
+                share: nil
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                share: nil,
+                id: "00000000-0000-0000-0000-000000000001",
+                isCompleted: 0,
+                remindersListID: "00000000-0000-0000-0000-000000000001",
+                title: "Get milk"
+              ),
+              [2]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                recordType: "remindersLists",
+                parent: nil,
+                share: CKReference(recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner)),
+                id: "00000000-0000-0000-0000-000000000001",
+                isCompleted: 0,
+                title: "Personal"
+              )
+            ]
+          )
+        )
+        """
+      }
+
+      let metadata = try await userDatabase.read { db in
+        try SyncMetadata.order(by: \.recordName).fetchAll(db)
+      }
+      assertInlineSnapshot(of: metadata, as: .customDump) {
+        """
+        [
+          [0]: SyncMetadata(
+            recordPrimaryKey: "00000000-0000-0000-0000-000000000001",
+            recordType: "reminders",
+            recordName: "00000000-0000-0000-0000-000000000001:reminders",
+            parentRecordPrimaryKey: "00000000-0000-0000-0000-000000000001",
+            parentRecordType: "remindersLists",
+            parentRecordName: "00000000-0000-0000-0000-000000000001:remindersLists",
+            lastKnownServerRecord: CKRecord(
+              recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
+              recordType: "reminders",
+              parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+              share: nil
+            ),
+            _lastKnownServerRecordAllFields: CKRecord(
+              recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
+              recordType: "reminders",
+              parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+              share: nil,
+              id: "00000000-0000-0000-0000-000000000001",
+              isCompleted: 0,
+              remindersListID: "00000000-0000-0000-0000-000000000001",
+              title: "Get milk"
+            ),
+            share: nil,
+            isShared: false,
+            userModificationDate: Date(1970-01-01T00:01:00.000Z)
+          ),
+          [1]: SyncMetadata(
+            recordPrimaryKey: "00000000-0000-0000-0000-000000000001",
+            recordType: "remindersLists",
+            recordName: "00000000-0000-0000-0000-000000000001:remindersLists",
+            parentRecordPrimaryKey: nil,
+            parentRecordType: nil,
+            parentRecordName: nil,
+            lastKnownServerRecord: CKRecord(
+              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+              recordType: "remindersLists",
+              parent: nil,
+              share: CKReference(recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner))
+            ),
+            _lastKnownServerRecordAllFields: CKRecord(
+              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+              recordType: "remindersLists",
+              parent: nil,
+              share: CKReference(recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner)),
+              id: "00000000-0000-0000-0000-000000000001",
+              isCompleted: 0,
+              title: "Personal"
+            ),
+            share: nil,
+            isShared: false,
+            userModificationDate: Date(1970-01-01T00:00:00.000Z)
+          )
+        ]
+        """
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareeCreatesMultipleChildModels() async throws {
       let externalZoneID = CKRecordZone.ID(
         zoneName: "external.zone",
