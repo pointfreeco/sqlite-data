@@ -228,7 +228,7 @@ extension CKRecord {
     }
   }
 
-  package func update<T: PrimaryKeyedTable<UUID>>(
+  package func update<T: PrimaryKeyedTable>(
     with other: CKRecord,
     row: T,
     columnNames: inout [String]
