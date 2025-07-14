@@ -120,12 +120,12 @@ extension SyncMetadata {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension PrimaryKeyedTable<UUID> {
+extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConvertible {
   /// Constructs a ``SyncMetadata/RecordName-swift.struct`` for a primary keyed table give an ID.
   ///
   /// - Parameter id: The ID of the record.
-  public static func recordName(for id: UUID) -> String {
-    "\(id.uuidString.lowercased()):\(tableName)"
+  public static func recordName(for id: PrimaryKey.QueryOutput) -> String {
+    "\(id.rawIdentifier):\(tableName)"
   }
 
   var recordName: String {
@@ -134,7 +134,7 @@ extension PrimaryKeyedTable<UUID> {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension PrimaryKeyedTableDefinition<UUID> {
+extension PrimaryKeyedTableDefinition where PrimaryKey.QueryOutput: IdentifierStringConvertible {
   public var recordName: some QueryExpression<String> {
     SQLQueryExpression(" \(primaryKey) || ':' || \(quote: QueryValue.tableName, delimiter: .text)")
   }
