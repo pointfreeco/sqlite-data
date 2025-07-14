@@ -146,7 +146,8 @@ extension BaseCloudKitTests {
         )
       )
 
-      await syncEngine.modifyRecords(scope: .shared, saving: [share, remindersListRecord])
+      await syncEngine.modifyRecords(scope: .shared, saving: [share])
+      await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
 
       await syncEngine.processBatch()
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {

@@ -431,13 +431,7 @@
         return
       }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
-      let share = try await container.accept(metadata)
-      try await userDatabase.write { db in
-        try SyncMetadata
-          .where { $0.recordName.eq(rootRecordID.recordName) }
-          .update { $0.share = share }
-          .execute(db)
-      }
+      _ = try await container.accept(metadata)
       try await syncEngines.shared?.fetchChanges(
         .init(
           scope: .zoneIDs([rootRecordID.zoneID]),
