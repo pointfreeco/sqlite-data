@@ -646,7 +646,7 @@
           missingTable = recordID
           return nil
         }
-        func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) async -> CKRecord? {
+        func open<T: PrimaryKeyedTable>(_: T.Type) async -> CKRecord? {
           let row =
             withErrorReporting {
               try userDatabase.read { db in
@@ -711,7 +711,8 @@
         for table in tables {
           withErrorReporting(.sqliteDataCloudKitFailure) {
             let recordNames = try userDatabase.read { db in
-              func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws -> [String] {
+              func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String]
+              where T.PrimaryKey.QueryOutput: IdentifierStringConvertible {
                 try T
                   .select(\.primaryKey)
                   .fetchAll(db)
@@ -810,7 +811,7 @@
       // TODO: Group by recordType and delete in batches
       for (recordID, recordType) in deletions {
         if let table = tablesByName[recordType] {
-          func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) {
+          func open<T: PrimaryKeyedTable>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try userDatabase.write { db in
                 try T
@@ -993,7 +994,7 @@
         serverRecord.userModificationDate =
           metadata?.userModificationDate ?? serverRecord.userModificationDate
 
-        func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+        func open<T: PrimaryKeyedTable>(_: T.Type) throws {
           var columnNames = T.TableColumns.writableColumns.map(\.name)
           if let metadata, let allFields {
             let row = try userDatabase.read { db in
@@ -1062,7 +1063,7 @@
         ?? nil
     }
 
-    private func updateQuery<T: PrimaryKeyedTable<UUID>>(
+    private func updateQuery<T: PrimaryKeyedTable>(
       for _: T.Type,
       record: CKRecord,
       columnNames: some Collection<String>,
