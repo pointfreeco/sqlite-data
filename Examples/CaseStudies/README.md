@@ -5,7 +5,7 @@ SharingGRDB, including:
 
   * [Animations](Animations.swift): Shows how to animate changes when the database changes and 
     updates state in features.
-  * [Dynamic Queries](DynamicQueries.swift): Shows how to dynamic change the parameters of a SQL
+  * [Dynamic Queries](DynamicQuery.swift): Shows how to dynamic change the parameters of a SQL
     query, such as when searching for rows in a table that contains a fragment of text.
   * [@Observable Models](ObservableModelDemo.swift): Shows how to use the tools of this library
     in an `@Observable` model.

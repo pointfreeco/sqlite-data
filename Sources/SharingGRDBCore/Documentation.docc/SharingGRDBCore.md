@@ -116,7 +116,7 @@ This `defaultDatabase` connection is used implicitly by SharingGRDB's strategies
     @FetchAll
     var items: [Item]
 
-    @FetchAll(Item.sort(by: \.title))
+    @FetchAll(Item.order(by: \.title))
     var items
 
     @FetchAll(Item.where(\.isInStock))

@@ -834,6 +834,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init(
       wrappedValue: sending Value,
       database: (any DatabaseReader)? = nil,
@@ -853,6 +854,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init(
       wrappedValue: sending Value,
       database: (any DatabaseReader)? = nil,
@@ -875,6 +877,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init<S: SelectStatement>(
       wrappedValue: Value,
       _ statement: S,
@@ -903,6 +906,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init<V: QueryRepresentable>(
       wrappedValue: Value,
       _ statement: some StructuredQueriesCore.Statement<V>,
@@ -929,6 +933,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init<V: QueryRepresentable>(
       wrappedValue: Value = nil,
       _ statement: some StructuredQueriesCore.Statement<V>,
@@ -955,6 +960,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init<S: StructuredQueriesCore.Statement<Value>>(
       wrappedValue: Value,
       _ statement: S,
@@ -982,6 +988,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init<S: SelectStatement>(
       wrappedValue: Value = ._none,
       _ statement: S,
@@ -1011,6 +1018,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init<S: StructuredQueriesCore.Statement>(
       wrappedValue: Value = ._none,
       _ statement: S,
@@ -1040,6 +1048,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init(
       wrappedValue: Value = ._none,
       _ statement: some StructuredQueriesCore.Statement<Value>,
@@ -1067,6 +1076,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public func load<S: SelectStatement>(
       _ statement: S,
       database: (any DatabaseReader)? = nil,
@@ -1088,6 +1098,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public func load<V: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
@@ -1107,6 +1118,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public func load<V: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
@@ -1126,6 +1138,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public func load<S: SelectStatement>(
       _ statement: S,
       database: (any DatabaseReader)? = nil,
@@ -1148,6 +1161,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public func load<S: StructuredQueriesCore.Statement>(
       _ statement: S,
       database: (any DatabaseReader)? = nil,
@@ -1170,6 +1184,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public func load(
       _ statement: some StructuredQueriesCore.Statement<Value>,
       database: (any DatabaseReader)? = nil,
