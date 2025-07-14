@@ -35,7 +35,7 @@ extension SyncEngine {
     record: T,
     configure: @Sendable (CKShare) -> Void
   ) async throws -> SharedRecord
-  where T.TableColumns.PrimaryKey == UUID {
+  where T.TableColumns.PrimaryKey.QueryOutput: IdentifierStringConvertible {
     guard !privateTables.contains(where: { T.self == $0 })
     else { throw PrivateRootRecord() }
     guard let foreignKeys = foreignKeysByTableName[T.tableName]
