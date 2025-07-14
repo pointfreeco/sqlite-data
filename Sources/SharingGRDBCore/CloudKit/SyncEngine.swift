@@ -445,11 +445,11 @@
     }
   }
 
-  extension PrimaryKeyedTable<UUID> {
+  extension PrimaryKeyedTable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     fileprivate static func createTriggers(
       foreignKeysByTableName: [String: [ForeignKey]],
-      tablesByName: [String: any PrimaryKeyedTable<UUID>.Type],
+      tablesByName: [String: any PrimaryKeyedTable.Type],
       db: Database
     ) throws {
       let parentForeignKey =
