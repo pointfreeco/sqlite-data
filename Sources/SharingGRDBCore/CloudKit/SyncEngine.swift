@@ -1500,7 +1500,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func upsert<T: PrimaryKeyedTable<UUID>>(
+  private func upsert<T: PrimaryKeyedTable>(
     _: T.Type,
     record: CKRecord,
     columnNames: some Collection<String>
