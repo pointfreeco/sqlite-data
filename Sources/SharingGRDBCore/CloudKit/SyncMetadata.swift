@@ -136,6 +136,13 @@ extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConver
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension PrimaryKeyedTableDefinition where PrimaryKey.QueryOutput: IdentifierStringConvertible {
   public var recordName: some QueryExpression<String> {
+    _recordName
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension PrimaryKeyedTableDefinition {
+  var _recordName: some QueryExpression<String> {
     SQLQueryExpression(" \(primaryKey) || ':' || \(quote: QueryValue.tableName, delimiter: .text)")
   }
 }

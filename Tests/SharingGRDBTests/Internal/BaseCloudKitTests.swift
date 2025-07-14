@@ -75,7 +75,7 @@ class BaseCloudKitTests: @unchecked Sendable {
       syncEngine.private.state.assertPendingRecordZoneChanges([])
       syncEngine.private.assertAcceptedShareMetadata([])
     } else {
-      Issue.record("Tests must be run on iOS 17+,m macOS 14+, tvOS 17+ and watchOS 10+.")
+      Issue.record("Tests must be run on iOS 17+, macOS 14+, tvOS 17+ and watchOS 10+.")
     }
   }
 }
@@ -91,8 +91,8 @@ extension SyncEngine {
     container: any CloudContainer,
     userDatabase: UserDatabase,
     metadatabaseURL: URL,
-    tables: [any PrimaryKeyedTable<UUID>.Type],
-    privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
+    tables: [any PrimaryKeyedTable.Type],
+    privateTables: [any PrimaryKeyedTable.Type] = []
   ) async throws {
     try self.init(
       container: container,

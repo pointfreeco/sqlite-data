@@ -13,9 +13,9 @@
     package let userDatabase: UserDatabase
     package let logger: Logger
     package let metadatabase: any DatabaseReader
-    package let tables: [any PrimaryKeyedTable<UUID>.Type]
-    package let privateTables: [any PrimaryKeyedTable<UUID>.Type]
-    let tablesByName: [String: any PrimaryKeyedTable<UUID>.Type]
+    package let tables: [any PrimaryKeyedTable.Type]
+    package let privateTables: [any PrimaryKeyedTable.Type]
+    let tablesByName: [String: any PrimaryKeyedTable.Type]
     private let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
     package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
@@ -30,8 +30,8 @@
       container: CKContainer,
       database: any DatabaseWriter,
       logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit"),
-      tables: [any PrimaryKeyedTable<UUID>.Type],
-      privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
+      tables: [any PrimaryKeyedTable.Type],
+      privateTables: [any PrimaryKeyedTable.Type] = []
     ) throws {
       let userDatabase = UserDatabase(database: database)
       try self.init(
@@ -85,8 +85,8 @@
       userDatabase: UserDatabase,
       logger: Logger,
       metadatabaseURL: URL,
-      tables: [any PrimaryKeyedTable<UUID>.Type],
-      privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
+      tables: [any PrimaryKeyedTable.Type],
+      privateTables: [any PrimaryKeyedTable.Type] = []
     ) throws {
       try validateSchema(tables: tables, userDatabase: userDatabase)
       // TODO: Explain why / link to documentation?
@@ -711,12 +711,10 @@
         for table in tables {
           withErrorReporting(.sqliteDataCloudKitFailure) {
             let recordNames = try userDatabase.read { db in
-              func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String]
-              where T.PrimaryKey.QueryOutput: IdentifierStringConvertible {
+              func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String] {
                 try T
-                  .select(\.primaryKey)
+                  .select(\._recordName)
                   .fetchAll(db)
-                  .map { T.recordName(for: $0) }
               }
               return try open(table)
             }
@@ -1424,8 +1422,8 @@
   }
 
   private struct HashablePrimaryKeyedTableType: Hashable {
-    let type: any PrimaryKeyedTable<UUID>.Type
-    init(_ type: any PrimaryKeyedTable<UUID>.Type) {
+    let type: any PrimaryKeyedTable.Type
+    init(_ type: any PrimaryKeyedTable.Type) {
       self.type = type
     }
     func hash(into hasher: inout Hasher) {
@@ -1439,11 +1437,11 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func tablesByOrder(
     userDatabase: UserDatabase,
-    tables: [any PrimaryKeyedTable<UUID>.Type],
-    tablesByName: [String: any PrimaryKeyedTable<UUID>.Type]
+    tables: [any PrimaryKeyedTable.Type],
+    tablesByName: [String: any PrimaryKeyedTable.Type]
   ) throws -> [String: Int] {
     let tableDependencies = try userDatabase.read { db in
-      var dependencies: [HashablePrimaryKeyedTableType: [any PrimaryKeyedTable<UUID>.Type]] = [:]
+      var dependencies: [HashablePrimaryKeyedTableType: [any PrimaryKeyedTable.Type]] = [:]
       for table in tables {
         let toTables = try SQLQueryExpression(
           """
