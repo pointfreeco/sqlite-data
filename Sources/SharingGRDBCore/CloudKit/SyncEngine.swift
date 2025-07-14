@@ -265,7 +265,7 @@
               ? foreignKeysByTableName[tableName]?.first
               : nil
 
-            func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+            func open<T: PrimaryKeyedTable>(_: T.Type) throws {
               let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
                 parentForeignKey
                 .map { ("\(T.self).\(quote: $0.from)", "\(bind: $0.table)") }
@@ -306,7 +306,7 @@
       for (tableName, currentRecordType) in tablesWithChangedSchemas {
         guard let table = tablesByName[tableName]
         else { continue }
-        func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) async throws {
+        func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
           let previousRecordType = previousRecordTypeByTableName[tableName]
           let changedColumns = currentRecordType.tableInfo.subtracting(
             previousRecordType?.tableInfo ?? []
