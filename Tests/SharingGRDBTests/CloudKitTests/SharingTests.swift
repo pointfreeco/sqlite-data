@@ -14,10 +14,10 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareNonRootRecord() async throws {
-      let reminder = Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
+      let reminder = Reminder(id: 1, title: "Groceries", remindersListID: 1)
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
+          RemindersList(id: 1, title: "Personal")
           reminder
         }
       }
@@ -43,7 +43,7 @@ extension BaseCloudKitTests {
     @Test func sharePrivateTable() async throws {
       await #expect(throws: SyncEngine.PrivateRootRecord.self) {
         _ = try await self.syncEngine.share(
-          record: RemindersListPrivate(id: UUID(1), remindersListID: UUID(1)),
+          record: RemindersListPrivate(id: 1, remindersListID: 1),
           configure: { _ in }
         )
       }
@@ -53,7 +53,7 @@ extension BaseCloudKitTests {
     @Test func shareRecordBeforeSync() async throws {
       await #expect(throws: SyncEngine.NoCKRecordFound.self) {
         _ = try await self.syncEngine.share(
-          record: RemindersList(id: UUID(1)),
+          record: RemindersList(id: 1),
           configure: { _ in }
         )
       }
@@ -68,9 +68,9 @@ extension BaseCloudKitTests {
 
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
+        recordID: RemindersList.recordID(for: 1, zoneID: externalZoneID)
       )
-      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue("1", forKey: "id", at: now)
       remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
@@ -81,7 +81,7 @@ extension BaseCloudKitTests {
       } operation: {
         try await userDatabase.userWrite { db in
           try db.seed {
-            Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+            Reminder(id: 1, title: "Get milk", remindersListID: 1)
           }
         }
       }
@@ -102,9 +102,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 title: "Get milk"
               ),
               [1]: CKRecord(
@@ -112,7 +112,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: "1",
                 isCompleted: 0,
                 title: "Personal"
               )
@@ -227,9 +227,9 @@ extension BaseCloudKitTests {
 
       let modelARecord = CKRecord(
         recordType: ModelA.tableName,
-        recordID: ModelA.recordID(for: UUID(1), zoneID: externalZoneID)
+        recordID: ModelA.recordID(for: 1, zoneID: externalZoneID)
       )
-      modelARecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      modelARecord.setValue("1", forKey: "id", at: now)
       modelARecord.setValue(0, forKey: "count", at: now)
 
       await syncEngine.modifyRecords(scope: .shared, saving: [modelARecord])
@@ -239,8 +239,8 @@ extension BaseCloudKitTests {
       } operation: {
         try await userDatabase.userWrite { db in
           try db.seed {
-            ModelB(id: UUID(1), modelAID: UUID(1))
-            ModelC(id: UUID(1), modelBID: UUID(1))
+            ModelB(id: 1, modelAID: 1)
+            ModelC(id: 1, modelBID: 1)
           }
         }
       }
@@ -262,24 +262,24 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 count: 0,
-                id: "00000000-0000-0000-0000-000000000001"
+                id: "1"
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:modelBs/external.zone/external.owner),
                 recordType: "modelBs",
                 parent: CKReference(recordID: CKRecord.ID(1:modelAs/external.zone/external.owner)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 isOn: 0,
-                modelAID: "00000000-0000-0000-0000-000000000001"
+                modelAID: 1
               ),
               [2]: CKRecord(
                 recordID: CKRecord.ID(1:modelCs/external.zone/external.owner),
                 recordType: "modelCs",
                 parent: CKReference(recordID: CKRecord.ID(1:modelBs/external.zone/external.owner)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                modelBID: "00000000-0000-0000-0000-000000000001",
+                id: 1,
+                modelBID: 1,
                 title: ""
               )
             ]
@@ -298,18 +298,18 @@ extension BaseCloudKitTests {
 
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
+        recordID: RemindersList.recordID(for: 1, zoneID: externalZoneID)
       )
-      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue("1", forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
       let reminderRecord = CKRecord(
         recordType: Reminder.tableName,
-        recordID: Reminder.recordID(for: UUID(1), zoneID: externalZoneID)
+        recordID: Reminder.recordID(for: 1, zoneID: externalZoneID)
       )
-      reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      reminderRecord.setValue("1", forKey: "id", at: now)
       reminderRecord.setValue(false, forKey: "isCompleted", at: now)
       reminderRecord.setValue("Get milk", forKey: "title", at: now)
-      reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "remindersListID", at: now)
+      reminderRecord.setValue("1", forKey: "remindersListID", at: now)
 
       await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
 
@@ -317,7 +317,7 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(UUID(1)).delete().execute(db)
+          try Reminder.find(1).delete().execute(db)
         }
       }
 
@@ -337,7 +337,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: "1",
                 title: "Personal"
               )
             ]

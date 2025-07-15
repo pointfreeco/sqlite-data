@@ -14,8 +14,8 @@ extension BaseCloudKitTests {
         setUpUserDatabase: { userDatabase in
           try await userDatabase.userWrite { db in
             try db.seed {
-              RemindersList(id: UUID(1), title: "Personal")
-              Reminder(id: UUID(1), title: "Write blog post", remindersListID: UUID(1))
+              RemindersList(id: 1, title: "Personal")
+              Reminder(id: 1, title: "Write blog post", remindersListID: 1)
             }
           }
         }
@@ -36,9 +36,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 title: "Write blog post"
               ),
               [1]: CKRecord(
@@ -46,7 +46,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -66,12 +66,12 @@ extension BaseCloudKitTests {
         """
         [
           [0]: SyncMetadata(
-            recordPrimaryKey: "00000000-0000-0000-0000-000000000001",
+            recordPrimaryKey: "1",
             recordType: "reminders",
-            recordName: "00000000-0000-0000-0000-000000000001:reminders",
-            parentRecordPrimaryKey: "00000000-0000-0000-0000-000000000001",
+            recordName: "1:reminders",
+            parentRecordPrimaryKey: "1",
             parentRecordType: "remindersLists",
-            parentRecordName: "00000000-0000-0000-0000-000000000001:remindersLists",
+            parentRecordName: "1:remindersLists",
             lastKnownServerRecord: CKRecord(
               recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
               recordType: "reminders",
@@ -83,9 +83,9 @@ extension BaseCloudKitTests {
               recordType: "reminders",
               parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
               share: nil,
-              id: "00000000-0000-0000-0000-000000000001",
+              id: 1,
               isCompleted: 0,
-              remindersListID: "00000000-0000-0000-0000-000000000001",
+              remindersListID: 1,
               title: "Write blog post"
             ),
             share: nil,
@@ -93,9 +93,9 @@ extension BaseCloudKitTests {
             userModificationDate: Date(1970-01-01T00:00:00.000Z)
           ),
           [1]: SyncMetadata(
-            recordPrimaryKey: "00000000-0000-0000-0000-000000000001",
+            recordPrimaryKey: "1",
             recordType: "remindersLists",
-            recordName: "00000000-0000-0000-0000-000000000001:remindersLists",
+            recordName: "1:remindersLists",
             parentRecordPrimaryKey: nil,
             parentRecordType: nil,
             parentRecordName: nil,
@@ -110,7 +110,7 @@ extension BaseCloudKitTests {
               recordType: "remindersLists",
               parent: nil,
               share: nil,
-              id: "00000000-0000-0000-0000-000000000001",
+              id: 1,
               title: "Personal"
             ),
             share: nil,

@@ -11,7 +11,7 @@ extension BaseCloudKitTests {
   final class NextRecordZoneChangeBatchTests: BaseCloudKitTests, @unchecked Sendable {
     @Test func noMetadataForRecord() async throws {
       syncEngine.private.state.add(
-        pendingRecordZoneChanges: [.saveRecord(Reminder.recordID(for: UUID(1)))]
+        pendingRecordZoneChanges: [.saveRecord(Reminder.recordID(for: 1))]
       )
 
       await syncEngine.processBatch()
@@ -35,7 +35,7 @@ extension BaseCloudKitTests {
       try await userDatabase.userWrite { db in
         try SyncMetadata.insert {
           SyncMetadata(
-            recordPrimaryKey: UUID(1).uuidString.lowercased(),
+            recordPrimaryKey: "1",
             recordType: UnrecognizedTable.tableName,
             userModificationDate: .distantPast
           )
@@ -64,7 +64,7 @@ extension BaseCloudKitTests {
       try await userDatabase.userWrite { db in
         try SyncMetadata.insert {
           SyncMetadata(
-            recordPrimaryKey: UUID(1).uuidString.lowercased(),
+            recordPrimaryKey: "1",
             recordType: RemindersList.tableName,
             userModificationDate: .distantPast
           )
@@ -92,7 +92,7 @@ extension BaseCloudKitTests {
     @Test func saveRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
+          RemindersList(id: 1, title: "Personal")
         }
       }
 
@@ -108,7 +108,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -126,8 +126,8 @@ extension BaseCloudKitTests {
     func saveRecordWithParent() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 1, title: "Get milk", remindersListID: 1)
         }
       }
 
@@ -143,9 +143,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 title: "Get milk"
               ),
               [1]: CKRecord(
@@ -153,7 +153,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -170,8 +170,8 @@ extension BaseCloudKitTests {
     @Test func savePrivateRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          RemindersListPrivate(id: UUID(1), position: 42, remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          RemindersListPrivate(id: 1, position: 42, remindersListID: 1)
         }
       }
 
@@ -187,16 +187,16 @@ extension BaseCloudKitTests {
                 recordType: "remindersListPrivates",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 position: 42,
-                remindersListID: "00000000-0000-0000-0000-000000000001"
+                remindersListID: 1
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]

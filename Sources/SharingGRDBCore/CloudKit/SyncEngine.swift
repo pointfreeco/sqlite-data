@@ -13,9 +13,9 @@
     package let userDatabase: UserDatabase
     package let logger: Logger
     package let metadatabase: any DatabaseReader
-    package let tables: [any PrimaryKeyedTable<UUID>.Type]
-    package let privateTables: [any PrimaryKeyedTable<UUID>.Type]
-    let tablesByName: [String: any PrimaryKeyedTable<UUID>.Type]
+    package let tables: [any PrimaryKeyedTable.Type]
+    package let privateTables: [any PrimaryKeyedTable.Type]
+    let tablesByName: [String: any PrimaryKeyedTable.Type]
     private let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
     package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
@@ -30,8 +30,8 @@
       container: CKContainer,
       database: any DatabaseWriter,
       logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit"),
-      tables: [any PrimaryKeyedTable<UUID>.Type],
-      privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
+      tables: [any PrimaryKeyedTable.Type],
+      privateTables: [any PrimaryKeyedTable.Type] = []
     ) throws {
       let userDatabase = UserDatabase(database: database)
       try self.init(
@@ -85,8 +85,8 @@
       userDatabase: UserDatabase,
       logger: Logger,
       metadatabaseURL: URL,
-      tables: [any PrimaryKeyedTable<UUID>.Type],
-      privateTables: [any PrimaryKeyedTable<UUID>.Type] = []
+      tables: [any PrimaryKeyedTable.Type],
+      privateTables: [any PrimaryKeyedTable.Type] = []
     ) throws {
       try validateSchema(tables: tables, userDatabase: userDatabase)
       // TODO: Explain why / link to documentation?
@@ -265,7 +265,7 @@
               ? foreignKeysByTableName[tableName]?.first
               : nil
 
-            func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+            func open<T: PrimaryKeyedTable>(_: T.Type) throws {
               let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
                 parentForeignKey
                 .map { ("\(T.self).\(quote: $0.from)", "\(bind: $0.table)") }
@@ -306,7 +306,7 @@
       for (tableName, currentRecordType) in tablesWithChangedSchemas {
         guard let table = tablesByName[tableName]
         else { continue }
-        func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) async throws {
+        func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
           let previousRecordType = previousRecordTypeByTableName[tableName]
           let changedColumns = currentRecordType.tableInfo.subtracting(
             previousRecordType?.tableInfo ?? []
@@ -445,11 +445,11 @@
     }
   }
 
-  extension PrimaryKeyedTable<UUID> {
+  extension PrimaryKeyedTable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     fileprivate static func createTriggers(
       foreignKeysByTableName: [String: [ForeignKey]],
-      tablesByName: [String: any PrimaryKeyedTable<UUID>.Type],
+      tablesByName: [String: any PrimaryKeyedTable.Type],
       db: Database
     ) throws {
       let parentForeignKey =
@@ -646,7 +646,7 @@
           missingTable = recordID
           return nil
         }
-        func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) async -> CKRecord? {
+        func open<T: PrimaryKeyedTable>(_: T.Type) async -> CKRecord? {
           let row =
             withErrorReporting {
               try userDatabase.read { db in
@@ -711,11 +711,10 @@
         for table in tables {
           withErrorReporting(.sqliteDataCloudKitFailure) {
             let recordNames = try userDatabase.read { db in
-              func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws -> [String] {
+              func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String] {
                 try T
-                  .select(\.primaryKey)
+                  .select(\._recordName)
                   .fetchAll(db)
-                  .map { T.recordName(for: $0) }
               }
               return try open(table)
             }
@@ -826,7 +825,7 @@
       // TODO: Group by recordType and delete in batches
       for (recordID, recordType) in deletions {
         if let table = tablesByName[recordType] {
-          func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) {
+          func open<T: PrimaryKeyedTable>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try userDatabase.write { db in
                 try T
@@ -1002,7 +1001,7 @@
         serverRecord.userModificationDate =
           metadata?.userModificationDate ?? serverRecord.userModificationDate
 
-        func open<T: PrimaryKeyedTable<UUID>>(_: T.Type) throws {
+        func open<T: PrimaryKeyedTable>(_: T.Type) throws {
           var columnNames = T.TableColumns.writableColumns.map(\.name)
           if let metadata, let allFields {
             let row = try userDatabase.read { db in
@@ -1071,7 +1070,7 @@
         ?? nil
     }
 
-    private func updateQuery<T: PrimaryKeyedTable<UUID>>(
+    private func updateQuery<T: PrimaryKeyedTable>(
       for _: T.Type,
       record: CKRecord,
       columnNames: some Collection<String>,
@@ -1431,8 +1430,8 @@
   }
 
   private struct HashablePrimaryKeyedTableType: Hashable {
-    let type: any PrimaryKeyedTable<UUID>.Type
-    init(_ type: any PrimaryKeyedTable<UUID>.Type) {
+    let type: any PrimaryKeyedTable.Type
+    init(_ type: any PrimaryKeyedTable.Type) {
       self.type = type
     }
     func hash(into hasher: inout Hasher) {
@@ -1446,11 +1445,11 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func tablesByOrder(
     userDatabase: UserDatabase,
-    tables: [any PrimaryKeyedTable<UUID>.Type],
-    tablesByName: [String: any PrimaryKeyedTable<UUID>.Type]
+    tables: [any PrimaryKeyedTable.Type],
+    tablesByName: [String: any PrimaryKeyedTable.Type]
   ) throws -> [String: Int] {
     let tableDependencies = try userDatabase.read { db in
-      var dependencies: [HashablePrimaryKeyedTableType: [any PrimaryKeyedTable<UUID>.Type]] = [:]
+      var dependencies: [HashablePrimaryKeyedTableType: [any PrimaryKeyedTable.Type]] = [:]
       for table in tables {
         let toTables = try SQLQueryExpression(
           """
@@ -1508,7 +1507,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func upsert<T: PrimaryKeyedTable<UUID>>(
+  private func upsert<T: PrimaryKeyedTable>(
     _: T.Type,
     record: CKRecord,
     columnNames: some Collection<String>

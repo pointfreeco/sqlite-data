@@ -5,8 +5,11 @@ import OrderedCollections
 import SharingGRDBCore
 import Testing
 
-extension PrimaryKeyedTable<UUID> {
-  static func recordID(for id: UUID, zoneID: CKRecordZone.ID? = nil) -> CKRecord.ID {
+extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConvertible {
+  static func recordID(
+    for id: PrimaryKey.QueryOutput,
+    zoneID: CKRecordZone.ID? = nil
+  ) -> CKRecord.ID {
     CKRecord.ID(
       recordName: self.recordName(for: id),
       zoneID: zoneID ?? SyncEngine.defaultZone.zoneID

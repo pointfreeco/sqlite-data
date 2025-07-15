@@ -20,8 +20,8 @@ extension BaseCloudKitTests {
     @Test func basics() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          RemindersListAsset(id: UUID(1), coverImage: Data("image".utf8), remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          RemindersListAsset(id: 1, coverImage: Data("image".utf8), remindersListID: 1)
         }
       }
 
@@ -38,8 +38,8 @@ extension BaseCloudKitTests {
                 recordType: "remindersListAssets",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                id: 1,
+                remindersListID: 1,
                 coverImage: CKAsset(
                   fileURL: URL(file:///6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d),
                   dataString: "image"
@@ -50,7 +50,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -73,7 +73,7 @@ extension BaseCloudKitTests {
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersListAsset
-            .find(UUID(1))
+            .find(1)
             .update { $0.coverImage = Data("new-image".utf8) }
             .execute(db)
         }
@@ -92,8 +92,8 @@ extension BaseCloudKitTests {
                 recordType: "remindersListAssets",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                id: 1,
+                remindersListID: 1,
                 coverImage: CKAsset(
                   fileURL: URL(file:///97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf),
                   dataString: "new-image"
@@ -104,7 +104,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -128,23 +128,23 @@ extension BaseCloudKitTests {
     @Test func receiveAsset() async throws {
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: UUID(1))
+        recordID: RemindersList.recordID(for: 1)
       )
-      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue("1", forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
       let remindersListAssetRecord = CKRecord(
         recordType: RemindersListAsset.tableName,
-        recordID: RemindersListAsset.recordID(for: UUID(1))
+        recordID: RemindersListAsset.recordID(for: 1)
       )
-      remindersListAssetRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListAssetRecord.setValue("1", forKey: "id", at: now)
       remindersListAssetRecord.setValue(
         Array("image".utf8),
         forKey: "coverImage",
         at: now
       )
       remindersListAssetRecord.setValue(
-        UUID(1).uuidString.lowercased(),
+        "1",
         forKey: "remindersListID",
         at: now
       )
@@ -160,7 +160,9 @@ extension BaseCloudKitTests {
 
       try {
         try userDatabase.read { db in
-          let remindersListAsset = try #require(try RemindersListAsset.find(UUID(1)).fetchOne(db))
+          let remindersListAsset = try #require(
+            try RemindersListAsset.find(1).fetchOne(db)
+          )
           #expect(remindersListAsset.coverImage == Data("image".utf8))
         }
       }()

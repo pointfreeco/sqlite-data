@@ -3,7 +3,7 @@ import CloudKit
 import Foundation
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension PrimaryKeyedTable<UUID> {
+extension PrimaryKeyedTable {
   static func metadataTriggers(parentForeignKey: ForeignKey?) -> [TemporaryTrigger<Self>] {
     [
       afterInsert(parentForeignKey: parentForeignKey),
@@ -46,7 +46,7 @@ extension PrimaryKeyedTable<UUID> {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncMetadata {
-  fileprivate static func upsert<T: PrimaryKeyedTable<UUID>>(
+  fileprivate static func upsert<T: PrimaryKeyedTable>(
     new: TemporaryTrigger<T>.Operation.New,
     parentForeignKey: ForeignKey?,
   ) -> some StructuredQueriesCore.Statement {

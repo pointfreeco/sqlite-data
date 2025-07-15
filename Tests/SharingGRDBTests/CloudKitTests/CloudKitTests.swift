@@ -453,7 +453,7 @@ extension BaseCloudKitTests {
     @Test func tearDown() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
+          RemindersList(id: 1, title: "Personal")
         }
       }
       await syncEngine.processBatch()
@@ -468,7 +468,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -499,7 +499,7 @@ extension BaseCloudKitTests {
 
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
+          RemindersList(id: 1, title: "Personal")
         }
       }
       await syncEngine.processBatch()
@@ -514,7 +514,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -529,7 +529,7 @@ extension BaseCloudKitTests {
 
       let metadata =
       try await userDatabase.userRead { db in
-        try SyncMetadata.find(UUID(1), table: RemindersList.self).fetchOne(db)
+        try SyncMetadata.find(1, table: RemindersList.self).fetchOne(db)
       }
       #expect(metadata != nil)
     }
@@ -578,7 +578,7 @@ extension BaseCloudKitTests {
     @Test func insertUpdateDelete() async throws {
       try await userDatabase.userWrite { db in
         try RemindersList
-          .insert { RemindersList(id: UUID(1), title: "Personal") }
+          .insert { RemindersList(id: 1, title: "Personal") }
           .execute(db)
       }
       await syncEngine.processBatch()
@@ -593,7 +593,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -611,7 +611,7 @@ extension BaseCloudKitTests {
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersList
-            .find(UUID(1))
+            .find(1)
             .update { $0.title = "Work" }
             .execute(db)
         }
@@ -628,7 +628,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Work"
               )
             ]
@@ -643,7 +643,7 @@ extension BaseCloudKitTests {
 
       try await userDatabase.userWrite { db in
         try RemindersList
-          .find(UUID(1))
+          .find(1)
           .delete()
           .execute(db)
       }
@@ -668,7 +668,7 @@ extension BaseCloudKitTests {
     @Test func remoteServerRecordUpdate() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
+          RemindersList(id: 1, title: "Personal")
         }
       }
       await syncEngine.processBatch()
@@ -683,7 +683,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -699,26 +699,28 @@ extension BaseCloudKitTests {
       let userModificationDate = try #require(
         try await userDatabase.userRead { db in
           try SyncMetadata
-            .find(UUID(1), table: RemindersList.self)
+            .find(1, table: RemindersList.self)
             .select(\.userModificationDate)
             .fetchOne(db) ?? nil
         }
       )
 
-      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
+      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
       let serverModificationDate = userModificationDate.addingTimeInterval(60)
       record.setValue("Work", forKey: "title", at: serverModificationDate)
       _ = await syncEngine.modifyRecords(scope: .private, saving: [record])
 
       expectNoDifference(
-        try { try userDatabase.userRead { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
-        RemindersList(id: UUID(1), title: "Work")
+        try { try userDatabase.userRead { db in
+          try RemindersList.find(1).fetchOne(db) }
+        }(),
+        RemindersList(id: 1, title: "Work")
       )
 
       let metadata = try #require(
         try await userDatabase.userRead { db in
           try SyncMetadata
-            .find(UUID(1), table: RemindersList.self)
+            .find(1, table: RemindersList.self)
             .fetchOne(db)
         }
       )
@@ -734,7 +736,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Work"
               )
             ]
@@ -752,7 +754,7 @@ extension BaseCloudKitTests {
     @Test func remoteServerSendsRecordWithNoChanges() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
+          RemindersList(id: 1, title: "Personal")
         }
       }
       await syncEngine.processBatch()
@@ -761,11 +763,11 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
-          try RemindersList.find(UUID(1)).update { $0.title = "My stuff" }.execute(db)
+          try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)
         }
       }
 
-      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
+      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
       await syncEngine.modifyRecords(scope: .private, saving: [record])
       await syncEngine.processBatch()
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
@@ -779,7 +781,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "My stuff"
               )
             ]
@@ -797,7 +799,7 @@ extension BaseCloudKitTests {
     @Test func remoteServerRecordUpdateWithOldRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
+          RemindersList(id: 1, title: "Personal")
         }
       }
       await syncEngine.processBatch()
@@ -812,7 +814,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -828,27 +830,27 @@ extension BaseCloudKitTests {
       let userModificationDate = try #require(
         try await userDatabase.userRead { db in
           try SyncMetadata
-            .find(UUID(1), table: RemindersList.self)
+            .find(1, table: RemindersList.self)
             .select(\.userModificationDate)
             .fetchOne(db) ?? nil
         }
       )
 
-      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
+      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
       record.encryptedValues["title"] = "Work"
       // NB: Manually setting '_recordChangeTag' simulates another device saving a record.
       record._recordChangeTag = UUID().uuidString
       await syncEngine.modifyRecords(scope: .private, saving: [record])
 
       expectNoDifference(
-        try { try userDatabase.userRead { db in try RemindersList.find(UUID(1)).fetchOne(db) } }(),
-        RemindersList(id: UUID(1), title: "Personal")
+        try { try userDatabase.userRead { db in try RemindersList.find(1).fetchOne(db) } }(),
+        RemindersList(id: 1, title: "Personal")
       )
 
       let metadata = try #require(
         try await userDatabase.userRead { db in
           try SyncMetadata
-            .find(UUID(1), table: RemindersList.self)
+            .find(1, table: RemindersList.self)
             .fetchOne(db)
         }
       )
@@ -864,7 +866,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -882,7 +884,7 @@ extension BaseCloudKitTests {
     @Test func remoteServerRecordDeleted() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
+          RemindersList(id: 1, title: "Personal")
         }
       }
       await syncEngine.processBatch()
@@ -897,7 +899,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -910,16 +912,17 @@ extension BaseCloudKitTests {
         """
       }
 
-      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: UUID(1)))
+      let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
       await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID])
 
       #expect(
-        try await userDatabase.userRead { db in try RemindersList.find(UUID(1)).fetchAll(db) }
-        == []
+        try await userDatabase.userRead { db in
+          try RemindersList.find(1).fetchAll(db)
+        } == []
       )
       let metadata = try await userDatabase.userRead { db in
         try SyncMetadata
-          .find(UUID(1), table: RemindersList.self)
+          .find(1, table: RemindersList.self)
           .fetchOne(db)
       }
       #expect(metadata == nil)
@@ -942,34 +945,34 @@ extension BaseCloudKitTests {
     @Test func cascadingDeletionOrder() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          Tag(id: UUID(1), title: "")
-          Tag(id: UUID(2), title: "")
+          Tag(id: 1, title: "")
+          Tag(id: 2, title: "")
         }
       }
       for _ in 1...100 {
         try await userDatabase.userWrite { db in
           try db.seed {
-            RemindersList(id: UUID(1), title: "Personal")
-            RemindersListPrivate(id: UUID(1), position: 1, remindersListID: UUID(1))
-            Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
-            Reminder(id: UUID(2), title: "", remindersListID: UUID(1))
-            Reminder(id: UUID(3), title: "", remindersListID: UUID(1))
-            Reminder(id: UUID(4), title: "", remindersListID: UUID(1))
-            ReminderTag(id: UUID(1), reminderID: UUID(1), tagID: UUID(1))
-            ReminderTag(id: UUID(2), reminderID: UUID(2), tagID: UUID(1))
-            ReminderTag(id: UUID(3), reminderID: UUID(3), tagID: UUID(1))
-            ReminderTag(id: UUID(4), reminderID: UUID(4), tagID: UUID(1))
-            ReminderTag(id: UUID(5), reminderID: UUID(1), tagID: UUID(2))
-            ReminderTag(id: UUID(6), reminderID: UUID(2), tagID: UUID(2))
-            ReminderTag(id: UUID(7), reminderID: UUID(3), tagID: UUID(2))
-            ReminderTag(id: UUID(8), reminderID: UUID(4), tagID: UUID(2))
+            RemindersList(id: 1, title: "Personal")
+            RemindersListPrivate(id: 1, position: 1, remindersListID: 1)
+            Reminder(id: 1, title: "", remindersListID: 1)
+            Reminder(id: 2, title: "", remindersListID: 1)
+            Reminder(id: 3, title: "", remindersListID: 1)
+            Reminder(id: 4, title: "", remindersListID: 1)
+            ReminderTag(id: 1, reminderID: 1, tagID: 1)
+            ReminderTag(id: 2, reminderID: 2, tagID: 1)
+            ReminderTag(id: 3, reminderID: 3, tagID: 1)
+            ReminderTag(id: 4, reminderID: 4, tagID: 1)
+            ReminderTag(id: 5, reminderID: 1, tagID: 2)
+            ReminderTag(id: 6, reminderID: 2, tagID: 2)
+            ReminderTag(id: 7, reminderID: 3, tagID: 2)
+            ReminderTag(id: 8, reminderID: 4, tagID: 2)
           }
         }
 
         await syncEngine.processBatch()
 
         try await userDatabase.userWrite { db in
-          try RemindersList.find(UUID(1)).delete().execute(db)
+          try RemindersList.find(1).delete().execute(db)
         }
 
         await syncEngine.processBatch()
@@ -984,7 +987,7 @@ extension BaseCloudKitTests {
                   recordType: "tags",
                   parent: nil,
                   share: nil,
-                  id: "00000000-0000-0000-0000-000000000001",
+                  id: 1,
                   title: ""
                 ),
                 [1]: CKRecord(
@@ -992,7 +995,7 @@ extension BaseCloudKitTests {
                   recordType: "tags",
                   parent: nil,
                   share: nil,
-                  id: "00000000-0000-0000-0000-000000000002",
+                  id: 2,
                   title: ""
                 )
               ]
