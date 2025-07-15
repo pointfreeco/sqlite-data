@@ -17,9 +17,9 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func addColumnToRemindersAndRemindersLists() async throws {
-      let personalList = RemindersList(id: UUID(1), title: "Personal")
-      let businessList = RemindersList(id: UUID(2), title: "Business")
-      let reminder = Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+      let personalList = RemindersList(id: 1, title: "Personal")
+      let businessList = RemindersList(id: 2, title: "Business")
+      let reminder = Reminder(id: 1, title: "Get milk", remindersListID: 1)
       try await userDatabase.userWrite { db in
         try db.seed {
           personalList
@@ -34,17 +34,17 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(60)
       } operation: {
         let personalListRecord = try syncEngine.private.database.record(
-          for: RemindersList.recordID(for: UUID(1))
+          for: RemindersList.recordID(for: 1)
         )
         personalListRecord.setValue(1, forKey: "position", at: now)
 
         let businessListRecord = try syncEngine.private.database.record(
-          for: RemindersList.recordID(for: UUID(2))
+          for: RemindersList.recordID(for: 2)
         )
         businessListRecord.setValue(2, forKey: "position", at: now)
 
         let reminderRecord = try syncEngine.private.database.record(
-          for: Reminder.recordID(for: UUID(1))
+          for: Reminder.recordID(for: 1)
         )
         reminderRecord.setValue(3, forKey: "position", at: now)
 
@@ -103,7 +103,7 @@ extension BaseCloudKitTests {
               id: UUID(1),
               title: "Get milk",
               position: 3,
-              remindersListID: UUID(1)
+              remindersListID: 1
             )
           ]
         )
@@ -112,7 +112,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func addAssetToRemindersList() async throws {
-      let personalList = RemindersList(id: UUID(1), title: "Personal")
+      let personalList = RemindersList(id: 1, title: "Personal")
       try await userDatabase.userWrite { db in
         try db.seed {
           personalList
@@ -125,7 +125,7 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(60)
       } operation: {
         let personalListRecord = try syncEngine.private.database.record(
-          for: RemindersList.recordID(for: UUID(1))
+          for: RemindersList.recordID(for: 1)
         )
         personalListRecord.setValue(Array("image".utf8), forKey: "image", at: now)
 
@@ -173,9 +173,9 @@ extension BaseCloudKitTests {
     @Test func addAssetToRemindersList_Redownload() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          RemindersList(id: UUID(2), title: "Business")
-          RemindersList(id: UUID(3), title: "Secret")
+          RemindersList(id: 1, title: "Personal")
+          RemindersList(id: 2, title: "Business")
+          RemindersList(id: 3, title: "Secret")
         }
       }
 
@@ -185,15 +185,15 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(60)
       } operation: {
         let personalListRecord = try syncEngine.private.database.record(
-          for: RemindersList.recordID(for: UUID(1))
+          for: RemindersList.recordID(for: 1)
         )
         personalListRecord.setValue(Array("personal-image".utf8), forKey: "image", at: now)
         let businessListRecord = try syncEngine.private.database.record(
-          for: RemindersList.recordID(for: UUID(2))
+          for: RemindersList.recordID(for: 2)
         )
         businessListRecord.setValue(Array("business-image".utf8), forKey: "image", at: now)
         let secretListRecord = try syncEngine.private.database.record(
-          for: RemindersList.recordID(for: UUID(3))
+          for: RemindersList.recordID(for: 3)
         )
         secretListRecord.setValue(Array("secret-image".utf8), forKey: "image", at: now)
 

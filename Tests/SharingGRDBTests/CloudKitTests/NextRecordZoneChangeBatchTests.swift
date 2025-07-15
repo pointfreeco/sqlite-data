@@ -11,7 +11,7 @@ extension BaseCloudKitTests {
   final class NextRecordZoneChangeBatchTests: BaseCloudKitTests, @unchecked Sendable {
     @Test func noMetadataForRecord() async throws {
       syncEngine.private.state.add(
-        pendingRecordZoneChanges: [.saveRecord(Reminder.recordID(for: UUID(1)))]
+        pendingRecordZoneChanges: [.saveRecord(Reminder.recordID(for: 1))]
       )
 
       await syncEngine.processBatch()
@@ -92,7 +92,7 @@ extension BaseCloudKitTests {
     @Test func saveRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
+          RemindersList(id: 1, title: "Personal")
         }
       }
 
@@ -126,8 +126,8 @@ extension BaseCloudKitTests {
     func saveRecordWithParent() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 1, title: "Get milk", remindersListID: 1)
         }
       }
 
@@ -170,8 +170,8 @@ extension BaseCloudKitTests {
     @Test func savePrivateRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          RemindersListPrivate(id: UUID(1), position: 42, remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          RemindersListPrivate(id: 1, position: 42, remindersListID: 1)
         }
       }
 

@@ -20,8 +20,8 @@ extension BaseCloudKitTests {
     @Test func basics() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          RemindersListAsset(id: UUID(1), coverImage: Data("image".utf8), remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          RemindersListAsset(id: 1, coverImage: Data("image".utf8), remindersListID: 1)
         }
       }
 
@@ -73,7 +73,7 @@ extension BaseCloudKitTests {
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersListAsset
-            .find(UUID(1))
+            .find(RemindersListAsset.ID(1))
             .update { $0.coverImage = Data("new-image".utf8) }
             .execute(db)
         }
@@ -128,14 +128,14 @@ extension BaseCloudKitTests {
     @Test func receiveAsset() async throws {
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: UUID(1))
+        recordID: RemindersList.recordID(for: 1)
       )
       remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
       let remindersListAssetRecord = CKRecord(
         recordType: RemindersListAsset.tableName,
-        recordID: RemindersListAsset.recordID(for: UUID(1))
+        recordID: RemindersListAsset.recordID(for: 1)
       )
       remindersListAssetRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
       remindersListAssetRecord.setValue(
@@ -160,7 +160,9 @@ extension BaseCloudKitTests {
 
       try {
         try userDatabase.read { db in
-          let remindersListAsset = try #require(try RemindersListAsset.find(UUID(1)).fetchOne(db))
+          let remindersListAsset = try #require(
+            try RemindersListAsset.find(RemindersListAsset.ID(1)).fetchOne(db)
+          )
           #expect(remindersListAsset.coverImage == Data("image".utf8))
         }
       }()

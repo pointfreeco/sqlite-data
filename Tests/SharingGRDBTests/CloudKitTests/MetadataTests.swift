@@ -14,9 +14,9 @@ extension BaseCloudKitTests {
     @Test func parentRecordName() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          RemindersList(id: UUID(2), title: "Work")
-          Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          RemindersList(id: 2, title: "Work")
+          Reminder(id: 1, title: "Groceries", remindersListID: 1)
         }
       }
 
@@ -66,26 +66,26 @@ extension BaseCloudKitTests {
       try await userDatabase.userRead { db in
         let reminderMetadata = try #require(
           try SyncMetadata
-            .where { $0.recordName.eq(Reminder.recordName(for: UUID(1))) }
+            .where { $0.recordName.eq(Reminder.recordName(for: 1)) }
             .fetchOne(db)
         )
-        #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(1)))
+        #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
       }
 
-      try await withDependencies {
+      try withDependencies {
         $0.date.now.addTimeInterval(60)
       } operation: {
         _ = try {
           try userDatabase.userWrite { db in
-            try Reminder.find(UUID(1))
-              .update { $0.remindersListID = UUID(2) }
+            try Reminder.find(Reminder.ID(1))
+              .update { $0.remindersListID = 2 }
               .execute(db)
             let reminderMetadata = try #require(
               try SyncMetadata
-                .where { $0.recordName.eq(Reminder.recordName(for: UUID(1))) }
+                .where { $0.recordName.eq(Reminder.recordName(for: 1)) }
                 .fetchOne(db)
             )
-            #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(2)))
+            #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 2))
           }
         }()
       }
@@ -137,10 +137,10 @@ extension BaseCloudKitTests {
     @Test func noParentRecordForRecordsWithMultipleForeignKeys() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
-          Tag(id: UUID(1), title: "weekend")
-          ReminderTag(id: UUID(1), reminderID: UUID(1), tagID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 1, title: "Groceries", remindersListID: 1)
+          Tag(id: 1, title: "weekend")
+          ReminderTag(id: 1, reminderID: 1, tagID: 1)
         }
       }
 
@@ -208,10 +208,10 @@ extension BaseCloudKitTests {
     @Test func recordType() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
-          Reminder(id: UUID(3), title: "Groceries", remindersListID: UUID(1))
-          Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 2, title: "Groceries", remindersListID: 1)
+          Reminder(id: 3, title: "Groceries", remindersListID: 1)
+          Reminder(id: 4, title: "Groceries", remindersListID: 1)
         }
       }
 
@@ -224,9 +224,9 @@ extension BaseCloudKitTests {
       }
       #expect(
         reminderMetadata.map(\.recordName) == [
-          Reminder.recordName(for: UUID(2)),
-          Reminder.recordName(for: UUID(3)),
-          Reminder.recordName(for: UUID(4)),
+          Reminder.recordName(for: 2),
+          Reminder.recordName(for: 3),
+          Reminder.recordName(for: 4),
         ]
       )
     }
@@ -234,10 +234,10 @@ extension BaseCloudKitTests {
     @Test func parentRecordType() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
-          Reminder(id: UUID(3), title: "Groceries", remindersListID: UUID(1))
-          Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 2, title: "Groceries", remindersListID: 1)
+          Reminder(id: 3, title: "Groceries", remindersListID: 1)
+          Reminder(id: 4, title: "Groceries", remindersListID: 1)
         }
       }
 
@@ -250,9 +250,9 @@ extension BaseCloudKitTests {
           .fetchAll(db)
         #expect(
           reminderMetadata.map(\.recordName) == [
-            Reminder.recordName(for: UUID(2)),
-            Reminder.recordName(for: UUID(3)),
-            Reminder.recordName(for: UUID(4)),
+            Reminder.recordName(for: 2),
+            Reminder.recordName(for: 3),
+            Reminder.recordName(for: 4),
           ]
         )
       }
@@ -261,10 +261,10 @@ extension BaseCloudKitTests {
     @Test func parentRecordPrimaryKey() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
-          Reminder(id: UUID(3), title: "Groceries", remindersListID: UUID(1))
-          Reminder(id: UUID(4), title: "Groceries", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 2, title: "Groceries", remindersListID: 1)
+          Reminder(id: 3, title: "Groceries", remindersListID: 1)
+          Reminder(id: 4, title: "Groceries", remindersListID: 1)
         }
       }
 
@@ -277,9 +277,9 @@ extension BaseCloudKitTests {
           .fetchAll(db)
         #expect(
           reminderMetadata.map(\.recordName) == [
-            Reminder.recordName(for: UUID(2)),
-            Reminder.recordName(for: UUID(3)),
-            Reminder.recordName(for: UUID(4)),
+            Reminder.recordName(for: 2),
+            Reminder.recordName(for: 3),
+            Reminder.recordName(for: 4),
           ]
         )
       }

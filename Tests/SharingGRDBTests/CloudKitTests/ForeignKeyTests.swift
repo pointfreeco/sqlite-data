@@ -14,9 +14,9 @@ extension BaseCloudKitTests {
     @Test func deleteCascade() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(1), title: "Groceries", remindersListID: UUID(1))
-          Reminder(id: UUID(2), title: "Walk", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 1, title: "Groceries", remindersListID: 1)
+          Reminder(id: 2, title: "Walk", remindersListID: 1)
         }
       }
 
@@ -69,7 +69,7 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try RemindersList.find(UUID(1)).delete().execute(db)
+          try RemindersList.find(RemindersList.ID(1)).delete().execute(db)
         }
       }
       try await userDatabase.userRead { db in
@@ -179,9 +179,9 @@ extension BaseCloudKitTests {
     @Test func updateCascade() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(1))
-          Reminder(id: UUID(3), title: "Walk", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 2, title: "Groceries", remindersListID: 1)
+          Reminder(id: 3, title: "Walk", remindersListID: 1)
         }
       }
 
@@ -234,16 +234,16 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try RemindersList.find(UUID(1)).update { $0.id = UUID(9) }.execute(db)
+          try RemindersList.find(RemindersList.ID(1)).update { $0.id = 9 }.execute(db)
         }
       }
       try await userDatabase.userRead { db in
         try expectNoDifference(
           Reminder.all.fetchAll(db),
           [
-            Reminder(id: UUID(2), title: "Groceries", remindersListID: UUID(9)),
-            Reminder(id: UUID(3), title: "Walk", remindersListID: UUID(9)),
-            Reminder(id: UUID(4), title: "Haircut", remindersListID: UUID(9)),
+            Reminder(id: 2, title: "Groceries", remindersListID: 9),
+            Reminder(id: 3, title: "Walk", remindersListID: 9),
+            Reminder(id: 4, title: "Haircut", remindersListID: 9),
           ]
         )
       }

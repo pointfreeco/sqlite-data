@@ -14,8 +14,8 @@ extension BaseCloudKitTests {
         setUpUserDatabase: { userDatabase in
           try await userDatabase.userWrite { db in
             try db.seed {
-              RemindersList(id: UUID(1), title: "Personal")
-              Reminder(id: UUID(1), title: "Write blog post", remindersListID: UUID(1))
+              RemindersList(id: 1, title: "Personal")
+              Reminder(id: 1, title: "Write blog post", remindersListID: 1)
             }
           }
         }

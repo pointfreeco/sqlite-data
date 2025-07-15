@@ -16,14 +16,14 @@ extension BaseCloudKitTests {
     @Test func saveExtraFieldsToSyncMetadata() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 1, title: "Get milk", remindersListID: 1)
         }
       }
       await syncEngine.processBatch()
 
       let reminderRecord = try syncEngine.private.database
-        .record(for: Reminder.recordID(for: UUID(1)))
+        .record(for: Reminder.recordID(for: 1))
       reminderRecord.setValue("Hello world! 🌎🌎🌎", forKey: "newField", at: now)
 
       await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
@@ -66,7 +66,7 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(UUID(1)).update { $0.isCompleted.toggle() }.execute(db)
+          try Reminder.find(Reminder.ID(1)).update { $0.isCompleted.toggle() }.execute(db)
         }
 
         await syncEngine.processBatch()
@@ -110,9 +110,9 @@ extension BaseCloudKitTests {
     @Test func remoteChangeParentRelationship() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          RemindersList(id: UUID(2), title: "Business")
-          Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          RemindersList(id: 2, title: "Business")
+          Reminder(id: 1, title: "Get milk", remindersListID: 1)
         }
       }
       await syncEngine.processBatch()
@@ -121,10 +121,10 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(1)
       } operation: {
         let reminderRecord = try syncEngine.private.database
-          .record(for: Reminder.recordID(for: UUID(1)))
+          .record(for: Reminder.recordID(for: 1))
         reminderRecord.setValue(UUID(2).uuidString.lowercased(), forKey: "remindersListID", at: now)
         reminderRecord.parent = CKRecord.Reference(
-          recordID: RemindersList.recordID(for: UUID(2)),
+          recordID: RemindersList.recordID(for: 2),
           action: .none
         )
 
@@ -132,7 +132,7 @@ extension BaseCloudKitTests {
       }
 
       assertInlineSnapshot(
-        of: syncEngine.private.database.storage[Reminder.recordID(for: UUID(1))],
+        of: syncEngine.private.database.storage[Reminder.recordID(for: 1)],
         as: .customDump
       ) {
         """
@@ -152,22 +152,22 @@ extension BaseCloudKitTests {
       try {
         try userDatabase.read { db in
           let metadata = try #require(
-            try SyncMetadata.find(UUID(1), table: Reminder.self).fetchOne(db)
+            try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
           )
-          #expect(metadata.parentRecordName == RemindersList.recordName(for: UUID(2)))
-          let reminder = try #require(try Reminder.find(UUID(1)).fetchOne(db))
-          #expect(reminder == Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(2)))
+          #expect(metadata.parentRecordName == RemindersList.recordName(for: 2))
+          let reminder = try #require(try Reminder.find(Reminder.ID(1)).fetchOne(db))
+          #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 2))
         }
       }()
 
       try await userDatabase.userWrite { db in
-        try Reminder.find(UUID(1)).update { $0.isCompleted.toggle() }.execute(db)
+        try Reminder.find(Reminder.ID(1)).update { $0.isCompleted.toggle() }.execute(db)
       }
 
       await syncEngine.processBatch()
 
       assertInlineSnapshot(
-        of: syncEngine.private.database.storage[Reminder.recordID(for: UUID(1))],
+        of: syncEngine.private.database.storage[Reminder.recordID(for: 1)],
         as: .customDump
       ) {
         """
@@ -187,16 +187,16 @@ extension BaseCloudKitTests {
       try {
         try userDatabase.read { db in
           let metadata = try #require(
-            try SyncMetadata.find(UUID(1), table: Reminder.self).fetchOne(db)
+            try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
           )
-          #expect(metadata.parentRecordName == RemindersList.recordName(for: UUID(2)))
-          let reminder = try #require(try Reminder.find(UUID(1)).fetchOne(db))
+          #expect(metadata.parentRecordName == RemindersList.recordName(for: 2))
+          let reminder = try #require(try Reminder.find(Reminder.ID(1)).fetchOne(db))
           #expect(
             reminder == Reminder(
-              id: UUID(1),
+              id: 1,
               isCompleted: true,
               title: "Get milk",
-              remindersListID: UUID(2)
+              remindersListID: 2
             )
           )
         }
@@ -206,7 +206,7 @@ extension BaseCloudKitTests {
     @Test func receiveNewRecordFromCloudKit() async throws {
       let remindersListRecord = CKRecord.init(
         recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: UUID(1))
+        recordID: RemindersList.recordID(for: 1)
       )
       remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
@@ -240,11 +240,11 @@ extension BaseCloudKitTests {
       try {
         try userDatabase.read { db in
           let metadata = try #require(
-            try SyncMetadata.find(UUID(1), table: RemindersList.self).fetchOne(db)
+            try SyncMetadata.find(1, table: RemindersList.self).fetchOne(db)
           )
-          #expect(metadata.recordName == RemindersList.recordName(for: UUID(1)))
-          let remindersList = try #require(try RemindersList.find(UUID(1)).fetchOne(db))
-          #expect(remindersList == RemindersList(id: UUID(1), title: "Personal"))
+          #expect(metadata.recordName == RemindersList.recordName(for: 1))
+          let remindersList = try #require(try RemindersList.find(RemindersList.ID(1)).fetchOne(db))
+          #expect(remindersList == RemindersList(id: 1, title: "Personal"))
         }
       }()
 
@@ -252,7 +252,7 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
-          try RemindersList.find(UUID(1)).update { $0.title = "My stuff" }.execute(db)
+          try RemindersList.find(RemindersList.ID(1)).update { $0.title = "My stuff" }.execute(db)
         }
 
         await syncEngine.processBatch()
@@ -284,8 +284,8 @@ extension BaseCloudKitTests {
 
       try {
         try userDatabase.read { db in
-          let remindersList = try #require(try RemindersList.find(UUID(1)).fetchOne(db))
-          #expect(remindersList == RemindersList(id: UUID(1), title: "My stuff"))
+          let remindersList = try #require(try RemindersList.find(RemindersList.ID(1)).fetchOne(db))
+          #expect(remindersList == RemindersList(id: 1, title: "My stuff"))
         }
       }()
     }
@@ -293,20 +293,20 @@ extension BaseCloudKitTests {
     @Test func receiveNewRecordFromCloudKit_ChildBeforeParent() async throws {
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: UUID(1))
+        recordID: RemindersList.recordID(for: 1)
       )
       remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
       let reminderRecord = CKRecord(
         recordType: Reminder.tableName,
-        recordID: Reminder.recordID(for: UUID(1))
+        recordID: Reminder.recordID(for: 1)
       )
       reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
       reminderRecord.setValue("Get milk", forKey: "title", at: now)
       reminderRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "remindersListID", at: now)
       reminderRecord.parent = CKRecord.Reference(
-        recordID: RemindersList.recordID(for: UUID(1)),
+        recordID: RemindersList.recordID(for: 1),
         action: .none
       )
 
@@ -351,22 +351,22 @@ extension BaseCloudKitTests {
       try {
         try userDatabase.read { db in
           let reminderMetadata = try #require(
-            try SyncMetadata.find(UUID(1), table: Reminder.self).fetchOne(db)
+            try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
           )
-          #expect(reminderMetadata.recordName == Reminder.recordName(for: UUID(1)))
-          #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: UUID(1)))
+          #expect(reminderMetadata.recordName == Reminder.recordName(for: 1))
+          #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
 
           let remindersListMetadata = try #require(
-            try SyncMetadata.find(UUID(1), table: RemindersList.self).fetchOne(db)
+            try SyncMetadata.find(1, table: RemindersList.self).fetchOne(db)
           )
-          #expect(remindersListMetadata.recordName == RemindersList.recordName(for: UUID(1)))
+          #expect(remindersListMetadata.recordName == RemindersList.recordName(for: 1))
           #expect(remindersListMetadata.parentRecordName == nil)
 
-          let reminder = try #require(try Reminder.find(UUID(1)).fetchOne(db))
-          #expect(reminder == Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1)))
+          let reminder = try #require(try Reminder.find(Reminder.ID(1)).fetchOne(db))
+          #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 1))
 
-          let remindersList = try #require(try RemindersList.find(UUID(1)).fetchOne(db))
-          #expect(remindersList == RemindersList(id: UUID(1), title: "Personal"))
+          let remindersList = try #require(try RemindersList.find(RemindersList.ID(1)).fetchOne(db))
+          #expect(remindersList == RemindersList(id: 1, title: "Personal"))
         }
       }()
 
@@ -374,7 +374,7 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(UUID(1)).update { $0.title = "Buy milk" }.execute(db)
+          try Reminder.find(Reminder.ID(1)).update { $0.title = "Buy milk" }.execute(db)
         }
 
         await syncEngine.processBatch()
@@ -416,8 +416,8 @@ extension BaseCloudKitTests {
 
       try {
         try userDatabase.read { db in
-          let reminder = try #require(try Reminder.find(UUID(1)).fetchOne(db))
-          #expect(reminder == Reminder.init(id: UUID(1), title: "Buy milk", remindersListID: UUID(1)))
+          let reminder = try #require(try Reminder.find(Reminder.ID(1)).fetchOne(db))
+          #expect(reminder == Reminder(id: 1, title: "Buy milk", remindersListID: 1))
         }
       }()
     }

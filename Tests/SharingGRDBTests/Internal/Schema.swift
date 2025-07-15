@@ -2,7 +2,7 @@ import Foundation
 import SharingGRDB
 
 @Table struct Reminder: Equatable, Identifiable {
-  let id: UUID
+  let id: Identifier<Self>
   var dueDate: Date?
   var isCompleted = false
   var priority: Int?
@@ -10,25 +10,25 @@ import SharingGRDB
   var remindersListID: RemindersList.ID
 }
 @Table struct RemindersList: Equatable, Identifiable {
-  let id: UUID
+  let id: Identifier<Self>
   var title = ""
 }
 @Table struct RemindersListAsset: Equatable, Identifiable {
-  let id: UUID
+  let id: Identifier<Self>
   var coverImage: Data?
   var remindersListID: RemindersList.ID
 }
 @Table struct RemindersListPrivate: Equatable, Identifiable {
-  let id: UUID
+  let id: Identifier<Self>
   var position = 0
   var remindersListID: RemindersList.ID
 }
 @Table struct Tag: Equatable, Identifiable {
-  let id: UUID
+  let id: Identifier<Self>
   var title = ""
 }
 @Table struct ReminderTag: Equatable, Identifiable {
-  let id: UUID
+  let id: Identifier<Self>
   var reminderID: Reminder.ID
   var tagID: Tag.ID
 }
@@ -66,6 +66,30 @@ import SharingGRDB
   let id: UUID
   var title = ""
   var modelBID: ModelB.ID
+}
+
+struct Identifier<T: PrimaryKeyedTable>:
+  ExpressibleByIntegerLiteral,
+  Hashable,
+  RawRepresentable,
+  IdentifierStringConvertible,
+  QueryBindable
+{
+  let rawValue: UUID
+  var rawIdentifier: String { rawValue.rawIdentifier }
+  init(rawValue: UUID) {
+    self.rawValue = rawValue
+  }
+  init?(rawIdentifier: String) {
+    guard let rawValue = UUID(uuidString: rawIdentifier) else { return nil }
+    self.init(rawValue: rawValue)
+  }
+  init(_ intValue: Int) {
+    self.init(rawValue: UUID(intValue))
+  }
+  init(integerLiteral value: Int) {
+    self.init(value)
+  }
 }
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)

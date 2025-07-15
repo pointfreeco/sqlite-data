@@ -15,8 +15,8 @@ extension BaseCloudKitTests {
     @Test func merge_clientRecordUpdatedBeforeServerRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "")
-          Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "")
+          Reminder(id: 1, title: "", remindersListID: 1)
         }
       }
       await syncEngine.processBatch()
@@ -62,7 +62,7 @@ extension BaseCloudKitTests {
         """
       }
 
-      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
+      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(60)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
@@ -71,7 +71,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(30)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(UUID(1)).update { $0.isCompleted = true }.execute(db)
+          try Reminder.find(Reminder.ID(1)).update { $0.isCompleted = true }.execute(db)
         }
       }
       await syncEngine.processBatch()
@@ -167,8 +167,8 @@ extension BaseCloudKitTests {
     @Test func serverRecordUpdatedBeforeClientRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "")
-          Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "")
+          Reminder(id: 1, title: "", remindersListID: 1)
         }
       }
       await syncEngine.processBatch()
@@ -214,7 +214,7 @@ extension BaseCloudKitTests {
         """
       }
 
-      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
+      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
@@ -223,7 +223,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(UUID(1)).update { $0.isCompleted = true }.execute(db)
+          try Reminder.find(Reminder.ID(1)).update { $0.isCompleted = true }.execute(db)
         }
       }
       await syncEngine.processBatch()
@@ -319,13 +319,13 @@ extension BaseCloudKitTests {
     @Test func serverAndClientEditDifferentFields() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "")
-          Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "")
+          Reminder(id: 1, title: "", remindersListID: 1)
         }
       }
       await syncEngine.processBatch()
 
-      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
+      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
@@ -334,7 +334,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(UUID(1)).update { $0.isCompleted = true }.execute(db)
+          try Reminder.find(Reminder.ID(1)).update { $0.isCompleted = true }.execute(db)
         }
       }
       await modificationCallback()
@@ -386,13 +386,13 @@ extension BaseCloudKitTests {
     @Test func serverRecordEditedAfterClientButProcessedBeforeClient() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "")
-          Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "")
+          Reminder(id: 1, title: "", remindersListID: 1)
         }
       }
       await syncEngine.processBatch()
 
-      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
+      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(60)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
@@ -401,7 +401,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(30)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(UUID(1)).update { $0.title = "Get milk" }.execute(db)
+          try Reminder.find(Reminder.ID(1)).update { $0.title = "Get milk" }.execute(db)
         }
       }
       await modificationCallback()
@@ -409,8 +409,8 @@ extension BaseCloudKitTests {
 
       try await userDatabase.userWrite { db in
         try #expect(
-          Reminder.find(UUID(1)).fetchOne(db)
-            == Reminder(id: UUID(1), title: "Get milk", remindersListID: UUID(1))
+          Reminder.find(Reminder.ID(1)).fetchOne(db)
+            == Reminder(id: 1, title: "Get milk", remindersListID: 1)
         )
       }
 
@@ -504,13 +504,13 @@ extension BaseCloudKitTests {
     @Test func serverRecordEditedAndProcessedBeforeClient() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "")
-          Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "")
+          Reminder(id: 1, title: "", remindersListID: 1)
         }
       }
       await syncEngine.processBatch()
 
-      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
+      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
@@ -519,7 +519,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(UUID(1)).update { $0.title = "Get milk" }.execute(db)
+          try Reminder.find(Reminder.ID(1)).update { $0.title = "Get milk" }.execute(db)
         }
       }
       await modificationCallback()
@@ -571,13 +571,13 @@ extension BaseCloudKitTests {
     @Test func serverRecordEditedBeforeClientButProcessedAfterClient() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "")
-          Reminder(id: UUID(1), title: "", remindersListID: UUID(1))
+          RemindersList(id: 1, title: "")
+          Reminder(id: 1, title: "", remindersListID: 1)
         }
       }
       await syncEngine.processBatch()
 
-      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: UUID(1)))
+      let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
       let modificationCallback = { syncEngine.modifyRecords(scope: .private, saving: [record]) }()
@@ -586,7 +586,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(UUID(1)).update { $0.title = "Get milk" }.execute(db)
+          try Reminder.find(Reminder.ID(1)).update { $0.title = "Get milk" }.execute(db)
         }
       }
       await syncEngine.processBatch()
@@ -640,14 +640,14 @@ extension BaseCloudKitTests {
     @Test func mergeWithNullableFields() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          RemindersList(id: UUID(1), title: "Personal")
-          Reminder(id: UUID(1), remindersListID: UUID(1))
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 1, remindersListID: 1)
         }
       }
       await syncEngine.processBatch()
 
       let reminderRecord = try syncEngine.private.database.record(
-        for: Reminder.recordID(for: UUID(1))
+        for: Reminder.recordID(for: 1)
       )
       reminderRecord.setValue(
         now.addingTimeInterval(30),
@@ -662,7 +662,7 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(2)
       } operation: {
         try userDatabase.userWrite { db in
-          try Reminder.find(UUID(1)).update { $0.priority = 3 }.execute(db)
+          try Reminder.find(Reminder.ID(1)).update { $0.priority = 3 }.execute(db)
         }
       }
 
@@ -717,14 +717,14 @@ extension BaseCloudKitTests {
 
       try {
         try userDatabase.read { db in
-          let reminder = try #require(try Reminder.find(UUID(1)).fetchOne(db))
+          let reminder = try #require(try Reminder.find(Reminder.ID(1)).fetchOne(db))
           #expect(
             reminder
             == Reminder(
-              id: UUID(1),
+              id: 1,
               dueDate: Date(timeIntervalSince1970: 30),
               priority: 3,
-              remindersListID: UUID(1)
+              remindersListID: 1
             )
           )
         }
