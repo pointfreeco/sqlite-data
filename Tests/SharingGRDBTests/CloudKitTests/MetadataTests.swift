@@ -32,9 +32,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 title: "Groceries"
               ),
               [1]: CKRecord(
@@ -42,7 +42,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               ),
               [2]: CKRecord(
@@ -50,7 +50,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000002",
+                id: 2,
                 title: "Work"
               )
             ]
@@ -77,7 +77,7 @@ extension BaseCloudKitTests {
       } operation: {
         _ = try {
           try userDatabase.userWrite { db in
-            try Reminder.find(Reminder.ID(1))
+            try Reminder.find(1)
               .update { $0.remindersListID = 2 }
               .execute(db)
             let reminderMetadata = try #require(
@@ -102,9 +102,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(2:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000002",
+                remindersListID: 2,
                 title: "Groceries"
               ),
               [1]: CKRecord(
@@ -112,7 +112,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               ),
               [2]: CKRecord(
@@ -120,7 +120,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000002",
+                id: 2,
                 title: "Work"
               )
             ]
@@ -156,18 +156,18 @@ extension BaseCloudKitTests {
                 recordType: "reminderTags",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                reminderID: "00000000-0000-0000-0000-000000000001",
-                tagID: "00000000-0000-0000-0000-000000000001"
+                id: 1,
+                reminderID: 1,
+                tagID: 1
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 title: "Groceries"
               ),
               [2]: CKRecord(
@@ -175,7 +175,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               ),
               [3]: CKRecord(
@@ -183,7 +183,7 @@ extension BaseCloudKitTests {
                 recordType: "tags",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "weekend"
               )
             ]
@@ -273,7 +273,7 @@ extension BaseCloudKitTests {
       try await userDatabase.userRead { db in
         let reminderMetadata =
         try SyncMetadata
-          .where { $0.parentRecordPrimaryKey.eq(UUID(1).uuidString.lowercased()) }
+          .where { $0.parentRecordPrimaryKey.eq("1") }
           .fetchAll(db)
         #expect(
           reminderMetadata.map(\.recordName) == [

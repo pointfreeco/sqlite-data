@@ -38,8 +38,8 @@ extension BaseCloudKitTests {
                 recordType: "remindersListAssets",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                id: 1,
+                remindersListID: 1,
                 coverImage: CKAsset(
                   fileURL: URL(file:///6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d),
                   dataString: "image"
@@ -50,7 +50,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -73,7 +73,7 @@ extension BaseCloudKitTests {
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersListAsset
-            .find(RemindersListAsset.ID(1))
+            .find(1)
             .update { $0.coverImage = Data("new-image".utf8) }
             .execute(db)
         }
@@ -92,8 +92,8 @@ extension BaseCloudKitTests {
                 recordType: "remindersListAssets",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                id: 1,
+                remindersListID: 1,
                 coverImage: CKAsset(
                   fileURL: URL(file:///97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf),
                   dataString: "new-image"
@@ -104,7 +104,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -130,21 +130,21 @@ extension BaseCloudKitTests {
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: 1)
       )
-      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue("1", forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
       let remindersListAssetRecord = CKRecord(
         recordType: RemindersListAsset.tableName,
         recordID: RemindersListAsset.recordID(for: 1)
       )
-      remindersListAssetRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListAssetRecord.setValue("1", forKey: "id", at: now)
       remindersListAssetRecord.setValue(
         Array("image".utf8),
         forKey: "coverImage",
         at: now
       )
       remindersListAssetRecord.setValue(
-        UUID(1).uuidString.lowercased(),
+        "1",
         forKey: "remindersListID",
         at: now
       )
@@ -161,7 +161,7 @@ extension BaseCloudKitTests {
       try {
         try userDatabase.read { db in
           let remindersListAsset = try #require(
-            try RemindersListAsset.find(RemindersListAsset.ID(1)).fetchOne(db)
+            try RemindersListAsset.find(1).fetchOne(db)
           )
           #expect(remindersListAsset.coverImage == Data("image".utf8))
         }

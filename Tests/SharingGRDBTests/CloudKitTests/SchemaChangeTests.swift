@@ -92,15 +92,15 @@ extension BaseCloudKitTests {
         expectNoDifference(
           remindersLists,
           [
-            RemindersListWithPosition(id: UUID(1), title: "Personal", position: 1),
-            RemindersListWithPosition(id: UUID(2), title: "Business", position: 2),
+            RemindersListWithPosition(id: 1, title: "Personal", position: 1),
+            RemindersListWithPosition(id: 2, title: "Business", position: 2),
           ]
         )
         expectNoDifference(
           reminders,
           [
             ReminderWithPosition(
-              id: UUID(1),
+              id: 1,
               title: "Get milk",
               position: 3,
               remindersListID: 1
@@ -163,7 +163,7 @@ extension BaseCloudKitTests {
         expectNoDifference(
           remindersLists,
           [
-            RemindersListWithData(id: UUID(1), image: Data("image".utf8), title: "Personal")
+            RemindersListWithData(id: 1, image: Data("image".utf8), title: "Personal")
           ]
         )
       }
@@ -233,9 +233,9 @@ extension BaseCloudKitTests {
         expectNoDifference(
           remindersLists,
           [
-            RemindersListWithData(id: UUID(1), image: Data("personal-image".utf8), title: "Personal"),
-            RemindersListWithData(id: UUID(2), image: Data("business-image".utf8), title: "Business"),
-            RemindersListWithData(id: UUID(3), image: Data("secret-image".utf8), title: "Secret"),
+            RemindersListWithData(id: 1, image: Data("personal-image".utf8), title: "Personal"),
+            RemindersListWithData(id: 2, image: Data("business-image".utf8), title: "Business"),
+            RemindersListWithData(id: 3, image: Data("secret-image".utf8), title: "Secret"),
           ]
         )
       }
@@ -250,9 +250,9 @@ extension BaseCloudKitTests {
       } operation: {
         let imageRecord = CKRecord(
           recordType: "images",
-          recordID: Image.recordID(for: UUID(1))
+          recordID: Image.recordID(for: 1)
         )
-        imageRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+        imageRecord.setValue("1", forKey: "id", at: now)
         imageRecord.setValue("A good image", forKey: "caption", at: now)
         imageRecord.setValue(Data("image".utf8), forKey: "image", at: now)
 
@@ -293,7 +293,7 @@ extension BaseCloudKitTests {
         expectNoDifference(
           images,
           [
-            Image(id: UUID(1), image: Data("image".utf8), caption: "A good image")
+            Image(id: 1, image: Data("image".utf8), caption: "A good image")
           ]
         )
       }
@@ -303,14 +303,14 @@ extension BaseCloudKitTests {
 
 @Table("remindersLists")
 private struct RemindersListWithPosition: Equatable, Identifiable {
-  let id: UUID
+  let id: Int
   var title = ""
   var position = 0
 }
 
 @Table("reminders")
 private struct ReminderWithPosition: Equatable, Identifiable {
-  let id: UUID
+  let id: Int
   var title = ""
   var position = 0
   var remindersListID: RemindersList.ID
@@ -318,14 +318,14 @@ private struct ReminderWithPosition: Equatable, Identifiable {
 
 @Table("remindersLists")
 private struct RemindersListWithData: Equatable, Identifiable {
-  let id: UUID
+  let id: Int
   var image: Data
   var title = ""
 }
 
 @Table
 private struct Image: Equatable, Identifiable {
-  let id: UUID
+  let id: Int
   var image: Data
   var caption = ""
 }

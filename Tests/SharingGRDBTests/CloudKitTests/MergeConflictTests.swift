@@ -31,11 +31,11 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 0,
                 isCompleted🗓️: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -46,7 +46,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -71,7 +71,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(30)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(Reminder.ID(1)).update { $0.isCompleted = true }.execute(db)
+          try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
         }
       }
       await syncEngine.processBatch()
@@ -87,11 +87,11 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 0,
                 isCompleted🗓️: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "Buy milk",
                 title🗓️: 60,
@@ -102,7 +102,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -132,11 +132,11 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 1,
                 isCompleted🗓️: 30,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "Buy milk",
                 title🗓️: 60,
@@ -147,7 +147,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -183,11 +183,11 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 0,
                 isCompleted🗓️: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -198,7 +198,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -223,7 +223,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(Reminder.ID(1)).update { $0.isCompleted = true }.execute(db)
+          try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
         }
       }
       await syncEngine.processBatch()
@@ -239,11 +239,11 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 0,
                 isCompleted🗓️: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "Buy milk",
                 title🗓️: 30,
@@ -254,7 +254,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -284,11 +284,11 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 1,
                 isCompleted🗓️: 60,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "Buy milk",
                 title🗓️: 30,
@@ -299,7 +299,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -334,7 +334,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(Reminder.ID(1)).update { $0.isCompleted = true }.execute(db)
+          try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
         }
       }
       await modificationCallback()
@@ -351,11 +351,11 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 1,
                 isCompleted🗓️: 60,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "Buy milk",
                 title🗓️: 30,
@@ -366,7 +366,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -401,7 +401,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(30)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(Reminder.ID(1)).update { $0.title = "Get milk" }.execute(db)
+          try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
         }
       }
       await modificationCallback()
@@ -409,7 +409,7 @@ extension BaseCloudKitTests {
 
       try await userDatabase.userWrite { db in
         try #expect(
-          Reminder.find(Reminder.ID(1)).fetchOne(db)
+          Reminder.find(1).fetchOne(db)
             == Reminder(id: 1, title: "Get milk", remindersListID: 1)
         )
       }
@@ -425,11 +425,11 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 0,
                 isCompleted🗓️: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "Buy milk",
                 title🗓️: 60,
@@ -440,7 +440,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -469,11 +469,11 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 0,
                 isCompleted🗓️: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "Buy milk",
                 title🗓️: 60,
@@ -484,7 +484,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -519,7 +519,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(Reminder.ID(1)).update { $0.title = "Get milk" }.execute(db)
+          try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
         }
       }
       await modificationCallback()
@@ -536,11 +536,11 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 0,
                 isCompleted🗓️: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "Get milk",
                 title🗓️: 60,
@@ -551,7 +551,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -586,7 +586,7 @@ extension BaseCloudKitTests {
         $0.date.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Reminder.find(Reminder.ID(1)).update { $0.title = "Get milk" }.execute(db)
+          try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
         }
       }
       await syncEngine.processBatch()
@@ -604,11 +604,11 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 0,
                 isCompleted🗓️: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "Get milk",
                 title🗓️: 60,
@@ -619,7 +619,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -662,7 +662,7 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(2)
       } operation: {
         try userDatabase.userWrite { db in
-          try Reminder.find(Reminder.ID(1)).update { $0.priority = 3 }.execute(db)
+          try Reminder.find(1).update { $0.priority = 3 }.execute(db)
         }
       }
 
@@ -682,13 +682,13 @@ extension BaseCloudKitTests {
                 share: nil,
                 dueDate: Date(1970-01-01T00:00:30.000Z),
                 dueDate🗓️: 1,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 isCompleted: 0,
                 isCompleted🗓️: 0,
                 priority: 3,
                 priority🗓️: 2,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 remindersListID🗓️: 0,
                 title: "",
                 title🗓️: 0,
@@ -699,7 +699,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 id🗓️: 0,
                 title: "Personal",
                 title🗓️: 0,
@@ -717,7 +717,7 @@ extension BaseCloudKitTests {
 
       try {
         try userDatabase.read { db in
-          let reminder = try #require(try Reminder.find(Reminder.ID(1)).fetchOne(db))
+          let reminder = try #require(try Reminder.find(1).fetchOne(db))
           #expect(
             reminder
             == Reminder(

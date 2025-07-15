@@ -32,9 +32,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 title: "Groceries"
               ),
               [1]: CKRecord(
@@ -42,9 +42,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000002",
+                id: 2,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 title: "Walk"
               ),
               [2]: CKRecord(
@@ -52,7 +52,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -69,7 +69,7 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try RemindersList.find(RemindersList.ID(1)).delete().execute(db)
+          try RemindersList.find(1).delete().execute(db)
         }
       }
       try await userDatabase.userRead { db in
@@ -97,8 +97,8 @@ extension BaseCloudKitTests {
     @Test func deleteSetNull() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          Parent(id: UUID(1))
-          ChildWithOnDeleteSetNull(id: UUID(1), parentID: UUID(1))
+          Parent(id: 1)
+          ChildWithOnDeleteSetNull(id: 1, parentID: 1)
         }
       }
 
@@ -114,15 +114,15 @@ extension BaseCloudKitTests {
                 recordType: "childWithOnDeleteSetNulls",
                 parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                parentID: "00000000-0000-0000-0000-000000000001"
+                id: 1,
+                parentID: 1
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "parents",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001"
+                id: 1
               )
             ]
           ),
@@ -138,14 +138,14 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try Parent.find(UUID(1)).delete().execute(db)
+          try Parent.find(1).delete().execute(db)
         }
       }
       try await userDatabase.userRead { db in
         try expectNoDifference(
           ChildWithOnDeleteSetNull.all.fetchAll(db),
           [
-            ChildWithOnDeleteSetNull(id: UUID(1), parentID: nil)
+            ChildWithOnDeleteSetNull(id: 1, parentID: nil)
           ]
         )
       }
@@ -162,7 +162,7 @@ extension BaseCloudKitTests {
                 recordType: "childWithOnDeleteSetNulls",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001"
+                id: 1
               )
             ]
           ),
@@ -197,9 +197,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000002",
+                id: 2,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 title: "Groceries"
               ),
               [1]: CKRecord(
@@ -207,9 +207,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000003",
+                id: 3,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 title: "Walk"
               ),
               [2]: CKRecord(
@@ -217,7 +217,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -234,7 +234,7 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
-          try RemindersList.find(RemindersList.ID(1)).update { $0.id = 9 }.execute(db)
+          try RemindersList.find(1).update { $0.id = 9 }.execute(db)
         }
       }
       try await userDatabase.userRead { db in
@@ -260,9 +260,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(9:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000002",
+                id: 2,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000009",
+                remindersListID: 9,
                 title: "Groceries"
               ),
               [1]: CKRecord(
@@ -270,9 +270,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(9:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000003",
+                id: 3,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000009",
+                remindersListID: 9,
                 title: "Walk"
               ),
               [2]: CKRecord(
@@ -280,7 +280,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               ),
               [3]: CKRecord(
@@ -288,7 +288,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000009",
+                id: 9,
                 title: "Personal"
               )
             ]
@@ -306,8 +306,8 @@ extension BaseCloudKitTests {
     @Test func deleteRestrict() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          Parent(id: UUID(1))
-          ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
+          Parent(id: 1)
+          ChildWithOnDeleteRestrict(id: 1, parentID: 1)
         }
       }
 
@@ -323,15 +323,15 @@ extension BaseCloudKitTests {
                 recordType: "childWithOnDeleteRestricts",
                 parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                parentID: "00000000-0000-0000-0000-000000000001"
+                id: 1,
+                parentID: 1
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "parents",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001"
+                id: 1
               )
             ]
           ),
@@ -347,7 +347,7 @@ extension BaseCloudKitTests {
           $0.date.now.addTimeInterval(60)
         } operation: {
           try self.userDatabase.userWrite { db in
-            try Parent.find(UUID(1)).delete().execute(db)
+            try Parent.find(1).delete().execute(db)
           }
         }
       }
@@ -356,7 +356,7 @@ extension BaseCloudKitTests {
         try expectNoDifference(
           ChildWithOnDeleteRestrict.all.fetchAll(db),
           [
-            ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
+            ChildWithOnDeleteRestrict(id: 1, parentID: 1)
           ]
         )
       }
@@ -373,15 +373,15 @@ extension BaseCloudKitTests {
                 recordType: "childWithOnDeleteRestricts",
                 parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                parentID: "00000000-0000-0000-0000-000000000001"
+                id: 1,
+                parentID: 1
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "parents",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001"
+                id: 1
               )
             ]
           ),
@@ -398,8 +398,8 @@ extension BaseCloudKitTests {
     @Test func updateRestrict() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          Parent(id: UUID(1))
-          ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
+          Parent(id: 1)
+          ChildWithOnDeleteRestrict(id: 1, parentID: 1)
         }
       }
 
@@ -415,15 +415,15 @@ extension BaseCloudKitTests {
                 recordType: "childWithOnDeleteRestricts",
                 parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                parentID: "00000000-0000-0000-0000-000000000001"
+                id: 1,
+                parentID: 1
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "parents",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001"
+                id: 1
               )
             ]
           ),
@@ -439,7 +439,7 @@ extension BaseCloudKitTests {
           $0.date.now.addTimeInterval(60)
         } operation: {
           try self.userDatabase.userWrite { db in
-            try Parent.find(UUID(1)).update { $0.id = UUID(2) }.execute(db)
+            try Parent.find(1).update { $0.id = 2 }.execute(db)
           }
         }
       }
@@ -448,7 +448,7 @@ extension BaseCloudKitTests {
         try expectNoDifference(
           ChildWithOnDeleteRestrict.all.fetchAll(db),
           [
-            ChildWithOnDeleteRestrict(id: UUID(1), parentID: UUID(1))
+            ChildWithOnDeleteRestrict(id: 1, parentID: 1)
           ]
         )
       }
@@ -465,15 +465,15 @@ extension BaseCloudKitTests {
                 recordType: "childWithOnDeleteRestricts",
                 parent: CKReference(recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
-                parentID: "00000000-0000-0000-0000-000000000001"
+                id: 1,
+                parentID: 1
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "parents",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001"
+                id: 1
               )
             ]
           ),
@@ -490,12 +490,12 @@ extension BaseCloudKitTests {
     @Test func nonSyncTable() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          LocalUser(id: UUID(1), name: "Blob", parentID: nil)
-          LocalUser(id: UUID(2), name: "Blob Jr", parentID: UUID(1))
+          LocalUser(id: 1, name: "Blob", parentID: nil)
+          LocalUser(id: 2, name: "Blob Jr", parentID: 1)
         }
       }
       try await self.userDatabase.userWrite { db in
-        try LocalUser.find(UUID(1)).delete().execute(db)
+        try LocalUser.find(1).delete().execute(db)
       }
       try await userDatabase.userRead { db in
         try expectNoDifference(

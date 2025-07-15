@@ -137,7 +137,7 @@ extension CKAsset: @retroactive CustomDumpReflectable {
     public var customDumpDescription: String {
       """
       CKRecord.ID(\
-      \(recordName.replacingOccurrences(of: "^[0-]+", with: "", options: .regularExpression))/\
+      \(recordName)/\
       \(zoneID.zoneName)/\
       \(zoneID.ownerName)\
       )

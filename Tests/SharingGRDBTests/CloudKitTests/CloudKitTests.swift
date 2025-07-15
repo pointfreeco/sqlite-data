@@ -468,7 +468,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -514,7 +514,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -593,7 +593,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -611,7 +611,7 @@ extension BaseCloudKitTests {
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersList
-            .find(RemindersList.ID(1))
+            .find(1)
             .update { $0.title = "Work" }
             .execute(db)
         }
@@ -628,7 +628,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Work"
               )
             ]
@@ -643,7 +643,7 @@ extension BaseCloudKitTests {
 
       try await userDatabase.userWrite { db in
         try RemindersList
-          .find(RemindersList.ID(1))
+          .find(1)
           .delete()
           .execute(db)
       }
@@ -683,7 +683,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -712,7 +712,7 @@ extension BaseCloudKitTests {
 
       expectNoDifference(
         try { try userDatabase.userRead { db in
-          try RemindersList.find(RemindersList.ID(1)).fetchOne(db) }
+          try RemindersList.find(1).fetchOne(db) }
         }(),
         RemindersList(id: 1, title: "Work")
       )
@@ -736,7 +736,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Work"
               )
             ]
@@ -763,7 +763,7 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
-          try RemindersList.find(RemindersList.ID(1)).update { $0.title = "My stuff" }.execute(db)
+          try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)
         }
       }
 
@@ -781,7 +781,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "My stuff"
               )
             ]
@@ -814,7 +814,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -843,7 +843,7 @@ extension BaseCloudKitTests {
       await syncEngine.modifyRecords(scope: .private, saving: [record])
 
       expectNoDifference(
-        try { try userDatabase.userRead { db in try RemindersList.find(RemindersList.ID(1)).fetchOne(db) } }(),
+        try { try userDatabase.userRead { db in try RemindersList.find(1).fetchOne(db) } }(),
         RemindersList(id: 1, title: "Personal")
       )
 
@@ -866,7 +866,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -899,7 +899,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -917,7 +917,7 @@ extension BaseCloudKitTests {
 
       #expect(
         try await userDatabase.userRead { db in
-          try RemindersList.find(RemindersList.ID(1)).fetchAll(db)
+          try RemindersList.find(1).fetchAll(db)
         } == []
       )
       let metadata = try await userDatabase.userRead { db in
@@ -972,7 +972,7 @@ extension BaseCloudKitTests {
         await syncEngine.processBatch()
 
         try await userDatabase.userWrite { db in
-          try RemindersList.find(RemindersList.ID(1)).delete().execute(db)
+          try RemindersList.find(1).delete().execute(db)
         }
 
         await syncEngine.processBatch()
@@ -987,7 +987,7 @@ extension BaseCloudKitTests {
                   recordType: "tags",
                   parent: nil,
                   share: nil,
-                  id: "00000000-0000-0000-0000-000000000001",
+                  id: 1,
                   title: ""
                 ),
                 [1]: CKRecord(
@@ -995,7 +995,7 @@ extension BaseCloudKitTests {
                   recordType: "tags",
                   parent: nil,
                   share: nil,
-                  id: "00000000-0000-0000-0000-000000000002",
+                  id: 2,
                   title: ""
                 )
               ]

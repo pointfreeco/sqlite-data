@@ -1,8 +1,11 @@
 import Foundation
 import SharingGRDB
 
+// NB: The IDs in this schema are integers for ease of testing. You should _not_ use integer IDs
+//     in a production application.
+
 @Table struct Reminder: Equatable, Identifiable {
-  let id: Identifier<Self>
+  let id: Int
   var dueDate: Date?
   var isCompleted = false
   var priority: Int?
@@ -10,86 +13,62 @@ import SharingGRDB
   var remindersListID: RemindersList.ID
 }
 @Table struct RemindersList: Equatable, Identifiable {
-  let id: Identifier<Self>
+  let id: Int
   var title = ""
 }
 @Table struct RemindersListAsset: Equatable, Identifiable {
-  let id: Identifier<Self>
+  let id: Int
   var coverImage: Data?
   var remindersListID: RemindersList.ID
 }
 @Table struct RemindersListPrivate: Equatable, Identifiable {
-  let id: Identifier<Self>
+  let id: Int
   var position = 0
   var remindersListID: RemindersList.ID
 }
 @Table struct Tag: Equatable, Identifiable {
-  let id: Identifier<Self>
+  let id: Int
   var title = ""
 }
 @Table struct ReminderTag: Equatable, Identifiable {
-  let id: Identifier<Self>
+  let id: Int
   var reminderID: Reminder.ID
   var tagID: Tag.ID
 }
 
 @Table struct Parent: Equatable, Identifiable {
-  let id: UUID
+  let id: Int
 }
 @Table struct ChildWithOnDeleteRestrict: Equatable, Identifiable {
-  let id: UUID
+  let id: Int
   let parentID: Parent.ID
 }
 @Table struct ChildWithOnDeleteSetNull: Equatable, Identifiable {
-  let id: UUID
+  let id: Int
   let parentID: Parent.ID?
 }
 @Table struct ChildWithOnDeleteSetDefault: Equatable, Identifiable {
-  let id: UUID
+  let id: Int
   let parentID: Parent.ID
 }
 @Table struct LocalUser: Equatable, Identifiable {
-  let id: UUID
+  let id: Int
   var name = ""
   var parentID: LocalUser.ID?
 }
 @Table struct ModelA: Identifiable {
-  let id: UUID
+  let id: Int
   var count = 0
 }
 @Table struct ModelB: Identifiable {
-  let id: UUID
+  let id: Int
   var isOn = false
   var modelAID: ModelA.ID
 }
 @Table struct ModelC: Identifiable {
-  let id: UUID
+  let id: Int
   var title = ""
   var modelBID: ModelB.ID
-}
-
-struct Identifier<T: PrimaryKeyedTable>:
-  ExpressibleByIntegerLiteral,
-  Hashable,
-  RawRepresentable,
-  IdentifierStringConvertible,
-  QueryBindable
-{
-  let rawValue: UUID
-  var rawIdentifier: String { rawValue.rawIdentifier }
-  init(rawValue: UUID) {
-    self.rawValue = rawValue
-  }
-  init?(rawIdentifier: String) {
-    guard let rawValue = UUID(uuidString: rawIdentifier) else { return nil }
-    self.init(rawValue: rawValue)
-  }
-  init(_ intValue: Int) {
-    self.init(rawValue: UUID(intValue))
-  }
-  init(integerLiteral value: Int) {
-    self.init(value)
-  }
 }
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)

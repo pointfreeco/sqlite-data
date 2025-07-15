@@ -35,7 +35,7 @@ extension BaseCloudKitTests {
       try await userDatabase.userWrite { db in
         try SyncMetadata.insert {
           SyncMetadata(
-            recordPrimaryKey: UUID(1).uuidString.lowercased(),
+            recordPrimaryKey: "1",
             recordType: UnrecognizedTable.tableName,
             userModificationDate: .distantPast
           )
@@ -64,7 +64,7 @@ extension BaseCloudKitTests {
       try await userDatabase.userWrite { db in
         try SyncMetadata.insert {
           SyncMetadata(
-            recordPrimaryKey: UUID(1).uuidString.lowercased(),
+            recordPrimaryKey: "1",
             recordType: RemindersList.tableName,
             userModificationDate: .distantPast
           )
@@ -108,7 +108,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -143,9 +143,9 @@ extension BaseCloudKitTests {
                 recordType: "reminders",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 isCompleted: 0,
-                remindersListID: "00000000-0000-0000-0000-000000000001",
+                remindersListID: 1,
                 title: "Get milk"
               ),
               [1]: CKRecord(
@@ -153,7 +153,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -187,16 +187,16 @@ extension BaseCloudKitTests {
                 recordType: "remindersListPrivates",
                 parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 position: 42,
-                remindersListID: "00000000-0000-0000-0000-000000000001"
+                remindersListID: 1
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "00000000-0000-0000-0000-000000000001",
+                id: 1,
                 title: "Personal"
               )
             ]
