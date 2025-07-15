@@ -548,17 +548,17 @@
         switch (lhs, rhs) {
         case (.saveRecord(let lhs), .saveRecord(let rhs)):
           guard
-            let lhsRecordType = lhs.recordType,
+            let lhsRecordType = lhs.tableName,
             let lhsIndex = tablesByOrder[lhsRecordType],
-            let rhsRecordType = rhs.recordType,
+            let rhsRecordType = rhs.tableName,
             let rhsIndex = tablesByOrder[rhsRecordType]
           else { return true }
           return lhsIndex < rhsIndex
         case (.deleteRecord(let lhs), .deleteRecord(let rhs)):
           guard
-            let lhsRecordType = lhs.recordType,
+            let lhsRecordType = lhs.tableName,
             let lhsIndex = tablesByOrder[lhsRecordType],
-            let rhsRecordType = rhs.recordType,
+            let rhsRecordType = rhs.tableName,
             let rhsIndex = tablesByOrder[rhsRecordType]
           else { return true }
           return lhsIndex > rhsIndex
@@ -832,14 +832,7 @@
             try deleteShare(recordID: recordID, recordType: recordType)
           }
         } else {
-          // TODO: Should we be reporting this? What if another device deletes from a table this device doesn't know about?
-          reportIssue(
-            .sqliteDataCloudKitFailure.appending(
-              """
-              : No table to delete from: "\(recordType)"
-              """
-            )
-          )
+          // NB: Deleting a record from a table we do not currently recognize.
         }
       }
     }
@@ -966,7 +959,7 @@
                 recordPrimaryKey: recordPrimaryKey,
                 recordType: serverRecord.recordType,
                 parentRecordPrimaryKey: serverRecord.parent?.recordID.recordPrimaryKey,
-                parentRecordType: serverRecord.parent?.recordID.recordType,
+                parentRecordType: serverRecord.parent?.recordID.tableName,
                 lastKnownServerRecord: serverRecord,
                 _lastKnownServerRecordAllFields: serverRecord,
                 share: nil,
@@ -1137,7 +1130,7 @@
   }
 
   extension CKRecord.ID {
-    var recordType: String? {
+    var tableName: String? {
       guard
         let i = recordName.utf8.lastIndex(of: .init(ascii: ":")),
         let j = recordName.utf8.index(i, offsetBy: 1, limitedBy: recordName.utf8.endIndex)
@@ -1149,8 +1142,7 @@
 
     var recordPrimaryKey: String? {
       guard
-        let i = recordName.utf8.lastIndex(of: .init(ascii: ":")),
-        let j = recordName.utf8.index(i, offsetBy: 1, limitedBy: recordName.utf8.endIndex)
+        let i = recordName.utf8.lastIndex(of: .init(ascii: ":"))
       else { return nil }
       let recordPrimaryKeyBytes = recordName.utf8[..<i]
       guard
