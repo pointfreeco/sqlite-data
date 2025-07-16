@@ -88,6 +88,17 @@ func defaultMetadatabase(
       """
     )
     .execute(db)
+    try SQLQueryExpression(
+      """
+      CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_unsyncedRecordIDs" (
+        "recordName" TEXT NOT NULL,
+        "zoneName" TEXT NOT NULL,
+        "ownerName" TEXT NOT NULL,
+        PRIMARY KEY ("recordName", "zoneName", "ownerName")
+      ) STRICT
+      """
+    )
+    .execute(db)
   }
   try migrator.migrate(metadatabase)
   return metadatabase

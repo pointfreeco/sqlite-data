@@ -10,8 +10,6 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class MockCloudDatabaseTests: BaseCloudKitTests, @unchecked Sendable {
-    @Dependency(\.date.now) var now
-
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func saveTransaction_ChildBeforeParent() async throws {
       let parent = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "A"))

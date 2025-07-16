@@ -10,8 +10,6 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class SharingTests: BaseCloudKitTests, @unchecked Sendable {
-    @Dependency(\.date.now) var now
-
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareNonRootRecord() async throws {
       let reminder = Reminder(id: 1, title: "Groceries", remindersListID: 1)
@@ -132,7 +130,7 @@ extension BaseCloudKitTests {
 
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
+        recordID: RemindersList.recordID(for: 1, zoneID: externalZoneID)
       )
       remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
       remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
@@ -194,21 +192,8 @@ extension BaseCloudKitTests {
             parentRecordPrimaryKey: nil,
             parentRecordType: nil,
             parentRecordName: nil,
-            lastKnownServerRecord: CKRecord(
-              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-              recordType: "remindersLists",
-              parent: nil,
-              share: CKReference(recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner))
-            ),
-            _lastKnownServerRecordAllFields: CKRecord(
-              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-              recordType: "remindersLists",
-              parent: nil,
-              share: CKReference(recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner)),
-              id: "00000000-0000-0000-0000-000000000001",
-              isCompleted: 0,
-              title: "Personal"
-            ),
+            lastKnownServerRecord: nil,
+            _lastKnownServerRecordAllFields: nil,
             share: nil,
             isShared: false,
             userModificationDate: Date(1970-01-01T00:00:00.000Z)

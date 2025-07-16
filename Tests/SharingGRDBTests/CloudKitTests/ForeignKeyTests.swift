@@ -72,9 +72,11 @@ extension BaseCloudKitTests {
           try RemindersList.find(1).delete().execute(db)
         }
       }
-      try await userDatabase.userRead { db in
-        try #expect(Reminder.all.fetchAll(db) == [])
-      }
+      try {
+        try userDatabase.userRead { db in
+          try #expect(Reminder.all.fetchAll(db) == [])
+        }
+      }()
 
       await syncEngine.processBatch()
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {

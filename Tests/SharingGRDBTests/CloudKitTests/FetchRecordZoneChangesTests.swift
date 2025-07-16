@@ -11,8 +11,6 @@ extension BaseCloudKitTests {
   @MainActor
   @Suite
   final class FetchRecordZoneChangeTests: BaseCloudKitTests, @unchecked Sendable {
-    @Dependency(\.date.now) var now
-
     @Test func saveExtraFieldsToSyncMetadata() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {

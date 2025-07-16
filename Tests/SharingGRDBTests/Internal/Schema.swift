@@ -74,7 +74,6 @@ import SharingGRDB
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 func database(containerIdentifier: String) throws -> DatabasePool {
   var configuration = Configuration()
-  configuration.foreignKeysEnabled = false
   configuration.prepareDatabase { db in
     try db.attachMetadatabase(containerIdentifier: containerIdentifier)
     db.trace {
@@ -121,7 +120,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
         "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "priority" INTEGER,
         "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-        "remindersListID" TEXT NOT NULL, 
+        "remindersListID" TEXT NOT NULL,
         
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT

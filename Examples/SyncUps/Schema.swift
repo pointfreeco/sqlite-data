@@ -79,7 +79,6 @@ func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
   let database: any DatabaseWriter
   var configuration = Configuration()
-  configuration.foreignKeysEnabled = true
   configuration.prepareDatabase { db in
     #if DEBUG
       db.trace(options: .profile) {

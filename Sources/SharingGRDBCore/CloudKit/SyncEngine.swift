@@ -89,13 +89,6 @@
       privateTables: [any PrimaryKeyedTable.Type] = []
     ) throws {
       try validateSchema(tables: tables, userDatabase: userDatabase)
-      // TODO: Explain why / link to documentation?
-      precondition(
-        !userDatabase.configuration.foreignKeysEnabled,
-        """
-        Foreign key support must be disabled to synchronize with CloudKit.
-        """
-      )
       self.container = container
       self.defaultSyncEngines = defaultSyncEngines
       self.userDatabase = userDatabase
@@ -179,11 +172,11 @@
             db: db
           )
         }
-        for (childTableName, foreignKeys) in foreignKeysByTableName {
-          for foreignKey in foreignKeys {
-            try foreignKey.createTriggers(childTableName, belongsTo: foreignKey.table, db: db)
-          }
-        }
+//        for (childTableName, foreignKeys) in foreignKeysByTableName {
+//          for foreignKey in foreignKeys {
+//            try foreignKey.createTriggers(childTableName, belongsTo: foreignKey.table, db: db)
+//          }
+//        }
       }
 
       let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
@@ -341,11 +334,11 @@
       async let sharedCancellation: Void? = syncEngines.shared?.cancelOperations()
 
       try await userDatabase.write { db in
-        for (childTableName, foreignKeys) in self.foreignKeysByTableName {
-          for foreignKey in foreignKeys {
-            try foreignKey.dropTriggers(for: childTableName, db: db)
-          }
-        }
+//        for (childTableName, foreignKeys) in self.foreignKeysByTableName {
+//          for foreignKey in foreignKeys {
+//            try foreignKey.dropTriggers(for: childTableName, db: db)
+//          }
+//        }
         for table in self.tables {
           try table.dropTriggers(db: db)
         }
@@ -362,6 +355,7 @@
         try SyncMetadata.delete().execute(db)
         try RecordType.delete().execute(db)
         try StateSerialization.delete().execute(db)
+        try UnsyncedRecordID.delete().execute(db)
       }
       _ = await (privateCancellation, sharedCancellation)
     }
@@ -785,6 +779,48 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
+
+      let unsyncedRecords = await withErrorReporting(.sqliteDataCloudKitFailure) {
+        var unsyncedRecordIDs = try await userDatabase.write { db in
+          Set(
+            try UnsyncedRecordID.all
+              .fetchAll(db)
+              .map(CKRecord.ID.init(unsyncedRecordID:))
+          )
+        }
+        unsyncedRecordIDs.subtract(modifications.map(\.recordID))
+        let results = try await syncEngine.database.records(for: Array(unsyncedRecordIDs))
+        var unsyncedRecords: [CKRecord] = []
+        for (recordID, result) in results {
+          switch result {
+          case .success(let record):
+            unsyncedRecords.append(record)
+          case .failure(let error as CKError) where error.code == .unknownItem:
+            try await userDatabase.write { db in
+              try UnsyncedRecordID.find(recordID).delete().execute(db)
+            }
+          case .failure:
+            continue
+          }
+        }
+        return unsyncedRecords
+      }
+      ?? [CKRecord]()
+
+      if !unsyncedRecords.isEmpty {
+        print("!!")
+      }
+
+      let modifications = (modifications + unsyncedRecords).sorted { lhs, rhs in
+        guard
+          let lhsRecordType = lhs.recordID.tableName,
+          let lhsIndex = tablesByOrder[lhsRecordType],
+          let rhsRecordType = rhs.recordID.tableName,
+          let rhsIndex = tablesByOrder[rhsRecordType]
+        else { return true }
+        return lhsIndex < rhsIndex
+      }
+
       enum ShareOrReference {
         case share(CKShare)
         case reference(CKShare.Reference)
@@ -990,20 +1026,17 @@
           return
         }
 
-        let result = try metadatabase.read { db in
+        let metadata = try metadatabase.read { db in
           try SyncMetadata
             .where { $0.recordName.eq(serverRecord.recordID.recordName) }
-            .select { ($0, $0._lastKnownServerRecordAllFields) }
             .fetchOne(db)
         }
-        let metadata = result?.0
-        let allFields = result?.1
         serverRecord.userModificationDate =
           metadata?.userModificationDate ?? serverRecord.userModificationDate
 
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
           var columnNames = T.TableColumns.writableColumns.map(\.name)
-          if let metadata, let allFields {
+          if let metadata, let allFields = metadata._lastKnownServerRecordAllFields {
             let row = try userDatabase.read { db in
               try T.find(SQLQueryExpression("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
             }
@@ -1026,12 +1059,27 @@
           // TODO: Append more ON CONFLICT clauses for each unique constraint?
           // TODO: Use WHERE to scope the update?
           try userDatabase.write { db in
-            let query = upsert(T.self, record: serverRecord, columnNames: columnNames)
-            try SQLQueryExpression(query).execute(db)
-            try SyncMetadata
-              .where { $0.recordName.eq(serverRecord.recordID.recordName) }
-              .update { $0.setLastKnownServerRecord(serverRecord) }
+            do {
+              let query = upsert(T.self, record: serverRecord, columnNames: columnNames)
+              try SQLQueryExpression(query).execute(db)
+              try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
+              try SyncMetadata
+                .where { $0.recordName.eq(serverRecord.recordID.recordName) }
+                .update { $0.setLastKnownServerRecord(serverRecord) }
+                .execute(db)
+            } catch {
+              guard
+                let error = error as? DatabaseError,
+                error.resultCode == .SQLITE_CONSTRAINT,
+                error.extendedResultCode == .SQLITE_CONSTRAINT_FOREIGNKEY
+              else {
+                throw error
+              }
+              try UnsyncedRecordID.insert(or: .ignore) {
+                UnsyncedRecordID(recordID: serverRecord.recordID)
+              }
               .execute(db)
+            }
           }
         }
         try open(table)
@@ -1512,16 +1560,17 @@
     record: CKRecord,
     columnNames: some Collection<String>
   ) -> QueryFragment {
+    let allColumnNames = T.TableColumns.writableColumns.map(\.name)
     guard
       columnNames.contains(where: { $0 != T.columns.primaryKey.name })
     else {
       return ""
     }
     var query: QueryFragment = "INSERT INTO \(T.self) ("
-    query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+    query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
     query.append(") VALUES (")
     query.append(
-      columnNames
+      allColumnNames
         .map { columnName in
           if let asset = record[columnName] as? CKAsset {
             @Dependency(\.dataManager) var dataManager

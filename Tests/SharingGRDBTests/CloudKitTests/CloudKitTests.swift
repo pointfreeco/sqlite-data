@@ -10,8 +10,6 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class CloudKitTests: BaseCloudKitTests, @unchecked Sendable {
-    @Dependency(\.date.now) var now
-
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func setUp() throws {
       let zones = try userDatabase.userRead { db in
@@ -120,7 +118,7 @@ extension BaseCloudKitTests {
                 "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
                 "priority" INTEGER,
                 "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-                "remindersListID" TEXT NOT NULL, 
+                "remindersListID" TEXT NOT NULL,
                 
                 FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
               ) STRICT

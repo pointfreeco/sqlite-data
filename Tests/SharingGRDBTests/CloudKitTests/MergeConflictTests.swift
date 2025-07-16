@@ -10,8 +10,6 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   @Suite(.printTimestamps) final class MergeConflictTests: BaseCloudKitTests, @unchecked Sendable {
-    @Dependency(\.date.now) var now
-
     @Test func merge_clientRecordUpdatedBeforeServerRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
