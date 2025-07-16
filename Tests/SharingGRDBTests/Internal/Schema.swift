@@ -87,7 +87,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "remindersLists" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
       ) STRICT
       """
@@ -96,9 +96,9 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "remindersListAssets" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "coverImage" BLOB NOT NULL,
-        "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+        "remindersListID" INTEGER NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
       """
     )
@@ -106,9 +106,9 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "remindersListPrivates" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
-        "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+        "remindersListID" INTEGER NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
       """
     )
@@ -116,12 +116,12 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "reminders" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "dueDate" TEXT,
         "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "priority" INTEGER,
         "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-        "remindersListID" TEXT NOT NULL,
+        "remindersListID" INTEGER NOT NULL,
         
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT
@@ -131,7 +131,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "tags" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
       ) STRICT
       """
@@ -140,60 +140,61 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "reminderTags" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
-        "tagID" TEXT NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "reminderID" INTEGER NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
+        "tagID" INTEGER NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
       ) STRICT
       """
     )
     .execute(db)
     try #sql("""
       CREATE TABLE "parents"(
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid())
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
       ) STRICT
       """)
     .execute(db)
     try #sql("""
       CREATE TABLE "childWithOnDeleteRestricts"(
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "parentID" TEXT NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "parentID" INTEGER NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
       ) STRICT
       """)
     .execute(db)
     try #sql("""
       CREATE TABLE "childWithOnDeleteSetNulls"(
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "parentID" INTEGER REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
       ) STRICT
       """)
     .execute(db)
     try #sql("""
       CREATE TABLE "childWithOnDeleteSetDefaults"(
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT '00000000-0000-0000-0000-000000000000',
-        "parentID" TEXT REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "parentID" INTEGER NOT NULL DEFAULT 0 
+          REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
       ) STRICT
       """)
     .execute(db)
     try #sql(
       """
       CREATE TABLE "localUsers" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "name" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-        "parentID" TEXT REFERENCES "localUsers"("id") ON DELETE CASCADE
+        "parentID" INTEGER REFERENCES "localUsers"("id") ON DELETE CASCADE
       ) STRICT
       """
     )
     .execute(db)
     try #sql("""
       CREATE TABLE "modelAs" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "count" INTEGER NOT NULL
       )
       """)
     .execute(db)
     try #sql("""
       CREATE TABLE "modelBs" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "isOn" INTEGER NOT NULL,
         "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
       )
@@ -201,7 +202,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     .execute(db)
     try #sql("""
       CREATE TABLE "modelCs" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "title" TEXT NOT NULL,
         "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
       )

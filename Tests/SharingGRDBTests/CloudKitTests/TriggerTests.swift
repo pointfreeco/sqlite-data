@@ -489,7 +489,7 @@ extension BaseCloudKitTests {
           AFTER DELETE ON "parents"
           FOR EACH ROW BEGIN
             UPDATE "childWithOnDeleteSetDefaults"
-            SET "parentID" = NULL
+            SET "parentID" = 0
             WHERE "parentID" = "old"."id";
           END
           """,
@@ -498,7 +498,7 @@ extension BaseCloudKitTests {
           AFTER UPDATE ON "parents"
           FOR EACH ROW BEGIN
             UPDATE "childWithOnDeleteSetDefaults"
-            SET "parentID" = NULL
+            SET "parentID" = 0
             WHERE "parentID" = "old"."id";
           END
           """,

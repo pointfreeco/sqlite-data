@@ -922,10 +922,22 @@
                     .delete()
                     .execute(db)
                 case .restrict:
-                  // TODO: validate schema
+                  reportIssue(
+                    "'RESTRICT' foreign key actions not supported for parent relationships."
+                  )
                   break
                 case .setDefault:
-                  // TODO: do this
+                  guard
+                    let recordType = try RecordType.find(table.tableName).fetchOne(db),
+                    let columnInfo = recordType.tableInfo.first(where: { $0.name == foreignKey.from })
+                  else { return }
+                  let defaultValue = columnInfo.defaultValue ?? "NULL"
+                  try SQLQueryExpression("""
+                    UPDATE \(T.self)
+                    SET \(quote: foreignKey.from, delimiter: .identifier) = (\(raw: defaultValue))
+                    WHERE \(T.primaryKey) = \(bind: recordPrimaryKey)
+                    """)
+                  .execute(db)
                   break
                 case .setNull:
                   try SQLQueryExpression("""
@@ -935,8 +947,9 @@
                     """)
                     .execute(db)
                 case .noAction:
-                  // TODO: validate schema
-                  break
+                  reportIssue(
+                    "'NO ACTION' foreign key actions not supported for parent relationships."
+                  )
                 }
               }
             }
