@@ -146,6 +146,7 @@ extension BaseCloudKitTests {
 
       await syncEngine.modifyRecords(scope: .shared, saving: [share])
       await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
+      await syncEngine.processBatch()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -191,8 +192,21 @@ extension BaseCloudKitTests {
             parentRecordPrimaryKey: nil,
             parentRecordType: nil,
             parentRecordName: nil,
-            lastKnownServerRecord: nil,
-            _lastKnownServerRecordAllFields: nil,
+            lastKnownServerRecord: CKRecord(
+              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+              recordType: "remindersLists",
+              parent: nil,
+              share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner))
+            ),
+            _lastKnownServerRecordAllFields: CKRecord(
+              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+              recordType: "remindersLists",
+              parent: nil,
+              share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner)),
+              id: 1,
+              isCompleted: 0,
+              title: "Personal"
+            ),
             share: nil,
             isShared: false,
             userModificationDate: Date(1970-01-01T00:00:00.000Z)

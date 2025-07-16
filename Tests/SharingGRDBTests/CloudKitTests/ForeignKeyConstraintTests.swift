@@ -150,6 +150,91 @@ extension BaseCloudKitTests {
       }()
     }
 
+    @Test(
+      """
+      1) Receive child record without parent.
+      2) Receive child record with parent
+      """
+    ) func receiveChildRecordBeforeParent_ReceiveChildAndParentRecord() async throws {
+      let remindersListRecord = CKRecord(
+        recordType: RemindersList.tableName,
+        recordID: RemindersList.recordID(for: 1)
+      )
+      remindersListRecord.setValue(1, forKey: "id", at: now)
+      remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+      let reminderRecord = CKRecord(
+        recordType: Reminder.tableName,
+        recordID: Reminder.recordID(for: 1)
+      )
+      reminderRecord.setValue(1, forKey: "id", at: now)
+      reminderRecord.setValue("Get milk", forKey: "title", at: now)
+      reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+      reminderRecord.parent = CKRecord.Reference(
+        recordID: RemindersList.recordID(for: 1),
+        action: .none
+      )
+
+      _ = {
+        syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
+      }()
+      await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
+      let freshReminderRecord = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
+      let freshRemindersListRecord = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
+      await syncEngine.modifyRecords(
+        scope: .private,
+        saving: [freshReminderRecord, freshRemindersListRecord]
+      )
+
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: 1,
+                remindersListID: 1,
+                title: "Get milk"
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 1,
+                title: "Personal"
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try {
+        try userDatabase.read { db in
+          try #expect(
+            RemindersList.all.fetchAll(db) == [
+              RemindersList(id: 1, title: "Personal")
+            ]
+          )
+          try #expect(
+            Reminder.all.fetchAll(db) == [
+              Reminder(id: 1, title: "Get milk", remindersListID: 1)
+            ]
+          )
+        }
+      }()
+    }
+
     @Test func receiveChild_Relaunch_ReceiveParent() async throws {
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,

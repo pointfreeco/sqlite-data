@@ -769,7 +769,6 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
-
       let unsyncedRecords = await withErrorReporting(.sqliteDataCloudKitFailure) {
         var unsyncedRecordIDs = try await userDatabase.write { db in
           Set(
@@ -778,10 +777,15 @@
               .map(CKRecord.ID.init(unsyncedRecordID:))
           )
         }
-        let count = unsyncedRecordIDs.count
-        unsyncedRecordIDs.subtract(modifications.map(\.recordID))
-        if count != unsyncedRecordIDs.count {
-          print("!!!!")
+        let modificationRecordIDs = Set(modifications.map(\.recordID))
+        let unsyncedRecordIDsToDelete = modificationRecordIDs.intersection(unsyncedRecordIDs)
+        unsyncedRecordIDs.subtract(modificationRecordIDs)
+        if !unsyncedRecordIDsToDelete.isEmpty {
+          try await userDatabase.write { db in
+            for recordID in unsyncedRecordIDsToDelete {
+              try UnsyncedRecordID.find(recordID).delete().execute(db)
+            }
+          }
         }
         let results = try await syncEngine.database.records(for: Array(unsyncedRecordIDs))
         var unsyncedRecords: [CKRecord] = []
