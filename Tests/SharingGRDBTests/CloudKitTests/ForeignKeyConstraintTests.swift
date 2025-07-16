@@ -301,6 +301,57 @@ extension BaseCloudKitTests {
 
     @Test(
       """
+      * The local client creates a reminder in a list.
+      * The remote client deletes that list.
+      """
+    ) func moveReminderToList_RemoteDeletesList() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          RemindersList(id: 1, title: "Personal")
+        }
+      }
+      await syncEngine.processBatch()
+
+      try withDependencies {
+        $0.date.now.addTimeInterval(1)
+      } operation: {
+        try userDatabase.userWrite { db in
+          try db.seed {
+            Reminder(id: 1, title: "Get milk", remindersListID: 1)
+          }
+        }
+      }
+
+      let modifications = { syncEngine.modifyRecords(scope: .private, deleting: [RemindersList.recordID(for: 1)]) }()
+      await syncEngine.processBatch()
+      await modifications()
+      await syncEngine.processBatch()
+
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try {
+        try userDatabase.read { db in
+          try #expect(Reminder.count().fetchOne(db) == 0)
+          try #expect(RemindersList.count().fetchOne(db) == 0)
+        }
+      }()
+    }
+
+    @Test(
+      """
       Remote changes parent relationship to an unknown record which is synchronized later.
       """
     )
@@ -434,7 +485,7 @@ extension BaseCloudKitTests {
             try SyncMetadata.find(1, table: Reminder.self)
               .fetchOne(db)
           )
-          print("!!!")
+          #expect(reminderMetadata.parentRecordName == "2:remindersLists")
         }
       }()
 
