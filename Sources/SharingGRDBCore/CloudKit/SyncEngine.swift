@@ -594,10 +594,10 @@
       #endif
 
       let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
-        #if DEBUG
           var missingTable: CKRecord.ID?
           var missingRecord: CKRecord.ID?
           var sentRecord: CKRecord.ID?
+        #if DEBUG
           defer {
             state.withValue { [missingTable, missingRecord, sentRecord] in
               if let missingTable { $0.missingTables.append(missingTable) }

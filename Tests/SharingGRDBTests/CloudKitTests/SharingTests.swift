@@ -132,14 +132,14 @@ extension BaseCloudKitTests {
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: 1, zoneID: externalZoneID)
       )
-      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue(1, forKey: "id", at: now)
       remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
       let share = CKShare(
         rootRecord: remindersListRecord,
         shareID: CKRecord.ID(
-          recordName: "Share-\(UUID(1).uuidString.lowercased())",
+          recordName: "Share-\(1)",
           zoneID: externalZoneID
         )
       )
@@ -158,7 +158,7 @@ extension BaseCloudKitTests {
             databaseScope: .shared,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner),
+                recordID: CKRecord.ID(Share-1/external.zone/external.owner),
                 recordType: "cloudkit.share",
                 parent: nil,
                 share: nil
@@ -167,8 +167,8 @@ extension BaseCloudKitTests {
                 recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                 recordType: "remindersLists",
                 parent: nil,
-                share: CKReference(recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner)),
-                id: "00000000-0000-0000-0000-000000000001",
+                share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner)),
+                id: 1,
                 isCompleted: 0,
                 title: "Personal"
               )
@@ -185,9 +185,9 @@ extension BaseCloudKitTests {
         """
         [
           [0]: SyncMetadata(
-            recordPrimaryKey: "00000000-0000-0000-0000-000000000001",
+            recordPrimaryKey: "1",
             recordType: "remindersLists",
-            recordName: "00000000-0000-0000-0000-000000000001:remindersLists",
+            recordName: "1:remindersLists",
             parentRecordPrimaryKey: nil,
             parentRecordType: nil,
             parentRecordName: nil,
