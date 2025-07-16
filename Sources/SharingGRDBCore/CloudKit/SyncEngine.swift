@@ -112,13 +112,6 @@
         foreignKeysByTableName: foreignKeysByTableName,
         userDatabase: userDatabase
       )
-      // TODO: Explain why / link to documentation?
-      precondition(
-        !userDatabase.configuration.foreignKeysEnabled,
-        """
-        Foreign key support must be disabled to synchronize with CloudKit.
-        """
-      )
       self.container = container
       self.defaultSyncEngines = defaultSyncEngines
       self.userDatabase = userDatabase
