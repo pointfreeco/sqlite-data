@@ -119,6 +119,7 @@ extension BaseCloudKitTests {
           syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
         }()
       }
+      await syncEngine.processBatch()
       await modifications()
       await syncEngine.processBatch()
       await syncEngine.processBatch()
@@ -158,8 +159,12 @@ extension BaseCloudKitTests {
 
       try {
         try userDatabase.read { db in
-          try #expect(Reminder.count().fetchOne(db) == 0)
-          try #expect(RemindersList.count().fetchOne(db) == 0)
+          try #expect(
+            Reminder.all.fetchAll(db) == [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
+          )
+          try #expect(
+            RemindersList.all.fetchAll(db) == [RemindersList(id: 1, title: "Personal")]
+          )
         }
       }()
     }

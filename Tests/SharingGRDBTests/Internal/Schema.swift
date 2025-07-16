@@ -148,13 +148,6 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       """)
     .execute(db)
     try #sql("""
-      CREATE TABLE "childWithOnDeleteRestricts"(
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "parentID" INTEGER NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
-      ) STRICT
-      """)
-    .execute(db)
-    try #sql("""
       CREATE TABLE "childWithOnDeleteSetNulls"(
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "parentID" INTEGER REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL

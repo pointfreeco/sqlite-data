@@ -389,7 +389,6 @@
     }
 
     func didDelete(recordName: String, zoneID: CKRecordZone.ID?) {
-      print("didDelete", recordName)
       let zoneID = zoneID ?? Self.defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -891,8 +890,6 @@
       failedRecordDeletes: [CKRecord.ID: CKError] = [:],
       syncEngine: any SyncEngineProtocol
     ) async {
-      print("!!!")
-
       for savedRecord in savedRecords {
         await refreshLastKnownServerRecord(savedRecord)
       }
@@ -1008,31 +1005,27 @@
       }
       // TODO: handle event.failedRecordDeletes ? look at apple sample code
 
-      /*
-
-       */
-
-      for (failedRecordID, error) in failedRecordDeletes {
-        guard
-          error.code == .referenceViolation
-        else { continue }
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await userDatabase.write { db in
-            // insert into unsycned records
+      let enqueuedUnsyncedRecordID = await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await userDatabase.write { db in
+          var enqueuedUnsyncedRecordID = false
+          for (failedRecordID, error) in failedRecordDeletes {
+            guard
+              error.code == .referenceViolation
+            else { continue }
+            try UnsyncedRecordID.insert(or: .ignore) {
+              UnsyncedRecordID(recordID: failedRecordID)
+            }
+            .execute(db)
+            syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+            enqueuedUnsyncedRecordID = true
           }
+          return enqueuedUnsyncedRecordID
         }
-//        //error.clientRecord
-//        switch error.code {
-//        case .referenceViolation:
-//          CKFetchRecordsOperation()
-//          syncEngine.state.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
-//          print("!!!")
-//          break
-//        default:
-//          continue
-//        }
       }
-      // if something was added to UnsyncedRecordIDs, process it
+      ?? false
+      if enqueuedUnsyncedRecordID {
+        print("?!?!!?")
+      }
     }
 
     private func cacheShare(_ share: CKShare) async throws {

@@ -263,31 +263,6 @@ extension BaseCloudKitTests {
             ]
           ),
           [8]: RecordType(
-            tableName: "childWithOnDeleteRestricts",
-            schema: """
-              CREATE TABLE "childWithOnDeleteRestricts"(
-                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "parentID" INTEGER NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
-              ) STRICT
-              """,
-            tableInfo: [
-              [0]: TableInfo(
-                defaultValue: nil,
-                isPrimaryKey: true,
-                name: "id",
-                notNull: true,
-                type: "INTEGER"
-              ),
-              [1]: TableInfo(
-                defaultValue: nil,
-                isPrimaryKey: false,
-                name: "parentID",
-                notNull: true,
-                type: "INTEGER"
-              )
-            ]
-          ),
-          [9]: RecordType(
             tableName: "childWithOnDeleteSetNulls",
             schema: """
               CREATE TABLE "childWithOnDeleteSetNulls"(
@@ -312,7 +287,7 @@ extension BaseCloudKitTests {
               )
             ]
           ),
-          [10]: RecordType(
+          [9]: RecordType(
             tableName: "childWithOnDeleteSetDefaults",
             schema: """
               CREATE TABLE "childWithOnDeleteSetDefaults"(
@@ -338,7 +313,7 @@ extension BaseCloudKitTests {
               )
             ]
           ),
-          [11]: RecordType(
+          [10]: RecordType(
             tableName: "localUsers",
             schema: """
               CREATE TABLE "localUsers" (
@@ -371,7 +346,7 @@ extension BaseCloudKitTests {
               )
             ]
           ),
-          [12]: RecordType(
+          [11]: RecordType(
             tableName: "modelAs",
             schema: """
               CREATE TABLE "modelAs" (
@@ -396,7 +371,7 @@ extension BaseCloudKitTests {
               )
             ]
           ),
-          [13]: RecordType(
+          [12]: RecordType(
             tableName: "modelBs",
             schema: """
               CREATE TABLE "modelBs" (
@@ -429,7 +404,7 @@ extension BaseCloudKitTests {
               )
             ]
           ),
-          [14]: RecordType(
+          [13]: RecordType(
             tableName: "modelCs",
             schema: """
               CREATE TABLE "modelCs" (
