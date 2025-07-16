@@ -778,7 +778,11 @@
               .map(CKRecord.ID.init(unsyncedRecordID:))
           )
         }
+        let count = unsyncedRecordIDs.count
         unsyncedRecordIDs.subtract(modifications.map(\.recordID))
+        if count != unsyncedRecordIDs.count {
+          print("!!!!")
+        }
         let results = try await syncEngine.database.records(for: Array(unsyncedRecordIDs))
         var unsyncedRecords: [CKRecord] = []
         for (recordID, result) in results {
@@ -851,17 +855,13 @@
         if let table = tablesByName[recordType] {
           func open<T: PrimaryKeyedTable>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
-
               try userDatabase.write { db in
-//                try SyncEngine.$_isUpdatingRecord.withValue(false) {
-                  try T
-                    .where {
-                      SQLQueryExpression("\($0.primaryKey) = \(bind: recordPrimaryKey)")
-                    }
-                    .delete()
-                    .execute(db)
-//                }
-                print("!!!")
+                try T
+                  .where {
+                    SQLQueryExpression("\($0.primaryKey) = \(bind: recordPrimaryKey)")
+                  }
+                  .delete()
+                  .execute(db)
               }
             }
           }
@@ -925,33 +925,8 @@
         case .serverRejectedRequest:
           clearServerRecord()
 
-        case .referenceViolation:
-          // TODO: look up FK for parent relationship, if "DELETE CASCADE" then delete, else set NULL
-            //reportIssue("Reference violation")
-          await withErrorReporting {
-            try await userDatabase.write { db in
-              guard
-                let table = self.tablesByName[failedRecord.recordType],
-                let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey
-              else { return }
-              func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-                try Self.$_isUpdatingRecord.withValue(false) {
-                  let q = try T
-                    .where { SQLQueryExpression("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
-                    .delete()
-                  print("!!!")
-                  try q
-                    .execute(db)
-                }
-              }
-              try open(table)
-            }
-          }
-          print("!!!")
-          break
-
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .notAuthenticated, .operationCancelled, .batchRequestFailed,
+          .notAuthenticated, .referenceViolation, .operationCancelled, .batchRequestFailed,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .permissionFailure, .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
@@ -1065,7 +1040,10 @@
             serverRecord.update(
               with: allFields,
               row: T(queryOutput: row),
-              columnNames: &columnNames
+              columnNames: &columnNames,
+              parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
+              ? foreignKeysByTableName[T.tableName]?.first
+              : nil
             )
           }
 

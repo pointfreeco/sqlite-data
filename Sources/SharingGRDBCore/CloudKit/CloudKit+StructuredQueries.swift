@@ -231,7 +231,8 @@ extension CKRecord {
   func update<T: PrimaryKeyedTable>(
     with other: CKRecord,
     row: T,
-    columnNames: inout [String]
+    columnNames: inout [String],
+    parentForeignKey: ForeignKey?
   ) {
     typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
 
@@ -274,6 +275,9 @@ extension CKRecord {
         }
         if didSet || isRowValueModified {
           columnNames.removeAll(where: { $0 == key })
+          if didSet, let parentForeignKey, key == parentForeignKey.from {
+            self.parent = other.parent
+          }
         }
       }
       open(column)
