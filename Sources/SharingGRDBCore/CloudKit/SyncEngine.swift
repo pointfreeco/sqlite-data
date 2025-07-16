@@ -929,23 +929,29 @@
                 case .setDefault:
                   guard
                     let recordType = try RecordType.find(table.tableName).fetchOne(db),
-                    let columnInfo = recordType.tableInfo.first(where: { $0.name == foreignKey.from })
+                    let columnInfo = recordType.tableInfo.first(where: {
+                      $0.name == foreignKey.from
+                    })
                   else { return }
                   let defaultValue = columnInfo.defaultValue ?? "NULL"
-                  try SQLQueryExpression("""
+                  try SQLQueryExpression(
+                    """
                     UPDATE \(T.self)
                     SET \(quote: foreignKey.from, delimiter: .identifier) = (\(raw: defaultValue))
                     WHERE \(T.primaryKey) = \(bind: recordPrimaryKey)
-                    """)
+                    """
+                  )
                   .execute(db)
                   break
                 case .setNull:
-                  try SQLQueryExpression("""
+                  try SQLQueryExpression(
+                    """
                     UPDATE \(T.self)
                     SET \(quote: foreignKey.from, delimiter: .identifier) = NULL
                     WHERE \(T.primaryKey) = \(bind: recordPrimaryKey)
-                    """)
-                    .execute(db)
+                    """
+                  )
+                  .execute(db)
                 case .noAction:
                   reportIssue(
                     "'NO ACTION' foreign key actions not supported for parent relationships."
@@ -1178,7 +1184,8 @@
               }
               return "\(quote: columnName) = \(data?.queryFragment ?? "NULL")"
             } else {
-              return "\(quote: columnName) = \(record.encryptedValues[columnName]?.queryFragment ?? "NULL")"
+              return
+                "\(quote: columnName) = \(record.encryptedValues[columnName]?.queryFragment ?? "NULL")"
             }
           }
           .joined(separator: ",")
@@ -1416,8 +1423,7 @@
       }
 
       for (tableName, foreignKeys) in foreignKeysByTableName {
-        if
-          foreignKeys.count == 1,
+        if foreignKeys.count == 1,
           let foreignKey = foreignKeys.first,
           [.restrict, .noAction].contains(foreignKey.onDelete)
         {
@@ -1457,15 +1463,15 @@
     }
   }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-public struct InvalidTableName: LocalizedError {
-  let tableName: String
-  public var localizedDescription: String {
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public struct InvalidTableName: LocalizedError {
+    let tableName: String
+    public var localizedDescription: String {
       """
       Table name \(tableName.debugDescription) contains invalid character ':'.
       """
+    }
   }
-}
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public struct InvalidParentForeignKey: LocalizedError {
