@@ -846,20 +846,22 @@
 
       // TODO: Group by recordType and delete in batches
       for (recordID, recordType) in deletions {
+        guard let recordPrimaryKey = recordID.recordPrimaryKey
+        else { continue }
         if let table = tablesByName[recordType] {
           func open<T: PrimaryKeyedTable>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
+
               try userDatabase.write { db in
-                try T
-                  .where {
-                    SQLQueryExpression("\($0.primaryKey)").eq(
-                      SyncMetadata
-                        .where { $0.recordName.eq(recordID.recordName) }
-                        .select(\.recordPrimaryKey)
-                    )
-                  }
-                  .delete()
-                  .execute(db)
+//                try SyncEngine.$_isUpdatingRecord.withValue(false) {
+                  try T
+                    .where {
+                      SQLQueryExpression("\($0.primaryKey) = \(bind: recordPrimaryKey)")
+                    }
+                    .delete()
+                    .execute(db)
+//                }
+                print("!!!")
               }
             }
           }
@@ -923,8 +925,33 @@
         case .serverRejectedRequest:
           clearServerRecord()
 
+        case .referenceViolation:
+          // TODO: look up FK for parent relationship, if "DELETE CASCADE" then delete, else set NULL
+            //reportIssue("Reference violation")
+          await withErrorReporting {
+            try await userDatabase.write { db in
+              guard
+                let table = self.tablesByName[failedRecord.recordType],
+                let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey
+              else { return }
+              func open<T: PrimaryKeyedTable>(_: T.Type) throws {
+                try Self.$_isUpdatingRecord.withValue(false) {
+                  let q = try T
+                    .where { SQLQueryExpression("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
+                    .delete()
+                  print("!!!")
+                  try q
+                    .execute(db)
+                }
+              }
+              try open(table)
+            }
+          }
+          print("!!!")
+          break
+
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .notAuthenticated, .referenceViolation, .operationCancelled, .batchRequestFailed,
+          .notAuthenticated, .operationCancelled, .batchRequestFailed,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .permissionFailure, .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,

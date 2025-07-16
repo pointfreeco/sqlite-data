@@ -912,6 +912,7 @@ extension BaseCloudKitTests {
 
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
       await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID])
+      await syncEngine.processBatch()
 
       #expect(
         try await userDatabase.userRead { db in
