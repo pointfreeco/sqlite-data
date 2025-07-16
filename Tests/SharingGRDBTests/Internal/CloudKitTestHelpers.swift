@@ -249,15 +249,13 @@ final class MockCloudDatabase: CloudDatabase {
     let key: String
   }
 
-  struct RecordNotFound: Error {}
-
   init(databaseScope: CKDatabase.Scope) {
     self.databaseScope = databaseScope
   }
 
   func record(for recordID: CKRecord.ID) throws -> CKRecord {
     guard let record = storage[recordID]
-    else { throw RecordNotFound() }
+    else { throw CKError(.unknownItem) }
     guard let record = record.copy() as? CKRecord
     else { fatalError("Could not copy CKRecord.") }
 

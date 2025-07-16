@@ -120,7 +120,7 @@ extension BaseCloudKitTests {
                 "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
                 "priority" INTEGER,
                 "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-                "remindersListID" TEXT NOT NULL, 
+                "remindersListID" TEXT NOT NULL,
                 
                 FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
               ) STRICT

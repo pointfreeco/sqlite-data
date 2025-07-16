@@ -88,7 +88,30 @@
       tables: [any PrimaryKeyedTable.Type],
       privateTables: [any PrimaryKeyedTable.Type] = []
     ) throws {
-      try validateSchema(tables: tables, userDatabase: userDatabase)
+      let allTables = try userDatabase.read { db in
+        try SQLQueryExpression(
+          """
+          SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
+          """,
+          as: String.self
+        )
+        .fetchAll(db)
+      }
+      let foreignKeysByTableName = Dictionary(
+        uniqueKeysWithValues: try userDatabase.read { db in
+          try allTables.map { table -> (String, [ForeignKey]) in
+            (
+              table,
+              try ForeignKey.all(table).fetchAll(db)
+            )
+          }
+        }
+      )
+      try validateSchema(
+        tables: tables,
+        foreignKeysByTableName: foreignKeysByTableName,
+        userDatabase: userDatabase
+      )
       // TODO: Explain why / link to documentation?
       precondition(
         !userDatabase.configuration.foreignKeysEnabled,
@@ -106,27 +129,8 @@
       self.tables = tables
       self.privateTables = privateTables
 
-      let allTables = try userDatabase.read { db in
-        try SQLQueryExpression(
-          """
-          SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
-          """,
-          as: String.self
-        )
-        .fetchAll(db)
-      }
-
       self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
-      self.foreignKeysByTableName = Dictionary(
-        uniqueKeysWithValues: try userDatabase.read { db in
-          try allTables.map { table -> (String, [ForeignKey]) in
-            (
-              table,
-              try ForeignKey.all(table).fetchAll(db)
-            )
-          }
-        }
-      )
+      self.foreignKeysByTableName = foreignKeysByTableName
       tablesByOrder = try SharingGRDBCore.tablesByOrder(
         userDatabase: userDatabase,
         tables: tables,
@@ -901,8 +905,49 @@
         case .serverRejectedRequest:
           clearServerRecord()
 
+        case .referenceViolation:
+          guard
+            let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
+            let table = tablesByName[failedRecord.recordType],
+            foreignKeysByTableName[table.tableName]?.count == 1,
+            let foreignKey = foreignKeysByTableName[table.tableName]?.first
+          else { continue }
+          func open<T: PrimaryKeyedTable>(_: T.Type) throws {
+            try userDatabase.write { db in
+              try Self.$_isUpdatingRecord.withValue(false) {
+                switch foreignKey.onDelete {
+                case .cascade:
+                  try T
+                    .where { SQLQueryExpression("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
+                    .delete()
+                    .execute(db)
+                case .restrict:
+                  // TODO: validate schema
+                  break
+                case .setDefault:
+                  // TODO: do this
+                  break
+                case .setNull:
+                  try SQLQueryExpression("""
+                    UPDATE \(T.self)
+                    SET \(quote: foreignKey.from, delimiter: .identifier) = NULL
+                    WHERE \(T.primaryKey) = \(bind: recordPrimaryKey)
+                    """)
+                    .execute(db)
+                case .noAction:
+                  // TODO: validate schema
+                  break
+                }
+              }
+            }
+          }
+          withErrorReporting(.sqliteDataCloudKitFailure) {
+            try open(table)
+          }
+
+
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .notAuthenticated, .referenceViolation, .operationCancelled, .batchRequestFailed,
+          .notAuthenticated, .operationCancelled, .batchRequestFailed,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .permissionFailure, .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
@@ -1322,6 +1367,7 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func validateSchema(
     tables: [any PrimaryKeyedTable.Type],
+    foreignKeysByTableName: [String: [ForeignKey]],
     userDatabase: UserDatabase
   ) throws {
     let tableNames = Set(tables.map { $0.tableName })
@@ -1357,6 +1403,15 @@
         throw InvalidUserTriggers(triggers: invalidTriggers)
       }
 
+      for (tableName, foreignKeys) in foreignKeysByTableName {
+        if
+          foreignKeys.count == 1,
+          [.restrict, .noAction].contains(foreignKeys[0].onDelete)
+        {
+
+        }
+      }
+
       for table in tables {
         //      // TODO: write tests for this
         //      let columnsWithUniqueConstraints =
@@ -1389,12 +1444,24 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public struct InvalidTableName: LocalizedError {
-    let tableName: String
-    public var localizedDescription: String {
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+public struct InvalidTableName: LocalizedError {
+  let tableName: String
+  public var localizedDescription: String {
       """
       Table name \(tableName.debugDescription) contains invalid character ':'.
+      """
+  }
+}
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public struct InvalidParentForeignKey: LocalizedError {
+    let tableName: String
+    let foreignKey: ForeignKey
+    public var localizedDescription: String {
+      """
+      Foreign key \(tableName.debugDescription).\(foreignKey.from) action not supported. Must 
+      be 'CASCADE', 'SET DEFAULT' or 'SET NULL'.
       """
     }
   }

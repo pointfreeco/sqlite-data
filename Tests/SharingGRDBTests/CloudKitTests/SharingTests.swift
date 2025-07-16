@@ -33,7 +33,7 @@ extension BaseCloudKitTests {
     @Test func shareUnrecognizedTable() async throws {
       await #expect(throws: SyncEngine.UnrecognizedTable.self) {
         _ = try await self.syncEngine.share(
-          record: NonSyncedTable(id: UUID()),
+          record: NonSyncedTable(id: 42),
           configure: { _ in }
         )
       }
@@ -70,7 +70,7 @@ extension BaseCloudKitTests {
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: 1, zoneID: externalZoneID)
       )
-      remindersListRecord.setValue("1", forKey: "id", at: now)
+      remindersListRecord.setValue(1, forKey: "id", at: now)
       remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
@@ -112,7 +112,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "1",
+                id: 1,
                 isCompleted: 0,
                 title: "Personal"
               )
@@ -132,16 +132,16 @@ extension BaseCloudKitTests {
 
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: UUID(1), zoneID: externalZoneID)
+        recordID: RemindersList.recordID(for: 1, zoneID: externalZoneID)
       )
-      remindersListRecord.setValue(UUID(1).uuidString.lowercased(), forKey: "id", at: now)
+      remindersListRecord.setValue(1, forKey: "id", at: now)
       remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
       let share = CKShare.init(
         rootRecord: remindersListRecord,
         shareID: CKRecord.ID(
-          recordName: "Share-\(UUID(1).uuidString.lowercased())",
+          recordName: "Share-\(1)",
           zoneID: externalZoneID
         )
       )
@@ -161,7 +161,7 @@ extension BaseCloudKitTests {
             databaseScope: .shared,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner),
+                recordID: CKRecord.ID(Share-1/external.zone/external.owner),
                 recordType: "cloudkit.share",
                 parent: nil,
                 share: nil
@@ -170,8 +170,8 @@ extension BaseCloudKitTests {
                 recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                 recordType: "remindersLists",
                 parent: nil,
-                share: CKReference(recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner)),
-                id: "00000000-0000-0000-0000-000000000001",
+                share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner)),
+                id: 1,
                 isCompleted: 0,
                 title: "Personal"
               )
@@ -188,9 +188,9 @@ extension BaseCloudKitTests {
         """
         [
           [0]: SyncMetadata(
-            recordPrimaryKey: "00000000-0000-0000-0000-000000000001",
+            recordPrimaryKey: "1",
             recordType: "remindersLists",
-            recordName: "00000000-0000-0000-0000-000000000001:remindersLists",
+            recordName: "1:remindersLists",
             parentRecordPrimaryKey: nil,
             parentRecordType: nil,
             parentRecordName: nil,
@@ -198,14 +198,14 @@ extension BaseCloudKitTests {
               recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
               recordType: "remindersLists",
               parent: nil,
-              share: CKReference(recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner))
+              share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner))
             ),
             _lastKnownServerRecordAllFields: CKRecord(
               recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
               recordType: "remindersLists",
               parent: nil,
-              share: CKReference(recordID: CKRecord.ID(Share-00000000-0000-0000-0000-000000000001/external.zone/external.owner)),
-              id: "00000000-0000-0000-0000-000000000001",
+              share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner)),
+              id: 1,
               isCompleted: 0,
               title: "Personal"
             ),
@@ -229,7 +229,7 @@ extension BaseCloudKitTests {
         recordType: ModelA.tableName,
         recordID: ModelA.recordID(for: 1, zoneID: externalZoneID)
       )
-      modelARecord.setValue("1", forKey: "id", at: now)
+      modelARecord.setValue(1, forKey: "id", at: now)
       modelARecord.setValue(0, forKey: "count", at: now)
 
       await syncEngine.modifyRecords(scope: .shared, saving: [modelARecord])
@@ -262,7 +262,7 @@ extension BaseCloudKitTests {
                 parent: nil,
                 share: nil,
                 count: 0,
-                id: "1"
+                id: 1
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:modelBs/external.zone/external.owner),
@@ -300,16 +300,16 @@ extension BaseCloudKitTests {
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: 1, zoneID: externalZoneID)
       )
-      remindersListRecord.setValue("1", forKey: "id", at: now)
+      remindersListRecord.setValue(1, forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
       let reminderRecord = CKRecord(
         recordType: Reminder.tableName,
         recordID: Reminder.recordID(for: 1, zoneID: externalZoneID)
       )
-      reminderRecord.setValue("1", forKey: "id", at: now)
+      reminderRecord.setValue(1, forKey: "id", at: now)
       reminderRecord.setValue(false, forKey: "isCompleted", at: now)
       reminderRecord.setValue("Get milk", forKey: "title", at: now)
-      reminderRecord.setValue("1", forKey: "remindersListID", at: now)
+      reminderRecord.setValue(1, forKey: "remindersListID", at: now)
 
       await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
 
@@ -337,7 +337,7 @@ extension BaseCloudKitTests {
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
-                id: "1",
+                id: 1,
                 title: "Personal"
               )
             ]
@@ -352,5 +352,5 @@ extension BaseCloudKitTests {
 // TODO: Assert on Metadata.parentRecordName when create new reminders in a shared list
 
 @Table private struct NonSyncedTable {
-  let id: UUID
+  let id: Int
 }
