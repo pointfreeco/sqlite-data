@@ -1419,9 +1419,10 @@
       for (tableName, foreignKeys) in foreignKeysByTableName {
         if
           foreignKeys.count == 1,
-          [.restrict, .noAction].contains(foreignKeys[0].onDelete)
+          let foreignKey = foreignKeys.first,
+          [.restrict, .noAction].contains(foreignKey.onDelete)
         {
-
+          throw InvalidParentForeignKey(tableName: tableName, foreignKey: foreignKey)
         }
       }
 
@@ -1473,8 +1474,8 @@ public struct InvalidTableName: LocalizedError {
     let foreignKey: ForeignKey
     public var localizedDescription: String {
       """
-      Foreign key \(tableName.debugDescription).\(foreignKey.from) action not supported. Must 
-      be 'CASCADE', 'SET DEFAULT' or 'SET NULL'.
+      Foreign key \(tableName.debugDescription).\(foreignKey.from.debugDescription) action not \
+      supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'.
       """
     }
   }
