@@ -172,11 +172,6 @@
             db: db
           )
         }
-//        for (childTableName, foreignKeys) in foreignKeysByTableName {
-//          for foreignKey in foreignKeys {
-//            try foreignKey.createTriggers(childTableName, belongsTo: foreignKey.table, db: db)
-//          }
-//        }
       }
 
       let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
@@ -334,11 +329,6 @@
       async let sharedCancellation: Void? = syncEngines.shared?.cancelOperations()
 
       try await userDatabase.write { db in
-//        for (childTableName, foreignKeys) in self.foreignKeysByTableName {
-//          for foreignKey in foreignKeys {
-//            try foreignKey.dropTriggers(for: childTableName, db: db)
-//          }
-//        }
         for table in self.tables {
           try table.dropTriggers(db: db)
         }
@@ -806,10 +796,6 @@
         return unsyncedRecords
       }
       ?? [CKRecord]()
-
-      if !unsyncedRecords.isEmpty {
-        print("!!")
-      }
 
       let modifications = (modifications + unsyncedRecords).sorted { lhs, rhs in
         guard
