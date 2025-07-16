@@ -354,7 +354,8 @@ final class MockCloudDatabase: CloudDatabase {
             // giving it a new identity, rather than leveraging an existing CKRecord.
             Issue.record(
               """
-              A new identity was created for an existing 'CKRecord'. Rather than creating \
+              A new identity was created for an existing 'CKRecord' \ 
+              ('\(existingRecord.recordID.recordName)'). Rather than creating \
               'CKRecord' from scratch for an existing record, use the database to fetch the \
               current record.
               """

@@ -8,15 +8,53 @@ struct CloudKitPlaygroundApp: App {
   @UIApplicationDelegateAdaptor var delegate: AppDelegate
 
   init() {
+    let container = CKContainer(
+      identifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitPlayground"
+    )
     prepareDependencies {
       $0.defaultDatabase = try! appDatabase()
       $0.defaultSyncEngine = try! SyncEngine(
-        container: CKContainer(
-          identifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitPlayground"
-        ),
+        container: container,
         database: $0.defaultDatabase,
         tables: [ModelA.self, ModelB.self, ModelC.self]
       )
+    }
+    Task {
+      let parentRecord = CKRecord(recordType: "parent1", recordID: CKRecord.ID(recordName: "1"))
+      let childRecord = CKRecord(recordType: "child", recordID: CKRecord.ID(recordName: "2"))
+      childRecord.parent = CKRecord.Reference.init(record: parentRecord, action: .none)
+      let childRecord2 = CKRecord(recordType: "grandchild", recordID: CKRecord.ID(recordName: "3"))
+      childRecord2.parent = CKRecord.Reference.init(record: parentRecord, action: .none)
+
+      _ = try await container.privateCloudDatabase
+        .modifyRecords(saving: [], deleting: [parentRecord.recordID, childRecord.recordID, childRecord2.recordID])
+
+      _ = try await container.privateCloudDatabase.modifyRecords(saving: [parentRecord, childRecord], deleting: [])
+
+
+      print("!!!")
+      do {
+        let (saveResults, deleteResults) = try await container.privateCloudDatabase
+          .modifyRecords(
+            saving: [],
+            deleting: [parentRecord.recordID]
+          )
+        print(saveResults)
+        print(deleteResults)
+        for (recordID, result) in deleteResults {
+          do {
+            try result.get()
+          } catch let error as CKError {
+            print("!!")
+          } catch {
+            print("!!")
+          }
+        }
+        print("")
+      } catch {
+        print(error)
+      }
+
     }
   }
   var body: some Scene {

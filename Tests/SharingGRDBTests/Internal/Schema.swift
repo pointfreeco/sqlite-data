@@ -35,13 +35,8 @@ import SharingGRDB
   var reminderID: Reminder.ID
   var tagID: Tag.ID
 }
-
 @Table struct Parent: Equatable, Identifiable {
   let id: Int
-}
-@Table struct ChildWithOnDeleteRestrict: Equatable, Identifiable {
-  let id: Int
-  let parentID: Parent.ID
 }
 @Table struct ChildWithOnDeleteSetNull: Equatable, Identifiable {
   let id: Int
@@ -150,13 +145,6 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql("""
       CREATE TABLE "parents"(
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
-      ) STRICT
-      """)
-    .execute(db)
-    try #sql("""
-      CREATE TABLE "childWithOnDeleteRestricts"(
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "parentID" INTEGER NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
       ) STRICT
       """)
     .execute(db)

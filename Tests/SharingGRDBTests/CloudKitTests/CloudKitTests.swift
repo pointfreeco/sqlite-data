@@ -10,8 +10,6 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class CloudKitTests: BaseCloudKitTests, @unchecked Sendable {
-    @Dependency(\.date.now) var now
-
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func setUp() throws {
       let zones = try userDatabase.userRead { db in

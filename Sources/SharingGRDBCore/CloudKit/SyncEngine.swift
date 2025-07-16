@@ -863,6 +863,8 @@
       failedRecordDeletes: [CKRecord.ID: CKError] = [:],
       syncEngine: any SyncEngineProtocol
     ) async {
+      print("!!!")
+
       for savedRecord in savedRecords {
         await refreshLastKnownServerRecord(savedRecord)
       }
@@ -873,8 +875,7 @@
         syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
-      for failedRecordSave in failedRecordSaves {
-        let failedRecord = failedRecordSave.record
+      for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() {
           withErrorReporting {
             try userDatabase.write { db in
@@ -886,9 +887,9 @@
           }
         }
 
-        switch failedRecordSave.error.code {
+        switch error.code {
         case .serverRecordChanged:
-          guard let serverRecord = failedRecordSave.error.serverRecord else { continue }
+          guard let serverRecord = error.serverRecord else { continue }
           upsertFromServerRecord(serverRecord)
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
 
@@ -979,9 +980,31 @@
       }
       // TODO: handle event.failedRecordDeletes ? look at apple sample code
 
-      if !failedRecordDeletes.isEmpty {
-        print("!!!!")
+      /*
+
+       */
+
+      for (failedRecordID, error) in failedRecordDeletes {
+        guard
+          error.code == .referenceViolation
+        else { continue }
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await userDatabase.write { db in
+            // insert into unsycned records
+          }
+        }
+//        //error.clientRecord
+//        switch error.code {
+//        case .referenceViolation:
+//          CKFetchRecordsOperation()
+//          syncEngine.state.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+//          print("!!!")
+//          break
+//        default:
+//          continue
+//        }
       }
+      // if something was added to UnsyncedRecordIDs, process it
     }
 
     private func cacheShare(_ share: CKShare) async throws {

@@ -10,8 +10,6 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class SharingTests: BaseCloudKitTests, @unchecked Sendable {
-    @Dependency(\.date.now) var now
-
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareNonRootRecord() async throws {
       let reminder = Reminder(id: 1, title: "Groceries", remindersListID: 1)

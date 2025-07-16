@@ -10,7 +10,6 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class AssetsTests: BaseCloudKitTests, @unchecked Sendable {
-    @Dependency(\.date.now) var now
     @Dependency(\.dataManager) var dataManager
     var inMemoryDataManager: InMemoryDataManager {
       dataManager as! InMemoryDataManager

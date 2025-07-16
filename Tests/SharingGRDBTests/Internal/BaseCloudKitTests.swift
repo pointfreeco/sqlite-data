@@ -17,6 +17,8 @@ class BaseCloudKitTests: @unchecked Sendable {
   let userDatabase: UserDatabase
   private let _syncEngine: any Sendable
 
+  @Dependency(\.date.now) var now 
+
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   var syncEngine: SyncEngine {
     _syncEngine as! SyncEngine
@@ -51,7 +53,6 @@ class BaseCloudKitTests: @unchecked Sendable {
         Tag.self,
         ReminderTag.self,
         Parent.self,
-        ChildWithOnDeleteRestrict.self,
         ChildWithOnDeleteSetNull.self,
         ChildWithOnDeleteSetDefault.self,
         ModelA.self,
