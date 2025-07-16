@@ -10,8 +10,6 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class CloudKitTests: BaseCloudKitTests, @unchecked Sendable {
-    @Dependency(\.date.now) var now
-
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func setUp() throws {
       let zones = try userDatabase.userRead { db in
@@ -934,6 +932,7 @@ extension BaseCloudKitTests {
 
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
       await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID])
+      await syncEngine.processBatch()
 
       #expect(
         try await userDatabase.userRead { db in

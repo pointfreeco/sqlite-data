@@ -74,7 +74,6 @@ import SharingGRDB
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 func database(containerIdentifier: String) throws -> DatabasePool {
   var configuration = Configuration()
-  configuration.foreignKeysEnabled = false
   configuration.prepareDatabase { db in
     try db.attachMetadatabase(containerIdentifier: containerIdentifier)
     db.trace {
