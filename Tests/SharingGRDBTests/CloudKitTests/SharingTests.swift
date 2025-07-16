@@ -136,7 +136,7 @@ extension BaseCloudKitTests {
       remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
-      let share = CKShare.init(
+      let share = CKShare(
         rootRecord: remindersListRecord,
         shareID: CKRecord.ID(
           recordName: "Share-\(1)",
@@ -146,8 +146,8 @@ extension BaseCloudKitTests {
 
       await syncEngine.modifyRecords(scope: .shared, saving: [share])
       await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
-
       await syncEngine.processBatch()
+
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(

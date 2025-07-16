@@ -17,7 +17,7 @@ class BaseCloudKitTests: @unchecked Sendable {
   let userDatabase: UserDatabase
   private let _syncEngine: any Sendable
 
-  @Dependency(\.date.now) var now 
+  @Dependency(\.date.now) var now
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   var syncEngine: SyncEngine {
@@ -75,6 +75,9 @@ class BaseCloudKitTests: @unchecked Sendable {
       syncEngine.private.state.assertPendingDatabaseChanges([])
       syncEngine.private.state.assertPendingRecordZoneChanges([])
       syncEngine.private.assertAcceptedShareMetadata([])
+      try! userDatabase.read { db in
+        try #expect(UnsyncedRecordID.count().fetchOne(db) == 0)
+      }
     } else {
       Issue.record("Tests must be run on iOS 17+, macOS 14+, tvOS 17+ and watchOS 10+.")
     }

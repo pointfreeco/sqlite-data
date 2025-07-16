@@ -196,7 +196,7 @@ extension CKRecord {
     return false
   }
 
-  package func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date) {
+  func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date) {
     for column in T.TableColumns.writableColumns {
       func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
         let column = column as! any WritableTableColumnExpression<T, Value>
@@ -228,10 +228,11 @@ extension CKRecord {
     }
   }
 
-  package func update<T: PrimaryKeyedTable>(
+  func update<T: PrimaryKeyedTable>(
     with other: CKRecord,
     row: T,
-    columnNames: inout [String]
+    columnNames: inout [String],
+    parentForeignKey: ForeignKey?
   ) {
     typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
 
@@ -274,6 +275,9 @@ extension CKRecord {
         }
         if didSet || isRowValueModified {
           columnNames.removeAll(where: { $0 == key })
+          if didSet, let parentForeignKey, key == parentForeignKey.from {
+            self.parent = other.parent
+          }
         }
       }
       open(column)

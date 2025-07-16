@@ -17,9 +17,7 @@ extension BaseCloudKitTests {
     @Test func tableNameValidation() async throws {
       let error = try #require(
         await #expect(throws: InvalidTableName.self) {
-          var configuration = Configuration()
-          configuration.foreignKeysEnabled = false
-          let database = try DatabaseQueue(configuration: configuration)
+          let database = try DatabaseQueue()
           _ = try await SyncEngine(
             container: MockCloudContainer(
               containerIdentifier: "deadbeef",
@@ -90,9 +88,7 @@ extension BaseCloudKitTests {
     @Test func userTriggerValidation() async throws {
       let error = try await #require(
         #expect(throws: InvalidUserTriggers.self) {
-          var configuration = Configuration()
-          configuration.foreignKeysEnabled = false
-          let database = try DatabaseQueue(configuration: configuration)
+          let database = try DatabaseQueue()
           try await database.write { db in
             try #sql(
               """
@@ -148,9 +144,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func doNotValidateTriggersOnNonSyncedTables() async throws {
-      var configuration = Configuration()
-      configuration.foreignKeysEnabled = false
-      let database = try DatabaseQueue(configuration: configuration)
+      let database = try DatabaseQueue()
       try await database.write { db in
         try #sql(
           """
