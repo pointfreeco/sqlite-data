@@ -30,6 +30,7 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/groue/GRDB.swift", from: "7.4.0"),
+    .package(url: "https://github.com/swiftlang/swift-collections", from: "1.0.0"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.0.0"),
@@ -49,6 +50,7 @@ let package = Package(
       dependencies: [
         "StructuredQueriesGRDBCore",
         .product(name: "GRDB", package: "GRDB.swift"),
+        .product(name: "OrderedCollections", package: "swift-collections"),
         .product(name: "Sharing", package: "swift-sharing"),
       ]
     ),
