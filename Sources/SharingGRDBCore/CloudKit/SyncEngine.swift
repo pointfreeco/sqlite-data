@@ -1006,7 +1006,6 @@
           continue
         }
       }
-      // TODO: handle event.failedRecordDeletes ? look at apple sample code
 
       let enqueuedUnsyncedRecordID = await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in
