@@ -1024,7 +1024,7 @@
       }
       ?? false
       if enqueuedUnsyncedRecordID {
-        print("?!?!!?")
+        await handleFetchedRecordZoneChanges(syncEngine: syncEngine)
       }
     }
 

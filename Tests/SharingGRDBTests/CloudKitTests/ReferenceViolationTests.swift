@@ -94,10 +94,6 @@ extension BaseCloudKitTests {
         $0.date.now.addTimeInterval(1)
       } operation: {
         try userDatabase.userWrite { db in
-          try Reminder.insert {
-            Reminder(id: 2, title: "Take walk", remindersListID: 1)
-          }
-          .execute(db)
           try RemindersList.find(1).delete().execute(db)
         }
       }
@@ -122,6 +118,94 @@ extension BaseCloudKitTests {
       await syncEngine.processBatch()
       await modifications()
       await syncEngine.processBatch()
+      await syncEngine.processBatch()
+
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: 1,
+                remindersListID: 1,
+                title: "Get milk"
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 1,
+                title: "Personal"
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      try {
+        try userDatabase.read { db in
+          try #expect(
+            Reminder.all.fetchAll(db) == [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
+          )
+          try #expect(
+            RemindersList.all.fetchAll(db) == [RemindersList(id: 1, title: "Personal")]
+          )
+        }
+      }()
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test(
+      """
+      * The local client deletes a list.
+      * The remote client adds reminder to that list.
+      * Remote syncs to local client before local sends batch.
+      """
+    ) func foo() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          RemindersList(id: 1, title: "Personal")
+        }
+      }
+      await syncEngine.processBatch()
+
+      try withDependencies {
+        $0.date.now.addTimeInterval(1)
+      } operation: {
+        try userDatabase.userWrite { db in
+          try RemindersList.find(1).delete().execute(db)
+        }
+      }
+      let modifications = withDependencies {
+        $0.date.now.addTimeInterval(2)
+      } operation: {
+        let reminderRecord = CKRecord(
+          recordType: Reminder.tableName,
+          recordID: Reminder.recordID(for: 1)
+        )
+        reminderRecord.setValue(1, forKey: "id", at: now)
+        reminderRecord.setValue("Get milk", forKey: "title", at: now)
+        reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+        reminderRecord.parent = CKRecord.Reference(
+          recordID: RemindersList.recordID(for: 1),
+          action: .none
+        )
+        return {
+          syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
+        }()
+      }
+      await modifications()
       await syncEngine.processBatch()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
