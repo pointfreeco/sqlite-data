@@ -2,6 +2,7 @@
   import CloudKit
   import ConcurrencyExtras
   import CustomDump
+  import OrderedCollections
   import OSLog
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -597,9 +598,9 @@
       #endif
 
       let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
-          var missingTable: CKRecord.ID?
-          var missingRecord: CKRecord.ID?
-          var sentRecord: CKRecord.ID?
+        var missingTable: CKRecord.ID?
+        var missingRecord: CKRecord.ID?
+        var sentRecord: CKRecord.ID?
         #if DEBUG
           defer {
             state.withValue { [missingTable, missingRecord, sentRecord] in
@@ -772,41 +773,42 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
-      let unsyncedRecords = await withErrorReporting(.sqliteDataCloudKitFailure) {
-        var unsyncedRecordIDs = try await userDatabase.write { db in
-          Set(
-            try UnsyncedRecordID.all
-              .fetchAll(db)
-              .map(CKRecord.ID.init(unsyncedRecordID:))
-          )
-        }
-        let modificationRecordIDs = Set(modifications.map(\.recordID))
-        let unsyncedRecordIDsToDelete = modificationRecordIDs.intersection(unsyncedRecordIDs)
-        unsyncedRecordIDs.subtract(modificationRecordIDs)
-        if !unsyncedRecordIDsToDelete.isEmpty {
-          try await userDatabase.write { db in
-            for recordID in unsyncedRecordIDsToDelete {
-              try UnsyncedRecordID.find(recordID).delete().execute(db)
-            }
+      let unsyncedRecords =
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          var unsyncedRecordIDs = try await userDatabase.write { db in
+            Set(
+              try UnsyncedRecordID.all
+                .fetchAll(db)
+                .map(CKRecord.ID.init(unsyncedRecordID:))
+            )
           }
-        }
-        let results = try await syncEngine.database.records(for: Array(unsyncedRecordIDs))
-        var unsyncedRecords: [CKRecord] = []
-        for (recordID, result) in results {
-          switch result {
-          case .success(let record):
-            unsyncedRecords.append(record)
-          case .failure(let error as CKError) where error.code == .unknownItem:
+          let modificationRecordIDs = Set(modifications.map(\.recordID))
+          let unsyncedRecordIDsToDelete = modificationRecordIDs.intersection(unsyncedRecordIDs)
+          unsyncedRecordIDs.subtract(modificationRecordIDs)
+          if !unsyncedRecordIDsToDelete.isEmpty {
             try await userDatabase.write { db in
-              try UnsyncedRecordID.find(recordID).delete().execute(db)
+              for recordID in unsyncedRecordIDsToDelete {
+                try UnsyncedRecordID.find(recordID).delete().execute(db)
+              }
             }
-          case .failure:
-            continue
           }
+          let results = try await syncEngine.database.records(for: Array(unsyncedRecordIDs))
+          var unsyncedRecords: [CKRecord] = []
+          for (recordID, result) in results {
+            switch result {
+            case .success(let record):
+              unsyncedRecords.append(record)
+            case .failure(let error as CKError) where error.code == .unknownItem:
+              try await userDatabase.write { db in
+                try UnsyncedRecordID.find(recordID).delete().execute(db)
+              }
+            case .failure:
+              continue
+            }
+          }
+          return unsyncedRecords
         }
-        return unsyncedRecords
-      }
-      ?? [CKRecord]()
+        ?? [CKRecord]()
 
       let modifications = (modifications + unsyncedRecords).sorted { lhs, rhs in
         guard
@@ -855,8 +857,17 @@
         }
       }
 
-      let recordIDsByRecordType = Dictionary(grouping: deletions, by: \.recordType)
-        .mapValues { $0.map(\.recordID) }
+      let recordIDsByRecordType = OrderedDictionary(
+        grouping: deletions.sorted { lhs, rhs in
+          guard
+            let lhsIndex = tablesByOrder[lhs.recordType],
+            let rhsIndex = tablesByOrder[rhs.recordType]
+          else { return true }
+          return lhsIndex > rhsIndex
+        },
+        by: \.recordType
+      )
+      .mapValues { $0.map(\.recordID) }
       for (recordType, recordIDs) in recordIDsByRecordType {
         let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
         if let table = tablesByName[recordType] {
@@ -1007,24 +1018,25 @@
         }
       }
 
-      let enqueuedUnsyncedRecordID = await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await userDatabase.write { db in
-          var enqueuedUnsyncedRecordID = false
-          for (failedRecordID, error) in failedRecordDeletes {
-            guard
-              error.code == .referenceViolation
-            else { continue }
-            try UnsyncedRecordID.insert(or: .ignore) {
-              UnsyncedRecordID(recordID: failedRecordID)
+      let enqueuedUnsyncedRecordID =
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await userDatabase.write { db in
+            var enqueuedUnsyncedRecordID = false
+            for (failedRecordID, error) in failedRecordDeletes {
+              guard
+                error.code == .referenceViolation
+              else { continue }
+              try UnsyncedRecordID.insert(or: .ignore) {
+                UnsyncedRecordID(recordID: failedRecordID)
+              }
+              .execute(db)
+              syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+              enqueuedUnsyncedRecordID = true
             }
-            .execute(db)
-            syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
-            enqueuedUnsyncedRecordID = true
+            return enqueuedUnsyncedRecordID
           }
-          return enqueuedUnsyncedRecordID
         }
-      }
-      ?? false
+        ?? false
       if enqueuedUnsyncedRecordID {
         await handleFetchedRecordZoneChanges(syncEngine: syncEngine)
       }
@@ -1127,8 +1139,8 @@
               row: T(queryOutput: row),
               columnNames: &columnNames,
               parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
-              ? foreignKeysByTableName[T.tableName]?.first
-              : nil
+                ? foreignKeysByTableName[T.tableName]?.first
+                : nil
             )
           }
 

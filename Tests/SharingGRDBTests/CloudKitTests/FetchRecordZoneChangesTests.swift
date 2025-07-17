@@ -424,8 +424,8 @@ extension BaseCloudKitTests {
       try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: 1, title: "Personal")
-          RemindersList(id: 2, title: "Business")
           Reminder(id: 3, title: "Get milk", remindersListID: 1)
+          RemindersList(id: 2, title: "Business")
           Reminder(id: 4, title: "Call accountant", remindersListID: 2)
         }
       }
