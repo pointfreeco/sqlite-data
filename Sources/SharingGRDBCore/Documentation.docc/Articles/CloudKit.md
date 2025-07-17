@@ -125,10 +125,10 @@ versions of your app. There are a number of principles to keep in mind while des
 your schema to make sure every device can synchronize changes to every other device, no matter the
 version.
 
-#### UUID Primary keys
+#### Primary keys
 
-> Important: Primary keys must be UUIDs with a default, and further, we recommend specifying a 
-> "NOT NULL" constraint with a "ON CONFLICT REPLACE" action.
+> Important: Primary keys should be globally unique identifiers, such as UUID. We further recommend
+> specifying a "NOT NULL" constraint with a "ON CONFLICT REPLACE" action.
 
 Primary keys are an important concept in SQL schema design, and SQLite makes it easy to add a 
 primary key by using an "autoincrement" integer. This makes it so that newly inserted rows get
@@ -136,8 +136,8 @@ a unique ID by simply adding 1 to the largest ID in the table. However, that doe
 with distributed schemas. That would make it possible for two devices to create a record with 
 `id: 1`, and when those records synchronize there would be an irreconcilable conflict.
 
-For this reason, primary keys in SQLite tables should be globally unique, and so SharingGRDB
-requires that they be UUIDs. We recommend storing UUIDs in SQLite as a "TEXT" column, adding a 
+For this reason, primary keys in SQLite tables should be globally unique, such as a UUID. The 
+easiest way to do this is to store your table's ID in a "TEXT" column, adding a 
 default with a freshly generated UUID, and further adding a "ON CONFLICT REPLACE" constraint:
 
 ```sql
@@ -162,6 +162,19 @@ try database.write { db in
 }
 ```
 
+If you would like to use a unique identifier other than the `UUID` provided by Foundation, you can
+conform your identifier type to ``IdentifierStringConvertible``. We still recommend using  
+`NOT NULL ON CONFLICT REPLACE` on your column, as well as a default, but the default will need
+to be provided outside of SQLite. You can do this by registering a function in SQLite and calling
+out to it for the default value of your column:
+
+```sql
+CREATE TABLE "reminders" (
+  "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (customUUIDv7()),
+  …
+)
+```
+
 #### Primary keys on every table
 
 > Important: Each synchronized table must have a single, non-compound primary key to aid in 
@@ -180,7 +193,7 @@ CREATE TABLE "reminderTags" (
 )
 ```
 
-Note that the `id` column may never be used in your application code, but it is necessary to 
+Note that the `id` column might not be needed for your application's logic, but it is necessary to 
 facilitate synchronizing to CloudKit.
 
 <!--
@@ -220,82 +233,31 @@ when a ``SyncEngine`` is first created. If a uniqueness constraint is detected a
 
 #### Foreign key relationships
 
-> Important: Foreign key constraints must be disabled for your SQLite connection, but you can still
-> use references with "ON DELETE" and "ON UPDATE" actions.
+> Important: Foreign key constraints can be enabled and you can use "ON DELETE" actions to
+> cascade deletions.
 
 SharingGRDB can synchronize one-to-one, many-to-one, and many-to-many relationships to CloudKit, 
-however one cannot _enforce_ foreign key constraints. Recall that foreign key constraints define 
-when one table references a row in another table. For example, a reminder can belong to a 
-reminders list, and the following schema expresses this relationship:
+and you can enforce foreign key constraints in your database connection. It is possible for
+records to be received by the sync engine out of order, such as a child record before the parent
+record it belongs to. The sync engine will cache the child record until the parent record has been
+synchronized, at which point the child record will also be synchronized.
 
-```sql
-CREATE TABLE "reminders" (
-  …
-  "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
-)
-```
-
-This expresses a one-to-many relationship (i.e. one reminders list can have many reminders),
-and typically we like to _enforce_ this relationship by not allowing one to create a reminder
-with a `remindersListID` that does not exist in the database.
-
-However, this constraint does not play nicely with distributed schemas. We cannot guarantee the 
-order that reminders and lists are synchronized to the device, and so there will be times that a
-reminder is synchronized to the device without its associated list, and then a few moments later
-the list will also be synchronized. We must allow for this intermediate period of inconsistency
-as we wait for the system to become eventually consistent.
-
-> Note: It is OK for foreign keys to be "NOT NULL" in your schema, but your queries and UI should
-> be built in a way that is resilient to times when the foreign key points to a row
-> that does not yet exist. This means that when performing a full join between tables you may
-> not get any results until all data has been synchronized, or when performing a left join,
-> you will have to deal with optional values.
-
-So, when creating and migrating your database, you must disable foreign key checks. This is done
-in GRDB like so:
-
-```diff
- func appDatabase() throws -> any DatabaseWriter {
-   let database: any DatabaseWriter
-   var configuration = Configuration()
-+  configuration.foreignKeysEnabled = false
-   …
- }
-```
-
-This unfortunately turns off _all_ functionality of foreign keys. But, there are two parts to 
-foreign keys: there is the constraint, which prevents creating rows that reference other rows
-that do not exist, and there's the action, which allows you to perform an action when a foreign
-key is updated (such as cascading deletions). The former is incompatible with distributed schemas,
-but the latter is perfectly fine.
-
-For this reason, SharingGRDB recreates foreign key actions so that you can still take advantage of
-"ON UPDATE" and "ON DELETE" clauses. This means that you can continue using foreign keys
-in your table schema:
-
-```sql
-CREATE TABLE "reminders" (
-  …
-  "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
-)
-```
-
-…and while the constraint will not be enforced, the "ON DELETE CASCADE" will still be implemented
-by triggers created in ``SyncEngine`` setup, i.e. when a reminders list is deleted, all of its
-associated reminders will also be deleted, and everything will be synchronized to all devices.
+Currently the only actions supported for "ON DELETE" are "CASCADE", "SET NULL" and "SET DEFAULT".
+In particular, "RESTRICT" and "NO ACTION" are not supported, and if you try to use those actions
+in your schema an ``InvalidParentForeignKey`` error will be thrown when constructing ``SyncEngine``.
 
 ## Record conflicts
 
-> Important: Conflicts are handled automatically by letting most recently edited records overwrite
-> older records.
+> Important: Conflicts are handled automatically using a "last edit wins" strategy for each
+> column of the record.
 
 Conflicts between record edits will inevitably happen, and it's just a fact of dealing with 
-distributed data. The library handles conflicts automatically, but does so in the most naive way
-possible (which is also the strategy of SwiftData). When a record is synchronized to a device,
-the ``SyncEngine`` checks a last modified timestamp on the new record and the record it currently
-has on device, and it chooses the one with the newest timestamp.
+distributed data. The library handles conflicts automatically, but does so with a single strategy
+that is currently not customizable. When a column is edited on a record, the library keeps track
+of the timestamp for that particular column. When merging two conflicting records, each column
+is analyzed, and the column that was most recently edited will win over the older data.
 
-There is no per-field synchronization, nor is there more advanced CRDT synchronization. We may
+We do not employ more advanced merge conflict strategies, such as CRDT synchronization. We may
 allow for these kinds of strategies in the future, but for now "last edit wins" is the only
 strategy available and we feel serves the needs of the most number of people.
 
