@@ -35,13 +35,8 @@ import SharingGRDB
   var reminderID: Reminder.ID
   var tagID: Tag.ID
 }
-
 @Table struct Parent: Equatable, Identifiable {
   let id: Int
-}
-@Table struct ChildWithOnDeleteRestrict: Equatable, Identifiable {
-  let id: Int
-  let parentID: Parent.ID
 }
 @Table struct ChildWithOnDeleteSetNull: Equatable, Identifiable {
   let id: Int
@@ -120,7 +115,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
         "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "priority" INTEGER,
         "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-        "remindersListID" INTEGER NOT NULL, 
+        "remindersListID" INTEGER NOT NULL,
         
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT
@@ -153,13 +148,6 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       """)
     .execute(db)
     try #sql("""
-      CREATE TABLE "childWithOnDeleteRestricts"(
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "parentID" INTEGER NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
-      ) STRICT
-      """)
-    .execute(db)
-    try #sql("""
       CREATE TABLE "childWithOnDeleteSetNulls"(
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "parentID" INTEGER REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
@@ -169,7 +157,8 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql("""
       CREATE TABLE "childWithOnDeleteSetDefaults"(
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "parentID" INTEGER REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
+        "parentID" INTEGER NOT NULL DEFAULT 0 
+          REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
       ) STRICT
       """)
     .execute(db)

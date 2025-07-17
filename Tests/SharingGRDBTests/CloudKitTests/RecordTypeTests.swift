@@ -137,7 +137,7 @@ extension BaseCloudKitTests {
                 "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
                 "priority" INTEGER,
                 "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-                "remindersListID" INTEGER NOT NULL, 
+                "remindersListID" INTEGER NOT NULL,
                 
                 FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
               ) STRICT
@@ -263,31 +263,6 @@ extension BaseCloudKitTests {
             ]
           ),
           [8]: RecordType(
-            tableName: "childWithOnDeleteRestricts",
-            schema: """
-              CREATE TABLE "childWithOnDeleteRestricts"(
-                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "parentID" INTEGER NOT NULL REFERENCES "parents"("id") ON DELETE RESTRICT ON UPDATE RESTRICT
-              ) STRICT
-              """,
-            tableInfo: [
-              [0]: TableInfo(
-                defaultValue: nil,
-                isPrimaryKey: true,
-                name: "id",
-                notNull: true,
-                type: "INTEGER"
-              ),
-              [1]: TableInfo(
-                defaultValue: nil,
-                isPrimaryKey: false,
-                name: "parentID",
-                notNull: true,
-                type: "INTEGER"
-              )
-            ]
-          ),
-          [9]: RecordType(
             tableName: "childWithOnDeleteSetNulls",
             schema: """
               CREATE TABLE "childWithOnDeleteSetNulls"(
@@ -312,12 +287,13 @@ extension BaseCloudKitTests {
               )
             ]
           ),
-          [10]: RecordType(
+          [9]: RecordType(
             tableName: "childWithOnDeleteSetDefaults",
             schema: """
               CREATE TABLE "childWithOnDeleteSetDefaults"(
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "parentID" INTEGER REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
+                "parentID" INTEGER NOT NULL DEFAULT 0 
+                  REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
               ) STRICT
               """,
             tableInfo: [
@@ -329,15 +305,15 @@ extension BaseCloudKitTests {
                 type: "INTEGER"
               ),
               [1]: TableInfo(
-                defaultValue: nil,
+                defaultValue: "0",
                 isPrimaryKey: false,
                 name: "parentID",
-                notNull: false,
+                notNull: true,
                 type: "INTEGER"
               )
             ]
           ),
-          [11]: RecordType(
+          [10]: RecordType(
             tableName: "localUsers",
             schema: """
               CREATE TABLE "localUsers" (
@@ -370,7 +346,7 @@ extension BaseCloudKitTests {
               )
             ]
           ),
-          [12]: RecordType(
+          [11]: RecordType(
             tableName: "modelAs",
             schema: """
               CREATE TABLE "modelAs" (
@@ -395,7 +371,7 @@ extension BaseCloudKitTests {
               )
             ]
           ),
-          [13]: RecordType(
+          [12]: RecordType(
             tableName: "modelBs",
             schema: """
               CREATE TABLE "modelBs" (
@@ -428,7 +404,7 @@ extension BaseCloudKitTests {
               )
             ]
           ),
-          [14]: RecordType(
+          [13]: RecordType(
             tableName: "modelCs",
             schema: """
               CREATE TABLE "modelCs" (
@@ -520,7 +496,7 @@ extension BaseCloudKitTests {
               "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
               "priority" INTEGER,
               "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-              "remindersListID" INTEGER NOT NULL, "newFeature" INTEGER NOT NULL, 
+              "remindersListID" INTEGER NOT NULL, "newFeature" INTEGER NOT NULL,
               
               FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE ON UPDATE CASCADE
             ) STRICT

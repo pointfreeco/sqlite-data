@@ -88,7 +88,30 @@
       tables: [any PrimaryKeyedTable.Type],
       privateTables: [any PrimaryKeyedTable.Type] = []
     ) throws {
-      try validateSchema(tables: tables, userDatabase: userDatabase)
+      let allTables = try userDatabase.read { db in
+        try SQLQueryExpression(
+          """
+          SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
+          """,
+          as: String.self
+        )
+        .fetchAll(db)
+      }
+      let foreignKeysByTableName = Dictionary(
+        uniqueKeysWithValues: try userDatabase.read { db in
+          try allTables.map { table -> (String, [ForeignKey]) in
+            (
+              table,
+              try ForeignKey.all(table).fetchAll(db)
+            )
+          }
+        }
+      )
+      try validateSchema(
+        tables: tables,
+        foreignKeysByTableName: foreignKeysByTableName,
+        userDatabase: userDatabase
+      )
       self.container = container
       self.defaultSyncEngines = defaultSyncEngines
       self.userDatabase = userDatabase
@@ -99,27 +122,8 @@
       self.tables = tables
       self.privateTables = privateTables
 
-      let allTables = try userDatabase.read { db in
-        try SQLQueryExpression(
-          """
-          SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
-          """,
-          as: String.self
-        )
-        .fetchAll(db)
-      }
-
       self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
-      self.foreignKeysByTableName = Dictionary(
-        uniqueKeysWithValues: try userDatabase.read { db in
-          try allTables.map { table -> (String, [ForeignKey]) in
-            (
-              table,
-              try ForeignKey.all(table).fetchAll(db)
-            )
-          }
-        }
-      )
+      self.foreignKeysByTableName = foreignKeysByTableName
       tablesByOrder = try SharingGRDBCore.tablesByOrder(
         userDatabase: userDatabase,
         tables: tables,
@@ -385,7 +389,6 @@
     }
 
     func didDelete(recordName: String, zoneID: CKRecordZone.ID?) {
-      print("didDelete", recordName)
       let zoneID = zoneID ?? Self.defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -897,8 +900,7 @@
         syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
-      for failedRecordSave in failedRecordSaves {
-        let failedRecord = failedRecordSave.record
+      for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() {
           withErrorReporting {
             try userDatabase.write { db in
@@ -910,9 +912,9 @@
           }
         }
 
-        switch failedRecordSave.error.code {
+        switch error.code {
         case .serverRecordChanged:
-          guard let serverRecord = failedRecordSave.error.serverRecord else { continue }
+          guard let serverRecord = error.serverRecord else { continue }
           upsertFromServerRecord(serverRecord)
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
 
@@ -929,8 +931,66 @@
         case .serverRejectedRequest:
           clearServerRecord()
 
+        case .referenceViolation:
+          guard
+            let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
+            let table = tablesByName[failedRecord.recordType],
+            foreignKeysByTableName[table.tableName]?.count == 1,
+            let foreignKey = foreignKeysByTableName[table.tableName]?.first
+          else { continue }
+          func open<T: PrimaryKeyedTable>(_: T.Type) throws {
+            try userDatabase.write { db in
+              try Self.$_isUpdatingRecord.withValue(false) {
+                switch foreignKey.onDelete {
+                case .cascade:
+                  try T
+                    .where { SQLQueryExpression("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
+                    .delete()
+                    .execute(db)
+                case .restrict:
+                  preconditionFailure(
+                    "'RESTRICT' foreign key actions not supported for parent relationships."
+                  )
+                case .setDefault:
+                  guard
+                    let recordType = try RecordType.find(table.tableName).fetchOne(db),
+                    let columnInfo = recordType.tableInfo.first(where: {
+                      $0.name == foreignKey.from
+                    })
+                  else { return }
+                  let defaultValue = columnInfo.defaultValue ?? "NULL"
+                  try SQLQueryExpression(
+                    """
+                    UPDATE \(T.self)
+                    SET \(quote: foreignKey.from, delimiter: .identifier) = (\(raw: defaultValue))
+                    WHERE \(T.primaryKey) = \(bind: recordPrimaryKey)
+                    """
+                  )
+                  .execute(db)
+                  break
+                case .setNull:
+                  try SQLQueryExpression(
+                    """
+                    UPDATE \(T.self)
+                    SET \(quote: foreignKey.from, delimiter: .identifier) = NULL
+                    WHERE \(T.primaryKey) = \(bind: recordPrimaryKey)
+                    """
+                  )
+                  .execute(db)
+                case .noAction:
+                  preconditionFailure(
+                    "'NO ACTION' foreign key actions not supported for parent relationships."
+                  )
+                }
+              }
+            }
+          }
+          withErrorReporting(.sqliteDataCloudKitFailure) {
+            try open(table)
+          }
+
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .notAuthenticated, .referenceViolation, .operationCancelled, .batchRequestFailed,
+          .notAuthenticated, .operationCancelled, .batchRequestFailed,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .permissionFailure, .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
@@ -944,8 +1004,26 @@
       }
       // TODO: handle event.failedRecordDeletes ? look at apple sample code
 
-      if !failedRecordDeletes.isEmpty {
-        print("!!!!")
+      let enqueuedUnsyncedRecordID = await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await userDatabase.write { db in
+          var enqueuedUnsyncedRecordID = false
+          for (failedRecordID, error) in failedRecordDeletes {
+            guard
+              error.code == .referenceViolation
+            else { continue }
+            try UnsyncedRecordID.insert(or: .ignore) {
+              UnsyncedRecordID(recordID: failedRecordID)
+            }
+            .execute(db)
+            syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+            enqueuedUnsyncedRecordID = true
+          }
+          return enqueuedUnsyncedRecordID
+        }
+      }
+      ?? false
+      if enqueuedUnsyncedRecordID {
+        await handleFetchedRecordZoneChanges(syncEngine: syncEngine)
       }
     }
 
@@ -1164,7 +1242,8 @@
               }
               return "\(quote: columnName) = \(data?.queryFragment ?? "NULL")"
             } else {
-              return "\(quote: columnName) = \(record.encryptedValues[columnName]?.queryFragment ?? "NULL")"
+              return
+                "\(quote: columnName) = \(record.encryptedValues[columnName]?.queryFragment ?? "NULL")"
             }
           }
           .joined(separator: ",")
@@ -1365,6 +1444,7 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func validateSchema(
     tables: [any PrimaryKeyedTable.Type],
+    foreignKeysByTableName: [String: [ForeignKey]],
     userDatabase: UserDatabase
   ) throws {
     let tableNames = Set(tables.map { $0.tableName })
@@ -1398,6 +1478,15 @@
       guard invalidTriggers.isEmpty
       else {
         throw InvalidUserTriggers(triggers: invalidTriggers)
+      }
+
+      for (tableName, foreignKeys) in foreignKeysByTableName {
+        if foreignKeys.count == 1,
+          let foreignKey = foreignKeys.first,
+          [.restrict, .noAction].contains(foreignKey.onDelete)
+        {
+          throw InvalidParentForeignKey(tableName: tableName, foreignKey: foreignKey)
+        }
       }
 
       for table in tables {
@@ -1438,6 +1527,18 @@
     public var localizedDescription: String {
       """
       Table name \(tableName.debugDescription) contains invalid character ':'.
+      """
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public struct InvalidParentForeignKey: LocalizedError {
+    let tableName: String
+    let foreignKey: ForeignKey
+    public var localizedDescription: String {
+      """
+      Foreign key \(tableName.debugDescription).\(foreignKey.from.debugDescription) action not \
+      supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'.
       """
     }
   }

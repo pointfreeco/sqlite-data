@@ -39,6 +39,52 @@ extension BaseCloudKitTests {
       )
     }
 
+    @Test func foreignKeyActionValidation() async throws {
+      let error = try #require(
+        await #expect(throws: InvalidParentForeignKey.self) {
+          var configuration = Configuration()
+          configuration.foreignKeysEnabled = false
+          let database = try DatabaseQueue(configuration: configuration)
+          try await database.write { db in
+            try #sql(
+              """
+              CREATE TABLE "parents" (
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
+              ) STRICT
+              """
+            )
+            .execute(db)
+            try #sql(
+              """
+              CREATE TABLE "children" (
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                "parentID" INTEGER REFERENCES "parents"("id") ON DELETE NO ACTION
+              ) STRICT
+              """
+            )
+            .execute(db)
+          }
+          _ = try await SyncEngine(
+            container: MockCloudContainer(
+              containerIdentifier: "deadbeef",
+              privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+              sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+            ),
+            userDatabase: UserDatabase(database: database),
+            metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
+            tables: []
+          )
+        }
+      )
+      #expect(
+        error.localizedDescription ==
+          """
+          Foreign key "children"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' \
+          or 'SET NULL'.
+          """
+      )
+    }
+
     @Test func userTriggerValidation() async throws {
       let error = try await #require(
         #expect(throws: InvalidUserTriggers.self) {
