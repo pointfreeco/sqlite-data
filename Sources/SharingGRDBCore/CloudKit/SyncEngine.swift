@@ -858,9 +858,6 @@
       // TODO: Group by recordType and delete in batches
       let recordIDsByRecordType = Dictionary(grouping: deletions, by: \.recordType)
         .mapValues { $0.map(\.recordID) }
-      if recordIDsByRecordType.count > 0 {
-        print("!!!")
-      }
       for (recordType, recordIDs) in recordIDsByRecordType {
         let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
         if let table = tablesByName[recordType] {
