@@ -329,8 +329,8 @@
 
     package func tearDownSyncEngine() async throws {
       let syncEngines = syncEngines.withValue(\.self)
-      async let privateCancellation: Void? = syncEngines.private?.cancelOperations()
-      async let sharedCancellation: Void? = syncEngines.shared?.cancelOperations()
+      await syncEngines.private?.cancelOperations()
+      await syncEngines.shared?.cancelOperations()
 
       try await userDatabase.write { db in
         for table in self.tables {
