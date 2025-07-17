@@ -172,7 +172,7 @@ extension BaseCloudKitTests {
       * The remote client adds reminder to that list.
       * Remote syncs to local client before local sends batch.
       """
-    ) func foo() async throws {
+    ) func deleteList_RemoteAddsReminderToList_Variation() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: 1, title: "Personal")
