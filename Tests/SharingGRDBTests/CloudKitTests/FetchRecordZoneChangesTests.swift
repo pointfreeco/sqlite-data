@@ -419,5 +419,34 @@ extension BaseCloudKitTests {
         }
       }()
     }
+
+    @Test func deleteMultipleRecords() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 3, title: "Get milk", remindersListID: 1)
+          RemindersList(id: 2, title: "Business")
+          Reminder(id: 4, title: "Call accountant", remindersListID: 2)
+        }
+      }
+      await syncEngine.processBatch()
+
+      await syncEngine.modifyRecords(
+        scope: .private,
+        deleting: [
+          RemindersList.recordID(for: 1),
+          RemindersList.recordID(for: 2),
+          Reminder.recordID(for: 3),
+          Reminder.recordID(for: 4),
+        ]
+      )
+
+      try {
+        try userDatabase.read { db in
+          try #expect(Reminder.all.fetchCount(db) == 0)
+          try #expect(RemindersList.all.fetchCount(db) == 0)
+        }
+      }()
+    }
   }
 }
