@@ -855,7 +855,6 @@
         }
       }
 
-      // TODO: Group by recordType and delete in batches
       let recordIDsByRecordType = Dictionary(grouping: deletions, by: \.recordType)
         .mapValues { $0.map(\.recordID) }
       for (recordType, recordIDs) in recordIDsByRecordType {
