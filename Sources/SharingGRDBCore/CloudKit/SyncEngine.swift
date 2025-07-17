@@ -948,10 +948,9 @@
                     .delete()
                     .execute(db)
                 case .restrict:
-                  reportIssue(
+                  preconditionFailure(
                     "'RESTRICT' foreign key actions not supported for parent relationships."
                   )
-                  break
                 case .setDefault:
                   guard
                     let recordType = try RecordType.find(table.tableName).fetchOne(db),
@@ -979,7 +978,7 @@
                   )
                   .execute(db)
                 case .noAction:
-                  reportIssue(
+                  preconditionFailure(
                     "'NO ACTION' foreign key actions not supported for parent relationships."
                   )
                 }
