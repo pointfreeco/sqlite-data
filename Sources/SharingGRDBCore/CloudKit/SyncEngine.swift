@@ -856,16 +856,22 @@
       }
 
       // TODO: Group by recordType and delete in batches
-      for (recordID, recordType) in deletions {
-        guard let recordPrimaryKey = recordID.recordPrimaryKey
-        else { continue }
+      let recordIDsByRecordType = Dictionary(grouping: deletions, by: \.recordType)
+        .mapValues { $0.map(\.recordID) }
+      if recordIDsByRecordType.count > 0 {
+        print("!!!")
+      }
+      for (recordType, recordIDs) in recordIDsByRecordType {
+        let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
         if let table = tablesByName[recordType] {
           func open<T: PrimaryKeyedTable>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try userDatabase.write { db in
                 try T
                   .where {
-                    SQLQueryExpression("\($0.primaryKey) = \(bind: recordPrimaryKey)")
+                    $0.primaryKey.in(
+                      recordPrimaryKeys.map { SQLQueryExpression("\(bind: $0)") }
+                    )
                   }
                   .delete()
                   .execute(db)
@@ -875,7 +881,9 @@
           open(table)
         } else if recordType == CKRecord.SystemType.share {
           withErrorReporting {
-            try deleteShare(recordID: recordID)
+            for recordID in recordIDs {
+              try deleteShare(recordID: recordID)
+            }
           }
         } else {
           // NB: Deleting a record from a table we do not currently recognize.
