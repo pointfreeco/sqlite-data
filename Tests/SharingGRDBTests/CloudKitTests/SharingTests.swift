@@ -302,7 +302,7 @@ extension BaseCloudKitTests {
           ownerName: "external.owner"
         )
       )
-      await syncEngine.modifyRecordZones(scope: .private, saving: [externalZone])
+      await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone])
 
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
@@ -318,8 +318,9 @@ extension BaseCloudKitTests {
       reminderRecord.setValue(false, forKey: "isCompleted", at: now)
       reminderRecord.setValue("Get milk", forKey: "title", at: now)
       reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+      reminderRecord.parent = CKRecord.Reference(record: remindersListRecord, action: .none)
 
-      await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
+      await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord, reminderRecord])
 
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
@@ -339,7 +340,16 @@ extension BaseCloudKitTests {
           ),
           sharedCloudDatabase: MockCloudDatabase(
             databaseScope: .shared,
-            storage: []
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 1,
+                title: "Personal"
+              )
+            ]
           )
         )
         """
