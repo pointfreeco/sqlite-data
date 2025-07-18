@@ -471,7 +471,6 @@ extension MockCloudDatabase: CustomDumpReflectable {
         "databaseScope": databaseScope,
         "storage": storage
             .value
-            .sorted { $0.key.zoneName < $1.key.zoneName }
             .flatMap { _, value in value.values }
             .sorted {
               ($0.recordType, $0.recordID.recordName) < ($1.recordType, $1.recordID.recordName)
