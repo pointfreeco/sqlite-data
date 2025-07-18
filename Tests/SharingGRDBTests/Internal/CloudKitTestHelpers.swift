@@ -12,7 +12,7 @@ extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConver
   ) -> CKRecord.ID {
     CKRecord.ID(
       recordName: self.recordName(for: id),
-      zoneID: zoneID ?? SyncEngine.defaultZone.zoneID
+      zoneID: zoneID ?? SyncEngine.defaultTestZone.zoneID
     )
   }
 }
