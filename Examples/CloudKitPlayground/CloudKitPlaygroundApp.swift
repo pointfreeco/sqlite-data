@@ -29,10 +29,11 @@ struct CloudKitPlaygroundApp: App {
       )
       do {
         //let results = try await container.privateCloudDatabase.modifyRecords(saving: [record], deleting: [])
-        let results = try await container.privateCloudDatabase.modifyRecords(
-          saving: [],
-          deleting: [record.recordID]
-        )
+//        let results = try await container.privateCloudDatabase.modifyRecords(
+//          saving: [],
+//          deleting: [record.recordID]
+//        )
+        let results = try await container.privateCloudDatabase.records(for: [record.recordID])
         print("success")
         print(results)
         print("!!!!")

@@ -258,7 +258,9 @@ final class MockCloudDatabase: CloudDatabase {
   }
 
   func record(for recordID: CKRecord.ID) throws -> CKRecord {
-    guard let record = storage[recordID.zoneID]?[recordID]
+    guard let zone = storage[recordID.zoneID]
+    else { throw CKError(.zoneNotFound) }
+    guard let record = zone[recordID]
     else { throw CKError(.unknownItem) }
     guard let record = record.copy() as? CKRecord
     else { fatalError("Could not copy CKRecord.") }
@@ -279,7 +281,7 @@ final class MockCloudDatabase: CloudDatabase {
   func records(
     for ids: [CKRecord.ID],
     desiredKeys: [CKRecord.FieldKey]?
-  ) throws -> [CKRecord.ID: Result<CKRecord, any Error>] {
+  ) -> [CKRecord.ID: Result<CKRecord, any Error>] {
     var results: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
     for id in ids {
       results[id] = Result { try record(for: id) }
@@ -472,8 +474,7 @@ extension MockCloudDatabase: CustomDumpReflectable {
             .sorted { $0.key.zoneName < $1.key.zoneName }
             .flatMap { _, value in value.values }
             .sorted {
-              ($0.recordType, $0.recordID.recordName)
-              < ($1.recordType, $1.recordID.recordName)
+              ($0.recordType, $0.recordID.recordName) < ($1.recordType, $1.recordID.recordName)
             }
         ,
       ],
