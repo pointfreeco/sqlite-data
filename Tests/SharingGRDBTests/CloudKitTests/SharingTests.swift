@@ -339,16 +339,7 @@ extension BaseCloudKitTests {
           ),
           sharedCloudDatabase: MockCloudDatabase(
             databaseScope: .shared,
-            storage: [
-              [0]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-                recordType: "remindersLists",
-                parent: nil,
-                share: nil,
-                id: 1,
-                title: "Personal"
-              )
-            ]
+            storage: []
           )
         )
         """
