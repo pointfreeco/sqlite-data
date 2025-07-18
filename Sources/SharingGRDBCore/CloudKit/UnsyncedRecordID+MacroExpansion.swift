@@ -1,4 +1,4 @@
-import StructuredQueries
+import StructuredQueriesCore
 
 extension UnsyncedRecordID {
   public struct TableColumns: StructuredQueriesCore.TableDefinition {
