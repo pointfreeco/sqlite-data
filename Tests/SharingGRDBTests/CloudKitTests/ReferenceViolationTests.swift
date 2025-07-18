@@ -117,8 +117,6 @@ extension BaseCloudKitTests {
       }
       await syncEngine.processPendingRecordZoneChanges(scope: .private)
       await modifications()
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """

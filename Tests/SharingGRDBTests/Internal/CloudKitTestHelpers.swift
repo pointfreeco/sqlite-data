@@ -695,9 +695,24 @@ extension SyncEngine {
 
   func processPendingRecordZoneChanges(
     options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(),
-    scope: CKDatabase.Scope
+    scope: CKDatabase.Scope,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
   ) async {
     let syncEngine = syncEngine(for: scope)
+    guard !syncEngine.state.pendingRecordZoneChanges.isEmpty
+    else {
+      reportIssue(
+        "Processing empty set of record zone changes.",
+        fileID: fileID,
+        filePath: filePath,
+        line: line,
+        column: column
+      )
+      return
+    }
 
     let batch = await nextRecordZoneChangeBatch(
       reason: .scheduled,
@@ -770,8 +785,25 @@ extension SyncEngine {
       )
   }
 
-  func processPendingDatabaseChanges(scope: CKDatabase.Scope) async {
+  func processPendingDatabaseChanges(
+    scope: CKDatabase.Scope,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+  ) async {
     let syncEngine = syncEngine(for: scope)
+    guard !syncEngine.state.pendingDatabaseChanges.isEmpty
+    else {
+      reportIssue(
+        "Processing empty set of database changes.",
+        fileID: fileID,
+        filePath: filePath,
+        line: line,
+        column: column
+      )
+      return
+    }
 
     var zonesToSave: [CKRecordZone] = []
     var zoneIDsToDelete: [CKRecordZone.ID] = []

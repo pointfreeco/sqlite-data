@@ -151,7 +151,6 @@ extension BaseCloudKitTests {
 
       await syncEngine.modifyRecords(scope: .shared, saving: [share])
       await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
