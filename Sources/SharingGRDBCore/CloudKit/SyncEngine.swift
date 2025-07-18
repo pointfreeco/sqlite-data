@@ -478,7 +478,7 @@
       case .stateUpdate(let stateSerialization):
         handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
       case .fetchedDatabaseChanges(let modifications, let deletions):
-        handleFetchedDatabaseChanges(
+        await handleFetchedDatabaseChanges(
           modifications: modifications,
           deletions: deletions,
           syncEngine: syncEngine
@@ -748,13 +748,13 @@
       modifications: [CKRecordZone.ID],
       deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)],
       syncEngine: any SyncEngineProtocol
-    ) {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.write { db in
+    ) async {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await userDatabase.write { db in
           for deletion in deletions {
             guard deletion.zoneID == Self.defaultZone.zoneID
             else { continue }
-            for table in tables {
+            for table in self.tables {
               func open<T: PrimaryKeyedTable>(_: T.Type) {
                 withErrorReporting(.sqliteDataCloudKitFailure) {
                   try T.delete().execute(db)
