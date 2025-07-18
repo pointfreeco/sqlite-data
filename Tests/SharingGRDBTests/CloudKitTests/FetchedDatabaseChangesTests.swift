@@ -25,6 +25,13 @@ extension BaseCloudKitTests {
       await syncEngine.processBatch()
 
       await syncEngine.modifyRecordZones(scope: .private, deleting: [SyncEngine.defaultZone.zoneID])
+
+      try {
+        try userDatabase.read { db in
+          try #expect(Reminder.all.fetchAll(db) == [])
+          try #expect(RemindersList.all.fetchAll(db) == [])
+        }
+      }()
     }
   }
 }
