@@ -478,7 +478,7 @@
       case .stateUpdate(let stateSerialization):
         handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
       case .fetchedDatabaseChanges(let modifications, let deletions):
-        handleFetchedDatabaseChanges(
+        await handleFetchedDatabaseChanges(
           modifications: modifications,
           deletions: deletions,
           syncEngine: syncEngine
@@ -748,23 +748,66 @@
       modifications: [CKRecordZone.ID],
       deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)],
       syncEngine: any SyncEngineProtocol
-    ) {
-      // TODO: How to handle this?
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.write { db in
-          for deletion in deletions {
-            // if let table = tablesByName[deletion.zoneID.zoneName] {
-            //   func open<T: PrimaryKeyedTable>(_: T.Type) {
-            //     withErrorReporting(.sqliteDataCloudKitFailure) {
-            //       try T.delete().execute(db)
-            //     }
-            //   }
-            //   open(table)
+    ) async {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await userDatabase.write { db in
+          for (zoneID, reason) in deletions {
+            guard zoneID == Self.defaultZone.zoneID
+            else { continue }
+            switch reason {
+            case .deleted, .purged:
+              try deleteRecords(in: zoneID, db: db)
+            case .encryptedDataReset:
+              try uploadRecords(in: zoneID, db: db)
+            @unknown default:
+              reportIssue("Unknown deletion reason: \(reason)")
+            }
           }
         }
-
-        // TODO: Deal with modifications?
-        _ = modifications
+      }
+      @Sendable
+      func deleteRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
+        let recordTypes = Set(
+          try SyncMetadata
+            .select(\.lastKnownServerRecord)
+            .fetchAll(db)
+            .compactMap { $0?.recordID.zoneID == zoneID ? $0?.recordType : nil }
+        )
+        for recordType in recordTypes {
+          guard let table = tablesByName[recordType]
+          else { continue }
+          func open<T: PrimaryKeyedTable>(_: T.Type) {
+            withErrorReporting(.sqliteDataCloudKitFailure) {
+              try T.delete().execute(db)
+            }
+          }
+          open(table)
+        }
+      }
+      @Sendable
+      func uploadRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
+        let recordTypes = Set(
+          try SyncMetadata
+            .select(\.lastKnownServerRecord)
+            .fetchAll(db)
+            .compactMap { $0?.recordID.zoneID == zoneID ? $0?.recordType : nil }
+        )
+        var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
+        for recordType in recordTypes {
+          guard let table = tablesByName[recordType]
+          else { continue }
+          func open<T: PrimaryKeyedTable>(_: T.Type) {
+            withErrorReporting(.sqliteDataCloudKitFailure) {
+              pendingRecordZoneChanges.append(
+                contentsOf: try T.select(\._recordName).fetchAll(db).map {
+                  .saveRecord(CKRecord.ID(recordName: $0, zoneID: zoneID))
+                }
+              )
+            }
+          }
+          open(table)
+        }
+        syncEngine.state.add(pendingRecordZoneChanges: pendingRecordZoneChanges)
       }
     }
 

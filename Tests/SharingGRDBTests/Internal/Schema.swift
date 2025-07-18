@@ -65,6 +65,9 @@ import SharingGRDB
   var title = ""
   var modelBID: ModelB.ID
 }
+@Table struct UnsyncedModel: Equatable, Identifiable {
+  let id: Int
+}
 
 @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 func database(containerIdentifier: String) throws -> DatabasePool {
@@ -192,6 +195,12 @@ func database(containerIdentifier: String) throws -> DatabasePool {
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "title" TEXT NOT NULL,
         "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
+      )
+      """)
+    .execute(db)
+    try #sql("""
+      CREATE TABLE "unsyncedModels" (
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
       )
       """)
     .execute(db)
