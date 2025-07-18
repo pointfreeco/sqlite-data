@@ -24,7 +24,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -78,7 +78,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """

@@ -467,7 +467,7 @@ extension BaseCloudKitTests {
           RemindersList(id: 1, title: "Personal")
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -513,7 +513,7 @@ extension BaseCloudKitTests {
           RemindersList(id: 1, title: "Personal")
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -592,7 +592,7 @@ extension BaseCloudKitTests {
           .insert { RemindersList(id: 1, title: "Personal") }
           .execute(db)
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -627,7 +627,7 @@ extension BaseCloudKitTests {
             .execute(db)
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -658,7 +658,7 @@ extension BaseCloudKitTests {
           .delete()
           .execute(db)
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -682,7 +682,7 @@ extension BaseCloudKitTests {
           RemindersList(id: 1, title: "Personal")
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -768,7 +768,7 @@ extension BaseCloudKitTests {
           RemindersList(id: 1, title: "Personal")
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
         $0.date.now.addTimeInterval(1)
@@ -780,7 +780,7 @@ extension BaseCloudKitTests {
 
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
       await syncEngine.modifyRecords(scope: .private, saving: [record])
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -813,7 +813,7 @@ extension BaseCloudKitTests {
           RemindersList(id: 1, title: "Personal")
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -898,7 +898,7 @@ extension BaseCloudKitTests {
           RemindersList(id: 1, title: "Personal")
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -925,7 +925,7 @@ extension BaseCloudKitTests {
 
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
       await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID])
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       #expect(
         try await userDatabase.userRead { db in
@@ -981,13 +981,13 @@ extension BaseCloudKitTests {
           }
         }
 
-        await syncEngine.processBatch()
+        await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await userDatabase.userWrite { db in
           try RemindersList.find(1).delete().execute(db)
         }
 
-        await syncEngine.processBatch()
+        await syncEngine.processPendingRecordZoneChanges(scope: .private)
         assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
           """
           MockCloudContainer(

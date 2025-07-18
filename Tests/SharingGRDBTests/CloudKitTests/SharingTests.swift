@@ -20,7 +20,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       await #expect(throws: SyncEngine.RecordMustBeRoot.self) {
         _ = try await self.syncEngine.share(record: reminder, configure: { _ in })
@@ -86,7 +86,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .shared)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -151,7 +151,7 @@ extension BaseCloudKitTests {
 
       await syncEngine.modifyRecords(scope: .shared, saving: [share])
       await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -250,7 +250,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .shared)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -330,7 +330,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .shared)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(

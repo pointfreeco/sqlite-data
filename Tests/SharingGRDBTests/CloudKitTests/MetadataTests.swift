@@ -20,7 +20,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -90,7 +90,7 @@ extension BaseCloudKitTests {
         }()
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -144,7 +144,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -215,7 +215,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       let reminderMetadata = try await userDatabase.userRead { db in
         try SyncMetadata
@@ -241,7 +241,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await userDatabase.userRead { db in
         let reminderMetadata =
@@ -268,7 +268,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await userDatabase.userRead { db in
         let reminderMetadata =

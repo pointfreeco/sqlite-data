@@ -75,7 +75,7 @@ class BaseCloudKitTests: @unchecked Sendable {
       ),
       syncEngine: syncEngine.syncEngines.withValue(\.private)!
     )
-    await syncEngine.processBatch()
+    await syncEngine.processPendingDatabaseChanges(scope: .private)
   }
 
   deinit {
