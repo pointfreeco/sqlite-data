@@ -65,7 +65,7 @@ import SharingGRDB
   var title = ""
   var modelBID: ModelB.ID
 }
-@Table struct PrivateModel {
+@Table struct UnsyncedModel: Equatable, Identifiable {
   let id: Int
 }
 
@@ -199,7 +199,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       """)
     .execute(db)
     try #sql("""
-      CREATE TABLE "privateModels" (
+      CREATE TABLE "unsyncedModels" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
       )
       """)

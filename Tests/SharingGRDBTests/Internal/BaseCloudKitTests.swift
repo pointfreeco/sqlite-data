@@ -60,7 +60,7 @@ class BaseCloudKitTests: @unchecked Sendable {
         ModelC.self,
       ],
       privateTables: [
-        RemindersListPrivate.self
+        RemindersListPrivate.self,
       ]
     )
     await syncEngine.handleEvent(

@@ -438,9 +438,9 @@ extension BaseCloudKitTests {
             ]
           ),
           [14]: RecordType(
-            tableName: "privateModels",
+            tableName: "unsyncedModels",
             schema: """
-              CREATE TABLE "privateModels" (
+              CREATE TABLE "unsyncedModels" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
               )
               """,

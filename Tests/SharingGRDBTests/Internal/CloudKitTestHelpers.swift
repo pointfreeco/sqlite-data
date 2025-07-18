@@ -722,7 +722,7 @@ extension SyncEngine {
       (
         saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
         deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
-      ) = await syncEngine.database.modifyRecordZones(
+      ) = syncEngine.database.modifyRecordZones(
         saving: zonesToSave,
         deleting: zoneIDsToDelete
       )

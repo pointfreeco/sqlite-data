@@ -31,7 +31,7 @@ extension BaseCloudKitTests {
     @Test func shareUnrecognizedTable() async throws {
       await #expect(throws: SyncEngine.UnrecognizedTable.self) {
         _ = try await self.syncEngine.share(
-          record: PrivateModel(id: 42),
+          record: UnsyncedModel(id: 42),
           configure: { _ in }
         )
       }

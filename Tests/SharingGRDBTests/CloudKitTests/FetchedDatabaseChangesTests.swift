@@ -12,14 +12,16 @@ extension BaseCloudKitTests {
   @Suite
   final class FetchedDatabaseChangesTests: BaseCloudKitTests, @unchecked Sendable {
     @Test func deleteSyncEngineZone() async throws {
-      try await userDatabase.write { db in
+      try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: 1, title: "Personal")
           RemindersList(id: 2, title: "Business")
           Reminder(id: 1, title: "Get milk", remindersListID: 1)
           Reminder(id: 2, title: "Call accountant", remindersListID: 2)
-          PrivateModel(id: 1)
-          PrivateModel(id: 2)
+          RemindersListPrivate(id: 1, remindersListID: 1)
+          RemindersListPrivate(id: 2, remindersListID: 2)
+          UnsyncedModel(id: 1)
+          UnsyncedModel(id: 2)
         }
       }
       await syncEngine.processBatch()
@@ -30,8 +32,117 @@ extension BaseCloudKitTests {
         try userDatabase.read { db in
           try #expect(Reminder.all.fetchAll(db) == [])
           try #expect(RemindersList.all.fetchAll(db) == [])
+          try #expect(RemindersListPrivate.all.fetchAll(db) == [])
+          try #expect(
+            UnsyncedModel.all.fetchAll(db) == [UnsyncedModel(id: 1), UnsyncedModel(id: 2)]
+          )
         }
       }()
+    }
+
+    @Test func deleteSyncEngineZone_EncryptedDataReset() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          RemindersList(id: 1, title: "Personal")
+          RemindersList(id: 2, title: "Business")
+          Reminder(id: 1, title: "Get milk", remindersListID: 1)
+          Reminder(id: 2, title: "Call accountant", remindersListID: 2)
+          RemindersListPrivate(id: 1, remindersListID: 1)
+          RemindersListPrivate(id: 2, remindersListID: 2)
+          UnsyncedModel(id: 1)
+          UnsyncedModel(id: 2)
+        }
+      }
+      await syncEngine.processBatch()
+
+      await syncEngine
+        .handleEvent(
+          SyncEngine.Event.fetchedDatabaseChanges(
+            modifications: [],
+            deletions: [(SyncEngine.defaultZone.zoneID, .encryptedDataReset)]
+          ),
+          syncEngine: syncEngine.private
+        )
+      await syncEngine.processBatch()
+
+      try {
+        try userDatabase.read { db in
+          try #expect(Reminder.count().fetchOne(db) == 2)
+          try #expect(RemindersList.count().fetchOne(db) == 2)
+          try #expect(RemindersListPrivate.count().fetchOne(db) == 2)
+          try #expect(UnsyncedModel.count().fetchOne(db) == 2)
+        }
+      }()
+
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: 1,
+                isCompleted: 0,
+                remindersListID: 1,
+                title: "Get milk"
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(2:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(2:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: 2,
+                isCompleted: 0,
+                remindersListID: 2,
+                title: "Call accountant"
+              ),
+              [2]: CKRecord(
+                recordID: CKRecord.ID(1:remindersListPrivates/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersListPrivates",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: 1,
+                position: 0,
+                remindersListID: 1
+              ),
+              [3]: CKRecord(
+                recordID: CKRecord.ID(2:remindersListPrivates/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersListPrivates",
+                parent: CKReference(recordID: CKRecord.ID(2:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: 2,
+                position: 0,
+                remindersListID: 2
+              ),
+              [4]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 1,
+                title: "Personal"
+              ),
+              [5]: CKRecord(
+                recordID: CKRecord.ID(2:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 2,
+                title: "Business"
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
     }
   }
 }
