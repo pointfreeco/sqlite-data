@@ -749,21 +749,28 @@
       deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)],
       syncEngine: any SyncEngineProtocol
     ) async {
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
+      let defaultZoneDeleted = await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in
+          var defaultZoneDeleted = false
           for (zoneID, reason) in deletions {
             guard zoneID == Self.defaultZone.zoneID
             else { continue }
             switch reason {
             case .deleted, .purged:
               try deleteRecords(in: zoneID, db: db)
+              defaultZoneDeleted = true
             case .encryptedDataReset:
               try uploadRecords(in: zoneID, db: db)
             @unknown default:
               reportIssue("Unknown deletion reason: \(reason)")
             }
           }
+          return defaultZoneDeleted
         }
+      }
+      ?? false
+      if defaultZoneDeleted {
+        syncEngine.state.add(pendingDatabaseChanges: [.saveZone(SyncEngine.defaultZone)])
       }
       @Sendable
       func deleteRecords(in zoneID: CKRecordZone.ID, db: Database) throws {

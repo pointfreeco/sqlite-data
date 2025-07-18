@@ -23,7 +23,7 @@ extension BaseCloudKitTests {
           Reminder(id: 1, title: "Get milk", remindersListID: 1)
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       let modifications = {
         syncEngine.modifyRecords(scope: .private, deleting: [RemindersList.recordID(for: 2)])
@@ -36,9 +36,9 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       await modifications()
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -88,7 +88,7 @@ extension BaseCloudKitTests {
           RemindersList(id: 1, title: "Personal")
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try withDependencies {
         $0.date.now.addTimeInterval(1)
@@ -115,10 +115,8 @@ extension BaseCloudKitTests {
           syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
         }()
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
       await modifications()
-      await syncEngine.processBatch()
-      await syncEngine.processBatch()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -178,7 +176,7 @@ extension BaseCloudKitTests {
           RemindersList(id: 1, title: "Personal")
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try withDependencies {
         $0.date.now.addTimeInterval(1)
@@ -206,7 +204,7 @@ extension BaseCloudKitTests {
         }()
       }
       await modifications()
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -268,7 +266,7 @@ extension BaseCloudKitTests {
           ChildWithOnDeleteSetNull(id: 1, parentID: 1)
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       let modifications = {
         syncEngine.modifyRecords(scope: .private, deleting: [Parent.recordID(for: 2)])
@@ -283,9 +281,9 @@ extension BaseCloudKitTests {
       try await withDependencies {
         $0.date.now.addTimeInterval(2)
       } operation: {
-        await syncEngine.processBatch()
+        await syncEngine.processPendingRecordZoneChanges(scope: .private)
         await modifications()
-        await syncEngine.processBatch()
+        await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -349,7 +347,7 @@ extension BaseCloudKitTests {
           ChildWithOnDeleteSetDefault(id: 1, parentID: 1)
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       let modifications = {
         syncEngine.modifyRecords(scope: .private, deleting: [Parent.recordID(for: 2)])
@@ -364,9 +362,9 @@ extension BaseCloudKitTests {
       try await withDependencies {
         $0.date.now.addTimeInterval(2)
       } operation: {
-        await syncEngine.processBatch()
+        await syncEngine.processPendingRecordZoneChanges(scope: .private)
         await modifications()
-        await syncEngine.processBatch()
+        await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
           """

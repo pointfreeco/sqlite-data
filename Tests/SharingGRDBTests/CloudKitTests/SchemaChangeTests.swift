@@ -27,7 +27,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
@@ -79,8 +79,6 @@ extension BaseCloudKitTests {
           privateTables: syncEngine.privateTables
         )
 
-        await relaunchedSyncEngine.processBatch()
-
         let remindersLists = try await userDatabase.userRead { db in
           try RemindersListWithPosition.order(by: \.id).fetchAll(db)
         }
@@ -118,7 +116,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
@@ -153,8 +151,6 @@ extension BaseCloudKitTests {
           privateTables: syncEngine.privateTables
         )
 
-        await relaunchedSyncEngine.processBatch()
-
         let remindersLists = try await userDatabase.userRead { db in
           try RemindersListWithData.order(by: \.id).fetchAll(db)
         }
@@ -178,7 +174,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
@@ -222,8 +218,7 @@ extension BaseCloudKitTests {
           + [RemindersListWithData.self],
           privateTables: syncEngine.privateTables
         )
-
-        await relaunchedSyncEngine.processBatch()
+        defer { _ = relaunchedSyncEngine }
 
         let remindersLists = try await userDatabase.userRead { db in
           try RemindersListWithData.order(by: \.id).fetchAll(db)
@@ -242,8 +237,6 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func newTable() async throws {
-      await syncEngine.processBatch()
-
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
       } operation: {
@@ -282,8 +275,6 @@ extension BaseCloudKitTests {
           tables: syncEngine.tables + [Image.self],
           privateTables: syncEngine.privateTables
         )
-
-        await relaunchedSyncEngine.processBatch()
 
         let images = try await userDatabase.userRead { db in
           try Image.order(by: \.id).fetchAll(db)

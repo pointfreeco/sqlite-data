@@ -105,7 +105,7 @@ extension BaseCloudKitTests {
           try Reminder.find(1).update { $0.title = "Buy milk" }.execute(db)
         }
 
-        await syncEngine.processBatch()
+        await syncEngine.processPendingRecordZoneChanges(scope: .private)
       }
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
@@ -339,7 +339,7 @@ extension BaseCloudKitTests {
           try Reminder.find(1).update { $0.title = "Buy milk" }.execute(db)
         }
 
-        await relaunchedSyncEngine.processBatch()
+        await relaunchedSyncEngine.processPendingRecordZoneChanges(scope: .private)
       }
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
@@ -533,7 +533,7 @@ extension BaseCloudKitTests {
           Reminder(id: 1, title: "Get milk", remindersListID: 1)
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       let modifications = try withDependencies {
         $0.date.now.addTimeInterval(1)
@@ -574,7 +574,7 @@ extension BaseCloudKitTests {
         }
       }()
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(
         of: syncEngine.private.database.storage[SyncEngine.defaultZone.zoneID]?[Reminder.recordID(for: 1)],
@@ -618,7 +618,7 @@ extension BaseCloudKitTests {
           Reminder(id: 1, title: "Get milk", remindersListID: 1)
         }
       }
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       let modifications = try withDependencies {
         $0.date.now.addTimeInterval(1)
@@ -641,7 +641,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try {
         try userDatabase.read { db in
@@ -674,7 +674,7 @@ extension BaseCloudKitTests {
         """
       }
 
-      await syncEngine.processBatch()
+      await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(
         of: syncEngine.private.database.storage[SyncEngine.defaultZone.zoneID]?[Reminder.recordID(for: 1)],
