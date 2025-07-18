@@ -105,7 +105,7 @@ extension SyncEngine {
     syncEngines.shared as! MockSyncEngine
   }
   static nonisolated let defaultTestZone = CKRecordZone(
-    zoneName: "co.pointfree.tests.SQLiteData.defaultZone"
+    zoneName: "co.pointfree.SQLiteData.defaultZone"
   )
   convenience init(
     container: any CloudContainer,
