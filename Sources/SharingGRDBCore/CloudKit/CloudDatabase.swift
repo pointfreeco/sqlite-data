@@ -22,6 +22,15 @@ package protocol CloudDatabase: AnyObject, Hashable, Sendable {
     saveResults: [CKRecord.ID : Result<CKRecord, any Error>],
     deleteResults: [CKRecord.ID : Result<Void, any Error>]
   )
+
+  @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
+  func modifyRecordZones(
+    saving recordZonesToSave: [CKRecordZone],
+    deleting recordZoneIDsToDelete: [CKRecordZone.ID]
+  ) async throws -> (
+    saveResults: [CKRecordZone.ID : Result<CKRecordZone, any Error>],
+    deleteResults: [CKRecordZone.ID : Result<Void, any Error>]
+  )
 }
 
 extension CloudDatabase {
@@ -89,6 +98,17 @@ final class AnyCloudDatabase: CloudDatabase {
       savePolicy: savePolicy,
       atomically: atomically
     )
+  }
+
+  @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
+  func modifyRecordZones(
+    saving recordZonesToSave: [CKRecordZone],
+    deleting recordZoneIDsToDelete: [CKRecordZone.ID]
+  ) async throws -> (
+    saveResults: [CKRecordZone.ID : Result<CKRecordZone, any Error>],
+    deleteResults: [CKRecordZone.ID : Result<Void, any Error>]
+  ) {
+    try await rawValue.modifyRecordZones(saving: recordZonesToSave, deleting: recordZoneIDsToDelete)
   }
 
   static func == (lhs: AnyCloudDatabase, rhs: AnyCloudDatabase) -> Bool {

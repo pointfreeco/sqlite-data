@@ -47,6 +47,16 @@ extension BaseCloudKitTests {
             databaseScope: .private,
             storage: [
               [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(2:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: 1,
+                isCompleted: 0,
+                remindersListID: 2,
+                title: "Get milk"
+              ),
+              [1]: CKRecord(
                 recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "remindersLists",
                 parent: nil,
@@ -288,33 +298,34 @@ extension BaseCloudKitTests {
         await syncEngine.processBatch()
 
         assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
-        """
-        MockCloudContainer(
-          privateCloudDatabase: MockCloudDatabase(
-            databaseScope: .private,
-            storage: [
-              [0]: CKRecord(
-                recordID: CKRecord.ID(1:childWithOnDeleteSetNulls/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "childWithOnDeleteSetNulls",
-                parent: nil,
-                share: nil,
-                id: 1
-              ),
-              [1]: CKRecord(
-                recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "parents",
-                parent: nil,
-                share: nil,
-                id: 1
-              )
-            ]
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:childWithOnDeleteSetNulls/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "childWithOnDeleteSetNulls",
+                  parent: CKReference(recordID: CKRecord.ID(2:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                  share: nil,
+                  id: 1,
+                  parentID: 2
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "parents",
+                  parent: nil,
+                  share: nil,
+                  id: 1
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
           )
-        )
-        """
+          """
         }
         try {
           try userDatabase.read { db in
@@ -377,10 +388,10 @@ extension BaseCloudKitTests {
                 [0]: CKRecord(
                   recordID: CKRecord.ID(1:childWithOnDeleteSetDefaults/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                   recordType: "childWithOnDeleteSetDefaults",
-                  parent: CKReference(recordID: CKRecord.ID(0:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                  parent: CKReference(recordID: CKRecord.ID(2:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
                   share: nil,
                   id: 1,
-                  parentID: 0
+                  parentID: 2
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(0:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),

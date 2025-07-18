@@ -38,9 +38,9 @@ extension SyncEngine {
   where T.TableColumns.PrimaryKey.QueryOutput: IdentifierStringConvertible {
     guard !privateTables.contains(where: { T.self == $0 })
     else { throw PrivateRootRecord() }
-    guard let foreignKeys = foreignKeysByTableName[T.tableName]
+    guard tablesByName[T.tableName] != nil
     else { throw UnrecognizedTable() }
-    guard foreignKeys.isEmpty
+    guard foreignKeysByTableName[T.tableName]?.isEmpty ?? true
     else { throw RecordMustBeRoot() }
 
     let recordName = record.recordName
@@ -52,7 +52,9 @@ extension SyncEngine {
       } ?? nil
 
     guard let metadata
-    else { throw NoCKRecordFound() }
+    else {
+      throw NoCKRecordFound()
+    }
 
     let rootRecord =
       metadata.lastKnownServerRecord

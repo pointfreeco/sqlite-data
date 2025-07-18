@@ -63,6 +63,19 @@ class BaseCloudKitTests: @unchecked Sendable {
         RemindersListPrivate.self
       ]
     )
+    await syncEngine.handleEvent(
+      .accountChange(
+        changeType: .signIn(
+          currentUser: CKRecord
+            .ID(
+              recordName: "defaultCurrentUser",
+              zoneID: SyncEngine.defaultZone.zoneID
+            )
+        )
+      ),
+      syncEngine: syncEngine.syncEngines.withValue(\.private)!
+    )
+    await syncEngine.processBatch()
   }
 
   deinit {

@@ -749,22 +749,21 @@
       deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)],
       syncEngine: any SyncEngineProtocol
     ) {
-      // TODO: How to handle this?
       withErrorReporting(.sqliteDataCloudKitFailure) {
         try userDatabase.write { db in
           for deletion in deletions {
-            // if let table = tablesByName[deletion.zoneID.zoneName] {
-            //   func open<T: PrimaryKeyedTable>(_: T.Type) {
-            //     withErrorReporting(.sqliteDataCloudKitFailure) {
-            //       try T.delete().execute(db)
-            //     }
-            //   }
-            //   open(table)
+            guard deletion.zoneID == Self.defaultZone.zoneID
+            else { continue }
+            for table in tables {
+              func open<T: PrimaryKeyedTable>(_: T.Type) {
+                withErrorReporting(.sqliteDataCloudKitFailure) {
+                  try T.delete().execute(db)
+                }
+              }
+              open(table)
+            }
           }
         }
-
-        // TODO: Deal with modifications?
-        _ = modifications
       }
     }
 

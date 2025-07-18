@@ -8,15 +8,38 @@ struct CloudKitPlaygroundApp: App {
   @UIApplicationDelegateAdaptor var delegate: AppDelegate
 
   init() {
+    let container = CKContainer(
+      identifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitPlayground"
+    )
     prepareDependencies {
       $0.defaultDatabase = try! appDatabase()
       $0.defaultSyncEngine = try! SyncEngine(
-        container: CKContainer(
-          identifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitPlayground"
-        ),
+        container: container,
         database: $0.defaultDatabase,
         tables: [ModelA.self, ModelB.self, ModelC.self]
       )
+    }
+    Task {
+      let record = CKRecord.init(
+        recordType: "A\(Int.random(in: 1...999_999_999))",
+        recordID: CKRecord.ID.init(
+          recordName: UUID().uuidString,
+          zoneID: CKRecordZone.ID.init(zoneName: UUID().uuidString)
+        )
+      )
+      do {
+        //let results = try await container.privateCloudDatabase.modifyRecords(saving: [record], deleting: [])
+        let results = try await container.privateCloudDatabase.modifyRecords(
+          saving: [],
+          deleting: [record.recordID]
+        )
+        print("success")
+        print(results)
+        print("!!!!")
+      } catch {
+        print(error)
+        print("!!!")
+      }
     }
   }
   var body: some Scene {

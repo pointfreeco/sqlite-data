@@ -437,6 +437,23 @@ extension BaseCloudKitTests {
                 type: "TEXT"
               )
             ]
+          ),
+          [14]: RecordType(
+            tableName: "privateModels",
+            schema: """
+              CREATE TABLE "privateModels" (
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
+              )
+              """,
+            tableInfo: [
+              [0]: TableInfo(
+                defaultValue: nil,
+                isPrimaryKey: true,
+                name: "id",
+                notNull: true,
+                type: "INTEGER"
+              )
+            ]
           )
         ]
         """#

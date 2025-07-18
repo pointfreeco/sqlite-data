@@ -195,6 +195,10 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
     _pendingRecordZoneChanges.withValue { Array($0) }
   }
 
+  var pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] {
+    _pendingDatabaseChanges.withValue { Array($0) }
+  }
+
   func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
     self._pendingRecordZoneChanges.withValue {
       $0.append(contentsOf: pendingRecordZoneChanges)
@@ -238,7 +242,7 @@ final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectabl
 }
 
 final class MockCloudDatabase: CloudDatabase {
-  let storage = LockIsolated<[CKRecord.ID: CKRecord]>([:])
+  let storage = LockIsolated<[CKRecordZone.ID: [CKRecord.ID: CKRecord]]>([:])
   let assets = LockIsolated<[AssetID: Data]>([:])
   let databaseScope: CKDatabase.Scope
 
@@ -254,7 +258,7 @@ final class MockCloudDatabase: CloudDatabase {
   }
 
   func record(for recordID: CKRecord.ID) throws -> CKRecord {
-    guard let record = storage[recordID]
+    guard let record = storage[recordID.zoneID]?[recordID]
     else { throw CKError(.unknownItem) }
     guard let record = record.copy() as? CKRecord
     else { fatalError("Could not copy CKRecord.") }
@@ -299,14 +303,21 @@ final class MockCloudDatabase: CloudDatabase {
       switch savePolicy {
       case .ifServerRecordUnchanged:
         for recordToSave in recordsToSave {
-          let existingRecord = storage[recordToSave.recordID]
+          guard storage[recordToSave.recordID.zoneID] != nil
+          else {
+            saveResults[recordToSave.recordID] = .failure(CKError(.zoneNotFound))
+            continue
+          }
+
+          let existingRecord = storage[recordToSave.recordID.zoneID]?[recordToSave.recordID]
 
           func saveRecordToDatabase() {
-            let hasReferenceViolation = recordToSave.parent.map { parent in
-              storage[parent.recordID] == nil
-                && !recordsToSave.contains { $0.recordID == parent.recordID }
-            }
-            ?? false
+            let hasReferenceViolation =
+              recordToSave.parent.map { parent in
+                storage[parent.recordID.zoneID] == nil
+                  && !recordsToSave.contains { $0.recordID == parent.recordID }
+              }
+              ?? false
             guard !hasReferenceViolation
             else {
               saveResults[recordToSave.recordID] = .failure(CKError(.referenceViolation))
@@ -324,7 +335,7 @@ final class MockCloudDatabase: CloudDatabase {
                   .load(assetURL)
               }
             }
-            storage[recordToSave.recordID] = copy
+            storage[recordToSave.recordID.zoneID]?[recordToSave.recordID] = copy
             saveResults[recordToSave.recordID] = .success(copy)
           }
 
@@ -354,7 +365,7 @@ final class MockCloudDatabase: CloudDatabase {
             // giving it a new identity, rather than leveraging an existing CKRecord.
             Issue.record(
               """
-              A new identity was created for an existing 'CKRecord' \ 
+              A new identity was created for an existing 'CKRecord' \
               ('\(existingRecord.recordID.recordName)'). Rather than creating \
               'CKRecord' from scratch for an existing record, use the database to fetch the \
               current record.
@@ -385,8 +396,15 @@ final class MockCloudDatabase: CloudDatabase {
         fatalError()
       }
       for recordIDToDelete in recordIDsToDelete {
+        guard storage[recordIDToDelete.zoneID] != nil
+        else {
+          deleteResults[recordIDToDelete] = .failure(CKError(.zoneNotFound))
+          continue
+        }
         let hasReferenceViolation = !Set(
-          storage.values.compactMap { $0.parent?.recordID == recordIDToDelete ? $0.recordID : nil }
+          storage[recordIDToDelete.zoneID]?.values
+            .compactMap { $0.parent?.recordID == recordIDToDelete ? $0.recordID : nil }
+            ?? []
         )
         .subtracting(recordIDsToDelete)
         .isEmpty
@@ -396,8 +414,38 @@ final class MockCloudDatabase: CloudDatabase {
           deleteResults[recordIDToDelete] = .failure(CKError(.referenceViolation))
           continue
         }
-        storage[recordIDToDelete] = nil
+        storage[recordIDToDelete.zoneID]?[recordIDToDelete] = nil
         deleteResults[recordIDToDelete] = .success(())
+      }
+
+      return (saveResults: saveResults, deleteResults: deleteResults)
+    }
+  }
+
+  func modifyRecordZones(
+    saving recordZonesToSave: [CKRecordZone],
+    deleting recordZoneIDsToDelete: [CKRecordZone.ID]
+  ) -> (
+    saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
+    deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
+  ) {
+    storage.withValue { storage in
+      var saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>] = [:]
+      var deleteResults: [CKRecordZone.ID: Result<Void, any Error>] = [:]
+
+      for recordZoneToSave in recordZonesToSave {
+        storage[recordZoneToSave.zoneID] = storage[recordZoneToSave.zoneID] ?? [:]
+        saveResults[recordZoneToSave.zoneID] = .success(recordZoneToSave)
+      }
+
+      for recordZoneIDsToDelete in recordZoneIDsToDelete {
+        guard storage[recordZoneIDsToDelete] != nil
+        else {
+          deleteResults[recordZoneIDsToDelete] = .failure(CKError(.zoneNotFound))
+          continue
+        }
+        storage[recordZoneIDsToDelete] = nil
+        deleteResults[recordZoneIDsToDelete] = .success(())
       }
 
       return (saveResults: saveResults, deleteResults: deleteResults)
@@ -420,12 +468,14 @@ extension MockCloudDatabase: CustomDumpReflectable {
       children: [
         "databaseScope": databaseScope,
         "storage": storage
-          .value
-          .sorted {
-            ($0.value.recordType, $0.value.recordID.recordName)
-              < ($1.value.recordType, $1.value.recordID.recordName)
-          }
-          .map(\.value),
+            .value
+            .sorted { $0.key.zoneName < $1.key.zoneName }
+            .flatMap { _, value in value.values }
+            .sorted {
+              ($0.recordType, $0.recordID.recordName)
+              < ($1.recordType, $1.recordID.recordName)
+            }
+        ,
       ],
       displayStyle: .struct
     )
@@ -548,6 +598,47 @@ private func comparePendingDatabaseChange(
 
 extension SyncEngine {
   @_disfavoredOverload
+  func modifyRecordZones(
+    scope: CKDatabase.Scope,
+    saving recordZonesToSave: [CKRecordZone] = [],
+    deleting recordZoneIDsToDelete: [CKRecordZone.ID] = []
+  ) async {
+    await modifyRecordZones(
+      scope: scope,
+      saving: recordZonesToSave,
+      deleting: recordZoneIDsToDelete
+    )()
+  }
+
+  func modifyRecordZones(
+    scope: CKDatabase.Scope,
+    saving recordZonesToSave: [CKRecordZone] = [],
+    deleting recordZoneIDsToDelete: [CKRecordZone.ID] = []
+  ) -> ModifyRecordsCallback {
+    let syncEngine = syncEngine(for: scope)
+
+    let (saveResults, deleteResults) = syncEngine.database.modifyRecordZones(
+        saving: recordZonesToSave,
+        deleting: recordZoneIDsToDelete
+      )
+
+    return ModifyRecordsCallback {
+      await syncEngine.delegate
+        .handleEvent(
+          .fetchedDatabaseChanges(
+            modifications: saveResults.values.compactMap { try? $0.get().zoneID },
+            deletions: deleteResults.compactMap { zoneID, result in
+              ((try? result.get()) != nil)
+              ? (zoneID, .deleted)
+              : nil
+            }
+          ),
+          syncEngine: syncEngine
+        )
+    }
+  }
+
+  @_disfavoredOverload
   func modifyRecords(
     scope: CKDatabase.Scope,
     saving recordsToSave: [CKRecord] = [],
@@ -571,11 +662,11 @@ extension SyncEngine {
     let syncEngine = syncEngine(for: scope)
     let recordsToDeleteByID = Dictionary(
       grouping: syncEngine.database.storage.withValue { storage in
-        recordIDsToDelete.compactMap { recordID in storage[recordID] }
+        recordIDsToDelete.compactMap { recordID in storage[recordID.zoneID]?[recordID] }
       },
       by: \.recordID
     )
-      .compactMapValues(\.first)
+    .compactMapValues(\.first)
 
     let (saveResults, deleteResults) = syncEngine.database.modifyRecords(
       saving: recordsToSave,
@@ -590,8 +681,8 @@ extension SyncEngine {
             syncEngine.database.storage.withValue { storage in
               (recordsToDeleteByID[recordID]?.recordType).flatMap { recordType in
                 (try? result.get()) != nil
-                ? (recordID, recordType)
-                : nil
+                  ? (recordID, recordType)
+                  : nil
               }
             }
           }
@@ -613,6 +704,65 @@ extension SyncEngine {
     }
 
     let syncEngine = syncEngine(for: scope)
+
+    var zonesToSave: [CKRecordZone] = []
+    var zoneIDsToDelete: [CKRecordZone.ID] = []
+    for pendingDatabaseChange in syncEngine.state.pendingDatabaseChanges {
+      switch pendingDatabaseChange {
+      case .saveZone(let zone):
+        zonesToSave.append(zone)
+      case .deleteZone(let zoneID):
+        zoneIDsToDelete.append(zoneID)
+      @unknown default:
+        fatalError("Unsupported pendingDatabaseChange: \(pendingDatabaseChange)")
+      }
+    }
+    let results:
+      (
+        saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
+        deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
+      ) = await syncEngine.database.modifyRecordZones(
+        saving: zonesToSave,
+        deleting: zoneIDsToDelete
+      )
+    var savedZones: [CKRecordZone] = []
+    var failedZoneSaves: [(zone: CKRecordZone, error: CKError)] = []
+    var deletedZoneIDs: [CKRecordZone.ID] = []
+    var failedZoneDeletes: [CKRecordZone.ID : CKError] = [:]
+    for (zoneID, saveResult) in results.saveResults {
+      switch saveResult {
+      case .success(let zone):
+        savedZones.append(zone)
+      case .failure(let error as CKError):
+        failedZoneSaves.append((zonesToSave.first(where: { $0.zoneID == zoneID })!, error))
+      case .failure(let error):
+        reportIssue("Error thrown not CKError: \(error)")
+      }
+    }
+    for (zoneID, deleteResult) in results.deleteResults {
+      switch deleteResult {
+      case .success:
+        deletedZoneIDs.append(zoneID)
+      case .failure(let error as CKError):
+        failedZoneDeletes[zoneID] = error
+      case .failure(let error):
+        reportIssue("Error thrown not CKError: \(error)")
+      }
+    }
+
+    syncEngine.state.remove(pendingDatabaseChanges: savedZones.map { .saveZone($0) })
+    syncEngine.state.remove(pendingDatabaseChanges: deletedZoneIDs.map { .deleteZone($0) })
+
+    await syncEngine.delegate
+      .handleEvent(
+        .sentDatabaseChanges(
+          savedZones: savedZones,
+          failedZoneSaves: failedZoneSaves,
+          deletedZoneIDs: deletedZoneIDs,
+          failedZoneDeletes: failedZoneDeletes
+        ),
+        syncEngine: syncEngine
+      )
 
     let batch = await nextRecordZoneChangeBatch(
       reason: .scheduled,
