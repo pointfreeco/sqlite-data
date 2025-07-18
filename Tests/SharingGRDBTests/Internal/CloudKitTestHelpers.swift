@@ -704,12 +704,14 @@ extension SyncEngine {
     let syncEngine = syncEngine(for: scope)
     guard !syncEngine.state.pendingRecordZoneChanges.isEmpty
     else {
-      reportIssue(
+      Issue.record(
         "Processing empty set of record zone changes.",
-        fileID: fileID,
-        filePath: filePath,
-        line: line,
-        column: column
+        sourceLocation: SourceLocation.init(
+          fileID: String(describing: fileID),
+          filePath: String(describing: filePath),
+          line: Int(line),
+          column: Int(column)
+        )
       )
       return
     }
@@ -795,12 +797,14 @@ extension SyncEngine {
     let syncEngine = syncEngine(for: scope)
     guard !syncEngine.state.pendingDatabaseChanges.isEmpty
     else {
-      reportIssue(
+      Issue.record(
         "Processing empty set of database changes.",
-        fileID: fileID,
-        filePath: filePath,
-        line: line,
-        column: column
+        sourceLocation: SourceLocation.init(
+          fileID: String(describing: fileID),
+          filePath: String(describing: filePath),
+          line: Int(line),
+          column: Int(column)
+        )
       )
       return
     }

@@ -218,6 +218,7 @@ extension BaseCloudKitTests {
           + [RemindersListWithData.self],
           privateTables: syncEngine.privateTables
         )
+        defer { _ = relaunchedSyncEngine }
 
         let remindersLists = try await userDatabase.userRead { db in
           try RemindersListWithData.order(by: \.id).fetchAll(db)
