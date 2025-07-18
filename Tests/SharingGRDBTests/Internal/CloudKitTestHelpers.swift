@@ -316,7 +316,7 @@ final class MockCloudDatabase: CloudDatabase {
           func saveRecordToDatabase() {
             let hasReferenceViolation =
               recordToSave.parent.map { parent in
-                storage[parent.recordID.zoneID] == nil
+                storage[parent.recordID.zoneID]?[parent.recordID] == nil
                   && !recordsToSave.contains { $0.recordID == parent.recordID }
               }
               ?? false

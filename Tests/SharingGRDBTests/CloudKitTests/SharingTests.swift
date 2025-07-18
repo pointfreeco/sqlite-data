@@ -125,14 +125,17 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareDelieveredBeforeRecord() async throws {
-      let externalZoneID = CKRecordZone.ID(
-        zoneName: "external.zone",
-        ownerName: "external.owner"
+      let externalZone = CKRecordZone(
+        zoneID: CKRecordZone.ID(
+          zoneName: "external.zone",
+          ownerName: "external.owner"
+        )
       )
+      await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone])
 
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: 1, zoneID: externalZoneID)
+        recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
       )
       remindersListRecord.setValue(1, forKey: "id", at: now)
       remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
@@ -142,7 +145,7 @@ extension BaseCloudKitTests {
         rootRecord: remindersListRecord,
         shareID: CKRecord.ID(
           recordName: "Share-\(1)",
-          zoneID: externalZoneID
+          zoneID: externalZone.zoneID
         )
       )
 
@@ -293,20 +296,23 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func deleteRecordInExternallySharedRecord() async throws {
-      let externalZoneID = CKRecordZone.ID(
-        zoneName: "external.zone",
-        ownerName: "external.owner"
+      let externalZone = CKRecordZone(
+        zoneID: CKRecordZone.ID(
+          zoneName: "external.zone",
+          ownerName: "external.owner"
+        )
       )
+      await syncEngine.modifyRecordZones(scope: .private, saving: [externalZone])
 
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
-        recordID: RemindersList.recordID(for: 1, zoneID: externalZoneID)
+        recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
       )
       remindersListRecord.setValue(1, forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
       let reminderRecord = CKRecord(
         recordType: Reminder.tableName,
-        recordID: Reminder.recordID(for: 1, zoneID: externalZoneID)
+        recordID: Reminder.recordID(for: 1, zoneID: externalZone.zoneID)
       )
       reminderRecord.setValue(1, forKey: "id", at: now)
       reminderRecord.setValue(false, forKey: "isCompleted", at: now)
