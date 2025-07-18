@@ -155,7 +155,23 @@ extension BaseCloudKitTests {
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
-            storage: []
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(Share-1/external.zone/external.owner),
+                recordType: "cloudkit.share",
+                parent: nil,
+                share: nil
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                recordType: "remindersLists",
+                parent: nil,
+                share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner)),
+                id: 1,
+                isCompleted: 0,
+                title: "Personal"
+              )
+            ]
           ),
           sharedCloudDatabase: MockCloudDatabase(
             databaseScope: .shared,
@@ -170,7 +186,34 @@ extension BaseCloudKitTests {
       }
       assertInlineSnapshot(of: metadata, as: .customDump) {
         """
-        []
+        [
+          [0]: SyncMetadata(
+            recordPrimaryKey: "1",
+            recordType: "remindersLists",
+            recordName: "1:remindersLists",
+            parentRecordPrimaryKey: nil,
+            parentRecordType: nil,
+            parentRecordName: nil,
+            lastKnownServerRecord: CKRecord(
+              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+              recordType: "remindersLists",
+              parent: nil,
+              share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner))
+            ),
+            _lastKnownServerRecordAllFields: CKRecord(
+              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+              recordType: "remindersLists",
+              parent: nil,
+              share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner)),
+              id: 1,
+              isCompleted: 0,
+              title: "Personal"
+            ),
+            share: nil,
+            isShared: false,
+            userModificationDate: Date(1970-01-01T00:00:00.000Z)
+          )
+        ]
         """
       }
     }
@@ -286,7 +329,16 @@ extension BaseCloudKitTests {
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
-            storage: []
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 1,
+                title: "Personal"
+              )
+            ]
           ),
           sharedCloudDatabase: MockCloudDatabase(
             databaseScope: .shared,

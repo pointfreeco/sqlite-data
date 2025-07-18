@@ -23,7 +23,20 @@ extension BaseCloudKitTests {
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
-            storage: []
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(A/_defaultZone/__defaultOwner__),
+                recordType: "A",
+                parent: nil,
+                share: nil
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(B/_defaultZone/__defaultOwner__),
+                recordType: "B",
+                parent: CKReference(recordID: CKRecord.ID(A/_defaultZone/__defaultOwner__)),
+                share: nil
+              )
+            ]
           ),
           sharedCloudDatabase: MockCloudDatabase(
             databaseScope: .shared,
@@ -97,7 +110,20 @@ extension BaseCloudKitTests {
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
-            storage: []
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(A/_defaultZone/__defaultOwner__),
+                recordType: "A",
+                parent: nil,
+                share: nil
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(B/_defaultZone/__defaultOwner__),
+                recordType: "B",
+                parent: CKReference(recordID: CKRecord.ID(A/_defaultZone/__defaultOwner__)),
+                share: nil
+              )
+            ]
           ),
           sharedCloudDatabase: MockCloudDatabase(
             databaseScope: .shared,
