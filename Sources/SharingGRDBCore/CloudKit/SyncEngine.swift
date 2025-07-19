@@ -186,6 +186,7 @@
           shared: sharedSyncEngine
         )
       }
+
       let previousRecordTypes = try metadatabase.read { db in
         try RecordType.all.fetchAll(db)
       }
@@ -696,26 +697,14 @@
         syncEngines.withValue {
           $0.private?.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
         }
-        for table in tables {
-          withErrorReporting(.sqliteDataCloudKitFailure) {
-            let recordNames = try userDatabase.read { db in
-              func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String] {
-                try T
-                  .select(\._recordName)
-                  .fetchAll(db)
+        withErrorReporting(.sqliteDataCloudKitFailure) {
+          try userDatabase.write { db in
+            for table in tables {
+              func open<T: PrimaryKeyedTable>(_: T.Type) throws {
+                try T.update { $0.primaryKey = $0.primaryKey }.execute(db)
               }
               return try open(table)
             }
-            syncEngine.state.add(
-              pendingRecordZoneChanges: recordNames.map {
-                .saveRecord(
-                  CKRecord.ID(
-                    recordName: $0,
-                    zoneID: Self.defaultZone.zoneID
-                  )
-                )
-              }
-            )
           }
         }
       case .signOut, .switchAccounts:

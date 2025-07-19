@@ -486,19 +486,26 @@ final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
   let containerIdentifier: String?
   let privateCloudDatabase: MockCloudDatabase
   let sharedCloudDatabase: MockCloudDatabase
+  let _accountStatus: LockIsolated<CKAccountStatus>
 
   init(
     containerIdentifier: String?,
+    accountStatus: CKAccountStatus = .available,
     privateCloudDatabase: MockCloudDatabase,
     sharedCloudDatabase: MockCloudDatabase
   ) {
     self.containerIdentifier = containerIdentifier
+    self._accountStatus = LockIsolated<CKAccountStatus>(accountStatus)
     self.privateCloudDatabase = privateCloudDatabase
     self.sharedCloudDatabase = sharedCloudDatabase
   }
 
   var rawValue: CKContainer {
     fatalError("This should never be called in tests.")
+  }
+
+  func accountStatus() async throws -> CKAccountStatus {
+    _accountStatus.withValue { $0 }
   }
 
   func shareMetadata(for url: URL, shouldFetchRootRecord: Bool) async throws -> CKShare.Metadata {
@@ -516,6 +523,7 @@ final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
         storage[containerIdentifier]
         ?? MockCloudContainer(
           containerIdentifier: containerIdentifier,
+          accountStatus: .available,
           privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
           sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
         )

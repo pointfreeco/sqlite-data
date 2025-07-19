@@ -28,6 +28,7 @@ class BaseCloudKitTests: @unchecked Sendable {
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   init(
+    accountStatus: CKAccountStatus = .available,
     setUpUserDatabase: @Sendable (UserDatabase) async throws -> Void = { _ in }
   ) async throws {
     let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
@@ -41,6 +42,7 @@ class BaseCloudKitTests: @unchecked Sendable {
     _syncEngine = try await SyncEngine(
       container: MockCloudContainer(
         containerIdentifier: testContainerIdentifier,
+        accountStatus: accountStatus,
         privateCloudDatabase: privateDatabase,
         sharedCloudDatabase: sharedDatabase
       ),
@@ -63,19 +65,12 @@ class BaseCloudKitTests: @unchecked Sendable {
         RemindersListPrivate.self,
       ]
     )
-    await syncEngine.handleEvent(
-      .accountChange(
-        changeType: .signIn(
-          currentUser: CKRecord
-            .ID(
-              recordName: "defaultCurrentUser",
-              zoneID: SyncEngine.defaultZone.zoneID
-            )
-        )
-      ),
-      syncEngine: syncEngine.syncEngines.withValue(\.private)!
-    )
-    await syncEngine.processPendingDatabaseChanges(scope: .private)
+    if accountStatus == .available {
+      _ = syncEngine.private.database.modifyRecordZones(
+        saving: [SyncEngine.defaultZone],
+        deleting: []
+      )
+    }
   }
 
   deinit {
