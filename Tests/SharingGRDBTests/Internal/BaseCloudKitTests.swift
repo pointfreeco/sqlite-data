@@ -1,5 +1,6 @@
 import CloudKit
 import DependenciesTestSupport
+import Foundation
 import OrderedCollections
 import os
 import SharingGRDB
@@ -15,6 +16,8 @@ import Testing
 )
 class BaseCloudKitTests: @unchecked Sendable {
   let userDatabase: UserDatabase
+  let container: MockCloudContainer
+  let notificationCenter: NotificationCenter
   private let _syncEngine: any Sendable
 
   @Dependency(\.date.now) var now
@@ -39,14 +42,17 @@ class BaseCloudKitTests: @unchecked Sendable {
     try await setUpUserDatabase(userDatabase)
     let privateDatabase = MockCloudDatabase(databaseScope: .private)
     let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+    container = MockCloudContainer(
+      containerIdentifier: testContainerIdentifier,
+      accountStatus: accountStatus,
+      privateCloudDatabase: privateDatabase,
+      sharedCloudDatabase: sharedDatabase
+    )
+    notificationCenter = NotificationCenter()
     _syncEngine = try await SyncEngine(
-      container: MockCloudContainer(
-        containerIdentifier: testContainerIdentifier,
-        accountStatus: accountStatus,
-        privateCloudDatabase: privateDatabase,
-        sharedCloudDatabase: sharedDatabase
-      ),
+      container: container,
       userDatabase: self.userDatabase,
+      notificationCenter: notificationCenter,
       metadatabaseURL: URL.metadatabase(containerIdentifier: testContainerIdentifier),
       tables: [
         Reminder.self,
@@ -71,6 +77,11 @@ class BaseCloudKitTests: @unchecked Sendable {
         deleting: []
       )
     }
+  }
+
+  func updateAccountStatus(_ status: CKAccountStatus) {
+    container._accountStatus.withValue { $0 = status }
+    notificationCenter.post(name: .CKAccountChanged, object: container)
   }
 
   deinit {
@@ -102,6 +113,7 @@ extension SyncEngine {
   convenience init(
     container: any CloudContainer,
     userDatabase: UserDatabase,
+    notificationCenter: NotificationCenter,
     metadatabaseURL: URL,
     tables: [any PrimaryKeyedTable.Type],
     privateTables: [any PrimaryKeyedTable.Type] = []
@@ -126,6 +138,7 @@ extension SyncEngine {
       },
       userDatabase: userDatabase,
       logger: Logger(.disabled),
+      notificationCenter: notificationCenter,
       metadatabaseURL: metadatabaseURL,
       tables: tables,
       privateTables: privateTables

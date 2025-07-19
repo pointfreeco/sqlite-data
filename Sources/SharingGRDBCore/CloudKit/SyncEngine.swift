@@ -2,8 +2,16 @@
   import CloudKit
   import ConcurrencyExtras
   import CustomDump
+  import Foundation
   import OrderedCollections
   import OSLog
+
+  #if canImport(UIKit)
+    import UIKit
+  #endif
+  #if canImport(AppKit)
+    import AppKit
+  #endif
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Sendable {
@@ -24,6 +32,7 @@
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
+    package let notificationCenter: NotificationCenter
 
     let dataManager = Dependency(\.dataManager)
 
@@ -67,6 +76,7 @@
         },
         userDatabase: userDatabase,
         logger: logger,
+        notificationCenter: .default,
         metadatabaseURL: URL.metadatabase(containerIdentifier: container.containerIdentifier),
         tables: tables,
         privateTables: privateTables
@@ -85,6 +95,7 @@
       ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
       userDatabase: UserDatabase,
       logger: Logger,
+      notificationCenter: NotificationCenter,
       metadatabaseURL: URL,
       tables: [any PrimaryKeyedTable.Type],
       privateTables: [any PrimaryKeyedTable.Type] = []
@@ -117,6 +128,7 @@
       self.defaultSyncEngines = defaultSyncEngines
       self.userDatabase = userDatabase
       self.logger = logger
+      self.notificationCenter = notificationCenter
       self.metadatabase = try defaultMetadatabase(logger: logger, url: metadatabaseURL)
       let tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
         .map(\.type)
@@ -130,7 +142,55 @@
         tables: tables,
         tablesByName: tablesByName
       )
+
+      let didBecomeActiveNotificationName: Notification.Name?
+      #if canImport(UIKit)
+        didBecomeActiveNotificationName = UIApplication.didBecomeActiveNotification
+      #elseif canImport(AppKit)
+        didBecomeActiveNotificationName = NSApplication.didBecomeActiveNotification
+      #else
+        didBecomeActiveNotificationName = nil
+      #endif
+
+      notificationObservers.withValue {
+        if let didBecomeActiveNotificationName {
+          $0.append(
+            notificationCenter.addObserver(
+              forName: didBecomeActiveNotificationName,
+              object: nil,
+              queue: .main
+            ) { [weak self] _ in
+              Task { try await self?.accountStatusUpdated(container.accountStatus()) }
+            }
+          )
+        }
+        $0.append(
+          notificationCenter.addObserver(
+            forName: .CKAccountChanged,
+            object: container,
+            queue: .main
+          ) { [weak self] _ in
+            Task { try await self?.accountStatusUpdated(container.accountStatus()) }
+          }
+        )
+      }
     }
+
+    deinit {
+      notificationObservers.withValue {
+        for observer in $0 {
+          notificationCenter.removeObserver(observer)
+        }
+      }
+    }
+
+    let accountStatus = LockIsolated<CKAccountStatus>(.couldNotDetermine)
+    private func accountStatusUpdated(_ status: CKAccountStatus) async throws {
+      accountStatus.withValue { $0 = status }
+      print("!!!!!!!!!!!!!")
+    }
+
+    let notificationObservers = LockIsolated<[any NSObjectProtocol]>([])
 
     @TaskLocal package static var _isUpdatingRecord = false
 
@@ -216,13 +276,17 @@
           ($0.tableName, $0)
         }
       )
-      try uploadRecordsToCloudKit(
-        previousRecordTypeByTableName: previousRecordTypeByTableName,
-        currentRecordTypeByTableName: currentRecordTypeByTableName
-      )
       return Task {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await fetchChangesFromSchemaChange(
+          let accountStatus = try await container.accountStatus()
+          self.accountStatus.withValue { $0 = accountStatus }
+          guard accountStatus == .available
+          else { return }
+          try await uploadRecordsToCloudKit(
+            previousRecordTypeByTableName: previousRecordTypeByTableName,
+            currentRecordTypeByTableName: currentRecordTypeByTableName
+          )
+          try await updateLocalFromSchemaChange(
             previousRecordTypeByTableName: previousRecordTypeByTableName,
             currentRecordTypeByTableName: currentRecordTypeByTableName
           )
@@ -243,53 +307,34 @@
     private func uploadRecordsToCloudKit(
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
-    ) throws {
+    ) async throws {
       let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
         previousRecordTypeByTableName[tableName] == nil
       }
 
-      try userDatabase.write { db in
+      try await userDatabase.write { db in
         try Self.$_isUpdatingRecord.withValue(false) {
           for tableName in newTableNames {
-            guard let table = tablesByName[tableName]
-            else { continue }
-
-            let parentForeignKey =
-              foreignKeysByTableName[tableName]?.count == 1
-              ? foreignKeysByTableName[tableName]?.first
-              : nil
-
-            func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-              let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
-                parentForeignKey
-                .map { ("\(T.self).\(quote: $0.from)", "\(bind: $0.table)") }
-                ?? ("NULL", "NULL")
-              try SyncMetadata.insert { columns in
-                (
-                  columns.recordPrimaryKey,
-                  columns.recordType,
-                  columns.parentRecordPrimaryKey,
-                  columns.parentRecordType
-                )
-              } select: {
-                T.select { columns in
-                  (
-                    SQLQueryExpression("\(columns.primaryKey)"),
-                    T.tableName,
-                    SQLQueryExpression(parentRecordPrimaryKey),
-                    SQLQueryExpression(parentRecordType)
-                  )
-                }
-              }
-              .execute(db)
-            }
-            try open(table)
+            try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
           }
         }
       }
     }
 
-    private func fetchChangesFromSchemaChange(
+    private func uploadRecordsToCloudKit<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
+      try T.update { $0.primaryKey = $0.primaryKey }.execute(db)
+    }
+
+    private func uploadRecordsToCloudKit(tableName: String, db: Database) throws {
+      guard let table = self.tablesByName[tableName]
+      else { return }
+      func open<T: PrimaryKeyedTable>(_: T.Type) throws {
+        try uploadRecordsToCloudKit(table: T.self, db: db)
+      }
+      try open(table)
+    }
+
+    private func updateLocalFromSchemaChange(
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
     ) async throws {
@@ -330,11 +375,6 @@
     }
 
     package func tearDownSyncEngine() async throws {
-      let syncEngines = syncEngines.withValue(\.self)
-      async let privateCancellation: Void? = syncEngines.private?.cancelOperations()
-      async let sharedCancellation: Void? = syncEngines.shared?.cancelOperations()
-      _ = await (privateCancellation, sharedCancellation)
-
       try await userDatabase.write { db in
         for table in self.tables {
           try table.dropTriggers(db: db)
@@ -697,19 +737,20 @@
         syncEngines.withValue {
           $0.private?.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
         }
-        withErrorReporting(.sqliteDataCloudKitFailure) {
-          try userDatabase.write { db in
-            for table in tables {
-              func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-                try T.update { $0.primaryKey = $0.primaryKey }.execute(db)
-              }
-              return try open(table)
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await userDatabase.write { db in
+            for table in self.tables {
+              try self.uploadRecordsToCloudKit(table: table, db: db)
             }
           }
         }
       case .signOut, .switchAccounts:
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await deleteLocalData()
+        guard syncEngine === syncEngines.private
+        else { return }
+        Task {
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await deleteLocalData()
+          }
         }
       @unknown default:
         break
@@ -738,26 +779,27 @@
       deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)],
       syncEngine: any SyncEngineProtocol
     ) async {
-      let defaultZoneDeleted = await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await userDatabase.write { db in
-          var defaultZoneDeleted = false
-          for (zoneID, reason) in deletions {
-            guard zoneID == Self.defaultZone.zoneID
-            else { continue }
-            switch reason {
-            case .deleted, .purged:
-              try deleteRecords(in: zoneID, db: db)
-              defaultZoneDeleted = true
-            case .encryptedDataReset:
-              try uploadRecords(in: zoneID, db: db)
-            @unknown default:
-              reportIssue("Unknown deletion reason: \(reason)")
+      let defaultZoneDeleted =
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await userDatabase.write { db in
+            var defaultZoneDeleted = false
+            for (zoneID, reason) in deletions {
+              guard zoneID == Self.defaultZone.zoneID
+              else { continue }
+              switch reason {
+              case .deleted, .purged:
+                try deleteRecords(in: zoneID, db: db)
+                defaultZoneDeleted = true
+              case .encryptedDataReset:
+                try uploadRecords(in: zoneID, db: db)
+              @unknown default:
+                reportIssue("Unknown deletion reason: \(reason)")
+              }
             }
+            return defaultZoneDeleted
           }
-          return defaultZoneDeleted
         }
-      }
-      ?? false
+        ?? false
       if defaultZoneDeleted {
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(SyncEngine.defaultZone)])
       }

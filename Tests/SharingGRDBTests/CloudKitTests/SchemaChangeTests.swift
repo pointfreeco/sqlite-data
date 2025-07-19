@@ -72,12 +72,14 @@ extension BaseCloudKitTests {
         let relaunchedSyncEngine = try await SyncEngine(
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
+          notificationCenter: syncEngine.notificationCenter,
           metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
           tables: syncEngine.tables
             .filter { $0 != Reminder.self && $0 != RemindersList.self }
           + [ReminderWithPosition.self, RemindersListWithPosition.self],
           privateTables: syncEngine.privateTables
         )
+        defer { _ = relaunchedSyncEngine }
 
         let remindersLists = try await userDatabase.userRead { db in
           try RemindersListWithPosition.order(by: \.id).fetchAll(db)
@@ -144,12 +146,14 @@ extension BaseCloudKitTests {
         let relaunchedSyncEngine = try await SyncEngine(
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
+          notificationCenter: syncEngine.notificationCenter,
           metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
           tables: syncEngine.tables
             .filter { $0 != RemindersList.self }
           + [RemindersListWithData.self],
           privateTables: syncEngine.privateTables
         )
+        defer { _ = relaunchedSyncEngine }
 
         let remindersLists = try await userDatabase.userRead { db in
           try RemindersListWithData.order(by: \.id).fetchAll(db)
@@ -212,6 +216,7 @@ extension BaseCloudKitTests {
         let relaunchedSyncEngine = try await SyncEngine(
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
+          notificationCenter: syncEngine.notificationCenter,
           metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
           tables: syncEngine.tables
             .filter { $0 != RemindersList.self }
@@ -271,10 +276,12 @@ extension BaseCloudKitTests {
         let relaunchedSyncEngine = try await SyncEngine(
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
+          notificationCenter: syncEngine.notificationCenter,
           metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
           tables: syncEngine.tables + [Image.self],
           privateTables: syncEngine.privateTables
         )
+        defer { _ = relaunchedSyncEngine }
 
         let images = try await userDatabase.userRead { db in
           try Image.order(by: \.id).fetchAll(db)
