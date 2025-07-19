@@ -81,6 +81,7 @@ let package = Package(
         "StructuredQueriesGRDB",
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
+        .product(name: "StructuredQueriesTestSupport", package: "swift-structured-queries"),
       ]
     ),
   ],
