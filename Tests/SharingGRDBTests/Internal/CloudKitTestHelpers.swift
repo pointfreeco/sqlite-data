@@ -494,12 +494,11 @@ extension MockCloudDatabase: CustomDumpReflectable {
       children: [
         "databaseScope": databaseScope,
         "storage": storage
-            .value
-            .flatMap { _, value in value.values }
-            .sorted {
-              ($0.recordType, $0.recordID.recordName) < ($1.recordType, $1.recordID.recordName)
-            }
-        ,
+          .value
+          .flatMap { _, value in value.values }
+          .sorted {
+            ($0.recordType, $0.recordID.recordName) < ($1.recordType, $1.recordID.recordName)
+          },
       ],
       displayStyle: .struct
     )
@@ -648,9 +647,9 @@ extension SyncEngine {
     let syncEngine = syncEngine(for: scope)
 
     let (saveResults, deleteResults) = try syncEngine.database.modifyRecordZones(
-        saving: recordZonesToSave,
-        deleting: recordZoneIDsToDelete
-      )
+      saving: recordZonesToSave,
+      deleting: recordZoneIDsToDelete
+    )
 
     return ModifyRecordsCallback {
       await syncEngine.delegate
@@ -659,8 +658,8 @@ extension SyncEngine {
             modifications: saveResults.values.compactMap { try? $0.get().zoneID },
             deletions: deleteResults.compactMap { zoneID, result in
               ((try? result.get()) != nil)
-              ? (zoneID, .deleted)
-              : nil
+                ? (zoneID, .deleted)
+                : nil
             }
           ),
           syncEngine: syncEngine
@@ -728,7 +727,22 @@ extension SyncEngine {
       )
       return
     }
-
+    guard try await container.accountStatus() == .available
+    else {
+      Issue.record(
+        """
+        User must be logged in to process pending changes.
+        """,
+        sourceLocation: SourceLocation.init(
+          fileID: String(describing: fileID),
+          filePath: String(describing: filePath),
+          line: Int(line),
+          column: Int(column)
+        )
+      )
+      return
+    }
+    
     let batch = await nextRecordZoneChangeBatch(
       reason: .scheduled,
       options: options,
@@ -821,6 +835,21 @@ extension SyncEngine {
       )
       return
     }
+    guard try await container.accountStatus() == .available
+    else {
+      Issue.record(
+        """
+        User must be logged in to process pending changes.
+        """,
+        sourceLocation: SourceLocation.init(
+          fileID: String(describing: fileID),
+          filePath: String(describing: filePath),
+          line: Int(line),
+          column: Int(column)
+        )
+      )
+      return
+    }
 
     var zonesToSave: [CKRecordZone] = []
     var zoneIDsToDelete: [CKRecordZone.ID] = []
@@ -835,17 +864,17 @@ extension SyncEngine {
       }
     }
     let results:
-    (
-      saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
-      deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
-    ) = try syncEngine.database.modifyRecordZones(
-      saving: zonesToSave,
-      deleting: zoneIDsToDelete
-    )
+      (
+        saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
+        deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
+      ) = try syncEngine.database.modifyRecordZones(
+        saving: zonesToSave,
+        deleting: zoneIDsToDelete
+      )
     var savedZones: [CKRecordZone] = []
     var failedZoneSaves: [(zone: CKRecordZone, error: CKError)] = []
     var deletedZoneIDs: [CKRecordZone.ID] = []
-    var failedZoneDeletes: [CKRecordZone.ID : CKError] = [:]
+    var failedZoneDeletes: [CKRecordZone.ID: CKError] = [:]
     for (zoneID, saveResult) in results.saveResults {
       switch saveResult {
       case .success(let zone):
