@@ -27,7 +27,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
@@ -47,10 +47,11 @@ extension BaseCloudKitTests {
         )
         reminderRecord.setValue(3, forKey: "position", at: now)
 
-        await syncEngine.modifyRecords(
+        try await syncEngine.modifyRecords(
           scope: .private,
           saving: [personalListRecord, businessListRecord, reminderRecord]
         )
+        .notify()
 
         try await userDatabase.userWrite { db in
           try #sql(
@@ -78,6 +79,7 @@ extension BaseCloudKitTests {
           + [ReminderWithPosition.self, RemindersListWithPosition.self],
           privateTables: syncEngine.privateTables
         )
+        defer { _ = relaunchedSyncEngine }
 
         let remindersLists = try await userDatabase.userRead { db in
           try RemindersListWithPosition.order(by: \.id).fetchAll(db)
@@ -116,7 +118,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
@@ -126,10 +128,11 @@ extension BaseCloudKitTests {
         )
         personalListRecord.setValue(Array("image".utf8), forKey: "image", at: now)
 
-        await syncEngine.modifyRecords(
+        try await syncEngine.modifyRecords(
           scope: .private,
           saving: [personalListRecord]
         )
+        .notify()
 
         try await userDatabase.userWrite { db in
           try #sql(
@@ -150,6 +153,7 @@ extension BaseCloudKitTests {
           + [RemindersListWithData.self],
           privateTables: syncEngine.privateTables
         )
+        defer { _ = relaunchedSyncEngine }
 
         let remindersLists = try await userDatabase.userRead { db in
           try RemindersListWithData.order(by: \.id).fetchAll(db)
@@ -174,7 +178,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
@@ -192,10 +196,11 @@ extension BaseCloudKitTests {
         )
         secretListRecord.setValue(Array("secret-image".utf8), forKey: "image", at: now)
 
-        await syncEngine.modifyRecords(
+        try await syncEngine.modifyRecords(
           scope: .private,
           saving: [personalListRecord, businessListRecord, secretListRecord]
         )
+        .notify()
 
         inMemoryDataManager.storage.withValue { $0.removeAll() }
 
@@ -248,10 +253,11 @@ extension BaseCloudKitTests {
         imageRecord.setValue("A good image", forKey: "caption", at: now)
         imageRecord.setValue(Data("image".utf8), forKey: "image", at: now)
 
-        await syncEngine.modifyRecords(
+        try await syncEngine.modifyRecords(
           scope: .private,
           saving: [imageRecord]
         )
+        .notify()
 
         inMemoryDataManager.storage.withValue { $0.removeAll() }
 
@@ -275,6 +281,7 @@ extension BaseCloudKitTests {
           tables: syncEngine.tables + [Image.self],
           privateTables: syncEngine.privateTables
         )
+        defer { _ = relaunchedSyncEngine }
 
         let images = try await userDatabase.userRead { db in
           try Image.order(by: \.id).fetchAll(db)

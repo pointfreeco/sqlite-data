@@ -245,6 +245,7 @@ final class MockCloudDatabase: CloudDatabase {
   let storage = LockIsolated<[CKRecordZone.ID: [CKRecord.ID: CKRecord]]>([:])
   let assets = LockIsolated<[AssetID: Data]>([:])
   let databaseScope: CKDatabase.Scope
+  let _container = IsolatedWeakVar<MockCloudContainer>()
 
   let dataManager = Dependency(\.dataManager)
 
@@ -257,7 +258,18 @@ final class MockCloudDatabase: CloudDatabase {
     self.databaseScope = databaseScope
   }
 
+  func set(container: MockCloudContainer) {
+    _container.set(container)
+  }
+
+  var container: MockCloudContainer {
+    _container.value!
+  }
+
   func record(for recordID: CKRecord.ID) throws -> CKRecord {
+    let accountStatus = container.accountStatus()
+    guard accountStatus == .available
+    else { throw ckError(forAccountStatus: accountStatus) }
     guard let zone = storage[recordID.zoneID]
     else { throw CKError(.zoneNotFound) }
     guard let record = zone[recordID]
@@ -281,7 +293,11 @@ final class MockCloudDatabase: CloudDatabase {
   func records(
     for ids: [CKRecord.ID],
     desiredKeys: [CKRecord.FieldKey]?
-  ) -> [CKRecord.ID: Result<CKRecord, any Error>] {
+  ) throws -> [CKRecord.ID: Result<CKRecord, any Error>] {
+    let accountStatus = container.accountStatus()
+    guard accountStatus == .available
+    else { throw ckError(forAccountStatus: accountStatus) }
+
     var results: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
     for id in ids {
       results[id] = Result { try record(for: id) }
@@ -294,11 +310,15 @@ final class MockCloudDatabase: CloudDatabase {
     deleting recordIDsToDelete: [CKRecord.ID] = [],
     savePolicy: CKModifyRecordsOperation.RecordSavePolicy = .ifServerRecordUnchanged,
     atomically: Bool = true
-  ) -> (
+  ) throws -> (
     saveResults: [CKRecord.ID: Result<CKRecord, any Error>],
     deleteResults: [CKRecord.ID: Result<Void, any Error>]
   ) {
-    storage.withValue { storage in
+    let accountStatus = container.accountStatus()
+    guard accountStatus == .available
+    else { throw ckError(forAccountStatus: accountStatus) }
+
+    return storage.withValue { storage in
       var saveResults: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
       var deleteResults: [CKRecord.ID: Result<Void, any Error>] = [:]
 
@@ -425,13 +445,17 @@ final class MockCloudDatabase: CloudDatabase {
   }
 
   func modifyRecordZones(
-    saving recordZonesToSave: [CKRecordZone],
-    deleting recordZoneIDsToDelete: [CKRecordZone.ID]
-  ) -> (
+    saving recordZonesToSave: [CKRecordZone] = [],
+    deleting recordZoneIDsToDelete: [CKRecordZone.ID] = []
+  ) throws -> (
     saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
     deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
   ) {
-    storage.withValue { storage in
+    let accountStatus = container.accountStatus()
+    guard accountStatus == .available
+    else { throw ckError(forAccountStatus: accountStatus) }
+
+    return storage.withValue { storage in
       var saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>] = [:]
       var deleteResults: [CKRecordZone.ID: Result<Void, any Error>] = [:]
 
@@ -483,18 +507,25 @@ extension MockCloudDatabase: CustomDumpReflectable {
 }
 
 final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
+  let _accountStatus: LockIsolated<CKAccountStatus>
   let containerIdentifier: String?
   let privateCloudDatabase: MockCloudDatabase
   let sharedCloudDatabase: MockCloudDatabase
 
   init(
+    accountStatus: CKAccountStatus = .available,
     containerIdentifier: String?,
     privateCloudDatabase: MockCloudDatabase,
     sharedCloudDatabase: MockCloudDatabase
   ) {
+    self._accountStatus = LockIsolated(accountStatus)
     self.containerIdentifier = containerIdentifier
     self.privateCloudDatabase = privateCloudDatabase
     self.sharedCloudDatabase = sharedCloudDatabase
+  }
+
+  func accountStatus() -> CKAccountStatus {
+    _accountStatus.withValue(\.self)
   }
 
   var rawValue: CKContainer {
@@ -512,13 +543,18 @@ final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
   static func createContainer(identifier containerIdentifier: String) -> MockCloudContainer {
     @Dependency(\.mockCloudContainers) var mockCloudContainers
     return mockCloudContainers.withValue { storage in
-      let container =
-        storage[containerIdentifier]
-        ?? MockCloudContainer(
+      let container: MockCloudContainer
+      if let existingContainer = storage[containerIdentifier] {
+        container = existingContainer
+      } else {
+        container = MockCloudContainer(
           containerIdentifier: containerIdentifier,
           privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
           sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
         )
+        container.privateCloudDatabase.set(container: container)
+        container.sharedCloudDatabase.set(container: container)
+      }
       storage[containerIdentifier] = container
       return container
     }
@@ -597,27 +633,21 @@ private func comparePendingDatabaseChange(
 }
 
 extension SyncEngine {
-  @_disfavoredOverload
-  func modifyRecordZones(
-    scope: CKDatabase.Scope,
-    saving recordZonesToSave: [CKRecordZone] = [],
-    deleting recordZoneIDsToDelete: [CKRecordZone.ID] = []
-  ) async {
-    await modifyRecordZones(
-      scope: scope,
-      saving: recordZonesToSave,
-      deleting: recordZoneIDsToDelete
-    )()
+  struct ModifyRecordsCallback {
+    fileprivate let operation: @Sendable () async -> Void
+    func notify() async {
+      await operation()
+    }
   }
 
   func modifyRecordZones(
     scope: CKDatabase.Scope,
     saving recordZonesToSave: [CKRecordZone] = [],
     deleting recordZoneIDsToDelete: [CKRecordZone.ID] = []
-  ) -> ModifyRecordsCallback {
+  ) throws -> ModifyRecordsCallback {
     let syncEngine = syncEngine(for: scope)
 
-    let (saveResults, deleteResults) = syncEngine.database.modifyRecordZones(
+    let (saveResults, deleteResults) = try syncEngine.database.modifyRecordZones(
         saving: recordZonesToSave,
         deleting: recordZoneIDsToDelete
       )
@@ -638,27 +668,11 @@ extension SyncEngine {
     }
   }
 
-  @_disfavoredOverload
   func modifyRecords(
     scope: CKDatabase.Scope,
     saving recordsToSave: [CKRecord] = [],
     deleting recordIDsToDelete: [CKRecord.ID] = []
-  ) async {
-    await modifyRecords(scope: scope, saving: recordsToSave, deleting: recordIDsToDelete)()
-  }
-
-  struct ModifyRecordsCallback {
-    let operation: @Sendable () async -> Void
-    func callAsFunction() async {
-      await operation()
-    }
-  }
-
-  func modifyRecords(
-    scope: CKDatabase.Scope,
-    saving recordsToSave: [CKRecord] = [],
-    deleting recordIDsToDelete: [CKRecord.ID] = []
-  ) -> ModifyRecordsCallback {
+  ) throws -> ModifyRecordsCallback {
     let syncEngine = syncEngine(for: scope)
     let recordsToDeleteByID = Dictionary(
       grouping: syncEngine.database.storage.withValue { storage in
@@ -668,7 +682,7 @@ extension SyncEngine {
     )
     .compactMapValues(\.first)
 
-    let (saveResults, deleteResults) = syncEngine.database.modifyRecords(
+    let (saveResults, deleteResults) = try syncEngine.database.modifyRecords(
       saving: recordsToSave,
       deleting: recordIDsToDelete
     )
@@ -699,7 +713,7 @@ extension SyncEngine {
     filePath: StaticString = #filePath,
     line: UInt = #line,
     column: UInt = #column
-  ) async {
+  ) async throws {
     let syncEngine = syncEngine(for: scope)
     guard !syncEngine.state.pendingRecordZoneChanges.isEmpty
     else {
@@ -734,7 +748,7 @@ extension SyncEngine {
     guard let batch
     else { return }
 
-    let (saveResults, deleteResults) = syncEngine.database.modifyRecords(
+    let (saveResults, deleteResults) = try syncEngine.database.modifyRecords(
       saving: batch.recordsToSave,
       deleting: batch.recordIDsToDelete,
       savePolicy: .ifServerRecordUnchanged,
@@ -792,7 +806,7 @@ extension SyncEngine {
     filePath: StaticString = #filePath,
     line: UInt = #line,
     column: UInt = #column
-  ) async {
+  ) async throws {
     let syncEngine = syncEngine(for: scope)
     guard !syncEngine.state.pendingDatabaseChanges.isEmpty
     else {
@@ -824,7 +838,7 @@ extension SyncEngine {
     (
       saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
       deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
-    ) = syncEngine.database.modifyRecordZones(
+    ) = try syncEngine.database.modifyRecordZones(
       saving: zonesToSave,
       deleting: zoneIDsToDelete
     )
@@ -879,5 +893,18 @@ extension SyncEngine {
     @unknown default:
       fatalError("Unknown database scope not supported in tests.")
     }
+  }
+}
+
+private func ckError(forAccountStatus accountStatus: CKAccountStatus) -> CKError {
+  switch accountStatus {
+  case .couldNotDetermine, .restricted, .noAccount:
+    return CKError(.notAuthenticated)
+  case .temporarilyUnavailable:
+    return CKError(.accountTemporarilyUnavailable)
+  case .available:
+    fatalError()
+  @unknown default:
+    fatalError()
   }
 }
