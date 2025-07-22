@@ -64,10 +64,7 @@ extension SyncEngine {
       // 4) a moment later, sync engine creates a record
       ?? CKRecord(
         recordType: metadata.recordType,
-        recordID: CKRecord.ID(
-          recordName: metadata.recordName,
-          zoneID: Self.defaultZone.zoneID
-        )
+        recordID: CKRecord.ID(recordName: metadata.recordName, zoneID: defaultZone.zoneID)
       )
 
     let sharedRecord: CKShare
