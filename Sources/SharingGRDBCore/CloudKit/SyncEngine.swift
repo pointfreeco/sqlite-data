@@ -142,55 +142,7 @@
         tables: tables,
         tablesByName: tablesByName
       )
-
-      let didBecomeActiveNotificationName: Notification.Name?
-      #if canImport(UIKit)
-        didBecomeActiveNotificationName = UIApplication.didBecomeActiveNotification
-      #elseif canImport(AppKit)
-        didBecomeActiveNotificationName = NSApplication.didBecomeActiveNotification
-      #else
-        didBecomeActiveNotificationName = nil
-      #endif
-
-      notificationObservers.withValue {
-        if let didBecomeActiveNotificationName {
-          $0.append(
-            notificationCenter.addObserver(
-              forName: didBecomeActiveNotificationName,
-              object: nil,
-              queue: .main
-            ) { [weak self] _ in
-              Task { try await self?.accountStatusUpdated(container.accountStatus()) }
-            }
-          )
-        }
-        $0.append(
-          notificationCenter.addObserver(
-            forName: .CKAccountChanged,
-            object: container,
-            queue: .main
-          ) { [weak self] _ in
-            Task { try await self?.accountStatusUpdated(container.accountStatus()) }
-          }
-        )
-      }
     }
-
-    deinit {
-      notificationObservers.withValue {
-        for observer in $0 {
-          notificationCenter.removeObserver(observer)
-        }
-      }
-    }
-
-    let accountStatus = LockIsolated<CKAccountStatus>(.couldNotDetermine)
-    private func accountStatusUpdated(_ status: CKAccountStatus) async throws {
-      accountStatus.withValue { $0 = status }
-      print("!!!!!!!!!!!!!")
-    }
-
-    let notificationObservers = LockIsolated<[any NSObjectProtocol]>([])
 
     @TaskLocal package static var _isUpdatingRecord = false
 
@@ -279,7 +231,6 @@
       return Task {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           let accountStatus = try await container.accountStatus()
-          self.accountStatus.withValue { $0 = accountStatus }
           guard accountStatus == .available
           else { return }
           try await uploadRecordsToCloudKit(
@@ -356,9 +307,8 @@
               .where { $0.recordType.eq(tableName) }
               .select(\._lastKnownServerRecordAllFields)
               .fetchAll(db)
-              .compactMap(\.self)
           }
-          for lastKnownServerRecord in lastKnownServerRecords {
+          for case .some(let lastKnownServerRecord) in lastKnownServerRecords {
             let query = try await updateQuery(
               for: T.self,
               record: lastKnownServerRecord,
@@ -747,10 +697,8 @@
       case .signOut, .switchAccounts:
         guard syncEngine === syncEngines.private
         else { return }
-        Task {
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await deleteLocalData()
-          }
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await deleteLocalData()
         }
       @unknown default:
         break
