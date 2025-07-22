@@ -240,10 +240,10 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE VIRTUAL TABLE "remindersTexts" USING fts5(
-        "reminderID",
+        "reminderID" UNINDEXED,
         "title",
         "notes",
-        "listID",
+        "listID" UNINDEXED,
         "listTitle",
         "tags",
         tokenize = 'trigram'
