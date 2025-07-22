@@ -47,9 +47,18 @@ extension Reminder {
   static let incomplete = Self.where { !$0.isCompleted }
   static func searching(_ text: String) -> Where<Reminder> {
     Self.where {
-      $0.title.collate(.nocase).contains(text)
-        || $0.notes.collate(.nocase).contains(text)
+      if !text.isEmpty {
+        $0.id.in(
+          RemindersText
+            .where { $0.match(text) }
+            .select(\.reminderID)
+        )
+      }
     }
+//    Self.where {
+//      $0.title.collate(.nocase).contains(text)
+//        || $0.notes.collate(.nocase).contains(text)
+//    }
   }
   static let withTags = group(by: \.id)
     .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
@@ -90,6 +99,60 @@ struct ReminderTag: Hashable, Identifiable {
   let id: UUID
   var reminderID: Reminder.ID
   var tagID: Tag.ID
+}
+
+protocol FTS5: StructuredQueriesCore.Table {}
+
+extension StructuredQueriesCore.TableDefinition where QueryValue: FTS5 {
+  var rank: some QueryExpression<Double> {
+    SQLQueryExpression(
+      """
+      \(QueryValue.self)."rank"
+      """
+    )
+  }
+
+  func match(_ pattern: some QueryExpression<String>) -> some QueryExpression<Bool> {
+    SQLQueryExpression(
+      """
+      (\(QueryValue.self) MATCH \(pattern))
+      """
+    )
+  }
+
+  func highlight<Value>(
+    _ column: KeyPath<Self, StructuredQueries.TableColumn<QueryValue, Value>>,
+    _ open: String,
+    _ close: String
+  ) -> some QueryExpression<String> {
+    let column = self[keyPath: column]
+    let offset = Self.allColumns.firstIndex { $0.name == column.name }!
+    return SQLQueryExpression(
+      """
+      highlight(\
+      \(QueryValue.self), \
+      \(raw: offset),
+      \(quote: open, delimiter: .text), \
+      \(quote: close, delimiter: .text)\
+      )
+      """
+    )
+  }
+}
+
+@Table
+struct RemindersText: FTS5 {
+  let reminderID: Reminder.ID
+  let title: String
+  let notes: String
+  let listID: RemindersList.ID
+  let listTitle: String
+  let tags: String
+}
+
+@Table @Selection
+struct TagText {
+  let titles: String
 }
 
 func appDatabase() throws -> any DatabaseWriter {
@@ -174,6 +237,21 @@ func appDatabase() throws -> any DatabaseWriter {
       """
     )
     .execute(db)
+    try #sql(
+      """
+      CREATE VIRTUAL TABLE "remindersTexts" USING fts5(
+        "reminderID",
+        "title",
+        "notes",
+        "listID",
+        "listTitle",
+        "tags",
+        tokenize = 'trigram'
+      )
+      """
+    )
+    .execute(db)
+    // TODO: Populate virtual table here
   }
 
   try migrator.migrate(database)
@@ -221,6 +299,66 @@ func appDatabase() throws -> any DatabaseWriter {
       END
       """
     )
+    .execute(db)
+
+    try Reminder.createTemporaryTrigger(after: .insert { new in
+      RemindersText.insert {
+        ($0.reminderID, $0.title, $0.notes, $0.listID, $0.listTitle)
+      } select: {
+        Reminder
+          .find(new.id)
+          .join(RemindersList.all) { $0.remindersListID.eq($1.id) }
+          .select { ($0.id, $0.title, $0.notes, $1.id, $1.title) }
+      }
+    })
+    .execute(db)
+    try Reminder.createTemporaryTrigger(after: .update {
+      ($0.title, $0.notes, $0.remindersListID)
+    } forEachRow: { _, new in
+      RemindersText
+        .where { $0.reminderID.eq(new.id) }
+        .update {
+          $0.title = new.title
+          $0.notes = new.notes
+          $0.listID = new.remindersListID
+        }
+    })
+    .execute(db)
+    try Reminder.createTemporaryTrigger(after: .delete { old in
+      RemindersText
+        .where { $0.reminderID.eq(old.id) }
+        .delete()
+    })
+    .execute(db)
+    try RemindersList.createTemporaryTrigger(after: .update {
+      $0.title
+    } forEachRow: { _, new in
+      RemindersText
+        .where { $0.listID.eq(new.id) }
+        .update { $0.listTitle = new.title }
+    })
+    .execute(db)
+    try ReminderTag.createTemporaryTrigger(after: .insert { new in
+      RemindersText
+        .where { $0.reminderID.eq(new.reminderID) }
+        .update {
+          $0.tags = ReminderTag
+            .where { $0.reminderID.eq(new.reminderID) }
+            .join(Tag.all) { $0.tagID.eq($1.id) }
+            .select { $1.title.groupConcat(" ") ?? "" }
+        }
+    })
+    .execute(db)
+    try ReminderTag.createTemporaryTrigger(after: .delete { old in
+      RemindersText
+        .where { $0.reminderID.eq(old.reminderID) }
+        .update {
+          $0.tags = ReminderTag
+            .where { $0.reminderID.eq(old.reminderID) }
+            .join(Tag.all) { $0.tagID.eq($1.id) }
+            .select { $1.title.groupConcat(" ") ?? "" }
+        }
+    })
     .execute(db)
   }
 

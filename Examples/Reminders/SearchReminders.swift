@@ -50,6 +50,10 @@ class SearchRemindersModel {
           .count(),
         animation: .default
       )
+
+
+      let x =
+
       try await $reminders.load(
         Reminder
           .searching(searchText)
@@ -70,6 +74,19 @@ class SearchRemindersModel {
               tags: #sql("\($2.jsonNames)")
             )
           },
+//        Reminder
+//          .join(RemindersText.all) { $0.id.eq($1.reminderID) }
+//          .where { $1.match(searchText) }
+//          .join(RemindersList.all) { $0.remindersListID.eq($2.id) }
+//          .select {
+//            Row.Columns(
+//              isPastDue: $0.isPastDue,
+//              notes: $0.inlineNotes,
+//              reminder: $0,
+//              remindersList: $2,
+//              tags: #bind([])
+//            )
+//          },
         animation: .default
       )
     }
