@@ -66,7 +66,6 @@
         },
         userDatabase: userDatabase,
         logger: logger,
-        metadatabaseURL: URL.metadatabase(containerIdentifier: container.containerIdentifier),
         tables: tables,
         privateTables: privateTables
       )
@@ -85,7 +84,6 @@
       ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
       userDatabase: UserDatabase,
       logger: Logger,
-      metadatabaseURL: URL,
       tables: [any PrimaryKeyedTable.Type],
       privateTables: [any PrimaryKeyedTable.Type] = []
     ) throws {
@@ -118,7 +116,13 @@
       self.defaultSyncEngines = defaultSyncEngines
       self.userDatabase = userDatabase
       self.logger = logger
-      self.metadatabase = try defaultMetadatabase(logger: logger, url: metadatabaseURL)
+      self.metadatabase = try defaultMetadatabase(
+        logger: logger,
+        url: URL.metadatabase(
+          databasePath: userDatabase.path,
+          containerIdentifier: container.containerIdentifier
+        )
+      )
       let tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
         .map(\.type)
       self.tables = tables
@@ -1412,23 +1416,12 @@
     fileprivate static let sqliteDataCloudKitFailure = "SharingGRDB CloudKit Failure"
   }
 
-  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension URL {
-    package static func metadatabase(containerIdentifier: String?) throws -> Self {
-      @Dependency(\.context) var context
-      let base: URL
-      if context == .live {
-        try FileManager.default.createDirectory(
-          at: .applicationSupportDirectory,
-          withIntermediateDirectories: true
-        )
-        base = .applicationSupportDirectory
-      } else {
-        base = .temporaryDirectory
-      }
-      return base.appending(
-        component: "\(containerIdentifier.map { "\($0)." } ?? "")sqlite-data-icloud.sqlite"
-      )
+    package static func metadatabase(databasePath: String, containerIdentifier: String?) -> URL {
+      URL(filePath: databasePath)
+        .deletingPathExtension()
+        .appendingPathExtension("metadata\(containerIdentifier.map { "-\($0)" } ?? "").sqlite")
     }
   }
 
@@ -1484,7 +1477,21 @@
     /// - Parameter containerIdentifier: The identifier of the CloudKit container used to synchronize
     ///                                  data.
     public func attachMetadatabase(containerIdentifier: String) throws {
-      let url = try URL.metadatabase(containerIdentifier: containerIdentifier)
+      let databasePath = try SQLQueryExpression(
+        """
+        SELECT "file" FROM pragma_database_list()
+        """,
+        as: String.self
+      )
+      .fetchOne(self)
+      guard let databasePath else {
+        struct PathError: Error {}
+        throw PathError()
+      }
+      let url = URL.metadatabase(
+        databasePath: databasePath,
+        containerIdentifier: containerIdentifier
+      )
       let path = url.path(percentEncoded: false)
       try FileManager.default.createDirectory(
         at: .applicationSupportDirectory,
@@ -1748,7 +1755,7 @@
           \(quote: $0) = "excluded".\(quote: $0)
           """
         }
-        .joined(separator: ",")
+        .joined(separator: ", ")
     )
     return query
   }

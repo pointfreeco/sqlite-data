@@ -17,13 +17,12 @@ extension BaseCloudKitTests {
           observing: [\.standardErrorContent]
         ) {
           // TODO: finish in Xcode 26
-//          _ = try SyncEngine(
-//            syncEngine.private: MockSyncEngine(scope: .private, state: MockSyncEngineState()),
-//            syncEngine.shared: MockSyncEngine(scope: .shared, state: MockSyncEngineState()),
-//            database: databaseWithForeignKeys(),
-//            metadatabaseURL: URL.temporaryDirectory,
-//            tables: []
-//          )
+          //  _ = try SyncEngine(
+          //    syncEngine.private: MockSyncEngine(scope: .private, state: MockSyncEngineState()),
+          //    syncEngine.shared: MockSyncEngine(scope: .shared, state: MockSyncEngineState()),
+          //    database: databaseWithForeignKeys(),
+          //    tables: []
+          //  )
         }
         #expect(
           String(decoding: try #require(result).standardOutputContent, as: UTF8.self)

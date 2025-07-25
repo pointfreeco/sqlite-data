@@ -203,7 +203,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func receiveNewRecordFromCloudKit() async throws {
-      let remindersListRecord = CKRecord.init(
+      let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: 1)
       )
