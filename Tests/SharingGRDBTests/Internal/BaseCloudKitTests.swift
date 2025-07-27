@@ -14,6 +14,7 @@ import Testing
   }
 )
 class BaseCloudKitTests: @unchecked Sendable {
+  let container: MockCloudContainer
   let userDatabase: UserDatabase
   private let _syncEngine: any Sendable
 
@@ -38,12 +39,15 @@ class BaseCloudKitTests: @unchecked Sendable {
     try await setUpUserDatabase(userDatabase)
     let privateDatabase = MockCloudDatabase(databaseScope: .private)
     let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+    container = MockCloudContainer(
+      containerIdentifier: testContainerIdentifier,
+      privateCloudDatabase: privateDatabase,
+      sharedCloudDatabase: sharedDatabase
+    )
+    privateDatabase.set(container: container)
+    sharedDatabase.set(container: container)
     _syncEngine = try await SyncEngine(
-      container: MockCloudContainer(
-        containerIdentifier: testContainerIdentifier,
-        privateCloudDatabase: privateDatabase,
-        sharedCloudDatabase: sharedDatabase
-      ),
+      container: container,
       userDatabase: self.userDatabase,
       metadatabaseURL: URL.metadatabase(containerIdentifier: testContainerIdentifier),
       tables: [
@@ -75,7 +79,7 @@ class BaseCloudKitTests: @unchecked Sendable {
       ),
       syncEngine: syncEngine.syncEngines.withValue(\.private)!
     )
-    await syncEngine.processPendingDatabaseChanges(scope: .private)
+    try await syncEngine.processPendingDatabaseChanges(scope: .private)
   }
 
   deinit {

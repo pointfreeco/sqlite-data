@@ -24,7 +24,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -78,7 +78,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -152,10 +152,11 @@ extension BaseCloudKitTests {
         action: .none
       )
 
-      await syncEngine.modifyRecords(
+      try await syncEngine.modifyRecords(
         scope: .private,
         saving: [remindersListAssetRecord, remindersListRecord]
       )
+      .notify()
 
       try {
         try userDatabase.read { db in
