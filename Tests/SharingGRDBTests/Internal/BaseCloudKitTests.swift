@@ -2,10 +2,10 @@ import CloudKit
 import DependenciesTestSupport
 import Foundation
 import OrderedCollections
-import os
 import SharingGRDB
 import SnapshotTesting
 import Testing
+import os
 
 @Suite(
   .snapshots(record: .missing),
@@ -17,7 +17,6 @@ import Testing
 class BaseCloudKitTests: @unchecked Sendable {
   let container: MockCloudContainer
   let userDatabase: UserDatabase
-  let container: MockCloudContainer
   let notificationCenter: NotificationCenter
   private let _syncEngine: any Sendable
 
@@ -44,8 +43,8 @@ class BaseCloudKitTests: @unchecked Sendable {
     let privateDatabase = MockCloudDatabase(databaseScope: .private)
     let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
     container = MockCloudContainer(
-      containerIdentifier: testContainerIdentifier,
       accountStatus: accountStatus,
+      containerIdentifier: testContainerIdentifier,
       privateCloudDatabase: privateDatabase,
       sharedCloudDatabase: sharedDatabase
     )
@@ -71,28 +70,29 @@ class BaseCloudKitTests: @unchecked Sendable {
         ModelC.self,
       ],
       privateTables: [
-        RemindersListPrivate.self,
+        RemindersListPrivate.self
       ]
     )
     if accountStatus == .available {
-    await syncEngine.handleEvent(
-      .accountChange(
-        changeType: .signIn(
-          currentUser: CKRecord
-            .ID(
-              recordName: "defaultCurrentUser",
-              zoneID: syncEngine.defaultZone.zoneID
-            )
-        )
-      ),
-      syncEngine: syncEngine.syncEngines.withValue(\.private)!
-    )
-    try await syncEngine.processPendingDatabaseChanges(scope: .private)
-  }
+      await syncEngine.handleEvent(
+        .accountChange(
+          changeType: .signIn(
+            currentUser:
+              CKRecord
+              .ID(
+                recordName: "defaultCurrentUser",
+                zoneID: syncEngine.defaultZone.zoneID
+              )
+          )
+        ),
+        syncEngine: syncEngine.syncEngines.withValue(\.private)!
+      )
+      try await syncEngine.processPendingDatabaseChanges(scope: .private)
+    }
   }
 
   func updateAccountStatus(_ status: CKAccountStatus) {
-    container._accountStatus.withValue { $0 = status }
+    //container._accountStatus.withValue { $0 = status }
     notificationCenter.post(name: .CKAccountChanged, object: container)
   }
 

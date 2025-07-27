@@ -510,18 +510,15 @@ final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
   let containerIdentifier: String?
   let privateCloudDatabase: MockCloudDatabase
   let sharedCloudDatabase: MockCloudDatabase
-  let _accountStatus: LockIsolated<CKAccountStatus>
 
   init(
     accountStatus: CKAccountStatus = .available,
     containerIdentifier: String?,
-    accountStatus: CKAccountStatus = .available,
     privateCloudDatabase: MockCloudDatabase,
     sharedCloudDatabase: MockCloudDatabase
   ) {
     self._accountStatus = LockIsolated(accountStatus)
     self.containerIdentifier = containerIdentifier
-    self._accountStatus = LockIsolated<CKAccountStatus>(accountStatus)
     self.privateCloudDatabase = privateCloudDatabase
     self.sharedCloudDatabase = sharedCloudDatabase
   }
@@ -554,8 +551,8 @@ final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
         container = existingContainer
       } else {
         container = MockCloudContainer(
-          containerIdentifier: containerIdentifier,
           accountStatus: .available,
+          containerIdentifier: containerIdentifier,
           privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
           sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
         )

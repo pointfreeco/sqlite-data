@@ -18,7 +18,7 @@ extension BaseCloudKitTests {
           UnsyncedModel(id: 1)
         }
       }
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       await syncEngine.handleEvent(
         .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
@@ -59,7 +59,7 @@ extension BaseCloudKitTests {
           UnsyncedModel(id: 1)
         }
       }
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try {
         try userDatabase.userRead { db in
