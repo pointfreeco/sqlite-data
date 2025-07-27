@@ -73,7 +73,7 @@ class BaseCloudKitTests: @unchecked Sendable {
           currentUser: CKRecord
             .ID(
               recordName: "defaultCurrentUser",
-              zoneID: SyncEngine.defaultZone.zoneID
+              zoneID: syncEngine.defaultZone.zoneID
             )
         )
       ),
@@ -108,6 +108,9 @@ extension SyncEngine {
   var shared: MockSyncEngine {
     syncEngines.shared as! MockSyncEngine
   }
+  static nonisolated let defaultTestZone = CKRecordZone(
+    zoneName: "co.pointfree.SQLiteData.defaultZone"
+  )
   convenience init(
     container: any CloudContainer,
     userDatabase: UserDatabase,
@@ -117,6 +120,7 @@ extension SyncEngine {
   ) async throws {
     try self.init(
       container: container,
+      defaultZone: Self.defaultTestZone,
       defaultSyncEngines: { _, syncEngine in
         (
           MockSyncEngine(

@@ -131,7 +131,7 @@ extension BaseCloudKitTests {
 
       assertInlineSnapshot(
         of: syncEngine.private.database
-          .storage[SyncEngine.defaultZone.zoneID]?[Reminder.recordID(for: 1)],
+          .storage[syncEngine.defaultZone.zoneID]?[Reminder.recordID(for: 1)],
         as: .customDump
       ) {
         """
@@ -166,7 +166,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(
-        of: syncEngine.private.database.storage[SyncEngine.defaultZone.zoneID]?[Reminder.recordID(for: 1)],
+        of: syncEngine.private.database.storage[syncEngine.defaultZone.zoneID]?[Reminder.recordID(for: 1)],
         as: .customDump
       ) {
         """
