@@ -15,10 +15,6 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Sendable {
-    public static nonisolated let defaultZone = CKRecordZone(
-      zoneName: "co.pointfree.SQLiteData.defaultZone"
-    )
-
     package let userDatabase: UserDatabase
     package let logger: Logger
     package let metadatabase: any DatabaseReader
@@ -28,6 +24,7 @@
     private let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
     package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
+    package let defaultZone: CKRecordZone
     let defaultSyncEngines:
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
@@ -38,6 +35,7 @@
 
     public convenience init(
       container: CKContainer,
+      defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
       database: any DatabaseWriter,
       logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit"),
       tables: [any PrimaryKeyedTable.Type],
@@ -46,6 +44,7 @@
       let userDatabase = UserDatabase(database: database)
       try self.init(
         container: container,
+        defaultZone: defaultZone,
         defaultSyncEngines: { metadatabase, syncEngine in
           (
             private: CKSyncEngine(
@@ -89,6 +88,7 @@
 
     package init(
       container: any CloudContainer,
+      defaultZone: CKRecordZone,
       defaultSyncEngines: @escaping @Sendable (
         any DatabaseReader,
         SyncEngine
@@ -125,6 +125,7 @@
         userDatabase: userDatabase
       )
       self.container = container
+      self.defaultZone = defaultZone
       self.defaultSyncEngines = defaultSyncEngines
       self.userDatabase = userDatabase
       self.logger = logger
@@ -364,7 +365,7 @@
     }
 
     func didUpdate(recordName: String, zoneID: CKRecordZone.ID?) {
-      let zoneID = zoneID ?? Self.defaultZone.zoneID
+      let zoneID = zoneID ?? defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
@@ -381,7 +382,7 @@
     }
 
     func didDelete(recordName: String, zoneID: CKRecordZone.ID?) {
-      let zoneID = zoneID ?? Self.defaultZone.zoneID
+      let zoneID = zoneID ?? defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
@@ -685,7 +686,7 @@
       switch changeType {
       case .signIn:
         syncEngines.withValue {
-          $0.private?.state.add(pendingDatabaseChanges: [.saveZone(Self.defaultZone)])
+          $0.private?.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
         }
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.write { db in
@@ -727,21 +728,20 @@
       deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)],
       syncEngine: any SyncEngineProtocol
     ) async {
-      let defaultZoneDeleted =
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await userDatabase.write { db in
-            var defaultZoneDeleted = false
-            for (zoneID, reason) in deletions {
-              guard zoneID == Self.defaultZone.zoneID
-              else { continue }
-              switch reason {
-              case .deleted, .purged:
-                try deleteRecords(in: zoneID, db: db)
-                defaultZoneDeleted = true
-              case .encryptedDataReset:
-                try uploadRecords(in: zoneID, db: db)
-              @unknown default:
-                reportIssue("Unknown deletion reason: \(reason)")
+      let defaultZoneDeleted = await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await userDatabase.write { db in
+          var defaultZoneDeleted = false
+          for (zoneID, reason) in deletions {
+            guard zoneID == self.defaultZone.zoneID
+            else { continue }
+            switch reason {
+            case .deleted, .purged:
+              try deleteRecords(in: zoneID, db: db)
+              defaultZoneDeleted = true
+            case .encryptedDataReset:
+              try uploadRecords(in: zoneID, db: db)
+            @unknown default:
+              reportIssue("Unknown deletion reason: \(reason)")
               }
             }
             return defaultZoneDeleted
@@ -749,7 +749,7 @@
         }
         ?? false
       if defaultZoneDeleted {
-        syncEngine.state.add(pendingDatabaseChanges: [.saveZone(SyncEngine.defaultZone)])
+        syncEngine.state.add(pendingDatabaseChanges: [.saveZone(self.defaultZone)])
       }
       @Sendable
       func deleteRecords(in zoneID: CKRecordZone.ID, db: Database) throws {

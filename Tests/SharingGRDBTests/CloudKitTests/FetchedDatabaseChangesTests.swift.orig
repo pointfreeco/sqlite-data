@@ -26,8 +26,13 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      try await syncEngine.modifyRecordZones(scope: .private, deleting: [syncEngine.defaultZone.zoneID]).notify()
+<<<<<<< HEAD
+      try await syncEngine.modifyRecordZones(scope: .private, deleting: [SyncEngine.defaultZone.zoneID]).notify()
       try await syncEngine.processPendingDatabaseChanges(scope: .private)
+=======
+      await syncEngine.modifyRecordZones(scope: .private, deleting: [syncEngine.defaultZone.zoneID])
+      await syncEngine.processPendingDatabaseChanges(scope: .private)
+>>>>>>> origin/cloudkit
 
       try {
         try userDatabase.read { db in

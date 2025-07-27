@@ -15,6 +15,7 @@ import Testing
   }
 )
 class BaseCloudKitTests: @unchecked Sendable {
+  let container: MockCloudContainer
   let userDatabase: UserDatabase
   let container: MockCloudContainer
   let notificationCenter: NotificationCenter
@@ -49,6 +50,8 @@ class BaseCloudKitTests: @unchecked Sendable {
       sharedCloudDatabase: sharedDatabase
     )
     notificationCenter = NotificationCenter()
+    privateDatabase.set(container: container)
+    sharedDatabase.set(container: container)
     _syncEngine = try await SyncEngine(
       container: container,
       userDatabase: self.userDatabase,
@@ -72,11 +75,20 @@ class BaseCloudKitTests: @unchecked Sendable {
       ]
     )
     if accountStatus == .available {
-      _ = syncEngine.private.database.modifyRecordZones(
-        saving: [SyncEngine.defaultZone],
-        deleting: []
-      )
-    }
+    await syncEngine.handleEvent(
+      .accountChange(
+        changeType: .signIn(
+          currentUser: CKRecord
+            .ID(
+              recordName: "defaultCurrentUser",
+              zoneID: syncEngine.defaultZone.zoneID
+            )
+        )
+      ),
+      syncEngine: syncEngine.syncEngines.withValue(\.private)!
+    )
+    try await syncEngine.processPendingDatabaseChanges(scope: .private)
+  }
   }
 
   func updateAccountStatus(_ status: CKAccountStatus) {
@@ -110,6 +122,9 @@ extension SyncEngine {
   var shared: MockSyncEngine {
     syncEngines.shared as! MockSyncEngine
   }
+  static nonisolated let defaultTestZone = CKRecordZone(
+    zoneName: "co.pointfree.SQLiteData.defaultZone"
+  )
   convenience init(
     container: any CloudContainer,
     userDatabase: UserDatabase,
@@ -120,6 +135,7 @@ extension SyncEngine {
   ) async throws {
     try self.init(
       container: container,
+      defaultZone: Self.defaultTestZone,
       defaultSyncEngines: { _, syncEngine in
         (
           MockSyncEngine(

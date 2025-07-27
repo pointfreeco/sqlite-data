@@ -12,7 +12,7 @@ extension BaseCloudKitTests {
   final class MockCloudDatabaseTests: BaseCloudKitTests, @unchecked Sendable {
     init() async throws {
       try await super.init()
-      let (saveZoneResults, _) = syncEngine.private.database.modifyRecordZones(
+      let (saveZoneResults, _) = try syncEngine.private.database.modifyRecordZones(
         saving: [
           CKRecordZone(
             zoneID: CKRecord(recordType: "A\(Int.random(in: 1...999_999_999))").recordID.zoneID
@@ -50,7 +50,7 @@ extension BaseCloudKitTests {
       let child = CKRecord(recordType: "B", recordID: CKRecord.ID(recordName: "B"))
       child.parent = CKRecord.Reference(record: parent, action: .none)
 
-      let (saveRecordResults, _) = syncEngine.private.database.modifyRecords(
+      let (saveRecordResults, _) = try syncEngine.private.database.modifyRecords(
         saving: [child, parent],
         deleting: []
       )
@@ -91,7 +91,7 @@ extension BaseCloudKitTests {
       let child = CKRecord(recordType: "Child", recordID: CKRecord.ID(recordName: "Child"))
       child.parent = CKRecord.Reference(record: parent, action: .none)
 
-      let (saveRecordResults, _) = syncEngine.private.database.modifyRecords(
+      let (saveRecordResults, _) = try syncEngine.private.database.modifyRecords(
         saving: [child],
         deleting: []
       )
@@ -100,7 +100,7 @@ extension BaseCloudKitTests {
       }
       #expect(error == CKError(.referenceViolation))
 
-      await syncEngine.modifyRecords(scope: .private, saving: [child])
+      try await syncEngine.modifyRecords(scope: .private, saving: [child]).notify()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -125,7 +125,7 @@ extension BaseCloudKitTests {
         recordID: CKRecord.ID(recordName: "Record", zoneID: CKRecordZone.ID(zoneName: "zone"))
       )
 
-      let (saveRecordResults, _) = syncEngine.private.database.modifyRecords(
+      let (saveRecordResults, _) = try syncEngine.private.database.modifyRecords(
         saving: [record],
         deleting: []
       )
@@ -156,8 +156,8 @@ extension BaseCloudKitTests {
       let child = CKRecord(recordType: "B", recordID: CKRecord.ID(recordName: "B"))
       child.parent = CKRecord.Reference(record: parent, action: .none)
 
-      let _ = syncEngine.private.database.modifyRecords(saving: [child, parent])
-      let (_, deleteResults) = syncEngine.private.database.modifyRecords(
+      let _ = try syncEngine.private.database.modifyRecords(saving: [child, parent])
+      let (_, deleteResults) = try syncEngine.private.database.modifyRecords(
         deleting: [parent.recordID, child.recordID]
       )
       #expect(deleteResults.allSatisfy({ (try? $1.get()) != nil }))
@@ -182,7 +182,7 @@ extension BaseCloudKitTests {
     @Test func deleteUnknownRecord() async throws {
       let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "A"))
 
-      let (_, deleteResults) = syncEngine.private.database.modifyRecords(
+      let (_, deleteResults) = try syncEngine.private.database.modifyRecords(
         deleting: [record.recordID]
       )
       #expect(deleteResults.allSatisfy({ (try? $1.get()) != nil }))
@@ -210,7 +210,7 @@ extension BaseCloudKitTests {
         recordID: CKRecord.ID(recordName: "A", zoneID: CKRecordZone.ID(zoneName: "zone"))
       )
 
-      let (_, deleteResults) = syncEngine.private.database.modifyRecords(
+      let (_, deleteResults) = try syncEngine.private.database.modifyRecords(
         deleting: [record.recordID]
       )
       let error = #expect(throws: CKError.self) {
@@ -240,8 +240,8 @@ extension BaseCloudKitTests {
       let child = CKRecord(recordType: "B", recordID: CKRecord.ID(recordName: "B"))
       child.parent = CKRecord.Reference(record: parent, action: .none)
 
-      _ = syncEngine.private.database.modifyRecords(saving: [child, parent])
-      let (_, deleteResults) = syncEngine.private.database.modifyRecords(
+      _ = try syncEngine.private.database.modifyRecords(saving: [child, parent])
+      let (_, deleteResults) = try syncEngine.private.database.modifyRecords(
         deleting: [parent.recordID]
       )
       let error = #expect(throws: CKError.self) {
@@ -280,7 +280,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func deleteUnknownZone() async throws {
-      let (_, deleteResults) = syncEngine.private.database.modifyRecordZones(
+      let (_, deleteResults) = try syncEngine.private.database.modifyRecordZones(
         saving: [],
         deleting: [CKRecordZone.ID(zoneName: "zone")]
       )
@@ -288,6 +288,90 @@ extension BaseCloudKitTests {
         try deleteResults[CKRecordZone.ID(zoneName: "zone")]?.get()
       }
       #expect(error == CKError(.zoneNotFound))
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func accountTemporarilyAvailable() async throws {
+      container._accountStatus.withValue { $0 = .temporarilyUnavailable }
+      var error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.modifyRecordZones()
+      }
+      #expect(error == CKError(.accountTemporarilyUnavailable))
+      error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.modifyRecords()
+      }
+      #expect(error == CKError(.accountTemporarilyUnavailable))
+      error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.record(for: CKRecord.ID(recordName: "test"))
+      }
+      #expect(error == CKError(.accountTemporarilyUnavailable))
+      error = await #expect(throws: CKError.self) {
+        _ = try await self.syncEngine.private.database.records(for: [CKRecord.ID(recordName: "test")])
+      }
+      #expect(error == CKError(.accountTemporarilyUnavailable))
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func noAccount() async throws {
+      container._accountStatus.withValue { $0 = .noAccount }
+      var error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.modifyRecordZones()
+      }
+      #expect(error == CKError(.notAuthenticated))
+      error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.modifyRecords()
+      }
+      #expect(error == CKError(.notAuthenticated))
+      error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.record(for: CKRecord.ID(recordName: "test"))
+      }
+      #expect(error == CKError(.notAuthenticated))
+      error = await #expect(throws: CKError.self) {
+        _ = try await self.syncEngine.private.database.records(for: [CKRecord.ID(recordName: "test")])
+      }
+      #expect(error == CKError(.notAuthenticated))
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func accountNotDetermined() async throws {
+      container._accountStatus.withValue { $0 = .couldNotDetermine }
+      var error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.modifyRecordZones()
+      }
+      #expect(error == CKError(.notAuthenticated))
+      error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.modifyRecords()
+      }
+      #expect(error == CKError(.notAuthenticated))
+      error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.record(for: CKRecord.ID(recordName: "test"))
+      }
+      #expect(error == CKError(.notAuthenticated))
+      error = await #expect(throws: CKError.self) {
+        _ = try await self.syncEngine.private.database.records(for: [CKRecord.ID(recordName: "test")])
+      }
+      #expect(error == CKError(.notAuthenticated))
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func restrictedAccount() async throws {
+      container._accountStatus.withValue { $0 = .restricted }
+      var error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.modifyRecordZones()
+      }
+      #expect(error == CKError(.notAuthenticated))
+      error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.modifyRecords()
+      }
+      #expect(error == CKError(.notAuthenticated))
+      error = #expect(throws: CKError.self) {
+        _ = try self.syncEngine.private.database.record(for: CKRecord.ID(recordName: "test"))
+      }
+      #expect(error == CKError(.notAuthenticated))
+      error = await #expect(throws: CKError.self) {
+        _ = try await self.syncEngine.private.database.records(for: [CKRecord.ID(recordName: "test")])
+      }
+      #expect(error == CKError(.notAuthenticated))
     }
   }
 }
