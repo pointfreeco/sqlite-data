@@ -2,16 +2,8 @@
   import CloudKit
   import ConcurrencyExtras
   import CustomDump
-  import Foundation
   import OrderedCollections
   import OSLog
-
-  #if canImport(UIKit)
-    import UIKit
-  #endif
-  #if canImport(AppKit)
-    import AppKit
-  #endif
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Sendable {
@@ -227,8 +219,7 @@
       )
       return Task {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          let accountStatus = try await container.accountStatus()
-          guard accountStatus == .available
+          guard try await container.accountStatus() == .available
           else { return }
           try await uploadRecordsToCloudKit(
             previousRecordTypeByTableName: previousRecordTypeByTableName,
@@ -374,11 +365,6 @@
             )
           )
         ]
-      )
-
-      print(
-        "syncEngine?.state.pendingRecordZoneChanges.count",
-        syncEngine?.state.pendingRecordZoneChanges.count
       )
     }
 
@@ -686,7 +672,7 @@
     ) async {
       guard syncEngine === syncEngines.private
       else { return }
-      
+
       switch changeType {
       case .signIn:
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])

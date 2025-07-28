@@ -103,4 +103,24 @@ extension BaseCloudKitTests {
       }
     }
   }
+
+  @MainActor
+  @Suite(.accountStatus(.noAccount))
+  final class SignedOutTests: BaseCloudKitTests, @unchecked Sendable {
+    init() async throws {
+      try await super.init { userDatabase in
+        try await userDatabase.write { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            Reminder(id: 1, title: "Get milk", remindersListID: 1)
+            RemindersListPrivate(id: 1, remindersListID: 1)
+            UnsyncedModel(id: 1)
+          }
+        }
+      }
+    }
+
+    @Test func doNotUploadExistingDataToCloudKitWhenSignedOut() {
+    }
+  }
 }
