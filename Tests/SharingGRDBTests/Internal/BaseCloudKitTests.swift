@@ -17,7 +17,6 @@ import os
 class BaseCloudKitTests: @unchecked Sendable {
   let container: MockCloudContainer
   let userDatabase: UserDatabase
-  let notificationCenter: NotificationCenter
   private let _syncEngine: any Sendable
 
   @Dependency(\.date.now) var now
@@ -31,7 +30,7 @@ class BaseCloudKitTests: @unchecked Sendable {
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   init(
-    accountStatus: CKAccountStatus = .available,
+    accountStatus: CKAccountStatus = _AccountStatusScope.accountStatus,
     setUpUserDatabase: @Sendable (UserDatabase) async throws -> Void = { _ in }
   ) async throws {
     let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
@@ -48,13 +47,11 @@ class BaseCloudKitTests: @unchecked Sendable {
       privateCloudDatabase: privateDatabase,
       sharedCloudDatabase: sharedDatabase
     )
-    notificationCenter = NotificationCenter()
     privateDatabase.set(container: container)
     sharedDatabase.set(container: container)
     _syncEngine = try await SyncEngine(
       container: container,
       userDatabase: self.userDatabase,
-      notificationCenter: notificationCenter,
       metadatabaseURL: URL.metadatabase(containerIdentifier: testContainerIdentifier),
       tables: [
         Reminder.self,
@@ -75,25 +72,39 @@ class BaseCloudKitTests: @unchecked Sendable {
     )
     if accountStatus == .available {
       await syncEngine.handleEvent(
-        .accountChange(
-          changeType: .signIn(
-            currentUser:
-              CKRecord
-              .ID(
-                recordName: "defaultCurrentUser",
-                zoneID: syncEngine.defaultZone.zoneID
-              )
-          )
-        ),
-        syncEngine: syncEngine.syncEngines.withValue(\.private)!
+        .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+        syncEngine: syncEngine.private
+      )
+      await syncEngine.handleEvent(
+        .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+        syncEngine: syncEngine.shared
       )
       try await syncEngine.processPendingDatabaseChanges(scope: .private)
     }
   }
 
-  func updateAccountStatus(_ status: CKAccountStatus) {
-    //container._accountStatus.withValue { $0 = status }
-    notificationCenter.post(name: .CKAccountChanged, object: container)
+  func signOut() async {
+    container._accountStatus.withValue { $0 = .noAccount }
+    await syncEngine.handleEvent(
+      .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
+      syncEngine: syncEngine.private
+    )
+    await syncEngine.handleEvent(
+      .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
+      syncEngine: syncEngine.shared
+    )
+  }
+
+  func signIn() async {
+    container._accountStatus.withValue { $0 = .available }
+    await syncEngine.handleEvent(
+      .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+      syncEngine: syncEngine.private
+    )
+    await syncEngine.handleEvent(
+      .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+      syncEngine: syncEngine.shared
+    )
   }
 
   deinit {
@@ -128,7 +139,6 @@ extension SyncEngine {
   convenience init(
     container: any CloudContainer,
     userDatabase: UserDatabase,
-    notificationCenter: NotificationCenter,
     metadatabaseURL: URL,
     tables: [any PrimaryKeyedTable.Type],
     privateTables: [any PrimaryKeyedTable.Type] = []
@@ -154,7 +164,6 @@ extension SyncEngine {
       },
       userDatabase: userDatabase,
       logger: Logger(.disabled),
-      notificationCenter: notificationCenter,
       metadatabaseURL: metadatabaseURL,
       tables: tables,
       privateTables: privateTables
@@ -162,3 +171,10 @@ extension SyncEngine {
     try await setUpSyncEngine(userDatabase: userDatabase, metadatabase: metadatabase)?.value
   }
 }
+
+private let previousUserRecordID = CKRecord.ID(
+  recordName: "previousUser"
+)
+private let currentUserRecordID = CKRecord.ID(
+  recordName: "previousUser"
+)

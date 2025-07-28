@@ -25,7 +25,6 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            notificationCenter: NotificationCenter(),
             metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
             tables: [InvalidTable.self]
           )
@@ -72,7 +71,6 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            notificationCenter: NotificationCenter(),
             metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
             tables: []
           )
@@ -129,7 +127,6 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            notificationCenter: NotificationCenter(),
             metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
             tables: [RemindersList.self]
           )
@@ -186,7 +183,6 @@ extension BaseCloudKitTests {
           sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
         ),
         userDatabase: UserDatabase(database: database),
-        notificationCenter: NotificationCenter(),
         metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
         tables: []
       )

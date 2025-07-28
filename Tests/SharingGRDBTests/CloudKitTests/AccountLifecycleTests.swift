@@ -2,6 +2,7 @@ import CloudKit
 import CustomDump
 import Foundation
 import InlineSnapshotTesting
+import OrderedCollections
 import SharingGRDB
 import SnapshotTestingCustomDump
 import Testing
@@ -20,14 +21,7 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      await syncEngine.handleEvent(
-        .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
-        syncEngine: syncEngine.private
-      )
-      await syncEngine.handleEvent(
-        .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
-        syncEngine: syncEngine.shared
-      )
+      await signOut()
 
       try {
         try userDatabase.userRead { db in
@@ -40,17 +34,8 @@ extension BaseCloudKitTests {
       }()
     }
 
-    @Test func signInUploadsLocalRecordsToCloudKit() async throws {
-      await syncEngine.handleEvent(
-        .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
-        syncEngine: syncEngine.private
-      )
-      await syncEngine.handleEvent(
-        .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
-        syncEngine: syncEngine.shared
-      )
-      container._accountStatus.withValue { $0 = .noAccount }
-
+    @Test(.accountStatus(.noAccount))
+    func signInUploadsLocalRecordsToCloudKit() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: 1, title: "Personal")
@@ -59,24 +44,63 @@ extension BaseCloudKitTests {
           UnsyncedModel(id: 1)
         }
       }
-      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try {
-        try userDatabase.userRead { db in
+        try userDatabase.read { db in
           try #expect(RemindersList.count().fetchOne(db) == 1)
           try #expect(Reminder.count().fetchOne(db) == 1)
           try #expect(RemindersListPrivate.count().fetchOne(db) == 1)
           try #expect(UnsyncedModel.count().fetchOne(db) == 1)
-          try #expect(SyncMetadata.count().fetchOne(db) == 1)
+          try #expect(SyncMetadata.count().fetchOne(db) == 3)
         }
       }()
+
+      await signIn()
+
+      try await syncEngine.processPendingDatabaseChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: 1,
+                isCompleted: 0,
+                remindersListID: 1,
+                title: "Get milk"
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersListPrivates/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersListPrivates",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: 1,
+                position: 0,
+                remindersListID: 1
+              ),
+              [2]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 1,
+                title: "Personal"
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
     }
   }
 }
-
-private let previousUserRecordID = CKRecord.ID(
-  recordName: "previousUser"
-)
-private let currentUserRecordID = CKRecord.ID(
-  recordName: "previousUser"
-)

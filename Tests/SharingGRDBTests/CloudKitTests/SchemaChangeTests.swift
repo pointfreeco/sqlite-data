@@ -73,7 +73,6 @@ extension BaseCloudKitTests {
         let relaunchedSyncEngine = try await SyncEngine(
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
-          notificationCenter: syncEngine.notificationCenter,
           metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
           tables: syncEngine.tables
             .filter { $0 != Reminder.self && $0 != RemindersList.self }
@@ -148,7 +147,6 @@ extension BaseCloudKitTests {
         let relaunchedSyncEngine = try await SyncEngine(
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
-          notificationCenter: syncEngine.notificationCenter,
           metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
           tables: syncEngine.tables
             .filter { $0 != RemindersList.self }
@@ -219,7 +217,6 @@ extension BaseCloudKitTests {
         let relaunchedSyncEngine = try await SyncEngine(
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
-          notificationCenter: syncEngine.notificationCenter,
           metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
           tables: syncEngine.tables
             .filter { $0 != RemindersList.self }
@@ -280,7 +277,6 @@ extension BaseCloudKitTests {
         let relaunchedSyncEngine = try await SyncEngine(
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
-          notificationCenter: syncEngine.notificationCenter,
           metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
           tables: syncEngine.tables + [Image.self],
           privateTables: syncEngine.privateTables

@@ -29,7 +29,6 @@
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
-    package let notificationCenter: NotificationCenter
 
     let dataManager = Dependency(\.dataManager)
 
@@ -75,7 +74,6 @@
         },
         userDatabase: userDatabase,
         logger: logger,
-        notificationCenter: .default,
         metadatabaseURL: URL.metadatabase(containerIdentifier: container.containerIdentifier),
         tables: tables,
         privateTables: privateTables
@@ -95,7 +93,6 @@
       ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
       userDatabase: UserDatabase,
       logger: Logger,
-      notificationCenter: NotificationCenter,
       metadatabaseURL: URL,
       tables: [any PrimaryKeyedTable.Type],
       privateTables: [any PrimaryKeyedTable.Type] = []
@@ -129,7 +126,6 @@
       self.defaultSyncEngines = defaultSyncEngines
       self.userDatabase = userDatabase
       self.logger = logger
-      self.notificationCenter = notificationCenter
       self.metadatabase = try defaultMetadatabase(logger: logger, url: metadatabaseURL)
       let tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
         .map(\.type)
@@ -378,6 +374,11 @@
             )
           )
         ]
+      )
+
+      print(
+        "syncEngine?.state.pendingRecordZoneChanges.count",
+        syncEngine?.state.pendingRecordZoneChanges.count
       )
     }
 
@@ -683,11 +684,12 @@
       changeType: CKSyncEngine.Event.AccountChange.ChangeType,
       syncEngine: any SyncEngineProtocol
     ) async {
+      guard syncEngine === syncEngines.private
+      else { return }
+      
       switch changeType {
       case .signIn:
-        syncEngines.withValue {
-          $0.private?.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
-        }
+        syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.write { db in
             for table in self.tables {
@@ -696,8 +698,6 @@
           }
         }
       case .signOut, .switchAccounts:
-        guard syncEngine === syncEngines.private
-        else { return }
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await deleteLocalData()
         }
