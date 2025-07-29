@@ -63,7 +63,9 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(60)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      let modificationCallback = try { try syncEngine.modifyRecords(scope: .private, saving: [record]) }()
+      let modificationCallback = try {
+        try syncEngine.modifyRecords(scope: .private, saving: [record])
+      }()
 
       try await withDependencies {
         $0.date.now = now.addingTimeInterval(30)
@@ -215,7 +217,9 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      let modificationCallback = try { try syncEngine.modifyRecords(scope: .private, saving: [record]) }()
+      let modificationCallback = try {
+        try syncEngine.modifyRecords(scope: .private, saving: [record])
+      }()
 
       try await withDependencies {
         $0.date.now = now.addingTimeInterval(60)
@@ -326,7 +330,9 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      let modificationCallback = try { try syncEngine.modifyRecords(scope: .private, saving: [record]) }()
+      let modificationCallback = try {
+        try syncEngine.modifyRecords(scope: .private, saving: [record])
+      }()
 
       try await withDependencies {
         $0.date.now = now.addingTimeInterval(60)
@@ -393,7 +399,9 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(60)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      let modificationCallback = try { try syncEngine.modifyRecords(scope: .private, saving: [record]) }()
+      let modificationCallback = try {
+        try syncEngine.modifyRecords(scope: .private, saving: [record])
+      }()
 
       try await withDependencies {
         $0.date.now = now.addingTimeInterval(30)
@@ -467,7 +475,9 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      let modificationCallback = try { try syncEngine.modifyRecords(scope: .private, saving: [record]) }()
+      let modificationCallback = try {
+        try syncEngine.modifyRecords(scope: .private, saving: [record])
+      }()
 
       try await withDependencies {
         $0.date.now = now.addingTimeInterval(60)
@@ -534,7 +544,9 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
       let userModificationDate = now.addingTimeInterval(30)
       record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-      let modificationCallback = try { try syncEngine.modifyRecords(scope: .private, saving: [record]) }()
+      let modificationCallback = try {
+        try syncEngine.modifyRecords(scope: .private, saving: [record])
+      }()
 
       try await withDependencies {
         $0.date.now = now.addingTimeInterval(60)
@@ -608,7 +620,10 @@ extension BaseCloudKitTests {
         forKey: "dueDate",
         at: now.addingTimeInterval(1)
       )
-      let modificationsFinished = try syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
+      let modificationsFinished = try syncEngine.modifyRecords(
+        scope: .private,
+        saving: [reminderRecord]
+      )
 
       try withDependencies {
         $0.date.now.addTimeInterval(2)
@@ -667,20 +682,18 @@ extension BaseCloudKitTests {
         """
       }
 
-      try {
-        try userDatabase.read { db in
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(
-            reminder
+      try await userDatabase.read { db in
+        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+        #expect(
+          reminder
             == Reminder(
               id: 1,
               dueDate: Date(timeIntervalSince1970: 30),
               priority: 3,
               remindersListID: 1
             )
-          )
-        }
-      }()
+        )
+      }
     }
   }
 }

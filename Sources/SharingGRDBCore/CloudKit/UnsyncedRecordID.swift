@@ -3,7 +3,7 @@
   import StructuredQueriesCore
 
   // @Table("\(String.sqliteDataCloudKitSchemaName)_unsyncedRecordIDs")
-  package struct UnsyncedRecordID {
+package struct UnsyncedRecordID: Equatable {
     package let recordName: String
     package let zoneName: String
     package let ownerName: String
@@ -18,8 +18,8 @@
     package static func find(_ recordID: CKRecord.ID) -> Where<UnsyncedRecordID> {
       Self.where {
         $0.recordName.eq(recordID.recordName)
-          && $0.zoneName.eq(recordID.zoneID.zoneName)
-          && $0.ownerName.eq(recordID.zoneID.ownerName)
+        && $0.zoneName.eq(recordID.zoneID.zoneName)
+        && $0.ownerName.eq(recordID.zoneID.ownerName)
       }
     }
   }

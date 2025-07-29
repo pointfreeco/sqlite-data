@@ -26,19 +26,20 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      try await syncEngine.modifyRecordZones(scope: .private, deleting: [syncEngine.defaultZone.zoneID]).notify()
+      try await syncEngine.modifyRecordZones(
+        scope: .private,
+        deleting: [syncEngine.defaultZone.zoneID]
+      ).notify()
       try await syncEngine.processPendingDatabaseChanges(scope: .private)
 
-      try {
-        try userDatabase.read { db in
-          try #expect(Reminder.all.fetchAll(db) == [])
-          try #expect(RemindersList.all.fetchAll(db) == [])
-          try #expect(RemindersListPrivate.all.fetchAll(db) == [])
-          try #expect(
-            UnsyncedModel.all.fetchAll(db) == [UnsyncedModel(id: 1), UnsyncedModel(id: 2)]
-          )
-        }
-      }()
+      try await userDatabase.read { db in
+        try #expect(Reminder.all.fetchAll(db) == [])
+        try #expect(RemindersList.all.fetchAll(db) == [])
+        try #expect(RemindersListPrivate.all.fetchAll(db) == [])
+        try #expect(
+          UnsyncedModel.all.fetchAll(db) == [UnsyncedModel(id: 1), UnsyncedModel(id: 2)]
+        )
+      }
     }
 
     @Test func deleteSyncEngineZone_EncryptedDataReset() async throws {
@@ -66,14 +67,12 @@ extension BaseCloudKitTests {
         )
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      try {
-        try userDatabase.read { db in
-          try #expect(Reminder.count().fetchOne(db) == 2)
-          try #expect(RemindersList.count().fetchOne(db) == 2)
-          try #expect(RemindersListPrivate.count().fetchOne(db) == 2)
-          try #expect(UnsyncedModel.count().fetchOne(db) == 2)
-        }
-      }()
+      try await userDatabase.read { db in
+        try #expect(Reminder.count().fetchOne(db) == 2)
+        try #expect(RemindersList.count().fetchOne(db) == 2)
+        try #expect(RemindersListPrivate.count().fetchOne(db) == 2)
+        try #expect(UnsyncedModel.count().fetchOne(db) == 2)
+      }
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """

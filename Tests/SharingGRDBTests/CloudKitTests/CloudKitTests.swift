@@ -352,12 +352,12 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "modelAs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "count" INTEGER NOT NULL
+                "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
               )
               """,
             tableInfo: [
               [0]: TableInfo(
-                defaultValue: nil,
+                defaultValue: "0",
                 isPrimaryKey: false,
                 name: "count",
                 notNull: true,
@@ -377,7 +377,7 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "modelBs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "isOn" INTEGER NOT NULL,
+                "isOn" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
                 "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
               )
               """,
@@ -390,7 +390,7 @@ extension BaseCloudKitTests {
                 type: "INTEGER"
               ),
               [1]: TableInfo(
-                defaultValue: nil,
+                defaultValue: "0",
                 isPrimaryKey: false,
                 name: "isOn",
                 notNull: true,
@@ -410,7 +410,7 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "modelCs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "title" TEXT NOT NULL,
+                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
                 "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
               )
               """,
@@ -430,7 +430,7 @@ extension BaseCloudKitTests {
                 type: "INTEGER"
               ),
               [2]: TableInfo(
-                defaultValue: nil,
+                defaultValue: "\'\'",
                 isPrimaryKey: false,
                 name: "title",
                 notNull: true,
