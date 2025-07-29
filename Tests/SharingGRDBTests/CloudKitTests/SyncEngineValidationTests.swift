@@ -136,7 +136,7 @@ extension BaseCloudKitTests {
       #expect(
         error.localizedDescription.hasPrefix(
           """
-          Triggers must include 'sqlitedata_icloud_syncEngineIsUpdatingRecord()' check: \
+          Triggers must include 'sqlitedata_icloud_syncEngineIsSynchronizingChanges()' check: \
           'non_temporary_trigger', 'temporary_trigger'
           """
         )

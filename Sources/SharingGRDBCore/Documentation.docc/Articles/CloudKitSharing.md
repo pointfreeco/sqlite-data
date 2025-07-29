@@ -413,3 +413,5 @@ struct MyApp: App {
 This table will still be synchronized across all of a single user's devices, but if that user
 shares a list with a friend, it will _not_ share the private table, allowing each user to have
 their own personal ordering of lists.
+
+## Querying share metadata

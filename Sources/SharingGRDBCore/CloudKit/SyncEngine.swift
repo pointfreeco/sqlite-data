@@ -429,7 +429,7 @@
       )
     }
 
-    public static func isUpdatingRecord() -> SQLQueryExpression<Bool> {
+    public static func isSynchronizingChanges() -> SQLQueryExpression<Bool> {
       SQLQueryExpression("\(raw: DatabaseFunction.syncEngineIsUpdatingRecord.name)()")
     }
   }

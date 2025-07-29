@@ -10,7 +10,7 @@ to CloudKit. However, distributing your app's schema across many devices is an i
 to make, and so an abundance of care must be taken to make sure all devices remain consistent
 and capable of communicating with each other. Please read the documentation closely and thoroughly
 to make sure you understand how to best prepare your app for cloud synchronization.
-  
+
 - [Setting up your project](#Setting-up-your-project)
 - [Setting up a SyncEngine](#Setting-up-a-SyncEngine)
 - [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)
@@ -19,6 +19,9 @@ to make sure you understand how to best prepare your app for cloud synchronizati
   - [Foreign key relationships](#Foreign-key-relationships)
 - [Record conflicts](#Record-conflicts)
 - [Backwards compatible migrations](#Backwards-compatible-migrations)
+  - [Adding tables](#Adding-tables)
+  - [Adding columns](#Adding-columns)
+  - [Disallowed migrations](#Disallowed-migrations)
 - [Sharing records with other iCloud users](#Sharing-records-with-other-iCloud-users)
 - [Assets](#Assets)
 - [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)
@@ -32,7 +35,7 @@ to make sure you understand how to best prepare your app for cloud synchronizati
 - [Tips and tricks](#Tips-and-tricks)
   - [Updating triggers to be compatible with synchronization](#Updating-triggers-to-be-compatible-with-synchronization)
 - [Topics](#Topics)
-- [Go deeper](#Go-deeper)
+  - [Go deeper](#Go-deeper)
 
 ## Setting up your project
 
@@ -584,15 +587,16 @@ code or from the sync engine. For example, if you have a trigger that refreshes 
 timestamp on a row when it is edited, it would not be appropriate to do that when the sync engine
 updates a row from data received from CloudKit.
 
-To prevent this you can use the ``SyncEngine/isUpdatingRecord()`` SQL expression. It represents
-a custom database function that is installed in your database connection, and it will return true
-if the write to your database originates from the sync engine. You can use it in a trigger like so:
+To prevent this you can use the ``SyncEngine/isSynchronizingChanges()`` SQL expression. It 
+represents a custom database function that is installed in your database connection, and it will 
+return true if the write to your database originates from the sync engine. You can use it in a 
+trigger like so:
 
 ```swift
 #sql("""
   CREATE TEMPORARY TRIGGER "…"
   AFTER DELETE ON "…""
-  FOR EACH ROW WHEN NOT \(SyncEngine.isUpdatingRecord())
+  FOR EACH ROW WHEN NOT \(SyncEngine.isSynchronizingChanges())
   BEGIN
     …
   END
@@ -609,10 +613,13 @@ Model.createTemporaryTrigger(
   after: .insert { new in
     …
   } when: { _ in
-    !SyncEngine.isUpdatingRecord()
+    !SyncEngine.isSynchronizingChanges()
   }
 )
 ```
+
+This will skip the trigger's action when the row is being updated due to data being synchronized
+from CloudKit.
 
 ## Topics
 
