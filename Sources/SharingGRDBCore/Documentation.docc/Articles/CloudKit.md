@@ -138,7 +138,7 @@ version.
 
 #### Primary keys
 
-> Important: Primary keys should be globally unique identifiers, such as UUID. We further recommend
+> TLDR: Primary keys should be globally unique identifiers, such as UUID. We further recommend
 > specifying a "NOT NULL" constraint with a "ON CONFLICT REPLACE" action.
 
 Primary keys are an important concept in SQL schema design, and SQLite makes it easy to add a 
@@ -189,7 +189,7 @@ CREATE TABLE "reminders" (
 
 #### Primary keys on every table
 
-> Important: Each synchronized table must have a single, non-compound primary key to aid in 
+> TLDR: Each synchronized table must have a single, non-compound primary key to aid in 
 > synchronization, even if it is not used by your app.
 
 _Every_ table being synchronized must have a single primary key and cannot have compound primary
@@ -213,7 +213,7 @@ TODO: think more about this
 
 #### Default values for columns
 
-> Important: All columns must have a default in order to allow for multiple devices to run your
+> TLDR: All columns must have a default in order to allow for multiple devices to run your
 > app with different versions of the schema.
 
 Your tables' schemas should be defined to provide a default for every non-null column. To see why 
@@ -228,7 +228,7 @@ a ``NonNullColumnMustHaveDefault`` error will be thrown.
 
 #### Unique constraints
 
-> Important: SQLite tables cannot have "UNIQUE" constraints on their columns in order to allow
+> TLDR: SQLite tables cannot have "UNIQUE" constraints on their columns in order to allow
 > for distributed creation of records.
 
 Tables with unique constraints on their columns, other than on the primary key, cannot be
@@ -245,7 +245,7 @@ when a ``SyncEngine`` is first created. If a uniqueness constraint is detected a
 
 #### Foreign key relationships
 
-> Important: Foreign key constraints can be enabled and you can use "ON DELETE" actions to
+> TLDR: Foreign key constraints can be enabled and you can use "ON DELETE" actions to
 > cascade deletions.
 
 SharingGRDB can synchronize many-to-one and many-to-many relationships to CloudKit, 
@@ -261,7 +261,7 @@ in your schema an ``InvalidParentForeignKey`` error will be thrown when construc
 
 ## Record conflicts
 
-> Important: Conflicts are handled automatically using a "last edit wins" strategy for each
+> TLDR: Conflicts are handled automatically using a "last edit wins" strategy for each
 > column of the record.
 
 Conflicts between record edits will inevitably happen, and it's just a fact of dealing with 
@@ -276,10 +276,160 @@ the only strategy available and we feel serves the needs of the most number of p
 
 ## Backwards compatible migrations
 
-> Important: Database migrations should be done carefully and with full backwards compatibility
+> TLDR: Database migrations should be done carefully and with full backwards compatibility
 > in mind in order to support multiple devices running with different schema versions.
 
-<!-- todo: finish -->
+Migrations of a distributed schema come with even more complications than what is mentioned above.
+If you ship a 1.0 of your app, and then in 1.1 you add a column to a table, you will need to
+contend with the fact that users of the 1.0 will be creating records without that column. This can
+cause problems if your migration is not designed correctly.
+
+#### Adding tables
+
+Adding new tables to a schema is perfectly safe thing to do in a CloudKit application. If a record
+from a device is synchronized to a device that does not have that table it will cache the record
+for later use. Then, when a device updates to the newest version of the app and detects a new table 
+has been added to the schema, it will populate the table with the cached records it received.
+
+#### Adding columns
+
+> TLDR: When adding columns to a table that has already been deployed to user's devices, you will
+either need to make the column nullable, or it can be "NOT NULL" but a default value must be 
+provided with an "ON CONFLICT REPLACE" clause.
+
+As an example, suppose the 1.0 of your app shipped a table for a reminders list:
+
+```swift
+@Table
+struct RemindersList {
+  let id: UUID 
+  var title = ""
+}
+```
+
+…and you created the SQL table for this like so:
+
+```sql
+CREATE TABLE "remindersLists" (
+  "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+  "title" TEXT NOT NULL DEFAULT ''
+) STRICT
+```
+
+Next suppose in 1.1 you want to add a column to the `RemindersList` type:
+
+```diff
+ @Table
+ struct RemindersList {
+   let id: UUID 
+   var title = ""
++  var position = 0
+ }
+```
+
+…with the corresponding SQL migration:
+
+```sql
+ALTER TABLE "remindersLists" 
+ADD COLUMN "position" INTEGER NOT NULL DEFAULT 0
+```
+
+Unfortunately this schema is problematic for synchronization. When a device running the 1.0 of the
+app creates a record, it will not have the `position` field. And when that synchronizes to devices
+running the 1.1 of the app, the ``SyncEngine`` will attempt to run a query that is essentially this:
+
+```sql
+INSERT INTO "remindersLists" 
+("id", "title", "position")
+VALUES 
+(NULL, 'Personal', NULL)
+```
+
+This will generate a SQL error because the "position" column was declared as "NOT NULL", and so this
+record will not properly synchronize to devices running a newer version of the app.
+
+The fix is to allow for inserting "NULL" values into "NOT NULL" columns by using the default of the
+column. This can be done like so:
+
+```sql
+ALTER TABLE "remindersLists" 
+ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+```
+
+> Important: The "ON CONFLICT REPLACE" clause must come directly after "NOT NULL" because it 
+> modifies that constraint.
+
+Now when this query is executed: 
+
+```sql
+INSERT INTO "remindersLists" 
+("id", "title", "position")
+VALUES 
+(NULL, 'Personal', NULL)
+```
+
+…it will use 0 for the "position" column.
+
+Sometimes it is not possible to specify a default for a newly added column. Suppose in version 1.2
+of your app you add groups for reminders lists. This can be expressed as a new field on the 
+`RemindersList` type:
+
+```diff
+ @Table
+ struct RemindersList {
+   let id: UUID 
+   var title = ""
+   var position = 0
++  var remindersListGroupID: RemindersListGroup.ID
+ }
+```
+
+However, there is no sensible default that can be used for this schema. But, if you migrate your
+table like so:
+
+```sql
+ALTER TABLE "remindersLists" 
+ADD COLUMN "remindersListGroupID" TEXT NOT NULL
+REFERENCES "remindersListGroups"("id")
+```
+
+…then this will be problematic when older devices create reminders lists with no 
+`remindersListGroupID`. In this situation you have no choice but to make the field optional in
+the type:
+
+```diff
+ @Table
+ struct RemindersList {
+   let id: UUID 
+   var title = ""
+   var position = 0
+-  var remindersListGroupID: RemindersListGroup.ID
++  var remindersListGroupID: RemindersListGroup.ID?
+ }
+```
+
+And your migration will need to add a nullable column to the table:
+
+```diff
+ ALTER TABLE "remindersLists" 
+-ADD COLUMN "remindersListGroupID" TEXT NOT NULL
++ADD COLUMN "remindersListGroupID" TEXT
+ REFERENCES "remindersListGroups"("id")
+```
+
+It may be disappointing to have to weaken your domain modeling to accomodate synchronization, but
+that is the unfortunate reality of a distributed schema. In order to allow multiple versions of your
+schema to be run on devices so that each device can create new records and edit existing records 
+that all devices can see, you will need to make some compromises.
+
+#### Disallowed migrations
+
+Certain kinds of migrations are simply not allowed when synchronizing your schema to multiple
+devices. They are:
+
+* Removing columns
+* Renaming columns
+* Renaming tables
 
 ## Sharing records with other iCloud users
 
@@ -292,6 +442,10 @@ how to best situate your app for sharing that does not cause problems down the r
 See <doc:CloudKitSharing> for more information.
 
 ## Assets
+
+> TLDR: The library packages all BLOB columns in a table into `CKAsset`s and seamlessly decodes
+> `CKAsset`s back into your tables. We recommend putting large binary blobs of data in their own
+> tables.
 
 All BLOB columns in a table are automatically turned into `CKAsset`s and synchronized to CloudKit.
 This process is completely seamless and you do not have to take any explicit steps to support
