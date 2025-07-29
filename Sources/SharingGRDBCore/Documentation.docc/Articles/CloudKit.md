@@ -11,21 +11,28 @@ to make, and so an abundance of care must be taken to make sure all devices rema
 and capable of communicating with each other. Please read the documentation closely and thoroughly
 to make sure you understand how to best prepare your app for cloud synchronization.
   
-  - [Setting up your project](#Setting-up-your-project)  
-  - [Setting up a SyncEngine](#Setting-up-a-SyncEngine)  
-  - [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)  
-    - [UUID Primary keys](#UUID-Primary-keys)  
-    - [Primary keys on every table](#Primary-keys-on-every-table)
-    - [Foreign key relationships](#Foreign-key-relationships)  
-  - [Record conflicts](#Record-conflicts)  
-  - [Backwards compatible migrations](#Backwards-compatible-migrations)  
-  - [Sharing records with other iCloud users](#Sharing-records-with-other-iCloud-users)  
-  - [Assets](#Assets)  
-  - [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)  
-  - [How SharingGRDB handles distributed schema scenarios](#How-SharingGRDB-handles-distributed-schema-scenarios)  
-  - [Preparing an existing schema for synchronization](#Preparing-an-existing-schema-for-synchronization)  
-    - [Convert Int primary keys to UUID](#Convert-Int-primary-keys-to-UUID)  
-    - [Add primary key to all tables](#Add-primary-key-to-all-tables)
+- [Setting up your project](#Setting-up-your-project)
+- [Setting up a SyncEngine](#Setting-up-a-SyncEngine)
+- [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)
+  - [Primary keys](#Primary-keys)
+  - [Primary keys on every table](#Primary-keys-on-every-table)
+  - [Foreign key relationships](#Foreign-key-relationships)
+- [Record conflicts](#Record-conflicts)
+- [Backwards compatible migrations](#Backwards-compatible-migrations)
+- [Sharing records with other iCloud users](#Sharing-records-with-other-iCloud-users)
+- [Assets](#Assets)
+- [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)
+- [How SharingGRDB handles distributed schema scenarios](#How-SharingGRDB-handles-distributed-schema-scenarios)
+- [Unit testing and Xcode previews](#Unit-testing-and-Xcode-previews)
+- [Preparing an existing schema for synchronization](#Preparing-an-existing-schema-for-synchronization)
+  - [Convert Int primary keys to UUID](#Convert-Int-primary-keys-to-UUID)
+  - [Add primary key to all tables](#Add-primary-key-to-all-tables)
+- [Migrating from Swift Data to SharingGRDB](#Migrating-from-Swift-Data-to-SharingGRDB)
+- [Separating schema migrations from data migrations](#Separating-schema-migrations-from-data-migrations)
+- [Tips and tricks](#Tips-and-tricks)
+  - [Updating triggers to be compatible with synchronization](#Updating-triggers-to-be-compatible-with-synchronization)
+- [Topics](#Topics)
+- [Go deeper](#Go-deeper)
 
 ## Setting up your project
 
@@ -51,7 +58,7 @@ synchronizing your database to and from CloudKit.
 
 The foundational tool used to synchronize your SQLite database to CloudKit is a ``SyncEngine``.
 This is a wrapper around CloudKit's `CKSyncEngine` and performs all the necessary work to listen
-for changes in the database to play them back to CloudKit, and listen for changes in CloudKit to
+for changes in your database to play them back to CloudKit, and listen for changes in CloudKit to
 play them back to SQLite.
 
 Before constructing a ``SyncEngine`` you must have already created and migrated your app's local
@@ -83,6 +90,10 @@ struct MyApp: App {
   …
 }
 ```
+
+The `SyncEngine` 
+ [initializer](<doc:SyncEngine/init(container:defaultZone:database:logger:tables:privateTables:)>)
+has more options you may be interested in configuring.
 
 > Important: A few important things to note about this:
 > 
@@ -149,8 +160,9 @@ CREATE TABLE "reminders" (
 
 > Tip: The "ON CONFLICT REPLACE" clause must be placed directly after "NOT NULL".
 
-This will make it possible to create new records using the `Draft` type afforded to primary 
-keyed tables without needing to specify an `id`:
+This allows you to insert a row with a NULL value for the primary key and SQLite will compute
+the primary key from the default value specified. This kind of pattern is commonly used with the
+`Draft` type generated for primary keyed tables:
 
 ```swift
 try database.write { db in
@@ -236,11 +248,12 @@ when a ``SyncEngine`` is first created. If a uniqueness constraint is detected a
 > Important: Foreign key constraints can be enabled and you can use "ON DELETE" actions to
 > cascade deletions.
 
-SharingGRDB can synchronize one-to-one, many-to-one, and many-to-many relationships to CloudKit, 
-and you can enforce foreign key constraints in your database connection. It is possible for
-records to be received by the sync engine out of order, such as a child record before the parent
-record it belongs to. The sync engine will cache the child record until the parent record has been
-synchronized, at which point the child record will also be synchronized.
+SharingGRDB can synchronize many-to-one and many-to-many relationships to CloudKit, 
+and you can enforce foreign key constraints in your database connection. While it is possible for
+the sync engine to receive records in an order that could cause a foreign key constraint failure, 
+such as receiving a child record before its parent, the sync engine will cache the child record
+until the parent record has been synchronized, at which point the child record will also be 
+synchronized.
 
 Currently the only actions supported for "ON DELETE" are "CASCADE", "SET NULL" and "SET DEFAULT".
 In particular, "RESTRICT" and "NO ACTION" are not supported, and if you try to use those actions
@@ -258,8 +271,8 @@ of the timestamp for that particular column. When merging two conflicting record
 is analyzed, and the column that was most recently edited will win over the older data.
 
 We do not employ more advanced merge conflict strategies, such as CRDT synchronization. We may
-allow for these kinds of strategies in the future, but for now "last edit wins" is the only
-strategy available and we feel serves the needs of the most number of people.
+allow for these kinds of strategies in the future, but for now "field-wise last edit wins" is 
+the only strategy available and we feel serves the needs of the most number of people.
 
 ## Backwards compatible migrations
 
@@ -280,7 +293,44 @@ See <doc:CloudKitSharing> for more information.
 
 ## Assets
 
-<!-- todo: finish -->
+All BLOB columns in a table are automatically turned into `CKAsset`s and synchronized to CloudKit.
+This process is completely seamless and you do not have to take any explicit steps to support
+assets.
+
+However, general database design guidelines still apply. In particular, it is not recommended to
+store large binary blobs in a table that is queried often. If done naively you may accidentally 
+large amounts of data into memory when querying your table, and further large binary blobs can
+slow down SQLite's ability to efficiently access the rows in your tables.
+
+It is recommended to hold binary blobs in a separate, but related, table. For example, if you are
+building a reminders app that has lists, and you allow your users to assign an image to a list.
+One way to model this is a table for the reminders list data, without the image, and then another
+table for the image data associated with a reminders list. Further, the primary key of the cover
+image table can be the foreign key pointing to the associated reminders list:
+
+```swift
+@Table 
+struct RemindersList: Identifiable {
+  let id: UUID 
+  var title = ""
+}
+
+@Table 
+struct RemindersListCoverImage {
+  @Column(primaryKey: true)
+  let remindersListID: RemindersList.ID
+  var image: Data
+}
+/*
+CREATE TABLE "remindersListCoverImages" (
+  "remindersListID" TEXT PRIMARY KEY NOT NULL REFERENCES "remindersLists"("id"),
+  "image" BLOB NOT NULL
+)
+*/
+```
+
+This allows you to efficiently query `RemindersList` while still allowing you to load the image
+data for a list when you need it.
 
 ## Accessing CloudKit metadata
 
@@ -311,15 +361,16 @@ let ckRecord = try await container.privateCloudDatabase
 ```
 
 > Important: In the above snippet we are explicitly using `privateCloudDatabase`, but that is
-> only appropriate for unshared records. If your record is shared, which can be determined from
-> [SyncMetadata.share](<doc:SyncMetadata/share>), then you must use `sharedCloudDatabase` to
-> fetch the newest record.
+> only appropriate if the user is the owner of the record. If the user is only a participant in
+> a shared record, which can be determined from [SyncMetadata.share](<doc:SyncMetadata/share>),
+> then you must use `sharedCloudDatabase` to fetch the newest record.
 
 You are free to invoke any CloudKit functions you want with the `CKRecord` retreived from 
 ``SyncMetadata``. Any changes made directly with CloudKit will be automatically synced to your
 SQLite database by the ``SyncEngine``.
 
-It is also possible to fetch the `CKShare` associated with a record if it has been shared:
+It is also possible to fetch the `CKShare` associated with a record if it has been shared, which
+will give you access to the most current list of paricipants and permissions for the shared record:
 
 ```swift
 let metadata = try database.read { db in
@@ -340,9 +391,10 @@ let ckRecord = try await container.sharedCloudDatabase
 appropriate to use when fetching the details of a `CKShare` as they are always stored in the 
 shared database.
 
-<!-- todo: fact check the above 'important' -->
-
-It is possible to 
+<!--
+TODO: finish
+* show example of joining tables to SyncMetadata
+-->
 
 ## How SharingGRDB handles distributed schema scenarios
 
@@ -372,7 +424,15 @@ It is possible to
 
 ### Updating triggers to be compatible with synchronization
 
-<!-- todo: finish -->
+If you have triggers installed on your tables, then you may want to customize their definitions
+to behave differently depending on whether a write is happening to your database from your own
+code or from the sync engine. For example, if you have a trigger that refreshes an `updatedAt`
+timestamp on a row when it is edited, it would not be appropriate to do that when the sync engine
+updates a row from data received from CloudKit.
+
+To prevent this you can use the ``SyncEngine/isUpdatingRecord()`` SQL expression. It represents
+a custom database function that is installed in your database connection, and it will return true
+if the write to your database originates from the sync engine. You can use it in a trigger like so:
 
 ```swift
 #sql("""
@@ -385,8 +445,12 @@ It is possible to
   """)
 ```
 
+Or if you are using the trigger building tools from [StructuredQueries] you can use it like so:
+
+[StructuredQueries]: https://github.com/pointfreeco/swift-structured-queries
+
 ```swift
-createTemporaryTrigger(
+Model.createTemporaryTrigger(
   "…",
   after: .insert { new in
     …

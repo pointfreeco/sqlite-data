@@ -15,7 +15,15 @@ Info.plist with a value of `true`. This is subtly documented in [Apple's documen
 
 [Apple's documentation for sharing]: https://developer.apple.com/documentation/cloudkit/sharing-cloudkit-data-with-other-icloud-users#Create-and-Share-a-Topic
 
-<!-- todo: toc -->
+- [Creating CKShare records](#Creating-CKShare-records)
+- [Accepting shared records](#Accepting-shared-records)
+- [Diving deeper into sharing](#Diving-deeper-into-sharing)
+  - [Sharing root records](#Sharing-root-records)
+  - [Sharing foreign key relationships](#Sharing-foreign-key-relationships)
+    - [One-to-many relationships](#One-to-many-relationships)
+    - [Many-to-many relationships](#Many-to-many-relationships)
+    - [One-to-"at most one" relationships](#One-to-at-most-one-relationships)
+- [Controlling what data is shared](#Controlling-what-data-is-shared)
 
 ## Creating CKShare records
 
@@ -150,7 +158,7 @@ you can share root records, like reminders lists. If you do invoke
 ``SyncEngine/CantShareRecordWithParent`` error will be thrown.
 
 > Note: A reminder can still be shared as an association to a shared reminders list, as discussed
-> [in the next section](<doc:CloudKit#Sharing foreign key relationships>). However, a single 
+> [in the next section](<doc:CloudKit#Sharing-foreign-key-relationships>). However, a single 
 > reminder cannot be shared on its own.
 
 For a more complex example, consider the following diagrammatic schema for a reminders app:
@@ -308,34 +316,33 @@ excels at.
 
 ##### One-to-"at most one" relationships
 
-<!-- todo: finish -->
-
-<!--
 One-to-"at most one" relationships in SQLite allow you to associate zero or one records with
 another record. For an example of this, suppose we wanted to hold onto a cover image for reminders 
 lists (see <doc:CloudKit#Assets> for more information on synchronizing assets such as images). It 
 is perfectly fine to hold onto large binary data in SQLite, such as image data, but typically one 
 should put this data in a separate table.
 
-This kind of relationship can be modeled in SQLite as a foreign key pointing from image record 
-to reminders list record, and with a uniqueness constraint on the key. That enforces that at 
-most one image is associated with a reminders list.
+The way to model this kind of relationship in SQLite is by making a foreign key point from the image
+table to the reminders list table, _and_ to make that foreign key the primary key of the table. That
+enforces that at most one image is associated with a reminders list.
 
 In diagrammatic form, it looks like this:
 
 ![One-to-"at most one" relationship with uniqueness](sync-diagram-one-to-at-most-one-unique.png)
-
-Here the `CoverImage` table has a foreign key pointing to the root table `RemindersList`, but 
-with a uniqueness constraint to enforce that at most one cover image belongs to a list.
-
-However, due to what is discussed in <doc:CloudKit#Unique-constraints>, this kind of relationship
-cannot be synchronized to CloudKit since uniqueness constraints do not play nicely with 
-distributed data. But, one can still model this kind of relationship by not enforcing the 
-uniqueness constraint in SQL and instead enforcing it in your application logic. This means
-you will model the relationship as a one-to-many (as described in 
-<doc:CloudKit#One-to-many-relationships>) and making sure that in your feature's logic you never
-create multiple cover images pointing to the same reminders list.
+<!--
+```mermaid
+graph BT
+  Reminder ---\>|remindersListID| RemindersList
+  CoverImage ---\>|PRIMARY KEY remindersListID| RemindersList
+  classDef root color:#000,fill:#4cccff,stroke:#333,stroke-width:2px;
+  classDef shared color:#000,fill:#98EFB5,stroke:#333,stroke-width:2px;
+  class RemindersList root
+  class Reminder,CoverImage shared
+```
 -->
+
+Here the `CoverImage` table has a foreign key pointing to the root table `RemindersList`, but since
+it is also the primary key of the table it enforces that at most one cover image belongs to a list.
 
 ## Controlling what data is shared
 
@@ -356,7 +363,9 @@ Sharing this record will mean also sharing the position of the list. That means 
 reorders their local lists, even ones that are private to them, it will reorder the lists for
 everyone shared. This is probably not what you want.
 
-So, private and non-shareable information about this record can be stored in a separate table:
+So, private and non-shareable information about this record can be stored in a separate table,
+and we can use the trick mentioned in <doc:CloudKitSharing#One-to-at-most-one-relationships>
+by making the foreign key of the table also be the table's primary key:
 
 ```swift
 @Table 
@@ -366,9 +375,9 @@ struct RemindersList: Identifiable {
 }
 @Table 
 struct RemindersListPrivate: Identifiable {
-  let id: UUID 
+  @Column(primaryKey: true)
+  let remindersListID: RemindersList.ID 
   var position = 0
-  var remindersList: RemindersList.ID
 }
 ```
 

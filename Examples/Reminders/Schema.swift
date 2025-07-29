@@ -18,9 +18,10 @@ extension RemindersList.Draft: Identifiable {}
 
 @Table
 struct RemindersListAsset: Hashable, Identifiable {
-  let id: UUID
-  var coverImage: Data?
+  @Column(primaryKey: true)
   let remindersListID: RemindersList.ID
+  var coverImage: Data?
+  var id: RemindersList.ID { remindersListID }
 }
 
 @Table
@@ -152,11 +153,9 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "remindersListAssets" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "coverImage" BLOB,
-        "remindersListID" TEXT NOT NULL 
-          DEFAULT '00000000-0000-0000-0000-000000000000'
-          REFERENCES "remindersLists"("id") ON DELETE CASCADE
+        "remindersListID" TEXT PRIMARY KEY NOT NULL 
+          REFERENCES "remindersLists"("id") ON DELETE CASCADE,
+        "coverImage" BLOB
       ) STRICT
       """
     )
