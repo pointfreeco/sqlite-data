@@ -143,9 +143,9 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "remindersLists" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "color" INTEGER NOT NULL DEFAULT \(raw: 0x4a99_ef00),
-        "position" INTEGER NOT NULL DEFAULT 0,
-        "title" TEXT NOT NULL DEFAULT ''
+        "color" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT \(raw: 0x4a99_ef00),
+        "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
       ) STRICT
       """
     )
@@ -165,13 +165,13 @@ func appDatabase() throws -> any DatabaseWriter {
       CREATE TABLE "reminders" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "dueDate" TEXT,
-        "isCompleted" INTEGER NOT NULL DEFAULT 0,
-        "isFlagged" INTEGER NOT NULL DEFAULT 0,
-        "notes" TEXT NOT NULL DEFAULT '',
-        "position" INTEGER NOT NULL DEFAULT 0,
+        "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+        "isFlagged" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+        "notes" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
+        "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "priority" INTEGER,
-        "remindersListID" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
-        "title" TEXT NOT NULL DEFAULT '',
+        "remindersListID" TEXT NOT NULL,
+        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
 
         FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
       ) STRICT
@@ -191,8 +191,8 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "remindersTags" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "reminderID" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
-        "tagID" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+        "reminderID" TEXT NOT NULL,
+        "tagID" TEXT NOT NULL,
 
         FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
         FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
