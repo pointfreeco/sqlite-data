@@ -819,51 +819,6 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
-      let recordIDsByRecordType = OrderedDictionary(
-        grouping: deletions.sorted { lhs, rhs in
-          guard
-            let lhsIndex = tablesByOrder[lhs.recordType],
-            let rhsIndex = tablesByOrder[rhs.recordType]
-          else { return true }
-          return lhsIndex > rhsIndex
-        },
-        by: \.recordType
-      )
-        .mapValues { $0.map(\.recordID) }
-      for (recordType, recordIDs) in recordIDsByRecordType {
-        let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
-        if let table = tablesByName[recordType] {
-          func open<T: PrimaryKeyedTable>(_: T.Type) {
-            withErrorReporting(.sqliteDataCloudKitFailure) {
-              try userDatabase.write { db in
-                try T
-                  .where {
-                    $0.primaryKey.in(
-                      recordPrimaryKeys.map { SQLQueryExpression("\(bind: $0)") }
-                    )
-                  }
-                  .delete()
-                  .execute(db)
-
-                try UnsyncedRecordID
-                  .findAll(recordIDs)
-                  .delete()
-                  .execute(db)
-              }
-            }
-          }
-          open(table)
-        } else if recordType == CKRecord.SystemType.share {
-          withErrorReporting {
-            for recordID in recordIDs {
-              try deleteShare(recordID: recordID)
-            }
-          }
-        } else {
-          // NB: Deleting a record from a table we do not currently recognize.
-        }
-      }
-
       let unsyncedRecords =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           var unsyncedRecordIDs = try await userDatabase.write { db in
@@ -878,10 +833,9 @@
           unsyncedRecordIDs.subtract(modificationRecordIDs)
           if !unsyncedRecordIDsToDelete.isEmpty {
             try await userDatabase.write { db in
-              try UnsyncedRecordID
-                .findAll(unsyncedRecordIDsToDelete)
-                .delete()
-                .execute(db)
+              for recordID in unsyncedRecordIDsToDelete {
+                try UnsyncedRecordID.find(recordID).delete().execute(db)
+              }
             }
           }
           let results = try await syncEngine.database.records(for: Array(unsyncedRecordIDs))
@@ -946,6 +900,46 @@
               }
             }
           }
+        }
+      }
+
+      let recordIDsByRecordType = OrderedDictionary(
+        grouping: deletions.sorted { lhs, rhs in
+          guard
+            let lhsIndex = tablesByOrder[lhs.recordType],
+            let rhsIndex = tablesByOrder[rhs.recordType]
+          else { return true }
+          return lhsIndex > rhsIndex
+        },
+        by: \.recordType
+      )
+      .mapValues { $0.map(\.recordID) }
+      for (recordType, recordIDs) in recordIDsByRecordType {
+        let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
+        if let table = tablesByName[recordType] {
+          func open<T: PrimaryKeyedTable>(_: T.Type) {
+            withErrorReporting(.sqliteDataCloudKitFailure) {
+              try userDatabase.write { db in
+                try T
+                  .where {
+                    $0.primaryKey.in(
+                      recordPrimaryKeys.map { SQLQueryExpression("\(bind: $0)") }
+                    )
+                  }
+                  .delete()
+                  .execute(db)
+              }
+            }
+          }
+          open(table)
+        } else if recordType == CKRecord.SystemType.share {
+          withErrorReporting {
+            for recordID in recordIDs {
+              try deleteShare(recordID: recordID)
+            }
+          }
+        } else {
+          // NB: Deleting a record from a table we do not currently recognize.
         }
       }
     }
