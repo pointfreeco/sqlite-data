@@ -175,5 +175,5 @@ private let previousUserRecordID = CKRecord.ID(
   recordName: "previousUser"
 )
 private let currentUserRecordID = CKRecord.ID(
-  recordName: "previousUser"
+  recordName: "currentUser"
 )
