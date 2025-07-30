@@ -1,10 +1,10 @@
 import CloudKit
 import DependenciesTestSupport
 import OrderedCollections
-import os
 import SharingGRDB
 import SnapshotTesting
 import Testing
+import os
 
 @Suite(
   .snapshots(record: .missing),
@@ -29,6 +29,7 @@ class BaseCloudKitTests: @unchecked Sendable {
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   init(
+    accountStatus: CKAccountStatus = _AccountStatusScope.accountStatus,
     setUpUserDatabase: @Sendable (UserDatabase) async throws -> Void = { _ in }
   ) async throws {
     let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
@@ -40,6 +41,7 @@ class BaseCloudKitTests: @unchecked Sendable {
     let privateDatabase = MockCloudDatabase(databaseScope: .private)
     let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
     container = MockCloudContainer(
+      accountStatus: accountStatus,
       containerIdentifier: testContainerIdentifier,
       privateCloudDatabase: privateDatabase,
       sharedCloudDatabase: sharedDatabase
@@ -63,22 +65,44 @@ class BaseCloudKitTests: @unchecked Sendable {
         ModelC.self,
       ],
       privateTables: [
-        RemindersListPrivate.self,
+        RemindersListPrivate.self
       ]
     )
+    if accountStatus == .available {
+      await syncEngine.handleEvent(
+        .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+        syncEngine: syncEngine.private
+      )
+      await syncEngine.handleEvent(
+        .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+        syncEngine: syncEngine.shared
+      )
+      try await syncEngine.processPendingDatabaseChanges(scope: .private)
+    }
+  }
+
+  func signOut() async {
+    container._accountStatus.withValue { $0 = .noAccount }
     await syncEngine.handleEvent(
-      .accountChange(
-        changeType: .signIn(
-          currentUser: CKRecord
-            .ID(
-              recordName: "defaultCurrentUser",
-              zoneID: syncEngine.defaultZone.zoneID
-            )
-        )
-      ),
-      syncEngine: syncEngine.syncEngines.withValue(\.private)!
+      .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
+      syncEngine: syncEngine.private
     )
-    try await syncEngine.processPendingDatabaseChanges(scope: .private)
+    await syncEngine.handleEvent(
+      .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
+      syncEngine: syncEngine.shared
+    )
+  }
+
+  func signIn() async {
+    container._accountStatus.withValue { $0 = .available }
+    await syncEngine.handleEvent(
+      .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+      syncEngine: syncEngine.private
+    )
+    await syncEngine.handleEvent(
+      .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+      syncEngine: syncEngine.shared
+    )
   }
 
   deinit {
@@ -143,3 +167,10 @@ extension SyncEngine {
     try await setUpSyncEngine(userDatabase: userDatabase, metadatabase: metadatabase)?.value
   }
 }
+
+private let previousUserRecordID = CKRecord.ID(
+  recordName: "previousUser"
+)
+private let currentUserRecordID = CKRecord.ID(
+  recordName: "currentUser"
+)

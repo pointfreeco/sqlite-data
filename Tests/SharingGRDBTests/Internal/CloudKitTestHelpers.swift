@@ -531,6 +531,10 @@ final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
     fatalError("This should never be called in tests.")
   }
 
+  func accountStatus() async throws -> CKAccountStatus {
+    _accountStatus.withValue { $0 }
+  }
+
   func shareMetadata(for url: URL, shouldFetchRootRecord: Bool) async throws -> CKShare.Metadata {
     fatalError()
   }
@@ -547,6 +551,7 @@ final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
         container = existingContainer
       } else {
         container = MockCloudContainer(
+          accountStatus: .available,
           containerIdentifier: containerIdentifier,
           privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
           sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)

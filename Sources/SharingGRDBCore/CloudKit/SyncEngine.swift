@@ -191,6 +191,7 @@
           shared: sharedSyncEngine
         )
       }
+
       let previousRecordTypes = try metadatabase.read { db in
         try RecordType.all.fetchAll(db)
       }
@@ -220,13 +221,15 @@
           ($0.tableName, $0)
         }
       )
-      try uploadRecordsToCloudKit(
-        previousRecordTypeByTableName: previousRecordTypeByTableName,
-        currentRecordTypeByTableName: currentRecordTypeByTableName
-      )
       return Task {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await fetchChangesFromSchemaChange(
+          guard try await container.accountStatus() == .available
+          else { return }
+          try await uploadRecordsToCloudKit(
+            previousRecordTypeByTableName: previousRecordTypeByTableName,
+            currentRecordTypeByTableName: currentRecordTypeByTableName
+          )
+          try await updateLocalFromSchemaChange(
             previousRecordTypeByTableName: previousRecordTypeByTableName,
             currentRecordTypeByTableName: currentRecordTypeByTableName
           )
@@ -247,53 +250,34 @@
     private func uploadRecordsToCloudKit(
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
-    ) throws {
+    ) async throws {
       let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
         previousRecordTypeByTableName[tableName] == nil
       }
 
-      try userDatabase.write { db in
-        try Self.$_isSynchronizingChanges.withValue(false) {
+      try await userDatabase.write { db in
+        try Self.$_isUpdatingRecord.withValue(false) {
           for tableName in newTableNames {
-            guard let table = tablesByName[tableName]
-            else { continue }
-
-            let parentForeignKey =
-              foreignKeysByTableName[tableName]?.count == 1
-              ? foreignKeysByTableName[tableName]?.first
-              : nil
-
-            func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-              let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
-                parentForeignKey
-                .map { ("\(T.self).\(quote: $0.from)", "\(bind: $0.table)") }
-                ?? ("NULL", "NULL")
-              try SyncMetadata.insert { columns in
-                (
-                  columns.recordPrimaryKey,
-                  columns.recordType,
-                  columns.parentRecordPrimaryKey,
-                  columns.parentRecordType
-                )
-              } select: {
-                T.select { columns in
-                  (
-                    SQLQueryExpression("\(columns.primaryKey)"),
-                    T.tableName,
-                    SQLQueryExpression(parentRecordPrimaryKey),
-                    SQLQueryExpression(parentRecordType)
-                  )
-                }
-              }
-              .execute(db)
-            }
-            try open(table)
+            try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
           }
         }
       }
     }
 
-    private func fetchChangesFromSchemaChange(
+    private func uploadRecordsToCloudKit<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
+      try T.update { $0.primaryKey = $0.primaryKey }.execute(db)
+    }
+
+    private func uploadRecordsToCloudKit(tableName: String, db: Database) throws {
+      guard let table = self.tablesByName[tableName]
+      else { return }
+      func open<T: PrimaryKeyedTable>(_: T.Type) throws {
+        try uploadRecordsToCloudKit(table: T.self, db: db)
+      }
+      try open(table)
+    }
+
+    private func updateLocalFromSchemaChange(
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
     ) async throws {
@@ -315,9 +299,8 @@
               .where { $0.recordType.eq(tableName) }
               .select(\._lastKnownServerRecordAllFields)
               .fetchAll(db)
-              .compactMap(\.self)
           }
-          for lastKnownServerRecord in lastKnownServerRecords {
+          for case .some(let lastKnownServerRecord) in lastKnownServerRecords {
             let query = try await updateQuery(
               for: T.self,
               record: lastKnownServerRecord,
@@ -334,11 +317,6 @@
     }
 
     package func tearDownSyncEngine() async throws {
-      let syncEngines = syncEngines.withValue(\.self)
-      async let privateCancellation: Void? = syncEngines.private?.cancelOperations()
-      async let sharedCancellation: Void? = syncEngines.shared?.cancelOperations()
-      _ = await (privateCancellation, sharedCancellation)
-
       try await userDatabase.write { db in
         for table in self.tables {
           try table.dropTriggers(db: db)
@@ -696,26 +674,17 @@
       changeType: CKSyncEngine.Event.AccountChange.ChangeType,
       syncEngine: any SyncEngineProtocol
     ) async {
+      guard syncEngine === syncEngines.private
+      else { return }
+
       switch changeType {
       case .signIn:
-        syncEngines.withValue {
-          $0.private?.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
-        }
-        for table in tables {
-          withErrorReporting(.sqliteDataCloudKitFailure) {
-            let recordNames = try userDatabase.read { db in
-              func open<T: PrimaryKeyedTable>(_: T.Type) throws -> [String] {
-                try T
-                  .select(\._recordName)
-                  .fetchAll(db)
-              }
-              return try open(table)
+        syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await userDatabase.write { db in
+            for table in self.tables {
+              try self.uploadRecordsToCloudKit(table: table, db: db)
             }
-            syncEngine.state.add(
-              pendingRecordZoneChanges: recordNames.map {
-                .saveRecord(CKRecord.ID(recordName: $0, zoneID: defaultZone.zoneID))
-              }
-            )
           }
         }
       case .signOut, .switchAccounts:
@@ -763,12 +732,12 @@
               try uploadRecords(in: zoneID, db: db)
             @unknown default:
               reportIssue("Unknown deletion reason: \(reason)")
+              }
             }
+            return defaultZoneDeleted
           }
-          return defaultZoneDeleted
         }
-      }
-      ?? false
+        ?? false
       if defaultZoneDeleted {
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(self.defaultZone)])
       }
