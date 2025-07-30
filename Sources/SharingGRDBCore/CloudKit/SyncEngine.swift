@@ -133,7 +133,7 @@
       )
     }
 
-    @TaskLocal package static var _isUpdatingRecord = false
+    @TaskLocal package static var _isSynchronizingChanges = false
 
     package func setUpSyncEngine() async throws {
       try await setUpSyncEngine(userDatabase: userDatabase, metadatabase: metadatabase)?.value
@@ -249,7 +249,7 @@
       }
 
       try userDatabase.write { db in
-        try Self.$_isUpdatingRecord.withValue(false) {
+        try Self.$_isSynchronizingChanges.withValue(false) {
           for tableName in newTableNames {
             guard let table = tablesByName[tableName]
             else { continue }
@@ -1001,7 +1001,7 @@
           else { continue }
           func open<T: PrimaryKeyedTable>(_: T.Type) throws {
             try userDatabase.write { db in
-              try Self.$_isUpdatingRecord.withValue(false) {
+              try Self.$_isSynchronizingChanges.withValue(false) {
                 switch foreignKey.onDelete {
                 case .cascade:
                   try T
@@ -1382,7 +1382,7 @@
     fileprivate static var syncEngineIsUpdatingRecord: Self {
       Self(.sqliteDataCloudKitSchemaName + "_" + "syncEngineIsUpdatingRecord", argumentCount: 0) {
         _ in
-        SyncEngine._isUpdatingRecord
+        SyncEngine._isSynchronizingChanges
       }
     }
 

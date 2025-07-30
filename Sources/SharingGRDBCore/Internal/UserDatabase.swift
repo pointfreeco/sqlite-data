@@ -17,7 +17,7 @@ package struct UserDatabase {
   ) async throws -> T {
     try await withEscapedDependencies { dependencies in
       try await database.write { db in
-        try SyncEngine.$_isUpdatingRecord.withValue(true) {
+        try SyncEngine.$_isSynchronizingChanges.withValue(true) {
           try dependencies.yield {
             try updates(db)
           }
@@ -31,7 +31,7 @@ package struct UserDatabase {
   ) async throws -> T {
     try await withEscapedDependencies { dependencies in
       try await database.read { db in
-        try SyncEngine.$_isUpdatingRecord.withValue(true) {
+        try SyncEngine.$_isSynchronizingChanges.withValue(true) {
           try dependencies.yield {
             try updates(db)
           }
@@ -46,7 +46,7 @@ package struct UserDatabase {
   ) throws -> T {
     try withEscapedDependencies { dependencies in
       try database.write { db in
-        try SyncEngine.$_isUpdatingRecord.withValue(true) {
+        try SyncEngine.$_isSynchronizingChanges.withValue(true) {
           try dependencies.yield {
             try updates(db)
           }
@@ -61,7 +61,7 @@ package struct UserDatabase {
   ) throws -> T {
     try withEscapedDependencies { dependencies in
       try database.read { db in
-        try SyncEngine.$_isUpdatingRecord.withValue(true) {
+        try SyncEngine.$_isSynchronizingChanges.withValue(true) {
           try dependencies.yield {
             try updates(db)
           }
