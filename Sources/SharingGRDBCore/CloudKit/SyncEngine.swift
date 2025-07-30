@@ -1582,6 +1582,7 @@
     }
   }
 
+  // TODO: Private, opaque error
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public struct InvalidTableName: LocalizedError {
     let tableName: String
@@ -1592,6 +1593,7 @@
     }
   }
 
+  // TODO: Private, opaque error
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public struct InvalidParentForeignKey: LocalizedError {
     let tableName: String
@@ -1604,6 +1606,7 @@
     }
   }
 
+  // TODO: Private, opaque error
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public struct InvalidUserTriggers: LocalizedError {
     let triggers: [String]
@@ -1615,6 +1618,7 @@
     }
   }
 
+  // TODO: Private, opaque error
   public struct UniqueConstraintDisallowed: Error {
     let localizedDescription: String
     init(table: any PrimaryKeyedTable.Type, columns: [String]) {
@@ -1624,6 +1628,8 @@
         """
     }
   }
+
+  // TODO: Private, opaque error
   public struct NonNullColumnMustHaveDefault: Error {
     let localizedDescription: String
     init(table: any PrimaryKeyedTable.Type, columns: [String]) {

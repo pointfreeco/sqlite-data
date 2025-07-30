@@ -22,14 +22,14 @@ extension BaseCloudKitTests {
 
       await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      await #expect(throws: SyncEngine.RecordMustBeRoot.self) {
+      await #expect(throws: (any Error).self) {
         _ = try await self.syncEngine.share(record: reminder, configure: { _ in })
       }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareUnrecognizedTable() async throws {
-      await #expect(throws: SyncEngine.UnrecognizedTable.self) {
+      await #expect(throws: (any Error).self) {
         _ = try await self.syncEngine.share(
           record: UnsyncedModel(id: 42),
           configure: { _ in }
@@ -39,7 +39,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func sharePrivateTable() async throws {
-      await #expect(throws: SyncEngine.PrivateRootRecord.self) {
+      await #expect(throws: (any Error).self) {
         _ = try await self.syncEngine.share(
           record: RemindersListPrivate(id: 1, remindersListID: 1),
           configure: { _ in }
@@ -49,7 +49,7 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareRecordBeforeSync() async throws {
-      await #expect(throws: SyncEngine.NoCKRecordFound.self) {
+      await #expect(throws: (any Error).self) {
         _ = try await self.syncEngine.share(
           record: RemindersList(id: 1),
           configure: { _ in }
