@@ -500,25 +500,21 @@ exposed for you to query it in whichever way you want.
 to attach the metadatabase to your database connection. This can be done with the
 ``GRDB/Database/attachMetadatabase(containerIdentifier:)`` method defined on `Database`.
 
-With that done you can use the ``StructuredQueriesCore/PrimaryKeyedTable/metadata(for:)`` method
-to construct a SQL query for fetching the meta data associated with one of your records.
-
 For example, if you want to retrieve the `CKRecord` that is associated with a particular row in
 one of your tables, say a reminder, then you can use ``SyncMetadata/lastKnownServerRecord`` to
 retreive the `CKRecord` and then invoke a CloudKit database function to retreive all of the details: 
 
 ```swift
-let lastKnownServerRecord = try database.read { db in
-  try RemindersList
-    .metadata(for: remindersListID)
-    .select(\.lastKnownServerRecord)
+let metadata = try database.read { db in
+  try SyncMetadata
+    .find(RemindersList.recordName(for: remindersListID))
     .fetchOne(db)
 }
-guard let lastKnownServerRecord 
+guard let metadata 
 else { return }
 
 let ckRecord = try await container.privateCloudDatabase
-  .record(for: lastKnownServerRecord.recordID)
+  .record(for: metadata.lastKnownServerRecord.recordID)
 ```
 
 > Important: In the above snippet we are explicitly using `privateCloudDatabase`, but that is
@@ -534,13 +530,14 @@ It is also possible to fetch the `CKShare` associated with a record if it has be
 will give you access to the most current list of paricipants and permissions for the shared record:
 
 ```swift
-let share = try database.read { db in
-  try RemindersList
-    .metadata(for: remindersListID)
-    .select(\.share)
+let metadata = try database.read { db in
+  try SyncMetadata
+    .find(RemindersList.recordName(for: remindersListID))
     .fetchOne(db)
 }
-guard let share
+guard 
+  let metadata,
+  let share = metadata.share
 else { return }
 
 let ckRecord = try await container.sharedCloudDatabase
