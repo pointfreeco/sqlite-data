@@ -79,13 +79,13 @@ extension BaseCloudKitTests {
 
       try await userDatabase.read { db in
         let reminderMetadata = try #require(
-          try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
+          try Reminder.metadata(for: 1).fetchOne(db)
         )
         #expect(reminderMetadata.recordName == Reminder.recordName(for: 1))
         #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
 
         let remindersListMetadata = try #require(
-          try SyncMetadata.find(1, table: RemindersList.self).fetchOne(db)
+          try RemindersList.metadata(for: 1).fetchOne(db)
         )
         #expect(remindersListMetadata.recordName == RemindersList.recordName(for: 1))
         #expect(remindersListMetadata.parentRecordName == nil)
@@ -370,13 +370,13 @@ extension BaseCloudKitTests {
 
         try await userDatabase.read { db in
           let reminderMetadata = try #require(
-            try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
+            try Reminder.metadata(for: 1).fetchOne(db)
           )
           #expect(reminderMetadata.recordName == Reminder.recordName(for: 1))
           #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
 
           let remindersListMetadata = try #require(
-            try SyncMetadata.find(1, table: RemindersList.self).fetchOne(db)
+            try RemindersList.metadata(for: 1).fetchOne(db)
           )
           #expect(remindersListMetadata.recordName == RemindersList.recordName(for: 1))
           #expect(remindersListMetadata.parentRecordName == nil)
@@ -573,7 +573,7 @@ extension BaseCloudKitTests {
         #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 2))
         
         let reminderMetadata = try #require(
-          try SyncMetadata.find(1, table: Reminder.self)
+          try Reminder.metadata(for: 1)
             .fetchOne(db)
         )
         #expect(reminderMetadata.parentRecordName == "2:remindersLists")
@@ -621,7 +621,7 @@ extension BaseCloudKitTests {
 
         try await userDatabase.read { db in
           let metadata = try #require(
-            try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
+            try Reminder.metadata(for: 1).fetchOne(db)
           )
           #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
           let reminder = try #require(try Reminder.find(1).fetchOne(db))
@@ -652,7 +652,7 @@ extension BaseCloudKitTests {
 
         try await userDatabase.read { db in
           let metadata = try #require(
-            try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
+            try Reminder.metadata(for: 1).fetchOne(db)
           )
           #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
           let reminder = try #require(try Reminder.find(1).fetchOne(db))
@@ -699,7 +699,7 @@ extension BaseCloudKitTests {
 
         try await userDatabase.read { db in
           let metadata = try #require(
-            try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
+            try Reminder.metadata(for: 1).fetchOne(db)
           )
           #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
           let reminder = try #require(try Reminder.find(1).fetchOne(db))
@@ -752,7 +752,7 @@ extension BaseCloudKitTests {
 
         try await userDatabase.read { db in
           let metadata = try #require(
-            try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
+            try Reminder.metadata(for: 1).fetchOne(db)
           )
           #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
           let reminder = try #require(try Reminder.find(1).fetchOne(db))

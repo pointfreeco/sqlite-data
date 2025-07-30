@@ -103,18 +103,6 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension SyncMetadata {
-    package static func find<T: PrimaryKeyedTable>(
-      _ primaryKey: T.PrimaryKey.QueryOutput,
-      table _: T.Type,
-    )
-      -> Where<Self>
-    where T.PrimaryKey: IdentifierStringConvertible {
-      T.metadata(for: primaryKey)
-    }
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTable where PrimaryKey: IdentifierStringConvertible {
     public static func metadata(for primaryKey: PrimaryKey.QueryOutput) -> Where<SyncMetadata> {
       SyncMetadata.where {
