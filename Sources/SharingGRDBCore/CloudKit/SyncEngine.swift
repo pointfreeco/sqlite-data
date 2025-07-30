@@ -118,7 +118,7 @@
       self.logger = logger
       self.metadatabase = try defaultMetadatabase(
         logger: logger,
-        url: URL.metadatabase(
+        url: try URL.metadatabase(
           databasePath: userDatabase.path,
           containerIdentifier: container.containerIdentifier
         )
@@ -1418,10 +1418,30 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension URL {
-    package static func metadatabase(databasePath: String, containerIdentifier: String?) -> URL {
-      URL(filePath: databasePath)
-        .deletingPathExtension()
+    package static func metadatabase(
+      databasePath: String,
+      containerIdentifier: String?
+    ) throws -> URL {
+      guard
+        let databaseURL = URL(string: databasePath),
+        !databaseURL.isInMemory
+      else {
+        struct InMemoryError: Error {}
+        throw InMemoryError()
+      }
+      return databaseURL
+        .deletingLastPathComponent()
+        .appending(component: ".\(databaseURL.deletingPathExtension().lastPathComponent)")
         .appendingPathExtension("metadata\(containerIdentifier.map { "-\($0)" } ?? "").sqlite")
+    }
+
+    package var isInMemory: Bool {
+      path.isEmpty
+        || path.hasPrefix(":memory:")
+        || URLComponents(url: self, resolvingAgainstBaseURL: false)?
+          .queryItems?
+          .contains(where: { $0.name == "mode" && $0.value == "memory" })
+          == true
     }
   }
 
@@ -1488,7 +1508,7 @@
         struct PathError: Error {}
         throw PathError()
       }
-      let url = URL.metadatabase(
+      let url = try URL.metadatabase(
         databasePath: databasePath,
         containerIdentifier: containerIdentifier
       )

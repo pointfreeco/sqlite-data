@@ -30,6 +30,14 @@ extension BaseCloudKitTests {
         )
       }
     #endif
+
+    @Test func inMemory() throws {
+      #expect(URL(string: "")?.isInMemory == nil)
+      #expect(URL(string: ":memory:")?.isInMemory == true)
+      #expect(URL(string: ":memory:?cache=shared")?.isInMemory == true)
+      #expect(URL(string: "file::memory:")?.isInMemory == true)
+      #expect(URL(string: "file:memdb1?mode=memory&cache=shared")?.isInMemory == true)
+    }
   }
 }
 
