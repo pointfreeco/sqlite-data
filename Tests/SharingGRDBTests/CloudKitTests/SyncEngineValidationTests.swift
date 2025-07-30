@@ -141,7 +141,9 @@ extension BaseCloudKitTests {
     }
 
     @Test func doNotValidateTriggersOnNonSyncedTables() async throws {
-      let database = try DatabaseQueue()
+      let database = try DatabaseQueue(
+        path: URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite").path()
+      )
       try await database.write { db in
         try #sql(
           """
