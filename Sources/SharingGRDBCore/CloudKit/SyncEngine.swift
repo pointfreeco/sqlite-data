@@ -256,7 +256,7 @@
       }
 
       try await userDatabase.write { db in
-        try Self.$_isUpdatingRecord.withValue(false) {
+        try Self.$_isSynchronizingChanges.withValue(false) {
           for tableName in newTableNames {
             try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
           }
