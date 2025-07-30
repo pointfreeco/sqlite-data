@@ -44,12 +44,11 @@
     ) -> some StructuredQueriesCore.Statement<Self> {
       SQLQueryExpression(
         """
-        SELECT \(ForeignKey.columns) 
+        SELECT \(columns)
         FROM pragma_foreign_key_list(\(bind: tableName)) AS "foreign_keys"
-        JOIN pragma_table_info(\(bind: tableName)) AS "table_info" 
+        JOIN pragma_table_info(\(bind: tableName)) AS "table_info"
           ON "foreign_keys"."from" = "table_info"."name"
-        """,
-        as: ForeignKey.self
+        """
       )
     }
 

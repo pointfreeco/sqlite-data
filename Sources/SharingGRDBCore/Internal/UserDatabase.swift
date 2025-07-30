@@ -8,6 +8,10 @@ package struct UserDatabase {
     self.database = database
   }
 
+  var path: String {
+    database.path
+  }
+
   var configuration: Configuration {
     database.configuration
   }

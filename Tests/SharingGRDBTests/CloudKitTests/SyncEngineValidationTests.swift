@@ -25,7 +25,6 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
             tables: [InvalidTable.self]
           )
         }
@@ -71,7 +70,6 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
             tables: []
           )
         }
@@ -127,7 +125,6 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
             tables: [RemindersList.self]
           )
         }
@@ -176,14 +173,13 @@ extension BaseCloudKitTests {
         )
         .execute(db)
       }
-      let _ = try await SyncEngine.init(
+      let _ = try await SyncEngine(
         container: MockCloudContainer(
           containerIdentifier: "deadbeef",
           privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
           sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
         ),
         userDatabase: UserDatabase(database: database),
-        metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
         tables: []
       )
     }

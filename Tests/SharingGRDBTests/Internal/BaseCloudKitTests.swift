@@ -49,7 +49,6 @@ class BaseCloudKitTests: @unchecked Sendable {
     _syncEngine = try await SyncEngine(
       container: container,
       userDatabase: self.userDatabase,
-      metadatabaseURL: URL.metadatabase(containerIdentifier: testContainerIdentifier),
       tables: [
         Reminder.self,
         RemindersList.self,
@@ -114,7 +113,6 @@ extension SyncEngine {
   convenience init(
     container: any CloudContainer,
     userDatabase: UserDatabase,
-    metadatabaseURL: URL,
     tables: [any PrimaryKeyedTable.Type],
     privateTables: [any PrimaryKeyedTable.Type] = []
   ) async throws {
@@ -139,7 +137,6 @@ extension SyncEngine {
       },
       userDatabase: userDatabase,
       logger: Logger(.disabled),
-      metadatabaseURL: metadatabaseURL,
       tables: tables,
       privateTables: privateTables
     )

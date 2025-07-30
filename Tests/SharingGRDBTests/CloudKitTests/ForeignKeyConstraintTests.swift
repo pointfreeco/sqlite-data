@@ -357,7 +357,6 @@ extension BaseCloudKitTests {
       let relaunchedSyncEngine = try await SyncEngine(
         container: syncEngine.container,
         userDatabase: syncEngine.userDatabase,
-        metadatabaseURL: URL(filePath: syncEngine.metadatabase.path),
         tables: syncEngine.tables,
         privateTables: syncEngine.privateTables
       )
