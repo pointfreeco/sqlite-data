@@ -30,7 +30,7 @@
       return Self.where {
         SQLQueryExpression(
           """
-          (\($0.recordName), \($0.zoneName), \($0.ownerName))
+          (\($0.recordName), \($0.zoneName), \($0.ownerName)) \
           IN (\(condition))
           """
         )
