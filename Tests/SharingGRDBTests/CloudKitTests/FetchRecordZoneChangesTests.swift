@@ -150,7 +150,7 @@ extension BaseCloudKitTests {
 
       try await userDatabase.read { db in
         let metadata = try #require(
-          try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
+          try Reminder.metadata(for: 1).fetchOne(db)
         )
         #expect(metadata.parentRecordName == RemindersList.recordName(for: 2))
         let reminder = try #require(try Reminder.find(1).fetchOne(db))
@@ -185,7 +185,7 @@ extension BaseCloudKitTests {
 
       try await userDatabase.read { db in
         let metadata = try #require(
-          try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
+          try Reminder.metadata(for: 1).fetchOne(db)
         )
         #expect(metadata.parentRecordName == RemindersList.recordName(for: 2))
         let reminder = try #require(try Reminder.find(1).fetchOne(db))
@@ -237,7 +237,7 @@ extension BaseCloudKitTests {
 
       try await userDatabase.read { db in
         let metadata = try #require(
-          try SyncMetadata.find(1, table: RemindersList.self).fetchOne(db)
+          try RemindersList.metadata(for: 1).fetchOne(db)
         )
         #expect(metadata.recordName == RemindersList.recordName(for: 1))
         let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
@@ -347,13 +347,13 @@ extension BaseCloudKitTests {
 
       try await userDatabase.read { db in
         let reminderMetadata = try #require(
-          try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
+          try Reminder.metadata(for: 1).fetchOne(db)
         )
         #expect(reminderMetadata.recordName == Reminder.recordName(for: 1))
         #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
 
         let remindersListMetadata = try #require(
-          try SyncMetadata.find(1, table: RemindersList.self).fetchOne(db)
+          try RemindersList.metadata(for: 1).fetchOne(db)
         )
         #expect(remindersListMetadata.recordName == RemindersList.recordName(for: 1))
         #expect(remindersListMetadata.parentRecordName == nil)

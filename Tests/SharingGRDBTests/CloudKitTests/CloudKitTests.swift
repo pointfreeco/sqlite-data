@@ -540,7 +540,7 @@ extension BaseCloudKitTests {
 
       let metadata =
       try await userDatabase.userRead { db in
-        try SyncMetadata.find(1, table: RemindersList.self).fetchOne(db)
+        try RemindersList.metadata(for: 1).fetchOne(db)
       }
       #expect(metadata != nil)
     }
@@ -552,6 +552,7 @@ extension BaseCloudKitTests {
         SELECT name
         FROM pragma_function_list
         WHERE name LIKE \(bind: String.sqliteDataCloudKitSchemaName + "_%")
+        ORDER BY name
         """,
         as: String.self
       )
@@ -561,10 +562,10 @@ extension BaseCloudKitTests {
       ) {
         """
         [
-          [0]: "sqlitedata_icloud_syncengineisupdatingrecord",
-          [1]: "sqlitedata_icloud_datetime",
+          [0]: "sqlitedata_icloud_datetime",
+          [1]: "sqlitedata_icloud_diddelete",
           [2]: "sqlitedata_icloud_didupdate",
-          [3]: "sqlitedata_icloud_diddelete"
+          [3]: "sqlitedata_icloud_syncengineissynchronizingchanges"
         ]
         """
       }
@@ -709,8 +710,7 @@ extension BaseCloudKitTests {
 
       let userModificationDate = try #require(
         try await userDatabase.userRead { db in
-          try SyncMetadata
-            .find(1, table: RemindersList.self)
+          try RemindersList.metadata(for: 1)
             .select(\.userModificationDate)
             .fetchOne(db) ?? nil
         }
@@ -730,8 +730,7 @@ extension BaseCloudKitTests {
 
       let metadata = try #require(
         try await userDatabase.userRead { db in
-          try SyncMetadata
-            .find(1, table: RemindersList.self)
+          try RemindersList.metadata(for: 1)
             .fetchOne(db)
         }
       )
@@ -840,8 +839,7 @@ extension BaseCloudKitTests {
 
       let userModificationDate = try #require(
         try await userDatabase.userRead { db in
-          try SyncMetadata
-            .find(1, table: RemindersList.self)
+          try RemindersList.metadata(for: 1)
             .select(\.userModificationDate)
             .fetchOne(db) ?? nil
         }
@@ -860,8 +858,7 @@ extension BaseCloudKitTests {
 
       let metadata = try #require(
         try await userDatabase.userRead { db in
-          try SyncMetadata
-            .find(1, table: RemindersList.self)
+          try RemindersList.metadata(for: 1)
             .fetchOne(db)
         }
       )
@@ -932,8 +929,7 @@ extension BaseCloudKitTests {
         } == []
       )
       let metadata = try await userDatabase.userRead { db in
-        try SyncMetadata
-          .find(1, table: RemindersList.self)
+        try RemindersList.metadata(for: 1)
           .fetchOne(db)
       }
       #expect(metadata == nil)

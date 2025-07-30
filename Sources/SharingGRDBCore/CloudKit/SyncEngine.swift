@@ -163,7 +163,7 @@
           .execute(db)
         }
         db.add(function: .datetime)
-        db.add(function: .syncEngineIsUpdatingRecord)
+        db.add(function: .syncEngineIsSynchronizingChanges)
         db.add(function: .didUpdate(syncEngine: self))
         db.add(function: .didDelete(syncEngine: self))
 
@@ -344,7 +344,7 @@
         }
         db.remove(function: .didDelete(syncEngine: self))
         db.remove(function: .didUpdate(syncEngine: self))
-        db.remove(function: .syncEngineIsUpdatingRecord)
+        db.remove(function: .syncEngineIsSynchronizingChanges)
         db.remove(function: .datetime)
       }
       try await userDatabase.write { db in
@@ -430,7 +430,7 @@
     }
 
     public static func isSynchronizingChanges() -> SQLQueryExpression<Bool> {
-      SQLQueryExpression("\(raw: DatabaseFunction.syncEngineIsUpdatingRecord.name)()")
+      SQLQueryExpression("\(raw: DatabaseFunction.syncEngineIsSynchronizingChanges.name)()")
     }
   }
 
@@ -1385,8 +1385,8 @@
       }
     }
 
-    fileprivate static var syncEngineIsUpdatingRecord: Self {
-      Self(.sqliteDataCloudKitSchemaName + "_" + "syncEngineIsUpdatingRecord", argumentCount: 0) {
+    fileprivate static var syncEngineIsSynchronizingChanges: Self {
+      Self(.sqliteDataCloudKitSchemaName + "_" + "syncEngineIsSynchronizingChanges", argumentCount: 0) {
         _ in
         SyncEngine._isSynchronizingChanges
       }
@@ -1539,7 +1539,7 @@
         let isValid =
           sql
           .lowercased()
-          .contains("\(DatabaseFunction.syncEngineIsUpdatingRecord.name)()".lowercased())
+          .contains("\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()".lowercased())
         return isValid ? nil : name
       }
       guard invalidTriggers.isEmpty
@@ -1615,7 +1615,7 @@
     let triggers: [String]
     public var localizedDescription: String {
       """
-      Triggers must include '\(DatabaseFunction.syncEngineIsUpdatingRecord.name)()' check: \
+      Triggers must include '\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()' check: \
       \(triggers.map { "'\($0)'" }.joined(separator: ", "))
       """
     }
