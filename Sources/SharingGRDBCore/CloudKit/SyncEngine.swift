@@ -66,7 +66,6 @@
         },
         userDatabase: userDatabase,
         logger: logger,
-        metadatabaseURL: URL.metadatabase(containerIdentifier: container.containerIdentifier),
         tables: tables,
         privateTables: privateTables
       )
@@ -85,7 +84,6 @@
       ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
       userDatabase: UserDatabase,
       logger: Logger,
-      metadatabaseURL: URL,
       tables: [any PrimaryKeyedTable.Type],
       privateTables: [any PrimaryKeyedTable.Type] = []
     ) throws {
@@ -118,7 +116,13 @@
       self.defaultSyncEngines = defaultSyncEngines
       self.userDatabase = userDatabase
       self.logger = logger
-      self.metadatabase = try defaultMetadatabase(logger: logger, url: metadatabaseURL)
+      self.metadatabase = try defaultMetadatabase(
+        logger: logger,
+        url: try URL.metadatabase(
+          databasePath: userDatabase.path,
+          containerIdentifier: container.containerIdentifier
+        )
+      )
       let tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
         .map(\.type)
       self.tables = tables
@@ -133,7 +137,7 @@
       )
     }
 
-    @TaskLocal package static var _isUpdatingRecord = false
+    @TaskLocal package static var _isSynchronizingChanges = false
 
     package func setUpSyncEngine() async throws {
       try await setUpSyncEngine(userDatabase: userDatabase, metadatabase: metadatabase)?.value
@@ -163,7 +167,7 @@
           .execute(db)
         }
         db.add(function: .datetime)
-        db.add(function: .syncEngineIsUpdatingRecord)
+        db.add(function: .syncEngineIsSynchronizingChanges)
         db.add(function: .didUpdate(syncEngine: self))
         db.add(function: .didDelete(syncEngine: self))
 
@@ -322,7 +326,7 @@
         }
         db.remove(function: .didDelete(syncEngine: self))
         db.remove(function: .didUpdate(syncEngine: self))
-        db.remove(function: .syncEngineIsUpdatingRecord)
+        db.remove(function: .syncEngineIsSynchronizingChanges)
         db.remove(function: .datetime)
       }
       try await userDatabase.write { db in
@@ -407,8 +411,8 @@
       )
     }
 
-    public static func isUpdatingRecord() -> SQLQueryExpression<Bool> {
-      SQLQueryExpression("\(raw: DatabaseFunction.syncEngineIsUpdatingRecord.name)()")
+    public static func isSynchronizingChanges() -> SQLQueryExpression<Bool> {
+      SQLQueryExpression("\(raw: DatabaseFunction.syncEngineIsSynchronizingChanges.name)()")
     }
   }
 
@@ -788,6 +792,51 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
+      let recordIDsByRecordType = OrderedDictionary(
+        grouping: deletions.sorted { lhs, rhs in
+          guard
+            let lhsIndex = tablesByOrder[lhs.recordType],
+            let rhsIndex = tablesByOrder[rhs.recordType]
+          else { return true }
+          return lhsIndex > rhsIndex
+        },
+        by: \.recordType
+      )
+        .mapValues { $0.map(\.recordID) }
+      for (recordType, recordIDs) in recordIDsByRecordType {
+        let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
+        if let table = tablesByName[recordType] {
+          func open<T: PrimaryKeyedTable>(_: T.Type) {
+            withErrorReporting(.sqliteDataCloudKitFailure) {
+              try userDatabase.write { db in
+                try T
+                  .where {
+                    $0.primaryKey.in(
+                      recordPrimaryKeys.map { SQLQueryExpression("\(bind: $0)") }
+                    )
+                  }
+                  .delete()
+                  .execute(db)
+
+                try UnsyncedRecordID
+                  .findAll(recordIDs)
+                  .delete()
+                  .execute(db)
+              }
+            }
+          }
+          open(table)
+        } else if recordType == CKRecord.SystemType.share {
+          withErrorReporting {
+            for recordID in recordIDs {
+              try deleteShare(recordID: recordID)
+            }
+          }
+        } else {
+          // NB: Deleting a record from a table we do not currently recognize.
+        }
+      }
+
       let unsyncedRecords =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           var unsyncedRecordIDs = try await userDatabase.write { db in
@@ -802,9 +851,10 @@
           unsyncedRecordIDs.subtract(modificationRecordIDs)
           if !unsyncedRecordIDsToDelete.isEmpty {
             try await userDatabase.write { db in
-              for recordID in unsyncedRecordIDsToDelete {
-                try UnsyncedRecordID.find(recordID).delete().execute(db)
-              }
+              try UnsyncedRecordID
+                .findAll(unsyncedRecordIDsToDelete)
+                .delete()
+                .execute(db)
             }
           }
           let results = try await syncEngine.database.records(for: Array(unsyncedRecordIDs))
@@ -871,46 +921,6 @@
           }
         }
       }
-
-      let recordIDsByRecordType = OrderedDictionary(
-        grouping: deletions.sorted { lhs, rhs in
-          guard
-            let lhsIndex = tablesByOrder[lhs.recordType],
-            let rhsIndex = tablesByOrder[rhs.recordType]
-          else { return true }
-          return lhsIndex > rhsIndex
-        },
-        by: \.recordType
-      )
-      .mapValues { $0.map(\.recordID) }
-      for (recordType, recordIDs) in recordIDsByRecordType {
-        let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
-        if let table = tablesByName[recordType] {
-          func open<T: PrimaryKeyedTable>(_: T.Type) {
-            withErrorReporting(.sqliteDataCloudKitFailure) {
-              try userDatabase.write { db in
-                try T
-                  .where {
-                    $0.primaryKey.in(
-                      recordPrimaryKeys.map { SQLQueryExpression("\(bind: $0)") }
-                    )
-                  }
-                  .delete()
-                  .execute(db)
-              }
-            }
-          }
-          open(table)
-        } else if recordType == CKRecord.SystemType.share {
-          withErrorReporting {
-            for recordID in recordIDs {
-              try deleteShare(recordID: recordID)
-            }
-          }
-        } else {
-          // NB: Deleting a record from a table we do not currently recognize.
-        }
-      }
     }
 
     package func handleSentRecordZoneChanges(
@@ -970,7 +980,7 @@
           else { continue }
           func open<T: PrimaryKeyedTable>(_: T.Type) throws {
             try userDatabase.write { db in
-              try Self.$_isUpdatingRecord.withValue(false) {
+              try Self.$_isSynchronizingChanges.withValue(false) {
                 switch foreignKey.onDelete {
                 case .cascade:
                   try T
@@ -1348,10 +1358,10 @@
       }
     }
 
-    fileprivate static var syncEngineIsUpdatingRecord: Self {
-      Self(.sqliteDataCloudKitSchemaName + "_" + "syncEngineIsUpdatingRecord", argumentCount: 0) {
+    fileprivate static var syncEngineIsSynchronizingChanges: Self {
+      Self(.sqliteDataCloudKitSchemaName + "_" + "syncEngineIsSynchronizingChanges", argumentCount: 0) {
         _ in
-        SyncEngine._isUpdatingRecord
+        SyncEngine._isSynchronizingChanges
       }
     }
 
@@ -1381,23 +1391,32 @@
     fileprivate static let sqliteDataCloudKitFailure = "SharingGRDB CloudKit Failure"
   }
 
-  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension URL {
-    package static func metadatabase(containerIdentifier: String?) throws -> Self {
-      @Dependency(\.context) var context
-      let base: URL
-      if context == .live {
-        try FileManager.default.createDirectory(
-          at: .applicationSupportDirectory,
-          withIntermediateDirectories: true
-        )
-        base = .applicationSupportDirectory
-      } else {
-        base = .temporaryDirectory
+    package static func metadatabase(
+      databasePath: String,
+      containerIdentifier: String?
+    ) throws -> URL {
+      guard
+        let databaseURL = URL(string: databasePath),
+        !databaseURL.isInMemory
+      else {
+        struct InMemoryError: Error {}
+        throw InMemoryError()
       }
-      return base.appending(
-        component: "\(containerIdentifier.map { "\($0)." } ?? "")sqlite-data-icloud.sqlite"
-      )
+      return databaseURL
+        .deletingLastPathComponent()
+        .appending(component: ".\(databaseURL.deletingPathExtension().lastPathComponent)")
+        .appendingPathExtension("metadata\(containerIdentifier.map { "-\($0)" } ?? "").sqlite")
+    }
+
+    package var isInMemory: Bool {
+      path.isEmpty
+        || path.hasPrefix(":memory:")
+        || URLComponents(url: self, resolvingAgainstBaseURL: false)?
+          .queryItems?
+          .contains(where: { $0.name == "mode" && $0.value == "memory" })
+          == true
     }
   }
 
@@ -1453,7 +1472,21 @@
     /// - Parameter containerIdentifier: The identifier of the CloudKit container used to synchronize
     ///                                  data.
     public func attachMetadatabase(containerIdentifier: String) throws {
-      let url = try URL.metadatabase(containerIdentifier: containerIdentifier)
+      let databasePath = try SQLQueryExpression(
+        """
+        SELECT "file" FROM pragma_database_list()
+        """,
+        as: String.self
+      )
+      .fetchOne(self)
+      guard let databasePath else {
+        struct PathError: Error {}
+        throw PathError()
+      }
+      let url = try URL.metadatabase(
+        databasePath: databasePath,
+        containerIdentifier: containerIdentifier
+      )
       let path = url.path(percentEncoded: false)
       try FileManager.default.createDirectory(
         at: .applicationSupportDirectory,
@@ -1502,7 +1535,7 @@
         let isValid =
           sql
           .lowercased()
-          .contains("\(DatabaseFunction.syncEngineIsUpdatingRecord.name)()".lowercased())
+          .contains("\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()".lowercased())
         return isValid ? nil : name
       }
       guard invalidTriggers.isEmpty
@@ -1578,7 +1611,7 @@
     let triggers: [String]
     public var localizedDescription: String {
       """
-      Triggers must include '\(DatabaseFunction.syncEngineIsUpdatingRecord.name)()' check: \
+      Triggers must include '\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()' check: \
       \(triggers.map { "'\($0)'" }.joined(separator: ", "))
       """
     }
@@ -1717,7 +1750,7 @@
           \(quote: $0) = "excluded".\(quote: $0)
           """
         }
-        .joined(separator: ",")
+        .joined(separator: ", ")
     )
     return query
   }

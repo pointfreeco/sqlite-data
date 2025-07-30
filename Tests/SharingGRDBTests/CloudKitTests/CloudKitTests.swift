@@ -352,12 +352,12 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "modelAs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "count" INTEGER NOT NULL
+                "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
               )
               """,
             tableInfo: [
               [0]: TableInfo(
-                defaultValue: nil,
+                defaultValue: "0",
                 isPrimaryKey: false,
                 name: "count",
                 notNull: true,
@@ -377,7 +377,7 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "modelBs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "isOn" INTEGER NOT NULL,
+                "isOn" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
                 "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
               )
               """,
@@ -390,7 +390,7 @@ extension BaseCloudKitTests {
                 type: "INTEGER"
               ),
               [1]: TableInfo(
-                defaultValue: nil,
+                defaultValue: "0",
                 isPrimaryKey: false,
                 name: "isOn",
                 notNull: true,
@@ -410,7 +410,7 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "modelCs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "title" TEXT NOT NULL,
+                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
                 "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
               )
               """,
@@ -430,7 +430,7 @@ extension BaseCloudKitTests {
                 type: "INTEGER"
               ),
               [2]: TableInfo(
-                defaultValue: nil,
+                defaultValue: "\'\'",
                 isPrimaryKey: false,
                 name: "title",
                 notNull: true,
@@ -540,7 +540,7 @@ extension BaseCloudKitTests {
 
       let metadata =
       try await userDatabase.userRead { db in
-        try SyncMetadata.find(1, table: RemindersList.self).fetchOne(db)
+        try RemindersList.metadata(for: 1).fetchOne(db)
       }
       #expect(metadata != nil)
     }
@@ -552,6 +552,7 @@ extension BaseCloudKitTests {
         SELECT name
         FROM pragma_function_list
         WHERE name LIKE \(bind: String.sqliteDataCloudKitSchemaName + "_%")
+        ORDER BY name
         """,
         as: String.self
       )
@@ -561,10 +562,10 @@ extension BaseCloudKitTests {
       ) {
         """
         [
-          [0]: "sqlitedata_icloud_syncengineisupdatingrecord",
-          [1]: "sqlitedata_icloud_datetime",
+          [0]: "sqlitedata_icloud_datetime",
+          [1]: "sqlitedata_icloud_diddelete",
           [2]: "sqlitedata_icloud_didupdate",
-          [3]: "sqlitedata_icloud_diddelete"
+          [3]: "sqlitedata_icloud_syncengineissynchronizingchanges"
         ]
         """
       }
@@ -709,8 +710,7 @@ extension BaseCloudKitTests {
 
       let userModificationDate = try #require(
         try await userDatabase.userRead { db in
-          try SyncMetadata
-            .find(1, table: RemindersList.self)
+          try RemindersList.metadata(for: 1)
             .select(\.userModificationDate)
             .fetchOne(db) ?? nil
         }
@@ -730,8 +730,7 @@ extension BaseCloudKitTests {
 
       let metadata = try #require(
         try await userDatabase.userRead { db in
-          try SyncMetadata
-            .find(1, table: RemindersList.self)
+          try RemindersList.metadata(for: 1)
             .fetchOne(db)
         }
       )
@@ -840,8 +839,7 @@ extension BaseCloudKitTests {
 
       let userModificationDate = try #require(
         try await userDatabase.userRead { db in
-          try SyncMetadata
-            .find(1, table: RemindersList.self)
+          try RemindersList.metadata(for: 1)
             .select(\.userModificationDate)
             .fetchOne(db) ?? nil
         }
@@ -860,8 +858,7 @@ extension BaseCloudKitTests {
 
       let metadata = try #require(
         try await userDatabase.userRead { db in
-          try SyncMetadata
-            .find(1, table: RemindersList.self)
+          try RemindersList.metadata(for: 1)
             .fetchOne(db)
         }
       )
@@ -932,8 +929,7 @@ extension BaseCloudKitTests {
         } == []
       )
       let metadata = try await userDatabase.userRead { db in
-        try SyncMetadata
-          .find(1, table: RemindersList.self)
+        try RemindersList.metadata(for: 1)
           .fetchOne(db)
       }
       #expect(metadata == nil)

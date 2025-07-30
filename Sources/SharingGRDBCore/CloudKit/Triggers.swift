@@ -91,7 +91,7 @@ extension SyncMetadata {
     after: .insert { new in
       Values(.didUpdate(new))
     } when: { _ in
-      !SyncEngine.isUpdatingRecord()
+      !SyncEngine.isSynchronizingChanges()
     }
   )
 
@@ -101,7 +101,7 @@ extension SyncMetadata {
     after: .update { _, new in
       Values(.didUpdate(new))
     } when: { _, _ in
-      !SyncEngine.isUpdatingRecord()
+      !SyncEngine.isSynchronizingChanges()
     }
   )
 
@@ -115,7 +115,7 @@ extension SyncMetadata {
         ?? rootServerRecord(recordName: old.recordName)
       ))
     } when: { _ in
-      !SyncEngine.isUpdatingRecord()
+      !SyncEngine.isSynchronizingChanges()
     }
   )
 }

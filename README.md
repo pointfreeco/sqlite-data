@@ -265,7 +265,7 @@ struct MyApp: App {
         ),
         database: $0.defaultDatabase,
         tables: [
-          /* ... */
+          Item.self,
         ]
       )
     }
