@@ -734,20 +734,21 @@
       deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)],
       syncEngine: any SyncEngineProtocol
     ) async {
-      let defaultZoneDeleted = await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await userDatabase.write { db in
-          var defaultZoneDeleted = false
-          for (zoneID, reason) in deletions {
-            guard zoneID == self.defaultZone.zoneID
-            else { continue }
-            switch reason {
-            case .deleted, .purged:
-              try deleteRecords(in: zoneID, db: db)
-              defaultZoneDeleted = true
-            case .encryptedDataReset:
-              try uploadRecords(in: zoneID, db: db)
-            @unknown default:
-              reportIssue("Unknown deletion reason: \(reason)")
+      let defaultZoneDeleted =
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await userDatabase.write { db in
+            var defaultZoneDeleted = false
+            for (zoneID, reason) in deletions {
+              guard zoneID == self.defaultZone.zoneID
+              else { continue }
+              switch reason {
+              case .deleted, .purged:
+                try deleteRecords(in: zoneID, db: db)
+                defaultZoneDeleted = true
+              case .encryptedDataReset:
+                try uploadRecords(in: zoneID, db: db)
+              @unknown default:
+                reportIssue("Unknown deletion reason: \(reason)")
               }
             }
             return defaultZoneDeleted
@@ -818,7 +819,7 @@
         },
         by: \.recordType
       )
-        .mapValues { $0.map(\.recordID) }
+      .mapValues { $0.map(\.recordID) }
       for (recordType, recordIDs) in recordIDsByRecordType {
         let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
         if let table = tablesByName[recordType] {
@@ -1375,7 +1376,10 @@
     }
 
     fileprivate static var syncEngineIsSynchronizingChanges: Self {
-      Self(.sqliteDataCloudKitSchemaName + "_" + "syncEngineIsSynchronizingChanges", argumentCount: 0) {
+      Self(
+        .sqliteDataCloudKitSchemaName + "_" + "syncEngineIsSynchronizingChanges",
+        argumentCount: 0
+      ) {
         _ in
         SyncEngine._isSynchronizingChanges
       }
@@ -1424,7 +1428,8 @@
             """
         )
       }
-      return databaseURL
+      return
+        databaseURL
         .deletingLastPathComponent()
         .appending(component: ".\(databaseURL.deletingPathExtension().lastPathComponent)")
         .appendingPathExtension("metadata\(containerIdentifier.map { "-\($0)" } ?? "").sqlite")
@@ -1589,22 +1594,22 @@
     }
     try userDatabase.read { db in
       let triggers = try SQLQueryExpression(
-          """
-          SELECT "name", "tbl_name", "sql"
-            FROM "sqlite_master"
-            WHERE "type" = 'trigger'
-          UNION
-          SELECT "name", "tbl_name", "sql"
-            FROM "sqlite_temp_master"
-            WHERE "type" = 'trigger'
-          """,
-          as: (String, String, String).self
+        """
+        SELECT "name", "tbl_name", "sql"
+          FROM "sqlite_master"
+          WHERE "type" = 'trigger'
+        UNION
+        SELECT "name", "tbl_name", "sql"
+          FROM "sqlite_temp_master"
+          WHERE "type" = 'trigger'
+        """,
+        as: (String, String, String).self
       )
-        .fetchAll(db)
-        .filter { _, tableName, _ in tableNames.contains(tableName) }
+      .fetchAll(db)
+      .filter { _, tableName, _ in tableNames.contains(tableName) }
       let invalidTriggers = triggers.compactMap { name, _, sql in
         let isValid =
-        sql
+          sql
           .lowercased()
           .contains("\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()".lowercased())
         return isValid ? nil : name
@@ -1622,8 +1627,8 @@
 
       for (tableName, foreignKeys) in foreignKeysByTableName {
         if foreignKeys.count == 1,
-           let foreignKey = foreignKeys.first,
-           [.restrict, .noAction].contains(foreignKey.onDelete)
+          let foreignKey = foreignKeys.first,
+          [.restrict, .noAction].contains(foreignKey.onDelete)
         {
           throw SyncEngine.SchemaError(
             reason: .invalidForeignKeyAction(foreignKey),
