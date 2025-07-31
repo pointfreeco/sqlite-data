@@ -18,13 +18,13 @@ extension BaseCloudKitTests {
           Reminder(id: 1, title: "Get milk", remindersListID: 1)
         }
       }
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       let reminderRecord = try syncEngine.private.database
         .record(for: Reminder.recordID(for: 1))
       reminderRecord.setValue("Hello world! 🌎🌎🌎", forKey: "newField", at: now)
 
-      await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
+      try await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord]).notify()
 
       do {
         let lastKnownServerRecords = try await syncEngine.metadatabase.read { db in
@@ -67,7 +67,7 @@ extension BaseCloudKitTests {
           try Reminder.find(1).update { $0.isCompleted.toggle() }.execute(db)
         }
 
-        await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         do {
           let lastKnownServerRecords = try await syncEngine.metadatabase.read { db in
@@ -113,7 +113,7 @@ extension BaseCloudKitTests {
           Reminder(id: 1, title: "Get milk", remindersListID: 1)
         }
       }
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
         $0.date.now.addTimeInterval(1)
@@ -126,7 +126,7 @@ extension BaseCloudKitTests {
           action: .none
         )
 
-        await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
+        try await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord]).notify()
       }
 
       assertInlineSnapshot(
@@ -148,25 +148,25 @@ extension BaseCloudKitTests {
         """
       }
 
-      try {
-        try userDatabase.read { db in
-          let metadata = try #require(
-            try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
-          )
-          #expect(metadata.parentRecordName == RemindersList.recordName(for: 2))
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 2))
-        }
-      }()
+      try await userDatabase.read { db in
+        let metadata = try #require(
+          try Reminder.metadata(for: 1).fetchOne(db)
+        )
+        #expect(metadata.parentRecordName == RemindersList.recordName(for: 2))
+        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+        #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 2))
+      }
 
       try await userDatabase.userWrite { db in
         try Reminder.find(1).update { $0.isCompleted.toggle() }.execute(db)
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(
-        of: syncEngine.private.database.storage[syncEngine.defaultZone.zoneID]?[Reminder.recordID(for: 1)],
+        of: syncEngine.private.database.storage[syncEngine.defaultZone.zoneID]?[
+          Reminder.recordID(for: 1)
+        ],
         as: .customDump
       ) {
         """
@@ -183,34 +183,33 @@ extension BaseCloudKitTests {
         """
       }
 
-      try {
-        try userDatabase.read { db in
-          let metadata = try #require(
-            try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
-          )
-          #expect(metadata.parentRecordName == RemindersList.recordName(for: 2))
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(
-            reminder == Reminder(
+      try await userDatabase.read { db in
+        let metadata = try #require(
+          try Reminder.metadata(for: 1).fetchOne(db)
+        )
+        #expect(metadata.parentRecordName == RemindersList.recordName(for: 2))
+        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+        #expect(
+          reminder
+            == Reminder(
               id: 1,
               isCompleted: true,
               title: "Get milk",
               remindersListID: 2
             )
-          )
-        }
-      }()
+        )
+      }
     }
 
     @Test func receiveNewRecordFromCloudKit() async throws {
-      let remindersListRecord = CKRecord.init(
+      let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: 1)
       )
       remindersListRecord.setValue("1", forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
-      await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
+      try await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]).notify()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -236,16 +235,14 @@ extension BaseCloudKitTests {
         """
       }
 
-      try {
-        try userDatabase.read { db in
-          let metadata = try #require(
-            try SyncMetadata.find(1, table: RemindersList.self).fetchOne(db)
-          )
-          #expect(metadata.recordName == RemindersList.recordName(for: 1))
-          let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
-          #expect(remindersList == RemindersList(id: 1, title: "Personal"))
-        }
-      }()
+      try await userDatabase.read { db in
+        let metadata = try #require(
+          try RemindersList.metadata(for: 1).fetchOne(db)
+        )
+        #expect(metadata.recordName == RemindersList.recordName(for: 1))
+        let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
+        #expect(remindersList == RemindersList(id: 1, title: "Personal"))
+      }
 
       try await withDependencies {
         $0.date.now.addTimeInterval(1)
@@ -254,7 +251,7 @@ extension BaseCloudKitTests {
           try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)
         }
 
-        await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
       }
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
@@ -281,12 +278,10 @@ extension BaseCloudKitTests {
         """
       }
 
-      try {
-        try userDatabase.read { db in
-          let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
-          #expect(remindersList == RemindersList(id: 1, title: "My stuff"))
-        }
-      }()
+      try await userDatabase.read { db in
+        let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
+        #expect(remindersList == RemindersList(id: 1, title: "My stuff"))
+      }
     }
 
     @Test func receiveNewRecordFromCloudKit_ChildBeforeParent() async throws {
@@ -309,8 +304,11 @@ extension BaseCloudKitTests {
         action: .none
       )
 
-      let remindersListModification = { syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]) }()
-      await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
+      let remindersListModification = try syncEngine.modifyRecords(
+        scope: .private,
+        saving: [remindersListRecord]
+      )
+      try await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord]).notify()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -345,29 +343,27 @@ extension BaseCloudKitTests {
         """
       }
 
-      await remindersListModification()
+      await remindersListModification.notify()
 
-      try {
-        try userDatabase.read { db in
-          let reminderMetadata = try #require(
-            try SyncMetadata.find(1, table: Reminder.self).fetchOne(db)
-          )
-          #expect(reminderMetadata.recordName == Reminder.recordName(for: 1))
-          #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
+      try await userDatabase.read { db in
+        let reminderMetadata = try #require(
+          try Reminder.metadata(for: 1).fetchOne(db)
+        )
+        #expect(reminderMetadata.recordName == Reminder.recordName(for: 1))
+        #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
 
-          let remindersListMetadata = try #require(
-            try SyncMetadata.find(1, table: RemindersList.self).fetchOne(db)
-          )
-          #expect(remindersListMetadata.recordName == RemindersList.recordName(for: 1))
-          #expect(remindersListMetadata.parentRecordName == nil)
+        let remindersListMetadata = try #require(
+          try RemindersList.metadata(for: 1).fetchOne(db)
+        )
+        #expect(remindersListMetadata.recordName == RemindersList.recordName(for: 1))
+        #expect(remindersListMetadata.parentRecordName == nil)
 
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 1))
+        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+        #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 1))
 
-          let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
-          #expect(remindersList == RemindersList(id: 1, title: "Personal"))
-        }
-      }()
+        let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
+        #expect(remindersList == RemindersList(id: 1, title: "Personal"))
+      }
 
       try await withDependencies {
         $0.date.now.addTimeInterval(1)
@@ -376,7 +372,7 @@ extension BaseCloudKitTests {
           try Reminder.find(1).update { $0.title = "Buy milk" }.execute(db)
         }
 
-        await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
       }
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
@@ -413,12 +409,10 @@ extension BaseCloudKitTests {
         """
       }
 
-      try {
-        try userDatabase.read { db in
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder(id: 1, title: "Buy milk", remindersListID: 1))
-        }
-      }()
+      try await userDatabase.read { db in
+        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+        #expect(reminder == Reminder(id: 1, title: "Buy milk", remindersListID: 1))
+      }
     }
 
     @Test func deleteMultipleRecords() async throws {
@@ -430,9 +424,9 @@ extension BaseCloudKitTests {
           Reminder(id: 4, title: "Call accountant", remindersListID: 2)
         }
       }
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      await syncEngine.modifyRecords(
+      try await syncEngine.modifyRecords(
         scope: .private,
         deleting: [
           RemindersList.recordID(for: 1),
@@ -441,13 +435,12 @@ extension BaseCloudKitTests {
           Reminder.recordID(for: 4),
         ]
       )
+      .notify()
 
-      try {
-        try userDatabase.read { db in
-          try #expect(Reminder.all.fetchCount(db) == 0)
-          try #expect(RemindersList.all.fetchCount(db) == 0)
-        }
-      }()
+      try await userDatabase.read { db in
+        try #expect(Reminder.all.fetchCount(db) == 0)
+        try #expect(RemindersList.all.fetchCount(db) == 0)
+      }
     }
   }
 }

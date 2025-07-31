@@ -31,7 +31,7 @@ class RemindersDetailModel: HashableObject {
       _coverImageData = FetchOne(
         RemindersListAsset
           .where { $0.remindersListID.eq(remindersListID) }
-          .select { #sql("\($0.coverImage)") },
+          .select(\.coverImage),
         animation: .default
       )
     }

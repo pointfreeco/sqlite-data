@@ -25,7 +25,6 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
             tables: [InvalidTable.self]
           )
         }
@@ -71,7 +70,6 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
             tables: []
           )
         }
@@ -127,7 +125,6 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
             tables: [RemindersList.self]
           )
         }
@@ -136,7 +133,7 @@ extension BaseCloudKitTests {
       #expect(
         error.localizedDescription.hasPrefix(
           """
-          Triggers must include 'sqlitedata_icloud_syncEngineIsUpdatingRecord()' check: \
+          Triggers must include 'sqlitedata_icloud_syncEngineIsSynchronizingChanges()' check: \
           'non_temporary_trigger', 'temporary_trigger'
           """
         )
@@ -144,7 +141,9 @@ extension BaseCloudKitTests {
     }
 
     @Test func doNotValidateTriggersOnNonSyncedTables() async throws {
-      let database = try DatabaseQueue()
+      let database = try DatabaseQueue(
+        path: URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite").path()
+      )
       try await database.write { db in
         try #sql(
           """
@@ -176,14 +175,13 @@ extension BaseCloudKitTests {
         )
         .execute(db)
       }
-      let _ = try await SyncEngine.init(
+      let _ = try await SyncEngine(
         container: MockCloudContainer(
           containerIdentifier: "deadbeef",
           privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
           sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
         ),
         userDatabase: UserDatabase(database: database),
-        metadatabaseURL: URL.temporaryDirectory.appending(path: UUID().uuidString),
         tables: []
       )
     }

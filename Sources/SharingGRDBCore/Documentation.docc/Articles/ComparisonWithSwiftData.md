@@ -846,34 +846,20 @@ SwiftData also has a few limitations in what features you are allowed to use in 
 * All properties on a model must be optional or have a default value.
 * All relationships must be optional.
 
-SharingGRDB has the first two limitations due to the nature of a distributed nature of the app's
-schema:
+SharingGRDB has only one of these limitations:
 
 * Unique constraints on columns (except for the primary key) cannot be upheld on a distributed
 schema. For example, if you have a `Tag` table with a unique `title` column, then what
 are you to do if two different devices create a tag with the title "family" at the same time?
-* Properties on models must have a default. To see why this is necessary, consider if device A is
-running with a schema in which `Reminder` has an `isFlagged` column and device B is running with a
-schema that does not. When device B creates a record without the `isFlagged` value, and that record
-is synchronized to device A, it will fail to insert into the database because there is not value
-for `isFlagged`.
-
-However, SharingGRDB does not have the third limitation. Relationships can be non-optional since 
-they are modeled as simple foreign keys:
-
-```swift
-@Table
-struct Reminder {
-  …
-  var remindersListID: RemindersList.ID
-}
-```
-
-This foreign key does not need to be optional because it can be synchronized without having 
-fetched the full reminders list that a reminder belongs to.
+* Columns on freshly created tables do not need to have default values or be nullable. Only
+newly added columns to existing tables need to either be nullable or have a default. See 
+<doc:CloudKit#Adding-columns> for more info.
+* Relationships on freshly created do not need to be nullable. Only newly added columns to
+existing tables need to be nullable. See <doc:CloudKit#Adding-columns> for more info.
 
 For more information about requirements of your schema in order to use CloudKit synchronization,
-see <doc:CloudKit#Designing your schema with synchronization in mind>, and for more general
+see <doc:CloudKit#Designing-your-schema-with-synchronization-in-mind> and
+<doc:CloudKit#Backwards-compatible-migrations>, and for more general
 information about CloudKit synchronization, see <doc:CloudKit>.
 
 ### Supported Apple platforms

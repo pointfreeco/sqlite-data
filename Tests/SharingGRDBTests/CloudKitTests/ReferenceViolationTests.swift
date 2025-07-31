@@ -23,11 +23,12 @@ extension BaseCloudKitTests {
           Reminder(id: 1, title: "Get milk", remindersListID: 1)
         }
       }
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      let modifications = {
-        syncEngine.modifyRecords(scope: .private, deleting: [RemindersList.recordID(for: 2)])
-      }()
+      let modifications = try syncEngine.modifyRecords(
+        scope: .private,
+        deleting: [RemindersList.recordID(for: 2)]
+      )
       try withDependencies {
         $0.date.now.addTimeInterval(1)
       } operation: {
@@ -36,9 +37,9 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      await modifications()
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      await modifications.notify()
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -64,16 +65,14 @@ extension BaseCloudKitTests {
         """
       }
 
-      try {
-        try userDatabase.read { db in
-          try #expect(Reminder.count().fetchOne(db) == 0)
-          try #expect(
-            RemindersList.all.fetchAll(db) == [
-              RemindersList(id: 1, title: "Personal")
-            ]
-          )
-        }
-      }()
+      try await userDatabase.read { db in
+        try #expect(Reminder.count().fetchOne(db) == 0)
+        try #expect(
+          RemindersList.all.fetchAll(db) == [
+            RemindersList(id: 1, title: "Personal")
+          ]
+        )
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -88,16 +87,16 @@ extension BaseCloudKitTests {
           RemindersList(id: 1, title: "Personal")
         }
       }
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      try withDependencies {
+      try await withDependencies {
         $0.date.now.addTimeInterval(1)
       } operation: {
-        try userDatabase.userWrite { db in
+        try await userDatabase.userWrite { db in
           try RemindersList.find(1).delete().execute(db)
         }
       }
-      let modifications = withDependencies {
+      let modifications = try withDependencies {
         $0.date.now.addTimeInterval(2)
       } operation: {
         let reminderRecord = CKRecord(
@@ -111,12 +110,10 @@ extension BaseCloudKitTests {
           recordID: RemindersList.recordID(for: 1),
           action: .none
         )
-        return {
-          syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
-        }()
+        return try syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
       }
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      await modifications()
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      await modifications.notify()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -151,16 +148,14 @@ extension BaseCloudKitTests {
         """
       }
 
-      try {
-        try userDatabase.read { db in
-          try #expect(
-            Reminder.all.fetchAll(db) == [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
-          )
-          try #expect(
-            RemindersList.all.fetchAll(db) == [RemindersList(id: 1, title: "Personal")]
-          )
-        }
-      }()
+      try await userDatabase.read { db in
+        try #expect(
+          Reminder.all.fetchAll(db) == [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
+        )
+        try #expect(
+          RemindersList.all.fetchAll(db) == [RemindersList(id: 1, title: "Personal")]
+        )
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -176,16 +171,16 @@ extension BaseCloudKitTests {
           RemindersList(id: 1, title: "Personal")
         }
       }
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      try withDependencies {
+      try await withDependencies {
         $0.date.now.addTimeInterval(1)
       } operation: {
-        try userDatabase.userWrite { db in
+        try await userDatabase.userWrite { db in
           try RemindersList.find(1).delete().execute(db)
         }
       }
-      let modifications = withDependencies {
+      let modifications = try await withDependencies {
         $0.date.now.addTimeInterval(2)
       } operation: {
         let reminderRecord = CKRecord(
@@ -199,56 +194,52 @@ extension BaseCloudKitTests {
           recordID: RemindersList.recordID(for: 1),
           action: .none
         )
-        return {
-          syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
-        }()
+        return try syncEngine.modifyRecords(scope: .private, saving: [reminderRecord])
       }
-      await modifications()
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      await modifications.notify()
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
-        """
-        MockCloudContainer(
-          privateCloudDatabase: MockCloudDatabase(
-            databaseScope: .private,
-            storage: [
-              [0]: CKRecord(
-                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "reminders",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
-                share: nil,
-                id: 1,
-                remindersListID: 1,
-                title: "Get milk"
-              ),
-              [1]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "remindersLists",
-                parent: nil,
-                share: nil,
-                id: 1,
-                title: "Personal"
-              )
-            ]
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                  share: nil,
+                  id: 1,
+                  remindersListID: 1,
+                  title: "Get milk"
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
           )
-        )
-        """
+          """
       }
 
-      try {
-        try userDatabase.read { db in
-          try #expect(
-            Reminder.all.fetchAll(db) == [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
-          )
-          try #expect(
-            RemindersList.all.fetchAll(db) == [RemindersList(id: 1, title: "Personal")]
-          )
-        }
-      }()
+      try await userDatabase.read { db in
+        try #expect(
+          Reminder.all.fetchAll(db) == [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
+        )
+        try #expect(
+          RemindersList.all.fetchAll(db) == [RemindersList(id: 1, title: "Personal")]
+        )
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -266,68 +257,67 @@ extension BaseCloudKitTests {
           ChildWithOnDeleteSetNull(id: 1, parentID: 1)
         }
       }
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      let modifications = {
-        syncEngine.modifyRecords(scope: .private, deleting: [Parent.recordID(for: 2)])
-      }()
-      try withDependencies {
+      let modifications = try syncEngine.modifyRecords(
+        scope: .private,
+        deleting: [Parent.recordID(for: 2)]
+      )
+      try await withDependencies {
         $0.date.now.addTimeInterval(1)
       } operation: {
-        try userDatabase.userWrite { db in
+        try await userDatabase.userWrite { db in
           try ChildWithOnDeleteSetNull.find(1).update { $0.parentID = 2 }.execute(db)
         }
       }
       try await withDependencies {
         $0.date.now.addTimeInterval(2)
       } operation: {
-        await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        await modifications()
-        await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        await modifications.notify()
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
-        """
-        MockCloudContainer(
-          privateCloudDatabase: MockCloudDatabase(
-            databaseScope: .private,
-            storage: [
-              [0]: CKRecord(
-                recordID: CKRecord.ID(1:childWithOnDeleteSetNulls/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "childWithOnDeleteSetNulls",
-                parent: nil,
-                share: nil,
-                id: 1
-              ),
-              [1]: CKRecord(
-                recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "parents",
-                parent: nil,
-                share: nil,
-                id: 1
-              )
-            ]
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:childWithOnDeleteSetNulls/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "childWithOnDeleteSetNulls",
+                  parent: nil,
+                  share: nil,
+                  id: 1
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "parents",
+                  parent: nil,
+                  share: nil,
+                  id: 1
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
           )
-        )
-        """
+          """
         }
-        try {
-          try userDatabase.read { db in
-            try #expect(
-              ChildWithOnDeleteSetNull.all.fetchAll(db) == [
-                ChildWithOnDeleteSetNull(id: 1, parentID: nil)
-              ]
-            )
-            try #expect(
-              Parent.all.fetchAll(db) == [
-                Parent(id: 1)
-              ]
-            )
-          }
-        }()
+        try await userDatabase.read { db in
+          try #expect(
+            ChildWithOnDeleteSetNull.all.fetchAll(db) == [
+              ChildWithOnDeleteSetNull(id: 1, parentID: nil)
+            ]
+          )
+          try #expect(
+            Parent.all.fetchAll(db) == [
+              Parent(id: 1)
+            ]
+          )
+        }
       }
     }
 
@@ -347,24 +337,25 @@ extension BaseCloudKitTests {
           ChildWithOnDeleteSetDefault(id: 1, parentID: 1)
         }
       }
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      let modifications = {
-        syncEngine.modifyRecords(scope: .private, deleting: [Parent.recordID(for: 2)])
-      }()
-      try withDependencies {
+      let modifications = try syncEngine.modifyRecords(
+        scope: .private,
+        deleting: [Parent.recordID(for: 2)]
+      )
+      try await withDependencies {
         $0.date.now.addTimeInterval(1)
       } operation: {
-        try userDatabase.userWrite { db in
+        try await userDatabase.userWrite { db in
           try ChildWithOnDeleteSetDefault.find(1).update { $0.parentID = 2 }.execute(db)
         }
       }
       try await withDependencies {
         $0.date.now.addTimeInterval(2)
       } operation: {
-        await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        await modifications()
-        await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        await modifications.notify()
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
           """
@@ -403,18 +394,16 @@ extension BaseCloudKitTests {
           )
           """
         }
-        try {
-          try userDatabase.read { db in
-            try #expect(
-              ChildWithOnDeleteSetDefault.all.fetchAll(db) == [
-                ChildWithOnDeleteSetDefault(id: 1, parentID: 0)
-              ]
-            )
-            try #expect(
-              Parent.all.fetchAll(db) == [Parent(id: 0), Parent(id: 1)]
-            )
-          }
-        }()
+        try await userDatabase.read { db in
+          try #expect(
+            ChildWithOnDeleteSetDefault.all.fetchAll(db) == [
+              ChildWithOnDeleteSetDefault(id: 1, parentID: 0)
+            ]
+          )
+          try #expect(
+            Parent.all.fetchAll(db) == [Parent(id: 0), Parent(id: 1)]
+          )
+        }
       }
     }
   }

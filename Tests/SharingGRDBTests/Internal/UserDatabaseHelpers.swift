@@ -6,7 +6,7 @@ extension UserDatabase {
     _ updates: @escaping @Sendable (Database) throws -> T
   ) async throws -> T {
     try await write { db in
-      try SyncEngine.$_isUpdatingRecord.withValue(false) {
+      try SyncEngine.$_isSynchronizingChanges.withValue(false) {
         try updates(db)
       }
     }
@@ -16,7 +16,7 @@ extension UserDatabase {
     _ updates: @escaping @Sendable (Database) throws -> T
   ) async throws -> T {
     try await read { db in
-      try SyncEngine.$_isUpdatingRecord.withValue(false) {
+      try SyncEngine.$_isSynchronizingChanges.withValue(false) {
         try updates(db)
       }
     }
@@ -27,7 +27,7 @@ extension UserDatabase {
     _ updates: (Database) throws -> T
   ) throws -> T {
     try write { db in
-      try SyncEngine.$_isUpdatingRecord.withValue(false) {
+      try SyncEngine.$_isSynchronizingChanges.withValue(false) {
         try updates(db)
       }
     }
@@ -38,7 +38,7 @@ extension UserDatabase {
     _ updates: (Database) throws -> T
   ) throws -> T {
     try write { db in
-      try SyncEngine.$_isUpdatingRecord.withValue(false) {
+      try SyncEngine.$_isSynchronizingChanges.withValue(false) {
         try updates(db)
       }
     }

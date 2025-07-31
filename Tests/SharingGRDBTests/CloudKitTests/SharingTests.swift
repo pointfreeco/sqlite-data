@@ -20,7 +20,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       await #expect(throws: (any Error).self) {
         _ = try await self.syncEngine.share(record: reminder, configure: { _ in })
@@ -73,8 +73,8 @@ extension BaseCloudKitTests {
       remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
-      await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone])
-      await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
+      try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+      try await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord]).notify()
 
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
@@ -86,7 +86,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -131,7 +131,7 @@ extension BaseCloudKitTests {
           ownerName: "external.owner"
         )
       )
-      await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone])
+      try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
 
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
@@ -149,8 +149,8 @@ extension BaseCloudKitTests {
         )
       )
 
-      await syncEngine.modifyRecords(scope: .shared, saving: [share])
-      await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord])
+      try await syncEngine.modifyRecords(scope: .shared, saving: [share]).notify()
+      try await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord]).notify()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -235,8 +235,8 @@ extension BaseCloudKitTests {
       modelARecord.setValue(1, forKey: "id", at: now)
       modelARecord.setValue(0, forKey: "count", at: now)
 
-      await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone])
-      await syncEngine.modifyRecords(scope: .shared, saving: [modelARecord])
+      try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+      try await syncEngine.modifyRecords(scope: .shared, saving: [modelARecord]).notify()
 
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
@@ -249,7 +249,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
@@ -301,7 +301,7 @@ extension BaseCloudKitTests {
           ownerName: "external.owner"
         )
       )
-      await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone])
+      try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
 
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
@@ -319,7 +319,7 @@ extension BaseCloudKitTests {
       reminderRecord.setValue(1, forKey: "remindersListID", at: now)
       reminderRecord.parent = CKRecord.Reference(record: remindersListRecord, action: .none)
 
-      await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord, reminderRecord])
+      try await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord, reminderRecord]).notify()
 
       try await withDependencies {
         $0.date.now.addTimeInterval(60)
@@ -329,7 +329,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(

@@ -1,10 +1,10 @@
 import CloudKit
 import DependenciesTestSupport
 import OrderedCollections
-import os
 import SharingGRDB
 import SnapshotTesting
 import Testing
+import os
 
 @Suite(
   .snapshots(record: .missing),
@@ -14,6 +14,7 @@ import Testing
   }
 )
 class BaseCloudKitTests: @unchecked Sendable {
+  let container: MockCloudContainer
   let userDatabase: UserDatabase
   private let _syncEngine: any Sendable
 
@@ -28,6 +29,7 @@ class BaseCloudKitTests: @unchecked Sendable {
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   init(
+    accountStatus: CKAccountStatus = _AccountStatusScope.accountStatus,
     setUpUserDatabase: @Sendable (UserDatabase) async throws -> Void = { _ in }
   ) async throws {
     let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
@@ -38,14 +40,17 @@ class BaseCloudKitTests: @unchecked Sendable {
     try await setUpUserDatabase(userDatabase)
     let privateDatabase = MockCloudDatabase(databaseScope: .private)
     let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+    container = MockCloudContainer(
+      accountStatus: accountStatus,
+      containerIdentifier: testContainerIdentifier,
+      privateCloudDatabase: privateDatabase,
+      sharedCloudDatabase: sharedDatabase
+    )
+    privateDatabase.set(container: container)
+    sharedDatabase.set(container: container)
     _syncEngine = try await SyncEngine(
-      container: MockCloudContainer(
-        containerIdentifier: testContainerIdentifier,
-        privateCloudDatabase: privateDatabase,
-        sharedCloudDatabase: sharedDatabase
-      ),
+      container: container,
       userDatabase: self.userDatabase,
-      metadatabaseURL: URL.metadatabase(containerIdentifier: testContainerIdentifier),
       tables: [
         Reminder.self,
         RemindersList.self,
@@ -60,22 +65,44 @@ class BaseCloudKitTests: @unchecked Sendable {
         ModelC.self,
       ],
       privateTables: [
-        RemindersListPrivate.self,
+        RemindersListPrivate.self
       ]
     )
+    if accountStatus == .available {
+      await syncEngine.handleEvent(
+        .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+        syncEngine: syncEngine.private
+      )
+      await syncEngine.handleEvent(
+        .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+        syncEngine: syncEngine.shared
+      )
+      try await syncEngine.processPendingDatabaseChanges(scope: .private)
+    }
+  }
+
+  func signOut() async {
+    container._accountStatus.withValue { $0 = .noAccount }
     await syncEngine.handleEvent(
-      .accountChange(
-        changeType: .signIn(
-          currentUser: CKRecord
-            .ID(
-              recordName: "defaultCurrentUser",
-              zoneID: syncEngine.defaultZone.zoneID
-            )
-        )
-      ),
-      syncEngine: syncEngine.syncEngines.withValue(\.private)!
+      .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
+      syncEngine: syncEngine.private
     )
-    await syncEngine.processPendingDatabaseChanges(scope: .private)
+    await syncEngine.handleEvent(
+      .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
+      syncEngine: syncEngine.shared
+    )
+  }
+
+  func signIn() async {
+    container._accountStatus.withValue { $0 = .available }
+    await syncEngine.handleEvent(
+      .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+      syncEngine: syncEngine.private
+    )
+    await syncEngine.handleEvent(
+      .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
+      syncEngine: syncEngine.shared
+    )
   }
 
   deinit {
@@ -110,7 +137,6 @@ extension SyncEngine {
   convenience init(
     container: any CloudContainer,
     userDatabase: UserDatabase,
-    metadatabaseURL: URL,
     tables: [any PrimaryKeyedTable.Type],
     privateTables: [any PrimaryKeyedTable.Type] = []
   ) async throws {
@@ -135,10 +161,16 @@ extension SyncEngine {
       },
       userDatabase: userDatabase,
       logger: Logger(.disabled),
-      metadatabaseURL: metadatabaseURL,
       tables: tables,
       privateTables: privateTables
     )
     try await setUpSyncEngine(userDatabase: userDatabase, metadatabase: metadatabase)?.value
   }
 }
+
+private let previousUserRecordID = CKRecord.ID(
+  recordName: "previousUser"
+)
+private let currentUserRecordID = CKRecord.ID(
+  recordName: "currentUser"
+)

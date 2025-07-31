@@ -178,14 +178,14 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql("""
       CREATE TABLE "modelAs" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "count" INTEGER NOT NULL
+        "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
       )
       """)
     .execute(db)
     try #sql("""
       CREATE TABLE "modelBs" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "isOn" INTEGER NOT NULL,
+        "isOn" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
       )
       """)
@@ -193,7 +193,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql("""
       CREATE TABLE "modelCs" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "title" TEXT NOT NULL,
+        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
         "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
       )
       """)

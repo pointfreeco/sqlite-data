@@ -24,7 +24,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -63,7 +63,9 @@ extension BaseCloudKitTests {
       }
 
       inMemoryDataManager.storage.withValue { storage in
-        let url = URL(string: "file:///6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d")!
+        let url = URL(
+          string: "file:///6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d"
+        )!
         #expect(storage[url] == Data("image".utf8))
       }
 
@@ -78,7 +80,7 @@ extension BaseCloudKitTests {
         }
       }
 
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
@@ -117,11 +119,12 @@ extension BaseCloudKitTests {
       }
 
       inMemoryDataManager.storage.withValue { storage in
-        let url = URL(string: "file:///97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf")!
+        let url = URL(
+          string: "file:///97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf"
+        )!
         #expect(storage[url] == Data("new-image".utf8))
       }
     }
-
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func receiveAsset() async throws {
@@ -152,19 +155,18 @@ extension BaseCloudKitTests {
         action: .none
       )
 
-      await syncEngine.modifyRecords(
+      try await syncEngine.modifyRecords(
         scope: .private,
         saving: [remindersListAssetRecord, remindersListRecord]
       )
+      .notify()
 
-      try {
-        try userDatabase.read { db in
-          let remindersListAsset = try #require(
-            try RemindersListAsset.find(1).fetchOne(db)
-          )
-          #expect(remindersListAsset.coverImage == Data("image".utf8))
-        }
-      }()
+      try await userDatabase.read { db in
+        let remindersListAsset = try #require(
+          try RemindersListAsset.find(1).fetchOne(db)
+        )
+        #expect(remindersListAsset.coverImage == Data("image".utf8))
+      }
     }
   }
 }

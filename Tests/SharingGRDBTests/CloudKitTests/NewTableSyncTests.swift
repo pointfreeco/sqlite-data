@@ -24,7 +24,7 @@ extension BaseCloudKitTests {
 
     @Test
     func initialSync() async throws {
-      await syncEngine.processPendingRecordZoneChanges(scope: .private)
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
