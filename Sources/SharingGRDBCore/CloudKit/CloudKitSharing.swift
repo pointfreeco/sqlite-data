@@ -28,7 +28,7 @@ extension SyncEngine {
   private struct SharingError: LocalizedError {
     enum Reason {
       case recordMetadataNotFound
-      case recordNotRoot
+      case recordNotRoot([ForeignKey])
       case recordTableNotSynchronized
       case recordTablePrivate
     }
@@ -36,8 +36,9 @@ extension SyncEngine {
     let recordTableName: String
     let recordPrimaryKey: String
     let reason: Reason
+    let debugDescription: String
 
-    var localizedDescription: String {
+    var errorDescription: String? {
       "The record could not be shared."
     }
   }
@@ -52,15 +53,20 @@ extension SyncEngine {
       throw SharingError(
         recordTableName: T.tableName,
         recordPrimaryKey: record.primaryKey.rawIdentifier,
-        reason: .recordTableNotSynchronized
+        reason: .recordTableNotSynchronized,
+        debugDescription: """
+          Table is not shareable: table type not passed to 'tables' parameter of 'SyncEngine.init'.
+          """
       )
     }
-    guard foreignKeysByTableName[T.tableName]?.isEmpty ?? true
-    else {
+    if let foreignKeys = foreignKeysByTableName[T.tableName], !foreignKeys.isEmpty {
       throw SharingError(
         recordTableName: T.tableName,
         recordPrimaryKey: record.primaryKey.rawIdentifier,
-        reason: .recordNotRoot
+        reason: .recordNotRoot(foreignKeys),
+        debugDescription: """
+          Only root records are shareable, but parent record(s) detected via foreign key(s).
+          """
       )
     }
     guard !privateTables.contains(where: { T.self == $0 })
@@ -68,7 +74,11 @@ extension SyncEngine {
       throw SharingError(
         recordTableName: T.tableName,
         recordPrimaryKey: record.primaryKey.rawIdentifier,
-        reason: .recordTablePrivate
+        reason: .recordTablePrivate,
+        debugDescription: """
+          Private tables are not shareable: table type passed to 'privateTables' parameter of \
+          'SyncEngine.init'.
+          """
       )
     }
     let recordName = record.recordName
@@ -83,7 +93,10 @@ extension SyncEngine {
       throw SharingError(
         recordTableName: T.tableName,
         recordPrimaryKey: record.primaryKey.rawIdentifier,
-        reason: .recordMetadataNotFound
+        reason: .recordMetadataNotFound,
+        debugDescription: """
+          No sync metadata found for record. Has the record been saved to the database?
+          """
       )
     }
 
