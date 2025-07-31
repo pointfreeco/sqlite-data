@@ -38,6 +38,39 @@ extension BaseCloudKitTests {
       #expect(URL(string: "file::memory:")?.isInMemory == true)
       #expect(URL(string: "file:memdb1?mode=memory&cache=shared")?.isInMemory == true)
     }
+
+    @Test func metadatabaseMismatch() async throws {
+      let error = await #expect(throws: (any Error).self) {
+        var configuration = Configuration()
+        configuration.prepareDatabase { db in
+          try db.attachMetadatabase(containerIdentifier: "iCloud.co.pointfree")
+        }
+        let database = try DatabasePool(
+          path: NSTemporaryDirectory() + UUID().uuidString,
+          configuration: configuration
+        )
+        _ = try await SyncEngine(
+          container: MockCloudContainer(
+            containerIdentifier: "iCloud.co.point-free",
+            privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+            sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+          ),
+          userDatabase: UserDatabase(database: database),
+          tables: []
+        )
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        #"""
+        SyncEngine.SchemaError(
+          reason: .metadatabaseMismatch(
+            attachedPath: "/private/var/folders/vj/bzr5j4ld7cz6jgpphc5kbs8m0000gn/T/.C1938F73-8A6E-40BA-BCF5-A10C07CA1EB6.metadata-iCloud.co.pointfree.sqlite",
+            syncEngineConfiguredPath: "/var/folders/vj/bzr5j4ld7cz6jgpphc5kbs8m0000gn/T/.C1938F73-8A6E-40BA-BCF5-A10C07CA1EB6.metadata-iCloud.co.point-free.sqlite"
+          ),
+          debugDescription: "Metadatabase attached in \'prepareDatabase\' does not match metadatabase prepared in \'SyncEngine.init\'. Are the CloudKit container identifiers different?"
+        )
+        """#
+      }
+    }
   }
 }
 
