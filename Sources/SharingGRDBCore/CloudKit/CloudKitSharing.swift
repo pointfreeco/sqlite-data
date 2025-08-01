@@ -58,14 +58,12 @@ extension SyncEngine {
 
     let rootRecord =
       metadata.lastKnownServerRecord
-      // 1) create record
-      // 2) (before sync) you share
-      // 3) create a CKRecord down below
-      // 4) a moment later, sync engine creates a record
       ?? CKRecord(
         recordType: metadata.recordType,
         recordID: CKRecord.ID(recordName: metadata.recordName, zoneID: defaultZone.zoneID)
       )
+
+    // TODO: Catch unknownItem error from `.record(for:)` and go through `else` branch, otherwise rethrow
 
     let sharedRecord: CKShare
     if let shareRecordID = rootRecord.share?.recordID,
