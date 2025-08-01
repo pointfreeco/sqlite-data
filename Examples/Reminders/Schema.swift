@@ -119,10 +119,7 @@ func appDatabase() throws -> any DatabaseWriter {
     #endif
   }
   if context == .preview {
-    database = try DatabaseQueue(
-      path: URL.documentsDirectory.appending(component: "db.sqlite").path(),
-      configuration: configuration
-    )
+    database = try DatabaseQueue(configuration: configuration)
   } else {
     let path =
       context == .live
