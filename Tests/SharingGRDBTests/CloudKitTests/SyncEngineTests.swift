@@ -1,5 +1,6 @@
 import CloudKit
 import CustomDump
+import DependenciesTestSupport
 import Foundation
 import InlineSnapshotTesting
 import SharingGRDB
@@ -29,10 +30,32 @@ extension BaseCloudKitTests {
       )
 
       try await syncEngine.userDatabase.read { db in
-        try SQLQueryExpression("""
+        try SQLQueryExpression(
+          """
           SELECT 1 FROM "sqlitedata_icloud_metadata"
-          """)
+          """
+        )
         .execute(db)
+      }
+    }
+
+    @Test(.dependency(\.context, .live))
+    func inMemoryUserDatabase_LiveContext() async throws {
+      let error = await #expect(throws: (any Error).self) {
+        try await SyncEngine(
+          container: MockCloudContainer(
+            containerIdentifier: "test",
+            privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+            sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+          ),
+          userDatabase: UserDatabase(database: DatabaseQueue()),
+          tables: []
+        )
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        """
+        InMemoryDatabase()
+        """
       }
     }
   }
