@@ -1397,12 +1397,14 @@
       databasePath: String,
       containerIdentifier: String?
     ) throws -> URL {
-      guard
-        let databaseURL = URL(string: databasePath),
-        !databaseURL.isInMemory
+      guard let databaseURL = URL(string: databasePath)
       else {
-        struct InMemoryError: Error {}
-        throw InMemoryError()
+        struct InvalidDatabsePath: Error {}
+        throw InvalidDatabsePath()
+      }
+      guard !databaseURL.isInMemory
+      else {
+        return URL(string: "file:\(String.sqliteDataCloudKitSchemaName)?mode=memory&cache=shared")!
       }
       return databaseURL
         .deletingLastPathComponent()

@@ -8,35 +8,32 @@ import Testing
 
 extension BaseCloudKitTests {
   @MainActor
-  final class SyncEngineTests: BaseCloudKitTests, @unchecked Sendable {
-    #if os(macOS) && compiler(>=6.2)
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func foreignKeysDisabled() throws {
-        let result = #expect(
-          processExitsWith: .failure,
-          observing: [\.standardErrorContent]
-        ) {
-          // TODO: finish in Xcode 26
-          //  _ = try SyncEngine(
-          //    syncEngine.private: MockSyncEngine(scope: .private, state: MockSyncEngineState()),
-          //    syncEngine.shared: MockSyncEngine(scope: .shared, state: MockSyncEngineState()),
-          //    database: databaseWithForeignKeys(),
-          //    tables: []
-          //  )
-        }
-        #expect(
-          String(decoding: try #require(result).standardOutputContent, as: UTF8.self)
-            == "Foreign key support must be disabled to synchronize with CloudKit."
-        )
-      }
-    #endif
-
+  final class SyncEngineTests {
     @Test func inMemory() throws {
       #expect(URL(string: "")?.isInMemory == nil)
       #expect(URL(string: ":memory:")?.isInMemory == true)
       #expect(URL(string: ":memory:?cache=shared")?.isInMemory == true)
       #expect(URL(string: "file::memory:")?.isInMemory == true)
       #expect(URL(string: "file:memdb1?mode=memory&cache=shared")?.isInMemory == true)
+    }
+
+    @Test func inMemoryUserDatabase() async throws {
+      let syncEngine = try await SyncEngine(
+        container: MockCloudContainer(
+          containerIdentifier: "test",
+          privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+          sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+        ),
+        userDatabase: UserDatabase(database: DatabaseQueue()),
+        tables: []
+      )
+
+      try await syncEngine.userDatabase.read { db in
+        try SQLQueryExpression("""
+          SELECT 1 FROM "sqlitedata_icloud_metadata"
+          """)
+        .execute(db)
+      }
     }
   }
 }
