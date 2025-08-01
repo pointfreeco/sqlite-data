@@ -148,17 +148,33 @@
       metadatabase: any DatabaseReader
     ) throws -> Task<Void, Never>? {
       try userDatabase.write { db in
-        let hasAttachedMetadatabase: Bool =
+        let attachedMetadatabasePath: String? =
           try SQLQueryExpression(
             """
-            SELECT count(*)
-            FROM pragma_database_list
+            SELECT "file"
+            FROM pragma_database_list()
             WHERE "name" = \(bind: String.sqliteDataCloudKitSchemaName)
             """,
-            as: Int.self
+            as: String.self
           )
-          .fetchOne(db) == 1
-        if !hasAttachedMetadatabase {
+          .fetchOne(db)
+        if let attachedMetadatabasePath {
+          let attachedMetadatabaseName = URL(filePath: metadatabase.path).lastPathComponent
+          let metadatabaseName = URL(filePath: attachedMetadatabasePath).lastPathComponent
+          if attachedMetadatabaseName != metadatabaseName {
+            throw SchemaError(
+              reason: .metadatabaseMismatch(
+                attachedPath: attachedMetadatabasePath,
+                syncEngineConfiguredPath: metadatabase.path
+              ),
+              debugDescription: """
+                Metadatabase attached in 'prepareDatabase' does not match metadatabase prepared in \
+                'SyncEngine.init'. Are the CloudKit container identifiers different?
+                """
+            )
+          }
+
+        } else {
           try SQLQueryExpression(
             """
             ATTACH DATABASE \(bind: metadatabase.path) AS \(quote: .sqliteDataCloudKitSchemaName)
@@ -718,20 +734,21 @@
       deletions: [(zoneID: CKRecordZone.ID, reason: CKDatabase.DatabaseChange.Deletion.Reason)],
       syncEngine: any SyncEngineProtocol
     ) async {
-      let defaultZoneDeleted = await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await userDatabase.write { db in
-          var defaultZoneDeleted = false
-          for (zoneID, reason) in deletions {
-            guard zoneID == self.defaultZone.zoneID
-            else { continue }
-            switch reason {
-            case .deleted, .purged:
-              try deleteRecords(in: zoneID, db: db)
-              defaultZoneDeleted = true
-            case .encryptedDataReset:
-              try uploadRecords(in: zoneID, db: db)
-            @unknown default:
-              reportIssue("Unknown deletion reason: \(reason)")
+      let defaultZoneDeleted =
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await userDatabase.write { db in
+            var defaultZoneDeleted = false
+            for (zoneID, reason) in deletions {
+              guard zoneID == self.defaultZone.zoneID
+              else { continue }
+              switch reason {
+              case .deleted, .purged:
+                try deleteRecords(in: zoneID, db: db)
+                defaultZoneDeleted = true
+              case .encryptedDataReset:
+                try uploadRecords(in: zoneID, db: db)
+              @unknown default:
+                reportIssue("Unknown deletion reason: \(reason)")
               }
             }
             return defaultZoneDeleted
@@ -802,7 +819,7 @@
         },
         by: \.recordType
       )
-        .mapValues { $0.map(\.recordID) }
+      .mapValues { $0.map(\.recordID) }
       for (recordType, recordIDs) in recordIDsByRecordType {
         let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
         if let table = tablesByName[recordType] {
@@ -1359,7 +1376,10 @@
     }
 
     fileprivate static var syncEngineIsSynchronizingChanges: Self {
-      Self(.sqliteDataCloudKitSchemaName + "_" + "syncEngineIsSynchronizingChanges", argumentCount: 0) {
+      Self(
+        .sqliteDataCloudKitSchemaName + "_" + "syncEngineIsSynchronizingChanges",
+        argumentCount: 0
+      ) {
         _ in
         SyncEngine._isSynchronizingChanges
       }
@@ -1401,10 +1421,15 @@
         let databaseURL = URL(string: databasePath),
         !databaseURL.isInMemory
       else {
-        struct InMemoryError: Error {}
-        throw InMemoryError()
+        throw SyncEngine.SchemaError(
+          reason: .inMemoryDatabase,
+          debugDescription: """
+            Can't synchronize temporary/in-memory database: it must be written to the file system.
+            """
+        )
       }
-      return databaseURL
+      return
+        databaseURL
         .deletingLastPathComponent()
         .appending(component: ".\(databaseURL.deletingPathExtension().lastPathComponent)")
         .appendingPathExtension("metadata\(containerIdentifier.map { "-\($0)" } ?? "").sqlite")
@@ -1481,7 +1506,12 @@
       .fetchOne(self)
       guard let databasePath else {
         struct PathError: Error {}
-        throw PathError()
+        throw SyncEngine.SchemaError(
+          reason: .unknown,
+          debugDescription: """
+            Expected to load a database path from the connection, but failed to do so.
+            """
+        )
       }
       let url = try URL.metadatabase(
         databasePath: databasePath,
@@ -1505,6 +1535,49 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncEngine {
+    struct SchemaError: LocalizedError {
+      enum Reason {
+        case inMemoryDatabase
+        case invalidForeignKeyAction(ForeignKey)
+        case invalidTableName(String)
+        case metadatabaseMismatch(attachedPath: String, syncEngineConfiguredPath: String)
+        case nonNullColumnsWithoutDefault(tableName: String, columnNames: [String])
+        case triggersWithoutSynchronizationCheck([String])
+        case unknown
+      }
+      let reason: Reason
+      let debugDescription: String
+
+      var errorDescription: String? {
+        "Could not synchronize data with iCloud."
+      }
+    }
+  }
+
+  // TODO: Private, opaque error
+  // public struct UniqueConstraintDisallowed: Error {
+  //   let localizedDescription: String
+  //   init(table: any PrimaryKeyedTable.Type, columns: [String]) {
+  //     localizedDescription = """
+  //       Table '\(table.tableName)' has column\(columns.count == 1 ? "" : "s") with unique \
+  //       constraints: \(columns.map { "'\($0)'" }.joined(separator: ", "))
+  //       """
+  //   }
+  // }
+
+  // TODO: Private, opaque error
+  // public struct NonNullColumnMustHaveDefault: Error {
+  //   let localizedDescription: String
+  //   init(table: any PrimaryKeyedTable.Type, columns: [String]) {
+  //     localizedDescription = """
+  //       Table '\(table.tableName)' has non-null column\(columns.count == 1 ? "" : "s") with no \
+  //       default: \(columns.map { "'\($0)'" }.joined(separator: ", "))
+  //       """
+  //   }
+  // }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func validateSchema(
     tables: [any PrimaryKeyedTable.Type],
     foreignKeysByTableName: [String: [ForeignKey]],
@@ -1513,7 +1586,10 @@
     let tableNames = Set(tables.map { $0.tableName })
     for tableName in tableNames {
       if tableName.contains(":") {
-        throw InvalidTableName(tableName: tableName)
+        throw SyncEngine.SchemaError(
+          reason: .invalidTableName(tableName),
+          debugDescription: "Table name contains invalid character ':'"
+        )
       }
     }
     try userDatabase.read { db in
@@ -1540,7 +1616,13 @@
       }
       guard invalidTriggers.isEmpty
       else {
-        throw InvalidUserTriggers(triggers: invalidTriggers)
+        throw SyncEngine.SchemaError(
+          reason: .triggersWithoutSynchronizationCheck(invalidTriggers),
+          debugDescription: """
+            Triggers must include '\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()' \
+            check: \(triggers.map { "'\($0)'" }.joined(separator: ", ")).
+            """
+        )
       }
 
       for (tableName, foreignKeys) in foreignKeysByTableName {
@@ -1548,91 +1630,45 @@
           let foreignKey = foreignKeys.first,
           [.restrict, .noAction].contains(foreignKey.onDelete)
         {
-          throw InvalidParentForeignKey(tableName: tableName, foreignKey: foreignKey)
+          throw SyncEngine.SchemaError(
+            reason: .invalidForeignKeyAction(foreignKey),
+            debugDescription: """
+              Foreign key \(tableName.debugDescription).\(foreignKey.from.debugDescription) action \
+              not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'.
+              """
+          )
         }
       }
 
       for table in tables {
-        //      // TODO: write tests for this
-        //      let columnsWithUniqueConstraints =
-        //        try SQLQueryExpression(
-        //          """
-        //          SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
-        //          WHERE "unique" = 1 AND "origin" <> 'pk'
-        //          """,
-        //          as: String.self
-        //        )
-        //        .fetchAll(db)
-        //      if !columnsWithUniqueConstraints.isEmpty {
-        //        throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
-        //      }
+        // // TODO: write tests for this
+        // let columnsWithUniqueConstraints =
+        //   try SQLQueryExpression(
+        //     """
+        //     SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
+        //     WHERE "unique" = 1 AND "origin" <> 'pk'
+        //     """,
+        //     as: String.self
+        //   )
+        //   .fetchAll(db)
+        // if !columnsWithUniqueConstraints.isEmpty {
+        //   throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
+        // }
 
-        //      // TODO: write tests for this
-        //      let nonNullColumnsWithNoDefault =
-        //        try SQLQueryExpression(
-        //          """
-        //          SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
-        //          WHERE "notnull" = 1 AND "dflt_value" IS NULL
-        //          """,
-        //          as: String.self
-        //        )
-        //        .fetchAll(db)
-        //      if !nonNullColumnsWithNoDefault.isEmpty {
-        //        throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
-        //      }
+        // // TODO: write tests for this
+        // let nonNullColumnsWithNoDefault =
+        //   try SQLQueryExpression(
+        //     """
+        //     SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
+        //     WHERE "notnull" = 1 AND "dflt_value" IS NULL
+        //     """,
+        //     as: String.self
+        //   )
+        //   .fetchAll(db)
+        // if !nonNullColumnsWithNoDefault.isEmpty {
+        //   throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
+        // }
       }
-    }
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public struct InvalidTableName: LocalizedError {
-    let tableName: String
-    public var localizedDescription: String {
-      """
-      Table name \(tableName.debugDescription) contains invalid character ':'.
-      """
-    }
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public struct InvalidParentForeignKey: LocalizedError {
-    let tableName: String
-    let foreignKey: ForeignKey
-    public var localizedDescription: String {
-      """
-      Foreign key \(tableName.debugDescription).\(foreignKey.from.debugDescription) action not \
-      supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'.
-      """
-    }
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public struct InvalidUserTriggers: LocalizedError {
-    let triggers: [String]
-    public var localizedDescription: String {
-      """
-      Triggers must include '\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()' check: \
-      \(triggers.map { "'\($0)'" }.joined(separator: ", "))
-      """
-    }
-  }
-
-  public struct UniqueConstraintDisallowed: Error {
-    let localizedDescription: String
-    init(table: any PrimaryKeyedTable.Type, columns: [String]) {
-      localizedDescription = """
-        Table '\(table.tableName)' has column\(columns.count == 1 ? "" : "s") with unique \
-        constraints: \(columns.map { "'\($0)'" }.joined(separator: ", "))
-        """
-    }
-  }
-  public struct NonNullColumnMustHaveDefault: Error {
-    let localizedDescription: String
-    init(table: any PrimaryKeyedTable.Type, columns: [String]) {
-      localizedDescription = """
-        Table '\(table.tableName)' has non-null column\(columns.count == 1 ? "" : "s") with no \
-        default: \(columns.map { "'\($0)'" }.joined(separator: ", "))
-        """
     }
   }
 
