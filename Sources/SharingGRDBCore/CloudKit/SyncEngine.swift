@@ -1417,19 +1417,16 @@
       databasePath: String,
       containerIdentifier: String?
     ) throws -> URL {
-      guard
-        let databaseURL = URL(string: databasePath),
-        !databaseURL.isInMemory
+      guard let databaseURL = URL(string: databasePath)
       else {
-        throw SyncEngine.SchemaError(
-          reason: .inMemoryDatabase,
-          debugDescription: """
-            Can't synchronize temporary/in-memory database: it must be written to the file system.
-            """
-        )
+        struct InvalidDatabsePath: Error {}
+        throw InvalidDatabsePath()
       }
-      return
-        databaseURL
+      guard !databaseURL.isInMemory
+      else {
+        return URL(string: "file:\(String.sqliteDataCloudKitSchemaName)?mode=memory&cache=shared")!
+      }
+      return databaseURL
         .deletingLastPathComponent()
         .appending(component: ".\(databaseURL.deletingPathExtension().lastPathComponent)")
         .appendingPathExtension("metadata\(containerIdentifier.map { "-\($0)" } ?? "").sqlite")

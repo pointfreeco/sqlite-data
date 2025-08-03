@@ -23,10 +23,25 @@ func defaultMetadatabase(
     at: .applicationSupportDirectory,
     withIntermediateDirectories: true
   )
-  let metadatabase = try DatabasePool(
-    path: url.path(percentEncoded: false),
-    configuration: configuration
-  )
+
+  @Dependency(\.context) var context
+  guard !url.isInMemory || context != .live
+  else {
+    struct InMemoryDatabase: Error {}
+    throw InMemoryDatabase()
+  }
+
+  let metadatabase: any DatabaseWriter = if url.isInMemory {
+    try DatabaseQueue(
+      path: url.absoluteString,
+      configuration: configuration
+    )
+  } else {
+    try DatabasePool(
+      path: url.path(percentEncoded: false),
+      configuration: configuration
+    )
+  }
   // TODO: go towards idempotent migrations instead of GRDB migrator by the end of all of this
   var migrator = DatabaseMigrator()
   // TODO: do we want this?

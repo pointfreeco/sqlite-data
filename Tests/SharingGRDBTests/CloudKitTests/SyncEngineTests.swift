@@ -1,5 +1,6 @@
 import CloudKit
 import CustomDump
+import DependenciesTestSupport
 import Foundation
 import InlineSnapshotTesting
 import SharingGRDB
@@ -8,35 +9,54 @@ import Testing
 
 extension BaseCloudKitTests {
   @MainActor
-  final class SyncEngineTests: BaseCloudKitTests, @unchecked Sendable {
-    #if os(macOS) && compiler(>=6.2)
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func foreignKeysDisabled() throws {
-        let result = #expect(
-          processExitsWith: .failure,
-          observing: [\.standardErrorContent]
-        ) {
-          // TODO: finish in Xcode 26
-          //  _ = try SyncEngine(
-          //    syncEngine.private: MockSyncEngine(scope: .private, state: MockSyncEngineState()),
-          //    syncEngine.shared: MockSyncEngine(scope: .shared, state: MockSyncEngineState()),
-          //    database: databaseWithForeignKeys(),
-          //    tables: []
-          //  )
-        }
-        #expect(
-          String(decoding: try #require(result).standardOutputContent, as: UTF8.self)
-            == "Foreign key support must be disabled to synchronize with CloudKit."
-        )
-      }
-    #endif
-
+  final class SyncEngineTests {
     @Test func inMemory() throws {
       #expect(URL(string: "")?.isInMemory == nil)
       #expect(URL(string: ":memory:")?.isInMemory == true)
       #expect(URL(string: ":memory:?cache=shared")?.isInMemory == true)
       #expect(URL(string: "file::memory:")?.isInMemory == true)
       #expect(URL(string: "file:memdb1?mode=memory&cache=shared")?.isInMemory == true)
+    }
+
+    @Test func inMemoryUserDatabase() async throws {
+      let syncEngine = try await SyncEngine(
+        container: MockCloudContainer(
+          containerIdentifier: "test",
+          privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+          sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+        ),
+        userDatabase: UserDatabase(database: DatabaseQueue()),
+        tables: []
+      )
+
+      try await syncEngine.userDatabase.read { db in
+        try SQLQueryExpression(
+          """
+          SELECT 1 FROM "sqlitedata_icloud_metadata"
+          """
+        )
+        .execute(db)
+      }
+    }
+
+    @Test(.dependency(\.context, .live))
+    func inMemoryUserDatabase_LiveContext() async throws {
+      let error = await #expect(throws: (any Error).self) {
+        try await SyncEngine(
+          container: MockCloudContainer(
+            containerIdentifier: "test",
+            privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+            sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+          ),
+          userDatabase: UserDatabase(database: DatabaseQueue()),
+          tables: []
+        )
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        """
+        InMemoryDatabase()
+        """
+      }
     }
 
     @Test func metadatabaseMismatch() async throws {
@@ -46,7 +66,7 @@ extension BaseCloudKitTests {
           try db.attachMetadatabase(containerIdentifier: "iCloud.co.pointfree")
         }
         let database = try DatabasePool(
-          path: NSTemporaryDirectory() + UUID().uuidString,
+          path: "/tmp/db.sqlite",
           configuration: configuration
         )
         _ = try await SyncEngine(
@@ -63,8 +83,8 @@ extension BaseCloudKitTests {
         #"""
         SyncEngine.SchemaError(
           reason: .metadatabaseMismatch(
-            attachedPath: "/private/var/folders/vj/bzr5j4ld7cz6jgpphc5kbs8m0000gn/T/.C1938F73-8A6E-40BA-BCF5-A10C07CA1EB6.metadata-iCloud.co.pointfree.sqlite",
-            syncEngineConfiguredPath: "/var/folders/vj/bzr5j4ld7cz6jgpphc5kbs8m0000gn/T/.C1938F73-8A6E-40BA-BCF5-A10C07CA1EB6.metadata-iCloud.co.point-free.sqlite"
+            attachedPath: "/private/tmp/.db.metadata-iCloud.co.pointfree.sqlite",
+            syncEngineConfiguredPath: "/tmp/.db.metadata-iCloud.co.point-free.sqlite"
           ),
           debugDescription: "Metadatabase attached in \'prepareDatabase\' does not match metadatabase prepared in \'SyncEngine.init\'. Are the CloudKit container identifiers different?"
         )
