@@ -22,38 +22,120 @@ extension BaseCloudKitTests {
 
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      await #expect(throws: SyncEngine.RecordMustBeRoot.self) {
+      let error = await #expect(throws: (any Error).self) {
         _ = try await self.syncEngine.share(record: reminder, configure: { _ in })
+      }
+      assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
+        """
+        "The record could not be shared."
+        """
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        """
+        SyncEngine.SharingError(
+          recordTableName: "reminders",
+          recordPrimaryKey: "1",
+          reason: .recordNotRoot(
+            [
+              [0]: ForeignKey(
+                table: "remindersLists",
+                from: "remindersListID",
+                to: "id",
+                onUpdate: .cascade,
+                onDelete: .cascade,
+                notnull: true
+              )
+            ]
+          ),
+          debugDescription: "Only root records are shareable, but parent record(s) detected via foreign key(s)."
+        )
+        """
       }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareUnrecognizedTable() async throws {
-      await #expect(throws: SyncEngine.UnrecognizedTable.self) {
+      let error = await #expect(throws: (any Error).self) {
         _ = try await self.syncEngine.share(
           record: UnsyncedModel(id: 42),
           configure: { _ in }
         )
       }
+      assertInlineSnapshot(of: (error as? any LocalizedError)?.localizedDescription, as: .customDump) {
+        """
+        "The record could not be shared."
+        """
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        #"""
+        SyncEngine.SharingError(
+          recordTableName: "unsyncedModels",
+          recordPrimaryKey: "42",
+          reason: .recordTableNotSynchronized,
+          debugDescription: "Table is not shareable: table type not passed to \'tables\' parameter of \'SyncEngine.init\'."
+        )
+        """#
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func sharePrivateTable() async throws {
-      await #expect(throws: SyncEngine.PrivateRootRecord.self) {
+      let error = await #expect(throws: (any Error).self) {
         _ = try await self.syncEngine.share(
           record: RemindersListPrivate(id: 1, remindersListID: 1),
           configure: { _ in }
         )
       }
+      assertInlineSnapshot(of: (error as? any LocalizedError)?.localizedDescription, as: .customDump) {
+        """
+        "The record could not be shared."
+        """
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        """
+        SyncEngine.SharingError(
+          recordTableName: "remindersListPrivates",
+          recordPrimaryKey: "1",
+          reason: .recordNotRoot(
+            [
+              [0]: ForeignKey(
+                table: "remindersLists",
+                from: "remindersListID",
+                to: "id",
+                onUpdate: .noAction,
+                onDelete: .cascade,
+                notnull: true
+              )
+            ]
+          ),
+          debugDescription: "Only root records are shareable, but parent record(s) detected via foreign key(s)."
+        )
+        """
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func shareRecordBeforeSync() async throws {
-      await #expect(throws: SyncEngine.NoCKRecordFound.self) {
+      let error = await #expect(throws: (any Error).self) {
         _ = try await self.syncEngine.share(
           record: RemindersList(id: 1),
           configure: { _ in }
         )
+      }
+      assertInlineSnapshot(of: (error as? any LocalizedError)?.localizedDescription, as: .customDump) {
+        """
+        "The record could not be shared."
+        """
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        """
+        SyncEngine.SharingError(
+          recordTableName: "remindersLists",
+          recordPrimaryKey: "1",
+          reason: .recordMetadataNotFound,
+          debugDescription: "No sync metadata found for record. Has the record been saved to the database?"
+        )
+        """
       }
     }
 

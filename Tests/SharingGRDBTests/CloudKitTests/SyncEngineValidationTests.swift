@@ -16,7 +16,7 @@ extension BaseCloudKitTests {
   struct SyncEngineValidationTests {
     @Test func tableNameValidation() async throws {
       let error = try #require(
-        await #expect(throws: InvalidTableName.self) {
+        await #expect(throws: (any Error).self) {
           let database = try DatabaseQueue()
           _ = try await SyncEngine(
             container: MockCloudContainer(
@@ -29,18 +29,24 @@ extension BaseCloudKitTests {
           )
         }
       )
-      #expect(
-        error.localizedDescription.hasPrefix(
-          """
-          Table name "invalid:table" contains invalid character ':'.
-          """
+      assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+        """
+        "Could not synchronize data with iCloud."
+        """
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        #"""
+        SyncEngine.SchemaError(
+          reason: .invalidTableName("invalid:table"),
+          debugDescription: "Table name contains invalid character \':\'"
         )
-      )
+        """#
+      }
     }
 
     @Test func foreignKeyActionValidation() async throws {
       let error = try #require(
-        await #expect(throws: InvalidParentForeignKey.self) {
+        await #expect(throws: (any Error).self) {
           var configuration = Configuration()
           configuration.foreignKeysEnabled = false
           let database = try DatabaseQueue(configuration: configuration)
@@ -74,18 +80,33 @@ extension BaseCloudKitTests {
           )
         }
       )
-      #expect(
-        error.localizedDescription ==
-          """
-          Foreign key "children"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' \
-          or 'SET NULL'.
-          """
-      )
+      assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+        """
+        "Could not synchronize data with iCloud."
+        """
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        """
+        SyncEngine.SchemaError(
+          reason: .invalidForeignKeyAction(
+            ForeignKey(
+              table: "parents",
+              from: "parentID",
+              to: "id",
+              onUpdate: .noAction,
+              onDelete: .noAction,
+              notnull: false
+            )
+          ),
+          debugDescription: #"Foreign key "children"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
+        )
+        """
+      }
     }
 
     @Test func userTriggerValidation() async throws {
       let error = try await #require(
-        #expect(throws: InvalidUserTriggers.self) {
+        #expect(throws: (any Error).self) {
           let database = try DatabaseQueue()
           try await database.write { db in
             try #sql(
@@ -129,15 +150,24 @@ extension BaseCloudKitTests {
           )
         }
       )
-
-      #expect(
-        error.localizedDescription.hasPrefix(
-          """
-          Triggers must include 'sqlitedata_icloud_syncEngineIsSynchronizingChanges()' check: \
-          'non_temporary_trigger', 'temporary_trigger'
-          """
+      assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+        """
+        "Could not synchronize data with iCloud."
+        """
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        #"""
+        SyncEngine.SchemaError(
+          reason: .triggersWithoutSynchronizationCheck(
+            [
+              [0]: "non_temporary_trigger",
+              [1]: "temporary_trigger"
+            ]
+          ),
+          debugDescription: #"Triggers must include 'sqlitedata_icloud_syncEngineIsSynchronizingChanges()' check: '("non_temporary_trigger", "remindersLists", "CREATE TRIGGER \"non_temporary_trigger\"\nAFTER UPDATE ON \"remindersLists\"\nFOR EACH ROW BEGIN\n  SELECT 1;\nEND")', '("temporary_trigger", "remindersLists", "CREATE TRIGGER \"temporary_trigger\"\nAFTER UPDATE ON \"remindersLists\"\nFOR EACH ROW BEGIN\n  SELECT 1;\nEND")'."#
         )
-      )
+        """#
+      }
     }
 
     @Test func doNotValidateTriggersOnNonSyncedTables() async throws {

@@ -25,24 +25,62 @@ public struct SharedRecord: Hashable, Identifiable, Sendable {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
-  // TODO: Move errors into single 'SyncEngine.Error' type?
-  public struct UnrecognizedTable: Error {}
-  public struct RecordMustBeRoot: Error {}
-  public struct NoCKRecordFound: Error {}
-  public struct PrivateRootRecord: Error {}
+  private struct SharingError: LocalizedError {
+    enum Reason {
+      case recordMetadataNotFound
+      case recordNotRoot([ForeignKey])
+      case recordTableNotSynchronized
+      case recordTablePrivate
+    }
+
+    let recordTableName: String
+    let recordPrimaryKey: String
+    let reason: Reason
+    let debugDescription: String
+
+    var errorDescription: String? {
+      "The record could not be shared."
+    }
+  }
 
   public func share<T: PrimaryKeyedTable>(
     record: T,
     configure: @Sendable (CKShare) -> Void
   ) async throws -> SharedRecord
   where T.TableColumns.PrimaryKey.QueryOutput: IdentifierStringConvertible {
-    guard !privateTables.contains(where: { T.self == $0 })
-    else { throw PrivateRootRecord() }
     guard tablesByName[T.tableName] != nil
-    else { throw UnrecognizedTable() }
-    guard foreignKeysByTableName[T.tableName]?.isEmpty ?? true
-    else { throw RecordMustBeRoot() }
-
+    else {
+      throw SharingError(
+        recordTableName: T.tableName,
+        recordPrimaryKey: record.primaryKey.rawIdentifier,
+        reason: .recordTableNotSynchronized,
+        debugDescription: """
+          Table is not shareable: table type not passed to 'tables' parameter of 'SyncEngine.init'.
+          """
+      )
+    }
+    if let foreignKeys = foreignKeysByTableName[T.tableName], !foreignKeys.isEmpty {
+      throw SharingError(
+        recordTableName: T.tableName,
+        recordPrimaryKey: record.primaryKey.rawIdentifier,
+        reason: .recordNotRoot(foreignKeys),
+        debugDescription: """
+          Only root records are shareable, but parent record(s) detected via foreign key(s).
+          """
+      )
+    }
+    guard !privateTables.contains(where: { T.self == $0 })
+    else {
+      throw SharingError(
+        recordTableName: T.tableName,
+        recordPrimaryKey: record.primaryKey.rawIdentifier,
+        reason: .recordTablePrivate,
+        debugDescription: """
+          Private tables are not shareable: table type passed to 'privateTables' parameter of \
+          'SyncEngine.init'.
+          """
+      )
+    }
     let recordName = record.recordName
     let metadata =
       try await metadatabase.read { db in
@@ -50,10 +88,16 @@ extension SyncEngine {
           .where { $0.recordName.eq(recordName) }
           .fetchOne(db)
       } ?? nil
-
     guard let metadata
     else {
-      throw NoCKRecordFound()
+      throw SharingError(
+        recordTableName: T.tableName,
+        recordPrimaryKey: record.primaryKey.rawIdentifier,
+        reason: .recordMetadataNotFound,
+        debugDescription: """
+          No sync metadata found for record. Has the record been saved to the database?
+          """
+      )
     }
 
     let rootRecord =
