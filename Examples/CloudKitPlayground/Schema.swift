@@ -22,9 +22,7 @@ func appDatabase() throws -> any DatabaseWriter {
   let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.prepareDatabase { db in
-    try db.attachMetadatabase(
-      containerIdentifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitPlayground"
-    )
+    try db.attachMetadatabase()
     #if DEBUG
       db.trace(options: .profile) {
         if context == .live {

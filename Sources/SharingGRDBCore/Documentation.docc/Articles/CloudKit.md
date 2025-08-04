@@ -108,7 +108,7 @@ you can use the `prepareDatabase` method on `Configuration` to attach the metada
 func appDatabase() -> any DatabaseWriter {
   var configuration = Configuration()
   configuration.prepareDatabase = { db in
-    db.attachMetadatabase(containerIdentifier: "iCloud.my.company.MyApp")
+    db.attachMetadatabase()
     …
   }
 }

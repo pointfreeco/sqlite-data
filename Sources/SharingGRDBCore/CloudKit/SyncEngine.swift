@@ -1512,7 +1512,7 @@
     /// func appDatabase() -> any DatabaseWriter {
     ///   var configuration = Configuration()
     ///   configuration.prepareDatabase = { db in
-    ///     db.attachMetadatabase(containerIdentifier: "iCloud.my.company.MyApp")
+    ///     db.attachMetadatabase()
     ///     …
     ///   }
     /// }
@@ -1523,7 +1523,19 @@
     /// - Parameter containerIdentifier: The identifier of the CloudKit container used to synchronize
     ///                                  data.
     public func attachMetadatabase(containerIdentifier: String? = nil) throws {
-      // TODO
+      let containerIdentifier = containerIdentifier
+        ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
+
+      guard let containerIdentifier else {
+        throw SyncEngine.SchemaError(
+          reason: .noCloudKitContainer,
+          debugDescription: """
+            No default CloudKit container found. Please add a container identifier to your app's \
+            entitlements.
+            """
+        )
+      }
+
       let databasePath = try SQLQueryExpression(
         """
         SELECT "file" FROM pragma_database_list()
