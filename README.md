@@ -260,13 +260,8 @@ struct MyApp: App {
     prepareDependencies {
       $0.defaultDatabase = try! appDatabase()
       $0.defaultSyncEngine = SyncEngine(
-        container: CKContainer(
-          identifier: "iCloud.co.mycompany.MyApp"
-        ),
-        database: $0.defaultDatabase,
-        tables: [
-          Item.self,
-        ]
+        for: $0.defaultDatabase,
+        tables: Item.self
       )
     }
   }

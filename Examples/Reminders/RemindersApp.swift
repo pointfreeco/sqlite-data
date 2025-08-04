@@ -1,6 +1,7 @@
 import CloudKit
 import SharingGRDB
 import SwiftUI
+import UIKit
 
 @main
 struct RemindersApp: App {
@@ -13,17 +14,12 @@ struct RemindersApp: App {
       try! prepareDependencies {
         $0.defaultDatabase = try Reminders.appDatabase()
         $0.defaultSyncEngine = try SyncEngine(
-          container: CKContainer(
-            identifier: "iCloud.co.pointfree.SQLiteData.demos.field-timestamps-2.Reminders"
-          ),
-          database: $0.defaultDatabase,
-          tables: [
-            RemindersList.self,
-            RemindersListAsset.self,
-            Reminder.self,
-            Tag.self,
-            ReminderTag.self,
-          ]
+          for: $0.defaultDatabase,
+          tables: RemindersList.self,
+          RemindersListAsset.self,
+          Reminder.self,
+          Tag.self,
+          ReminderTag.self
         )
       }
     }
@@ -39,9 +35,6 @@ struct RemindersApp: App {
     }
   }
 }
-
-
-import UIKit
 
 class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
   func application(

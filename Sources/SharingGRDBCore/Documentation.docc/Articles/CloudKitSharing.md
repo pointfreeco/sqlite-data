@@ -391,17 +391,9 @@ struct MyApp: App {
     try! prepareDependencies {
       $0.defaultDatabase = try appDatabase()
       $0.defaultSyncEngine = try SyncEngine(
-        container: CKContainer(
-          identifier: "iCloud.co.pointfree.sharing-grdb.Reminders"
-        ),
         database: $0.defaultDatabase,
-        tables: [
-          RemindersList.self,
-          Reminder.self,
-        ],
-        privateTables: [
-          RemindersListPrivate.self
-        ]
+        tables: RemindersList.self, Reminder.self,
+        privateTables: RemindersListPrivate.self
       )
     }
   }

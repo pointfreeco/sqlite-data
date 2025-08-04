@@ -11,43 +11,43 @@ to make, and so an abundance of care must be taken to make sure all devices rema
 and capable of communicating with each other. Please read the documentation closely and thoroughly
 to make sure you understand how to best prepare your app for cloud synchronization.
 
-- [Setting up your project](#Setting-up-your-project)
-- [Setting up a SyncEngine](#Setting-up-a-SyncEngine)
-- [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)
-  - [Primary keys](#Primary-keys)
-  - [Primary keys on every table](#Primary-keys-on-every-table)
-  - [Foreign key relationships](#Foreign-key-relationships)
-- [Record conflicts](#Record-conflicts)
-- [Backwards compatible migrations](#Backwards-compatible-migrations)
-  - [Adding tables](#Adding-tables)
-  - [Adding columns](#Adding-columns)
-  - [Disallowed migrations](#Disallowed-migrations)
-- [Sharing records with other iCloud users](#Sharing-records-with-other-iCloud-users)
-- [Assets](#Assets)
-- [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)
-- [How SharingGRDB handles distributed schema scenarios](#How-SharingGRDB-handles-distributed-schema-scenarios)
-- [Unit testing and Xcode previews](#Unit-testing-and-Xcode-previews)
-- [Preparing an existing schema for synchronization](#Preparing-an-existing-schema-for-synchronization)
-  - [Convert Int primary keys to UUID](#Convert-Int-primary-keys-to-UUID)
-  - [Add primary key to all tables](#Add-primary-key-to-all-tables)
-- [Migrating from Swift Data to SharingGRDB](#Migrating-from-Swift-Data-to-SharingGRDB)
-- [Separating schema migrations from data migrations](#Separating-schema-migrations-from-data-migrations)
-- [Tips and tricks](#Tips-and-tricks)
-  - [Updating triggers to be compatible with synchronization](#Updating-triggers-to-be-compatible-with-synchronization)
-- [Topics](#Topics)
-  - [Go deeper](#Go-deeper)
+  * [Setting up your project](#Setting-up-your-project)
+  * [Setting up a SyncEngine](#Setting-up-a-SyncEngine)
+  * [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)
+      * [Primary keys](#Primary-keys)
+      * [Primary keys on every table](#Primary-keys-on-every-table)
+      * [Foreign key relationships](#Foreign-key-relationships)
+  * [Record conflicts](#Record-conflicts)
+  * [Backwards compatible migrations](#Backwards-compatible-migrations)
+      * [Adding tables](#Adding-tables)
+      * [Adding columns](#Adding-columns)
+      * [Disallowed migrations](#Disallowed-migrations)
+  * [Sharing records with other iCloud users](#Sharing-records-with-other-iCloud-users)
+  * [Assets](#Assets)
+  * [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)
+  * [How SharingGRDB handles distributed schema scenarios](#How-SharingGRDB-handles-distributed-schema-scenarios)
+  * [Unit testing and Xcode previews](#Unit-testing-and-Xcode-previews)
+  * [Preparing an existing schema for synchronization](#Preparing-an-existing-schema-for-synchronization)
+      * [Convert Int primary keys to UUID](#Convert-Int-primary-keys-to-UUID)
+      * [Add primary key to all tables](#Add-primary-key-to-all-tables)
+  * [Migrating from Swift Data to SharingGRDB](#Migrating-from-Swift-Data-to-SharingGRDB)
+  * [Separating schema migrations from data migrations](#Separating-schema-migrations-from-data-migrations)
+  * [Tips and tricks](#Tips-and-tricks)
+      * [Updating triggers to be compatible with synchronization](#Updating-triggers-to-be-compatible-with-synchronization)
+  * [Topics](#Topics)
+      * [Go deeper](#Go-deeper)
 
 ## Setting up your project
 
 The steps to set up your SharingGRDB project for CloudKit synchronization are the 
 [same for setting up][setup-cloudkit-apple] any other kind of project for CloudKit:
 
-* Follow the [Configuring iCloud services] guide for enabling iCloud entitlements in your project.
-* Follow the [Configuring background execution modes] guide for adding the Background Modes
-capability to your project.
-* If you want to enable sharing of records with other iCloud users, be sure to add a 
-`CKSharingSupported` key to your Info.plist with a value of `true`. This is subtly documented 
-in [Apple's documentation for sharing].
+  * Follow the [Configuring iCloud services] guide for enabling iCloud entitlements in your project.
+  * Follow the [Configuring background execution modes] guide for adding the Background Modes
+    capability to your project.
+  * If you want to enable sharing of records with other iCloud users, be sure to add a 
+    `CKSharingSupported` key to your Info.plist with a value of `true`. This is subtly documented 
+    in [Apple's documentation for sharing].
 
 With those steps completed, you are ready to configure a ``SyncEngine`` that will facilitate
 synchronizing your database to and from CloudKit.
@@ -78,19 +78,13 @@ struct MyApp: App {
     try! prepareDependencies {
       $0.defaultDatabase = try appDatabase()
       $0.defaultSyncEngine = try SyncEngine(
-        container: CKContainer(
-          identifier: "iCloud.co.pointfree.sharing-grdb.Reminders"
-        ),
-        database: $0.defaultDatabase,
-        tables: [
-          RemindersList.self,
-          Reminder.self,
-        ]
+        for: $0.defaultDatabase,
+        tables: RemindersList.self, Reminder.self
       )
     }
   }
   
-  …
+  // ...
 }
 ```
 
@@ -100,10 +94,10 @@ has more options you may be interested in configuring.
 
 > Important: A few important things to note about this:
 > 
-> * The CloudKit container identifier must be explicitly provided and unfortunately cannot be 
-> extracted from Entitlements.plist automatically. That privilege is only afforded to SwiftData.
-> * You must explicitly provide all tables that you want to synchronize. We do this so that you can
-> have the option of having some local tables that are not synchronized to CloudKit.
+>   * The CloudKit container identifier must be explicitly provided and unfortunately cannot be 
+>     extracted from Entitlements.plist automatically. That privilege is only afforded to SwiftData.
+>   * You must explicitly provide all tables that you want to synchronize. We do this so that you
+>     can have the option of having some local tables that are not synchronized to CloudKit.
 
 Once this work is done the app should work exactly as it did before, but now any changes made
 to the database will be synchronized to CloudKit. You will still interact with your local SQLite
