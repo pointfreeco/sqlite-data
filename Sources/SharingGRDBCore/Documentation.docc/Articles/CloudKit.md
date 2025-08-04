@@ -89,15 +89,11 @@ struct MyApp: App {
 ```
 
 The `SyncEngine` 
- [initializer](<doc:SyncEngine/init(container:defaultZone:database:logger:tables:privateTables:)>)
+[initializer](<doc:SyncEngine/init(for:tables:privateTables:containerIdentifier:defaultZone:logger:)>)
 has more options you may be interested in configuring.
 
-> Important: A few important things to note about this:
-> 
->   * The CloudKit container identifier must be explicitly provided and unfortunately cannot be 
->     extracted from Entitlements.plist automatically. That privilege is only afforded to SwiftData.
->   * You must explicitly provide all tables that you want to synchronize. We do this so that you
->     can have the option of having some local tables that are not synchronized to CloudKit.
+> Important: You must explicitly provide all tables that you want to synchronize. We do this so that
+> you can have the option of having some local tables that are not synchronized to CloudKit.
 
 Once this work is done the app should work exactly as it did before, but now any changes made
 to the database will be synchronized to CloudKit. You will still interact with your local SQLite

@@ -391,7 +391,7 @@ struct MyApp: App {
     try! prepareDependencies {
       $0.defaultDatabase = try appDatabase()
       $0.defaultSyncEngine = try SyncEngine(
-        database: $0.defaultDatabase,
+        for: $0.defaultDatabase,
         tables: RemindersList.self, Reminder.self,
         privateTables: RemindersListPrivate.self
       )

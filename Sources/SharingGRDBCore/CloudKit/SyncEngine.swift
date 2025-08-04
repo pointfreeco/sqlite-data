@@ -4,6 +4,8 @@
   import CustomDump
   import OrderedCollections
   import OSLog
+  import StructuredQueriesCore
+  import SwiftData
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Sendable {
@@ -24,14 +26,41 @@
 
     let dataManager = Dependency(\.dataManager)
 
-    public convenience init(
-      container: CKContainer,
+    public convenience init<each T1: PrimaryKeyedTable, each T2: PrimaryKeyedTable>(
+      for database: any DatabaseWriter,
+      tables: repeat (each T1).Type,
+      privateTables: repeat (each T2).Type,
+      containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
-      database: any DatabaseWriter,
-      logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit"),
-      tables: [any PrimaryKeyedTable.Type],
-      privateTables: [any PrimaryKeyedTable.Type] = []
-    ) throws {
+      logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit")
+    ) throws
+    where
+      repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
+      repeat (each T2).PrimaryKey.QueryOutput: IdentifierStringConvertible
+    {
+      let containerIdentifier = containerIdentifier
+        ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
+
+      guard let containerIdentifier else {
+        throw SchemaError(
+          reason: .noCloudKitContainer,
+          debugDescription: """
+            No default CloudKit container found. Please add a container identifier to your app's \
+            entitlements.
+            """
+        )
+      }
+
+      let container = CKContainer(identifier: containerIdentifier)
+      var allTables: [any PrimaryKeyedTable.Type] = []
+      var allPrivateTables: [any PrimaryKeyedTable.Type] = []
+      for table in repeat each tables {
+        allTables.append(table)
+      }
+      for privateTable in repeat each privateTables {
+        allPrivateTables.append(privateTable)
+      }
+
       let userDatabase = UserDatabase(database: database)
       try self.init(
         container: container,
@@ -66,8 +95,8 @@
         },
         userDatabase: userDatabase,
         logger: logger,
-        tables: tables,
-        privateTables: privateTables
+        tables: allTables,
+        privateTables: allPrivateTables
       )
       _ = try setUpSyncEngine(
         userDatabase: userDatabase,
@@ -1493,7 +1522,8 @@
     ///
     /// - Parameter containerIdentifier: The identifier of the CloudKit container used to synchronize
     ///                                  data.
-    public func attachMetadatabase(containerIdentifier: String) throws {
+    public func attachMetadatabase(containerIdentifier: String? = nil) throws {
+      // TODO
       let databasePath = try SQLQueryExpression(
         """
         SELECT "file" FROM pragma_database_list()
@@ -1539,6 +1569,7 @@
         case invalidForeignKeyAction(ForeignKey)
         case invalidTableName(String)
         case metadatabaseMismatch(attachedPath: String, syncEngineConfiguredPath: String)
+        case noCloudKitContainer
         case nonNullColumnsWithoutDefault(tableName: String, columnNames: [String])
         case triggersWithoutSynchronizationCheck([String])
         case unknown
