@@ -62,7 +62,7 @@
 		CA1146AC2DF38D000054BA77 /* CloudKitDemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CloudKitDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA5F37542D5AFBBC002E1A9E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		CA9101C82E1F270100F85DD0 /* CloudKitPlayground.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudKitPlayground.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CA9102E62E1F28FE00F85DD0 /* sharing-grdb-icloud */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sharing-grdb-icloud"; path = "/Users/brandon/projects/sharing-grdb-icloud"; sourceTree = "<absolute>"; };
+		CA9102E62E1F28FE00F85DD0 /* sharing-grdb */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sharing-grdb"; path = "/Users/brandon/projects/sharing-grdb"; sourceTree = "<absolute>"; };
 		CA9F99482DF9134D00934431 /* RemindersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemindersTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAF836982D4735620047AEB5 /* CaseStudies.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CaseStudies.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -295,7 +295,7 @@
 		CAF837022D4735C00047AEB5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				CA9102E62E1F28FE00F85DD0 /* sharing-grdb-icloud */,
+				CA9102E62E1F28FE00F85DD0 /* sharing-grdb */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -578,7 +578,7 @@
 				DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */,
 				DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */,
 				DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */,
-				CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference "../../sharing-grdb-icloud" */,
+				CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference ".." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CAF836992D4735620047AEB5 /* Products */;
@@ -1433,9 +1433,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference "../../sharing-grdb-icloud" */ = {
+		CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../sharing-grdb-icloud";
+			relativePath = "..";
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -1500,17 +1500,17 @@
 		};
 		CA9102EC2E1F29A400F85DD0 /* SharingGRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference "../../sharing-grdb-icloud" */;
+			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference ".." */;
 			productName = SharingGRDB;
 		};
 		CA9102EE2E1F29AA00F85DD0 /* SharingGRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference "../../sharing-grdb-icloud" */;
+			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference ".." */;
 			productName = SharingGRDB;
 		};
 		CA9102F02E1F29E300F85DD0 /* SharingGRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference "../../sharing-grdb-icloud" */;
+			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference ".." */;
 			productName = SharingGRDB;
 		};
 		CA9F99D72DF915D300934431 /* DependenciesTestSupport */ = {
