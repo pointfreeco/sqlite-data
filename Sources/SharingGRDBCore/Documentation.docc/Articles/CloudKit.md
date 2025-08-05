@@ -131,18 +131,18 @@ version.
 
 #### Primary keys
 
-> TLDR: Primary keys should be globally unique identifiers, such as UUID. We further recommend
-> specifying a "NOT NULL" constraint with a "ON CONFLICT REPLACE" action.
+> TL;DR: Primary keys should be globally unique identifiers, such as UUID. We further recommend
+> specifying a `NOT NULL` constraint with a `ON CONFLICT REPLACE` action.
 
 Primary keys are an important concept in SQL schema design, and SQLite makes it easy to add a 
-primary key by using an "autoincrement" integer. This makes it so that newly inserted rows get
+primary key by using an `AUTOINCREMENT` integer. This makes it so that newly inserted rows get
 a unique ID by simply adding 1 to the largest ID in the table. However, that does not play nicely
 with distributed schemas. That would make it possible for two devices to create a record with 
 `id: 1`, and when those records synchronize there would be an irreconcilable conflict.
 
 For this reason, primary keys in SQLite tables should be globally unique, such as a UUID. The 
-easiest way to do this is to store your table's ID in a "TEXT" column, adding a 
-default with a freshly generated UUID, and further adding a "ON CONFLICT REPLACE" constraint:
+easiest way to do this is to store your table's ID in a `TEXT` column, adding a 
+default with a freshly generated UUID, and further adding a `ON CONFLICT REPLACE` constraint:
 
 ```sql
 CREATE TABLE "reminders" (
@@ -151,7 +151,7 @@ CREATE TABLE "reminders" (
 )
 ```
 
-> Tip: The "ON CONFLICT REPLACE" clause must be placed directly after "NOT NULL".
+> Tip: The `ON CONFLICT REPLACE` clause must be placed directly after `NOT NULL`.
 
 This allows you to insert a row with a NULL value for the primary key and SQLite will compute
 the primary key from the default value specified. This kind of pattern is commonly used with the
@@ -160,10 +160,10 @@ the primary key from the default value specified. This kind of pattern is common
 ```swift
 try database.write { db in
   try Reminder.upsert {
-      // Do not provide 'id', let database initialize it for you.
-      Reminder.Draft(title: "Get milk") 
-    }
-    .execute(db)
+    // Do not provide 'id', let database initialize it for you.
+    Reminder.Draft(title: "Get milk") 
+  }
+  .execute(db)
 }
 ```
 
@@ -182,7 +182,7 @@ CREATE TABLE "reminders" (
 
 #### Primary keys on every table
 
-> TLDR: Each synchronized table must have a single, non-compound primary key to aid in 
+> TL;DR: Each synchronized table must have a single, non-compound primary key to aid in 
 > synchronization, even if it is not used by your app.
 
 _Every_ table being synchronized must have a single primary key and cannot have compound primary
@@ -206,7 +206,7 @@ TODO: think more about this
 
 #### Default values for columns
 
-> TLDR: All columns must have a default in order to allow for multiple devices to run your
+> TL;DR: All columns must have a default in order to allow for multiple devices to run your
 > app with different versions of the schema.
 
 Your tables' schemas should be defined to provide a default for every non-null column. To see why 
@@ -221,7 +221,7 @@ a ``NonNullColumnMustHaveDefault`` error will be thrown.
 
 #### Unique constraints
 
-> TLDR: SQLite tables cannot have "UNIQUE" constraints on their columns in order to allow
+> TL;DR: SQLite tables cannot have `UNIQUE` constraints on their columns in order to allow
 > for distributed creation of records.
 
 Tables with unique constraints on their columns, other than on the primary key, cannot be
@@ -238,7 +238,7 @@ when a ``SyncEngine`` is first created. If a uniqueness constraint is detected a
 
 #### Foreign key relationships
 
-> TLDR: Foreign key constraints can be enabled and you can use "ON DELETE" actions to
+> TL;DR: Foreign key constraints can be enabled and you can use `ON DELETE` actions to
 > cascade deletions.
 
 SharingGRDB can synchronize many-to-one and many-to-many relationships to CloudKit, 
@@ -248,13 +248,13 @@ such as receiving a child record before its parent, the sync engine will cache t
 until the parent record has been synchronized, at which point the child record will also be 
 synchronized.
 
-Currently the only actions supported for "ON DELETE" are "CASCADE", "SET NULL" and "SET DEFAULT".
-In particular, "RESTRICT" and "NO ACTION" are not supported, and if you try to use those actions
-in your schema an ``InvalidParentForeignKey`` error will be thrown when constructing ``SyncEngine``.
+Currently the only actions supported for `ON DELETE` are `CASCADE`, `SET NULL` and `SET DEFAULT`.
+In particular, `RESTRICT` and `NO ACTION` are not supported, and if you try to use those actions
+in your schema an error will be thrown when constructing ``SyncEngine``.
 
 ## Record conflicts
 
-> TLDR: Conflicts are handled automatically using a "last edit wins" strategy for each
+> TL;DR: Conflicts are handled automatically using a "last edit wins" strategy for each
 > column of the record.
 
 Conflicts between record edits will inevitably happen, and it's just a fact of dealing with 
@@ -269,7 +269,7 @@ the only strategy available and we feel serves the needs of the most number of p
 
 ## Backwards compatible migrations
 
-> TLDR: Database migrations should be done carefully and with full backwards compatibility
+> TL;DR: Database migrations should be done carefully and with full backwards compatibility
 > in mind in order to support multiple devices running with different schema versions.
 
 Migrations of a distributed schema come with even more complications than what is mentioned above.
@@ -286,9 +286,9 @@ has been added to the schema, it will populate the table with the cached records
 
 #### Adding columns
 
-> TLDR: When adding columns to a table that has already been deployed to user's devices, you will
-either need to make the column nullable, or it can be "NOT NULL" but a default value must be 
-provided with an "ON CONFLICT REPLACE" clause.
+> TL;DR: When adding columns to a table that has already been deployed to user's devices, you will
+either need to make the column nullable, or it can be `NOT NULL` but a default value must be 
+provided with an `ON CONFLICT REPLACE` clause.
 
 As an example, suppose the 1.0 of your app shipped a table for a reminders list:
 
@@ -338,10 +338,10 @@ VALUES
 (NULL, 'Personal', NULL)
 ```
 
-This will generate a SQL error because the "position" column was declared as "NOT NULL", and so this
+This will generate a SQL error because the "position" column was declared as `NOT NULL`, and so this
 record will not properly synchronize to devices running a newer version of the app.
 
-The fix is to allow for inserting "NULL" values into "NOT NULL" columns by using the default of the
+The fix is to allow for inserting `NULL` values into `NOT NULL` columns by using the default of the
 column. This can be done like so:
 
 ```sql
@@ -349,7 +349,7 @@ ALTER TABLE "remindersLists"
 ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
 ```
 
-> Important: The "ON CONFLICT REPLACE" clause must come directly after "NOT NULL" because it 
+> Important: The `ON CONFLICT REPLACE` clause must come directly after `NOT NULL` because it 
 > modifies that constraint.
 
 Now when this query is executed: 
@@ -361,7 +361,7 @@ VALUES
 (NULL, 'Personal', NULL)
 ```
 
-…it will use 0 for the "position" column.
+…it will use 0 for the `position` column.
 
 Sometimes it is not possible to specify a default for a newly added column. Suppose in version 1.2
 of your app you add groups for reminders lists. This can be expressed as a new field on the 
@@ -410,7 +410,7 @@ And your migration will need to add a nullable column to the table:
  REFERENCES "remindersListGroups"("id")
 ```
 
-It may be disappointing to have to weaken your domain modeling to accomodate synchronization, but
+It may be disappointing to have to weaken your domain modeling to accommodate synchronization, but
 that is the unfortunate reality of a distributed schema. In order to allow multiple versions of your
 schema to be run on devices so that each device can create new records and edit existing records 
 that all devices can see, you will need to make some compromises.
@@ -420,9 +420,9 @@ that all devices can see, you will need to make some compromises.
 Certain kinds of migrations are simply not allowed when synchronizing your schema to multiple
 devices. They are:
 
-* Removing columns
-* Renaming columns
-* Renaming tables
+  * Removing columns
+  * Renaming columns
+  * Renaming tables
 
 ## Sharing records with other iCloud users
 
@@ -436,7 +436,7 @@ See <doc:CloudKitSharing> for more information.
 
 ## Assets
 
-> TLDR: The library packages all BLOB columns in a table into `CKAsset`s and seamlessly decodes
+> TL;DR: The library packages all BLOB columns in a table into `CKAsset`s and seamlessly decodes
 > `CKAsset`s back into your tables. We recommend putting large binary blobs of data in their own
 > tables.
 
@@ -495,7 +495,7 @@ to construct a SQL query for fetching the meta data associated with one of your 
 
 For example, if you want to retrieve the `CKRecord` that is associated with a particular row in
 one of your tables, say a reminder, then you can use ``SyncMetadata/lastKnownServerRecord`` to
-retreive the `CKRecord` and then invoke a CloudKit database function to retreive all of the details: 
+retrieve the `CKRecord` and then invoke a CloudKit database function to retrieve all of the details: 
 
 ```swift
 let lastKnownServerRecord = try database.read { db in
@@ -516,12 +516,12 @@ let ckRecord = try await container.privateCloudDatabase
 > a shared record, which can be determined from [SyncMetadata.share](<doc:SyncMetadata/share>),
 > then you must use `sharedCloudDatabase` to fetch the newest record.
 
-You are free to invoke any CloudKit functions you want with the `CKRecord` retreived from 
+You are free to invoke any CloudKit functions you want with the `CKRecord` retrieved from 
 ``SyncMetadata``. Any changes made directly with CloudKit will be automatically synced to your
 SQLite database by the ``SyncEngine``.
 
 It is also possible to fetch the `CKShare` associated with a record if it has been shared, which
-will give you access to the most current list of paricipants and permissions for the shared record:
+will give you access to the most current list of participants and permissions for the shared record:
 
 ```swift
 let share = try database.read { db in
@@ -586,14 +586,16 @@ return true if the write to your database originates from the sync engine. You c
 trigger like so:
 
 ```swift
-#sql("""
+#sql(
+  """
   CREATE TEMPORARY TRIGGER "…"
-  AFTER DELETE ON "…""
+  AFTER DELETE ON "…"
   FOR EACH ROW WHEN NOT \(SyncEngine.isSynchronizingChanges())
   BEGIN
     …
   END
-  """)
+  """
+)
 ```
 
 Or if you are using the trigger building tools from [StructuredQueries] you can use it like so:
@@ -602,9 +604,8 @@ Or if you are using the trigger building tools from [StructuredQueries] you can 
 
 ```swift
 Model.createTemporaryTrigger(
-  "…",
   after: .insert { new in
-    …
+    // ...
   } when: { _ in
     !SyncEngine.isSynchronizingChanges()
   }

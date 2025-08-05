@@ -50,7 +50,7 @@ struct RemindersListView: View {
         Task {
           await withErrorReporting {
             sharedRecord = try await syncEngine.share(record: remindersList) { share in
-              share[CKShare.SystemFieldKey.title] = "Join '\(remindersList.title)!'"
+              share[CKShare.SystemFieldKey.title] = "Join '\(remindersList.title)'!"
             }
           }
         }
@@ -104,7 +104,7 @@ shared record. There is, however, a lot more to know about sharing. There are im
 placed on what kind of records you are allowed to share, and what associations of those records are
 shared.
 
-In a nutshell, only "root" records can be directly shared, i.e. records with no foreign keys. 
+In a nutshell, only "root" records can be directly shared, _i.e._ records with no foreign keys. 
 Further, an association of a root record can only be shared if it has only one foreign key pointing
 to the root record. And this last rule applies recursively: a leaf association is shared only if
 it has exactly one foreign key pointing to a record that also satisfies this property.
@@ -113,7 +113,7 @@ For more in-depth information, keep reading.
 
 ### Sharing root records
 
-> Important: It is only possible to share "root" records, i.e. records with no foreign keys.
+> Important: It is only possible to share "root" records, _i.e._ records with no foreign keys.
 
 A record can be shared only if it is a "root" record. That means it cannot have any
 foreign keys whatsoever. As an example, the following `RemindersList` table is a root record because 
@@ -141,16 +141,16 @@ struct Reminder: Identifiable {
 ```
 
 Such records cannot be shared because it is not appropriate to also share the parent record
-(i.e. the reminders list). 
+(_i.e._ the reminders list). 
 
 For example, suppose you have a list named "Personal" with a reminder "Get milk". If you share this
 reminder with someone, then it becomes difficult to figure out what to do when they make certain
 changes to the reminder:
 
-* If they decide to reassign the reminder to their personal "Life" list, what should
-happen? Should their "Life" list suddenly be synchronized to your device?
-* Or what if they delete the list? Would you want that to delete your list and all of the reminders
-in the list?
+  * If they decide to reassign the reminder to their personal "Life" list, what should
+    happen? Should their "Life" list suddenly be synchronized to your device?
+  * Or what if they delete the list? Would you want that to delete your list and all of the reminders
+    in the list?
 
 For these reasons, and more, it is not possible to share non-root records, like reminders. Instead,
 you can share root records, like reminders lists. If you do invoke
@@ -237,7 +237,7 @@ As a more complex example, consider the following diagrammatic schema:
 
 In this schema, a `RemindersList` can have many `Reminder`s and a `CoverImage`, and a `Reminder`
 can have many `ChildReminder`s. Sharing a `RemindersList` will share all associated reminders,
-cover image, and even child reminderes. The child reminders are synchronized because it has a 
+cover image, and even child reminders. The child reminders are synchronized because it has a 
 single foreign key pointing to a table that also has a single foreign key pointing to the root 
 record.
 
@@ -347,8 +347,8 @@ it is also the primary key of the table it enforces that at most one cover image
 ## Controlling what data is shared
 
 It is possible to specify that certain associations that are shareable not be shared. For example,
-suppose that you want reminders lists to be orderable by your user, and so add a `position` 
-column to the table:
+suppose that you want reminders lists to be sorted by your user, and so add a `position` column to
+the table:
 
 ```swift
 @Table 
