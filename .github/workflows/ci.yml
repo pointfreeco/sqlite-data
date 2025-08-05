@@ -44,19 +44,20 @@ jobs:
       - name: xcodebuild ${{ matrix.scheme }}
         run: make DERIVED_DATA_PATH=~/.derivedData SCHEME="${{ matrix.scheme }}" xcodebuild-raw
 
-  linux:
-    name: Linux
-    strategy:
-      matrix:
-        swift:
-          - '6.1'
-    runs-on: ubuntu-latest
-    container: swift:${{ matrix.swift }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Build Dependencies
-        run: |
-          apt-get update
-          apt-get install -y libsqlite3-dev
-      - name: Build
-        run: swift build
+  # Bring back when GRDB successfully compiles on Linux again
+  # linux:
+  #   name: Linux
+  #   strategy:
+  #     matrix:
+  #       swift:
+  #         - '6.1'
+  #   runs-on: ubuntu-latest
+  #   container: swift:${{ matrix.swift }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Install Build Dependencies
+  #       run: |
+  #         apt-get update
+  #         apt-get install -y libsqlite3-dev
+  #     - name: Build
+  #       run: swift build
