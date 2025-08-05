@@ -9,11 +9,11 @@ import SwiftUI
 struct RemindersList: Hashable, Identifiable {
   let id: UUID
   @Column(as: Color.HexRepresentation.self)
-  var color = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
+  var color: Color = Self.defaultColor
   var position = 0
   var title = ""
 
-  static var defaultColorHex: Int64 { 0x4a99_ef00 }
+  static var defaultColor: Color { Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255) }
   static var defaultTitle: String { "Personal" }
 }
 
@@ -126,11 +126,12 @@ func appDatabase() throws -> any DatabaseWriter {
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Create initial tables") { db in
+    let defaultListColor = Color.HexRepresentation(queryOutput: RemindersList.defaultColor).hexValue
     try #sql(
       """
       CREATE TABLE "remindersLists" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "color" INTEGER NOT NULL DEFAULT \(raw: RemindersLists.defaultColorHex),
+        "color" INTEGER NOT NULL DEFAULT \(raw: defaultListColor ?? 0),
         "position" INTEGER NOT NULL DEFAULT 0,
         "title" TEXT NOT NULL
       ) STRICT
@@ -188,25 +189,25 @@ func appDatabase() throws -> any DatabaseWriter {
 
     try RemindersList.createTemporaryTrigger(after: .insert { new in
       RemindersList
+        .find(new.id)
         .update { $0.position = RemindersList.select { ($0.position.max() ?? -1) + 1} }
-        .where { $0.id.eq(new.id) }
     })
     .execute(db)
     try Reminder.createTemporaryTrigger(after: .insert { new in
       Reminder
+        .find(new.id)
         .update { $0.position = Reminder.select { ($0.position.max() ?? -1) + 1} }
-        .where { $0.id.eq(new.id) }
     })
     .execute(db)
     try RemindersList.createTemporaryTrigger(after: .delete { _ in
       RemindersList.insert {
         RemindersList.Draft(
-          color: RemindersLists.defaultColorHex,
-          title: RemindersLists.defaultTitle
+          color: RemindersList.defaultColor,
+          title: RemindersList.defaultTitle
         )
       }
     } when: { _ in
-      RemindersList.count().eq(0)
+      !RemindersList.exists()
     })
     .execute(db)
   }
