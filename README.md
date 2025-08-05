@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> We are currently running a [public beta] to preview our upcoming CloudKit synchronization tools. Get all the details [here](https://www.pointfree.co/blog/posts/181-a-swiftdata-alternative-with-sqlite-cloudkit-public-beta) and let us know if you have any feedback!
+
+[public beta]: https://github.com/pointfreeco/sharing-grdb/pull/112
+
 # SharingGRDB
 
 A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL.
