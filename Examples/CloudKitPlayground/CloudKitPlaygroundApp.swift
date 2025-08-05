@@ -11,11 +11,8 @@ struct CloudKitPlaygroundApp: App {
     prepareDependencies {
       $0.defaultDatabase = try! appDatabase()
       $0.defaultSyncEngine = try! SyncEngine(
-        container: CKContainer(
-          identifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitPlayground"
-        ),
-        database: $0.defaultDatabase,
-        tables: [ModelA.self, ModelB.self, ModelC.self]
+        for: $0.defaultDatabase,
+        tables: ModelA.self, ModelB.self, ModelC.self
       )
     }
   }

@@ -105,9 +105,7 @@ func appDatabase() throws -> any DatabaseWriter {
   let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.prepareDatabase { db in
-    try db.attachMetadatabase(
-      containerIdentifier: "iCloud.co.pointfree.SQLiteData.demos.field-timestamps-2.Reminders"
-    )
+    try db.attachMetadatabase()
     #if DEBUG
       db.trace(options: .profile) {
         if context == .live {

@@ -797,14 +797,8 @@ inspect the Entitlements.plist in order to automatically extract that informatio
         try! prepareDependencies {
           $0.defaultDatabase = try appDatabase()
           $0.defaultSyncEngine = try SyncEngine(
-            container: CKContainer(
-              identifier: "iCloud.co.pointfree.sharing-grdb.Reminders"
-            ),
-            database: $0.defaultDatabase,
-            tables: [
-              RemindersList.self,
-              Reminder.self,
-            ]
+            for: $0.defaultDatabase,
+            tables: RemindersList.self, Reminder.self
           )
         }
       }
