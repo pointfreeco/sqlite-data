@@ -185,6 +185,18 @@ func appDatabase() throws -> any DatabaseWriter {
   try database.write { db in
     if context == .preview {
       try db.seedSampleData()
+    } else {
+      let count = try RemindersList.count().fetchOne(db) ?? 0
+
+      if count == 0 {
+        try RemindersList.insert {
+          RemindersList.Draft(
+            color: RemindersList.defaultColor,
+            title: RemindersList.defaultTitle
+          )
+        }
+        .execute(db)
+      }
     }
 
     try RemindersList.createTemporaryTrigger(after: .insert { new in
