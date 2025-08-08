@@ -619,4 +619,4 @@ from CloudKit.
 
 ### Go deeper
 
-- <doc:ComparisonWithSwiftData>
+- <doc:CloudKitSharing>
