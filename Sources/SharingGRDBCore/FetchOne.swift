@@ -1201,9 +1201,9 @@ extension FetchOne: Equatable where Value: Equatable {
 #endif
 
 private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
-  let statement: any StructuredQueriesCore.Statement<Value>
-  init(statement: any StructuredQueriesCore.Statement<Value>) {
-    self.statement = statement
+  let statement: SQLQueryExpression<Value>
+  init(statement: some StructuredQueriesCore.Statement<Value>) {
+    self.statement = SQLQueryExpression(statement)
   }
   func fetch(_ db: Database) throws -> Value.QueryOutput {
     guard let result = try statement.fetchOne(db)
@@ -1215,7 +1215,10 @@ private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: Stateme
 private struct FetchOneStatementOptionalValueRequest<Value: QueryRepresentable>:
   StatementKeyRequest
 {
-  let statement: any StructuredQueriesCore.Statement<Value>
+  let statement: SQLQueryExpression<Value>
+  init(statement: some StructuredQueriesCore.Statement<Value>) {
+    self.statement = SQLQueryExpression(statement)
+  }
   func fetch(_ db: Database) throws -> Value.QueryOutput? {
     try statement.fetchOne(db)
   }
@@ -1224,7 +1227,10 @@ private struct FetchOneStatementOptionalValueRequest<Value: QueryRepresentable>:
 private struct FetchOneStatementOptionalProtocolRequest<
   Value: QueryRepresentable & _OptionalProtocol
 >: StatementKeyRequest where Value.QueryOutput: _OptionalProtocol {
-  let statement: any StructuredQueriesCore.Statement<Value>
+  let statement: SQLQueryExpression<Value>
+  init(statement: some StructuredQueriesCore.Statement<Value>) {
+    self.statement = SQLQueryExpression(statement)
+  }
   func fetch(_ db: Database) throws -> Value.QueryOutput {
     try statement.fetchOne(db) ?? ._none
   }

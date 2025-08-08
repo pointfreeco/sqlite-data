@@ -132,13 +132,13 @@ struct ReminderFormView: View {
       guard let reminderID = reminder.id
       else { return }
       do {
+        let q = Tag
+          .order { $0.title }
+          .join(ReminderTag.all) { $0.id.eq($1.tagID) }
+          .where { $1.reminderID.eq(reminderID) }
+          .select { tag, _ in tag }
         selectedTags = try await database.read { db in
-          try Tag
-            .order(by: \.title)
-            .join(ReminderTag.all) { $0.id.eq($1.tagID) }
-            .where { $1.reminderID.eq(reminderID) }
-            .select { tag, _ in tag }
-            .fetchAll(db)
+          try q.fetchAll(db)
         }
       } catch {
         selectedTags = []
