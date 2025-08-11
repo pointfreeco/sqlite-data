@@ -44,8 +44,9 @@ extension Reminder.Draft: Identifiable {}
 
 @Table
 struct Tag: Hashable, Identifiable {
-  let id: UUID
-  var title = ""
+  @Column(primaryKey: true)
+  var title: String
+  var id: String { title }
 }
 
 enum Priority: Int, Codable, QueryBindable {
@@ -64,7 +65,7 @@ extension Reminder {
   }
   static let withTags = group(by: \.id)
     .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
-    .leftJoin(Tag.all) { $1.tagID.eq($2.id) }
+    .leftJoin(Tag.all) { $1.tag.eq($2.title) }
 }
 
 extension Reminder.TableColumns {
@@ -85,13 +86,13 @@ extension Reminder.TableColumns {
 }
 
 extension Tag {
-  static let withReminders = group(by: \.id)
-    .leftJoin(ReminderTag.all) { $0.id.eq($1.tagID) }
+  static let withReminders = group(by: \.title)
+    .leftJoin(ReminderTag.all) { $0.title.eq($1.tag) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
 }
 
 extension Tag.TableColumns {
-  var jsonNames: some QueryExpression<[String].JSONRepresentation> {
+  var jsonTitles: some QueryExpression<[String].JSONRepresentation> {
     self.title.jsonGroupArray(filter: self.title.isNot(nil))
   }
 }
@@ -100,7 +101,7 @@ extension Tag.TableColumns {
 struct ReminderTag: Hashable, Identifiable {
   let id: UUID
   var reminderID: Reminder.ID
-  var tagID: Tag.ID
+  var tag: Tag.ID
 }
 
 func appDatabase() throws -> any DatabaseWriter {
@@ -183,8 +184,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "tags" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "title" TEXT NOT NULL DEFAULT ''
+        "title" TEXT COLLATE NOCASE PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ''
       ) STRICT
       """
     )
@@ -194,10 +194,10 @@ func appDatabase() throws -> any DatabaseWriter {
       CREATE TABLE "remindersTags" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "reminderID" TEXT NOT NULL,
-        "tagID" TEXT NOT NULL,
+        "tag" TEXT NOT NULL,
 
         FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
-        FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
+        FOREIGN KEY("tag") REFERENCES "tags"("title") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT
       """
     )
@@ -246,7 +246,6 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
     func seedSampleData() throws {
       let remindersListsIDs = (0...2).map { _ in UUID() }
       let remindersIDs = (0...10).map { _ in UUID() }
-      let tagsIDs = (0...6).map { _ in UUID() }
       try seed {
         RemindersList(
           id: remindersListsIDs[0],
@@ -347,25 +346,25 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
           remindersListID: remindersListsIDs[2],
           title: "Prepare for WWDC"
         )
-        Tag(id: tagsIDs[0], title: "car")
-        Tag(id: tagsIDs[1], title: "kids")
-        Tag(id: tagsIDs[2], title: "someday")
-        Tag(id: tagsIDs[3], title: "optional")
-        Tag(id: tagsIDs[4], title: "social")
-        Tag(id: tagsIDs[5], title: "night")
-        Tag(id: tagsIDs[6], title: "adulting")
-        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: tagsIDs[2])
-        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: tagsIDs[3])
-        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: tagsIDs[6])
-        ReminderTag.Draft(reminderID: remindersIDs[1], tagID: tagsIDs[2])
-        ReminderTag.Draft(reminderID: remindersIDs[1], tagID: tagsIDs[3])
-        ReminderTag.Draft(reminderID: remindersIDs[2], tagID: tagsIDs[6])
-        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: tagsIDs[0])
-        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: tagsIDs[1])
-        ReminderTag.Draft(reminderID: remindersIDs[4], tagID: tagsIDs[4])
-        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: tagsIDs[4])
-        ReminderTag.Draft(reminderID: remindersIDs[10], tagID: tagsIDs[4])
-        ReminderTag.Draft(reminderID: remindersIDs[4], tagID: tagsIDs[5])
+        Tag(title: "car")
+        Tag(title: "kids")
+        Tag(title: "someday")
+        Tag(title: "optional")
+        Tag(title: "social")
+        Tag(title: "night")
+        Tag(title: "adulting")
+        ReminderTag.Draft(reminderID: remindersIDs[0], tag: "someday")
+        ReminderTag.Draft(reminderID: remindersIDs[0], tag: "optional")
+        ReminderTag.Draft(reminderID: remindersIDs[0], tag: "adulting")
+        ReminderTag.Draft(reminderID: remindersIDs[1], tag: "someday")
+        ReminderTag.Draft(reminderID: remindersIDs[1], tag: "optional")
+        ReminderTag.Draft(reminderID: remindersIDs[2], tag: "adulting")
+        ReminderTag.Draft(reminderID: remindersIDs[3], tag: "car")
+        ReminderTag.Draft(reminderID: remindersIDs[3], tag: "kids")
+        ReminderTag.Draft(reminderID: remindersIDs[4], tag: "social")
+        ReminderTag.Draft(reminderID: remindersIDs[3], tag: "social")
+        ReminderTag.Draft(reminderID: remindersIDs[10], tag: "social")
+        ReminderTag.Draft(reminderID: remindersIDs[4], tag: "night")
       }
     }
   }

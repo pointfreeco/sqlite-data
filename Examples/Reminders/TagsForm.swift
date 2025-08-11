@@ -4,12 +4,21 @@ import SwiftUI
 struct TagsView: View {
   @Fetch(Tags()) var tags = Tags.Value()
   @Binding var selectedTags: [Tag]
+  @State var editingTag: Tag.Draft?
+  @State var tagTitle = ""
 
+  @Dependency(\.defaultDatabase) var database
   @Environment(\.dismiss) var dismiss
 
   var body: some View {
     Form {
       let selectedTagIDs = Set(selectedTags.map(\.id))
+      Section {
+        Button("New tag") {
+          tagTitle = ""
+          editingTag = Tag.Draft()
+        }
+      }
       if !tags.top.isEmpty {
         Section {
           ForEach(tags.top, id: \.id) { tag in
@@ -18,6 +27,14 @@ struct TagsView: View {
               selectedTags: $selectedTags,
               tag: tag
             )
+            .swipeActions {
+              Button("Delete", role: .destructive) {
+                deleteButtonTapped(tag: tag)
+              }
+              Button("Edit") {
+                editButtonTapped(tag: tag)
+              }
+            }
           }
         } header: {
           Text("Top tags")
@@ -31,8 +48,24 @@ struct TagsView: View {
               selectedTags: $selectedTags,
               tag: tag
             )
+            .swipeActions {
+              Button("Delete", role: .destructive) {
+                deleteButtonTapped(tag: tag)
+              }
+              Button("Edit") {
+                editButtonTapped(tag: tag)
+              }
+            }
           }
         }
+      }
+    }
+    .alert(item: $editingTag) { item in
+      Text(item.title == nil ? "New tag" : "Edit tag")
+    } actions: { item in
+      TextField("Tag name", text: $tagTitle)
+      Button("Save") {
+        saveButtonTapped()
       }
     }
     .toolbar {
@@ -41,6 +74,39 @@ struct TagsView: View {
       }
     }
     .navigationTitle(Text("Tags"))
+  }
+
+  func deleteButtonTapped(tag: Tag) {
+    withErrorReporting {
+      try database.write { db in
+        try Tag.find(tag.title).delete().execute(db)
+      }
+    }
+  }
+
+  func editButtonTapped(tag: Tag) {
+    tagTitle = tag.title
+    editingTag = Tag.Draft(tag)
+  }
+
+  func saveButtonTapped() {
+    defer { tagTitle = "" }
+    let tag = Tag(title: tagTitle)
+    selectedTags.append(tag)
+    withErrorReporting {
+      try database.write { db in
+        if let existingTagTitle = editingTag?.title {
+          selectedTags.removeAll(where: { $0.title == existingTagTitle })
+          try Tag
+            .update { $0.title = tagTitle }
+            .where { $0.title.eq(existingTagTitle) }
+            .execute(db)
+        } else {
+          try Tag.insert(or: .ignore) { tag }
+          .execute(db)
+        }
+      }
+    }
   }
 
   struct Tags: FetchKeyRequest {
@@ -56,7 +122,7 @@ struct TagsView: View {
 
       let rest =
         try Tag
-        .where { !$0.id.in(top.map(\.id)) }
+        .where { !$0.title.in(top.map(\.title)) }
         .order(by: \.title)
         .fetchAll(db)
 

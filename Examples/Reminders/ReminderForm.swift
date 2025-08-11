@@ -135,7 +135,7 @@ struct ReminderFormView: View {
         selectedTags = try await database.read { db in
           try Tag
             .order(by: \.title)
-            .join(ReminderTag.all) { $0.id.eq($1.tagID) }
+            .join(ReminderTag.all) { $0.title.eq($1.tag) }
             .where { $1.reminderID.eq(reminderID) }
             .select { tag, _ in tag }
             .fetchAll(db)
@@ -179,7 +179,7 @@ struct ReminderFormView: View {
           .execute(db)
         try ReminderTag.insert {
           selectedTags.map { tag in
-            ReminderTag.Draft(reminderID: reminderID, tagID: tag.id)
+            ReminderTag.Draft(reminderID: reminderID, tag: tag.title)
           }
         }
         .execute(db)
