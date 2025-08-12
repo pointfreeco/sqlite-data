@@ -180,7 +180,7 @@ extension BaseCloudKitTests {
           try RemindersList.find(1).delete().execute(db)
         }
       }
-      let modifications = try await withDependencies {
+      let modifications = try withDependencies {
         $0.date.now.addTimeInterval(2)
       } operation: {
         let reminderRecord = CKRecord(
