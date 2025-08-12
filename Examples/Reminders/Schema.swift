@@ -193,11 +193,8 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "remindersTags" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "reminderID" TEXT NOT NULL,
-        "tagID" TEXT NOT NULL,
-
-        FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
-        FOREIGN KEY("tag") REFERENCES "tags"("title") ON DELETE CASCADE ON UPDATE CASCADE
+        "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
+        "tagID" TEXT NOT NULL REFERENCES "tags"("title") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT
       """
     )
