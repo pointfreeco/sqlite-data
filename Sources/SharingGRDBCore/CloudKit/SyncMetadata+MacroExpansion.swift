@@ -36,7 +36,7 @@
       public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<
         QueryValue, CKRecord?.SystemFieldsRepresentation
       >("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
-      public let _lastKnownServerRecordAllFields = StructuredQueriesCore.TableColumn<
+      package let _lastKnownServerRecordAllFields = StructuredQueriesCore.TableColumn<
         QueryValue, CKRecord?.AllFieldsRepresentation
       >("_lastKnownServerRecordAllFields", keyPath: \QueryValue._lastKnownServerRecordAllFields)
       public let share = StructuredQueriesCore.TableColumn<

@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "originHash" : "80ce8831f89d2da19d6c4e6f30a71328a79a080602e0d57e255665812e2823d7",
+=======
+  "originHash" : "05461ecd2d6ddd848b677fd572ee263adc87ab3aebd38d91f3f4c49ddaf3cdde",
+>>>>>>> origin/cloudkit
   "pins" : [
     {
       "identity" : "combine-schedulers",

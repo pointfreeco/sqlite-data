@@ -124,10 +124,10 @@ class RemindersListsModel {
 
   func deleteTags(indexSet: IndexSet) {
     withErrorReporting {
-      let tagIDs = indexSet.map { tags[$0].id }
+      let tagTitles = indexSet.map { tags[$0].title }
       try database.write { db in
         try Tag
-          .where { $0.id.in(tagIDs) }
+          .where { $0.title.in(tagTitles) }
           .delete()
           .execute(db)
       }
