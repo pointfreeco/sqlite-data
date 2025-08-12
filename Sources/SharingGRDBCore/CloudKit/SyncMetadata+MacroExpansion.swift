@@ -3,7 +3,7 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
-    public struct TableColumns: StructuredQueriesCore.TableDefinition {
+    public nonisolated struct TableColumns: StructuredQueriesCore.TableDefinition {
       public typealias QueryValue = SyncMetadata
       public let recordPrimaryKey = StructuredQueriesCore.TableColumn<QueryValue, String>(
         "recordPrimaryKey",
@@ -36,8 +36,8 @@
       public let lastKnownServerRecord = StructuredQueriesCore.TableColumn<
         QueryValue, CKRecord?.SystemFieldsRepresentation
       >("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
-      package let _lastKnownServerRecordAllFields = StructuredQueriesCore.TableColumn<
-        QueryValue, CKRecord?.AllFieldsRepresentation
+      public let _lastKnownServerRecordAllFields = StructuredQueriesCore.TableColumn<
+        QueryValue, CKRecord?.SystemFieldsRepresentation
       >("_lastKnownServerRecordAllFields", keyPath: \QueryValue._lastKnownServerRecordAllFields)
       public let share = StructuredQueriesCore.TableColumn<
         QueryValue, CKShare?.SystemFieldsRepresentation
@@ -58,8 +58,7 @@
           QueryValue.columns.recordName, QueryValue.columns.parentRecordPrimaryKey,
           QueryValue.columns.parentRecordType, QueryValue.columns.parentRecordName,
           QueryValue.columns.lastKnownServerRecord,
-          QueryValue.columns._lastKnownServerRecordAllFields,
-          QueryValue.columns.share,
+          QueryValue.columns._lastKnownServerRecordAllFields, QueryValue.columns.share,
           QueryValue.columns.isShared, QueryValue.columns.userModificationDate,
         ]
       }
@@ -68,8 +67,7 @@
           QueryValue.columns.recordPrimaryKey, QueryValue.columns.recordType,
           QueryValue.columns.parentRecordPrimaryKey, QueryValue.columns.parentRecordType,
           QueryValue.columns.lastKnownServerRecord,
-          QueryValue.columns._lastKnownServerRecordAllFields,
-          QueryValue.columns.share,
+          QueryValue.columns._lastKnownServerRecordAllFields, QueryValue.columns.share,
           QueryValue.columns.userModificationDate,
         ]
       }
@@ -80,10 +78,14 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension SyncMetadata: StructuredQueriesCore.Table {
-    public static let columns = TableColumns()
-    public static let tableName = "sqlitedata_icloud_metadata"
-    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+  nonisolated extension SyncMetadata: StructuredQueriesCore.Table {
+    public nonisolated static var columns: TableColumns {
+      TableColumns()
+    }
+    public nonisolated static var tableName: String {
+      "sqlitedata_icloud_metadata"
+    }
+    public nonisolated init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       let recordPrimaryKey = try decoder.decode(String.self)
       let recordType = try decoder.decode(String.self)
       let recordName = try decoder.decode(String.self)
@@ -92,7 +94,7 @@
       self.parentRecordName = try decoder.decode(String.self)
       let lastKnownServerRecord = try decoder.decode(CKRecord?.SystemFieldsRepresentation.self)
       let _lastKnownServerRecordAllFields = try decoder.decode(
-        CKRecord?.AllFieldsRepresentation.self
+        CKRecord?.SystemFieldsRepresentation.self
       )
       let share = try decoder.decode(CKShare?.SystemFieldsRepresentation.self)
       let isShared = try decoder.decode(Bool.self)
@@ -133,9 +135,9 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension SyncMetadata.AncestorMetadata {
+  extension AncestorMetadata {
     public struct Columns: StructuredQueriesCore.QueryExpression {
-      public typealias QueryValue = SyncMetadata.AncestorMetadata
+      public typealias QueryValue = AncestorMetadata
       public let queryFragment: StructuredQueriesCore.QueryFragment
       public init(
         recordName: some StructuredQueriesCore.QueryExpression<String>,
@@ -150,8 +152,8 @@
       }
     }
 
-    public struct TableColumns: StructuredQueriesCore.TableDefinition {
-      public typealias QueryValue = SyncMetadata.AncestorMetadata
+    public nonisolated struct TableColumns: StructuredQueriesCore.TableDefinition {
+      public typealias QueryValue = AncestorMetadata
       public let recordName = StructuredQueriesCore.TableColumn<QueryValue, String>(
         "recordName",
         keyPath: \QueryValue.recordName
@@ -182,12 +184,24 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension SyncMetadata.AncestorMetadata: StructuredQueriesCore.Table {
-    public static let columns = TableColumns()
-    public static let tableName = "ancestorMetadatas"
+  nonisolated extension AncestorMetadata: StructuredQueriesCore.Table, StructuredQueriesCore
+      .PartialSelectStatement
+  {
+    public typealias QueryValue = Self
+    public typealias From = Swift.Never
+    public nonisolated static var columns: TableColumns {
+      TableColumns()
+    }
+    public nonisolated static var tableName: String {
+      "ancestorMetadatas"
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension AncestorMetadata: StructuredQueriesCore.QueryRepresentable {
     public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       let recordName = try decoder.decode(String.self)
-      self.parentRecordName = try decoder.decode(String.self)
+      let parentRecordName = try decoder.decode(String.self)
       let lastKnownServerRecord = try decoder.decode(CKRecord?.SystemFieldsRepresentation.self)
       guard let recordName else {
         throw QueryDecodingError.missingRequiredColumn
@@ -196,6 +210,7 @@
         throw QueryDecodingError.missingRequiredColumn
       }
       self.recordName = recordName
+      self.parentRecordName = parentRecordName
       self.lastKnownServerRecord = lastKnownServerRecord
     }
   }

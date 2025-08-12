@@ -2,8 +2,8 @@
   import StructuredQueriesCore
 
   extension RecordType {
-    public struct TableColumns: StructuredQueriesCore.TableDefinition, StructuredQueriesCore
-        .PrimaryKeyedTableDefinition
+    public nonisolated struct TableColumns: StructuredQueriesCore.TableDefinition,
+      StructuredQueriesCore.PrimaryKeyedTableDefinition
     {
       public typealias QueryValue = RecordType
       public let tableName = StructuredQueriesCore.TableColumn<QueryValue, String>(
@@ -36,7 +36,7 @@
       package let tableName: String?
       package let schema: String
       package let tableInfo: Set<TableInfo>
-      public struct TableColumns: StructuredQueriesCore.TableDefinition {
+      public nonisolated struct TableColumns: StructuredQueriesCore.TableDefinition {
         public typealias QueryValue = Draft
         public let tableName = StructuredQueriesCore.TableColumn<QueryValue, String?>(
           "tableName",
@@ -60,11 +60,15 @@
           "\(self.tableName), \(self.schema), \(self.tableInfo)"
         }
       }
-      public static let columns = TableColumns()
+      public nonisolated static var columns: TableColumns {
+        TableColumns()
+      }
 
-      public static let tableName = RecordType.tableName
+      public nonisolated static var tableName: String {
+        RecordType.tableName
+      }
 
-      public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+      public nonisolated init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
         self.tableName = try decoder.decode(String.self)
         let schema = try decoder.decode(String.self)
         let tableInfo = try decoder.decode(Set<TableInfo>.JSONRepresentation.self)
@@ -78,7 +82,7 @@
         self.tableInfo = tableInfo
       }
 
-      public init(_ other: RecordType) {
+      public nonisolated init(_ other: RecordType) {
         self.tableName = other.tableName
         self.schema = other.schema
         self.tableInfo = other.tableInfo
@@ -95,10 +99,16 @@
     }
   }
 
-  extension RecordType: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
-    public static let columns = TableColumns()
-    public static let tableName = "sqlitedata_icloud_recordTypes"
-    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+  nonisolated extension RecordType: StructuredQueriesCore.Table, StructuredQueriesCore
+      .PrimaryKeyedTable
+  {
+    public nonisolated static var columns: TableColumns {
+      TableColumns()
+    }
+    public nonisolated static var tableName: String {
+      "sqlitedata_icloud_recordTypes"
+    }
+    public nonisolated init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       let tableName = try decoder.decode(String.self)
       let schema = try decoder.decode(String.self)
       let tableInfo = try decoder.decode(Set<TableInfo>.JSONRepresentation.self)
