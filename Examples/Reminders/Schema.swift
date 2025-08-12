@@ -65,7 +65,7 @@ extension Reminder {
   }
   static let withTags = group(by: \.id)
     .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
-    .leftJoin(Tag.all) { $1.tag.eq($2.title) }
+    .leftJoin(Tag.all) { $1.tagID.eq($2.primaryKey) }
 }
 
 extension Reminder.TableColumns {
@@ -87,7 +87,7 @@ extension Reminder.TableColumns {
 
 extension Tag {
   static let withReminders = group(by: \.title)
-    .leftJoin(ReminderTag.all) { $0.title.eq($1.tag) }
+    .leftJoin(ReminderTag.all) { $0.primaryKey.eq($1.tagID) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
 }
 
@@ -101,7 +101,7 @@ extension Tag.TableColumns {
 struct ReminderTag: Hashable, Identifiable {
   let id: UUID
   var reminderID: Reminder.ID
-  var tag: Tag.ID
+  var tagID: Tag.ID
 }
 
 func appDatabase() throws -> any DatabaseWriter {
@@ -353,18 +353,18 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
         Tag(title: "social")
         Tag(title: "night")
         Tag(title: "adulting")
-        ReminderTag.Draft(reminderID: remindersIDs[0], tag: "someday")
-        ReminderTag.Draft(reminderID: remindersIDs[0], tag: "optional")
-        ReminderTag.Draft(reminderID: remindersIDs[0], tag: "adulting")
-        ReminderTag.Draft(reminderID: remindersIDs[1], tag: "someday")
-        ReminderTag.Draft(reminderID: remindersIDs[1], tag: "optional")
-        ReminderTag.Draft(reminderID: remindersIDs[2], tag: "adulting")
-        ReminderTag.Draft(reminderID: remindersIDs[3], tag: "car")
-        ReminderTag.Draft(reminderID: remindersIDs[3], tag: "kids")
-        ReminderTag.Draft(reminderID: remindersIDs[4], tag: "social")
-        ReminderTag.Draft(reminderID: remindersIDs[3], tag: "social")
-        ReminderTag.Draft(reminderID: remindersIDs[10], tag: "social")
-        ReminderTag.Draft(reminderID: remindersIDs[4], tag: "night")
+        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: "someday")
+        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: "optional")
+        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: "adulting")
+        ReminderTag.Draft(reminderID: remindersIDs[1], tagID: "someday")
+        ReminderTag.Draft(reminderID: remindersIDs[1], tagID: "optional")
+        ReminderTag.Draft(reminderID: remindersIDs[2], tagID: "adulting")
+        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: "car")
+        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: "kids")
+        ReminderTag.Draft(reminderID: remindersIDs[4], tagID: "social")
+        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: "social")
+        ReminderTag.Draft(reminderID: remindersIDs[10], tagID: "social")
+        ReminderTag.Draft(reminderID: remindersIDs[4], tagID: "night")
       }
     }
   }
