@@ -1,5 +1,9 @@
 {
-  "originHash" : "304d33f17363a8d91fc9762f429327f95ab8d8ea5577c2120d53772b7ac70814",
+<<<<<<< HEAD
+  "originHash" : "80ce8831f89d2da19d6c4e6f30a71328a79a080602e0d57e255665812e2823d7",
+=======
+  "originHash" : "05461ecd2d6ddd848b677fd572ee263adc87ab3aebd38d91f3f4c49ddaf3cdde",
+>>>>>>> origin/cloudkit
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -15,8 +19,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/groue/GRDB.swift",
       "state" : {
-        "revision" : "8ba1bc9a96afc731a000fd4136dd13a5a46297bd",
-        "version" : "7.6.1"
+        "revision" : "a5a1be26b4513dc7ec360eb56bc08a345bac6649",
+        "version" : "7.5.0"
+      }
+    },
+    {
+      "identity" : "swift-case-paths",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-case-paths",
+      "state" : {
+        "revision" : "9810c8d6c2914de251e072312f01d3bf80071852",
+        "version" : "1.7.1"
       }
     },
     {
@@ -92,6 +105,15 @@
       }
     },
     {
+      "identity" : "swift-navigation",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-navigation",
+      "state" : {
+        "revision" : "ae208d1a5cf33aee1d43734ea780a09ada6e2a21",
+        "version" : "2.3.1"
+      }
+    },
+    {
       "identity" : "swift-perception",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-perception",
@@ -123,8 +145,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
-        "branch" : "sendable-triggers",
-        "revision" : "c56fe85c2963d0beb22a9a8503a01989f4c0a866"
+        "revision" : "2468f4e34d909d11c053d773562c03ffea40a72e",
+        "version" : "0.12.1"
       }
     },
     {

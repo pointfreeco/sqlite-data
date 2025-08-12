@@ -53,7 +53,7 @@
     public var lastKnownServerRecord: CKRecord?
 
     /// The last known `CKRecord` received from the server with all fields archived.
-    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    // @Column(as: CKRecord?.AllFieldsRepresentation.self)
     package var _lastKnownServerRecordAllFields: CKRecord?
 
     /// The `CKShare` associated with this record, if it is shared.
@@ -65,7 +65,19 @@
 
     /// The date the user last modified the record.
     public var userModificationDate: Date
+  }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  // @Table @Selection
+  struct AncestorMetadata {
+    let recordName: String
+    let parentRecordName: String?
+    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let lastKnownServerRecord: CKRecord?
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncMetadata {
     package init(
       recordPrimaryKey: String,
       recordType: String,
@@ -93,13 +105,6 @@
       self.userModificationDate = userModificationDate
     }
 
-    // @Selection @Table
-    struct AncestorMetadata {
-      let recordName: String
-      let parentRecordName: String?
-      // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-      let lastKnownServerRecord: CKRecord?
-    }
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

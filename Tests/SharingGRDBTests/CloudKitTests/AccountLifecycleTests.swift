@@ -9,7 +9,7 @@ import Testing
 
 extension BaseCloudKitTests {
   @MainActor
-  final class AccountLifecycleTests: BaseCloudKitTests, Sendable {
+  final class AccountLifecycleTests: BaseCloudKitTests, @unchecked Sendable {
     @Test func signOutClearsUserDatabaseAndMetadatabase() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
