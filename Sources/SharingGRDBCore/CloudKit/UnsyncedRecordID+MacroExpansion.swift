@@ -19,7 +19,7 @@ extension UnsyncedRecordID {
 }
 
 extension UnsyncedRecordID: StructuredQueriesCore.Table {
-  public static let columns = TableColumns()
+  nonisolated(unsafe) public static let columns = TableColumns()
   public static let tableName = "sqlitedata_icloud_unsyncedRecordIDs"
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
     let recordName = try decoder.decode(String.self)

@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.1
 
 import PackageDescription
 
@@ -34,7 +34,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.0.0"),
-    .package(url: "https://github.com/pointfreeco/swift-structured-queries", branch: "main"),
+    .package(url: "https://github.com/pointfreeco/swift-structured-queries", branch: "main", traits: ["StructuredQueriesTagged"]),
     .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
   ],
   targets: [

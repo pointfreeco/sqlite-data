@@ -81,7 +81,7 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata: StructuredQueriesCore.Table {
-    public static let columns = TableColumns()
+    nonisolated(unsafe) public static let columns = TableColumns()
     public static let tableName = "sqlitedata_icloud_metadata"
     public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       let recordPrimaryKey = try decoder.decode(String.self)
@@ -183,7 +183,7 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata.AncestorMetadata: StructuredQueriesCore.Table {
-    public static let columns = TableColumns()
+    nonisolated(unsafe) public static let columns = TableColumns()
     public static let tableName = "ancestorMetadatas"
     public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       let recordName = try decoder.decode(String.self)

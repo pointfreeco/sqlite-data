@@ -1,10 +1,23 @@
 import Foundation
 import OSLog
 import SharingGRDB
+import Tagged
+
+extension Tagged: @retroactive IdentifierStringConvertible where RawValue: IdentifierStringConvertible {
+  public init?(rawIdentifier: String) {
+    guard let rawValue = RawValue(rawIdentifier: rawIdentifier) else {
+      return nil
+    }
+    self.init(rawValue: rawValue)
+  }
+}
 
 @Table
 struct Counter: Identifiable {
-  let id: UUID
+  
+  typealias ID = Tagged<Self, UUID>
+  
+  let id: ID
   var count = 0
 }
 
@@ -13,7 +26,7 @@ func appDatabase() throws -> any DatabaseWriter {
   let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.prepareDatabase { db in
-    try db.attachMetadatabase(containerIdentifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitDemo")
+    try db.attachMetadatabase()
     #if DEBUG
       db.trace(options: .profile) {
         if context == .live {
@@ -27,10 +40,7 @@ func appDatabase() throws -> any DatabaseWriter {
   if context == .preview {
     database = try DatabaseQueue(configuration: configuration)
   } else {
-    let path =
-      context == .live
-      ? URL.documentsDirectory.appending(component: "db.sqlite").path()
-      : URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
+    let path = try makeDBURL().path()
     logger.debug(
       """
       App database
@@ -56,6 +66,23 @@ func appDatabase() throws -> any DatabaseWriter {
   try migrator.migrate(database)
 
   return database
+}
+
+func makeDBURL() throws -> URL {
+  let fileManager = FileManager.default
+  let containerURL = fileManager.containerURL(
+    forSecurityApplicationGroupIdentifier: "group.indave.pointfree.cloudkitdemo"
+  )
+  let directoryURL = containerURL!.appendingPathComponent("Database", isDirectory: true)
+
+  try fileManager.createDirectory(
+    at: directoryURL,
+    withIntermediateDirectories: true
+  )
+
+  let databaseURL = directoryURL.appendingPathComponent("db.sqlite")
+
+  return databaseURL
 }
 
 private let logger = Logger(subsystem: "CloudKitDemo", category: "Database")

@@ -2,6 +2,7 @@ import CloudKit
 import SharingGRDB
 import SwiftUI
 import SwiftUINavigation
+import Tagged
 
 struct CountersListView: View {
   @FetchAll var counters: [Counter]
@@ -77,8 +78,10 @@ struct CounterRow: View {
         Spacer()
         Button {
           Task {
-            sharedRecord = try await syncEngine.share(record: counter) { share in
-              share[CKShare.SystemFieldKey.title] = "Join my counter!"
+            await withErrorReporting {
+              sharedRecord = try await syncEngine.share(record: counter) { share in
+                share[CKShare.SystemFieldKey.title] = "Join my counter!"
+              }
             }
           }
         } label: {

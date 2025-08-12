@@ -85,7 +85,7 @@ extension SyncMetadata {
 
   private enum ParentSyncMetadata: AliasName {}
 
-  fileprivate static let afterInsertTrigger = createTemporaryTrigger(
+  nonisolated(unsafe) fileprivate static let afterInsertTrigger = createTemporaryTrigger(
     "after_insert_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
     after: .insert { new in
@@ -95,7 +95,7 @@ extension SyncMetadata {
     }
   )
 
-  fileprivate static let afterUpdateTrigger = createTemporaryTrigger(
+  nonisolated(unsafe) fileprivate static let afterUpdateTrigger = createTemporaryTrigger(
     "after_update_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
     after: .update { _, new in
@@ -105,7 +105,7 @@ extension SyncMetadata {
     }
   )
 
-  fileprivate static let afterDeleteTrigger = createTemporaryTrigger(
+  nonisolated(unsafe) fileprivate static let afterDeleteTrigger = createTemporaryTrigger(
     "after_delete_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
     after: .delete { old in

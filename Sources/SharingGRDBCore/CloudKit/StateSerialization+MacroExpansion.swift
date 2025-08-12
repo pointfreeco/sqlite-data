@@ -40,7 +40,7 @@
           "\(self.scope), \(self.data)"
         }
       }
-      public static let columns = TableColumns()
+      nonisolated(unsafe) public static let columns = TableColumns()
 
       public static let tableName = StateSerialization.tableName
 
@@ -68,7 +68,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) extension StateSerialization: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
-    public static let columns = TableColumns()
+    nonisolated(unsafe) public static let columns = TableColumns()
     public static let tableName = "sqlitedata_icloud_stateSerialization"
     public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       let scope = try decoder.decode(CKDatabase.Scope.RawValueRepresentation.self)

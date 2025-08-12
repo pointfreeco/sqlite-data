@@ -60,7 +60,7 @@
           "\(self.tableName), \(self.schema), \(self.tableInfo)"
         }
       }
-      public static let columns = TableColumns()
+      nonisolated(unsafe) public static let columns = TableColumns()
 
       public static let tableName = RecordType.tableName
 
@@ -96,7 +96,7 @@
   }
 
   extension RecordType: StructuredQueriesCore.Table, StructuredQueriesCore.PrimaryKeyedTable {
-    public static let columns = TableColumns()
+    nonisolated(unsafe) public static let columns = TableColumns()
     public static let tableName = "sqlitedata_icloud_recordTypes"
     public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       let tableName = try decoder.decode(String.self)
