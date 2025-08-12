@@ -68,7 +68,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  // @Selection @Table
+  // @Table @Selection
   struct AncestorMetadata {
     let recordName: String
     let parentRecordName: String?
