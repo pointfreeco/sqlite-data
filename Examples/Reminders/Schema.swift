@@ -184,7 +184,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "tags" (
-        "title" TEXT COLLATE NOCASE PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ''
+        "title" TEXT COLLATE NOCASE PRIMARY KEY NOT NULL
       ) STRICT
       """
     )
