@@ -67,14 +67,14 @@
     public var userModificationDate: Date
   }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-// @Selection @Table
-struct AncestorMetadata {
-  let recordName: String
-  let parentRecordName: String?
-  // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-  let lastKnownServerRecord: CKRecord?
-}
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  // @Selection @Table
+  struct AncestorMetadata {
+    let recordName: String
+    let parentRecordName: String?
+    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let lastKnownServerRecord: CKRecord?
+  }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
