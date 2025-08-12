@@ -37,7 +37,7 @@
         QueryValue, CKRecord?.SystemFieldsRepresentation
       >("lastKnownServerRecord", keyPath: \QueryValue.lastKnownServerRecord)
       public let _lastKnownServerRecordAllFields = StructuredQueriesCore.TableColumn<
-        QueryValue, CKRecord?.SystemFieldsRepresentation
+        QueryValue, CKRecord?.AllFieldsRepresentation
       >("_lastKnownServerRecordAllFields", keyPath: \QueryValue._lastKnownServerRecordAllFields)
       public let share = StructuredQueriesCore.TableColumn<
         QueryValue, CKShare?.SystemFieldsRepresentation
@@ -94,7 +94,7 @@
       self.parentRecordName = try decoder.decode(String.self)
       let lastKnownServerRecord = try decoder.decode(CKRecord?.SystemFieldsRepresentation.self)
       let _lastKnownServerRecordAllFields = try decoder.decode(
-        CKRecord?.SystemFieldsRepresentation.self
+        CKRecord?.AllFieldsRepresentation.self
       )
       let share = try decoder.decode(CKShare?.SystemFieldsRepresentation.self)
       let isShared = try decoder.decode(Bool.self)

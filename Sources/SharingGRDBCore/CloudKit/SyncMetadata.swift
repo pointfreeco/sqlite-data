@@ -53,7 +53,7 @@
     public var lastKnownServerRecord: CKRecord?
 
     /// The last known `CKRecord` received from the server with all fields archived.
-    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    // @Column(as: CKRecord?.AllFieldsRepresentation.self)
     package var _lastKnownServerRecordAllFields: CKRecord?
 
     /// The `CKShare` associated with this record, if it is shared.
