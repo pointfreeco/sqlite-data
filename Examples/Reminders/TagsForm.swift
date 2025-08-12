@@ -92,7 +92,6 @@ struct TagsView: View {
   func saveButtonTapped() {
     defer { tagTitle = "" }
     let tag = Tag(title: tagTitle)
-    selectedTags.append(tag)
     withErrorReporting {
       try database.write { db in
         if let existingTagTitle = editingTag?.title {
@@ -106,6 +105,7 @@ struct TagsView: View {
           .execute(db)
         }
       }
+      selectedTags.append(tag)
     }
   }
 
