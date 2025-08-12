@@ -6,6 +6,10 @@ import SnapshotTesting
 import Testing
 import os
 
+#if SharingGRDBSwiftLog
+  import Logging
+#endif
+
 @Suite(
   .snapshots(record: .missing),
   .dependencies {
@@ -140,6 +144,13 @@ extension SyncEngine {
     tables: [any PrimaryKeyedTable.Type],
     privateTables: [any PrimaryKeyedTable.Type] = []
   ) async throws {
+    #if SharingGRDBSwiftLog
+      let logger = Logger(label: "disabled") { _ in
+        SwiftLogNoOpLogHandler()
+      }
+    #else
+      let logger = Logger(.disabled)
+    #endif
     try self.init(
       container: container,
       defaultZone: Self.defaultTestZone,
@@ -160,7 +171,7 @@ extension SyncEngine {
         )
       },
       userDatabase: userDatabase,
-      logger: Logger(.disabled),
+      logger: logger,
       tables: tables,
       privateTables: privateTables
     )

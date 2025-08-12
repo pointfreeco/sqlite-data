@@ -33,6 +33,10 @@ let package = Package(
       name: "SharingGRDBTagged",
       description: "Introduce SharingGRDB conformances to the swift-tagged package."
     ),
+    .trait(
+      name: "SharingGRDBSwiftLog",
+      description: "Use swift-log instead of OSLog for logging."
+    ),
     .default(enabledTraits: ["SharingGRDBTagged"]),
   ],
   dependencies: [
@@ -50,6 +54,7 @@ let package = Package(
     ),
     .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
     .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
+    .package(url: "https://github.com/apple/swift-log", from: "1.6.4"),
   ],
   targets: [
     .target(
@@ -72,6 +77,11 @@ let package = Package(
           package: "swift-tagged",
           condition: .when(traits: ["SharingGRDBTagged"])
         ),
+        .product(
+          name: "Logging",
+          package: "swift-log",
+          condition: .when(traits: ["SharingGRDBSwiftLog"])
+        )
       ]
     ),
     .testTarget(

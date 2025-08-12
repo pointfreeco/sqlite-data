@@ -7,6 +7,10 @@
   import StructuredQueriesCore
   import SwiftData
 
+  #if SharingGRDBSwiftLog
+    import Logging
+  #endif
+
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Sendable {
     package let userDatabase: UserDatabase
@@ -32,7 +36,7 @@
       privateTables: repeat (each T2).Type,
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
-      logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit")
+      logger: Logger = .syncEngine
     ) throws
     where
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
