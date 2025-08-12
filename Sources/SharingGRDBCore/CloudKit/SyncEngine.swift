@@ -1137,13 +1137,14 @@
       }
     }
 
-    private func deleteShare(recordID: CKRecord.ID) throws {
+    func deleteShare(recordID: CKRecord.ID) throws {
       try userDatabase.write { db in
         let shareAndRecordName =
           try SyncMetadata
           .where(\.isShared)
           .select { ($0.share, $0.recordName) }
           .fetchAll(db)
+          // TODO: Write test that we never accidentally delete a new share from a delete event of an old share
           .first(where: { share, _ in share?.recordID == recordID }) ?? nil
         guard let (_, recordName) = shareAndRecordName
         else { return }

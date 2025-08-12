@@ -107,23 +107,27 @@ extension SyncEngine {
         recordID: CKRecord.ID(recordName: metadata.recordName, zoneID: defaultZone.zoneID)
       )
 
-    // TODO: Catch unknownItem error from `.record(for:)` and go through `else` branch, otherwise rethrow
-
-    let sharedRecord: CKShare
-    if let shareRecordID = rootRecord.share?.recordID,
-      let existingShare = try await container.database(for: rootRecord.recordID)
-        .record(for: shareRecordID) as? CKShare
-    {
-      sharedRecord = existingShare
-    } else {
-      sharedRecord = CKShare(
-        rootRecord: rootRecord,
-        shareID: CKRecord.ID(
-          recordName: UUID().uuidString,
-          zoneID: rootRecord.recordID.zoneID
-        )
-      )
+    var existingShare: CKShare? {
+      get async throws {
+        guard let shareRecordID = rootRecord.share?.recordID
+        else { return nil }
+        do {
+          return try await container.database(for: rootRecord.recordID)
+            .record(for: shareRecordID) as? CKShare
+        } catch let error as CKError where error.code == .unknownItem {
+          reportIssue("This would have been a problem before")
+          return nil
+        }
+      }
     }
+
+    let sharedRecord = try await existingShare ?? CKShare(
+      rootRecord: rootRecord,
+      shareID: CKRecord.ID(
+        recordName: UUID().uuidString,
+        zoneID: rootRecord.recordID.zoneID
+      )
+    )
 
     configure(sharedRecord)
     // TODO: We are getting an "client oplock error updating record" error in the logs when
@@ -219,7 +223,9 @@ extension SyncEngine {
 
     public func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
       @Dependency(\.defaultSyncEngine) var syncEngine
-      // TODO: eagerly clear out share data
+      withErrorReporting {
+        try syncEngine.deleteShare(recordID: share.recordID)
+      }
       didStopSharing()
     }
 
