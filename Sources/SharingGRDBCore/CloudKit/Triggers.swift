@@ -112,7 +112,8 @@ extension SyncMetadata {
       Values(.didDelete(
         recordName: old.recordName,
         lastKnownServerRecord: old.lastKnownServerRecord
-        ?? rootServerRecord(recordName: old.recordName)
+        ?? rootServerRecord(recordName: old.recordName),
+        share: old.share
       ))
     } when: { _ in
       !SyncEngine.isSynchronizingChanges()
@@ -131,24 +132,27 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
     .didUpdate(
       recordName: new.recordName,
       lastKnownServerRecord: new.lastKnownServerRecord
-      ?? rootServerRecord(recordName: new.recordName)
+      ?? rootServerRecord(recordName: new.recordName),
+      share: new.share
     )
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private static func didUpdate(
     recordName: some QueryExpression<String>,
-    lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>
+    lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>,
+    share: some QueryExpression<CKShare?.SystemFieldsRepresentation>
   ) -> Self {
-    Self("\(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(recordName), \(lastKnownServerRecord))")
+    Self("\(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(recordName), \(lastKnownServerRecord), \(share))")
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   fileprivate static func didDelete(
     recordName: some QueryExpression<String>,
-    lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>
+    lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>,
+    share: some QueryExpression<CKShare?.SystemFieldsRepresentation>
   ) -> Self {
-    Self("\(raw: .sqliteDataCloudKitSchemaName)_didDelete(\(recordName), \(lastKnownServerRecord))")
+    Self("\(raw: .sqliteDataCloudKitSchemaName)_didDelete(\(recordName), \(lastKnownServerRecord), \(share))")
   }
 }
 
