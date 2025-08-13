@@ -191,21 +191,13 @@ extension BaseCloudKitTests {
             tableName: "tags",
             schema: """
               CREATE TABLE "tags" (
-                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
+                "title" TEXT PRIMARY KEY NOT NULL COLLATE NOCASE 
               ) STRICT
               """,
             tableInfo: [
               [0]: TableInfo(
                 defaultValue: nil,
                 isPrimaryKey: true,
-                name: "id",
-                notNull: true,
-                type: "INTEGER"
-              ),
-              [1]: TableInfo(
-                defaultValue: "\'\'",
-                isPrimaryKey: false,
                 name: "title",
                 notNull: true,
                 type: "TEXT"
@@ -218,7 +210,7 @@ extension BaseCloudKitTests {
               CREATE TABLE "reminderTags" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "reminderID" INTEGER NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
-                "tagID" INTEGER NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
+                "tagID" TEXT NOT NULL REFERENCES "tags"("title") ON DELETE CASCADE ON UPDATE CASCADE
               ) STRICT
               """,
             tableInfo: [
@@ -241,7 +233,7 @@ extension BaseCloudKitTests {
                 isPrimaryKey: false,
                 name: "tagID",
                 notNull: true,
-                type: "INTEGER"
+                type: "TEXT"
               )
             ]
           ),

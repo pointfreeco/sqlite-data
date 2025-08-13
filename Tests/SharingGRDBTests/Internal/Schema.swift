@@ -27,8 +27,9 @@ import SharingGRDB
   var remindersListID: RemindersList.ID
 }
 @Table struct Tag: Equatable, Identifiable {
-  let id: Int
-  var title = ""
+  @Column(primaryKey: true)
+  let title: String
+  var id: String { title }
 }
 @Table struct ReminderTag: Equatable, Identifiable {
   let id: Int
@@ -128,8 +129,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "tags" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
+        "title" TEXT PRIMARY KEY NOT NULL COLLATE NOCASE 
       ) STRICT
       """
     )
@@ -139,7 +139,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       CREATE TABLE "reminderTags" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "reminderID" INTEGER NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
-        "tagID" INTEGER NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
+        "tagID" TEXT NOT NULL REFERENCES "tags"("title") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT
       """
     )

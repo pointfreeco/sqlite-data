@@ -104,6 +104,20 @@ struct ReminderTag: Hashable, Identifiable {
   var tagID: Tag.ID
 }
 
+extension DependencyValues {
+  mutating func bootstrapDatabase() throws {
+    defaultDatabase = try Reminders.appDatabase()
+    defaultSyncEngine = try SyncEngine(
+      for: defaultDatabase,
+      tables: RemindersList.self,
+      RemindersListAsset.self,
+      Reminder.self,
+      Tag.self,
+      ReminderTag.self
+    )
+  }
+}
+
 func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
   let database: any DatabaseWriter

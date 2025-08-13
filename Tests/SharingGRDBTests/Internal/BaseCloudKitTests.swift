@@ -148,13 +148,11 @@ extension SyncEngine {
           MockSyncEngine(
             database: container.privateCloudDatabase as! MockCloudDatabase,
             delegate: syncEngine,
-            scope: .private,
             state: MockSyncEngineState()
           ),
           MockSyncEngine(
             database: container.sharedCloudDatabase as! MockCloudDatabase,
             delegate: syncEngine,
-            scope: .shared,
             state: MockSyncEngineState()
           )
         )

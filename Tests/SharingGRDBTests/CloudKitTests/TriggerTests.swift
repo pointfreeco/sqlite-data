@@ -170,7 +170,7 @@ extension BaseCloudKitTests {
             AFTER DELETE ON "tags"
             FOR EACH ROW BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
-              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'tags'));
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."title") AND ("sqlitedata_icloud_metadata"."recordType" = 'tags'));
             END
             """,
             [15]: """
@@ -300,7 +300,7 @@ extension BaseCloudKitTests {
             FOR EACH ROW BEGIN
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
-              SELECT "new"."id", 'tags', NULL, NULL
+              SELECT "new"."title", 'tags', NULL, NULL
               ON CONFLICT ("recordPrimaryKey", "recordType")
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
@@ -432,7 +432,7 @@ extension BaseCloudKitTests {
             FOR EACH ROW BEGIN
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
-              SELECT "new"."id", 'tags', NULL, NULL
+              SELECT "new"."title", 'tags', NULL, NULL
               ON CONFLICT ("recordPrimaryKey", "recordType")
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END

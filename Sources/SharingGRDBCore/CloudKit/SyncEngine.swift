@@ -32,7 +32,7 @@
       privateTables: repeat (each T2).Type,
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
-      logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit")
+      logger: Logger = isTesting ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
     ) throws
     where
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
@@ -41,17 +41,6 @@
       let containerIdentifier = containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
 
-      guard let containerIdentifier else {
-        throw SchemaError(
-          reason: .noCloudKitContainer,
-          debugDescription: """
-            No default CloudKit container found. Please add a container identifier to your app's \
-            entitlements.
-            """
-        )
-      }
-
-      let container = CKContainer(identifier: containerIdentifier)
       var allTables: [any PrimaryKeyedTable.Type] = []
       var allPrivateTables: [any PrimaryKeyedTable.Type] = []
       for table in repeat each tables {
@@ -60,8 +49,55 @@
       for privateTable in repeat each privateTables {
         allPrivateTables.append(privateTable)
       }
-
       let userDatabase = UserDatabase(database: database)
+
+      guard let containerIdentifier else {
+        guard isTesting
+        else {
+          throw SchemaError(
+            reason: .noCloudKitContainer,
+            debugDescription: """
+            No default CloudKit container found. Please add a container identifier to your app's \
+            entitlements.
+            """
+          )
+        }
+        let privateDatabase = MockCloudDatabase(databaseScope: .private)
+        let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+        try self.init(
+          container: MockCloudContainer(
+            containerIdentifier: "co.pointfree.sqlitedata-icloud.testing",
+            privateCloudDatabase: privateDatabase,
+            sharedCloudDatabase: sharedDatabase
+          ),
+          defaultZone: defaultZone,
+          defaultSyncEngines: { _, syncEngine in
+            (
+              private: MockSyncEngine(
+                database: privateDatabase,
+                delegate: syncEngine,
+                state: MockSyncEngineState()
+              ),
+              shared: MockSyncEngine(
+                database: sharedDatabase,
+                delegate: syncEngine,
+                state: MockSyncEngineState()
+              )
+            )
+          },
+          userDatabase: userDatabase,
+          logger: logger,
+          tables: allTables,
+          privateTables: allPrivateTables
+        )
+        _ = try setUpSyncEngine(
+          userDatabase: userDatabase,
+          metadatabase: metadatabase
+        )
+        return 
+      }
+
+      let container = CKContainer(identifier: containerIdentifier)
       try self.init(
         container: container,
         defaultZone: defaultZone,
@@ -1144,7 +1180,6 @@
           .where(\.isShared)
           .select { ($0.share, $0.recordName) }
           .fetchAll(db)
-          // TODO: Write test that we never accidentally delete a new share from a delete event of an old share
           .first(where: { share, _ in share?.recordID == recordID }) ?? nil
         guard let (_, recordName) = shareAndRecordName
         else { return }
