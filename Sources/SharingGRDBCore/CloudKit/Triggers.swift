@@ -8,7 +8,8 @@ extension PrimaryKeyedTable {
     [
       afterInsert(parentForeignKey: parentForeignKey),
       afterUpdate(parentForeignKey: parentForeignKey),
-      afterDelete,
+      afterDeleteFromUser,
+      afterDeleteFromSyncEngine,
     ]
   }
 
@@ -28,17 +29,36 @@ extension PrimaryKeyedTable {
     )
   }
 
-  fileprivate static var afterDelete: TemporaryTrigger<Self> {
+  fileprivate static var afterDeleteFromUser: TemporaryTrigger<Self> {
     createTemporaryTrigger(
-      "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_\(tableName)",
+      "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_\(tableName)_from_user",
       ifNotExists: true,
       after: .delete { old in
         SyncMetadata
           .where {
             $0.recordPrimaryKey.eq(SQLQueryExpression("\(old.primaryKey)"))
-              && $0.recordType.eq(tableName)
+            && $0.recordType.eq(tableName)
+          }
+          .update { $0.isDeleted = true }
+      } when: { _ in
+        !SyncEngine.isSynchronizingChanges()
+      }
+    )
+  }
+
+  fileprivate static var afterDeleteFromSyncEngine: TemporaryTrigger<Self> {
+    createTemporaryTrigger(
+      "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_\(tableName)_from_sync_engine",
+      ifNotExists: true,
+      after: .delete { old in
+        SyncMetadata
+          .where {
+            $0.recordPrimaryKey.eq(SQLQueryExpression("\(old.primaryKey)"))
+            && $0.recordType.eq(tableName)
           }
           .delete()
+      } when: { _ in
+        SyncEngine.isSynchronizingChanges()
       }
     )
   }
@@ -108,15 +128,15 @@ extension SyncMetadata {
   fileprivate static let afterDeleteTrigger = createTemporaryTrigger(
     "after_delete_on_sqlitedata_icloud_metadata",
     ifNotExists: true,
-    after: .delete { old in
+    after: .update(of: \.isDeleted) { _, new in
       Values(.didDelete(
-        recordName: old.recordName,
-        lastKnownServerRecord: old.lastKnownServerRecord
-        ?? rootServerRecord(recordName: old.recordName),
-        share: old.share
+        recordName: new.recordName,
+        lastKnownServerRecord: new.lastKnownServerRecord
+        ?? rootServerRecord(recordName: new.recordName),
+        share: new.share
       ))
-    } when: { _ in
-      !SyncEngine.isSynchronizingChanges()
+    } when: { old, new in
+      !old.isDeleted && new.isDeleted //&& !SyncEngine.isSynchronizingChanges()
     }
   )
 }
@@ -131,6 +151,7 @@ extension QueryExpression where Self == SQLQueryExpression<()> {
   ) -> Self {
     .didUpdate(
       recordName: new.recordName,
+      // TODO: separate lastKnownServerRecord from rootRecord
       lastKnownServerRecord: new.lastKnownServerRecord
       ?? rootServerRecord(recordName: new.recordName),
       share: new.share

@@ -60,6 +60,8 @@
     // @Column(as: CKShare?.SystemFieldsRepresentation.self)
     public var share: CKShare?
 
+    public var isDeleted = false
+
     // @Column(generated: .virtual)
     public let isShared: Bool
 

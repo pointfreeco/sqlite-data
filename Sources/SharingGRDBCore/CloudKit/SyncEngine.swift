@@ -440,7 +440,11 @@
       try await setUpSyncEngine()
     }
 
-    func didUpdate(recordName: String, zoneID: CKRecordZone.ID?, share _: CKShare?) {
+    func didUpdate(
+      recordName: String,
+      zoneID: CKRecordZone.ID?,
+      share _: CKShare?
+    ) {
       let zoneID = zoneID ?? defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -457,17 +461,32 @@
       )
     }
 
-    func didDelete(recordName: String, zoneID: CKRecordZone.ID?, share: CKShare?) {
+    func didDelete(
+      recordName: String,
+      zoneID: CKRecordZone.ID?,
+      share: CKShare?
+    ) {
       let zoneID = zoneID ?? defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
       var changes: [CKSyncEngine.PendingRecordZoneChange] = []
 
-      if let share {
+      let isOwner = zoneID.ownerName == CKCurrentUserDefaultName
+      switch (share, isOwner) {
+      case (let share?, true):
         changes.append(.deleteRecord(share.recordID))
-      }
-      if zoneID.ownerName == CKCurrentUserDefaultName {
+        changes.append(
+          .deleteRecord(
+            CKRecord.ID(
+              recordName: recordName,
+              zoneID: zoneID
+            )
+          )
+        )
+      case (let share?, false):
+        changes.append(.deleteRecord(share.recordID))
+      case (.none, _):
         changes.append(
           .deleteRecord(
             CKRecord.ID(
@@ -670,6 +689,31 @@
           )
         }
       #endif
+
+      let deletedRecordNames: [String] = changes.compactMap {
+        switch $0 {
+        case .saveRecord(_):
+          return nil
+        case .deleteRecord(let recordID):
+          return recordID.recordName
+        @unknown default:
+          return nil
+        }
+      }
+
+      // let shares = get all shares
+      // let deletes = get all deletes
+      // CTE MAGIC HERE: get all root records that are a parent to the deletes and whose share is contained in the shares
+      //   remove those deletions from
+
+      await withErrorReporting {
+        try await userDatabase.write { db in
+          try SyncMetadata
+            .where { $0.recordName.in(deletedRecordNames) }
+            .delete()
+            .execute(db)
+        }
+      }
 
       let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
         var missingTable: CKRecord.ID?
@@ -1435,7 +1479,12 @@
 
     fileprivate static func didDelete(syncEngine: SyncEngine) -> Self {
       return Self("didDelete") { recordName, zoneID, share in
-        syncEngine.didDelete(recordName: recordName, zoneID: zoneID, share: share)
+        syncEngine
+          .didDelete(
+            recordName: recordName,
+            zoneID: zoneID,
+            share: share
+          )
       }
     }
 

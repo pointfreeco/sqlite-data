@@ -48,6 +48,12 @@
           keyPath: \QueryValue.isShared
         )
       }
+      public var isDeleted: StructuredQueriesCore.TableColumn<QueryValue, Bool> {
+        StructuredQueriesCore.TableColumn<QueryValue, Bool>(
+          "isDeleted",
+          keyPath: \QueryValue.isDeleted
+        )
+      }
       public let userModificationDate = StructuredQueriesCore.TableColumn<QueryValue, Date>(
         "userModificationDate",
         keyPath: \QueryValue.userModificationDate
@@ -59,7 +65,7 @@
           QueryValue.columns.parentRecordType, QueryValue.columns.parentRecordName,
           QueryValue.columns.lastKnownServerRecord,
           QueryValue.columns._lastKnownServerRecordAllFields, QueryValue.columns.share,
-          QueryValue.columns.isShared, QueryValue.columns.userModificationDate,
+          QueryValue.columns.isShared, QueryValue.columns.isDeleted, QueryValue.columns.userModificationDate,
         ]
       }
       public static var writableColumns: [any StructuredQueriesCore.WritableTableColumnExpression] {
@@ -68,11 +74,12 @@
           QueryValue.columns.parentRecordPrimaryKey, QueryValue.columns.parentRecordType,
           QueryValue.columns.lastKnownServerRecord,
           QueryValue.columns._lastKnownServerRecordAllFields, QueryValue.columns.share,
+          QueryValue.columns.isDeleted,
           QueryValue.columns.userModificationDate,
         ]
       }
       public var queryFragment: QueryFragment {
-        "\(self.recordPrimaryKey), \(self.recordType), \(self.recordName), \(self.parentRecordPrimaryKey), \(self.parentRecordType), \(self.parentRecordName), \(self.lastKnownServerRecord), \(self._lastKnownServerRecordAllFields), \(self.share), \(self.isShared), \(self.userModificationDate)"
+        "\(self.recordPrimaryKey), \(self.recordType), \(self.recordName), \(self.parentRecordPrimaryKey), \(self.parentRecordType), \(self.parentRecordName), \(self.lastKnownServerRecord), \(self._lastKnownServerRecordAllFields), \(self.share), \(self.isShared), \(self.isDeleted), \(self.userModificationDate)"
       }
     }
   }
@@ -98,6 +105,7 @@
       )
       let share = try decoder.decode(CKShare?.SystemFieldsRepresentation.self)
       let isShared = try decoder.decode(Bool.self)
+      let isDeleted = try decoder.decode(Bool.self)
       let userModificationDate = try decoder.decode(Date.self)
       guard let recordPrimaryKey else {
         throw QueryDecodingError.missingRequiredColumn
@@ -120,6 +128,9 @@
       guard let isShared else {
         throw QueryDecodingError.missingRequiredColumn
       }
+      guard let isDeleted else {
+        throw QueryDecodingError.missingRequiredColumn
+      }
       guard let userModificationDate else {
         throw QueryDecodingError.missingRequiredColumn
       }
@@ -130,6 +141,7 @@
       self._lastKnownServerRecordAllFields = _lastKnownServerRecordAllFields
       self.share = share
       self.isShared = isShared
+      self.isDeleted = isDeleted
       self.userModificationDate = userModificationDate
     }
   }

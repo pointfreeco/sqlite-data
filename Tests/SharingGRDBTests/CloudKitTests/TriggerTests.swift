@@ -19,13 +19,13 @@ extension BaseCloudKitTests {
           [
             [0]: """
             CREATE TRIGGER "after_delete_on_sqlitedata_icloud_metadata"
-            AFTER DELETE ON "sqlitedata_icloud_metadata"
-            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
-              SELECT sqlitedata_icloud_didDelete("old"."recordName", coalesce("old"."lastKnownServerRecord", (
+            AFTER UPDATE OF "isDeleted" ON "sqlitedata_icloud_metadata"
+            FOR EACH ROW WHEN (NOT ("old"."isDeleted") AND "new"."isDeleted") BEGIN
+              SELECT sqlitedata_icloud_didDelete("new"."recordName", coalesce("new"."lastKnownServerRecord", (
                 WITH "ancestorMetadatas" AS (
                   SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."lastKnownServerRecord" AS "lastKnownServerRecord"
                   FROM "sqlitedata_icloud_metadata"
-                  WHERE ("sqlitedata_icloud_metadata"."recordName" = "old"."recordName")
+                  WHERE ("sqlitedata_icloud_metadata"."recordName" = "new"."recordName")
                     UNION ALL
                   SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."lastKnownServerRecord" AS "lastKnownServerRecord"
                   FROM "sqlitedata_icloud_metadata"
@@ -34,7 +34,7 @@ extension BaseCloudKitTests {
                 SELECT "ancestorMetadatas"."lastKnownServerRecord"
                 FROM "ancestorMetadatas"
                 WHERE ("ancestorMetadatas"."parentRecordName" IS NULL)
-              )));
+              )), "new"."share");
             END
             """,
             [1]: """
@@ -54,7 +54,7 @@ extension BaseCloudKitTests {
                 SELECT "ancestorMetadatas"."lastKnownServerRecord"
                 FROM "ancestorMetadatas"
                 WHERE ("ancestorMetadatas"."parentRecordName" IS NULL)
-              )));
+              )), "new"."share");
             END
             """,
             [2]: """
@@ -74,106 +74,214 @@ extension BaseCloudKitTests {
                 SELECT "ancestorMetadatas"."lastKnownServerRecord"
                 FROM "ancestorMetadatas"
                 WHERE ("ancestorMetadatas"."parentRecordName" IS NULL)
-              )));
+              )), "new"."share");
             END
             """,
             [3]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_childWithOnDeleteSetDefaults"
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_childWithOnDeleteSetDefaults_from_sync_engine"
             AFTER DELETE ON "childWithOnDeleteSetDefaults"
-            FOR EACH ROW BEGIN
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'childWithOnDeleteSetDefaults'));
             END
             """,
             [4]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_childWithOnDeleteSetNulls"
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_childWithOnDeleteSetDefaults_from_user"
+            AFTER DELETE ON "childWithOnDeleteSetDefaults"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'childWithOnDeleteSetDefaults'));
+            END
+            """,
+            [5]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_childWithOnDeleteSetNulls_from_sync_engine"
             AFTER DELETE ON "childWithOnDeleteSetNulls"
-            FOR EACH ROW BEGIN
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'childWithOnDeleteSetNulls'));
             END
             """,
-            [5]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_modelAs"
+            [6]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_childWithOnDeleteSetNulls_from_user"
+            AFTER DELETE ON "childWithOnDeleteSetNulls"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'childWithOnDeleteSetNulls'));
+            END
+            """,
+            [7]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_modelAs_from_sync_engine"
             AFTER DELETE ON "modelAs"
-            FOR EACH ROW BEGIN
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'));
             END
             """,
-            [6]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_modelBs"
+            [8]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_modelAs_from_user"
+            AFTER DELETE ON "modelAs"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'));
+            END
+            """,
+            [9]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_modelBs_from_sync_engine"
             AFTER DELETE ON "modelBs"
-            FOR EACH ROW BEGIN
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'));
             END
             """,
-            [7]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_modelCs"
+            [10]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_modelBs_from_user"
+            AFTER DELETE ON "modelBs"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'));
+            END
+            """,
+            [11]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_modelCs_from_sync_engine"
             AFTER DELETE ON "modelCs"
-            FOR EACH ROW BEGIN
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelCs'));
             END
             """,
-            [8]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_parents"
+            [12]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_modelCs_from_user"
+            AFTER DELETE ON "modelCs"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelCs'));
+            END
+            """,
+            [13]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_parents_from_sync_engine"
             AFTER DELETE ON "parents"
-            FOR EACH ROW BEGIN
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'));
             END
             """,
-            [9]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_reminderTags"
+            [14]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_parents_from_user"
+            AFTER DELETE ON "parents"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'));
+            END
+            """,
+            [15]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_reminderTags_from_sync_engine"
             AFTER DELETE ON "reminderTags"
-            FOR EACH ROW BEGIN
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'reminderTags'));
             END
             """,
-            [10]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_reminders"
-            AFTER DELETE ON "reminders"
-            FOR EACH ROW BEGIN
-              DELETE FROM "sqlitedata_icloud_metadata"
-              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'reminders'));
+            [16]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_reminderTags_from_user"
+            AFTER DELETE ON "reminderTags"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'reminderTags'));
             END
             """,
-            [11]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_remindersListAssets"
+            [17]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_remindersListAssets_from_sync_engine"
             AFTER DELETE ON "remindersListAssets"
-            FOR EACH ROW BEGIN
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersListAssets'));
             END
             """,
-            [12]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_remindersListPrivates"
+            [18]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_remindersListAssets_from_user"
+            AFTER DELETE ON "remindersListAssets"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersListAssets'));
+            END
+            """,
+            [19]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_remindersListPrivates_from_sync_engine"
             AFTER DELETE ON "remindersListPrivates"
-            FOR EACH ROW BEGIN
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersListPrivates'));
             END
             """,
-            [13]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_remindersLists"
+            [20]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_remindersListPrivates_from_user"
+            AFTER DELETE ON "remindersListPrivates"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersListPrivates'));
+            END
+            """,
+            [21]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_remindersLists_from_sync_engine"
             AFTER DELETE ON "remindersLists"
-            FOR EACH ROW BEGIN
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'));
             END
             """,
-            [14]: """
-            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_tags"
+            [22]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_remindersLists_from_user"
+            AFTER DELETE ON "remindersLists"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'));
+            END
+            """,
+            [23]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_reminders_from_sync_engine"
+            AFTER DELETE ON "reminders"
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
+              DELETE FROM "sqlitedata_icloud_metadata"
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'reminders'));
+            END
+            """,
+            [24]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_reminders_from_user"
+            AFTER DELETE ON "reminders"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'reminders'));
+            END
+            """,
+            [25]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_tags_from_sync_engine"
             AFTER DELETE ON "tags"
-            FOR EACH ROW BEGIN
+            FOR EACH ROW WHEN sqlitedata_icloud_syncEngineIsSynchronizingChanges() BEGIN
               DELETE FROM "sqlitedata_icloud_metadata"
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."title") AND ("sqlitedata_icloud_metadata"."recordType" = 'tags'));
             END
             """,
-            [15]: """
+            [26]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_delete_on_tags_from_user"
+            AFTER DELETE ON "tags"
+            FOR EACH ROW WHEN NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) BEGIN
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."title") AND ("sqlitedata_icloud_metadata"."recordType" = 'tags'));
+            END
+            """,
+            [27]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_childWithOnDeleteSetDefaults"
             AFTER INSERT ON "childWithOnDeleteSetDefaults"
             FOR EACH ROW BEGIN
@@ -184,7 +292,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [16]: """
+            [28]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_childWithOnDeleteSetNulls"
             AFTER INSERT ON "childWithOnDeleteSetNulls"
             FOR EACH ROW BEGIN
@@ -195,7 +303,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [17]: """
+            [29]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_modelAs"
             AFTER INSERT ON "modelAs"
             FOR EACH ROW BEGIN
@@ -206,7 +314,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [18]: """
+            [30]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_modelBs"
             AFTER INSERT ON "modelBs"
             FOR EACH ROW BEGIN
@@ -217,7 +325,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [19]: """
+            [31]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_modelCs"
             AFTER INSERT ON "modelCs"
             FOR EACH ROW BEGIN
@@ -228,7 +336,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [20]: """
+            [32]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_parents"
             AFTER INSERT ON "parents"
             FOR EACH ROW BEGIN
@@ -239,7 +347,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [21]: """
+            [33]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_reminderTags"
             AFTER INSERT ON "reminderTags"
             FOR EACH ROW BEGIN
@@ -250,7 +358,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [22]: """
+            [34]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_reminders"
             AFTER INSERT ON "reminders"
             FOR EACH ROW BEGIN
@@ -261,7 +369,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [23]: """
+            [35]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_remindersListAssets"
             AFTER INSERT ON "remindersListAssets"
             FOR EACH ROW BEGIN
@@ -272,7 +380,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [24]: """
+            [36]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_remindersListPrivates"
             AFTER INSERT ON "remindersListPrivates"
             FOR EACH ROW BEGIN
@@ -283,7 +391,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [25]: """
+            [37]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_remindersLists"
             AFTER INSERT ON "remindersLists"
             FOR EACH ROW BEGIN
@@ -294,7 +402,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [26]: """
+            [38]: """
             CREATE TRIGGER "sqlitedata_icloud_after_insert_on_tags"
             AFTER INSERT ON "tags"
             FOR EACH ROW BEGIN
@@ -305,7 +413,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [27]: """
+            [39]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_childWithOnDeleteSetDefaults"
             AFTER UPDATE ON "childWithOnDeleteSetDefaults"
             FOR EACH ROW BEGIN
@@ -316,7 +424,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [28]: """
+            [40]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_childWithOnDeleteSetNulls"
             AFTER UPDATE ON "childWithOnDeleteSetNulls"
             FOR EACH ROW BEGIN
@@ -327,7 +435,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [29]: """
+            [41]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelAs"
             AFTER UPDATE ON "modelAs"
             FOR EACH ROW BEGIN
@@ -338,7 +446,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [30]: """
+            [42]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelBs"
             AFTER UPDATE ON "modelBs"
             FOR EACH ROW BEGIN
@@ -349,7 +457,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [31]: """
+            [43]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelCs"
             AFTER UPDATE ON "modelCs"
             FOR EACH ROW BEGIN
@@ -360,7 +468,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [32]: """
+            [44]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_parents"
             AFTER UPDATE ON "parents"
             FOR EACH ROW BEGIN
@@ -371,7 +479,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [33]: """
+            [45]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_reminderTags"
             AFTER UPDATE ON "reminderTags"
             FOR EACH ROW BEGIN
@@ -382,7 +490,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [34]: """
+            [46]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_reminders"
             AFTER UPDATE ON "reminders"
             FOR EACH ROW BEGIN
@@ -393,7 +501,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [35]: """
+            [47]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersListAssets"
             AFTER UPDATE ON "remindersListAssets"
             FOR EACH ROW BEGIN
@@ -404,7 +512,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [36]: """
+            [48]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersListPrivates"
             AFTER UPDATE ON "remindersListPrivates"
             FOR EACH ROW BEGIN
@@ -415,7 +523,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [37]: """
+            [49]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersLists"
             AFTER UPDATE ON "remindersLists"
             FOR EACH ROW BEGIN
@@ -426,7 +534,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [38]: """
+            [50]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_tags"
             AFTER UPDATE ON "tags"
             FOR EACH ROW BEGIN
