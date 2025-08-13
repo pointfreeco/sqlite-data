@@ -1,5 +1,8 @@
+import Dependencies
+import DependenciesTestSupport
 import Foundation
 import SharingGRDB
+import SnapshotTesting
 import SwiftUI
 import Testing
 
@@ -8,7 +11,7 @@ import Testing
 @Suite(
   .dependencies {
     $0.date.now = baseDate
-    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.bootstrapDatabase()
     try $0.defaultDatabase.write { try $0.seedTestData() }
   },
   .snapshots(record: .failed)
@@ -132,25 +135,25 @@ extension Database {
         remindersListID: UUID(2),
         title: "Prepare for WWDC"
       )
-      Tag(id: UUID(0), title: "car")
-      Tag(id: UUID(1), title: "kids")
-      Tag(id: UUID(2), title: "someday")
-      Tag(id: UUID(3), title: "optional")
-      Tag(id: UUID(4), title: "social")
-      Tag(id: UUID(5), title: "night")
-      Tag(id: UUID(6), title: "adulting")
-      ReminderTag.Draft(reminderID: UUID(0), tagID: UUID(2))
-      ReminderTag.Draft(reminderID: UUID(0), tagID: UUID(3))
-      ReminderTag.Draft(reminderID: UUID(0), tagID: UUID(6))
-      ReminderTag.Draft(reminderID: UUID(1), tagID: UUID(2))
-      ReminderTag.Draft(reminderID: UUID(1), tagID: UUID(3))
-      ReminderTag.Draft(reminderID: UUID(2), tagID: UUID(6))
-      ReminderTag.Draft(reminderID: UUID(3), tagID: UUID(0))
-      ReminderTag.Draft(reminderID: UUID(3), tagID: UUID(1))
-      ReminderTag.Draft(reminderID: UUID(4), tagID: UUID(4))
-      ReminderTag.Draft(reminderID: UUID(3), tagID: UUID(4))
-      ReminderTag.Draft(reminderID: UUID(10), tagID: UUID(4))
-      ReminderTag.Draft(reminderID: UUID(4), tagID: UUID(5))
+      Tag(title: "car")
+      Tag(title: "kids")
+      Tag(title: "someday")
+      Tag(title: "optional")
+      Tag(title: "social")
+      Tag(title: "night")
+      Tag(title: "adulting")
+      ReminderTag.Draft(reminderID: UUID(0), tagID: "someday")
+      ReminderTag.Draft(reminderID: UUID(0), tagID: "optional")
+      ReminderTag.Draft(reminderID: UUID(0), tagID: "adulting")
+      ReminderTag.Draft(reminderID: UUID(1), tagID: "someday")
+      ReminderTag.Draft(reminderID: UUID(1), tagID: "optional")
+      ReminderTag.Draft(reminderID: UUID(2), tagID: "adulting")
+      ReminderTag.Draft(reminderID: UUID(3), tagID: "car")
+      ReminderTag.Draft(reminderID: UUID(3), tagID: "kids")
+      ReminderTag.Draft(reminderID: UUID(4), tagID: "social")
+      ReminderTag.Draft(reminderID: UUID(3), tagID: "social")
+      ReminderTag.Draft(reminderID: UUID(10), tagID: "social")
+      ReminderTag.Draft(reminderID: UUID(4), tagID: "night")
     }
   }
 }

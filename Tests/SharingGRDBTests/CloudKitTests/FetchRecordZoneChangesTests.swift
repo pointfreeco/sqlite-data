@@ -61,7 +61,7 @@ extension BaseCloudKitTests {
       }
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.isCompleted.toggle() }.execute(db)
@@ -116,7 +116,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         let reminderRecord = try syncEngine.private.database
           .record(for: Reminder.recordID(for: 1))
@@ -245,7 +245,7 @@ extension BaseCloudKitTests {
       }
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)
@@ -366,7 +366,7 @@ extension BaseCloudKitTests {
       }
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.title = "Buy milk" }.execute(db)

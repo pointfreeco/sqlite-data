@@ -27,8 +27,9 @@ import SharingGRDB
   var remindersListID: RemindersList.ID
 }
 @Table struct Tag: Equatable, Identifiable {
-  let id: Int
-  var title = ""
+  @Column(primaryKey: true)
+  let title: String
+  var id: String { title }
 }
 @Table struct ReminderTag: Equatable, Identifiable {
   let id: Int
@@ -51,16 +52,16 @@ import SharingGRDB
   var name = ""
   var parentID: LocalUser.ID?
 }
-@Table struct ModelA: Identifiable {
+@Table struct ModelA: Equatable, Identifiable {
   let id: Int
   var count = 0
 }
-@Table struct ModelB: Identifiable {
+@Table struct ModelB: Equatable, Identifiable {
   let id: Int
   var isOn = false
   var modelAID: ModelA.ID
 }
-@Table struct ModelC: Identifiable {
+@Table struct ModelC: Equatable, Identifiable {
   let id: Int
   var title = ""
   var modelBID: ModelB.ID
@@ -128,8 +129,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql(
       """
       CREATE TABLE "tags" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
+        "title" TEXT PRIMARY KEY NOT NULL COLLATE NOCASE 
       ) STRICT
       """
     )
@@ -139,7 +139,7 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       CREATE TABLE "reminderTags" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "reminderID" INTEGER NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
-        "tagID" INTEGER NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
+        "tagID" TEXT NOT NULL REFERENCES "tags"("title") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT
       """
     )

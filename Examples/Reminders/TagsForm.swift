@@ -1,5 +1,6 @@
 import SharingGRDB
 import SwiftUI
+import SwiftUINavigation
 
 struct TagsView: View {
   @Fetch(Tags()) var tags = Tags.Value()

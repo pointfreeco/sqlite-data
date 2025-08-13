@@ -2,6 +2,7 @@
   import CloudKit
   import ConcurrencyExtras
   import CustomDump
+  import Dependencies
   import OrderedCollections
   import OSLog
   import StructuredQueriesCore
@@ -32,7 +33,7 @@
       privateTables: repeat (each T2).Type,
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
-      logger: Logger = Logger(subsystem: "SQLiteData", category: "CloudKit")
+      logger: Logger = isTesting ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
     ) throws
     where
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
@@ -40,6 +41,53 @@
     {
       let containerIdentifier = containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
+
+      var allTables: [any PrimaryKeyedTable.Type] = []
+      var allPrivateTables: [any PrimaryKeyedTable.Type] = []
+      for table in repeat each tables {
+        allTables.append(table)
+      }
+      for privateTable in repeat each privateTables {
+        allPrivateTables.append(privateTable)
+      }
+      let userDatabase = UserDatabase(database: database)
+
+      guard !isTesting
+      else {
+        let privateDatabase = MockCloudDatabase(databaseScope: .private)
+        let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+        try self.init(
+          container: MockCloudContainer(
+            containerIdentifier: containerIdentifier ?? "co.pointfree.sqlitedata-icloud.testing",
+            privateCloudDatabase: privateDatabase,
+            sharedCloudDatabase: sharedDatabase
+          ),
+          defaultZone: defaultZone,
+          defaultSyncEngines: { _, syncEngine in
+            (
+              private: MockSyncEngine(
+                database: privateDatabase,
+                delegate: syncEngine,
+                state: MockSyncEngineState()
+              ),
+              shared: MockSyncEngine(
+                database: sharedDatabase,
+                delegate: syncEngine,
+                state: MockSyncEngineState()
+              )
+            )
+          },
+          userDatabase: userDatabase,
+          logger: logger,
+          tables: allTables,
+          privateTables: allPrivateTables
+        )
+        _ = try setUpSyncEngine(
+          userDatabase: userDatabase,
+          metadatabase: metadatabase
+        )
+        return
+      }
 
       guard let containerIdentifier else {
         throw SchemaError(
@@ -52,16 +100,6 @@
       }
 
       let container = CKContainer(identifier: containerIdentifier)
-      var allTables: [any PrimaryKeyedTable.Type] = []
-      var allPrivateTables: [any PrimaryKeyedTable.Type] = []
-      for table in repeat each tables {
-        allTables.append(table)
-      }
-      for privateTable in repeat each privateTables {
-        allPrivateTables.append(privateTable)
-      }
-
-      let userDatabase = UserDatabase(database: database)
       try self.init(
         container: container,
         defaultZone: defaultZone,
@@ -1144,7 +1182,6 @@
           .where(\.isShared)
           .select { ($0.share, $0.recordName) }
           .fetchAll(db)
-          // TODO: Write test that we never accidentally delete a new share from a delete event of an old share
           .first(where: { share, _ in share?.recordID == recordID }) ?? nil
         guard let (_, recordName) = shareAndRecordName
         else { return }
@@ -1395,7 +1432,7 @@
 
     fileprivate static var datetime: Self {
       Self(.sqliteDataCloudKitSchemaName + "_datetime", argumentCount: 0) { _ in
-        @Dependency(\.date.now) var now
+        @Dependency(\.datetime.now) var now
         return now.formatted(
           .iso8601
             .year().month().day()
