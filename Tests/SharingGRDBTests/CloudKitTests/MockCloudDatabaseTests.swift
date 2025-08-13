@@ -376,10 +376,10 @@ extension BaseCloudKitTests {
 
     @Test func incorrectlyCreatingNewRecordIdentity() async throws {
       let record1 = CKRecord(recordType: "A", recordID: CKRecord.ID.init(recordName: "1"))
-      try syncEngine.modifyRecords(scope: .private, saving: [record1])
+      _ = try syncEngine.modifyRecords(scope: .private, saving: [record1])
       let record2 = CKRecord(recordType: "A", recordID: CKRecord.ID.init(recordName: "1"))
       try withKnownIssue {
-        try syncEngine.modifyRecords(scope: .private, saving: [record2])
+        _ = try syncEngine.modifyRecords(scope: .private, saving: [record2])
       } matching: { issue in
         issue.description == """
           Issue recorded: A new identity was created for an existing 'CKRecord' ('1'). Rather than \
