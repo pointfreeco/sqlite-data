@@ -33,13 +33,15 @@
       privateTables: repeat (each T2).Type,
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
-      logger: Logger = isTesting ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
+      logger: Logger = isTesting
+        ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
     ) throws
     where
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
       repeat (each T2).PrimaryKey.QueryOutput: IdentifierStringConvertible
     {
-      let containerIdentifier = containerIdentifier
+      let containerIdentifier =
+        containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
 
       var allTables: [any PrimaryKeyedTable.Type] = []
@@ -460,16 +462,20 @@
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
-      var changes: [CKSyncEngine.PendingRecordZoneChange] = [
-        .deleteRecord(
-          CKRecord.ID(
-            recordName: recordName,
-            zoneID: zoneID
+      var changes: [CKSyncEngine.PendingRecordZoneChange] = []
+
+      if let share {
+        changes.append(.deleteRecord(share.recordID))
+      }
+      if zoneID.ownerName == CKCurrentUserDefaultName {
+        changes.append(
+          .deleteRecord(
+            CKRecord.ID(
+              recordName: recordName,
+              zoneID: zoneID
+            )
           )
         )
-      ]
-      if let share {
-        changes.insert(.deleteRecord(share.recordID), at: 0)
       }
       syncEngine?.state.add(pendingRecordZoneChanges: changes)
     }
@@ -1503,7 +1509,8 @@
       else {
         return URL(string: "file:\(String.sqliteDataCloudKitSchemaName)?mode=memory&cache=shared")!
       }
-      return databaseURL
+      return
+        databaseURL
         .deletingLastPathComponent()
         .appending(component: ".\(databaseURL.deletingPathExtension().lastPathComponent)")
         .appendingPathExtension("metadata\(containerIdentifier.map { "-\($0)" } ?? "").sqlite")
@@ -1571,7 +1578,8 @@
     /// - Parameter containerIdentifier: The identifier of the CloudKit container used to synchronize
     ///                                  data.
     public func attachMetadatabase(containerIdentifier: String? = nil) throws {
-      let containerIdentifier = containerIdentifier
+      let containerIdentifier =
+        containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
 
       guard let containerIdentifier else {
