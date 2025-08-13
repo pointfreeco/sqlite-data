@@ -155,19 +155,22 @@ extension SyncEngine {
   @available(iOS 17, macOS 14, tvOS 17, *)
   public struct CloudSharingView: UIViewControllerRepresentable {
     let sharedRecord: SharedRecord
+    let availablePermissions: UICloudSharingController.PermissionOptions
     let didFinish: (Result<Void, Error>) -> Void
     let didStopSharing: () -> Void
-    public init(sharedRecord: SharedRecord) {
-      self.init(sharedRecord: sharedRecord, didFinish: { _ in }, didStopSharing: {})
+    public init(sharedRecord: SharedRecord, availablePermissions: UICloudSharingController.PermissionOptions = []) {
+      self.init(sharedRecord: sharedRecord, availablePermissions: availablePermissions, didFinish: { _ in }, didStopSharing: {})
     }
     public init(
       sharedRecord: SharedRecord,
+      availablePermissions: UICloudSharingController.PermissionOptions = [],
       didFinish: @escaping (Result<Void, Error>) -> Void,
       didStopSharing: @escaping () -> Void
     ) {
       self.sharedRecord = sharedRecord
       self.didFinish = didFinish
       self.didStopSharing = didStopSharing
+      self.availablePermissions = availablePermissions
     }
 
     public func makeCoordinator() -> CloudSharingDelegate {
@@ -184,6 +187,7 @@ extension SyncEngine {
         container: sharedRecord.container.rawValue
       )
       controller.delegate = context.coordinator
+      controller.availablePermissions = availablePermissions
       return controller
     }
 
