@@ -30,7 +30,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(60)
+        $0.datetime.now.addTimeInterval(60)
       } operation: {
         let personalListRecord = try syncEngine.private.database.record(
           for: RemindersList.recordID(for: 1)
@@ -120,7 +120,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(60)
+        $0.datetime.now.addTimeInterval(60)
       } operation: {
         let personalListRecord = try syncEngine.private.database.record(
           for: RemindersList.recordID(for: 1)
@@ -179,7 +179,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(60)
+        $0.datetime.now.addTimeInterval(60)
       } operation: {
         let personalListRecord = try syncEngine.private.database.record(
           for: RemindersList.recordID(for: 1)
@@ -240,7 +240,7 @@ extension BaseCloudKitTests {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func newTable() async throws {
       try await withDependencies {
-        $0.date.now.addTimeInterval(60)
+        $0.datetime.now.addTimeInterval(60)
       } operation: {
         let imageRecord = CKRecord(
           recordType: "images",

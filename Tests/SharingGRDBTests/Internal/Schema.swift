@@ -52,16 +52,16 @@ import SharingGRDB
   var name = ""
   var parentID: LocalUser.ID?
 }
-@Table struct ModelA: Identifiable {
+@Table struct ModelA: Equatable, Identifiable {
   let id: Int
   var count = 0
 }
-@Table struct ModelB: Identifiable {
+@Table struct ModelB: Equatable, Identifiable {
   let id: Int
   var isOn = false
   var modelAID: ModelA.ID
 }
-@Table struct ModelC: Identifiable {
+@Table struct ModelC: Equatable, Identifiable {
   let id: Int
   var title = ""
   var modelBID: ModelB.ID

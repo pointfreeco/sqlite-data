@@ -68,7 +68,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(30)
+        $0.datetime.now = now.addingTimeInterval(30)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
@@ -222,7 +222,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(60)
+        $0.datetime.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
@@ -335,7 +335,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(60)
+        $0.datetime.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
@@ -404,7 +404,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(30)
+        $0.datetime.now = now.addingTimeInterval(30)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
@@ -480,7 +480,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(60)
+        $0.datetime.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
@@ -549,7 +549,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(60)
+        $0.datetime.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
@@ -626,7 +626,7 @@ extension BaseCloudKitTests {
       )
 
       try withDependencies {
-        $0.date.now.addTimeInterval(2)
+        $0.datetime.now.addTimeInterval(2)
       } operation: {
         try userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.priority = 3 }.execute(db)

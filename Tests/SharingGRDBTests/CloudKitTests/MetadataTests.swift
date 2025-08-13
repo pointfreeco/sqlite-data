@@ -73,7 +73,7 @@ extension BaseCloudKitTests {
       }
 
       try withDependencies {
-        $0.date.now.addTimeInterval(60)
+        $0.datetime.now.addTimeInterval(60)
       } operation: {
         _ = try {
           try userDatabase.userWrite { db in

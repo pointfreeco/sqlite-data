@@ -159,7 +159,7 @@ extension BaseCloudKitTests {
       try await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord]).notify()
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(60)
+        $0.datetime.now.addTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try db.seed {
@@ -321,7 +321,7 @@ extension BaseCloudKitTests {
       try await syncEngine.modifyRecords(scope: .shared, saving: [modelARecord]).notify()
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(60)
+        $0.datetime.now.addTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try db.seed {
@@ -404,7 +404,7 @@ extension BaseCloudKitTests {
       try await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord, reminderRecord]).notify()
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(60)
+        $0.datetime.now.addTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).delete().execute(db)

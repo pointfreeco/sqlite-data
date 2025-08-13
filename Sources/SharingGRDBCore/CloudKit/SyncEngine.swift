@@ -2,6 +2,7 @@
   import CloudKit
   import ConcurrencyExtras
   import CustomDump
+  import Dependencies
   import OrderedCollections
   import OSLog
   import StructuredQueriesCore
@@ -51,22 +52,13 @@
       }
       let userDatabase = UserDatabase(database: database)
 
-      guard let containerIdentifier else {
-        guard isTesting
-        else {
-          throw SchemaError(
-            reason: .noCloudKitContainer,
-            debugDescription: """
-            No default CloudKit container found. Please add a container identifier to your app's \
-            entitlements.
-            """
-          )
-        }
+      guard !isTesting
+      else {
         let privateDatabase = MockCloudDatabase(databaseScope: .private)
         let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
         try self.init(
           container: MockCloudContainer(
-            containerIdentifier: "co.pointfree.sqlitedata-icloud.testing",
+            containerIdentifier: containerIdentifier ?? "co.pointfree.sqlitedata-icloud.testing",
             privateCloudDatabase: privateDatabase,
             sharedCloudDatabase: sharedDatabase
           ),
@@ -94,7 +86,17 @@
           userDatabase: userDatabase,
           metadatabase: metadatabase
         )
-        return 
+        return
+      }
+
+      guard let containerIdentifier else {
+        throw SchemaError(
+          reason: .noCloudKitContainer,
+          debugDescription: """
+            No default CloudKit container found. Please add a container identifier to your app's \
+            entitlements.
+            """
+        )
       }
 
       let container = CKContainer(identifier: containerIdentifier)
@@ -1430,7 +1432,7 @@
 
     fileprivate static var datetime: Self {
       Self(.sqliteDataCloudKitSchemaName + "_datetime", argumentCount: 0) { _ in
-        @Dependency(\.date.now) var now
+        @Dependency(\.datetime.now) var now
         return now.formatted(
           .iso8601
             .year().month().day()

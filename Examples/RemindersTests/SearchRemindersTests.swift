@@ -1,6 +1,7 @@
 import Dependencies
 import DependenciesTestSupport
 import InlineSnapshotTesting
+import GRDB
 import SharingGRDB
 import SnapshotTestingCustomDump
 import Testing

@@ -611,7 +611,7 @@ extension BaseCloudKitTests {
       }
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(60)
+        $0.datetime.now.addTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersList
@@ -762,7 +762,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)
