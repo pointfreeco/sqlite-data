@@ -90,7 +90,7 @@ private enum MockCloudContainersKey: TestDependencyKey {
 
 extension DependencyValues {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  package var mockCloudContainers: LockIsolated<[String: MockCloudContainer]> {
+  fileprivate var mockCloudContainers: LockIsolated<[String: MockCloudContainer]> {
     get {
       self[MockCloudContainersKey.self]
     }
