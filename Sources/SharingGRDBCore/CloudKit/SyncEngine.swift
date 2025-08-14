@@ -472,6 +472,7 @@
       }
       var changes: [CKSyncEngine.PendingRecordZoneChange] = []
 
+      // TODO: simplify
       let isOwner = zoneID.ownerName == CKCurrentUserDefaultName
       switch (share, isOwner) {
       case (let share?, true):
@@ -486,6 +487,14 @@
         )
       case (let share?, false):
         changes.append(.deleteRecord(share.recordID))
+        changes.append(
+          .deleteRecord(
+            CKRecord.ID(
+              recordName: recordName,
+              zoneID: zoneID
+            )
+          )
+        )
       case (.none, _):
         changes.append(
           .deleteRecord(
@@ -621,7 +630,8 @@ extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
     syncEngine: any SyncEngineProtocol
   ) async -> [CKSyncEngine.PendingRecordZoneChange] {
     var changes = syncEngine.state.pendingRecordZoneChanges.filter(options.scope.contains)
-
+    guard !changes.isEmpty
+    else { return [] }
 
     let deletedRecordIDs: [CKRecord.ID] = changes.compactMap {
       switch $0 {
@@ -646,9 +656,6 @@ extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
     let shareRecordIDsToDelete = metadataOfDeletions.compactMap(\.share?.recordID)
 
     // TODO: short circuit this work if no shares are being deleted
-
-    // A1 < B1 < C1
-    // A2 < B2 < C2
 
     let recordNamesWithRootRecordName = try! await userDatabase.read { db in
       try With {
@@ -693,11 +700,6 @@ extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
       else { continue }
       guard shareRecordIDsToDelete.contains(rootShareRecordID)
       else { continue }
-      guard
-        recordNameWithRootRecord.parentRecordName != nil
-      else { continue }
-      // If we get here we are looking at a non-root record whose root is also being deleted
-      // _and_ whose root share is also being deleted.
       changes.removeAll(where: { $0 == .deleteRecord(lastKnownServerRecord.recordID)})
       syncEngine.state.remove(
         pendingRecordZoneChanges: [.deleteRecord(lastKnownServerRecord.recordID)]

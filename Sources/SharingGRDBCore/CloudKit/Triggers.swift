@@ -120,8 +120,8 @@ extension SyncMetadata {
     ifNotExists: true,
     after: .update { _, new in
       Values(.didUpdate(new))
-    } when: { _, _ in
-      !SyncEngine.isSynchronizingChanges()
+    } when: { old, new in
+      old.isDeleted.eq(new.isDeleted) && !SyncEngine.isSynchronizingChanges()
     }
   )
 
@@ -136,7 +136,7 @@ extension SyncMetadata {
         share: new.share
       ))
     } when: { old, new in
-      !old.isDeleted && new.isDeleted //&& !SyncEngine.isSynchronizingChanges()
+      !old.isDeleted && new.isDeleted && !SyncEngine.isSynchronizingChanges()
     }
   )
 }
