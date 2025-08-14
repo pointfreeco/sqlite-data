@@ -15,15 +15,7 @@ Info.plist with a value of `true`. This is subtly documented in [Apple's documen
 
 [Apple's documentation for sharing]: https://developer.apple.com/documentation/cloudkit/sharing-cloudkit-data-with-other-icloud-users#Create-and-Share-a-Topic
 
-- [Creating CKShare records](#Creating-CKShare-records)
-- [Accepting shared records](#Accepting-shared-records)
-- [Diving deeper into sharing](#Diving-deeper-into-sharing)
-  - [Sharing root records](#Sharing-root-records)
-  - [Sharing foreign key relationships](#Sharing-foreign-key-relationships)
-    - [One-to-many relationships](#One-to-many-relationships)
-    - [Many-to-many relationships](#Many-to-many-relationships)
-    - [One-to-"at most one" relationships](#One-to-at-most-one-relationships)
-- [Controlling what data is shared](#Controlling-what-data-is-shared)
+TODO: ToC
 
 ## Creating CKShare records
 
@@ -343,6 +335,10 @@ graph BT
 
 Here the `CoverImage` table has a foreign key pointing to the root table `RemindersList`, but since
 it is also the primary key of the table it enforces that at most one cover image belongs to a list.
+
+## Sharing permissions
+
+TODO: finish
 
 ## Controlling what data is shared
 
