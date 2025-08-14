@@ -89,7 +89,7 @@ extension BaseCloudKitTests {
               title: "Write blog post"
             ),
             share: nil,
-            isDeleted: false,
+            _isDeleted: false,
             isShared: false,
             userModificationDate: Date(1970-01-01T00:00:00.000Z)
           ),
@@ -115,7 +115,7 @@ extension BaseCloudKitTests {
               title: "Personal"
             ),
             share: nil,
-            isDeleted: false,
+            _isDeleted: false,
             isShared: false,
             userModificationDate: Date(1970-01-01T00:00:00.000Z)
           )

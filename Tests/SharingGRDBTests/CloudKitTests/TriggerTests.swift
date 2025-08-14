@@ -19,8 +19,8 @@ extension BaseCloudKitTests {
           [
             [0]: """
             CREATE TRIGGER "after_delete_on_sqlitedata_icloud_metadata"
-            AFTER UPDATE OF "isDeleted" ON "sqlitedata_icloud_metadata"
-            FOR EACH ROW WHEN ((NOT ("old"."isDeleted") AND "new"."isDeleted") AND NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges())) BEGIN
+            AFTER UPDATE OF "_isDeleted" ON "sqlitedata_icloud_metadata"
+            FOR EACH ROW WHEN ((NOT ("old"."_isDeleted") AND "new"."_isDeleted") AND NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges())) BEGIN
               SELECT sqlitedata_icloud_didDelete("new"."recordName", coalesce("new"."lastKnownServerRecord", (
                 WITH "ancestorMetadatas" AS (
                   SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."lastKnownServerRecord" AS "lastKnownServerRecord"
@@ -60,7 +60,7 @@ extension BaseCloudKitTests {
             [2]: """
             CREATE TRIGGER "after_update_on_sqlitedata_icloud_metadata"
             AFTER UPDATE ON "sqlitedata_icloud_metadata"
-            FOR EACH ROW WHEN (("old"."isDeleted" = "new"."isDeleted") AND NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges())) BEGIN
+            FOR EACH ROW WHEN (("old"."_isDeleted" = "new"."_isDeleted") AND NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges())) BEGIN
               SELECT sqlitedata_icloud_didUpdate("new"."recordName", coalesce("new"."lastKnownServerRecord", (
                 WITH "ancestorMetadatas" AS (
                   SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."lastKnownServerRecord" AS "lastKnownServerRecord"
@@ -102,7 +102,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'childWithOnDeleteSetDefaults'));
             END
             """,
@@ -131,7 +131,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'childWithOnDeleteSetNulls'));
             END
             """,
@@ -160,7 +160,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'));
             END
             """,
@@ -189,7 +189,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'));
             END
             """,
@@ -218,7 +218,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelCs'));
             END
             """,
@@ -247,7 +247,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'));
             END
             """,
@@ -276,7 +276,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'reminderTags'));
             END
             """,
@@ -305,7 +305,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersListAssets'));
             END
             """,
@@ -334,7 +334,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersListPrivates'));
             END
             """,
@@ -363,7 +363,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'));
             END
             """,
@@ -392,7 +392,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'reminders'));
             END
             """,
@@ -421,7 +421,7 @@ extension BaseCloudKitTests {
               FROM "rootShares"
               WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
-              SET "isDeleted" = 1
+              SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."title") AND ("sqlitedata_icloud_metadata"."recordType" = 'tags'));
             END
             """,
