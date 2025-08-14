@@ -633,7 +633,7 @@ extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
           SyncMetadata
             .where { $0.parentRecordName.is(nil) && $0.recordName.in(deletedRecordNames) }
             .select {
-              RecordNameWithRootRecordName.Columns(
+              RecordWithRoot.Columns(
                 parentRecordName: $0.parentRecordName,
                 recordName: $0.recordName,
                 lastKnownServerRecord: $0.lastKnownServerRecord,
@@ -644,9 +644,9 @@ extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
             .union(
               all: true,
               SyncMetadata
-                .join(RecordNameWithRootRecordName.all) { $1.recordName.is($0.parentRecordName) }
+                .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
                 .select { metadata, tree in
-                  RecordNameWithRootRecordName.Columns(
+                  RecordWithRoot.Columns(
                     parentRecordName: metadata.parentRecordName,
                     recordName: metadata.recordName,
                     lastKnownServerRecord: metadata.lastKnownServerRecord,
@@ -656,7 +656,7 @@ extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
                 }
             )
         } query: {
-          RecordNameWithRootRecordName
+          RecordWithRoot
             .where { $0.recordName.in(deletedRecordNames) }
         }
         .fetchAll(db)

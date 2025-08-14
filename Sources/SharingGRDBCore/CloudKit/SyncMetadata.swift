@@ -60,7 +60,9 @@
     // @Column(as: CKShare?.SystemFieldsRepresentation.self)
     public var share: CKShare?
 
-    public var isDeleted = false
+    /// Determines if the metadata has been "soft" deleted. It will be fully deleted once the
+    /// next batch of pending changes is processed.
+    public var _isDeleted = false
 
     // @Column(generated: .virtual)
     public let isShared: Bool
@@ -69,34 +71,34 @@
     public var userModificationDate: Date
   }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-// @Table @Selection
-struct AncestorMetadata {
-  let recordName: String
-  let parentRecordName: String?
-  // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-  let lastKnownServerRecord: CKRecord?
-}
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  // @Table @Selection
+  struct AncestorMetadata {
+    let recordName: String
+    let parentRecordName: String?
+    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let lastKnownServerRecord: CKRecord?
+  }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-// @Table @Selection
-struct RecordNameWithRootRecordName {
-  let parentRecordName: String?
-  let recordName: String
-  // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-  let lastKnownServerRecord: CKRecord?
-  let rootRecordName: String
-  // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-  let rootLastKnownServerRecord: CKRecord?
-}
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  // @Table @Selection
+  struct RecordWithRoot {
+    let parentRecordName: String?
+    let recordName: String
+    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let lastKnownServerRecord: CKRecord?
+    let rootRecordName: String
+    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let rootLastKnownServerRecord: CKRecord?
+  }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-// @Table @Selection
-struct RootShare {
-  let parentRecordName: String?
-  // @Column(as: CKShare?.SystemFieldsRepresentation.self)
-  let share: CKShare?
-}
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  // @Table @Selection
+  struct RootShare {
+    let parentRecordName: String?
+    // @Column(as: CKShare?.SystemFieldsRepresentation.self)
+    let share: CKShare?
+  }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {

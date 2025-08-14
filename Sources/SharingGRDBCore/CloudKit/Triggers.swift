@@ -46,7 +46,7 @@
               $0.recordPrimaryKey.eq(SQLQueryExpression("\(old.primaryKey)"))
                 && $0.recordType.eq(tableName)
             }
-            .update { $0.isDeleted = true }
+            .update { $0._isDeleted = true }
         } when: { _ in
           !SyncEngine.isSynchronizingChanges()
         }
@@ -128,14 +128,14 @@
       after: .update { _, new in
         Values(.didUpdate(new))
       } when: { old, new in
-        old.isDeleted.eq(new.isDeleted) && !SyncEngine.isSynchronizingChanges()
+        old._isDeleted.eq(new._isDeleted) && !SyncEngine.isSynchronizingChanges()
       }
     )
 
     fileprivate static let afterDeleteTrigger = createTemporaryTrigger(
       "after_delete_on_sqlitedata_icloud_metadata",
       ifNotExists: true,
-      after: .update(of: \.isDeleted) { _, new in
+      after: .update(of: \._isDeleted) { _, new in
         Values(
           .didDelete(
             recordName: new.recordName,
@@ -145,7 +145,7 @@
           )
         )
       } when: { old, new in
-        !old.isDeleted && new.isDeleted && !SyncEngine.isSynchronizingChanges()
+        !old._isDeleted && new._isDeleted && !SyncEngine.isSynchronizingChanges()
       }
     )
   }
