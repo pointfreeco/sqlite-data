@@ -160,7 +160,6 @@
     ) -> Self {
       .didUpdate(
         recordName: new.recordName,
-        // TODO: separate lastKnownServerRecord from rootRecord
         lastKnownServerRecord: new.lastKnownServerRecord
           ?? rootServerRecord(recordName: new.recordName),
         share: new.share

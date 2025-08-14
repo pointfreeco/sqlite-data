@@ -625,9 +625,7 @@ extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
 
     let shareRecordIDsToDelete = metadataOfDeletions.compactMap(\.share?.recordID)
 
-    // TODO: short circuit this work if no shares are being deleted
-
-    let recordNamesWithRootRecordName = await withErrorReporting {
+    let recordsWithRoot = await withErrorReporting {
       try await userDatabase.read { db in
         try With {
           SyncMetadata
@@ -664,10 +662,10 @@ extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
     }
     ?? []
 
-    for recordNameWithRootRecord in recordNamesWithRootRecordName {
+    for recordWithRoot in recordsWithRoot {
       guard
-        let lastKnownServerRecord = recordNameWithRootRecord.lastKnownServerRecord,
-        let rootLastKnownServerRecord = recordNameWithRootRecord.rootLastKnownServerRecord
+        let lastKnownServerRecord = recordWithRoot.lastKnownServerRecord,
+        let rootLastKnownServerRecord = recordWithRoot.rootLastKnownServerRecord
       else { continue }
       guard let rootShareRecordID = rootLastKnownServerRecord.share?.recordID
       else { continue }
