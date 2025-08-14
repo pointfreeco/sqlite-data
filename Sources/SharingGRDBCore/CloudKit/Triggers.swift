@@ -14,10 +14,46 @@ extension PrimaryKeyedTable {
   }
 
   fileprivate static func afterInsert(parentForeignKey: ForeignKey?) -> TemporaryTrigger<Self> {
-    createTemporaryTrigger(
+    let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
+    parentForeignKey
+      .map { (#""new".\#(quote: $0.from)"#, "\(bind: $0.table)") }
+    ?? ("NULL", "NULL")
+
+    return createTemporaryTrigger(
       "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_\(tableName)",
       ifNotExists: true,
-      after: .insert { new in SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey) }
+      after: .insert { new in
+        With {
+          SyncMetadata
+            .where {
+              $0.recordPrimaryKey.is(SQLQueryExpression(parentRecordPrimaryKey))
+              && $0.recordType.is(SQLQueryExpression(parentRecordType))
+            }
+            .select { RootShare.Columns(parentRecordName: $0.parentRecordName, share: $0.share) }
+            .union(
+              all: true,
+              SyncMetadata
+                .select {
+                  RootShare.Columns(parentRecordName: $0.parentRecordName, share: $0.share)
+                }
+                .join(RootShare.all) { $0.recordName.is($1.parentRecordName) }
+            )
+        } query: {
+          RootShare
+            .select { _ in
+              SQLQueryExpression(
+                "RAISE(ABORT, \(quote: SyncEngine.writePermissionError, delimiter: .text))",
+                as: Never.self
+              )
+            }
+            .where {
+              $0.parentRecordName.is(nil)
+              && !SQLQueryExpression("\(raw: String.sqliteDataCloudKitSchemaName)_hasPermission(\($0.share))")
+            }
+        }
+
+        SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey)
+      }
     )
   }
 

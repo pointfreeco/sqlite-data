@@ -24,8 +24,8 @@
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
-
     let dataManager = Dependency(\.dataManager)
+    public static let writePermissionError = "co.pointfree.sqlitedata-icloud.write-permission-error"
 
     public convenience init<each T1: PrimaryKeyedTable, each T2: PrimaryKeyedTable>(
       for database: any DatabaseWriter,
@@ -255,6 +255,7 @@
         db.add(function: .syncEngineIsSynchronizingChanges)
         db.add(function: .didUpdate(syncEngine: self))
         db.add(function: .didDelete(syncEngine: self))
+        db.add(function: .hasPermission)
 
         for trigger in SyncMetadata.callbackTriggers {
           try trigger.execute(db)
@@ -409,6 +410,7 @@
         for trigger in SyncMetadata.callbackTriggers.reversed() {
           try trigger.drop().execute(db)
         }
+        db.remove(function: .hasPermission)
         db.remove(function: .didDelete(syncEngine: self))
         db.remove(function: .didUpdate(syncEngine: self))
         db.remove(function: .syncEngineIsSynchronizingChanges)
@@ -657,39 +659,42 @@ extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
 
     // TODO: short circuit this work if no shares are being deleted
 
-    let recordNamesWithRootRecordName = try! await userDatabase.read { db in
-      try With {
-        SyncMetadata
-          .where { $0.parentRecordName.is(nil) && $0.recordName.in(deletedRecordNames) }
-          .select {
-            RecordNameWithRootRecordName.Columns(
-              parentRecordName: $0.parentRecordName,
-              recordName: $0.recordName,
-              lastKnownServerRecord: $0.lastKnownServerRecord,
-              rootRecordName: $0.recordName,
-              rootLastKnownServerRecord: $0.lastKnownServerRecord
+    let recordNamesWithRootRecordName = await withErrorReporting {
+      try await userDatabase.read { db in
+        try With {
+          SyncMetadata
+            .where { $0.parentRecordName.is(nil) && $0.recordName.in(deletedRecordNames) }
+            .select {
+              RecordNameWithRootRecordName.Columns(
+                parentRecordName: $0.parentRecordName,
+                recordName: $0.recordName,
+                lastKnownServerRecord: $0.lastKnownServerRecord,
+                rootRecordName: $0.recordName,
+                rootLastKnownServerRecord: $0.lastKnownServerRecord
+              )
+            }
+            .union(
+              all: true,
+              SyncMetadata
+                .join(RecordNameWithRootRecordName.all) { $1.recordName.is($0.parentRecordName) }
+                .select { metadata, tree in
+                  RecordNameWithRootRecordName.Columns(
+                    parentRecordName: metadata.parentRecordName,
+                    recordName: metadata.recordName,
+                    lastKnownServerRecord: metadata.lastKnownServerRecord,
+                    rootRecordName: tree.rootRecordName,
+                    rootLastKnownServerRecord: tree.lastKnownServerRecord
+                  )
+                }
             )
-          }
-          .union(
-            all: true,
-            SyncMetadata
-              .join(RecordNameWithRootRecordName.all) { $1.recordName.is($0.parentRecordName) }
-              .select { metadata, tree in
-                RecordNameWithRootRecordName.Columns(
-                  parentRecordName: metadata.parentRecordName,
-                  recordName: metadata.recordName,
-                  lastKnownServerRecord: metadata.lastKnownServerRecord,
-                  rootRecordName: tree.rootRecordName,
-                  rootLastKnownServerRecord: tree.lastKnownServerRecord
-                )
-              }
-          )
-      } query: {
-        RecordNameWithRootRecordName
-          .where { $0.recordName.in(deletedRecordNames) }
+        } query: {
+          RecordNameWithRootRecordName
+            .where { $0.recordName.in(deletedRecordNames) }
+        }
+        .fetchAll(db)
       }
-      .fetchAll(db)
     }
+    ?? []
 
     for recordNameWithRootRecord in recordNamesWithRootRecordName {
       guard
@@ -1575,6 +1580,21 @@ extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
             .dateTimeSeparator(.space)
             .time(includingFractionalSeconds: true)
         )
+      }
+    }
+
+    fileprivate static var hasPermission: Self {
+      Self(.sqliteDataCloudKitSchemaName + "_hasPermission", argumentCount: 1) { arguments in
+        let share = try Data.fromDatabaseValue(arguments[0]).flatMap {
+          let coder = try NSKeyedUnarchiver(forReadingFrom: $0)
+          coder.requiresSecureCoding = true
+          return CKShare(coder: coder)
+        }
+        guard let share
+        else { return true }
+        let hasPermission = share.publicPermission == .readWrite ||
+        share.currentUserParticipant?.permission == .readWrite
+        return hasPermission
       }
     }
 

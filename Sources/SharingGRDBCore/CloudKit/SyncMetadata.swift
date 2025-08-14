@@ -90,6 +90,14 @@ struct RecordNameWithRootRecordName {
   let rootLastKnownServerRecord: CKRecord?
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+// @Table @Selection
+struct RootShare {
+  let parentRecordName: String?
+  // @Column(as: CKShare?.SystemFieldsRepresentation.self)
+  let share: CKShare?
+}
+
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
     package init(

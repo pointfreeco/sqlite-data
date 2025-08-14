@@ -296,5 +296,54 @@
   }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension RootShare {
+  public struct Columns: StructuredQueriesCore.QueryExpression {
+    public typealias QueryValue = RootShare
+    public let queryFragment: StructuredQueriesCore.QueryFragment
+    public init(
+      parentRecordName: some StructuredQueriesCore.QueryExpression<String?>,
+      share: some StructuredQueriesCore.QueryExpression<CKShare?.SystemFieldsRepresentation>
+    ) {
+      self.queryFragment = """
+        \(parentRecordName.queryFragment) AS "parentRecordName", \(share.queryFragment) AS "share"
+        """
+    }
+  }
+
+  public nonisolated struct TableColumns: StructuredQueriesCore.TableDefinition {
+    public typealias QueryValue = RootShare
+    public let parentRecordName = StructuredQueriesCore.TableColumn<QueryValue, String?>("parentRecordName", keyPath: \QueryValue.parentRecordName)
+    public let share = StructuredQueriesCore.TableColumn<QueryValue, CKShare?.SystemFieldsRepresentation>("share", keyPath: \QueryValue.share)
+    public static var allColumns: [any StructuredQueriesCore.TableColumnExpression] {
+      [QueryValue.columns.parentRecordName, QueryValue.columns.share]
+    }
+    public static var writableColumns: [any StructuredQueriesCore.WritableTableColumnExpression] {
+      [QueryValue.columns.parentRecordName, QueryValue.columns.share]
+    }
+    public var queryFragment: QueryFragment {
+      "\(self.parentRecordName), \(self.share)"
+    }
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) nonisolated extension RootShare: StructuredQueriesCore.Table {
+  public nonisolated static var columns: TableColumns {
+    TableColumns()
+  }
+  public nonisolated static var tableName: String {
+    "rootShares"
+  }
+  public nonisolated init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    self.parentRecordName = try decoder.decode(String.self)
+    let share = try decoder.decode(CKShare?.SystemFieldsRepresentation.self)
+    guard let share else {
+      throw QueryDecodingError.missingRequiredColumn
+    }
+    self.share = share
+  }
+}
+
+
 
 #endif
