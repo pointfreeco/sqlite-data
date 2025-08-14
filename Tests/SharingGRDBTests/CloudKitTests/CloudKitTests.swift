@@ -557,7 +557,8 @@ extension BaseCloudKitTests {
           [0]: "sqlitedata_icloud_datetime",
           [1]: "sqlitedata_icloud_diddelete",
           [2]: "sqlitedata_icloud_didupdate",
-          [3]: "sqlitedata_icloud_syncengineissynchronizingchanges"
+          [3]: "sqlitedata_icloud_haspermission",
+          [4]: "sqlitedata_icloud_syncengineissynchronizingchanges"
         ]
         """
       }

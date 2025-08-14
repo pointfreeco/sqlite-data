@@ -442,11 +442,7 @@
       try await setUpSyncEngine()
     }
 
-    func didUpdate(
-      recordName: String,
-      zoneID: CKRecordZone.ID?,
-      share _: CKShare?
-    ) {
+    func didUpdate(recordName: String,zoneID: CKRecordZone.ID?) {
       let zoneID = zoneID ?? defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -463,49 +459,21 @@
       )
     }
 
-    func didDelete(
-      recordName: String,
-      zoneID: CKRecordZone.ID?,
-      share: CKShare?
-    ) {
+    func didDelete(recordName: String, zoneID: CKRecordZone.ID?, share: CKShare?) {
       let zoneID = zoneID ?? defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
-      var changes: [CKSyncEngine.PendingRecordZoneChange] = []
-
-      // TODO: simplify
-      let isOwner = zoneID.ownerName == CKCurrentUserDefaultName
-      switch (share, isOwner) {
-      case (let share?, true):
+      var changes: [CKSyncEngine.PendingRecordZoneChange] = [
+        .deleteRecord(
+          CKRecord.ID(
+            recordName: recordName,
+            zoneID: zoneID
+          )
+        )
+      ]
+      if let share {
         changes.append(.deleteRecord(share.recordID))
-        changes.append(
-          .deleteRecord(
-            CKRecord.ID(
-              recordName: recordName,
-              zoneID: zoneID
-            )
-          )
-        )
-      case (let share?, false):
-        changes.append(.deleteRecord(share.recordID))
-        changes.append(
-          .deleteRecord(
-            CKRecord.ID(
-              recordName: recordName,
-              zoneID: zoneID
-            )
-          )
-        )
-      case (.none, _):
-        changes.append(
-          .deleteRecord(
-            CKRecord.ID(
-              recordName: recordName,
-              zoneID: zoneID
-            )
-          )
-        )
       }
       syncEngine?.state.add(pendingRecordZoneChanges: changes)
     }
@@ -1551,11 +1519,10 @@ extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
   @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
   extension DatabaseFunction {
     fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
-      Self("didUpdate") { recordName, zoneID, share in
+      Self("didUpdate") { recordName, zoneID, _ in
         syncEngine.didUpdate(
           recordName: recordName,
-          zoneID: zoneID,
-          share: share
+          zoneID: zoneID
         )
       }
     }
