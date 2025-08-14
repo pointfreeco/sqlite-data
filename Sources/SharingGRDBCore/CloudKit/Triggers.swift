@@ -204,7 +204,7 @@ private func rootServerRecord(
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension AncestorMetadata.Columns {
-  fileprivate init(_ metadata: SyncMetadata.TableColumns) {
+  init(_ metadata: SyncMetadata.TableColumns) {
     self.init(
       recordName: metadata.recordName,
       parentRecordName: metadata.parentRecordName,

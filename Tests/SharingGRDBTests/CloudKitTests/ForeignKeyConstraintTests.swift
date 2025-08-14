@@ -758,5 +758,26 @@ extension BaseCloudKitTests {
           #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 3))
         }
     }
+
+    @Test func cascadingDeletes() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 1, title: "Get milk", remindersListID: 1)
+          RemindersList(id: 2, title: "Work")
+          Reminder(id: 2, title: "Call accountant", remindersListID: 2)
+          RemindersList(id: 3, title: "Secret")
+          Reminder(id: 3, title: "Schedule secret meeting", remindersListID: 3)
+        }
+      }
+
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+      try await userDatabase.userWrite { db in
+        try RemindersList.where { $0.id <= 2 }.delete().execute(db)
+      }
+
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+    }
   }
 }

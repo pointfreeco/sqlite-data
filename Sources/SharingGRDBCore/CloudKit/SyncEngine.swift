@@ -552,76 +552,176 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
-    public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
-      guard let event = Event(event)
-      else {
-        reportIssue("Unrecognized event received: \(event)")
-        return
-      }
-      await handleEvent(event, syncEngine: syncEngine)
+extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
+  public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
+    guard let event = Event(event)
+    else {
+      reportIssue("Unrecognized event received: \(event)")
+      return
     }
+    await handleEvent(event, syncEngine: syncEngine)
+  }
 
-    package func handleEvent(_ event: Event, syncEngine: any SyncEngineProtocol) async {
-      logger.log(event, syncEngine: syncEngine)
+  package func handleEvent(_ event: Event, syncEngine: any SyncEngineProtocol) async {
+    logger.log(event, syncEngine: syncEngine)
 
-      switch event {
-      case .accountChange(let changeType):
-        await handleAccountChange(changeType: changeType, syncEngine: syncEngine)
-      case .stateUpdate(let stateSerialization):
-        handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
-      case .fetchedDatabaseChanges(let modifications, let deletions):
-        await handleFetchedDatabaseChanges(
-          modifications: modifications,
-          deletions: deletions,
-          syncEngine: syncEngine
-        )
-      case .sentDatabaseChanges:
-        break
-      case .fetchedRecordZoneChanges(let modifications, let deletions):
-        await handleFetchedRecordZoneChanges(
-          modifications: modifications,
-          deletions: deletions,
-          syncEngine: syncEngine
-        )
-      case .sentRecordZoneChanges(
-        let savedRecords,
-        let failedRecordSaves,
-        let deletedRecordIDs,
-        let failedRecordDeletes
-      ):
-        await handleSentRecordZoneChanges(
-          savedRecords: savedRecords,
-          failedRecordSaves: failedRecordSaves,
-          deletedRecordIDs: deletedRecordIDs,
-          failedRecordDeletes: failedRecordDeletes,
-          syncEngine: syncEngine
-        )
-      case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
-        .didFetchChanges, .willSendChanges, .didSendChanges:
-        break
-      @unknown default:
-        break
-      }
-    }
-
-    public func nextRecordZoneChangeBatch(
-      _ context: CKSyncEngine.SendChangesContext,
-      syncEngine: CKSyncEngine
-    ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-      await nextRecordZoneChangeBatch(
-        reason: context.reason,
-        options: context.options,
+    switch event {
+    case .accountChange(let changeType):
+      await handleAccountChange(changeType: changeType, syncEngine: syncEngine)
+    case .stateUpdate(let stateSerialization):
+      handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
+    case .fetchedDatabaseChanges(let modifications, let deletions):
+      await handleFetchedDatabaseChanges(
+        modifications: modifications,
+        deletions: deletions,
         syncEngine: syncEngine
       )
+    case .sentDatabaseChanges:
+      break
+    case .fetchedRecordZoneChanges(let modifications, let deletions):
+      await handleFetchedRecordZoneChanges(
+        modifications: modifications,
+        deletions: deletions,
+        syncEngine: syncEngine
+      )
+    case .sentRecordZoneChanges(
+      let savedRecords,
+      let failedRecordSaves,
+      let deletedRecordIDs,
+      let failedRecordDeletes
+    ):
+      await handleSentRecordZoneChanges(
+        savedRecords: savedRecords,
+        failedRecordSaves: failedRecordSaves,
+        deletedRecordIDs: deletedRecordIDs,
+        failedRecordDeletes: failedRecordDeletes,
+        syncEngine: syncEngine
+      )
+    case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
+        .didFetchChanges, .willSendChanges, .didSendChanges:
+      break
+    @unknown default:
+      break
     }
+  }
+
+  public func nextRecordZoneChangeBatch(
+    _ context: CKSyncEngine.SendChangesContext,
+    syncEngine: CKSyncEngine
+  ) async -> CKSyncEngine.RecordZoneChangeBatch? {
+    await nextRecordZoneChangeBatch(
+      reason: context.reason,
+      options: context.options,
+      syncEngine: syncEngine
+    )
+  }
+
+  private func pendingRecordZoneChanges(
+    options: CKSyncEngine.SendChangesOptions,
+    syncEngine: any SyncEngineProtocol
+  ) async -> [CKSyncEngine.PendingRecordZoneChange] {
+    var changes = syncEngine.state.pendingRecordZoneChanges.filter(options.scope.contains)
+
+
+    let deletedRecordIDs: [CKRecord.ID] = changes.compactMap {
+      switch $0 {
+      case .saveRecord(_):
+        return nil
+      case .deleteRecord(let recordID):
+        return recordID
+      @unknown default:
+        return nil
+      }
+    }
+    let deletedRecordNames = deletedRecordIDs.map(\.recordName)
+
+    let metadataOfDeletions = await withErrorReporting {
+      try await userDatabase.read { db in
+        try SyncMetadata.where { $0.recordName.in(deletedRecordNames) }
+          .fetchAll(db)
+      }
+    }
+    ?? []
+
+    let shareRecordIDsToDelete = metadataOfDeletions.compactMap(\.share?.recordID)
+
+    // TODO: short circuit this work if no shares are being deleted
+
+    // A1 < B1 < C1
+    // A2 < B2 < C2
+
+    let recordNamesWithRootRecordName = try! await userDatabase.read { db in
+      try With {
+        SyncMetadata
+          .where { $0.parentRecordName.is(nil) && $0.recordName.in(deletedRecordNames) }
+          .select {
+            RecordNameWithRootRecordName.Columns(
+              parentRecordName: $0.parentRecordName,
+              recordName: $0.recordName,
+              lastKnownServerRecord: $0.lastKnownServerRecord,
+              rootRecordName: $0.recordName,
+              rootLastKnownServerRecord: $0.lastKnownServerRecord
+            )
+          }
+          .union(
+            all: true,
+            SyncMetadata
+              .join(RecordNameWithRootRecordName.all) { $1.recordName.is($0.parentRecordName) }
+              .select { metadata, tree in
+                RecordNameWithRootRecordName.Columns(
+                  parentRecordName: metadata.parentRecordName,
+                  recordName: metadata.recordName,
+                  lastKnownServerRecord: metadata.lastKnownServerRecord,
+                  rootRecordName: tree.rootRecordName,
+                  rootLastKnownServerRecord: tree.lastKnownServerRecord
+                )
+              }
+          )
+      } query: {
+        RecordNameWithRootRecordName
+          .where { $0.recordName.in(deletedRecordNames) }
+      }
+      .fetchAll(db)
+    }
+
+    for recordNameWithRootRecord in recordNamesWithRootRecordName {
+      guard
+        let lastKnownServerRecord = recordNameWithRootRecord.lastKnownServerRecord,
+        let rootLastKnownServerRecord = recordNameWithRootRecord.rootLastKnownServerRecord
+      else { continue }
+      guard let rootShareRecordID = rootLastKnownServerRecord.share?.recordID
+      else { continue }
+      guard shareRecordIDsToDelete.contains(rootShareRecordID)
+      else { continue }
+      guard
+        recordNameWithRootRecord.parentRecordName != nil
+      else { continue }
+      // If we get here we are looking at a non-root record whose root is also being deleted
+      // _and_ whose root share is also being deleted.
+      changes.removeAll(where: { $0 == .deleteRecord(lastKnownServerRecord.recordID)})
+      syncEngine.state.remove(
+        pendingRecordZoneChanges: [.deleteRecord(lastKnownServerRecord.recordID)]
+      )
+    }
+
+    await withErrorReporting {
+      try await userDatabase.write { db in
+        try SyncMetadata
+          .where { $0.recordName.in(deletedRecordNames) }
+          .delete()
+          .execute(db)
+      }
+    }
+
+    return changes
+  }
 
     package func nextRecordZoneChangeBatch(
       reason: CKSyncEngine.SyncReason = .scheduled,
       options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(scope: .all),
       syncEngine: any SyncEngineProtocol
     ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-      let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(options.scope.contains)
+      let allChanges = await pendingRecordZoneChanges(options: options, syncEngine: syncEngine)
       guard !allChanges.isEmpty
       else { return nil }
 
@@ -689,31 +789,6 @@
           )
         }
       #endif
-
-      let deletedRecordNames: [String] = changes.compactMap {
-        switch $0 {
-        case .saveRecord(_):
-          return nil
-        case .deleteRecord(let recordID):
-          return recordID.recordName
-        @unknown default:
-          return nil
-        }
-      }
-
-      // let shares = get all shares
-      // let deletes = get all deletes
-      // CTE MAGIC HERE: get all root records that are a parent to the deletes and whose share is contained in the shares
-      //   remove those deletions from
-
-      await withErrorReporting {
-        try await userDatabase.write { db in
-          try SyncMetadata
-            .where { $0.recordName.in(deletedRecordNames) }
-            .delete()
-            .execute(db)
-        }
-      }
 
       let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
         var missingTable: CKRecord.ID?
@@ -1204,6 +1279,7 @@
     }
 
     private func cacheShare(_ share: CKShare) async throws {
+      // TODO: Instead of getting URL here we can make `shareMetadata(…)` take a share instead of a URL
       guard let url = share.url
       else { return }
 
