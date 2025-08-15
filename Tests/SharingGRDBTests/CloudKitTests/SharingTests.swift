@@ -215,7 +215,6 @@ extension BaseCloudKitTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test(.snapshots(record: .failed))
     func shareDelieveredBeforeRecord() async throws {
       let externalZone = CKRecordZone(
         zoneID: CKRecordZone.ID(
@@ -477,72 +476,161 @@ extension BaseCloudKitTests {
         )
         """
       }
+    }
 
-      return
-      /*
-            let remindersListRecord = CKRecord(
-              recordType: RemindersList.tableName,
-              recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
-            )
-            remindersListRecord.setValue(1, forKey: "id", at: now)
-            remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
-            remindersListRecord.setValue("Personal", forKey: "title", at: now)
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func acceptShare() async throws {
+      let externalZone = CKRecordZone(
+        zoneID: CKRecordZone.ID(
+          zoneName: "external.zone",
+          ownerName: "external.owner"
+        )
+      )
+      try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
 
-            let share = CKShare(
-              rootRecord: remindersListRecord,
-              shareID: CKRecord.ID(
-                recordName: "Share-1",
-                zoneID: externalZone.zoneID
+      let remindersListRecord = CKRecord(
+        recordType: RemindersList.tableName,
+        recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
+      )
+      remindersListRecord.setValue(1, forKey: "id", at: now)
+      remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+      try await syncEngine
+        .acceptShare(
+          metadata: ShareMetadata(
+            containerIdentifier: container.containerIdentifier!,
+            hierarchicalRootRecordID: remindersListRecord.recordID,
+            rootRecord: remindersListRecord
+          )
+        )
+
+      try await userDatabase.read { db in
+        let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
+        let metadata = try #require(
+          try SyncMetadata
+          .where { $0.recordName.eq(remindersListRecord.recordID.recordName) }
+          .fetchOne(db)
+          )
+        #expect(remindersList.title == "Personal")
+        #expect(
+          metadata.share?.recordID.recordName == "Share-\(remindersListRecord.recordID.recordName)"
+        )
+      }
+
+      assertInlineSnapshot(of: container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(Share-1:remindersLists/external.zone/external.owner),
+                recordType: "cloudkit.share",
+                parent: nil,
+                share: nil
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                recordType: "remindersLists",
+                parent: nil,
+                share: CKReference(recordID: CKRecord.ID(Share-1:remindersLists/external.zone/external.owner)),
+                id: 1,
+                title: "Personal"
               )
-            )
+            ]
+          )
+        )
+        """
+      }
+    }
 
-            _ = try syncEngine.modifyRecords(scope: .private, saving: [share, remindersListRecord])
 
-            let newShare = try syncEngine.private.database.record(for: share.recordID)
-            let newRemindersListRecord = try syncEngine.private.database.record(for: remindersListRecord.recordID)
-            try await syncEngine.modifyRecords(scope: .private, saving: [newShare]).notify()
-            try await syncEngine.modifyRecords(scope: .private, saving: [newRemindersListRecord]).notify()
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func acceptShareCreateReminder() async throws {
+      let externalZone = CKRecordZone(
+        zoneID: CKRecordZone.ID(
+          zoneName: "external.zone",
+          ownerName: "external.owner"
+        )
+      )
+      try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
 
-            assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
-              """
-              MockCloudContainer(
-                privateCloudDatabase: MockCloudDatabase(
-                  databaseScope: .private,
-                  storage: [
-                    [0]: CKRecord(
-                      recordID: CKRecord.ID(Share-1/external.zone/external.owner),
-                      recordType: "cloudkit.share",
-                      parent: nil,
-                      share: nil
-                    ),
-                    [1]: CKRecord(
-                      recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-                      recordType: "remindersLists",
-                      parent: nil,
-                      share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner)),
-                      id: 1,
-                      isCompleted: 0,
-                      title: "Personal"
-                    )
-                  ]
-                ),
-                sharedCloudDatabase: MockCloudDatabase(
-                  databaseScope: .shared,
-                  storage: []
-                )
+      let remindersListRecord = CKRecord(
+        recordType: RemindersList.tableName,
+        recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
+      )
+      remindersListRecord.setValue(1, forKey: "id", at: now)
+      remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+      try await syncEngine
+        .acceptShare(
+          metadata: ShareMetadata(
+            containerIdentifier: container.containerIdentifier!,
+            hierarchicalRootRecordID: remindersListRecord.recordID,
+            rootRecord: remindersListRecord
+          )
+        )
+
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          Reminder(id: 1, title: "Get milk", remindersListID: 1)
+        }
+      }
+
+      try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+
+      try await userDatabase.read { db in
+        let metadata = try #require(
+          try SyncMetadata
+          .where { $0.recordName.eq("1:reminders") }
+          .fetchOne(db)
+          )
+        #expect(metadata.parentRecordName == "1:remindersLists")
+      }
+
+      assertInlineSnapshot(of: container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(Share-1:remindersLists/external.zone/external.owner),
+                recordType: "cloudkit.share",
+                parent: nil,
+                share: nil
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                share: nil,
+                id: 1,
+                isCompleted: 0,
+                remindersListID: 1,
+                title: "Get milk"
+              ),
+              [2]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                recordType: "remindersLists",
+                parent: nil,
+                share: CKReference(recordID: CKRecord.ID(Share-1:remindersLists/external.zone/external.owner)),
+                id: 1,
+                title: "Personal"
               )
-              """
-            }
-
-            let metadata = try await userDatabase.read { db in
-              try SyncMetadata.order(by: \.recordName).fetchAll(db)
-            }
-            assertInlineSnapshot(of: metadata, as: .customDump) {
-              """
-              []
-              """
-            }
-       */
+            ]
+          )
+        )
+        """
+      }
     }
   }
 }

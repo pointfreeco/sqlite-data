@@ -87,8 +87,6 @@ package final class MockCloudDatabase: CloudDatabase {
       switch savePolicy {
       case .ifServerRecordUnchanged:
         for recordToSave in recordsToSave {
-          storage[recordToSave.recordID.zoneID] = storage[recordToSave.recordID.zoneID] ?? [:]
-
           if let share = recordToSave as? CKShare {
             let isSavingRootRecord = recordsToSave.contains(where: { $0.share?.recordID == share.recordID })
             let rootRecordWasPreviouslySaved = storage[share.recordID.zoneID]?.contains(where: {

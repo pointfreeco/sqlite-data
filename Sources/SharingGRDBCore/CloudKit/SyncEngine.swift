@@ -474,18 +474,13 @@
 
     // TODO: Possible to get test coverage on this?
     package func acceptShare(metadata: ShareMetadata) async throws {
-      guard let metadata = metadata.rawValue
-      else {
-        reportIssue("TODO")
-        return
-      }
       guard let rootRecordID = metadata.hierarchicalRootRecordID
       else {
-        reportIssue("TODO")
-        return
+        reportIssue("Attempting to share without root record information.")
+        throw CKError(.invalidArguments)
       }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
-      _ = try await container.accept(ShareMetadata(rawValue: metadata))
+      _ = try await container.accept(metadata)
       try await syncEngines.shared?.fetchChanges(
         CKSyncEngine.FetchChangesOptions(
           scope: .zoneIDs([rootRecordID.zoneID]),

@@ -33,7 +33,23 @@ package final class MockSyncEngine: SyncEngineProtocol {
   }
 
   package func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws {
-    // TODO: do something here
+    let records: [CKRecord]
+    switch options.scope {
+    case .all, .allExcluding:
+      fatalError()
+    case .zoneIDs(let zoneIDs):
+      records = zoneIDs.reduce(into: [CKRecord]()) { accum, zoneID in
+        accum += database.storage.withValue {
+          ($0[zoneID]?.values).map { Array($0) } ?? []
+        }
+      }
+    @unknown default:
+      fatalError()
+    }
+    await delegate.handleEvent(
+      .fetchedRecordZoneChanges(modifications: records, deletions: []),
+      syncEngine: self
+    )
   }
 
   package func recordZoneChangeBatch(
