@@ -758,5 +758,60 @@ extension BaseCloudKitTests {
           #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 3))
         }
     }
+
+    @Test func cascadingDeletes() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 1, title: "Get milk", remindersListID: 1)
+          RemindersList(id: 2, title: "Work")
+          Reminder(id: 2, title: "Call accountant", remindersListID: 2)
+          RemindersList(id: 3, title: "Secret")
+          Reminder(id: 3, title: "Schedule secret meeting", remindersListID: 3)
+        }
+      }
+
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+      try await userDatabase.userWrite { db in
+        try RemindersList.where { $0.id <= 2 }.delete().execute(db)
+      }
+
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(3:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(3:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: 3,
+                isCompleted: 0,
+                remindersListID: 3,
+                title: "Schedule secret meeting"
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(3:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 3,
+                title: "Secret"
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+    }
   }
 }

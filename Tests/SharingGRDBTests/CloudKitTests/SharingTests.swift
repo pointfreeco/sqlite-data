@@ -314,6 +314,7 @@ extension BaseCloudKitTests {
               parent: nil,
               share: nil
             ),
+            _isDeleted: false,
             isShared: true,
             userModificationDate: Date(1970-01-01T00:00:00.000Z)
           )

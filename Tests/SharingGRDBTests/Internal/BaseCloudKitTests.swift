@@ -25,8 +25,6 @@ class BaseCloudKitTests: @unchecked Sendable {
     _syncEngine as! SyncEngine
   }
 
-  typealias SendablePrimaryKeyedTable<T> = PrimaryKeyedTable<T> & Sendable
-
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   init(
     accountStatus: CKAccountStatus = _AccountStatusScope.accountStatus,
