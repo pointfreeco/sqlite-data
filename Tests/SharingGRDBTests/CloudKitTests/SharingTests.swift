@@ -430,8 +430,7 @@ extension BaseCloudKitTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test(.snapshots(record: .failed))
-    func share() async throws {
+    @Test func share() async throws {
       let remindersList = RemindersList(id: 1, title: "Personal")
       try await userDatabase.userWrite { db in
         try db.seed {
