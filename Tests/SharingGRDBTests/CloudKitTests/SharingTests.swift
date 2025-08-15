@@ -494,13 +494,21 @@ extension BaseCloudKitTests {
       )
       remindersListRecord.setValue(1, forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
+      let share = CKShare(
+        rootRecord: remindersListRecord,
+        shareID: CKRecord.ID(
+          recordName: "share-\(remindersListRecord.recordID.recordName)",
+          zoneID: remindersListRecord.recordID.zoneID
+        )
+      )
 
       try await syncEngine
         .acceptShare(
           metadata: ShareMetadata(
             containerIdentifier: container.containerIdentifier!,
             hierarchicalRootRecordID: remindersListRecord.recordID,
-            rootRecord: remindersListRecord
+            rootRecord: remindersListRecord,
+            share: share
           )
         )
 
@@ -513,7 +521,7 @@ extension BaseCloudKitTests {
           )
         #expect(remindersList.title == "Personal")
         #expect(
-          metadata.share?.recordID.recordName == "Share-\(remindersListRecord.recordID.recordName)"
+          metadata.share?.recordID.recordName == "share-\(remindersListRecord.recordID.recordName)"
         )
       }
 
@@ -528,7 +536,7 @@ extension BaseCloudKitTests {
             databaseScope: .shared,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(Share-1:remindersLists/external.zone/external.owner),
+                recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
                 recordType: "cloudkit.share",
                 parent: nil,
                 share: nil
@@ -537,7 +545,7 @@ extension BaseCloudKitTests {
                 recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                 recordType: "remindersLists",
                 parent: nil,
-                share: CKReference(recordID: CKRecord.ID(Share-1:remindersLists/external.zone/external.owner)),
+                share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
                 id: 1,
                 title: "Personal"
               )
@@ -565,13 +573,21 @@ extension BaseCloudKitTests {
       )
       remindersListRecord.setValue(1, forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
+      let share = CKShare(
+        rootRecord: remindersListRecord,
+        shareID: CKRecord.ID(
+          recordName: "share-\(remindersListRecord.recordID.recordName)",
+          zoneID: remindersListRecord.recordID.zoneID
+        )
+      )
 
       try await syncEngine
         .acceptShare(
           metadata: ShareMetadata(
             containerIdentifier: container.containerIdentifier!,
             hierarchicalRootRecordID: remindersListRecord.recordID,
-            rootRecord: remindersListRecord
+            rootRecord: remindersListRecord,
+            share: share
           )
         )
 
@@ -603,7 +619,7 @@ extension BaseCloudKitTests {
             databaseScope: .shared,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(Share-1:remindersLists/external.zone/external.owner),
+                recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
                 recordType: "cloudkit.share",
                 parent: nil,
                 share: nil
@@ -622,7 +638,7 @@ extension BaseCloudKitTests {
                 recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                 recordType: "remindersLists",
                 parent: nil,
-                share: CKReference(recordID: CKRecord.ID(Share-1:remindersLists/external.zone/external.owner)),
+                share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
                 id: 1,
                 title: "Personal"
               )

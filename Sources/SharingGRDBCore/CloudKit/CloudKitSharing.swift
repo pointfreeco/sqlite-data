@@ -7,7 +7,7 @@ import SwiftUI
   import UIKit
 #endif
 
-@available(macOS 12, *)
+@available(iOS 15, macOS 12, *)
 public struct SharedRecord: Hashable, Identifiable, Sendable {
   let container: any CloudContainer
   public let share: CKShare

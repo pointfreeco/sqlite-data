@@ -52,30 +52,25 @@ package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
       }
     }
 
-    return ShareMetadata.init(
+    return ShareMetadata(
       containerIdentifier: containerIdentifier!,
       hierarchicalRootRecordID: rootRecord?.recordID,
-      rootRecord: rootRecord
+      rootRecord: shouldFetchRootRecord ? rootRecord : nil,
+      share: share
     )
   }
 
   package func accept(_ metadata: ShareMetadata) async throws -> CKShare {
     guard let rootRecord = metadata.rootRecord
     else {
-      struct SomeError: Error { let file = #fileID, line = #line }
-      throw SomeError()
+      fatalError("Must provide root record in mock shares during tests.")
     }
 
-    let share = CKShare.init(
-      rootRecord: rootRecord,
-      shareID: CKRecord.ID.init(
-        recordName: "Share-\(rootRecord.recordID.recordName)",
-        zoneID: rootRecord.recordID.zoneID
-      )
+    let (saveResults, _) = try sharedCloudDatabase.modifyRecords(
+      saving: [metadata.share, rootRecord]
     )
-    let (saveResults, _) = try sharedCloudDatabase.modifyRecords(saving: [share, rootRecord])
     try saveResults.values.forEach { _ = try $0.get() }
-    return share
+    return metadata.share
   }
 
   package static func createContainer(identifier containerIdentifier: String) -> MockCloudContainer {

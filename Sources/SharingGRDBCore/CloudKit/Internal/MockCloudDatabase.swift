@@ -87,6 +87,7 @@ package final class MockCloudDatabase: CloudDatabase {
       switch savePolicy {
       case .ifServerRecordUnchanged:
         for recordToSave in recordsToSave {
+          // TODO: allow saving share alone if it has been previously saved
           if let share = recordToSave as? CKShare {
             let isSavingRootRecord = recordsToSave.contains(where: { $0.share?.recordID == share.recordID })
             let rootRecordWasPreviouslySaved = storage[share.recordID.zoneID]?.contains(where: {
@@ -138,6 +139,7 @@ package final class MockCloudDatabase: CloudDatabase {
                   .load(assetURL)
               }
             }
+            // TODO: this should merge copy's values into storage
             storage[recordToSave.recordID.zoneID]?[recordToSave.recordID] = copy
             saveResults[recordToSave.recordID] = .success(copy)
           }

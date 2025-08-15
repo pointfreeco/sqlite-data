@@ -243,7 +243,7 @@ extension CKRecord {
         let column = column as! any WritableTableColumnExpression<T, Value>
         let didSet: Bool
         if let value = other[key] as? CKAsset {
-          didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
+          didSet = setValue(value, forKey: key, at: other[at: key])
         } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
           didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
         } else if other.encryptedValues[key] == nil {

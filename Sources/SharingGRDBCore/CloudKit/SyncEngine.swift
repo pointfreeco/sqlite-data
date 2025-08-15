@@ -472,12 +472,11 @@
       )
     }
 
-    // TODO: Possible to get test coverage on this?
     package func acceptShare(metadata: ShareMetadata) async throws {
       guard let rootRecordID = metadata.hierarchicalRootRecordID
       else {
         reportIssue("Attempting to share without root record information.")
-        throw CKError(.invalidArguments)
+        return
       }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
       _ = try await container.accept(metadata)
@@ -1148,20 +1147,17 @@
 
     private func cacheShare(_ share: CKShare) async throws {
       guard
-        let metadata = try? await container.shareMetadata(
-          for: share,
-          shouldFetchRootRecord: true
-        )
+        let metadata = try? await container.shareMetadata(for: share, shouldFetchRootRecord: false)
       else {
         // TODO: should we delete this record if it doesn't exist in the container?
         return
       }
 
-      guard let rootRecord = metadata.rootRecord
+      guard let rootRecordID = metadata.hierarchicalRootRecordID
       else { return }
       try await userDatabase.write { db in
         try SyncMetadata
-          .where { $0.recordName.eq(rootRecord.recordID.recordName) }
+          .where { $0.recordName.eq(rootRecordID.recordName) }
           .update { $0.share = share }
           .execute(db)
       }
