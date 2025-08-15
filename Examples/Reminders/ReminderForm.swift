@@ -184,8 +184,8 @@ struct ReminderFormView: View {
         }
         .execute(db)
       }
+      dismiss()
     }
-    dismiss()
   }
 }
 

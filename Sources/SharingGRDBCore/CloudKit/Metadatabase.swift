@@ -63,6 +63,7 @@ func defaultMetadatabase(
         "share" BLOB,
         "isShared" INTEGER NOT NULL AS ("share" IS NOT NULL),
         "userModificationDate" TEXT NOT NULL DEFAULT (\(.datetime())),
+        "_isDeleted" INTEGER NOT NULL DEFAULT 0,
 
         PRIMARY KEY ("recordPrimaryKey", "recordType"),
         UNIQUE ("recordName")
