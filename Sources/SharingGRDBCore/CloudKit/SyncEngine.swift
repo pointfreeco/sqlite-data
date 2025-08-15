@@ -485,9 +485,9 @@
         return
       }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
-      _ = try await container.accept(metadata)
+      _ = try await container.accept(ShareMetadata(rawValue: metadata))
       try await syncEngines.shared?.fetchChanges(
-        .init(
+        CKSyncEngine.FetchChangesOptions(
           scope: .zoneIDs([rootRecordID.zoneID]),
           operationGroup: nil
         )
@@ -1152,12 +1152,9 @@
     }
 
     private func cacheShare(_ share: CKShare) async throws {
-      guard let url = share.url
-      else { return }
-
       guard
         let metadata = try? await container.shareMetadata(
-          for: url,
+          for: share,
           shouldFetchRootRecord: true
         )
       else {

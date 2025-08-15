@@ -28,23 +28,6 @@ package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-package struct ShareMetadata: Hashable {
-  package var containerIdentifier: String
-  package var hierarchicalRootRecordID: CKRecord.ID?
-  package var rawValue: CKShare.Metadata?
-  package init(rawValue: CKShare.Metadata) {
-    self.containerIdentifier = rawValue.containerIdentifier
-    self.hierarchicalRootRecordID = rawValue.hierarchicalRootRecordID
-    self.rawValue = rawValue
-  }
-  package init(containerIdentifier: String, hierarchicalRootRecordID: CKRecord.ID?) {
-    self.containerIdentifier = containerIdentifier
-    self.hierarchicalRootRecordID = hierarchicalRootRecordID
-    self.rawValue = nil
-  }
-}
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 package protocol CKSyncEngineStateProtocol: Sendable {
   var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] { get }
   var pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] { get }

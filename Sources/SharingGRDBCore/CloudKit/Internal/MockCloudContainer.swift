@@ -32,11 +32,14 @@ package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
     _accountStatus.withValue { $0 }
   }
 
-  package func shareMetadata(for url: URL, shouldFetchRootRecord: Bool) async throws -> CKShare.Metadata {
+  package func shareMetadata(
+    for share: CKShare,
+    shouldFetchRootRecord: Bool
+  ) async throws -> ShareMetadata {
     fatalError()
   }
 
-  package func accept(_ metadata: CKShare.Metadata) async throws -> CKShare {
+  package func accept(_ metadata: ShareMetadata) async throws -> CKShare {
     fatalError()
   }
 

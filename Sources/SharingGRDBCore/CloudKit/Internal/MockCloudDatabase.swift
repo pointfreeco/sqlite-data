@@ -87,6 +87,27 @@ package final class MockCloudDatabase: CloudDatabase {
       switch savePolicy {
       case .ifServerRecordUnchanged:
         for recordToSave in recordsToSave {
+          storage[recordToSave.recordID.zoneID] = storage[recordToSave.recordID.zoneID] ?? [:]
+
+          if let share = recordToSave as? CKShare {
+            let isSavingRootRecord = recordsToSave.contains(where: { $0.share?.recordID == share.recordID })
+            let rootRecordWasPreviouslySaved = storage[share.recordID.zoneID]?.contains(where: {
+              _, record in record.share?.recordID == share.recordID
+            })
+            ?? false
+            guard isSavingRootRecord || rootRecordWasPreviouslySaved
+            else {
+              reportIssue(
+                """
+                An added share is being saved without its rootRecord being saved in the same \
+                operation.
+                """
+              )
+              saveResults[recordToSave.recordID] = .failure(CKError(.invalidArguments))
+              continue
+            }
+          }
+          
           guard storage[recordToSave.recordID.zoneID] != nil
           else {
             saveResults[recordToSave.recordID] = .failure(CKError(.zoneNotFound))
@@ -268,7 +289,7 @@ extension MockCloudDatabase: CustomDumpReflectable {
   }
 }
 
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 private func ckError(forAccountStatus accountStatus: CKAccountStatus) -> CKError {
   switch accountStatus {
   case .couldNotDetermine, .restricted, .noAccount:

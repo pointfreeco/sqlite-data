@@ -61,7 +61,10 @@ extension BaseCloudKitTests {
           configure: { _ in }
         )
       }
-      assertInlineSnapshot(of: (error as? any LocalizedError)?.localizedDescription, as: .customDump) {
+      assertInlineSnapshot(
+        of: (error as? any LocalizedError)?.localizedDescription,
+        as: .customDump
+      ) {
         """
         "The record could not be shared."
         """
@@ -86,7 +89,10 @@ extension BaseCloudKitTests {
           configure: { _ in }
         )
       }
-      assertInlineSnapshot(of: (error as? any LocalizedError)?.localizedDescription, as: .customDump) {
+      assertInlineSnapshot(
+        of: (error as? any LocalizedError)?.localizedDescription,
+        as: .customDump
+      ) {
         """
         "The record could not be shared."
         """
@@ -122,7 +128,10 @@ extension BaseCloudKitTests {
           configure: { _ in }
         )
       }
-      assertInlineSnapshot(of: (error as? any LocalizedError)?.localizedDescription, as: .customDump) {
+      assertInlineSnapshot(
+        of: (error as? any LocalizedError)?.localizedDescription,
+        as: .customDump
+      ) {
         """
         "The record could not be shared."
         """
@@ -206,7 +215,8 @@ extension BaseCloudKitTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func shareDelieveredBeforeRecord() async throws {
+    @Test(.snapshots(record: .failed))
+    func shareDelieveredBeforeRecord() async throws {
       let externalZone = CKRecordZone(
         zoneID: CKRecordZone.ID(
           zoneName: "external.zone",
@@ -226,23 +236,25 @@ extension BaseCloudKitTests {
       let share = CKShare(
         rootRecord: remindersListRecord,
         shareID: CKRecord.ID(
-          recordName: "Share-\(1)",
+          recordName: "Share-1",
           zoneID: externalZone.zoneID
         )
       )
 
-      try await syncEngine.modifyRecords(scope: .shared, saving: [share]).notify()
-      try await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord]).notify()
+      _ = try syncEngine.modifyRecords(scope: .private, saving: [share, remindersListRecord])
+
+      let newShare = try syncEngine.private.database.record(for: share.recordID)
+      let newRemindersListRecord = try syncEngine.private.database.record(
+        for: remindersListRecord.recordID
+      )
+      try await syncEngine.modifyRecords(scope: .private, saving: [newShare]).notify()
+      try await syncEngine.modifyRecords(scope: .private, saving: [newRemindersListRecord]).notify()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
-            storage: []
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
             storage: [
               [0]: CKRecord(
                 recordID: CKRecord.ID(Share-1/external.zone/external.owner),
@@ -260,6 +272,10 @@ extension BaseCloudKitTests {
                 title: "Personal"
               )
             ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
           )
         )
         """
@@ -270,34 +286,7 @@ extension BaseCloudKitTests {
       }
       assertInlineSnapshot(of: metadata, as: .customDump) {
         """
-        [
-          [0]: SyncMetadata(
-            recordPrimaryKey: "1",
-            recordType: "remindersLists",
-            recordName: "1:remindersLists",
-            parentRecordPrimaryKey: nil,
-            parentRecordType: nil,
-            parentRecordName: nil,
-            lastKnownServerRecord: CKRecord(
-              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-              recordType: "remindersLists",
-              parent: nil,
-              share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner))
-            ),
-            _lastKnownServerRecordAllFields: CKRecord(
-              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-              recordType: "remindersLists",
-              parent: nil,
-              share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner)),
-              id: 1,
-              isCompleted: 0,
-              title: "Personal"
-            ),
-            share: nil,
-            isShared: false,
-            userModificationDate: Date(1970-01-01T00:00:00.000Z)
-          )
-        ]
+        []
         """
       }
     }
@@ -401,7 +390,10 @@ extension BaseCloudKitTests {
       reminderRecord.setValue(1, forKey: "remindersListID", at: now)
       reminderRecord.parent = CKRecord.Reference(record: remindersListRecord, action: .none)
 
-      try await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord, reminderRecord]).notify()
+      try await syncEngine.modifyRecords(
+        scope: .shared,
+        saving: [remindersListRecord, reminderRecord]
+      ).notify()
 
       try await withDependencies {
         $0.datetime.now.addTimeInterval(60)
@@ -435,6 +427,123 @@ extension BaseCloudKitTests {
         )
         """
       }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test(.snapshots(record: .failed))
+    func share() async throws {
+      let remindersList = RemindersList(id: 1, title: "Personal")
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          remindersList
+        }
+      }
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+      let sharedRecord = try await syncEngine.share(record: remindersList, configure: { _ in })
+
+      try await userDatabase.read { db in
+        let metadata = try #require(
+          try SyncMetadata
+            .where { $0.recordPrimaryKey.eq("1") }
+            .fetchOne(db)
+        )
+        #expect(metadata.share?.recordID == sharedRecord.share.recordID)
+      }
+
+      assertInlineSnapshot(of: container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(share-1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "cloudkit.share",
+                parent: nil,
+                share: nil
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__))
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+
+      return
+      /*
+            let remindersListRecord = CKRecord(
+              recordType: RemindersList.tableName,
+              recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
+            )
+            remindersListRecord.setValue(1, forKey: "id", at: now)
+            remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
+            remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+            let share = CKShare(
+              rootRecord: remindersListRecord,
+              shareID: CKRecord.ID(
+                recordName: "Share-1",
+                zoneID: externalZone.zoneID
+              )
+            )
+
+            _ = try syncEngine.modifyRecords(scope: .private, saving: [share, remindersListRecord])
+
+            let newShare = try syncEngine.private.database.record(for: share.recordID)
+            let newRemindersListRecord = try syncEngine.private.database.record(for: remindersListRecord.recordID)
+            try await syncEngine.modifyRecords(scope: .private, saving: [newShare]).notify()
+            try await syncEngine.modifyRecords(scope: .private, saving: [newRemindersListRecord]).notify()
+
+            assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+              """
+              MockCloudContainer(
+                privateCloudDatabase: MockCloudDatabase(
+                  databaseScope: .private,
+                  storage: [
+                    [0]: CKRecord(
+                      recordID: CKRecord.ID(Share-1/external.zone/external.owner),
+                      recordType: "cloudkit.share",
+                      parent: nil,
+                      share: nil
+                    ),
+                    [1]: CKRecord(
+                      recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                      recordType: "remindersLists",
+                      parent: nil,
+                      share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner)),
+                      id: 1,
+                      isCompleted: 0,
+                      title: "Personal"
+                    )
+                  ]
+                ),
+                sharedCloudDatabase: MockCloudDatabase(
+                  databaseScope: .shared,
+                  storage: []
+                )
+              )
+              """
+            }
+
+            let metadata = try await userDatabase.read { db in
+              try SyncMetadata.order(by: \.recordName).fetchAll(db)
+            }
+            assertInlineSnapshot(of: metadata, as: .customDump) {
+              """
+              []
+              """
+            }
+       */
     }
   }
 }
