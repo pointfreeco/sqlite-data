@@ -215,7 +215,7 @@ extension BaseCloudKitTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    func shareDelieveredBeforeRecord() async throws {
+    @Test func shareDelieveredBeforeRecord() async throws {
       let externalZone = CKRecordZone(
         zoneID: CKRecordZone.ID(
           zoneName: "external.zone",
@@ -235,28 +235,32 @@ extension BaseCloudKitTests {
       let share = CKShare(
         rootRecord: remindersListRecord,
         shareID: CKRecord.ID(
-          recordName: "Share-1",
+          recordName: "share-\(remindersListRecord.recordID.recordName)",
           zoneID: externalZone.zoneID
         )
       )
 
-      _ = try syncEngine.modifyRecords(scope: .private, saving: [share, remindersListRecord])
+      _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, remindersListRecord])
 
-      let newShare = try syncEngine.private.database.record(for: share.recordID)
-      let newRemindersListRecord = try syncEngine.private.database.record(
+      let newShare = try syncEngine.shared.database.record(for: share.recordID)
+      let newRemindersListRecord = try syncEngine.shared.database.record(
         for: remindersListRecord.recordID
       )
-      try await syncEngine.modifyRecords(scope: .private, saving: [newShare]).notify()
-      try await syncEngine.modifyRecords(scope: .private, saving: [newRemindersListRecord]).notify()
+      try await syncEngine.modifyRecords(scope: .shared, saving: [newShare]).notify()
+      try await syncEngine.modifyRecords(scope: .shared, saving: [newRemindersListRecord]).notify()
 
       assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(Share-1/external.zone/external.owner),
+                recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
                 recordType: "cloudkit.share",
                 parent: nil,
                 share: nil
@@ -265,16 +269,12 @@ extension BaseCloudKitTests {
                 recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                 recordType: "remindersLists",
                 parent: nil,
-                share: CKReference(recordID: CKRecord.ID(Share-1/external.zone/external.owner)),
+                share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
                 id: 1,
                 isCompleted: 0,
                 title: "Personal"
               )
             ]
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
           )
         )
         """
@@ -285,7 +285,39 @@ extension BaseCloudKitTests {
       }
       assertInlineSnapshot(of: metadata, as: .customDump) {
         """
-        []
+        [
+          [0]: SyncMetadata(
+            recordPrimaryKey: "1",
+            recordType: "remindersLists",
+            recordName: "1:remindersLists",
+            parentRecordPrimaryKey: nil,
+            parentRecordType: nil,
+            parentRecordName: nil,
+            lastKnownServerRecord: CKRecord(
+              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+              recordType: "remindersLists",
+              parent: nil,
+              share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner))
+            ),
+            _lastKnownServerRecordAllFields: CKRecord(
+              recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+              recordType: "remindersLists",
+              parent: nil,
+              share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+              id: 1,
+              isCompleted: 0,
+              title: "Personal"
+            ),
+            share: CKRecord(
+              recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
+              recordType: "cloudkit.share",
+              parent: nil,
+              share: nil
+            ),
+            isShared: true,
+            userModificationDate: Date(1970-01-01T00:00:00.000Z)
+          )
+        ]
         """
       }
     }
