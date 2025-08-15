@@ -18,7 +18,7 @@
         "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_\(tableName)",
         ifNotExists: true,
         after: .insert { new in
-          checkWritePermissions(alias: "new", parentForeignKey: parentForeignKey)
+          checkWritePermissions(alias: new, parentForeignKey: parentForeignKey)
           SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey)
         }
       )
@@ -29,18 +29,20 @@
         "\(String.sqliteDataCloudKitSchemaName)_after_update_on_\(tableName)",
         ifNotExists: true,
         after: .update { _, new in
-          checkWritePermissions(alias: "new", parentForeignKey: parentForeignKey)
+          checkWritePermissions(alias: new, parentForeignKey: parentForeignKey)
           SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey)
         }
       )
     }
 
-    fileprivate static func afterDeleteFromUser(parentForeignKey: ForeignKey?) -> TemporaryTrigger<Self> {
+    fileprivate static func afterDeleteFromUser(parentForeignKey: ForeignKey?) -> TemporaryTrigger<
+      Self
+    > {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_\(tableName)_from_user",
         ifNotExists: true,
         after: .delete { old in
-          checkWritePermissions(alias: "old", parentForeignKey: parentForeignKey)
+          checkWritePermissions(alias: old, parentForeignKey: parentForeignKey)
           SyncMetadata
             .where {
               $0.recordPrimaryKey.eq(SQLQueryExpression("\(old.primaryKey)"))
@@ -73,14 +75,14 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
-    fileprivate static func upsert<T: PrimaryKeyedTable>(
-      new: TemporaryTrigger<T>.Operation.New,
+    fileprivate static func upsert<T: PrimaryKeyedTable, Name>(
+      new: StructuredQueriesCore.TableAlias<T, Name>.TableColumns,
       parentForeignKey: ForeignKey?,
     ) -> some StructuredQueriesCore.Statement {
-      let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
-        parentForeignKey
-        .map { (#""new".\#(quote: $0.from)"#, "\(bind: $0.table)") }
-        ?? ("NULL", "NULL")
+      let (parentRecordPrimaryKey, parentRecordType) = parentFields(
+        alias: new,
+        parentForeignKey: parentForeignKey
+      )
       return insert {
         ($0.recordPrimaryKey, $0.recordType, $0.parentRecordPrimaryKey, $0.parentRecordType)
       } select: {
@@ -106,7 +108,7 @@
       [
         afterInsertTrigger,
         afterUpdateTrigger,
-        afterDeleteTrigger,
+        afterSoftDeleteTrigger,
       ]
     }
 
@@ -132,7 +134,7 @@
       }
     )
 
-    fileprivate static let afterDeleteTrigger = createTemporaryTrigger(
+    fileprivate static let afterSoftDeleteTrigger = createTemporaryTrigger(
       "after_delete_on_sqlitedata_icloud_metadata",
       ifNotExists: true,
       after: .update(of: \._isDeleted) { _, new in
@@ -193,15 +195,24 @@
     SQLQueryExpression("\(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
   }
 
+  private func parentFields<Base, Name>(
+    alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
+    parentForeignKey: ForeignKey?
+  ) -> (parentRecordPrimaryKey: QueryFragment, parentRecordType: QueryFragment) {
+    parentForeignKey
+      .map { (#"\#(type(of: alias).QueryValue.self).\#(quote: $0.from)"#, "\(bind: $0.table)") }
+      ?? ("NULL", "NULL")
+  }
+
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func checkWritePermissions(
-    alias: String,
+  private func checkWritePermissions<Base, Name>(
+    alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?
   ) -> some StructuredQueriesCore.Statement<Never> {
-    let (parentRecordPrimaryKey, parentRecordType): (QueryFragment, QueryFragment) =
-      parentForeignKey
-      .map { (#"\#(quote: alias).\#(quote: $0.from)"#, "\(bind: $0.table)") }
-      ?? ("NULL", "NULL")
+    let (parentRecordPrimaryKey, parentRecordType) = parentFields(
+      alias: alias,
+      parentForeignKey: parentForeignKey
+    )
 
     return With {
       SyncMetadata
