@@ -1,7 +1,7 @@
 #if canImport(CloudKit)
 import CloudKit
 
-@available(iOS 15, macOS 12, *)
+@available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
 package protocol CloudContainer<Database>: AnyObject, Equatable, Hashable, Sendable {
   associatedtype Database: CloudDatabase
 
@@ -16,7 +16,7 @@ package protocol CloudContainer<Database>: AnyObject, Equatable, Hashable, Senda
   func shareMetadata(for share: CKShare, shouldFetchRootRecord: Bool) async throws -> ShareMetadata
 }
 
-@available(iOS 15, macOS 12, *)
+@available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
 package struct ShareMetadata: Hashable {
   package var containerIdentifier: String
   package var hierarchicalRootRecordID: CKRecord.ID?
@@ -44,7 +44,7 @@ package struct ShareMetadata: Hashable {
   }
 }
 
-@available(iOS 15, macOS 12, *)
+@available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
 extension CloudContainer {
   package func database(for recordID: CKRecord.ID) -> any CloudDatabase {
     recordID.zoneID.ownerName == CKCurrentUserDefaultName
@@ -53,7 +53,7 @@ extension CloudContainer {
   }
 }
 
-@available(iOS 15, macOS 12, *)
+@available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
 extension CKContainer: CloudContainer {
   package func accept(_ metadata: ShareMetadata) async throws -> CKShare {
     guard let metadata = metadata.rawValue

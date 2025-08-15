@@ -90,11 +90,8 @@ package final class MockCloudDatabase: CloudDatabase {
           // TODO: allow saving share alone if it has been previously saved
           if let share = recordToSave as? CKShare {
             let isSavingRootRecord = recordsToSave.contains(where: { $0.share?.recordID == share.recordID })
-            let rootRecordWasPreviouslySaved = storage[share.recordID.zoneID]?.contains(where: {
-              _, record in record.share?.recordID == share.recordID
-            })
-            ?? false
-            guard isSavingRootRecord || rootRecordWasPreviouslySaved
+            let shareWasPreviouslySaved = storage[share.recordID.zoneID]?[share.recordID] != nil
+            guard shareWasPreviouslySaved || isSavingRootRecord
             else {
               reportIssue(
                 """
@@ -131,6 +128,7 @@ package final class MockCloudDatabase: CloudDatabase {
             guard let copy = recordToSave.copy() as? CKRecord
             else { fatalError("Could not copy CKRecord.") }
             copy._recordChangeTag = UUID().uuidString
+
             assets.withValue { assets in
               for key in copy.allKeys() {
                 guard let assetURL = (copy[key] as? CKAsset)?.fileURL
@@ -139,7 +137,8 @@ package final class MockCloudDatabase: CloudDatabase {
                   .load(assetURL)
               }
             }
-            // TODO: this should merge copy's values into storage
+
+            // TODO: this should merge copy's values into storage but not sure how right now. 
             storage[recordToSave.recordID.zoneID]?[recordToSave.recordID] = copy
             saveResults[recordToSave.recordID] = .success(copy)
           }

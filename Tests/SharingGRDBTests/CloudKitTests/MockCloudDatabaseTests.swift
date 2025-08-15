@@ -388,5 +388,27 @@ extension BaseCloudKitTests {
           """
       }
     }
+
+    @Test func saveShareWithoutRootRecord() async throws {
+      let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
+      let share = CKShare(rootRecord: record, shareID: CKRecord.ID(recordName: "share"))
+      try withKnownIssue {
+        _ = try syncEngine.modifyRecords(scope: .private, saving: [share])
+      } matching: { issue in
+        issue.description == """
+          Issue recorded: An added share is being saved without its rootRecord being saved in the \
+          same operation.
+          """
+      }
+    }
+
+    @Test func saveShareAndRootThenSaveShareAlone() async throws {
+      let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
+      let share = CKShare(rootRecord: record, shareID: CKRecord.ID(recordName: "share"))
+      _ = try syncEngine.modifyRecords(scope: .private, saving: [share, record])
+
+      let newShare = try syncEngine.private.database.record(for: CKRecord.ID(recordName: "share"))
+      _ = try syncEngine.modifyRecords(scope: .private, saving: [newShare])
+    }
   }
 }
