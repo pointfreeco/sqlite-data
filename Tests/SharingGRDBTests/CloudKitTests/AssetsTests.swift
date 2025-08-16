@@ -26,7 +26,7 @@ extension BaseCloudKitTests {
 
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -82,7 +82,7 @@ extension BaseCloudKitTests {
 
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(

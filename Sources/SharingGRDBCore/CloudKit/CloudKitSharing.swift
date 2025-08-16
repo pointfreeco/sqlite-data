@@ -32,6 +32,7 @@ extension SyncEngine {
       case recordNotRoot([ForeignKey])
       case recordTableNotSynchronized
       case recordTablePrivate
+      case shareNotFound
     }
 
     let recordTableName: String
@@ -40,7 +41,7 @@ extension SyncEngine {
     let debugDescription: String
 
     var errorDescription: String? {
-      "The record could not be shared."
+      "An error occured when editing sharing."
     }
   }
 
@@ -145,6 +146,31 @@ extension SyncEngine {
     }
 
     return SharedRecord(container: container, share: sharedRecord)
+  }
+
+  public func unshare<T: PrimaryKeyedTable>(record: T) async throws
+  where T.TableColumns.PrimaryKey.QueryOutput: IdentifierStringConvertible
+  {
+    let metadata = try await userDatabase.read { [recordName = record.recordName] db in
+      try SyncMetadata
+        .where { $0.recordName.eq(recordName) }
+        .fetchOne(db)
+    }
+    guard let share = metadata?.share
+    else {
+      throw SharingError(
+        recordTableName: T.tableName,
+        recordPrimaryKey: record.primaryKey.rawIdentifier,
+        reason: .shareNotFound,
+        debugDescription: "No share found associated with record."
+      )
+    }
+
+    let result = try await syncEngines.private?.database.modifyRecords(
+      saving: [],
+      deleting: [share.recordID]
+    )
+    try result?.deleteResults.values.forEach { _ = try $0.get() }
   }
 
   public func acceptShare(metadata: CKShare.Metadata) async throws {

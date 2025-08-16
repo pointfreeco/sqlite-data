@@ -35,7 +35,7 @@ extension BaseCloudKitTests {
       )
       try await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord]).notify()
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -107,7 +107,7 @@ extension BaseCloudKitTests {
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
       }
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -184,7 +184,7 @@ extension BaseCloudKitTests {
         )
       }
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -246,7 +246,7 @@ extension BaseCloudKitTests {
       )
       .notify()
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -316,7 +316,7 @@ extension BaseCloudKitTests {
       _ = try { try syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]) }()
       try await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord]).notify()
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -397,7 +397,7 @@ extension BaseCloudKitTests {
         try await relaunchedSyncEngine.processPendingRecordZoneChanges(scope: .private)
       }
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -474,7 +474,7 @@ extension BaseCloudKitTests {
         saving: [reminderRecord, personalListRecord]
       ).notify()
       
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -526,7 +526,7 @@ extension BaseCloudKitTests {
       
       await modifications.notify()
       
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -779,7 +779,7 @@ extension BaseCloudKitTests {
 
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
