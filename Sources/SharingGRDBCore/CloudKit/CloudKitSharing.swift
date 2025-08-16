@@ -7,6 +7,7 @@ import SwiftUI
   import UIKit
 #endif
 
+@available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
 public struct SharedRecord: Hashable, Identifiable, Sendable {
   let container: any CloudContainer
   public let share: CKShare
@@ -124,7 +125,7 @@ extension SyncEngine {
     let sharedRecord = try await existingShare ?? CKShare(
       rootRecord: rootRecord,
       shareID: CKRecord.ID(
-        recordName: UUID().uuidString,
+        recordName: "share-\(recordName)",
         zoneID: rootRecord.recordID.zoneID
       )
     )

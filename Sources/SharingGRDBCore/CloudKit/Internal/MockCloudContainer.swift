@@ -18,6 +18,12 @@ package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
     self.containerIdentifier = containerIdentifier
     self.privateCloudDatabase = privateCloudDatabase
     self.sharedCloudDatabase = sharedCloudDatabase
+
+    guard let containerIdentifier else { return }
+    @Dependency(\.mockCloudContainers) var mockCloudContainers
+    mockCloudContainers.withValue { storage in
+      storage[containerIdentifier] = self
+    }
   }
 
   package func accountStatus() -> CKAccountStatus {
@@ -32,12 +38,39 @@ package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
     _accountStatus.withValue { $0 }
   }
 
-  package func shareMetadata(for url: URL, shouldFetchRootRecord: Bool) async throws -> CKShare.Metadata {
-    fatalError()
+  package func shareMetadata(
+    for share: CKShare,
+    shouldFetchRootRecord: Bool
+  ) async throws -> ShareMetadata {
+    let database = share.recordID.zoneID.ownerName == CKCurrentUserDefaultName
+    ? privateCloudDatabase
+    : sharedCloudDatabase
+
+    let rootRecord: CKRecord? = database.storage.withValue {
+      $0[share.recordID.zoneID]?.values.first { record in
+        record.share?.recordID == share.recordID
+      }
+    }
+
+    return ShareMetadata(
+      containerIdentifier: containerIdentifier!,
+      hierarchicalRootRecordID: rootRecord?.recordID,
+      rootRecord: shouldFetchRootRecord ? rootRecord : nil,
+      share: share
+    )
   }
 
-  package func accept(_ metadata: CKShare.Metadata) async throws -> CKShare {
-    fatalError()
+  package func accept(_ metadata: ShareMetadata) async throws -> CKShare {
+    guard let rootRecord = metadata.rootRecord
+    else {
+      fatalError("Must provide root record in mock shares during tests.")
+    }
+
+    let (saveResults, _) = try sharedCloudDatabase.modifyRecords(
+      saving: [metadata.share, rootRecord]
+    )
+    try saveResults.values.forEach { _ = try $0.get() }
+    return metadata.share
   }
 
   package static func createContainer(identifier containerIdentifier: String) -> MockCloudContainer {
@@ -45,7 +78,7 @@ package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
     return mockCloudContainers.withValue { storage in
       let container: MockCloudContainer
       if let existingContainer = storage[containerIdentifier] {
-        container = existingContainer
+        return existingContainer
       } else {
         container = MockCloudContainer(
           accountStatus: .available,
@@ -82,7 +115,10 @@ package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private enum MockCloudContainersKey: TestDependencyKey {
+private enum MockCloudContainersKey: DependencyKey {
+  static var liveValue: LockIsolated<[String: MockCloudContainer]> {
+    LockIsolated<[String: MockCloudContainer]>([:])
+  }
   static var testValue: LockIsolated<[String: MockCloudContainer]> {
     LockIsolated<[String: MockCloudContainer]>([:])
   }

@@ -478,22 +478,16 @@
       syncEngine?.state.add(pendingRecordZoneChanges: changes)
     }
 
-    // TODO: Possible to get test coverage on this?
     package func acceptShare(metadata: ShareMetadata) async throws {
-      guard let metadata = metadata.rawValue
-      else {
-        reportIssue("TODO")
-        return
-      }
       guard let rootRecordID = metadata.hierarchicalRootRecordID
       else {
-        reportIssue("TODO")
+        reportIssue("Attempting to share without root record information.")
         return
       }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
       _ = try await container.accept(metadata)
       try await syncEngines.shared?.fetchChanges(
-        .init(
+        CKSyncEngine.FetchChangesOptions(
           scope: .zoneIDs([rootRecordID.zoneID]),
           operationGroup: nil
         )
@@ -1253,25 +1247,18 @@
     }
 
     private func cacheShare(_ share: CKShare) async throws {
-      // TODO: Instead of getting URL here we can make `shareMetadata(…)` take a share instead of a URL
-      guard let url = share.url
-      else { return }
-
       guard
-        let metadata = try? await container.shareMetadata(
-          for: url,
-          shouldFetchRootRecord: true
-        )
+        let metadata = try? await container.shareMetadata(for: share, shouldFetchRootRecord: false)
       else {
         // TODO: should we delete this record if it doesn't exist in the container?
         return
       }
 
-      guard let rootRecord = metadata.rootRecord
+      guard let rootRecordID = metadata.hierarchicalRootRecordID
       else { return }
       try await userDatabase.write { db in
         try SyncMetadata
-          .where { $0.recordName.eq(rootRecord.recordID.recordName) }
+          .where { $0.recordName.eq(rootRecordID.recordName) }
           .update { $0.share = share }
           .execute(db)
       }

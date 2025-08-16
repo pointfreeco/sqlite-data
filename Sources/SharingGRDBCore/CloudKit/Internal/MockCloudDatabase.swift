@@ -87,6 +87,22 @@ package final class MockCloudDatabase: CloudDatabase {
       switch savePolicy {
       case .ifServerRecordUnchanged:
         for recordToSave in recordsToSave {
+          if let share = recordToSave as? CKShare {
+            let isSavingRootRecord = recordsToSave.contains(where: { $0.share?.recordID == share.recordID })
+            let shareWasPreviouslySaved = storage[share.recordID.zoneID]?[share.recordID] != nil
+            guard shareWasPreviouslySaved || isSavingRootRecord
+            else {
+              reportIssue(
+                """
+                An added share is being saved without its rootRecord being saved in the same \
+                operation.
+                """
+              )
+              saveResults[recordToSave.recordID] = .failure(CKError(.invalidArguments))
+              continue
+            }
+          }
+          
           guard storage[recordToSave.recordID.zoneID] != nil
           else {
             saveResults[recordToSave.recordID] = .failure(CKError(.zoneNotFound))
@@ -111,6 +127,7 @@ package final class MockCloudDatabase: CloudDatabase {
             guard let copy = recordToSave.copy() as? CKRecord
             else { fatalError("Could not copy CKRecord.") }
             copy._recordChangeTag = UUID().uuidString
+
             assets.withValue { assets in
               for key in copy.allKeys() {
                 guard let assetURL = (copy[key] as? CKAsset)?.fileURL
@@ -119,6 +136,8 @@ package final class MockCloudDatabase: CloudDatabase {
                   .load(assetURL)
               }
             }
+
+            // TODO: this should merge copy's values into storage but not sure how right now. 
             storage[recordToSave.recordID.zoneID]?[recordToSave.recordID] = copy
             saveResults[recordToSave.recordID] = .success(copy)
           }
@@ -268,7 +287,7 @@ extension MockCloudDatabase: CustomDumpReflectable {
   }
 }
 
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
+@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
 private func ckError(forAccountStatus accountStatus: CKAccountStatus) -> CKError {
   switch accountStatus {
   case .couldNotDetermine, .restricted, .noAccount:
