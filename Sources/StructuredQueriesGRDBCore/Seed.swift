@@ -50,7 +50,7 @@ extension Database {
   ///
   /// - Parameter build: A result builder closure that inserts every built row.
   public func seed(
-    @InsertValuesBuilder<any StructuredQueriesCore.Table>
+    @SeedsBuilder
     _ build: () -> [any StructuredQueriesCore.Table]
   ) throws {
     for insert in Seeds(build) {
