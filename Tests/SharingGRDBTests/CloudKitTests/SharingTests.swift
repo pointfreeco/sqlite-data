@@ -1017,10 +1017,10 @@ extension BaseCloudKitTests {
 
       try await self.userDatabase.userWrite { db in
         let error = #expect(throws: DatabaseError.self) {
-          try Reminder.find(1).delete().execute(db)
+          try Reminder.update { $0.isCompleted = true }.execute(db)
         }
         #expect(error?.message == SyncEngine.writePermissionError)
-        try #expect(Reminder.count().fetchOne(db) == 1)
+        try #expect(Reminder.where(\.isCompleted).fetchCount(db) == 0)
       }
     }
   }
