@@ -100,7 +100,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'childWithOnDeleteSetDefaults'));
@@ -129,7 +129,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'childWithOnDeleteSetNulls'));
@@ -158,7 +158,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'));
@@ -187,7 +187,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'));
@@ -216,7 +216,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelCs'));
@@ -245,7 +245,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'));
@@ -274,7 +274,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'reminderTags'));
@@ -303,7 +303,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersListAssets'));
@@ -332,7 +332,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersListPrivates'));
@@ -361,7 +361,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'));
@@ -390,7 +390,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'reminders'));
@@ -419,7 +419,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               UPDATE "sqlitedata_icloud_metadata"
               SET "_isDeleted" = 1
               WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."title") AND ("sqlitedata_icloud_metadata"."recordType" = 'tags'));
@@ -440,7 +440,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'childWithOnDeleteSetDefaults', "new"."parentID", 'parents'
@@ -463,7 +463,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'childWithOnDeleteSetNulls', "new"."parentID", 'parents'
@@ -486,7 +486,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'modelAs', NULL, NULL
@@ -509,7 +509,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'modelBs', "new"."modelAID", 'modelAs'
@@ -532,7 +532,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'modelCs', "new"."modelBID", 'modelBs'
@@ -555,7 +555,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'parents', NULL, NULL
@@ -578,7 +578,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'reminderTags', NULL, NULL
@@ -601,7 +601,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'reminders', "new"."remindersListID", 'remindersLists'
@@ -624,7 +624,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'remindersListAssets', "new"."remindersListID", 'remindersLists'
@@ -647,7 +647,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'remindersListPrivates', "new"."remindersListID", 'remindersLists'
@@ -670,7 +670,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'remindersLists', NULL, NULL
@@ -693,7 +693,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."title", 'tags', NULL, NULL
@@ -716,7 +716,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'childWithOnDeleteSetDefaults', "new"."parentID", 'parents'
@@ -739,7 +739,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'childWithOnDeleteSetNulls', "new"."parentID", 'parents'
@@ -762,7 +762,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'modelAs', NULL, NULL
@@ -785,7 +785,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'modelBs', "new"."modelAID", 'modelAs'
@@ -808,7 +808,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'modelCs', "new"."modelBID", 'modelBs'
@@ -831,7 +831,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'parents', NULL, NULL
@@ -854,7 +854,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'reminderTags', NULL, NULL
@@ -877,7 +877,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'reminders', "new"."remindersListID", 'remindersLists'
@@ -900,7 +900,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'remindersListAssets', "new"."remindersListID", 'remindersLists'
@@ -923,7 +923,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'remindersListPrivates', "new"."remindersListID", 'remindersLists'
@@ -946,7 +946,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."id", 'remindersLists', NULL, NULL
@@ -969,7 +969,7 @@ extension BaseCloudKitTests {
               )
               SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
               FROM "rootShares"
-              WHERE (("rootShares"."parentRecordName" IS NULL) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
               INSERT INTO "sqlitedata_icloud_metadata"
               ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
               SELECT "new"."title", 'tags', NULL, NULL
