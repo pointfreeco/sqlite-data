@@ -75,9 +75,6 @@ func database(containerIdentifier: String) throws -> DatabasePool {
   var configuration = Configuration()
   configuration.prepareDatabase { db in
     try db.attachMetadatabase(containerIdentifier: containerIdentifier)
-    db.trace {
-      print($0.expandedDescription)
-    }
   }
   let url = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite")
   let database = try DatabasePool(path: url.path(), configuration: configuration)

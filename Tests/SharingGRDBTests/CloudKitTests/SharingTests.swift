@@ -766,6 +766,10 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
+      try await userDatabase.userWrite { db in
+        #expect(try RemindersList.all.fetchCount(db) == 0)
+      }
+
       assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
