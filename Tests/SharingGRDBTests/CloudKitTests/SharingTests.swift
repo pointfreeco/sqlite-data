@@ -27,7 +27,7 @@ extension BaseCloudKitTests {
       }
       assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
         """
-        "An error occured when editing sharing."
+        "The record could not be shared."
         """
       }
       assertInlineSnapshot(of: error, as: .customDump) {
@@ -66,7 +66,7 @@ extension BaseCloudKitTests {
         as: .customDump
       ) {
         """
-        "An error occured when editing sharing."
+        "The record could not be shared."
         """
       }
       assertInlineSnapshot(of: error, as: .customDump) {
@@ -94,7 +94,7 @@ extension BaseCloudKitTests {
         as: .customDump
       ) {
         """
-        "An error occured when editing sharing."
+        "The record could not be shared."
         """
       }
       assertInlineSnapshot(of: error, as: .customDump) {
@@ -133,7 +133,7 @@ extension BaseCloudKitTests {
         as: .customDump
       ) {
         """
-        "An error occured when editing sharing."
+        "The record could not be shared."
         """
       }
       assertInlineSnapshot(of: error, as: .customDump) {
