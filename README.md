@@ -1,8 +1,13 @@
+> [!IMPORTANT]
+> We are currently running a [public beta] to preview our upcoming CloudKit synchronization tools. Get all the details [here](https://www.pointfree.co/blog/posts/181-a-swiftdata-alternative-with-sqlite-cloudkit-public-beta) and let us know if you have any feedback!
+
+[public beta]: https://github.com/pointfreeco/sharing-grdb/pull/112
+
 # SharingGRDB
 
 A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL.
 
-[![CI](https://github.com/pointfreeco/sharing-grdb/workflows/CI/badge.svg)](https://github.com/pointfreeco/sharing-grdb/actions?query=workflow%3ACI)
+[![CI](https://github.com/pointfreeco/sharing-grdb/actions/workflows/ci.yml/badge.svg)](https://github.com/pointfreeco/sharing-grdb/actions/workflows/ci.yml)
 [![Slack](https://img.shields.io/badge/slack-chat-informational.svg?label=Slack&logo=slack)](https://www.pointfree.co/slack-invite)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)

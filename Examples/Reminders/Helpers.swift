@@ -5,16 +5,11 @@ extension Color {
   public struct HexRepresentation: QueryBindable, QueryRepresentable {
     public var queryOutput: Color
     public var queryBinding: QueryBinding {
-      guard let components = UIColor(queryOutput).cgColor.components
-      else {
+      guard let hexValue else {
         struct InvalidColor: Error {}
         return .invalid(InvalidColor())
       }
-      let r = Int64(components[0] * 0xFF) << 24
-      let g = Int64(components[1] * 0xFF) << 16
-      let b = Int64(components[2] * 0xFF) << 8
-      let a = Int64((components.indices.contains(3) ? components[3] : 1) * 0xFF)
-      return .int(r | g | b | a)
+      return .int(hexValue)
     }
     public init(queryOutput: Color) {
       self.queryOutput = queryOutput
@@ -29,6 +24,15 @@ extension Color {
           opacity: Double(hex & 0xFF) / 0xFF
         )
       )
+    }
+    public var hexValue: Int64? {
+      guard let components = UIColor(queryOutput).cgColor.components
+      else { return nil }
+      let r = Int64(components[0] * 0xFF) << 24
+      let g = Int64(components[1] * 0xFF) << 16
+      let b = Int64(components[2] * 0xFF) << 8
+      let a = Int64((components.indices.contains(3) ? components[3] : 1) * 0xFF)
+      return r | g | b | a
     }
   }
 }

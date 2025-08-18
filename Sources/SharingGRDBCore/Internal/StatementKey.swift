@@ -1,6 +1,6 @@
 protocol StatementKeyRequest<QueryValue>: FetchKeyRequest {
   associatedtype QueryValue
-  var statement: any StructuredQueriesCore.Statement<QueryValue> { get }
+  var statement: SQLQueryExpression<QueryValue> { get }
 }
 
 extension StatementKeyRequest {
