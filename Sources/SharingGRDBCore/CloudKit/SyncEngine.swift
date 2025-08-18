@@ -1006,8 +1006,8 @@
           }
           open(table)
         } else if recordType == CKRecord.SystemType.share {
-          withErrorReporting {
-            for recordID in recordIDs {
+          for recordID in recordIDs {
+            withErrorReporting {
               try deleteShare(recordID: recordID)
             }
           }

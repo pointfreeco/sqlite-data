@@ -74,7 +74,7 @@ extension BaseCloudKitTests {
         try #expect(UnsyncedModel.count().fetchOne(db) == 2)
       }
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(

@@ -18,7 +18,7 @@ extension BaseCloudKitTests {
         }
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -76,7 +76,7 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -121,7 +121,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
       await modificationCallback.notify()
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -172,7 +172,7 @@ extension BaseCloudKitTests {
         }
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -230,7 +230,7 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -275,7 +275,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
       await modificationCallback.notify()
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -344,7 +344,7 @@ extension BaseCloudKitTests {
       await modificationCallback.notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -420,7 +420,7 @@ extension BaseCloudKitTests {
         )
       }
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -489,7 +489,7 @@ extension BaseCloudKitTests {
       await modificationCallback.notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -559,7 +559,7 @@ extension BaseCloudKitTests {
       await modificationCallback.notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -636,7 +636,7 @@ extension BaseCloudKitTests {
       await modificationsFinished.notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(

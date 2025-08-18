@@ -56,7 +56,7 @@ extension BaseCloudKitTests {
       )
       #expect(saveRecordResults.allSatisfy({ (try? $1.get()) != nil }))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -102,7 +102,7 @@ extension BaseCloudKitTests {
 
       try await syncEngine.modifyRecords(scope: .private, saving: [child]).notify()
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -134,7 +134,7 @@ extension BaseCloudKitTests {
       }
       #expect(error == CKError(.zoneNotFound))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -162,7 +162,7 @@ extension BaseCloudKitTests {
       )
       #expect(deleteResults.allSatisfy({ (try? $1.get()) != nil }))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -187,7 +187,7 @@ extension BaseCloudKitTests {
       )
       #expect(deleteResults.allSatisfy({ (try? $1.get()) != nil }))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -218,7 +218,7 @@ extension BaseCloudKitTests {
       }
       #expect(error == CKError(.zoneNotFound))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -249,7 +249,7 @@ extension BaseCloudKitTests {
       }
       #expect(error == CKError(.referenceViolation))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
