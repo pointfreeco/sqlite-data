@@ -32,7 +32,6 @@
         case recordNotRoot([ForeignKey])
         case recordTableNotSynchronized
         case recordTablePrivate
-        case shareNotFound
       }
 
       let recordTableName: String
@@ -41,7 +40,7 @@
       let debugDescription: String
 
       var errorDescription: String? {
-        "An error occured when editing sharing."
+        "The record could not be shared."
       }
     }
 
@@ -161,12 +160,10 @@
       }
       guard let share
       else {
-        throw SharingError(
-          recordTableName: T.tableName,
-          recordPrimaryKey: record.primaryKey.rawIdentifier,
-          reason: .shareNotFound,
-          debugDescription: "No share found associated with record."
-        )
+        reportIssue("""
+          No share found associated with record.
+          """)
+        return
       }
 
       let result = try await syncEngines.private?.database.modifyRecords(
