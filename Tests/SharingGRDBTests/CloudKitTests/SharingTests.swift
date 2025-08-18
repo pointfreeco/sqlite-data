@@ -525,7 +525,7 @@ extension BaseCloudKitTests {
         try await syncEngine.unshare(record: remindersList)
       } matching: { issue in
         issue.description == """
-        No share found associated with record.
+        Issue recorded: No share found associated with record.
         """
       }
     }
