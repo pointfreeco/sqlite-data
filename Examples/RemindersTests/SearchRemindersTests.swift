@@ -35,7 +35,7 @@ extension BaseTestSuite {
             isPastDue: false,
             notes: "",
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000007),
+              id: UUID(00000000-0000-0000-0000-00000000000A),
               dueDate: Date(2009-02-17T23:31:30.000Z),
               isCompleted: false,
               isFlagged: false,
@@ -84,7 +84,7 @@ extension BaseTestSuite {
             isPastDue: false,
             notes: "",
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000007),
+              id: UUID(00000000-0000-0000-0000-00000000000A),
               dueDate: Date(2009-02-17T23:31:30.000Z),
               isCompleted: false,
               isFlagged: false,
@@ -117,7 +117,7 @@ extension BaseTestSuite {
             isPastDue: false,
             notes: "",
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000003),
+              id: UUID(00000000-0000-0000-0000-000000000006),
               dueDate: Date(2008-08-07T23:31:30.000Z),
               isCompleted: true,
               isFlagged: false,
@@ -171,7 +171,7 @@ extension BaseTestSuite {
             isPastDue: false,
             notes: "",
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000007),
+              id: UUID(00000000-0000-0000-0000-00000000000A),
               dueDate: Date(2009-02-17T23:31:30.000Z),
               isCompleted: false,
               isFlagged: false,

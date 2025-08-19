@@ -93,34 +93,13 @@ extension BaseTestSuite {
       assertInlineSnapshot(of: model.tags, as: .customDump) {
         """
         [
-          [0]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000006),
-            title: "adulting"
-          ),
-          [1]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000000),
-            title: "car"
-          ),
-          [2]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000001),
-            title: "kids"
-          ),
-          [3]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000005),
-            title: "night"
-          ),
-          [4]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000003),
-            title: "optional"
-          ),
-          [5]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000004),
-            title: "social"
-          ),
-          [6]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000002),
-            title: "someday"
-          )
+          [0]: Tag(title: "adulting"),
+          [1]: Tag(title: "car"),
+          [2]: Tag(title: "kids"),
+          [3]: Tag(title: "night"),
+          [4]: Tag(title: "optional"),
+          [5]: Tag(title: "social"),
+          [6]: Tag(title: "someday")
         ]
         """
       }
