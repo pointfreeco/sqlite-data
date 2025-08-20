@@ -49,10 +49,7 @@ extension Database {
   /// Insertions are performed in order and in batches of consecutive records of the same table.
   ///
   /// - Parameter build: A result builder closure that inserts every built row.
-  public func seed(
-    @InsertValuesBuilder<any StructuredQueriesCore.Table>
-    _ build: () -> [any StructuredQueriesCore.Table]
-  ) throws {
+  public func seed(@SeedsBuilder _ build: () -> [any StructuredQueriesCore.Table]) throws {
     for insert in Seeds(build) {
       try insert.execute(self)
     }
