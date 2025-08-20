@@ -36,8 +36,9 @@ extension Reminder.Draft: Identifiable {}
 
 @Table
 struct Tag: Hashable, Identifiable {
-  let id: UUID
-  var title = ""
+  @Column(primaryKey: true)
+  var title: String
+  var id: String { title }
 }
 
 enum Priority: Int, Codable, QueryBindable {
@@ -61,7 +62,7 @@ extension Reminder {
   }
   static let withTags = group(by: \.id)
     .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
-    .leftJoin(Tag.all) { $1.tagID.eq($2.id) }
+    .leftJoin(Tag.all) { $1.tagID.eq($2.primaryKey) }
 }
 
 extension Reminder.TableColumns {
@@ -82,13 +83,13 @@ extension Reminder.TableColumns {
 }
 
 extension Tag {
-  static let withReminders = group(by: \.id)
-    .leftJoin(ReminderTag.all) { $0.id.eq($1.tagID) }
+  static let withReminders = group(by: \.primaryKey)
+    .leftJoin(ReminderTag.all) { $0.primaryKey.eq($1.tagID) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
 }
 
 extension Tag.TableColumns {
-  var jsonNames: some QueryExpression<[String].JSONRepresentation> {
+  var jsonTitles: some QueryExpression<[String].JSONRepresentation> {
     self.title.jsonGroupArray(filter: self.title.isNot(nil))
   }
 }
@@ -161,10 +162,8 @@ func appDatabase() throws -> any DatabaseWriter {
         "notes" TEXT,
         "position" INTEGER NOT NULL DEFAULT 0,
         "priority" INTEGER,
-        "remindersListID" TEXT NOT NULL,
-        "title" TEXT NOT NULL,
-
-        FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
+        "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE,
+        "title" TEXT NOT NULL
       ) STRICT
       """
     )
@@ -172,8 +171,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE TABLE "tags" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "title" TEXT NOT NULL COLLATE NOCASE
+        "title" TEXT COLLATE NOCASE PRIMARY KEY NOT NULL
       ) STRICT
       """
     )
@@ -182,11 +180,8 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "remindersTags" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "reminderID" TEXT NOT NULL,
-        "tagID" TEXT NOT NULL,
-
-        FOREIGN KEY("reminderID") REFERENCES "reminders"("id") ON DELETE CASCADE,
-        FOREIGN KEY("tagID") REFERENCES "tags"("id") ON DELETE CASCADE
+        "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
+        "tagID" TEXT NOT NULL REFERENCES "tags"("title") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT
       """
     )
@@ -303,9 +298,10 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
 #if DEBUG
   extension Database {
     func seedSampleData() throws {
-      let remindersListIDs = (0...2).map { _ in UUID() }
-      let reminderIDs = (0...10).map { _ in UUID() }
-      let tagIDs = (0...6).map { _ in UUID() }
+      @Dependency(\.date.now) var now
+      @Dependency(\.uuid) var uuid
+      let remindersListIDs = (0...2).map { _ in uuid() }
+      let reminderIDs = (0...10).map { _ in uuid() }
       try seed {
         RemindersList(
           id: remindersListIDs[0],
@@ -330,14 +326,14 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
         )
         Reminder(
           id: reminderIDs[1],
-          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          dueDate: now.addingTimeInterval(-60 * 60 * 24 * 2),
           isFlagged: true,
           remindersListID: remindersListIDs[0],
           title: "Haircut"
         )
         Reminder(
           id: reminderIDs[2],
-          dueDate: Date(),
+          dueDate: now,
           notes: "Ask about diet",
           priority: .high,
           remindersListID: remindersListIDs[0],
@@ -345,20 +341,20 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
         )
         Reminder(
           id: reminderIDs[3],
-          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 190),
+          dueDate: now.addingTimeInterval(-60 * 60 * 24 * 190),
           isCompleted: true,
           remindersListID: remindersListIDs[0],
           title: "Take a walk"
         )
         Reminder(
           id: reminderIDs[4],
-          dueDate: Date(),
+          dueDate: now,
           remindersListID: remindersListIDs[0],
           title: "Buy concert tickets"
         )
         Reminder(
           id: reminderIDs[5],
-          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
+          dueDate: now.addingTimeInterval(60 * 60 * 24 * 2),
           isFlagged: true,
           priority: .high,
           remindersListID: remindersListIDs[1],
@@ -366,7 +362,7 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
         )
         Reminder(
           id: reminderIDs[6],
-          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          dueDate: now.addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .low,
           remindersListID: remindersListIDs[1],
@@ -374,7 +370,7 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
         )
         Reminder(
           id: reminderIDs[7],
-          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 4),
+          dueDate: now.addingTimeInterval(60 * 60 * 24 * 4),
           isCompleted: false,
           priority: .high,
           remindersListID: remindersListIDs[1],
@@ -382,7 +378,7 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
         )
         Reminder(
           id: reminderIDs[8],
-          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
+          dueDate: now.addingTimeInterval(60 * 60 * 24 * 2),
           notes: """
             Status of tax return
             Expenses for next year
@@ -393,7 +389,7 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
         )
         Reminder(
           id: reminderIDs[9],
-          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          dueDate: now.addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .medium,
           remindersListID: remindersListIDs[2],
@@ -401,18 +397,15 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
         )
         Reminder(
           id: reminderIDs[10],
-          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
+          dueDate: now.addingTimeInterval(60 * 60 * 24 * 2),
           isCompleted: false,
           remindersListID: remindersListIDs[2],
           title: "Prepare for WWDC"
         )
-        Tag(id: tagIDs[0], title: "car")
-        Tag(id: tagIDs[1], title: "kids")
-        Tag(id: tagIDs[2], title: "someday")
-        Tag(id: tagIDs[3], title: "optional")
-        Tag(id: tagIDs[4], title: "social")
-        Tag(id: tagIDs[5], title: "night")
-        Tag(id: tagIDs[6], title: "adulting")
+        let tagIDs = ["car", "kids", "someday", "optional", "social", "night", "adulting"]
+        for tagID in tagIDs {
+          Tag(title: tagID)
+        }
         ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[2])
         ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[3])
         ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[6])

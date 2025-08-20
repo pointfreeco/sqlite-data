@@ -71,7 +71,7 @@ class SearchRemindersModel {
               notes: $0.inlineNotes,
               reminder: $0,
               remindersList: $3,
-              tags: #sql("\($2.jsonNames)")
+              tags: #sql("\($2.jsonTitles)")
             )
           },
 //        Reminder
