@@ -1,3 +1,4 @@
+import CustomDump
 import Foundation
 import SharingGRDB
 import SwiftUI
@@ -15,3 +16,19 @@ import Testing
   .snapshots(record: .failed)
 )
 struct BaseTestSuite {}
+
+// NB: SwiftUI colors are not consistently dumped across simulators.
+extension RemindersList: @retroactive CustomDumpReflectable {
+  public var customDumpMirror: Mirror {
+    Mirror(
+      self,
+      children: [
+        "id": id,
+        "color": Color.HexRepresentation(queryOutput: color).hexValue ?? 0,
+        "position": position,
+        "title": title
+      ],
+      displayStyle: .struct
+    )
+  }
+}

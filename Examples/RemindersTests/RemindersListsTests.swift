@@ -21,18 +21,7 @@ extension BaseTestSuite {
             remindersCount: 4,
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000000),
-              color: Color(
-                provider: ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.06662594,
-                      linearGreen: 0.31854683,
-                      linearBlue: 0.8631573,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 1218047999,
               position: 1,
               title: "Personal"
             )
@@ -41,18 +30,7 @@ extension BaseTestSuite {
             remindersCount: 2,
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000001),
-              color: Color(
-                provider: #1 ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.8468733,
-                      linearGreen: 0.25015837,
-                      linearBlue: 0.0343398,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 3985191935,
               position: 2,
               title: "Family"
             )
@@ -61,18 +39,7 @@ extension BaseTestSuite {
             remindersCount: 2,
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000002),
-              color: Color(
-                provider: #2 ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.44520125,
-                      linearGreen: 0.10946172,
-                      linearBlue: 0.6514057,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 2992493567,
               position: 3,
               title: "Business"
             )
