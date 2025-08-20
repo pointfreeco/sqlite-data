@@ -51,13 +51,8 @@ extension Reminder {
   static let incomplete = Self.where { !$0.isCompleted }
   static func searching(_ text: String) -> Where<Reminder> {
     Self.where {
-      if !text.isEmpty {
-        $0.id.in(
-          RemindersText
-            .where { $0.match(text) }
-            .select(\.reminderID)
-        )
-      }
+      $0.title.collate(.nocase).contains(text)
+        || $0.notes.collate(.nocase).contains(text)
     }
   }
   static let withTags = group(by: \.id)
@@ -99,14 +94,6 @@ struct ReminderTag: Hashable, Identifiable {
   let id: UUID
   var reminderID: Reminder.ID
   var tagID: Tag.ID
-}
-
-@Table @Selection
-struct RemindersText: StructuredQueries.FTS5 {
-  let reminderID: Reminder.ID
-  let title: String
-  let notes: String
-  let tags: String
 }
 
 func appDatabase() throws -> any DatabaseWriter {
@@ -186,19 +173,6 @@ func appDatabase() throws -> any DatabaseWriter {
       """
     )
     .execute(db)
-    try #sql(
-      """
-      CREATE VIRTUAL TABLE "remindersTexts" USING fts5(
-        "reminderID" UNINDEXED,
-        "title",
-        "notes",
-        "tags",
-        tokenize = 'trigram'
-      )
-      """
-    )
-    .execute(db)
-    // TODO: Populate virtual table here
   }
 
   try migrator.migrate(database)
@@ -214,14 +188,12 @@ func appDatabase() throws -> any DatabaseWriter {
         .update { $0.position = RemindersList.select { ($0.position.max() ?? -1) + 1} }
     })
     .execute(db)
-
     try Reminder.createTemporaryTrigger(after: .insert { new in
       Reminder
         .find(new.id)
         .update { $0.position = Reminder.select { ($0.position.max() ?? -1) + 1} }
     })
     .execute(db)
-
     try RemindersList.createTemporaryTrigger(after: .delete { _ in
       RemindersList.insert {
         RemindersList.Draft(
@@ -231,61 +203,6 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     } when: { _ in
       !RemindersList.exists()
-    })
-    .execute(db)
-
-    try Reminder.createTemporaryTrigger(after: .insert { new in
-      RemindersText.insert {
-        RemindersText.Columns(
-          reminderID: new.id,
-          title: new.title,
-          notes: new.notes,
-          tags: ""
-        )
-      }
-    })
-    .execute(db)
-
-    try Reminder.createTemporaryTrigger(after: .update {
-      ($0.title, $0.notes, $0.remindersListID)
-    } forEachRow: { _, new in
-      RemindersText
-        .where { $0.reminderID.eq(new.id) }
-        .update {
-          $0.title = new.title
-          $0.notes = new.notes
-        }
-    })
-    .execute(db)
-
-    try Reminder.createTemporaryTrigger(after: .delete { old in
-      RemindersText
-        .where { $0.reminderID.eq(old.id) }
-        .delete()
-    })
-    .execute(db)
-
-    try ReminderTag.createTemporaryTrigger(after: .insert { new in
-      RemindersText
-        .where { $0.reminderID.eq(new.reminderID) }
-        .update {
-          $0.tags = ReminderTag
-            .where { $0.reminderID.eq(new.reminderID) }
-            .join(Tag.all) { $0.tagID.eq($1.id) }
-            .select { $1.title.groupConcat(" ") ?? "" }
-        }
-    })
-    .execute(db)
-
-    try ReminderTag.createTemporaryTrigger(after: .delete { old in
-      RemindersText
-        .where { $0.reminderID.eq(old.reminderID) }
-        .update {
-          $0.tags = ReminderTag
-            .where { $0.reminderID.eq(old.reminderID) }
-            .join(Tag.all) { $0.tagID.eq($1.id) }
-            .select { $1.title.groupConcat(" ") ?? "" }
-        }
     })
     .execute(db)
   }
