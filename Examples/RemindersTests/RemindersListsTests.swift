@@ -22,18 +22,7 @@ extension BaseTestSuite {
             remindersCount: 4,
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000000),
-              color: Color(
-                provider: ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.06662594,
-                      linearGreen: 0.31854683,
-                      linearBlue: 0.8631573,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 1218047999,
               position: 1,
               title: "Personal"
             )
@@ -42,18 +31,7 @@ extension BaseTestSuite {
             remindersCount: 2,
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000001),
-              color: Color(
-                provider: #1 ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.8468733,
-                      linearGreen: 0.25015837,
-                      linearBlue: 0.0343398,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 3985191935,
               position: 2,
               title: "Family"
             )
@@ -62,18 +40,7 @@ extension BaseTestSuite {
             remindersCount: 2,
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000002),
-              color: Color(
-                provider: #2 ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.44520125,
-                      linearGreen: 0.10946172,
-                      linearBlue: 0.6514057,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 2992493567,
               position: 3,
               title: "Business"
             )
@@ -94,34 +61,13 @@ extension BaseTestSuite {
       assertInlineSnapshot(of: model.tags, as: .customDump) {
         """
         [
-          [0]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000006),
-            title: "adulting"
-          ),
-          [1]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000000),
-            title: "car"
-          ),
-          [2]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000001),
-            title: "kids"
-          ),
-          [3]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000005),
-            title: "night"
-          ),
-          [4]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000003),
-            title: "optional"
-          ),
-          [5]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000004),
-            title: "social"
-          ),
-          [6]: Tag(
-            id: UUID(00000000-0000-0000-0000-000000000002),
-            title: "someday"
-          )
+          [0]: Tag(title: "adulting"),
+          [1]: Tag(title: "car"),
+          [2]: Tag(title: "kids"),
+          [3]: Tag(title: "night"),
+          [4]: Tag(title: "optional"),
+          [5]: Tag(title: "social"),
+          [6]: Tag(title: "someday")
         ]
         """
       }

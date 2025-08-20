@@ -123,7 +123,7 @@ struct TagsView: View {
 
       let rest =
         try Tag
-        .where { !$0.title.in(top.map(\.title)) }
+        .where { !$0.primaryKey.in(top.map(\.primaryKey)) }
         .order(by: \.title)
         .fetchAll(db)
 

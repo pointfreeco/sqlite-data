@@ -1,5 +1,6 @@
 import Dependencies
 import DependenciesTestSupport
+import CustomDump
 import Foundation
 import SharingGRDB
 import SnapshotTesting
@@ -9,153 +10,28 @@ import Testing
 @testable import Reminders
 
 @Suite(
+  .dependency(\.date.now, Date(timeIntervalSince1970: 1234567890)),
+  .dependency(\.uuid, .incrementing),
   .dependencies {
-    $0.date.now = baseDate
     try $0.bootstrapDatabase()
-    try $0.defaultDatabase.write { try $0.seedTestData() }
+    try $0.defaultDatabase.write { try $0.seedSampleData() }
   },
   .snapshots(record: .failed)
 )
 struct BaseTestSuite {}
 
-extension Database {
-  func seedTestData() throws {
-    let baseDate = baseDate
-    try seed {
-      RemindersList(
-        id: UUID(0),
-        color: Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255),
-        position: 0,
-        title: "Personal"
-      )
-      RemindersList(
-        id: UUID(1),
-        color: Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255),
-        position: 1,
-        title: "Family"
-      )
-      RemindersList(
-        id: UUID(2),
-        color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
-        position: 2,
-        title: "Business"
-      )
-      Reminder(
-        id: UUID(0),
-        notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
-        position: 0,
-        remindersListID: UUID(0),
-        title: "Groceries"
-      )
-      Reminder(
-        id: UUID(1),
-        dueDate: baseDate.addingTimeInterval(-60 * 60 * 24 * 2),
-        isFlagged: true,
-        position: 1,
-        remindersListID: UUID(0),
-        title: "Haircut"
-      )
-      Reminder(
-        id: UUID(2),
-        dueDate: baseDate,
-        notes: "Ask about diet",
-        position: 2,
-        priority: .high,
-        remindersListID: UUID(0),
-        title: "Doctor appointment"
-      )
-      Reminder(
-        id: UUID(3),
-        dueDate: baseDate.addingTimeInterval(-60 * 60 * 24 * 190),
-        isCompleted: true,
-        position: 3,
-        remindersListID: UUID(0),
-        title: "Take a walk"
-      )
-      Reminder(
-        id: UUID(4),
-        dueDate: baseDate,
-        position: 4,
-        remindersListID: UUID(0),
-        title: "Buy concert tickets"
-      )
-      Reminder(
-        id: UUID(5),
-        dueDate: baseDate.addingTimeInterval(60 * 60 * 24 * 2),
-        isFlagged: true,
-        position: 5,
-        priority: .high,
-        remindersListID: UUID(1),
-        title: "Pick up kids from school"
-      )
-      Reminder(
-        id: UUID(6),
-        dueDate: baseDate.addingTimeInterval(-60 * 60 * 24 * 2),
-        isCompleted: true,
-        position: 6,
-        priority: .low,
-        remindersListID: UUID(1),
-        title: "Get laundry"
-      )
-      Reminder(
-        id: UUID(7),
-        dueDate: baseDate.addingTimeInterval(60 * 60 * 24 * 4),
-        isCompleted: false,
-        position: 7,
-        priority: .high,
-        remindersListID: UUID(1),
-        title: "Take out trash"
-      )
-      Reminder(
-        id: UUID(8),
-        dueDate: baseDate.addingTimeInterval(60 * 60 * 24 * 2),
-        notes: """
-            Status of tax return
-            Expenses for next year
-            Changing payroll company
-            """,
-        position: 8,
-        remindersListID: UUID(2),
-        title: "Call accountant"
-      )
-      Reminder(
-        id: UUID(9),
-        dueDate: baseDate.addingTimeInterval(-60 * 60 * 24 * 2),
-        isCompleted: true,
-        position: 9,
-        priority: .medium,
-        remindersListID: UUID(2),
-        title: "Send weekly emails"
-      )
-      Reminder(
-        id: UUID(10),
-        dueDate: baseDate.addingTimeInterval(60 * 60 * 24 * 2),
-        isCompleted: false,
-        position: 10,
-        remindersListID: UUID(2),
-        title: "Prepare for WWDC"
-      )
-      Tag(title: "car")
-      Tag(title: "kids")
-      Tag(title: "someday")
-      Tag(title: "optional")
-      Tag(title: "social")
-      Tag(title: "night")
-      Tag(title: "adulting")
-      ReminderTag.Draft(reminderID: UUID(0), tagID: "someday")
-      ReminderTag.Draft(reminderID: UUID(0), tagID: "optional")
-      ReminderTag.Draft(reminderID: UUID(0), tagID: "adulting")
-      ReminderTag.Draft(reminderID: UUID(1), tagID: "someday")
-      ReminderTag.Draft(reminderID: UUID(1), tagID: "optional")
-      ReminderTag.Draft(reminderID: UUID(2), tagID: "adulting")
-      ReminderTag.Draft(reminderID: UUID(3), tagID: "car")
-      ReminderTag.Draft(reminderID: UUID(3), tagID: "kids")
-      ReminderTag.Draft(reminderID: UUID(4), tagID: "social")
-      ReminderTag.Draft(reminderID: UUID(3), tagID: "social")
-      ReminderTag.Draft(reminderID: UUID(10), tagID: "social")
-      ReminderTag.Draft(reminderID: UUID(4), tagID: "night")
-    }
+// NB: SwiftUI colors are not consistently dumped across simulators.
+extension RemindersList: @retroactive CustomDumpReflectable {
+  public var customDumpMirror: Mirror {
+    Mirror(
+      self,
+      children: [
+        "id": id,
+        "color": Color.HexRepresentation(queryOutput: color).hexValue ?? 0,
+        "position": position,
+        "title": title
+      ],
+      displayStyle: .struct
+    )
   }
 }
-
-private let baseDate = Date(timeIntervalSince1970: 1234567890)

@@ -86,7 +86,7 @@ extension Reminder.TableColumns {
 }
 
 extension Tag {
-  static let withReminders = group(by: \.title)
+  static let withReminders = group(by: \.primaryKey)
     .leftJoin(ReminderTag.all) { $0.primaryKey.eq($1.tagID) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
 }
@@ -187,10 +187,8 @@ func appDatabase() throws -> any DatabaseWriter {
         "notes" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
         "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "priority" INTEGER,
-        "remindersListID" TEXT NOT NULL,
-        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-
-        FOREIGN KEY("remindersListID") REFERENCES "remindersLists"("id") ON DELETE CASCADE
+        "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE,
+        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
       ) STRICT
       """
     )
@@ -255,127 +253,126 @@ private let logger = Logger(subsystem: "Reminders", category: "Database")
 #if DEBUG
   extension Database {
     func seedSampleData() throws {
-      let remindersListsIDs = (0...2).map { _ in UUID() }
-      let remindersIDs = (0...10).map { _ in UUID() }
+      @Dependency(\.date.now) var now
+      @Dependency(\.uuid) var uuid
+      let remindersListIDs = (0...2).map { _ in uuid() }
+      let reminderIDs = (0...10).map { _ in uuid() }
       try seed {
         RemindersList(
-          id: remindersListsIDs[0],
+          id: remindersListIDs[0],
           color: Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255),
           title: "Personal"
         )
         RemindersList(
-          id: remindersListsIDs[1],
+          id: remindersListIDs[1],
           color: Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255),
           title: "Family"
         )
         RemindersList(
-          id: remindersListsIDs[2],
+          id: remindersListIDs[2],
           color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
           title: "Business"
         )
         Reminder(
-          id: remindersIDs[0],
+          id: reminderIDs[0],
           notes: "Milk\nEggs\nApples\nOatmeal\nSpinach",
-          remindersListID: remindersListsIDs[0],
+          remindersListID: remindersListIDs[0],
           title: "Groceries"
         )
         Reminder(
-          id: remindersIDs[1],
-          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          id: reminderIDs[1],
+          dueDate: now.addingTimeInterval(-60 * 60 * 24 * 2),
           isFlagged: true,
-          remindersListID: remindersListsIDs[0],
+          remindersListID: remindersListIDs[0],
           title: "Haircut"
         )
         Reminder(
-          id: remindersIDs[2],
-          dueDate: Date(),
+          id: reminderIDs[2],
+          dueDate: now,
           notes: "Ask about diet",
           priority: .high,
-          remindersListID: remindersListsIDs[0],
+          remindersListID: remindersListIDs[0],
           title: "Doctor appointment"
         )
         Reminder(
-          id: remindersIDs[3],
-          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 190),
+          id: reminderIDs[3],
+          dueDate: now.addingTimeInterval(-60 * 60 * 24 * 190),
           isCompleted: true,
-          remindersListID: remindersListsIDs[0],
+          remindersListID: remindersListIDs[0],
           title: "Take a walk"
         )
         Reminder(
-          id: remindersIDs[4],
-          dueDate: Date(),
-          remindersListID: remindersListsIDs[0],
+          id: reminderIDs[4],
+          dueDate: now,
+          remindersListID: remindersListIDs[0],
           title: "Buy concert tickets"
         )
         Reminder(
-          id: remindersIDs[5],
-          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
+          id: reminderIDs[5],
+          dueDate: now.addingTimeInterval(60 * 60 * 24 * 2),
           isFlagged: true,
           priority: .high,
-          remindersListID: remindersListsIDs[1],
+          remindersListID: remindersListIDs[1],
           title: "Pick up kids from school"
         )
         Reminder(
-          id: remindersIDs[6],
-          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          id: reminderIDs[6],
+          dueDate: now.addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .low,
-          remindersListID: remindersListsIDs[1],
+          remindersListID: remindersListIDs[1],
           title: "Get laundry"
         )
         Reminder(
-          id: remindersIDs[7],
-          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 4),
+          id: reminderIDs[7],
+          dueDate: now.addingTimeInterval(60 * 60 * 24 * 4),
           isCompleted: false,
           priority: .high,
-          remindersListID: remindersListsIDs[1],
+          remindersListID: remindersListIDs[1],
           title: "Take out trash"
         )
         Reminder(
-          id: remindersIDs[8],
-          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
+          id: reminderIDs[8],
+          dueDate: now.addingTimeInterval(60 * 60 * 24 * 2),
           notes: """
             Status of tax return
             Expenses for next year
             Changing payroll company
             """,
-          remindersListID: remindersListsIDs[2],
+          remindersListID: remindersListIDs[2],
           title: "Call accountant"
         )
         Reminder(
-          id: remindersIDs[9],
-          dueDate: Date().addingTimeInterval(-60 * 60 * 24 * 2),
+          id: reminderIDs[9],
+          dueDate: now.addingTimeInterval(-60 * 60 * 24 * 2),
           isCompleted: true,
           priority: .medium,
-          remindersListID: remindersListsIDs[2],
+          remindersListID: remindersListIDs[2],
           title: "Send weekly emails"
         )
         Reminder(
-          id: remindersIDs[10],
-          dueDate: Date().addingTimeInterval(60 * 60 * 24 * 2),
+          id: reminderIDs[10],
+          dueDate: now.addingTimeInterval(60 * 60 * 24 * 2),
           isCompleted: false,
-          remindersListID: remindersListsIDs[2],
+          remindersListID: remindersListIDs[2],
           title: "Prepare for WWDC"
         )
-        Tag(title: "car")
-        Tag(title: "kids")
-        Tag(title: "someday")
-        Tag(title: "optional")
-        Tag(title: "social")
-        Tag(title: "night")
-        Tag(title: "adulting")
-        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: "someday")
-        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: "optional")
-        ReminderTag.Draft(reminderID: remindersIDs[0], tagID: "adulting")
-        ReminderTag.Draft(reminderID: remindersIDs[1], tagID: "someday")
-        ReminderTag.Draft(reminderID: remindersIDs[1], tagID: "optional")
-        ReminderTag.Draft(reminderID: remindersIDs[2], tagID: "adulting")
-        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: "car")
-        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: "kids")
-        ReminderTag.Draft(reminderID: remindersIDs[4], tagID: "social")
-        ReminderTag.Draft(reminderID: remindersIDs[3], tagID: "social")
-        ReminderTag.Draft(reminderID: remindersIDs[10], tagID: "social")
-        ReminderTag.Draft(reminderID: remindersIDs[4], tagID: "night")
+        let tagIDs = ["car", "kids", "someday", "optional", "social", "night", "adulting"]
+        for tagID in tagIDs {
+          Tag(title: tagID)
+        }
+        ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[2])
+        ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[3])
+        ReminderTag.Draft(reminderID: reminderIDs[0], tagID: tagIDs[6])
+        ReminderTag.Draft(reminderID: reminderIDs[1], tagID: tagIDs[2])
+        ReminderTag.Draft(reminderID: reminderIDs[1], tagID: tagIDs[3])
+        ReminderTag.Draft(reminderID: reminderIDs[2], tagID: tagIDs[6])
+        ReminderTag.Draft(reminderID: reminderIDs[3], tagID: tagIDs[0])
+        ReminderTag.Draft(reminderID: reminderIDs[3], tagID: tagIDs[1])
+        ReminderTag.Draft(reminderID: reminderIDs[4], tagID: tagIDs[4])
+        ReminderTag.Draft(reminderID: reminderIDs[3], tagID: tagIDs[4])
+        ReminderTag.Draft(reminderID: reminderIDs[10], tagID: tagIDs[4])
+        ReminderTag.Draft(reminderID: reminderIDs[4], tagID: tagIDs[5])
       }
     }
   }

@@ -103,7 +103,7 @@ class RemindersDetailModel: HashableObject {
         case .flagged: reminder.isFlagged
         case .remindersList(let list): reminder.remindersListID.eq(list.id)
         case .scheduled: reminder.isScheduled
-        case .tags(let tags): tag.title.ifnull("").in(tags.map(\.title))
+        case .tags(let tags): tag.primaryKey.ifnull("").in(tags.map(\.primaryKey))
         case .today: reminder.isToday
         }
       }

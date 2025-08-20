@@ -19,7 +19,7 @@ jobs:
     name: macOS
     strategy:
       matrix:
-        xcode: ['16.3']
+        xcode: ['16.4']
         config: ['debug', 'release']
     runs-on: macos-15
     steps:
@@ -33,7 +33,7 @@ jobs:
     name: Examples
     strategy:
       matrix:
-        xcode: ['16.3']
+        xcode: ['16.4']
         config: ['debug']
         scheme: ['Reminders', 'CaseStudies', 'SyncUps']
     runs-on: macos-15
