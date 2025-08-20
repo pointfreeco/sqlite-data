@@ -20,7 +20,7 @@ extension BaseTestSuite {
         [
           [0]: RemindersDetailModel.Row(
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000001),
+              id: UUID(00000000-0000-0000-0000-000000000004),
               dueDate: Date(2009-02-11T23:31:30.000Z),
               isCompleted: false,
               isFlagged: true,
@@ -32,31 +32,20 @@ extension BaseTestSuite {
             ),
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000000),
-              color: Color(
-                provider: ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.06662594,
-                      linearGreen: 0.31854683,
-                      linearBlue: 0.8631573,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 1218047999,
               position: 1,
               title: "Personal"
             ),
             isPastDue: true,
             notes: "",
             tags: [
-              [0]: "someday",
-              [1]: "optional"
+              [0]: "optional",
+              [1]: "someday"
             ]
           ),
           [1]: RemindersDetailModel.Row(
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000002),
+              id: UUID(00000000-0000-0000-0000-000000000005),
               dueDate: Date(2009-02-13T23:31:30.000Z),
               isCompleted: false,
               isFlagged: false,
@@ -68,18 +57,7 @@ extension BaseTestSuite {
             ),
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000000),
-              color: Color(
-                provider: #1 ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.06662594,
-                      linearGreen: 0.31854683,
-                      linearBlue: 0.8631573,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 1218047999,
               position: 1,
               title: "Personal"
             ),
@@ -91,7 +69,7 @@ extension BaseTestSuite {
           ),
           [2]: RemindersDetailModel.Row(
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000004),
+              id: UUID(00000000-0000-0000-0000-000000000007),
               dueDate: Date(2009-02-13T23:31:30.000Z),
               isCompleted: false,
               isFlagged: false,
@@ -103,31 +81,20 @@ extension BaseTestSuite {
             ),
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000000),
-              color: Color(
-                provider: #2 ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.06662594,
-                      linearGreen: 0.31854683,
-                      linearBlue: 0.8631573,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 1218047999,
               position: 1,
               title: "Personal"
             ),
             isPastDue: false,
             notes: "",
             tags: [
-              [0]: "social",
-              [1]: "night"
+              [0]: "night",
+              [1]: "social"
             ]
           ),
           [3]: RemindersDetailModel.Row(
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000000),
+              id: UUID(00000000-0000-0000-0000-000000000003),
               dueDate: nil,
               isCompleted: false,
               isFlagged: false,
@@ -145,27 +112,16 @@ extension BaseTestSuite {
             ),
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000000),
-              color: Color(
-                provider: #3 ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.06662594,
-                      linearGreen: 0.31854683,
-                      linearBlue: 0.8631573,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 1218047999,
               position: 1,
               title: "Personal"
             ),
             isPastDue: false,
             notes: "Milk Eggs Apples Oatmeal Spinach",
             tags: [
-              [0]: "someday",
+              [0]: "adulting",
               [1]: "optional",
-              [2]: "adulting"
+              [2]: "someday"
             ]
           )
         ]
@@ -375,15 +331,14 @@ extension BaseTestSuite {
     }
 
     @Test func tagged() async throws {
-      let tag = try await database.read { try Tag.all.fetchOne($0)! }
+      let tag = try await database.read { try Tag.find("someday").fetchOne($0)! }
       let model = RemindersDetailModel(detailType: .tags([tag]))
       try await model.$reminderRows.load()
       assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
         """
         [
-          [0]: "Pick up kids from school",
-          [1]: "Call accountant",
-          [2]: "Take out trash"
+          [0]: "Haircut",
+          [1]: "Groceries"
         ]
         """
       }

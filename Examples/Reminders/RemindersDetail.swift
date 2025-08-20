@@ -90,7 +90,7 @@ class RemindersDetailModel: HashableObject {
         case .flagged: reminder.isFlagged
         case .remindersList(let list): reminder.remindersListID.eq(list.id)
         case .scheduled: reminder.isScheduled
-        case .tags(let tags): tag.id.ifnull(UUID(0)).in(tags.map(\.id))
+        case .tags(let tags): tag.primaryKey.ifnull("").in(tags.map(\.primaryKey))
         case .today: reminder.isToday
         }
       }
@@ -101,7 +101,7 @@ class RemindersDetailModel: HashableObject {
           remindersList: $3,
           isPastDue: $0.isPastDue,
           notes: $0.inlineNotes.substr(0, 200),
-          tags: #sql("\($2.jsonNames)")
+          tags: #sql("\($2.jsonTitles)")
         )
       }
     return query
