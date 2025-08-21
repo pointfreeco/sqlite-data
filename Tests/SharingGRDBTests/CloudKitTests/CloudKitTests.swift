@@ -344,7 +344,8 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "modelAs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+                "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+                "isEven" INTEGER GENERATED ALWAYS AS ("count" % 2 == 0) VIRTUAL 
               )
               """,
             tableInfo: [
@@ -1006,6 +1007,73 @@ extension BaseCloudKitTests {
           """
         }
       }
+    }
+  }
+
+  @Test func generatedColumns() async throws {
+    try await userDatabase.userWrite { db in
+      try db.seed {
+        ModelA(id: 1, count: 42, isEven: true)
+      }
+    }
+    try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+    assertInlineSnapshot(of: container, as: .customDump) {
+      """
+      MockCloudContainer(
+        privateCloudDatabase: MockCloudDatabase(
+          databaseScope: .private,
+          storage: [
+            [0]: CKRecord(
+              recordID: CKRecord.ID(1:modelAs/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordType: "modelAs",
+              parent: nil,
+              share: nil,
+              count: 42,
+              id: 1
+            )
+          ]
+        ),
+        sharedCloudDatabase: MockCloudDatabase(
+          databaseScope: .shared,
+          storage: []
+        )
+      )
+      """
+    }
+
+
+    let record = try syncEngine.private.database.record(for: ModelA.recordID(for: 1))
+    record.encryptedValues["isEven"] = false
+    try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
+
+    assertInlineSnapshot(of: container, as: .customDump) {
+      """
+      MockCloudContainer(
+        privateCloudDatabase: MockCloudDatabase(
+          databaseScope: .private,
+          storage: [
+            [0]: CKRecord(
+              recordID: CKRecord.ID(1:modelAs/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordType: "modelAs",
+              parent: nil,
+              share: nil,
+              count: 42,
+              id: 1,
+              isEven: 0
+            )
+          ]
+        ),
+        sharedCloudDatabase: MockCloudDatabase(
+          databaseScope: .shared,
+          storage: []
+        )
+      )
+      """
+    }
+
+    try await userDatabase.read { db in
+      let modelA = try #require(try ModelA.find(1).fetchOne(db))
+      #expect(modelA.isEven == true)
     }
   }
 

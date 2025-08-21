@@ -25,7 +25,7 @@ import SharingGRDB
         }
       }
       try await $modelAs.load()
-      #expect(modelAs == [ModelA(id: 1)])
+      #expect(modelAs == [ModelA(id: 1, isEven: true)])
     }
   }
 }
