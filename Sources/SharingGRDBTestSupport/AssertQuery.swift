@@ -1,7 +1,10 @@
 import CustomDump
+import Dependencies
 import Foundation
+import GRDB
 import InlineSnapshotTesting
 import StructuredQueriesCore
+import StructuredQueriesGRDBCore
 import StructuredQueriesTestSupport
 
 /// An end-to-end snapshot testing helper for database content.
@@ -12,8 +15,6 @@ import StructuredQueriesTestSupport
 /// ```swift
 /// assertQuery(
 ///   Reminder.select(\.title).order(by: \.title)
-/// ) {
-///   try db.execute($0)
 /// } results: {
 ///   """
 ///   ┌────────────────────────────┐
@@ -35,10 +36,8 @@ import StructuredQueriesTestSupport
 /// - Parameters:
 ///   - includeSQL: Whether to snapshot the SQL fragment in addition to the results.
 ///   - query: A statement.
-///   - execute: A closure responsible for executing the query and returning the results.
 ///   - sql: A snapshot of the SQL produced by the statement.
 ///   - results: A snapshot of the results.
-///   - snapshotTrailingClosureOffset: The trailing closure offset of the `sql` snapshot. Defaults
 ///     to `1` for invoking this helper directly, but if you write a wrapper function that automates
 ///     the `execute` trailing closure, you should pass `0` instead.
 ///   - fileID: The source `#fileID` associated with the assertion.
@@ -46,14 +45,13 @@ import StructuredQueriesTestSupport
 ///   - function: The source `#function` associated with the assertion
 ///   - line: The source `#line` associated with the assertion.
 ///   - column: The source `#column` associated with the assertion.
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 @_disfavoredOverload
-public func assertQuery<each V: QueryRepresentable, S: Statement<(repeat each V)>>(
+public func assertQuery<each V: QueryRepresentable, S: StructuredQueriesCore.Statement<(repeat each V)>>(
   includeSQL: Bool = false,
   _ query: S,
-  execute: (S) throws -> [(repeat (each V).QueryOutput)],
   sql: (() -> String)? = nil,
   results: (() -> String)? = nil,
-  snapshotTrailingClosureOffset: Int = 1,
   fileID: StaticString = #fileID,
   filePath: StaticString = #filePath,
   function: StaticString = #function,
@@ -67,7 +65,7 @@ public func assertQuery<each V: QueryRepresentable, S: Statement<(repeat each V)
       message: "Query did not match",
       syntaxDescriptor: InlineSnapshotSyntaxDescriptor(
         trailingClosureLabel: "sql",
-        trailingClosureOffset: snapshotTrailingClosureOffset
+        trailingClosureOffset: 0
       ),
       matches: sql,
       fileID: fileID,
@@ -78,7 +76,8 @@ public func assertQuery<each V: QueryRepresentable, S: Statement<(repeat each V)
     )
   }
   do {
-    let rows = try execute(query)
+    @Dependency(\.defaultDatabase) var database
+    let rows = try database.read { try query.fetchAll($0) }
     var table = ""
     printTable(rows, to: &table)
     if !table.isEmpty {
@@ -88,9 +87,9 @@ public func assertQuery<each V: QueryRepresentable, S: Statement<(repeat each V)
         message: "Results did not match",
         syntaxDescriptor: InlineSnapshotSyntaxDescriptor(
           trailingClosureLabel: "results",
-          trailingClosureOffset: includeSQL ? snapshotTrailingClosureOffset + 1 : snapshotTrailingClosureOffset
+          trailingClosureOffset: includeSQL ? 1 : 0
         ),
-        matches: results,
+        matches: includeSQL ? results : sql,
         fileID: fileID,
         file: filePath,
         function: function,
@@ -104,9 +103,9 @@ public func assertQuery<each V: QueryRepresentable, S: Statement<(repeat each V)
         message: "Results expected to be empty",
         syntaxDescriptor: InlineSnapshotSyntaxDescriptor(
           trailingClosureLabel: "results",
-          trailingClosureOffset: includeSQL ? snapshotTrailingClosureOffset + 1 : snapshotTrailingClosureOffset
+          trailingClosureOffset: includeSQL ? 1 : 0
         ),
-        matches: results,
+        matches: includeSQL ? results : sql,
         fileID: fileID,
         file: filePath,
         function: function,
@@ -121,9 +120,9 @@ public func assertQuery<each V: QueryRepresentable, S: Statement<(repeat each V)
       message: "Results did not match",
       syntaxDescriptor: InlineSnapshotSyntaxDescriptor(
         trailingClosureLabel: "results",
-        trailingClosureOffset: includeSQL ? snapshotTrailingClosureOffset + 1 : snapshotTrailingClosureOffset
+        trailingClosureOffset: includeSQL ? 1 : 0
       ),
-      matches: results,
+      matches: includeSQL ? results : sql,
       fileID: fileID,
       file: filePath,
       function: function,
@@ -141,8 +140,6 @@ public func assertQuery<each V: QueryRepresentable, S: Statement<(repeat each V)
 /// ```swift
 /// assertQuery(
 ///   Reminder.select(\.title).order(by: \.title)
-/// ) {
-///   try db.execute($0)
 /// } results: {
 ///   """
 ///   ┌────────────────────────────┐
@@ -164,10 +161,8 @@ public func assertQuery<each V: QueryRepresentable, S: Statement<(repeat each V)
 /// - Parameters:
 ///   - includeSQL: Whether to snapshot the SQL fragment in addition to the results.
 ///   - query: A statement.
-///   - execute: A closure responsible for executing the query and returning the results.
 ///   - sql: A snapshot of the SQL produced by the statement.
 ///   - results: A snapshot of the results.
-///   - snapshotTrailingClosureOffset: The trailing closure offset of the `sql` snapshot. Defaults
 ///     to `1` for invoking this helper directly, but if you write a wrapper function that automates
 ///     the `execute` trailing closure, you should pass `0` instead.
 ///   - fileID: The source `#fileID` associated with the assertion.
@@ -175,15 +170,12 @@ public func assertQuery<each V: QueryRepresentable, S: Statement<(repeat each V)
 ///   - function: The source `#function` associated with the assertion
 ///   - line: The source `#line` associated with the assertion.
 ///   - column: The source `#column` associated with the assertion.
-public func assertQuery<S: SelectStatement, each J: Table>(
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+public func assertQuery<S: SelectStatement, each J: StructuredQueriesCore.Table>(
   includeSQL: Bool = false,
   _ query: S,
-  execute: (Select<(S.From, repeat each J), S.From, (repeat each J)>) throws -> [(
-    S.From.QueryOutput, repeat (each J).QueryOutput
-  )],
   sql: (() -> String)? = nil,
   results: (() -> String)? = nil,
-  snapshotTrailingClosureOffset: Int = 1,
   fileID: StaticString = #fileID,
   filePath: StaticString = #filePath,
   function: StaticString = #function,
@@ -193,10 +185,8 @@ public func assertQuery<S: SelectStatement, each J: Table>(
   assertQuery(
     includeSQL: includeSQL,
     query.selectStar(),
-    execute: execute,
     sql: sql,
     results: results,
-    snapshotTrailingClosureOffset: snapshotTrailingClosureOffset,
     fileID: fileID,
     filePath: filePath,
     function: function,
