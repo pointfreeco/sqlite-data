@@ -343,7 +343,8 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "modelAs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+                "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+                "isEven" INTEGER GENERATED ALWAYS AS ("count" % 2 == 0) VIRTUAL 
               )
               """,
             tableInfo: [
