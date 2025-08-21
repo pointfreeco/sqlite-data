@@ -15,9 +15,9 @@ associations, and more.
   * [Fetching data for a view](#Fetching-data-for-a-view)
   * [Fetching data for an @Observable model](#Fetching-data-for-an-Observable-model)
   * [Dynamic queries](#Dynamic-queries)
-  * [Booleans and enums](#Booleans-and-enums)
   * [Creating, update and delete data](#Creating-update-and-delete-data)
   * [Associations](#Associations)
+  * [Booleans and enums](#Booleans-and-enums)
   * [Migrations](#Migrations)
     * [Lightweight migrations](#Lightweight-migrations)
     * [Manual migrations](#Manual-migrations)
@@ -336,91 +336,6 @@ UI, and update the `@FetchAll` query when the `searchText` state changes.
 
 See <doc:DynamicQueries> for more information on how to execute dynamic queries in the library.
 
-### Booleans and enums
-
-While it may be hard to believe at first, SwiftData does not fully support boolean or enum values 
-for fields of a model. Take for example this following model:
-
-```swift
-@Model
-class Reminder {
-  var isCompleted = false
-  var priority: Priority?
-  init(isCompleted: Bool = false, priority: Priority? = nil) {
-    self.isCompleted = isCompleted 
-    self.priority = priority
-  }
-
-  enum Priority: Int, Codable { 
-    case low, medium, high
-  }
-}
-```
-
-This model compiles just fine, but it very limited in what you can do with it. First, you cannot
-sort by the `isCompleted` column when constructing a `@Query` because `Bool` is not `Comparable`:
-
-```swift
-@Query(sort: [SortDescriptor(\.isCompleted)])
-var reminders: [Reminder]  // 🛑
-```
-
-There is no way to sort by boolean columns in SwiftData.
-
-Further, you cannot filter by enum columns, such as selecting only high-priority reminders:
-
-```swift
-@Query(filter: #Predicate { $0.priority == Priority.high })
-var highPriorityReminders: [Reminder]
-```
-
-This will compile just fine yet crash at runtime. The only way to make this code work is to greatly
-weaken your model by modeling both `isCompleted` _and_ `priority` as integers:
-
-```swift
-@Model
-class Reminder {
-  var isCompleted = 0
-  var priority: Int?
-  init(isCompleted: Int = 0, priority: Int? = nil) {
-    self.isCompleted = isCompleted 
-    self.priority = priority
-  }
-}
-
-@Query(
-  filter: #Predicate { $0.priority == 2 },
-  sort: [SortDescriptor(\.isCompleted)]
-)
-var highPriorityReminders: [Reminder]
-```
-
-This will now work, but of course these fields can now hold over 9 quintillion possible values when
-only a few values are valid.
-
-On the other hand, booleans and enums work just fine in Sharing GRDB:
-
-```swift
-@Table
-struct Reminder {
-  var isCompleted = false
-  var priority: Priority?
-  enum Priority: Int, QueryBindable { 
-    case low, medium, high
-  }
-}
-
-@FetchAll(
-  Reminder
-    .where { $0.priority == Priority.high }
-    .order(by: \.isCompleted)
-)
-var reminders
-```
-
-This compiles and selects all high-priority reminders ordered by their `isCompleted` state. You
-can even leave off thet type annotation for `reminders` because it is inferred from the query.
-
 ### Creating, update and delete data
 
 To create, update and delete data from the database you must use the `defaultDatabase` dependency.
@@ -585,6 +500,91 @@ state will update to the freshest values.
 This style of handling associations does require you to be knowledgable in SQL to wield it
 correctly, but that is a benefit! SQL (and SQLite) are some of the most proven pieces of 
 technologies in the history of computers, and knowing how to wield their powers is a huge benefit.
+
+### Booleans and enums
+
+While it may be hard to believe at first, SwiftData does not fully support boolean or enum values 
+for fields of a model. Take for example this following model:
+
+```swift
+@Model
+class Reminder {
+  var isCompleted = false
+  var priority: Priority?
+  init(isCompleted: Bool = false, priority: Priority? = nil) {
+    self.isCompleted = isCompleted 
+    self.priority = priority
+  }
+
+  enum Priority: Int, Codable { 
+    case low, medium, high
+  }
+}
+```
+
+This model compiles just fine, but it very limited in what you can do with it. First, you cannot
+sort by the `isCompleted` column when constructing a `@Query` because `Bool` is not `Comparable`:
+
+```swift
+@Query(sort: [SortDescriptor(\.isCompleted)])
+var reminders: [Reminder]  // 🛑
+```
+
+There is no way to sort by boolean columns in SwiftData.
+
+Further, you cannot filter by enum columns, such as selecting only high-priority reminders:
+
+```swift
+@Query(filter: #Predicate { $0.priority == Priority.high })
+var highPriorityReminders: [Reminder]
+```
+
+This will compile just fine yet crash at runtime. The only way to make this code work is to greatly
+weaken your model by modeling both `isCompleted` _and_ `priority` as integers:
+
+```swift
+@Model
+class Reminder {
+  var isCompleted = 0
+  var priority: Int?
+  init(isCompleted: Int = 0, priority: Int? = nil) {
+    self.isCompleted = isCompleted 
+    self.priority = priority
+  }
+}
+
+@Query(
+  filter: #Predicate { $0.priority == 2 },
+  sort: [SortDescriptor(\.isCompleted)]
+)
+var highPriorityReminders: [Reminder]
+```
+
+This will now work, but of course these fields can now hold over 9 quintillion possible values when
+only a few values are valid.
+
+On the other hand, booleans and enums work just fine in Sharing GRDB:
+
+```swift
+@Table
+struct Reminder {
+  var isCompleted = false
+  var priority: Priority?
+  enum Priority: Int, QueryBindable { 
+    case low, medium, high
+  }
+}
+
+@FetchAll(
+  Reminder
+    .where { $0.priority == Priority.high }
+    .order(by: \.isCompleted)
+)
+var reminders
+```
+
+This compiles and selects all high-priority reminders ordered by their `isCompleted` state. You
+can even leave off thet type annotation for `reminders` because it is inferred from the query.
 
 ### Migrations
 
