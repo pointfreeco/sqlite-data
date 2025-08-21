@@ -36,6 +36,8 @@ import StructuredQueriesTestSupport
 /// - Parameters:
 ///   - includeSQL: Whether to snapshot the SQL fragment in addition to the results.
 ///   - query: A statement.
+///   - database: The database to read from. A value of `nil` will use
+///     `@Dependency(\.defaultDatabase)`.
 ///   - sql: A snapshot of the SQL produced by the statement.
 ///   - results: A snapshot of the results.
 ///     to `1` for invoking this helper directly, but if you write a wrapper function that automates
@@ -50,6 +52,7 @@ import StructuredQueriesTestSupport
 public func assertQuery<each V: QueryRepresentable, S: StructuredQueriesCore.Statement<(repeat each V)>>(
   includeSQL: Bool = false,
   _ query: S,
+  database: (any DatabaseReader)? = nil,
   sql: (() -> String)? = nil,
   results: (() -> String)? = nil,
   fileID: StaticString = #fileID,
@@ -76,8 +79,8 @@ public func assertQuery<each V: QueryRepresentable, S: StructuredQueriesCore.Sta
     )
   }
   do {
-    @Dependency(\.defaultDatabase) var database
-    let rows = try database.read { try query.fetchAll($0) }
+    @Dependency(\.defaultDatabase) var defaultDatabase
+    let rows = try (database ?? defaultDatabase).read { try query.fetchAll($0) }
     var table = ""
     printTable(rows, to: &table)
     if !table.isEmpty {
@@ -162,6 +165,8 @@ public func assertQuery<each V: QueryRepresentable, S: StructuredQueriesCore.Sta
 ///   - includeSQL: Whether to snapshot the SQL fragment in addition to the results.
 ///   - query: A statement.
 ///   - sql: A snapshot of the SQL produced by the statement.
+///   - database: The database to read from. A value of `nil` will use
+///     `@Dependency(\.defaultDatabase)`.
 ///   - results: A snapshot of the results.
 ///     to `1` for invoking this helper directly, but if you write a wrapper function that automates
 ///     the `execute` trailing closure, you should pass `0` instead.
@@ -174,6 +179,7 @@ public func assertQuery<each V: QueryRepresentable, S: StructuredQueriesCore.Sta
 public func assertQuery<S: SelectStatement, each J: StructuredQueriesCore.Table>(
   includeSQL: Bool = false,
   _ query: S,
+  database: (any DatabaseReader)? = nil,
   sql: (() -> String)? = nil,
   results: (() -> String)? = nil,
   fileID: StaticString = #fileID,
@@ -185,6 +191,7 @@ public func assertQuery<S: SelectStatement, each J: StructuredQueriesCore.Table>
   assertQuery(
     includeSQL: includeSQL,
     query.selectStar(),
+    database: database,
     sql: sql,
     results: results,
     fileID: fileID,
