@@ -532,7 +532,7 @@ var reminders: [Reminder]  // 🛑
 
 There is no way to sort by boolean columns in SwiftData.
 
-Further, you cannot filter by enum columns, such as selecting only high-priority reminders:
+Further, you cannot filter by enum columns, such as selecting only high priority reminders:
 
 ```swift
 @Query(filter: #Predicate { $0.priority == Priority.high })
@@ -563,7 +563,7 @@ var highPriorityReminders: [Reminder]
 This will now work, but of course these fields can now hold over 9 quintillion possible values when
 only a few values are valid.
 
-On the other hand, booleans and enums work just fine in Sharing GRDB:
+On the other hand, booleans and enums work just fine in SharingGRDB:
 
 ```swift
 @Table
@@ -583,7 +583,7 @@ struct Reminder {
 var reminders
 ```
 
-This compiles and selects all high-priority reminders ordered by their `isCompleted` state. You
+This compiles and selects all high priority reminders ordered by their `isCompleted` state. You
 can even leave off thet type annotation for `reminders` because it is inferred from the query.
 
 ### Migrations
