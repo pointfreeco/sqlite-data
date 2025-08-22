@@ -55,6 +55,8 @@ import SharingGRDB
 @Table struct ModelA: Equatable, Identifiable {
   let id: Int
   var count = 0
+  @Column(generated: .virtual)
+  let isEven: Bool
 }
 @Table struct ModelB: Equatable, Identifiable {
   let id: Int
@@ -175,7 +177,8 @@ func database(containerIdentifier: String) throws -> DatabasePool {
     try #sql("""
       CREATE TABLE "modelAs" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+        "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+        "isEven" INTEGER GENERATED ALWAYS AS ("count" % 2 == 0) VIRTUAL 
       )
       """)
     .execute(db)
