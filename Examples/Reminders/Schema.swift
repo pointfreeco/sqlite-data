@@ -49,12 +49,6 @@ enum Priority: Int, Codable, QueryBindable {
 
 extension Reminder {
   static let incomplete = Self.where { !$0.isCompleted }
-  static func searching(_ text: String) -> Where<Reminder> {
-    Self.where {
-      $0.title.collate(.nocase).contains(text)
-        || $0.notes.collate(.nocase).contains(text)
-    }
-  }
   static let withTags = group(by: \.id)
     .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
     .leftJoin(Tag.all) { $1.tagID.eq($2.primaryKey) }
@@ -72,9 +66,6 @@ extension Reminder.TableColumns {
   var isScheduled: some QueryExpression<Bool> {
     !isCompleted && dueDate.isNot(nil)
   }
-  var inlineNotes: some QueryExpression<String> {
-    notes.replace("\n", " ")
-  }
 }
 
 extension Tag {
@@ -83,17 +74,19 @@ extension Tag {
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
 }
 
-extension Tag.TableColumns {
-  var jsonTitles: some QueryExpression<[String].JSONRepresentation> {
-    self.title.jsonGroupArray(filter: self.title.isNot(nil))
-  }
-}
-
 @Table("remindersTags")
 struct ReminderTag: Hashable, Identifiable {
   let id: UUID
   var reminderID: Reminder.ID
   var tagID: Tag.ID
+}
+
+@Table @Selection
+struct ReminderText: StructuredQueries.FTS5 {
+  let reminderID: Reminder.ID
+  let title: String
+  let notes: String
+  let tags: String
 }
 
 func appDatabase() throws -> any DatabaseWriter {
@@ -173,6 +166,18 @@ func appDatabase() throws -> any DatabaseWriter {
       """
     )
     .execute(db)
+    try #sql(
+      """
+      CREATE VIRTUAL TABLE "reminderTexts" USING fts5(
+        "reminderID" UNINDEXED,
+        "title",
+        "notes",
+        "tags",
+        tokenize = 'trigram'
+      )
+      """
+    )
+    .execute(db)
   }
 
   try migrator.migrate(database)
@@ -188,12 +193,14 @@ func appDatabase() throws -> any DatabaseWriter {
         .update { $0.position = RemindersList.select { ($0.position.max() ?? -1) + 1} }
     })
     .execute(db)
+
     try Reminder.createTemporaryTrigger(after: .insert { new in
       Reminder
         .find(new.id)
         .update { $0.position = Reminder.select { ($0.position.max() ?? -1) + 1} }
     })
     .execute(db)
+
     try RemindersList.createTemporaryTrigger(after: .delete { _ in
       RemindersList.insert {
         RemindersList.Draft(
@@ -203,6 +210,60 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     } when: { _ in
       !RemindersList.exists()
+    })
+    .execute(db)
+
+    try Reminder.createTemporaryTrigger(after: .insert { new in
+      ReminderText.insert {
+        ReminderText.Columns(
+          reminderID: new.id,
+          title: new.title,
+          notes: new.notes.replace("\n", " "),
+          tags: ""
+        )
+      }
+    })
+    .execute(db)
+
+    try Reminder.createTemporaryTrigger(after: .update {
+      ($0.title, $0.notes)
+    } forEachRow: { _, new in
+      ReminderText
+        .where { $0.reminderID.eq(new.id) }
+        .update {
+          $0.title = new.title
+          $0.notes = new.notes.replace("\n", " ")
+        }
+    })
+    .execute(db)
+
+    try Reminder.createTemporaryTrigger(after: .delete { old in
+      ReminderText
+        .where { $0.reminderID.eq(old.id) }
+        .delete()
+    })
+    .execute(db)
+
+    func updateReminderTextTags(
+      for reminderID: some QueryExpression<Reminder.ID>
+    ) -> UpdateOf<ReminderText> {
+      ReminderText
+        .where { $0.reminderID.eq(reminderID) }
+        .update {
+          $0.tags = ReminderTag
+            .where { $0.reminderID.eq(reminderID) }
+            .join(Tag.all) { $0.tagID.eq($1.primaryKey) }
+            .select { ("#" + $1.title).groupConcat(" ") ?? "" }
+        }
+    }
+
+    try ReminderTag.createTemporaryTrigger(after: .insert { new in
+      updateReminderTextTags(for: new.reminderID)
+    })
+    .execute(db)
+
+    try ReminderTag.createTemporaryTrigger(after: .delete { old in
+      updateReminderTextTags(for: old.reminderID)
     })
     .execute(db)
   }

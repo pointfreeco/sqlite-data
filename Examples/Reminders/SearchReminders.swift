@@ -26,8 +26,7 @@ class SearchRemindersModel {
     withErrorReporting {
       try database.write { db in
         try Reminder
-          .searching(searchText)
-          .where(\.isCompleted)
+          .where { $0.isCompleted && $0.id.in(baseQuery.select { reminder, _ in reminder.id }) }
           .where {
             if let monthsAgo {
               #sql("\($0.dueDate) < date('now', '-\(raw: monthsAgo) months')")
@@ -39,35 +38,52 @@ class SearchRemindersModel {
     }
   }
 
+  private var baseQuery: SelectOf<Reminder, ReminderText> {
+    let searchText = searchText
+      .split(separator: " ")
+      .map { #""\#($0.replacingOccurrences(of: #"""#, with: #""""#))""# }
+      .joined(separator: " ")
+    return Reminder
+      .join(ReminderText.all) { $0.id.eq($1.reminderID) }
+      .where {
+        if !searchText.isEmpty {
+          $1.match(searchText)
+        }
+      }
+  }
+
   private func updateQuery() async {
     await withErrorReporting {
       if searchText.isEmpty {
         showCompletedInSearchResults = false
       }
+
+      let baseQuery = baseQuery
       try await $completedCount.load(
-        Reminder.searching(searchText)
-          .where(\.isCompleted)
+        baseQuery
+          .where { reminder, _ in reminder.isCompleted }
           .count(),
         animation: .default
       )
       try await $reminders.load(
-        Reminder
-          .searching(searchText)
-          .where {
+        baseQuery
+          .where { reminder, _ in
             if !showCompletedInSearchResults {
-              !$0.isCompleted
+              !reminder.isCompleted
             }
           }
-          .order { ($0.isCompleted, $0.dueDate) }
-          .withTags
-          .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
+          .order { reminder, _ in
+            (reminder.isCompleted, reminder.dueDate)
+          }
+          .join(RemindersList.all) { $0.remindersListID.eq($2.id) }
           .select {
             Row.Columns(
               isPastDue: $0.isPastDue,
-              notes: $0.inlineNotes,
+              notes: $1.notes.snippet("**", "**", "...", 64).replace("\n", " "),
               reminder: $0,
-              remindersList: $3,
-              tags: #sql("\($2.jsonTitles)")
+              remindersList: $2,
+              tags: $1.tags.highlight("**", "**"),
+              title: $1.title.highlight("**", "**")
             )
           },
         animation: .default
@@ -82,8 +98,8 @@ class SearchRemindersModel {
     let notes: String
     let reminder: Reminders.Reminder
     let remindersList: RemindersList
-    @Column(as: [String].JSONRepresentation.self)
-    let tags: [String]
+    let tags: String
+    let title: String
   }
 }
 
@@ -134,7 +150,8 @@ struct SearchRemindersView: View {
         reminder: reminder.reminder,
         remindersList: reminder.remindersList,
         showCompleted: model.showCompletedInSearchResults,
-        tags: reminder.tags
+        tags: reminder.tags,
+        title: reminder.title
       )
     }
   }
