@@ -83,7 +83,7 @@ struct ReminderTag: Hashable, Identifiable {
 
 @Table @Selection
 struct ReminderText: StructuredQueries.FTS5 {
-  let reminderID: Reminder.ID
+  let rowid: Int
   let title: String
   let notes: String
   let tags: String
@@ -216,7 +216,7 @@ func appDatabase() throws -> any DatabaseWriter {
     try Reminder.createTemporaryTrigger(after: .insert { new in
       ReminderText.insert {
         ReminderText.Columns(
-          reminderID: new.id,
+          rowid: new.rowid,
           title: new.title,
           notes: new.notes.replace("\n", " "),
           tags: ""
@@ -229,7 +229,7 @@ func appDatabase() throws -> any DatabaseWriter {
       ($0.title, $0.notes)
     } forEachRow: { _, new in
       ReminderText
-        .where { $0.reminderID.eq(new.id) }
+        .where { $0.rowid.eq(new.rowid) }
         .update {
           $0.title = new.title
           $0.notes = new.notes.replace("\n", " ")
@@ -239,7 +239,7 @@ func appDatabase() throws -> any DatabaseWriter {
 
     try Reminder.createTemporaryTrigger(after: .delete { old in
       ReminderText
-        .where { $0.reminderID.eq(old.id) }
+        .where { $0.rowid.eq(old.rowid) }
         .delete()
     })
     .execute(db)
@@ -248,7 +248,7 @@ func appDatabase() throws -> any DatabaseWriter {
       for reminderID: some QueryExpression<Reminder.ID>
     ) -> UpdateOf<ReminderText> {
       ReminderText
-        .where { $0.reminderID.eq(reminderID) }
+        .where { $0.rowid.eq(Reminder.find(reminderID).select(\.rowid)) }
         .update {
           $0.tags = ReminderTag
             .order(by: \.tagID)

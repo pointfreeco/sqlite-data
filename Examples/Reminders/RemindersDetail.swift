@@ -72,7 +72,7 @@ class RemindersDetailModel: HashableObject {
           !$0.isCompleted
         }
       }
-      .order { $0.isCompleted }
+      .order(by: \.isCompleted)
       .order {
         switch ordering {
         case .dueDate: $0.dueDate.asc(nulls: .last)
@@ -94,7 +94,7 @@ class RemindersDetailModel: HashableObject {
         }
       }
       .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
-      .join(ReminderText.all) { $0.id.eq($4.reminderID) }
+      .join(ReminderText.all) { $0.rowid.eq($4.rowid) }
       .select {
         Row.Columns(
           reminder: $0,

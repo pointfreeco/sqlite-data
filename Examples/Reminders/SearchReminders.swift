@@ -65,7 +65,7 @@ class SearchRemindersModel {
     withErrorReporting {
       try database.write { db in
         try Reminder
-          .where { $0.isCompleted && $0.id.in(baseQuery.select { reminder, _ in reminder.id }) }
+          .where { $0.isCompleted && $0.id.in(baseQuery.select { $1.id }) }
           .where {
             if let monthsAgo {
               #sql("\($0.dueDate) < date('now', '-\(raw: monthsAgo) months')")
@@ -77,27 +77,27 @@ class SearchRemindersModel {
     }
   }
 
-  private var baseQuery: SelectOf<Reminder, ReminderText> {
+  private var baseQuery: SelectOf<ReminderText, Reminder> {
     let searchText = searchText.quoted()
 
     return
-      Reminder
-      .join(ReminderText.all) { $0.id.eq($1.reminderID) }
+      ReminderText
       .where {
         if !searchText.isEmpty {
-          $1.match(searchText)
+          $0.match(searchText)
         }
       }
-      .where { _, reminderText in
+      .where {
         for token in searchTokens {
           switch token.kind {
           case .near:
-            reminderText.match("NEAR(\(token.rawValue.quoted())")
+            $0.match("NEAR(\(token.rawValue.quoted())")
           case .tag:
-            reminderText.tags.match(token.rawValue)
+            $0.tags.match(token.rawValue)
           }
         }
       }
+      .join(Reminder.all) { $0.rowid.eq($1.rowid) }
   }
 
   private func updateQuery(debounce: Bool = true) async throws {
@@ -144,34 +144,34 @@ class SearchRemindersModel {
       var completedCount = 0
       var rows: [Row] = []
     }
-    let baseQuery: SelectOf<Reminder, ReminderText>
+    let baseQuery: SelectOf<ReminderText, Reminder>
     let showCompletedInSearchResults: Bool
     func fetch(_ db: Database) throws -> Value {
       try Value(
         completedCount:
           baseQuery
-          .where { reminder, _ in reminder.isCompleted }
+          .where { $1.isCompleted }
           .count()
           .fetchOne(db) ?? 0,
         rows:
           baseQuery
-          .where { reminder, _ in
+          .where {
             if !showCompletedInSearchResults {
-              !reminder.isCompleted
+              !$1.isCompleted
             }
           }
-          .order { reminder, _ in
-            (reminder.isCompleted, reminder.dueDate)
+          .order {
+            ($1.isCompleted, $1.dueDate)
           }
-          .join(RemindersList.all) { $0.remindersListID.eq($2.id) }
+          .join(RemindersList.all) { $1.remindersListID.eq($2.id) }
           .select {
             Row.Columns(
-              isPastDue: $0.isPastDue,
-              notes: $1.notes.snippet("**", "**", "...", 64).replace("\n", " "),
-              reminder: $0,
+              isPastDue: $1.isPastDue,
+              notes: $0.notes.snippet("**", "**", "...", 64).replace("\n", " "),
+              reminder: $1,
               remindersList: $2,
-              tags: $1.tags.highlight("**", "**"),
-              title: $1.title.highlight("**", "**")
+              tags: $0.tags.highlight("**", "**"),
+              title: $0.title.highlight("**", "**")
             )
           }
           .fetchAll(db)
