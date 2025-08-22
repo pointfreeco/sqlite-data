@@ -173,7 +173,9 @@ struct RemindersListsView: View {
 
   var body: some View {
     List {
-      if model.searchRemindersModel.searchText.isEmpty {
+      if model.searchRemindersModel.isSearching {
+        SearchRemindersView(model: model.searchRemindersModel)
+      } else {
         Section {
           Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 16) {
             GridRow {
@@ -269,8 +271,6 @@ struct RemindersListsView: View {
             .padding([.leading, .trailing], 4)
         }
         .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-      } else {
-        SearchRemindersView(model: model.searchRemindersModel)
       }
     }
     .onAppear {
@@ -328,7 +328,17 @@ struct RemindersListsView: View {
       }
       .presentationDetents([.medium])
     }
-    .searchable(text: $model.searchRemindersModel.searchText)
+    .searchable(
+      text: $model.searchRemindersModel.searchText,
+      tokens: $model.searchRemindersModel.searchTokens
+    ) { token in
+      switch token.kind {
+      case .near:
+        Text(token.rawValue)
+      case .tag:
+        Text("#\(token.rawValue)")
+      }
+    }
     .navigationDestination(item: $model.destination.detail) { detailModel in
       RemindersDetailView(model: detailModel)
     }

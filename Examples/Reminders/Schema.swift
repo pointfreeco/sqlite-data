@@ -251,6 +251,7 @@ func appDatabase() throws -> any DatabaseWriter {
         .where { $0.reminderID.eq(reminderID) }
         .update {
           $0.tags = ReminderTag
+            .order(by: \.tagID)
             .where { $0.reminderID.eq(reminderID) }
             .join(Tag.all) { $0.tagID.eq($1.primaryKey) }
             .select { ("#" + $1.title).groupConcat(" ") ?? "" }

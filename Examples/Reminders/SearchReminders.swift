@@ -5,21 +5,60 @@ import SwiftUI
 @MainActor
 @Observable
 class SearchRemindersModel {
-  var showCompletedInSearchResults = false
-  var searchText = "" {
+  var showCompletedInSearchResults = false {
     didSet {
-      Task { await updateQuery() }
+      searchTask = Task { try await updateQuery(debounce: false) }
     }
   }
 
-  @ObservationIgnored @FetchOne var completedCount: Int = 0
-  @ObservationIgnored @FetchAll var reminders: [Row]
+  var searchText = "" {
+    didSet {
+      if oldValue != searchText {
+        if searchText.hasSuffix("\t") {
+          searchTokens.append(Token(kind: .near, rawValue: String(searchText.dropLast())))
+          searchText = ""
+        }
+
+        searchTask = Task { try await updateQuery() }
+      }
+    }
+  }
+
+  var searchTokens: [Token] = [] {
+    didSet {
+      if oldValue != searchTokens {
+        searchTask = Task { try await updateQuery() }
+      }
+    }
+  }
+
+  var isSearching: Bool {
+    !searchText.isEmpty || !searchTokens.isEmpty
+  }
+
+  var searchTask: Task<Void, any Error>? {
+    willSet {
+      searchTask?.cancel()
+    }
+  }
+
+  @ObservationIgnored @Dependency(\.continuousClock) private var clock
 
   @ObservationIgnored @Dependency(\.defaultDatabase) private var database
 
-  func showCompletedButtonTapped() async {
+  @ObservationIgnored @Fetch var searchResults = SearchRequest.Value()
+
+  @ObservationIgnored @FetchAll(Tag.none) var tags
+
+  func showCompletedButtonTapped() async throws {
     showCompletedInSearchResults.toggle()
-    await updateQuery()
+    try await updateQuery()
+  }
+
+  func tagButtonTapped(_ tag: Tag) {
+    guard !searchText.isEmpty else { return }
+    searchTokens.append(Token(kind: .tag, rawValue: tag.title))
+    searchText = ""
   }
 
   func deleteCompletedReminders(monthsAgo: Int? = nil) {
@@ -39,34 +78,86 @@ class SearchRemindersModel {
   }
 
   private var baseQuery: SelectOf<Reminder, ReminderText> {
-    let searchText = searchText
+    let searchText =
+      searchText
       .split(separator: " ")
       .map { #""\#($0.replacingOccurrences(of: #"""#, with: #""""#))""# }
       .joined(separator: " ")
-    return Reminder
+    return
+      Reminder
       .join(ReminderText.all) { $0.id.eq($1.reminderID) }
       .where {
         if !searchText.isEmpty {
           $1.match(searchText)
         }
       }
+      .where { _, reminderText in
+        for token in searchTokens {
+          switch token.kind {
+          case .near:
+            reminderText.match("NEAR(\(token.rawValue))")
+          case .tag:
+            reminderText.tags.match(token.rawValue)
+          }
+        }
+      }
   }
 
-  private func updateQuery() async {
+  private func updateQuery(debounce: Bool = true) async throws {
+    if debounce {
+      try await clock.sleep(for: .seconds(0.3))
+    }
     await withErrorReporting {
-      if searchText.isEmpty {
+      if !isSearching {
         showCompletedInSearchResults = false
       }
 
-      let baseQuery = baseQuery
-      try await $completedCount.load(
-        baseQuery
+      if searchText.hasPrefix("#") {
+        let existingTags = searchTokens.compactMap { $0.kind == .tag ? $0.rawValue : nil }
+        try await $tags.load(
+          Tag
+            .where { $0.title.hasPrefix(searchText.dropFirst()) && !$0.title.in(existingTags) }
+            .order(by: \.title)
+        )
+      } else {
+        try await $searchResults.load(
+          SearchRequest(
+            baseQuery: baseQuery,
+            showCompletedInSearchResults: showCompletedInSearchResults
+          ),
+          animation: .default
+        )
+      }
+    }
+  }
+
+  @Selection
+  struct Row: Identifiable {
+    var id: Reminder.ID { reminder.id }
+    let isPastDue: Bool
+    let notes: String
+    let reminder: Reminders.Reminder
+    let remindersList: RemindersList
+    let tags: String
+    let title: String
+  }
+
+  struct SearchRequest: FetchKeyRequest {
+    struct Value {
+      var completedCount = 0
+      var rows: [Row] = []
+    }
+    let baseQuery: SelectOf<Reminder, ReminderText>
+    let showCompletedInSearchResults: Bool
+    func fetch(_ db: Database) throws -> Value {
+      try Value(
+        completedCount:
+          baseQuery
           .where { reminder, _ in reminder.isCompleted }
-          .count(),
-        animation: .default
-      )
-      try await $reminders.load(
-        baseQuery
+          .count()
+          .fetchOne(db) ?? 0,
+        rows:
+          baseQuery
           .where { reminder, _ in
             if !showCompletedInSearchResults {
               !reminder.isCompleted
@@ -85,21 +176,22 @@ class SearchRemindersModel {
               tags: $1.tags.highlight("**", "**"),
               title: $1.title.highlight("**", "**")
             )
-          },
-        animation: .default
+          }
+          .fetchAll(db)
       )
     }
   }
 
-  @Selection
-  struct Row: Identifiable {
-    var id: Reminder.ID { reminder.id }
-    let isPastDue: Bool
-    let notes: String
-    let reminder: Reminders.Reminder
-    let remindersList: RemindersList
-    let tags: String
-    let title: String
+  struct Token: Hashable, Identifiable {
+    enum Kind {
+      case near
+      case tag
+    }
+
+    var kind: Kind
+    var rawValue = ""
+
+    var id: Self { self }
   }
 }
 
@@ -111,11 +203,26 @@ struct SearchRemindersView: View {
   }
 
   var body: some View {
+    if model.searchText.hasPrefix("#"), !model.tags.isEmpty {
+      Section {
+        ScrollView(.horizontal) {
+          HStack {
+            ForEach(model.tags) { tag in
+              Button("#\(tag.title)") {
+                model.tagButtonTapped(tag)
+              }
+            }
+          }
+        }
+        .scrollIndicators(.hidden)
+      }
+    }
+
     HStack {
-      Text("\(model.completedCount) Completed")
+      Text("\(model.searchResults.completedCount) Completed")
         .monospacedDigit()
         .contentTransition(.numericText())
-      if model.completedCount > 0 {
+      if model.searchResults.completedCount > 0 {
         Text("•")
         Menu {
           Text("Clear Completed Reminders")
@@ -136,22 +243,22 @@ struct SearchRemindersView: View {
         }
         Spacer()
         Button(model.showCompletedInSearchResults ? "Hide" : "Show") {
-          Task { await model.showCompletedButtonTapped() }
+          Task { try await model.showCompletedButtonTapped() }
         }
       }
     }
     .buttonStyle(.borderless)
 
-    ForEach(model.reminders) { reminder in
+    ForEach(model.searchResults.rows) { row in
       ReminderRow(
-        color: reminder.remindersList.color,
-        isPastDue: reminder.isPastDue,
-        notes: reminder.notes,
-        reminder: reminder.reminder,
-        remindersList: reminder.remindersList,
+        color: row.remindersList.color,
+        isPastDue: row.isPastDue,
+        notes: row.notes,
+        reminder: row.reminder,
+        remindersList: row.remindersList,
         showCompleted: model.showCompletedInSearchResults,
-        tags: reminder.tags,
-        title: reminder.title
+        tags: row.tags,
+        title: row.title
       )
     }
   }
