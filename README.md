@@ -228,7 +228,7 @@ var database
     
 let newItem = Item(/* ... */)
 try database.write { db in
-  try Item.insert(newItem)
+  try Item.insert { newItem }
     .execute(db))
 }
 ```
@@ -372,7 +372,7 @@ simple as adding it to your `Package.swift`:
 
 ``` swift
 dependencies: [
-  .package(url: "https://github.com/pointfreeco/sharing-grdb", from: "0.5.0")
+  .package(url: "https://github.com/pointfreeco/sharing-grdb", from: "0.6.0")
 ]
 ```
 
