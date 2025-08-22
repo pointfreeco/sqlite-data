@@ -78,11 +78,8 @@ class SearchRemindersModel {
   }
 
   private var baseQuery: SelectOf<Reminder, ReminderText> {
-    let searchText =
-      searchText
-      .split(separator: " ")
-      .map { #""\#($0.replacingOccurrences(of: #"""#, with: #""""#))""# }
-      .joined(separator: " ")
+    let searchText = searchText.quoted()
+
     return
       Reminder
       .join(ReminderText.all) { $0.id.eq($1.reminderID) }
@@ -95,7 +92,7 @@ class SearchRemindersModel {
         for token in searchTokens {
           switch token.kind {
           case .near:
-            reminderText.match("NEAR(\(token.rawValue))")
+            reminderText.match("NEAR(\(token.rawValue.quoted())")
           case .tag:
             reminderText.tags.match(token.rawValue)
           }
@@ -279,5 +276,13 @@ struct SearchRemindersView: View {
       }
     }
     .searchable(text: $searchText)
+  }
+}
+
+extension String {
+  fileprivate func quoted() -> String {
+    split(separator: " ")
+      .map { #""\#($0.replacingOccurrences(of: #"""#, with: #""""#))""# }
+      .joined(separator: " ")
   }
 }
