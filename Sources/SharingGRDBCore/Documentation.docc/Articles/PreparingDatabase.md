@@ -218,9 +218,12 @@ database connection:
 
 As your application evolves you will register more and more migrations with the migrator.
 
-It is up to you how you want to actually execute the SQL that creates your tables. There are APIs
-in the community for building table definition statements using Swift code, but we personally feel
-that it is simpler, more flexible and more powerful to use plain SQL strings:
+It is up to you how you want to actually execute the SQL that creates your tables. There are 
+[APIs in the community][grdb-table-definition] for building table definition statements using Swift 
+code, but we personally feel that it is simpler, more flexible and more powerful to use 
+[plain SQL strings][table-definition-tools]:
+
+[grdb-table-definition]: https://swiftpackageindex.com/groue/grdb.swift/v7.6.1/documentation/grdb/database/create(table:options:body:)
 
 ```swift
 migrator.registerMigration("Create tables") { db in
@@ -246,10 +249,11 @@ migrator.registerMigration("Create tables") { db in
 
 It may seem counterintuitive that we recommend using SQL strings for table definitions when so much
 of the library provides type-safe and schema-safe tools for executing SQL. But table definition SQL
-is fundamentally different from other SQL. Read [this article] from our StructuredQueries library
-to learn more about this decision.
+is fundamentally different from other SQL as it is frozen in time and should never be edited
+after it has been deployed to users. Read [this article][table-definition-tools] from our 
+StructuredQueries library to learn more about this decision.
 
-[this article]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/definingyourschema#Table-definition-tools
+[table-definition-tools]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/definingyourschema#Table-definition-tools
 
 That is all it takes to create, configure and migrate a database connection. Here is the code
 we have just written in one snippet:

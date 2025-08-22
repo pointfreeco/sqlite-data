@@ -584,7 +584,7 @@ var reminders
 ```
 
 This compiles and selects all high priority reminders ordered by their `isCompleted` state. You
-can even leave off thet type annotation for `reminders` because it is inferred from the query.
+can even leave off the type annotation for `reminders` because it is inferred from the query.
 
 ### Migrations
 
