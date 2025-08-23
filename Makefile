@@ -15,10 +15,10 @@ XCODEBUILD_FLAGS = \
 	-configuration $(CONFIG) \
 	-derivedDataPath $(DERIVED_DATA_PATH) \
 	-destination $(DESTINATION) \
-	-project Examples/Examples.xcodeproj
+	-project Examples/Examples.xcodeproj \
 	-resultBundlePath TestResults.xcresult \
 	-scheme "$(SCHEME)" \
-	-skipMacroValidation \
+	-skipMacroValidation
 
 XCODEBUILD_COMMAND = xcodebuild $(XCODEBUILD_ARGUMENT) $(XCODEBUILD_FLAGS)
 
