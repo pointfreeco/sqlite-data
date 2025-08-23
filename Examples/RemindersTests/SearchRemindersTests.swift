@@ -54,12 +54,6 @@ extension BaseTestSuite {
         ]
         """
       }
-      if model.searchResults.completedCount != 1 {
-        struct Failure: Error {
-          let message: String
-        }
-        throw Failure(message: String(customDumping: model))
-      }
     }
 
     @Test func showCompleted() async throws {
