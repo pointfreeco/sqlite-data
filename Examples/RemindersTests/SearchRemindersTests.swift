@@ -23,7 +23,6 @@ extension BaseTestSuite {
       }
 
       model.searchText = "Take"
-      try await model.$searchResults.load()
       try await Task.sleep(for: .seconds(0.5))
       #expect(model.searchResults.completedCount == 1)
       assertInlineSnapshot(of: model.searchResults.rows, as: .customDump) {
@@ -61,8 +60,6 @@ extension BaseTestSuite {
       let model = SearchRemindersModel()
       model.searchText = "Take"
       try await model.showCompletedButtonTapped()
-      try await Task.sleep(for: .seconds(0.1))
-      try await model.$searchResults.load()
 
       assertInlineSnapshot(of: model.searchResults.rows, as: .customDump) {
         """
@@ -122,7 +119,6 @@ extension BaseTestSuite {
       let model = SearchRemindersModel()
       model.searchText = "Take"
       try await model.showCompletedButtonTapped()
-      try await Task.sleep(for: .seconds(0.1))
       model.deleteCompletedReminders()
       try await model.$searchResults.load()
       #expect(model.searchResults.completedCount == 0)
