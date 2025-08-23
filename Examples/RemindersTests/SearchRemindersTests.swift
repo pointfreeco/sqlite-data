@@ -23,7 +23,7 @@ extension BaseTestSuite {
       }
 
       model.searchText = "Take"
-      try await Task.sleep(for: .seconds(5))
+      try await model.searchTask?.value
       #expect(model.searchResults.completedCount == 1)
       assertInlineSnapshot(of: model.searchResults.rows, as: .customDump) {
         """
@@ -53,6 +53,12 @@ extension BaseTestSuite {
           )
         ]
         """
+      }
+      if model.searchResults.completedCount != 1 {
+        struct Failure: Error {
+          let message: String
+        }
+        throw Failure(message: String(customDumping: model))
       }
     }
 
