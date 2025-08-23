@@ -24,7 +24,7 @@ extension BaseTestSuite {
 
       model.searchText = "Take"
       try await model.$searchResults.load()
-      try await Task.sleep(for: .seconds(1))
+      try await Task.sleep(for: .seconds(0.5))
       #expect(model.searchResults.completedCount == 1)
       assertInlineSnapshot(of: model.searchResults.rows, as: .customDump) {
         """
