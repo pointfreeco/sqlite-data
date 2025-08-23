@@ -42,9 +42,8 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
       - name: xcodebuild ${{ matrix.scheme }}
         run: make DERIVED_DATA_PATH=~/.derivedData SCHEME="${{ matrix.scheme }}" xcodebuild-raw
-      - uses: kishikawakatsumi/xcresulttool@v1
-        with:
-          path: TestResults.xcresult
+      - name: Output test failures
+        run: xcrun xcresulttool get test-results summary --path TestResults.xcresult --format json | jq -r '.testFailures[] | "\(.testIdentifierString): \(.failureText)"'
         if: success() || failure()
 
   # NB: GRDB 7.6.1 does not currently build on Linux.
