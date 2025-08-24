@@ -44,7 +44,11 @@ jobs:
       - name: xcodebuild ${{ matrix.scheme }}
         run: make DERIVED_DATA_PATH=~/.derivedData SCHEME="${{ matrix.scheme }}" xcodebuild-raw
 
+<<<<<<< HEAD
+  # Bring back when GRDB successfully compiles on Linux again
+=======
   # NB: GRDB 7.6.1 does not currently build on Linux.
+>>>>>>> origin/main
   # linux:
   #   name: Linux
   #   strategy:

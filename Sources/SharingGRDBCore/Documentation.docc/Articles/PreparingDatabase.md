@@ -50,9 +50,9 @@ data:
 > foreign keys. See <doc:CloudKit#Foreign-key-relationships> for more information. 
 
 This will prevent you from deleting rows that leave other rows with invalid associations. For 
-example, if a "teams" table had an association to a "sports" table, you would not be allowed to
-delete a sports row unless there were no teams associated with it, or if you had specified a 
-cascading action (such as delete).
+example, if a "reminders" table had an association to a "remindersLists" table, you would not be
+allowed to delete a list row unless there were no reminders associated with it, or if you had
+specified a cascading action (such as delete).
 
 We further recommend that you enable query tracing to log queries that are executed in your
 application. This can be handy for tracking down long-running queries, or when more queries execute
@@ -210,11 +210,8 @@ database connection:
 +  #if DEBUG
 +    migrator.eraseDatabaseOnSchemaChange = true
 +  #endif
-+  migrator.registerMigration("Create sports table") { db in
-+    // ...
-+  }
-+  migrator.registerMigration("Create teams table") { db in
-+    // ...
++  migrator.registerMigration("Create tables") { db in
++    // Execute SQL to create tables
 +  }
 +  try migrator.migrate(database)
    return database
@@ -222,6 +219,43 @@ database connection:
 ```
 
 As your application evolves you will register more and more migrations with the migrator.
+
+It is up to you how you want to actually execute the SQL that creates your tables. There are 
+[APIs in the community][grdb-table-definition] for building table definition statements using Swift 
+code, but we personally feel that it is simpler, more flexible and more powerful to use 
+[plain SQL strings][table-definition-tools]:
+
+[grdb-table-definition]: https://swiftpackageindex.com/groue/grdb.swift/v7.6.1/documentation/grdb/database/create(table:options:body:)
+
+```swift
+migrator.registerMigration("Create tables") { db in
+  try #sql("""
+    CREATE TABLE "remindersLists"(
+      "id" INT NOT NULL PRIMARY KEY AUTOINCREMENT,
+      "title" TEXT NOT NULL
+    ) STRICT
+    """)
+    .execute(db)
+
+  try #sql("""
+    CREATE TABLE "reminders"(
+      "id" INT NOT NULL PRIMARY KEY AUTOINCREMENT,
+      "isCompleted" INT NOT NULL DEFAULT 0,
+      "title" TEXT NOT NULL,
+      "remindersListID" INT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+    ) STRICT
+    """)
+    .execute(db)
+}
+```
+
+It may seem counterintuitive that we recommend using SQL strings for table definitions when so much
+of the library provides type-safe and schema-safe tools for executing SQL. But table definition SQL
+is fundamentally different from other SQL as it is frozen in time and should never be edited
+after it has been deployed to users. Read [this article][table-definition-tools] from our 
+StructuredQueries library to learn more about this decision.
+
+[table-definition-tools]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/definingyourschema#Table-definition-tools
 
 That is all it takes to create, configure and migrate a database connection. Here is the code
 we have just written in one snippet:
@@ -260,10 +294,7 @@ func appDatabase() throws -> any DatabaseWriter {
   #if DEBUG
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
-  migrator.registerMigration("Create sports table") { db in
-    // ...
-  }
-  migrator.registerMigration("Create teams table") { db in
+  migrator.registerMigration("Create tables") { db in
     // ...
   }
   try migrator.migrate(database)
