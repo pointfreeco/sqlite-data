@@ -8,7 +8,8 @@ struct ReminderRow: View {
   let reminder: Reminder
   let remindersList: RemindersList
   let showCompleted: Bool
-  let tags: [String]
+  let tags: String
+  let title: String?
 
   @State var editReminder: Reminder.Draft?
   @State var isCompleted: Bool
@@ -22,7 +23,8 @@ struct ReminderRow: View {
     reminder: Reminder,
     remindersList: RemindersList,
     showCompleted: Bool,
-    tags: [String]
+    tags: String,
+    title: String? = nil
   ) {
     self.color = color
     self.isPastDue = isPastDue
@@ -31,6 +33,7 @@ struct ReminderRow: View {
     self.remindersList = remindersList
     self.showCompleted = showCompleted
     self.tags = tags
+    self.title = title
     self.isCompleted = reminder.isCompleted
   }
 
@@ -44,10 +47,10 @@ struct ReminderRow: View {
             .padding([.trailing], 5)
         }
         VStack(alignment: .leading) {
-          title(for: reminder)
+          title(for: reminder, title: title)
 
           if !notes.isEmpty {
-            Text(notes)
+            highlight(notes)
               .font(.subheadline)
               .foregroundStyle(.gray)
               .lineLimit(2)
@@ -145,27 +148,33 @@ struct ReminderRow: View {
   }
 
   private var subtitleText: Text {
-    let tagsText = tags.reduce(Text(reminder.dueDate == nil ? "" : "  ")) { result, tag in
-      result + Text("#\(tag) ")
-    }
-    return
-      (dueText
-      + tagsText
-      .foregroundStyle(.gray)
-      .bold())
-      .font(.callout)
+    Text(
+      """
+      \(dueText)\(reminder.dueDate == nil ? "" : " ")\(highlight(tags).foregroundStyle(.gray))
+      """
+    )
+    .font(.callout)
   }
 
-  private func title(for reminder: Reminder) -> some View {
-    return HStack(alignment: .firstTextBaseline) {
+  @ViewBuilder
+  private func title(for reminder: Reminder, title: String?) -> some View {
+    HStack(alignment: .firstTextBaseline) {
       if let priority = reminder.priority {
         Text(String(repeating: "!", count: priority.rawValue))
           .foregroundStyle(isCompleted ? .gray : remindersList.color)
       }
-      Text(reminder.title)
+      highlight(title ?? reminder.title)
         .foregroundStyle(isCompleted ? .gray : .primary)
     }
     .font(.title3)
+  }
+
+  func highlight(_ text: String) -> Text {
+    if let attributedText = try? AttributedString(markdown: text) {
+      Text(attributedText)
+    } else {
+      Text(text)
+    }
   }
 }
 
@@ -190,7 +199,7 @@ struct ReminderRowPreview: PreviewProvider {
           reminder: reminder,
           remindersList: remindersList,
           showCompleted: true,
-          tags: ["point-free", "adulting"]
+          tags: "#point-free #adulting"
         )
       }
     }

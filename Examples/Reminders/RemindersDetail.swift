@@ -46,7 +46,7 @@ class RemindersDetailModel: HashableObject {
             let ids = Array(ids.enumerated())
             let (first, rest) = (ids.first!, ids.dropFirst())
             $0.position =
-            rest
+              rest
               .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
                 cases.when(id.element, then: id.offset)
               }
@@ -58,7 +58,7 @@ class RemindersDetailModel: HashableObject {
     $ordering.withLock { $0 = .manual }
     await updateQuery()
   }
-  
+
   private func updateQuery() async {
     await withErrorReporting {
       try await $reminderRows.load(remindersQuery, animation: .default)
@@ -66,14 +66,13 @@ class RemindersDetailModel: HashableObject {
   }
 
   private var remindersQuery: some StructuredQueriesCore.Statement<Row> {
-    let query =
     Reminder
       .where {
         if !showCompleted {
           !$0.isCompleted
         }
       }
-      .order { $0.isCompleted }
+      .order(by: \.isCompleted)
       .order {
         switch ordering {
         case .dueDate: $0.dueDate.asc(nulls: .last)
@@ -95,16 +94,16 @@ class RemindersDetailModel: HashableObject {
         }
       }
       .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
+      .join(ReminderText.all) { $0.rowid.eq($4.rowid) }
       .select {
         Row.Columns(
           reminder: $0,
           remindersList: $3,
           isPastDue: $0.isPastDue,
-          notes: $0.inlineNotes.substr(0, 200),
-          tags: #sql("\($2.jsonTitles)")
+          notes: $4.notes.substr(0, 200),
+          tags: $4.tags
         )
       }
-    return query
   }
 
   enum Ordering: String, CaseIterable {
@@ -141,8 +140,7 @@ class RemindersDetailModel: HashableObject {
     let remindersList: RemindersList
     let isPastDue: Bool
     let notes: String
-    @Column(as: [String].JSONRepresentation.self)
-    let tags: [String]
+    let tags: String
   }
 }
 
@@ -191,7 +189,7 @@ struct RemindersDetailView: View {
             reminder: Reminder.Draft(remindersListID: remindersList.id),
             remindersList: remindersList
           )
-            .navigationTitle("New Reminder")
+          .navigationTitle("New Reminder")
         }
       }
     }
