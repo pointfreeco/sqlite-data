@@ -12,13 +12,14 @@ class RemindersListsModel {
     RemindersList
       .group(by: \.id)
       .order(by: \.position)
-      .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted }
+      .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted
+      }
       .leftJoin(SyncMetadata.all) { $0.recordName.eq($2.recordName) }
-      .select { remindersList, reminder, metadata in
+      .select {
         ReminderListState.Columns(
-          remindersCount: reminder.id.count(),
-          remindersList: remindersList,
-          share: metadata.share
+          remindersCount: $1.id.count(),
+          remindersList: $0,
+          share: $2.share
         )
       },
     animation: .default
@@ -38,15 +39,14 @@ class RemindersListsModel {
 
   @ObservationIgnored
   @FetchOne(
-    Reminder
-      .select {
-        Stats.Columns(
-          allCount: $0.count(filter: !$0.isCompleted),
-          flaggedCount: $0.count(filter: $0.isFlagged && !$0.isCompleted),
-          scheduledCount: $0.count(filter: $0.isScheduled),
-          todayCount: $0.count(filter: $0.isToday)
-        )
-      }
+    Reminder.select {
+      Stats.Columns(
+        allCount: $0.count(filter: !$0.isCompleted),
+        flaggedCount: $0.count(filter: $0.isFlagged && !$0.isCompleted),
+        scheduledCount: $0.count(filter: $0.isScheduled),
+        todayCount: $0.count(filter: $0.isToday)
+      )
+    }
   )
   var stats = Stats()
 
@@ -77,6 +77,18 @@ class RemindersListsModel {
         detailType: .tags([tag])
       )
     )
+  }
+
+  func deleteTags(atOffsets offsets: IndexSet) {
+    withErrorReporting {
+      let tagTitles = offsets.map { tags[$0].title }
+      try database.write { db in
+        try Tag
+          .where { $0.title.in(tagTitles) }
+          .delete()
+          .execute(db)
+      }
+    }
   }
 
   func onAppear() {
@@ -113,35 +125,31 @@ class RemindersListsModel {
       try database.write { db in
         var ids = remindersLists.map(\.remindersList.id)
         ids.move(fromOffsets: source, toOffset: destination)
-        for (offset, id) in ids.enumerated() {
-          try RemindersList.find(id)
-            .update { $0.position = offset }
-            .execute(db)
-        }
-      }
-    }
-  }
-
-  func deleteTags(indexSet: IndexSet) {
-    withErrorReporting {
-      let tagTitles = indexSet.map { tags[$0].title }
-      try database.write { db in
-        try Tag
-          .where { $0.title.in(tagTitles) }
-          .delete()
+        try RemindersList
+          .where { $0.id.in(ids) }
+          .update {
+            let ids = Array(ids.enumerated())
+            let (first, rest) = (ids.first!, ids.dropFirst())
+            $0.position =
+            rest
+              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
+                cases.when(id.element, then: id.offset)
+              }
+              .else($0.position)
+          }
           .execute(db)
       }
     }
   }
 
   #if DEBUG
-    func seedDatabaseButtonTapped() {
-      withErrorReporting {
-        try database.write { db in
-          try db.seedSampleData()
-        }
+  func seedDatabaseButtonTapped() {
+    withErrorReporting {
+      try database.write { db in
+        try db.seedSampleData()
       }
     }
+  }
   #endif
 
   @CasePathable
@@ -186,7 +194,9 @@ struct RemindersListsView: View {
 
   var body: some View {
     List {
-      if model.searchRemindersModel.searchText.isEmpty {
+      if model.searchRemindersModel.isSearching {
+        SearchRemindersView(model: model.searchRemindersModel)
+      } else {
         Section {
           Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 16) {
             GridRow {
@@ -275,8 +285,8 @@ struct RemindersListsView: View {
             }
             .foregroundStyle(.primary)
           }
-          .onDelete { indexSet in
-            model.deleteTags(indexSet: indexSet)
+          .onDelete { offsets in
+            model.deleteTags(atOffsets: offsets)
           }
         } header: {
           Text("Tags")
@@ -287,8 +297,6 @@ struct RemindersListsView: View {
             .padding([.leading, .trailing], 4)
         }
         .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-      } else {
-        SearchRemindersView(model: model.searchRemindersModel)
       }
     }
     .onAppear {
@@ -297,7 +305,7 @@ struct RemindersListsView: View {
     .listStyle(.insetGrouped)
     .toolbar {
       #if DEBUG
-        ToolbarItem(placement: .automatic) {
+      ToolbarItem(placement: .automatic) {
           Menu {
             Button {
               model.seedDatabaseButtonTapped()
@@ -346,7 +354,17 @@ struct RemindersListsView: View {
       }
       .presentationDetents([.medium])
     }
-    .searchable(text: $model.searchRemindersModel.searchText)
+    .searchable(
+      text: $model.searchRemindersModel.searchText,
+      tokens: $model.searchRemindersModel.searchTokens
+    ) { token in
+      switch token.kind {
+      case .near:
+        Text(token.rawValue)
+      case .tag:
+        Text("#\(token.rawValue)")
+      }
+    }
     .navigationDestination(item: $model.destination.detail) { detailModel in
       RemindersDetailView(model: detailModel)
     }

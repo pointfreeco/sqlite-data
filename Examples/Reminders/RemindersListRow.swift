@@ -5,7 +5,7 @@ import SwiftUI
 struct RemindersListRow: View {
   let remindersCount: Int
   let remindersList: RemindersList
-  let share: CKShare?
+  var share: CKShare?
 
   @State var editList: RemindersList?
 
@@ -67,7 +67,7 @@ struct RemindersListRow: View {
         .filter { $0 != share.currentUserParticipant }
         .compactMap { $0.userIdentity.nameComponents?.formatted() }
         .joined(separator: ", ")
-      if participantNames.count > 0 {
+      if !participantNames.isEmpty {
         return "Shared with \(participantNames)"
       } else {
         return "Shared"
@@ -88,8 +88,7 @@ struct RemindersListRow: View {
         remindersList: RemindersList(
           id: UUID(),
           title: "Personal"
-        ),
-        share: nil
+        )
       )
     }
   }

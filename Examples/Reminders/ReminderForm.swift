@@ -179,13 +179,13 @@ struct ReminderFormView: View {
           .execute(db)
         try ReminderTag.insert {
           selectedTags.map { tag in
-            ReminderTag.Draft(reminderID: reminderID, tagID: tag.title)
+            ReminderTag.Draft(reminderID: reminderID, tagID: tag.id)
           }
         }
         .execute(db)
       }
-      dismiss()
     }
+    dismiss()
   }
 }
 

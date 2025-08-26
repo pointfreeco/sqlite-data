@@ -140,10 +140,12 @@ func resizedAndOptimizedImageData(from data: Data, maxWidth: CGFloat = 1000) -> 
 
   let originalSize = image.size
   let scaleFactor = min(1, maxWidth / originalSize.width)
-  let newSize = CGSize(width: originalSize.width * scaleFactor,
-                       height: originalSize.height * scaleFactor)
+  let newSize = CGSize(
+    width: originalSize.width * scaleFactor,
+    height: originalSize.height * scaleFactor
+  )
 
-  UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+  UIGraphicsBeginImageContextWithOptions(newSize, false, 1)
   image.draw(in: CGRect(origin: .zero, size: newSize))
   let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
   UIGraphicsEndImageContext()

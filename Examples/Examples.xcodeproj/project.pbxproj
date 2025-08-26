@@ -7,34 +7,23 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CA1146CA2DF38D1D0054BA77 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA1146C92DF38D1D0054BA77 /* SharingGRDB */; };
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
-		CA42392E2DF7219E000AF560 /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA42392D2DF7219E000AF560 /* SwiftUINavigation */; };
-		CA9102EB2E1F299900F85DD0 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA9102EA2E1F299900F85DD0 /* SharingGRDB */; };
-		CA9102ED2E1F29A400F85DD0 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA9102EC2E1F29A400F85DD0 /* SharingGRDB */; };
-		CA9102EF2E1F29AA00F85DD0 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA9102EE2E1F29AA00F85DD0 /* SharingGRDB */; };
-		CA9102F12E1F29E300F85DD0 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = CA9102F02E1F29E300F85DD0 /* SharingGRDB */; };
-		CA9F99D82DF915D300934431 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CA9F99D72DF915D300934431 /* DependenciesTestSupport */; };
-		CA9F99DD2DF9185A00934431 /* SnapshotTestingCustomDump in Frameworks */ = {isa = PBXBuildFile; productRef = CA9F99DC2DF9185A00934431 /* SnapshotTestingCustomDump */; };
-		CA9F99DF2DF9190C00934431 /* InlineSnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = CA9F99DE2DF9190C00934431 /* InlineSnapshotTesting */; };
+		CA5E46912DEBB8570069E0F8 /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */; };
+		CA5E47072DECEF0F0069E0F8 /* InlineSnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E47062DECEF0F0069E0F8 /* InlineSnapshotTesting */; };
+		CA5E47092DECEFC80069E0F8 /* SnapshotTestingCustomDump in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E47082DECEFC80069E0F8 /* SnapshotTestingCustomDump */; };
+		CA5E470B2DECF0280069E0F8 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E470A2DECF0280069E0F8 /* DependenciesTestSupport */; };
 		CAD001872D874F1F00FA977A /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CAD001862D874F1F00FA977A /* DependenciesTestSupport */; };
 		DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = DC5FA7472D4C63D60082743E /* DependenciesMacros */; };
-		DC7082542E035FC500A66B7D /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = DC7082532E035FC500A66B7D /* SwiftUINavigation */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
 		DCD9AC8B2E02176700FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8A2E02176700FB20F8 /* SharingGRDB */; };
+		DCD9AC8D2E02177200FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8C2E02177200FB20F8 /* SharingGRDB */; };
+		DCD9AC8F2E02177900FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8E2E02177900FB20F8 /* SharingGRDB */; };
 		DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = DCF267382D48437300B680BE /* SwiftUINavigation */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		CA1146AD2DF38D000054BA77 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = CAF836902D4735620047AEB5 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = CA11469E2DF38CFE0054BA77;
-			remoteInfo = CloudKitDemo;
-		};
-		CA9F994E2DF9134D00934431 /* PBXContainerItemProxy */ = {
+		CA5E469A2DEBFE410069E0F8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CAF836902D4735620047AEB5 /* Project object */;
 			proxyType = 1;
@@ -58,12 +47,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		CA11469F2DF38CFE0054BA77 /* CloudKitDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudKitDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CA1146AC2DF38D000054BA77 /* CloudKitDemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CloudKitDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemindersTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA5F37542D5AFBBC002E1A9E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		CA9101C82E1F270100F85DD0 /* CloudKitPlayground.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudKitPlayground.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CA9102E62E1F28FE00F85DD0 /* sharing-grdb */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sharing-grdb"; path = "/Users/brandon/projects/sharing-grdb"; sourceTree = "<absolute>"; };
-		CA9F99482DF9134D00934431 /* RemindersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemindersTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAF836982D4735620047AEB5 /* CaseStudies.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CaseStudies.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CAF836A82D4735640047AEB5 /* CaseStudiesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CaseStudiesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -72,20 +57,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		CA1146CE2DF397DB0054BA77 /* Exceptions for "CloudKitDemo" folder in "CloudKitDemo" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = CA11469E2DF38CFE0054BA77 /* CloudKitDemo */;
-		};
-		CA9101D52E1F272700F85DD0 /* Exceptions for "CloudKitPlayground" folder in "CloudKitPlayground" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = CA9101C72E1F270100F85DD0 /* CloudKitPlayground */;
-		};
 		CAD4819A2D584B510004799A /* Exceptions for "CaseStudies" folder in "CaseStudies" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -112,28 +83,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		CA1146A02DF38CFE0054BA77 /* CloudKitDemo */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				CA1146CE2DF397DB0054BA77 /* Exceptions for "CloudKitDemo" folder in "CloudKitDemo" target */,
-			);
-			path = CloudKitDemo;
-			sourceTree = "<group>";
-		};
-		CA1146AF2DF38D000054BA77 /* CloudKitDemoTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CloudKitDemoTests;
-			sourceTree = "<group>";
-		};
-		CA9101C92E1F270100F85DD0 /* CloudKitPlayground */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				CA9101D52E1F272700F85DD0 /* Exceptions for "CloudKitPlayground" folder in "CloudKitPlayground" target */,
-			);
-			path = CloudKitPlayground;
-			sourceTree = "<group>";
-		};
-		CA9F99492DF9134D00934431 /* RemindersTests */ = {
+		CA5E46972DEBFE410069E0F8 /* RemindersTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = RemindersTests;
 			sourceTree = "<group>";
@@ -175,37 +125,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		CA11469C2DF38CFE0054BA77 /* Frameworks */ = {
+		CA5E46932DEBFE410069E0F8 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CA42392E2DF7219E000AF560 /* SwiftUINavigation in Frameworks */,
-				CA1146CA2DF38D1D0054BA77 /* SharingGRDB in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CA1146A92DF38D000054BA77 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CA9101C52E1F270100F85DD0 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				CA9102F12E1F29E300F85DD0 /* SharingGRDB in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CA9F99452DF9134D00934431 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				CA9F99DD2DF9185A00934431 /* SnapshotTestingCustomDump in Frameworks */,
-				CA9F99D82DF915D300934431 /* DependenciesTestSupport in Frameworks */,
-				CA9F99DF2DF9190C00934431 /* InlineSnapshotTesting in Frameworks */,
+				CA5E47092DECEFC80069E0F8 /* SnapshotTestingCustomDump in Frameworks */,
+				CA5E47072DECEF0F0069E0F8 /* InlineSnapshotTesting in Frameworks */,
+				CA5E470B2DECF0280069E0F8 /* DependenciesTestSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -222,7 +148,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DCD9AC8B2E02176700FB20F8 /* SharingGRDB in Frameworks */,
-				CA9102EB2E1F299900F85DD0 /* SharingGRDB in Frameworks */,
 				CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -239,8 +164,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */,
-				CA9102ED2E1F29A400F85DD0 /* SharingGRDB in Frameworks */,
-				DC7082542E035FC500A66B7D /* SwiftUINavigation in Frameworks */,
+				DCD9AC8D2E02177200FB20F8 /* SharingGRDB in Frameworks */,
+				CA5E46912DEBB8570069E0F8 /* SwiftUINavigation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -250,7 +175,7 @@
 			files = (
 				DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */,
 				DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */,
-				CA9102EF2E1F29AA00F85DD0 /* SharingGRDB in Frameworks */,
+				DCD9AC8F2E02177900FB20F8 /* SharingGRDB in Frameworks */,
 				DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -265,12 +190,9 @@
 				CAF8369A2D4735620047AEB5 /* CaseStudies */,
 				CAF836AB2D4735640047AEB5 /* CaseStudiesTests */,
 				CAF836D92D4735AB0047AEB5 /* Reminders */,
-				CA9F99492DF9134D00934431 /* RemindersTests */,
+				CA5E46972DEBFE410069E0F8 /* RemindersTests */,
 				DCBE89CD2D483FB90071F499 /* SyncUps */,
 				CAD0017E2D874E6F00FA977A /* SyncUpTests */,
-				CA1146A02DF38CFE0054BA77 /* CloudKitDemo */,
-				CA1146AF2DF38D000054BA77 /* CloudKitDemoTests */,
-				CA9101C92E1F270100F85DD0 /* CloudKitPlayground */,
 				CAF837022D4735C00047AEB5 /* Frameworks */,
 				CAF836992D4735620047AEB5 /* Products */,
 			);
@@ -284,10 +206,7 @@
 				CAF836D82D4735AB0047AEB5 /* Reminders.app */,
 				DCBE89CC2D483FB90071F499 /* SyncUps.app */,
 				CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */,
-				CA11469F2DF38CFE0054BA77 /* CloudKitDemo.app */,
-				CA1146AC2DF38D000054BA77 /* CloudKitDemoTests.xctest */,
-				CA9F99482DF9134D00934431 /* RemindersTests.xctest */,
-				CA9101C82E1F270100F85DD0 /* CloudKitPlayground.app */,
+				CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -295,7 +214,6 @@
 		CAF837022D4735C00047AEB5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				CA9102E62E1F28FE00F85DD0 /* sharing-grdb */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -303,101 +221,31 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		CA11469E2DF38CFE0054BA77 /* CloudKitDemo */ = {
+		CA5E46952DEBFE410069E0F8 /* RemindersTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = CA1146C42DF38D000054BA77 /* Build configuration list for PBXNativeTarget "CloudKitDemo" */;
+			buildConfigurationList = CA5E469C2DEBFE420069E0F8 /* Build configuration list for PBXNativeTarget "RemindersTests" */;
 			buildPhases = (
-				CA11469B2DF38CFE0054BA77 /* Sources */,
-				CA11469C2DF38CFE0054BA77 /* Frameworks */,
-				CA11469D2DF38CFE0054BA77 /* Resources */,
+				CA5E46922DEBFE410069E0F8 /* Sources */,
+				CA5E46932DEBFE410069E0F8 /* Frameworks */,
+				CA5E46942DEBFE410069E0F8 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				CA5E469B2DEBFE410069E0F8 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				CA1146A02DF38CFE0054BA77 /* CloudKitDemo */,
-			);
-			name = CloudKitDemo;
-			packageProductDependencies = (
-				CA1146C92DF38D1D0054BA77 /* SharingGRDB */,
-				CA42392D2DF7219E000AF560 /* SwiftUINavigation */,
-			);
-			productName = CloudKitDemo;
-			productReference = CA11469F2DF38CFE0054BA77 /* CloudKitDemo.app */;
-			productType = "com.apple.product-type.application";
-		};
-		CA1146AB2DF38D000054BA77 /* CloudKitDemoTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = CA1146C52DF38D000054BA77 /* Build configuration list for PBXNativeTarget "CloudKitDemoTests" */;
-			buildPhases = (
-				CA1146A82DF38D000054BA77 /* Sources */,
-				CA1146A92DF38D000054BA77 /* Frameworks */,
-				CA1146AA2DF38D000054BA77 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				CA1146AE2DF38D000054BA77 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				CA1146AF2DF38D000054BA77 /* CloudKitDemoTests */,
-			);
-			name = CloudKitDemoTests;
-			packageProductDependencies = (
-			);
-			productName = CloudKitDemoTests;
-			productReference = CA1146AC2DF38D000054BA77 /* CloudKitDemoTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		CA9101C72E1F270100F85DD0 /* CloudKitPlayground */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = CA9101D22E1F270200F85DD0 /* Build configuration list for PBXNativeTarget "CloudKitPlayground" */;
-			buildPhases = (
-				CA9101C42E1F270100F85DD0 /* Sources */,
-				CA9101C52E1F270100F85DD0 /* Frameworks */,
-				CA9101C62E1F270100F85DD0 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				CA9101C92E1F270100F85DD0 /* CloudKitPlayground */,
-			);
-			name = CloudKitPlayground;
-			packageProductDependencies = (
-				CA9102F02E1F29E300F85DD0 /* SharingGRDB */,
-			);
-			productName = CloudKitPlayground;
-			productReference = CA9101C82E1F270100F85DD0 /* CloudKitPlayground.app */;
-			productType = "com.apple.product-type.application";
-		};
-		CA9F99472DF9134D00934431 /* RemindersTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = CA9F99502DF9134D00934431 /* Build configuration list for PBXNativeTarget "RemindersTests" */;
-			buildPhases = (
-				CA9F99442DF9134D00934431 /* Sources */,
-				CA9F99452DF9134D00934431 /* Frameworks */,
-				CA9F99462DF9134D00934431 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				CA9F994F2DF9134D00934431 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				CA9F99492DF9134D00934431 /* RemindersTests */,
+				CA5E46972DEBFE410069E0F8 /* RemindersTests */,
 			);
 			name = RemindersTests;
 			packageProductDependencies = (
-				CA9F99D72DF915D300934431 /* DependenciesTestSupport */,
-				CA9F99DC2DF9185A00934431 /* SnapshotTestingCustomDump */,
-				CA9F99DE2DF9190C00934431 /* InlineSnapshotTesting */,
+				CA5E47062DECEF0F0069E0F8 /* InlineSnapshotTesting */,
+				CA5E47082DECEFC80069E0F8 /* SnapshotTestingCustomDump */,
+				CA5E470A2DECF0280069E0F8 /* DependenciesTestSupport */,
 			);
 			productName = RemindersTests;
-			productReference = CA9F99482DF9134D00934431 /* RemindersTests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
+			productReference = CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		CAD0017C2D874E6F00FA977A /* SyncUpTests */ = {
 			isa = PBXNativeTarget;
@@ -442,7 +290,6 @@
 			packageProductDependencies = (
 				CA2908C82D4AF70E003F165F /* UIKitNavigation */,
 				DCD9AC8A2E02176700FB20F8 /* SharingGRDB */,
-				CA9102EA2E1F299900F85DD0 /* SharingGRDB */,
 			);
 			productName = Examples;
 			productReference = CAF836982D4735620047AEB5 /* CaseStudies.app */;
@@ -489,8 +336,8 @@
 			name = Reminders;
 			packageProductDependencies = (
 				CA14DBC82DA884C400E36852 /* CasePaths */,
-				DC7082532E035FC500A66B7D /* SwiftUINavigation */,
-				CA9102EC2E1F29A400F85DD0 /* SharingGRDB */,
+				CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */,
+				DCD9AC8C2E02177200FB20F8 /* SharingGRDB */,
 			);
 			productName = Reminders;
 			productReference = CAF836D82D4735AB0047AEB5 /* Reminders.app */;
@@ -516,7 +363,7 @@
 				DCBE8A132D4842BF0071F499 /* CasePaths */,
 				DCF267382D48437300B680BE /* SwiftUINavigation */,
 				DC5FA7472D4C63D60082743E /* DependenciesMacros */,
-				CA9102EE2E1F29AA00F85DD0 /* SharingGRDB */,
+				DCD9AC8E2E02177900FB20F8 /* SharingGRDB */,
 			);
 			productName = SyncUps;
 			productReference = DCBE89CC2D483FB90071F499 /* SyncUps.app */;
@@ -530,19 +377,9 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1640;
-				LastUpgradeCheck = 1640;
+				LastUpgradeCheck = 1620;
 				TargetAttributes = {
-					CA11469E2DF38CFE0054BA77 = {
-						CreatedOnToolsVersion = 16.4;
-					};
-					CA1146AB2DF38D000054BA77 = {
-						CreatedOnToolsVersion = 16.4;
-						TestTargetID = CA11469E2DF38CFE0054BA77;
-					};
-					CA9101C72E1F270100F85DD0 = {
-						CreatedOnToolsVersion = 16.4;
-					};
-					CA9F99472DF9134D00934431 = {
+					CA5E46952DEBFE410069E0F8 = {
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = CAF836D72D4735AB0047AEB5;
 					};
@@ -578,7 +415,8 @@
 				DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */,
 				DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */,
 				DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */,
-				CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference ".." */,
+				CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+				DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CAF836992D4735620047AEB5 /* Products */;
@@ -588,39 +426,15 @@
 				CAF836972D4735620047AEB5 /* CaseStudies */,
 				CAF836A72D4735640047AEB5 /* CaseStudiesTests */,
 				CAF836D72D4735AB0047AEB5 /* Reminders */,
-				CA9F99472DF9134D00934431 /* RemindersTests */,
+				CA5E46952DEBFE410069E0F8 /* RemindersTests */,
 				DCBE89CB2D483FB90071F499 /* SyncUps */,
 				CAD0017C2D874E6F00FA977A /* SyncUpTests */,
-				CA11469E2DF38CFE0054BA77 /* CloudKitDemo */,
-				CA1146AB2DF38D000054BA77 /* CloudKitDemoTests */,
-				CA9101C72E1F270100F85DD0 /* CloudKitPlayground */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		CA11469D2DF38CFE0054BA77 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CA1146AA2DF38D000054BA77 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CA9101C62E1F270100F85DD0 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CA9F99462DF9134D00934431 /* Resources */ = {
+		CA5E46942DEBFE410069E0F8 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -665,28 +479,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		CA11469B2DF38CFE0054BA77 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CA1146A82DF38D000054BA77 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CA9101C42E1F270100F85DD0 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CA9F99442DF9134D00934431 /* Sources */ = {
+		CA5E46922DEBFE410069E0F8 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -731,15 +524,10 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		CA1146AE2DF38D000054BA77 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = CA11469E2DF38CFE0054BA77 /* CloudKitDemo */;
-			targetProxy = CA1146AD2DF38D000054BA77 /* PBXContainerItemProxy */;
-		};
-		CA9F994F2DF9134D00934431 /* PBXTargetDependency */ = {
+		CA5E469B2DEBFE410069E0F8 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = CAF836D72D4735AB0047AEB5 /* Reminders */;
-			targetProxy = CA9F994E2DF9134D00934431 /* PBXContainerItemProxy */;
+			targetProxy = CA5E469A2DEBFE410069E0F8 /* PBXContainerItemProxy */;
 		};
 		CAD001822D874E6F00FA977A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -754,227 +542,37 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		CA1146BE2DF38D000054BA77 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = CloudKitDemo/CloudKitDemo.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = VFRXY8HC3H;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = CloudKitDemo/Info.plist;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 15.4;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitDemo;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 2.5;
-			};
-			name = Debug;
-		};
-		CA1146BF2DF38D000054BA77 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = CloudKitDemo/CloudKitDemo.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = VFRXY8HC3H;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = CloudKitDemo/Info.plist;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
-				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 15.4;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitDemo;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
-				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 2.5;
-			};
-			name = Release;
-		};
-		CA1146C02DF38D000054BA77 /* Debug */ = {
+		CA5E469D2DEBFE420069E0F8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = VFRXY8HC3H;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitDemoTests;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.RemindersTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CloudKitDemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CloudKitDemo";
-				XROS_DEPLOYMENT_TARGET = 2.5;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reminders.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Reminders";
 			};
 			name = Debug;
 		};
-		CA1146C12DF38D000054BA77 /* Release */ = {
+		CA5E469E2DEBFE420069E0F8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = VFRXY8HC3H;
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.4;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitDemoTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CloudKitDemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CloudKitDemo";
-				XROS_DEPLOYMENT_TARGET = 2.5;
-			};
-			name = Release;
-		};
-		CA9101D02E1F270200F85DD0 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = CloudKitPlayground/CloudKitPlayground.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VFRXY8HC3H;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = CloudKitPlayground/Info.plist;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitPlayground;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		CA9101D12E1F270200F85DD0 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = CloudKitPlayground/CloudKitPlayground.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VFRXY8HC3H;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = CloudKitPlayground/Info.plist;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.CloudKitPlayground;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
-		CA9F99512DF9134D00934431 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VFRXY8HC3H;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.RemindersTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Reminders;
-			};
-			name = Debug;
-		};
-		CA9F99522DF9134D00934431 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = VFRXY8HC3H;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				OTHER_SWIFT_FLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.RemindersTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Reminders;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reminders.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Reminders";
 			};
 			name = Release;
 		};
@@ -1072,8 +670,6 @@
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
@@ -1130,8 +726,6 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -1237,7 +831,6 @@
 				DEVELOPMENT_TEAM = VFRXY8HC3H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Reminders/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1248,7 +841,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "co.pointfree.sharing-grdb.Reminders";
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SQLiteData.RemindersDemo.Beta;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1267,7 +860,6 @@
 				DEVELOPMENT_TEAM = VFRXY8HC3H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Reminders/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1278,7 +870,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "co.pointfree.sharing-grdb.Reminders";
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SQLiteData.RemindersDemo.Beta;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1344,38 +936,11 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		CA1146C42DF38D000054BA77 /* Build configuration list for PBXNativeTarget "CloudKitDemo" */ = {
+		CA5E469C2DEBFE420069E0F8 /* Build configuration list for PBXNativeTarget "RemindersTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				CA1146BE2DF38D000054BA77 /* Debug */,
-				CA1146BF2DF38D000054BA77 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		CA1146C52DF38D000054BA77 /* Build configuration list for PBXNativeTarget "CloudKitDemoTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				CA1146C02DF38D000054BA77 /* Debug */,
-				CA1146C12DF38D000054BA77 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		CA9101D22E1F270200F85DD0 /* Build configuration list for PBXNativeTarget "CloudKitPlayground" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				CA9101D02E1F270200F85DD0 /* Debug */,
-				CA9101D12E1F270200F85DD0 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		CA9F99502DF9134D00934431 /* Build configuration list for PBXNativeTarget "RemindersTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				CA9F99512DF9134D00934431 /* Debug */,
-				CA9F99522DF9134D00934431 /* Release */,
+				CA5E469D2DEBFE420069E0F8 /* Debug */,
+				CA5E469E2DEBFE420069E0F8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1437,14 +1002,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference ".." */ = {
+		DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ..;
+			relativePath = "../../sharing-grdb";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		CA9F99D92DF9185A00934431 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
+		CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing.git";
 			requirement = {
@@ -1479,10 +1044,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		CA1146C92DF38D1D0054BA77 /* SharingGRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = SharingGRDB;
-		};
 		CA14DBC82DA884C400E36852 /* CasePaths */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
@@ -1493,44 +1054,25 @@
 			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
 			productName = UIKitNavigation;
 		};
-		CA42392D2DF7219E000AF560 /* SwiftUINavigation */ = {
+		CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
 			productName = SwiftUINavigation;
 		};
-		CA9102EA2E1F299900F85DD0 /* SharingGRDB */ = {
+		CA5E47062DECEF0F0069E0F8 /* InlineSnapshotTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = SharingGRDB;
+			package = CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = InlineSnapshotTesting;
 		};
-		CA9102EC2E1F29A400F85DD0 /* SharingGRDB */ = {
+		CA5E47082DECEFC80069E0F8 /* SnapshotTestingCustomDump */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference ".." */;
-			productName = SharingGRDB;
+			package = CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTestingCustomDump;
 		};
-		CA9102EE2E1F29AA00F85DD0 /* SharingGRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference ".." */;
-			productName = SharingGRDB;
-		};
-		CA9102F02E1F29E300F85DD0 /* SharingGRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CA9102E92E1F299900F85DD0 /* XCLocalSwiftPackageReference ".." */;
-			productName = SharingGRDB;
-		};
-		CA9F99D72DF915D300934431 /* DependenciesTestSupport */ = {
+		CA5E470A2DECF0280069E0F8 /* DependenciesTestSupport */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */;
 			productName = DependenciesTestSupport;
-		};
-		CA9F99DC2DF9185A00934431 /* SnapshotTestingCustomDump */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CA9F99D92DF9185A00934431 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
-			productName = SnapshotTestingCustomDump;
-		};
-		CA9F99DE2DF9190C00934431 /* InlineSnapshotTesting */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CA9F99D92DF9185A00934431 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
-			productName = InlineSnapshotTesting;
 		};
 		CAD001862D874F1F00FA977A /* DependenciesTestSupport */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1542,11 +1084,6 @@
 			package = DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */;
 			productName = DependenciesMacros;
 		};
-		DC7082532E035FC500A66B7D /* SwiftUINavigation */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
-			productName = SwiftUINavigation;
-		};
 		DCBE8A132D4842BF0071F499 /* CasePaths */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
@@ -1554,6 +1091,16 @@
 		};
 		DCD9AC8A2E02176700FB20F8 /* SharingGRDB */ = {
 			isa = XCSwiftPackageProductDependency;
+			productName = SharingGRDB;
+		};
+		DCD9AC8C2E02177200FB20F8 /* SharingGRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */;
+			productName = SharingGRDB;
+		};
+		DCD9AC8E2E02177900FB20F8 /* SharingGRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */;
 			productName = SharingGRDB;
 		};
 		DCF267382D48437300B680BE /* SwiftUINavigation */ = {

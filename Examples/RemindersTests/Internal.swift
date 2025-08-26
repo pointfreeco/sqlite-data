@@ -1,19 +1,17 @@
-import Dependencies
-import DependenciesTestSupport
 import CustomDump
 import Foundation
 import SharingGRDB
-import SnapshotTesting
 import SwiftUI
 import Testing
 
 @testable import Reminders
 
 @Suite(
+  .dependency(\.continuousClock, ImmediateClock()),
   .dependency(\.date.now, Date(timeIntervalSince1970: 1234567890)),
   .dependency(\.uuid, .incrementing),
   .dependencies {
-    try $0.bootstrapDatabase()
+    $0.defaultDatabase = try Reminders.appDatabase()
     try $0.defaultDatabase.write { try $0.seedSampleData() }
   },
   .snapshots(record: .failed)

@@ -6,7 +6,7 @@
 	<string>development</string>
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
-		<string>iCloud.co.pointfree.SQLiteData.demos.field-timestamps-2.Reminders</string>
+		<string>iCloud.co.pointfree.SQLiteData.RemindersDemo.Beta</string>
 	</array>
 	<key>com.apple.developer.icloud-services</key>
 	<array>
