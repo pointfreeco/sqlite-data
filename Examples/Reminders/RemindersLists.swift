@@ -329,7 +329,7 @@ struct RemindersListsView: View {
                 }
               }
             } label: {
-              Text("\(syncEngine.isRunning ? "Stop" : "Start") Synchronizing")
+              Text("\(syncEngine.isRunning ? "Stop" : "Start") synchronizing")
               Image(systemName: syncEngine.isRunning ? "stop" : "play")
             }
           } label: {

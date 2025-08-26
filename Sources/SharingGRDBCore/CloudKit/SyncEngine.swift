@@ -714,7 +714,7 @@
         }
         func open<T: PrimaryKeyedTable>(_: T.Type) async -> CKRecord? {
           let row =
-            withErrorReporting {
+            withErrorReporting(.sqliteDataCloudKitFailure) {
               try userDatabase.read { db in
                 try T
                   .where {
@@ -786,7 +786,7 @@
       let deletedRecordNames = deletedRecordIDs.map(\.recordName)
 
       let (metadataOfDeletions, recordsWithRoot): ([SyncMetadata], [RecordWithRoot]) =
-        await withErrorReporting {
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.read { db in
             let metadataOfDeletions = try SyncMetadata.where {
               $0.recordName.in(deletedRecordNames)
@@ -848,7 +848,7 @@
         )
       }
 
-      await withErrorReporting {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in
           try SyncMetadata
             .where { $0.recordName.in(deletedRecordNames) }
@@ -1019,7 +1019,7 @@
           open(table)
         } else if recordType == CKRecord.SystemType.share {
           for recordID in recordIDs {
-            withErrorReporting {
+            withErrorReporting(.sqliteDataCloudKitFailure) {
               try deleteShare(recordID: recordID)
             }
           }
@@ -1097,7 +1097,7 @@
           group.addTask {
             switch share {
             case .share(let share):
-              await withErrorReporting {
+              await withErrorReporting(.sqliteDataCloudKitFailure) {
                 try await self.cacheShare(share)
               }
             case .reference(let shareReference):
@@ -1105,7 +1105,7 @@
                 let record = try? await syncEngine.database.record(for: shareReference.recordID),
                 let share = record as? CKShare
               else { return }
-              await withErrorReporting {
+              await withErrorReporting(.sqliteDataCloudKitFailure) {
                 try await self.cacheShare(share)
               }
             }
@@ -1133,7 +1133,7 @@
       }
       for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() {
-          withErrorReporting {
+          withErrorReporting(.sqliteDataCloudKitFailure) {
             try userDatabase.write { db in
               try SyncMetadata
                 .where { $0.recordName.eq(failedRecord.recordID.recordName) }
@@ -1604,7 +1604,7 @@
 
   extension String {
     package static let sqliteDataCloudKitSchemaName = "sqlitedata_icloud"
-    fileprivate static let sqliteDataCloudKitFailure = "SharingGRDB CloudKit Failure"
+    package static let sqliteDataCloudKitFailure = "SQLiteData CloudKit Failure"
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
