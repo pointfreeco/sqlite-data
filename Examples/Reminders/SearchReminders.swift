@@ -5,29 +5,67 @@ import SwiftUI
 @MainActor
 @Observable
 class SearchRemindersModel {
-  var showCompletedInSearchResults = false
-  var searchText = "" {
+  var showCompletedInSearchResults = false {
     didSet {
-      Task { await updateQuery() }
+      searchTask = Task { try await updateQuery(debounce: false) }
     }
   }
 
-  @ObservationIgnored @FetchOne var completedCount: Int = 0
-  @ObservationIgnored @FetchAll var reminders: [Row]
+  var searchText = "" {
+    didSet {
+      if oldValue != searchText {
+        if searchText.hasSuffix("\t") {
+          searchTokens.append(Token(kind: .near, rawValue: String(searchText.dropLast())))
+          searchText = ""
+        }
+
+        searchTask = Task { try await updateQuery() }
+      }
+    }
+  }
+
+  var searchTokens: [Token] = [] {
+    didSet {
+      if oldValue != searchTokens {
+        searchTask = Task { try await updateQuery() }
+      }
+    }
+  }
+
+  var isSearching: Bool {
+    !searchText.isEmpty || !searchTokens.isEmpty
+  }
+
+  var searchTask: Task<Void, any Error>? {
+    willSet {
+      searchTask?.cancel()
+    }
+  }
+
+  @ObservationIgnored @Dependency(\.continuousClock) private var clock
 
   @ObservationIgnored @Dependency(\.defaultDatabase) private var database
 
-  func showCompletedButtonTapped() async {
+  @ObservationIgnored @Fetch var searchResults = SearchRequest.Value()
+
+  @ObservationIgnored @FetchAll(Tag.none) var tags
+
+  func showCompletedButtonTapped() async throws {
     showCompletedInSearchResults.toggle()
-    await updateQuery()
+    try await updateQuery()
+  }
+
+  func tagButtonTapped(_ tag: Tag) {
+    guard !searchText.isEmpty else { return }
+    searchTokens.append(Token(kind: .tag, rawValue: tag.title))
+    searchText = ""
   }
 
   func deleteCompletedReminders(monthsAgo: Int? = nil) {
     withErrorReporting {
       try database.write { db in
         try Reminder
-          .searching(searchText)
-          .where(\.isCompleted)
+          .where { $0.isCompleted && $0.id.in(baseQuery.select { $1.id }) }
           .where {
             if let monthsAgo {
               #sql("\($0.dueDate) < date('now', '-\(raw: monthsAgo) months')")
@@ -39,39 +77,54 @@ class SearchRemindersModel {
     }
   }
 
-  private func updateQuery() async {
+  private var baseQuery: SelectOf<ReminderText, Reminder> {
+    let searchText = searchText.quoted()
+
+    return
+      ReminderText
+      .where {
+        if !searchText.isEmpty {
+          $0.match(searchText)
+        }
+      }
+      .where {
+        for token in searchTokens {
+          switch token.kind {
+          case .near:
+            $0.match("NEAR(\(token.rawValue.quoted())")
+          case .tag:
+            $0.tags.match(token.rawValue)
+          }
+        }
+      }
+      .join(Reminder.all) { $0.rowid.eq($1.rowid) }
+  }
+
+  private func updateQuery(debounce: Bool = true) async throws {
+    if debounce {
+      try await clock.sleep(for: .seconds(0.3))
+    }
     await withErrorReporting {
-      if searchText.isEmpty {
+      if !isSearching {
         showCompletedInSearchResults = false
       }
-      try await $completedCount.load(
-        Reminder.searching(searchText)
-          .where(\.isCompleted)
-          .count(),
-        animation: .default
-      )
-      try await $reminders.load(
-        Reminder
-          .searching(searchText)
-          .where {
-            if !showCompletedInSearchResults {
-              !$0.isCompleted
-            }
-          }
-          .order { ($0.isCompleted, $0.dueDate) }
-          .withTags
-          .join(RemindersList.all) { $0.remindersListID.eq($3.id) }
-          .select {
-            Row.Columns(
-              isPastDue: $0.isPastDue,
-              notes: $0.inlineNotes,
-              reminder: $0,
-              remindersList: $3,
-              tags: #sql("\($2.jsonTitles)")
-            )
-          },
-        animation: .default
-      )
+
+      if searchText.hasPrefix("#") {
+        let existingTags = searchTokens.compactMap { $0.kind == .tag ? $0.rawValue : nil }
+        try await $tags.load(
+          Tag
+            .where { $0.title.hasPrefix(searchText.dropFirst()) && !$0.title.in(existingTags) }
+            .order(by: \.title)
+        )
+      } else {
+        try await $searchResults.load(
+          SearchRequest(
+            baseQuery: baseQuery,
+            showCompletedInSearchResults: showCompletedInSearchResults
+          ),
+          animation: .default
+        )
+      }
     }
   }
 
@@ -82,8 +135,60 @@ class SearchRemindersModel {
     let notes: String
     let reminder: Reminders.Reminder
     let remindersList: RemindersList
-    @Column(as: [String].JSONRepresentation.self)
-    let tags: [String]
+    let tags: String
+    let title: String
+  }
+
+  struct SearchRequest: FetchKeyRequest {
+    struct Value {
+      var completedCount = 0
+      var rows: [Row] = []
+    }
+    let baseQuery: SelectOf<ReminderText, Reminder>
+    let showCompletedInSearchResults: Bool
+    func fetch(_ db: Database) throws -> Value {
+      try Value(
+        completedCount:
+          baseQuery
+          .where { $1.isCompleted }
+          .count()
+          .fetchOne(db) ?? 0,
+        rows:
+          baseQuery
+          .where {
+            if !showCompletedInSearchResults {
+              !$1.isCompleted
+            }
+          }
+          .order {
+            ($1.isCompleted, $1.dueDate)
+          }
+          .join(RemindersList.all) { $1.remindersListID.eq($2.id) }
+          .select {
+            Row.Columns(
+              isPastDue: $1.isPastDue,
+              notes: $0.notes.snippet("**", "**", "...", 64).replace("\n", " "),
+              reminder: $1,
+              remindersList: $2,
+              tags: $0.tags.highlight("**", "**"),
+              title: $0.title.highlight("**", "**")
+            )
+          }
+          .fetchAll(db)
+      )
+    }
+  }
+
+  struct Token: Hashable, Identifiable {
+    enum Kind {
+      case near
+      case tag
+    }
+
+    var kind: Kind
+    var rawValue = ""
+
+    var id: Self { self }
   }
 }
 
@@ -95,11 +200,26 @@ struct SearchRemindersView: View {
   }
 
   var body: some View {
+    if model.searchText.hasPrefix("#"), !model.tags.isEmpty {
+      Section {
+        ScrollView(.horizontal) {
+          HStack {
+            ForEach(model.tags) { tag in
+              Button("#\(tag.title)") {
+                model.tagButtonTapped(tag)
+              }
+            }
+          }
+        }
+        .scrollIndicators(.hidden)
+      }
+    }
+
     HStack {
-      Text("\(model.completedCount) Completed")
+      Text("\(model.searchResults.completedCount) Completed")
         .monospacedDigit()
         .contentTransition(.numericText())
-      if model.completedCount > 0 {
+      if model.searchResults.completedCount > 0 {
         Text("•")
         Menu {
           Text("Clear Completed Reminders")
@@ -120,21 +240,22 @@ struct SearchRemindersView: View {
         }
         Spacer()
         Button(model.showCompletedInSearchResults ? "Hide" : "Show") {
-          Task { await model.showCompletedButtonTapped() }
+          Task { try await model.showCompletedButtonTapped() }
         }
       }
     }
     .buttonStyle(.borderless)
 
-    ForEach(model.reminders) { reminder in
+    ForEach(model.searchResults.rows) { row in
       ReminderRow(
-        color: reminder.remindersList.color,
-        isPastDue: reminder.isPastDue,
-        notes: reminder.notes,
-        reminder: reminder.reminder,
-        remindersList: reminder.remindersList,
+        color: row.remindersList.color,
+        isPastDue: row.isPastDue,
+        notes: row.notes,
+        reminder: row.reminder,
+        remindersList: row.remindersList,
         showCompleted: model.showCompletedInSearchResults,
-        tags: reminder.tags
+        tags: row.tags,
+        title: row.title
       )
     }
   }
@@ -155,5 +276,13 @@ struct SearchRemindersView: View {
       }
     }
     .searchable(text: $searchText)
+  }
+}
+
+extension String {
+  fileprivate func quoted() -> String {
+    split(separator: " ")
+      .map { #""\#($0.replacingOccurrences(of: #"""#, with: #""""#))""# }
+      .joined(separator: " ")
   }
 }

@@ -7,6 +7,7 @@ import Testing
 @testable import Reminders
 
 @Suite(
+  .dependency(\.continuousClock, ImmediateClock()),
   .dependency(\.date.now, Date(timeIntervalSince1970: 1234567890)),
   .dependency(\.uuid, .incrementing),
   .dependencies {
