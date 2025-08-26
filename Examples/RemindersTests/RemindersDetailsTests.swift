@@ -1,8 +1,6 @@
 import Dependencies
 import DependenciesTestSupport
-import GRDB
 import InlineSnapshotTesting
-import SharingGRDB
 import SnapshotTestingCustomDump
 import Testing
 
@@ -40,10 +38,7 @@ extension BaseTestSuite {
             ),
             isPastDue: true,
             notes: "",
-            tags: [
-              [0]: "optional",
-              [1]: "someday"
-            ]
+            tags: "#someday #optional"
           ),
           [1]: RemindersDetailModel.Row(
             reminder: Reminder(
@@ -65,9 +60,7 @@ extension BaseTestSuite {
             ),
             isPastDue: false,
             notes: "Ask about diet",
-            tags: [
-              [0]: "adulting"
-            ]
+            tags: "#adulting"
           ),
           [2]: RemindersDetailModel.Row(
             reminder: Reminder(
@@ -89,10 +82,7 @@ extension BaseTestSuite {
             ),
             isPastDue: false,
             notes: "",
-            tags: [
-              [0]: "night",
-              [1]: "social"
-            ]
+            tags: "#social #night"
           ),
           [3]: RemindersDetailModel.Row(
             reminder: Reminder(
@@ -120,11 +110,7 @@ extension BaseTestSuite {
             ),
             isPastDue: false,
             notes: "Milk Eggs Apples Oatmeal Spinach",
-            tags: [
-              [0]: "adulting",
-              [1]: "optional",
-              [2]: "someday"
-            ]
+            tags: "#someday #optional #adulting"
           )
         ]
         """#

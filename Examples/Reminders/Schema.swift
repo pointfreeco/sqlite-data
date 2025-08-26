@@ -20,14 +20,6 @@ struct RemindersList: Hashable, Identifiable {
 extension RemindersList.Draft: Identifiable {}
 
 @Table
-struct RemindersListAsset: Hashable, Identifiable {
-  @Column(primaryKey: true)
-  let remindersListID: RemindersList.ID
-  var coverImage: Data?
-  var id: RemindersList.ID { remindersListID }
-}
-
-@Table
 struct Reminder: Codable, Equatable, Identifiable {
   let id: UUID
   var dueDate: Date?
@@ -57,12 +49,6 @@ enum Priority: Int, Codable, QueryBindable {
 
 extension Reminder {
   static let incomplete = Self.where { !$0.isCompleted }
-  static func searching(_ text: String) -> Where<Reminder> {
-    Self.where {
-      $0.title.collate(.nocase).contains(text)
-        || $0.notes.collate(.nocase).contains(text)
-    }
-  }
   static let withTags = group(by: \.id)
     .leftJoin(ReminderTag.all) { $0.id.eq($1.reminderID) }
     .leftJoin(Tag.all) { $1.tagID.eq($2.primaryKey) }
@@ -80,21 +66,12 @@ extension Reminder.TableColumns {
   var isScheduled: some QueryExpression<Bool> {
     !isCompleted && dueDate.isNot(nil)
   }
-  var inlineNotes: some QueryExpression<String> {
-    notes.replace("\n", " ")
-  }
 }
 
 extension Tag {
   static let withReminders = group(by: \.primaryKey)
     .leftJoin(ReminderTag.all) { $0.primaryKey.eq($1.tagID) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
-}
-
-extension Tag.TableColumns {
-  var jsonTitles: some QueryExpression<[String].JSONRepresentation> {
-    self.title.jsonGroupArray(filter: self.title.isNot(nil))
-  }
 }
 
 @Table("remindersTags")
@@ -104,26 +81,20 @@ struct ReminderTag: Hashable, Identifiable {
   var tagID: Tag.ID
 }
 
-extension DependencyValues {
-  mutating func bootstrapDatabase() throws {
-    defaultDatabase = try Reminders.appDatabase()
-    defaultSyncEngine = try SyncEngine(
-      for: defaultDatabase,
-      tables: RemindersList.self,
-      RemindersListAsset.self,
-      Reminder.self,
-      Tag.self,
-      ReminderTag.self
-    )
-  }
+@Table @Selection
+struct ReminderText: StructuredQueries.FTS5 {
+  let rowid: Int
+  let title: String
+  let notes: String
+  let tags: String
 }
 
 func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
   let database: any DatabaseWriter
   var configuration = Configuration()
+  configuration.foreignKeysEnabled = true
   configuration.prepareDatabase { db in
-    try db.attachMetadatabase()
     #if DEBUG
       db.trace(options: .profile) {
         if context == .live {
@@ -141,17 +112,11 @@ func appDatabase() throws -> any DatabaseWriter {
       context == .live
       ? URL.documentsDirectory.appending(component: "db.sqlite").path()
       : URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
-    logger.debug(
-      """
-      App database
-      open "\(path)"
-      """
-    )
+    logger.info("open \(path)")
     database = try DatabasePool(path: path, configuration: configuration)
   }
   var migrator = DatabaseMigrator()
   #if DEBUG
-  // TODO: should we warn against this for CK apps?
     migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Create initial tables") { db in
@@ -160,19 +125,9 @@ func appDatabase() throws -> any DatabaseWriter {
       """
       CREATE TABLE "remindersLists" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "color" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT \(raw: defaultListColor ?? 0),
-        "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
-        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
-      ) STRICT
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TABLE "remindersListAssets" (
-        "remindersListID" TEXT PRIMARY KEY NOT NULL 
-          REFERENCES "remindersLists"("id") ON DELETE CASCADE,
-        "coverImage" BLOB
+        "color" INTEGER NOT NULL DEFAULT \(raw: defaultListColor ?? 0),
+        "position" INTEGER NOT NULL DEFAULT 0,
+        "title" TEXT NOT NULL
       ) STRICT
       """
     )
@@ -182,13 +137,13 @@ func appDatabase() throws -> any DatabaseWriter {
       CREATE TABLE "reminders" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "dueDate" TEXT,
-        "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
-        "isFlagged" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
-        "notes" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-        "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+        "isCompleted" INTEGER NOT NULL DEFAULT 0,
+        "isFlagged" INTEGER NOT NULL DEFAULT 0,
+        "notes" TEXT,
+        "position" INTEGER NOT NULL DEFAULT 0,
         "priority" INTEGER,
         "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE,
-        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
+        "title" TEXT NOT NULL
       ) STRICT
       """
     )
@@ -211,6 +166,17 @@ func appDatabase() throws -> any DatabaseWriter {
       """
     )
     .execute(db)
+    try #sql(
+      """
+      CREATE VIRTUAL TABLE "reminderTexts" USING fts5(
+        "title",
+        "notes",
+        "tags",
+        tokenize = 'trigram'
+      )
+      """
+    )
+    .execute(db)
   }
 
   try migrator.migrate(database)
@@ -226,12 +192,14 @@ func appDatabase() throws -> any DatabaseWriter {
         .update { $0.position = RemindersList.select { ($0.position.max() ?? -1) + 1} }
     })
     .execute(db)
+
     try Reminder.createTemporaryTrigger(after: .insert { new in
       Reminder
         .find(new.id)
         .update { $0.position = Reminder.select { ($0.position.max() ?? -1) + 1} }
     })
     .execute(db)
+
     try RemindersList.createTemporaryTrigger(after: .delete { _ in
       RemindersList.insert {
         RemindersList.Draft(
@@ -241,6 +209,61 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     } when: { _ in
       !RemindersList.exists()
+    })
+    .execute(db)
+
+    try Reminder.createTemporaryTrigger(after: .insert { new in
+      ReminderText.insert {
+        ReminderText.Columns(
+          rowid: new.rowid,
+          title: new.title,
+          notes: new.notes.replace("\n", " "),
+          tags: ""
+        )
+      }
+    })
+    .execute(db)
+
+    try Reminder.createTemporaryTrigger(after: .update {
+      ($0.title, $0.notes)
+    } forEachRow: { _, new in
+      ReminderText
+        .where { $0.rowid.eq(new.rowid) }
+        .update {
+          $0.title = new.title
+          $0.notes = new.notes.replace("\n", " ")
+        }
+    })
+    .execute(db)
+
+    try Reminder.createTemporaryTrigger(after: .delete { old in
+      ReminderText
+        .where { $0.rowid.eq(old.rowid) }
+        .delete()
+    })
+    .execute(db)
+
+    func updateReminderTextTags(
+      for reminderID: some QueryExpression<Reminder.ID>
+    ) -> UpdateOf<ReminderText> {
+      ReminderText
+        .where { $0.rowid.eq(Reminder.find(reminderID).select(\.rowid)) }
+        .update {
+          $0.tags = ReminderTag
+            .order(by: \.tagID)
+            .where { $0.reminderID.eq(reminderID) }
+            .join(Tag.all) { $0.tagID.eq($1.primaryKey) }
+            .select { ("#" + $1.title).groupConcat(" ") ?? "" }
+        }
+    }
+
+    try ReminderTag.createTemporaryTrigger(after: .insert { new in
+      updateReminderTextTags(for: new.reminderID)
+    })
+    .execute(db)
+
+    try ReminderTag.createTemporaryTrigger(after: .delete { old in
+      updateReminderTextTags(for: old.reminderID)
     })
     .execute(db)
   }

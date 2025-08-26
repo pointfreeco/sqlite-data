@@ -179,13 +179,13 @@ struct ReminderFormView: View {
           .execute(db)
         try ReminderTag.insert {
           selectedTags.map { tag in
-            ReminderTag.Draft(reminderID: reminderID, tagID: tag.title)
+            ReminderTag.Draft(reminderID: reminderID, tagID: tag.id)
           }
         }
         .execute(db)
       }
-      dismiss()
     }
+    dismiss()
   }
 }
 
@@ -211,7 +211,7 @@ struct ReminderFormPreview: PreviewProvider {
         let remindersList = try RemindersList.all.fetchOne(db)!
         return (
           remindersList,
-          try Reminder.where { $0.remindersListID.eq(remindersList.id) }.fetchOne(db)!
+          try Reminder.where { $0.remindersListID == remindersList.id }.fetchOne(db)!
         )
       }
     }
