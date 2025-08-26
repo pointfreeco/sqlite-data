@@ -169,7 +169,6 @@ func appDatabase() throws -> any DatabaseWriter {
     try #sql(
       """
       CREATE VIRTUAL TABLE "reminderTexts" USING fts5(
-        "reminderID" UNINDEXED,
         "title",
         "notes",
         "tags",
