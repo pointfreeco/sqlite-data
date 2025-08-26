@@ -6,10 +6,6 @@ import SnapshotTesting
 import Testing
 import os
 
-#if SharingGRDBSwiftLog
-  import Logging
-#endif
-
 @Suite(
   .snapshots(record: .missing),
   .dependencies {
