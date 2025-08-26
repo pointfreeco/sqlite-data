@@ -35,7 +35,7 @@ class RemindersListsModel {
     Reminder.select {
       Stats.Columns(
         allCount: $0.count(filter: !$0.isCompleted),
-        flaggedCount: $0.count(filter: $0.isFlagged),
+        flaggedCount: $0.count(filter: $0.isFlagged && !$0.isCompleted),
         scheduledCount: $0.count(filter: $0.isScheduled),
         todayCount: $0.count(filter: $0.isToday)
       )
@@ -70,6 +70,18 @@ class RemindersListsModel {
         detailType: .tags([tag])
       )
     )
+  }
+
+  func deleteTags(atOffsets offsets: IndexSet) {
+    withErrorReporting {
+      let tagTitles = offsets.map { tags[$0].title }
+      try database.write { db in
+        try Tag
+          .where { $0.title.in(tagTitles) }
+          .delete()
+          .execute(db)
+      }
+    }
   }
 
   func onAppear() {
@@ -240,6 +252,7 @@ struct RemindersListsView: View {
                 remindersList: state.remindersList
               )
             }
+            .buttonStyle(.borderless)
             .foregroundStyle(.primary)
           }
           .onMove(perform: model.move(from:to:))
@@ -261,6 +274,9 @@ struct RemindersListsView: View {
               TagRow(tag: tag)
             }
             .foregroundStyle(.primary)
+          }
+          .onDelete { offsets in
+            model.deleteTags(atOffsets: offsets)
           }
         } header: {
           Text("Tags")
