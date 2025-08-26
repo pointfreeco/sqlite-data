@@ -26,7 +26,7 @@ extension BaseCloudKitTests {
 
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -70,7 +70,7 @@ extension BaseCloudKitTests {
       }
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersListAsset
@@ -82,7 +82,7 @@ extension BaseCloudKitTests {
 
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(

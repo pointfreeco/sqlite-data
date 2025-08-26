@@ -1,5 +1,5 @@
 {
-  "originHash" : "7cafee854254a09c4d6402d84dc5a89248db5e3d4b4ce24f20330c2dfe875275",
+  "originHash" : "89322b5f0f685d676bc5ca645de68fe1ef7ffddb230cde1f79d6a72190e68ae7",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -60,8 +60,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-dependencies",
       "state" : {
-        "revision" : "eefcdaa88d2e2fd82e3405dfb6eb45872011a0b5",
-        "version" : "1.9.3"
+        "revision" : "a501eebe552fd23691c560adf474fca2169ad8aa",
+        "version" : "1.9.4"
       }
     },
     {
@@ -92,15 +92,6 @@
       }
     },
     {
-      "identity" : "swift-log",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-log",
-      "state" : {
-        "revision" : "ce592ae52f982c847a4efc0dd881cc9eb32d29f2",
-        "version" : "1.6.4"
-      }
-    },
-    {
       "identity" : "swift-perception",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-perception",
@@ -114,8 +105,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-sharing",
       "state" : {
-        "revision" : "bddb52233714512f63e0dfa8cd0ee8203103f3b1",
-        "version" : "2.7.1"
+        "revision" : "530c98ac2c3e393615616bd6d8fc604600c99f6f",
+        "version" : "2.7.2"
       }
     },
     {
@@ -132,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
-        "revision" : "2468f4e34d909d11c053d773562c03ffea40a72e",
-        "version" : "0.12.1"
+        "revision" : "b5b5a9ed9ff321f43a02f07394f2831eba5e11f2",
+        "version" : "0.13.0"
       }
     },
     {

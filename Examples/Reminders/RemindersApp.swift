@@ -1,4 +1,6 @@
 import CloudKit
+import Combine
+import Dependencies
 import SharingGRDB
 import SwiftUI
 import UIKit
@@ -12,15 +14,7 @@ struct RemindersApp: App {
   init() {
     if context == .live {
       try! prepareDependencies {
-        $0.defaultDatabase = try Reminders.appDatabase()
-        $0.defaultSyncEngine = try SyncEngine(
-          for: $0.defaultDatabase,
-          tables: RemindersList.self,
-          RemindersListAsset.self,
-          Reminder.self,
-          Tag.self,
-          ReminderTag.self
-        )
+        try $0.bootstrapDatabase()
       }
     }
   }

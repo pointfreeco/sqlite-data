@@ -1,6 +1,8 @@
 import Dependencies
 import DependenciesTestSupport
 import InlineSnapshotTesting
+import GRDB
+import SharingGRDB
 import SnapshotTestingCustomDump
 import Testing
 
@@ -35,7 +37,7 @@ extension BaseTestSuite {
             isPastDue: false,
             notes: "",
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000007),
+              id: UUID(00000000-0000-0000-0000-00000000000A),
               dueDate: Date(2009-02-17T23:31:30.000Z),
               isCompleted: false,
               isFlagged: false,
@@ -47,18 +49,7 @@ extension BaseTestSuite {
             ),
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000001),
-              color: Color(
-                provider: ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.8468733,
-                      linearGreen: 0.25015837,
-                      linearBlue: 0.0343398,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 3985191935,
               position: 2,
               title: "Family"
             ),
@@ -84,7 +75,7 @@ extension BaseTestSuite {
             isPastDue: false,
             notes: "",
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000007),
+              id: UUID(00000000-0000-0000-0000-00000000000A),
               dueDate: Date(2009-02-17T23:31:30.000Z),
               isCompleted: false,
               isFlagged: false,
@@ -96,18 +87,7 @@ extension BaseTestSuite {
             ),
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000001),
-              color: Color(
-                provider: ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.8468733,
-                      linearGreen: 0.25015837,
-                      linearBlue: 0.0343398,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 3985191935,
               position: 2,
               title: "Family"
             ),
@@ -117,7 +97,7 @@ extension BaseTestSuite {
             isPastDue: false,
             notes: "",
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000003),
+              id: UUID(00000000-0000-0000-0000-000000000006),
               dueDate: Date(2008-08-07T23:31:30.000Z),
               isCompleted: true,
               isFlagged: false,
@@ -129,18 +109,7 @@ extension BaseTestSuite {
             ),
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000000),
-              color: Color(
-                provider: #1 ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.06662594,
-                      linearGreen: 0.31854683,
-                      linearBlue: 0.8631573,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 1218047999,
               position: 1,
               title: "Personal"
             ),
@@ -171,7 +140,7 @@ extension BaseTestSuite {
             isPastDue: false,
             notes: "",
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000007),
+              id: UUID(00000000-0000-0000-0000-00000000000A),
               dueDate: Date(2009-02-17T23:31:30.000Z),
               isCompleted: false,
               isFlagged: false,
@@ -183,18 +152,7 @@ extension BaseTestSuite {
             ),
             remindersList: RemindersList(
               id: UUID(00000000-0000-0000-0000-000000000001),
-              color: Color(
-                provider: ColorBox(
-                  base: ResolvedColorProvider(
-                    color: Color.Resolved(
-                      linearRed: 0.8468733,
-                      linearGreen: 0.25015837,
-                      linearBlue: 0.0343398,
-                      opacity: 1.0
-                    )
-                  )
-                )
-              ),
+              color: 3985191935,
               position: 2,
               title: "Family"
             ),

@@ -18,7 +18,7 @@ extension BaseCloudKitTests {
         }
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -68,7 +68,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(30)
+        $0.datetime.now = now.addingTimeInterval(30)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
@@ -76,7 +76,7 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -121,7 +121,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
       await modificationCallback.notify()
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -172,7 +172,7 @@ extension BaseCloudKitTests {
         }
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -222,7 +222,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(60)
+        $0.datetime.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
@@ -230,7 +230,7 @@ extension BaseCloudKitTests {
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -275,7 +275,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
       await modificationCallback.notify()
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -335,7 +335,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(60)
+        $0.datetime.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
@@ -344,7 +344,7 @@ extension BaseCloudKitTests {
       await modificationCallback.notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -404,7 +404,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(30)
+        $0.datetime.now = now.addingTimeInterval(30)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
@@ -420,7 +420,7 @@ extension BaseCloudKitTests {
         )
       }
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -480,7 +480,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(60)
+        $0.datetime.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
@@ -489,7 +489,7 @@ extension BaseCloudKitTests {
       await modificationCallback.notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -549,7 +549,7 @@ extension BaseCloudKitTests {
       }()
 
       try await withDependencies {
-        $0.date.now = now.addingTimeInterval(60)
+        $0.datetime.now = now.addingTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
@@ -559,7 +559,7 @@ extension BaseCloudKitTests {
       await modificationCallback.notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -626,7 +626,7 @@ extension BaseCloudKitTests {
       )
 
       try withDependencies {
-        $0.date.now.addTimeInterval(2)
+        $0.datetime.now.addTimeInterval(2)
       } operation: {
         try userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.priority = 3 }.execute(db)
@@ -636,7 +636,7 @@ extension BaseCloudKitTests {
       await modificationsFinished.notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(

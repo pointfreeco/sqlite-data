@@ -30,7 +30,7 @@ extension BaseCloudKitTests {
         deleting: [RemindersList.recordID(for: 2)]
       )
       try withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         try userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.remindersListID = 2 }.execute(db)
@@ -41,7 +41,7 @@ extension BaseCloudKitTests {
       await modifications.notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -90,14 +90,14 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersList.find(1).delete().execute(db)
         }
       }
       let modifications = try withDependencies {
-        $0.date.now.addTimeInterval(2)
+        $0.datetime.now.addTimeInterval(2)
       } operation: {
         let reminderRecord = CKRecord(
           recordType: Reminder.tableName,
@@ -115,7 +115,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
       await modifications.notify()
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -174,14 +174,14 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersList.find(1).delete().execute(db)
         }
       }
       let modifications = try withDependencies {
-        $0.date.now.addTimeInterval(2)
+        $0.datetime.now.addTimeInterval(2)
       } operation: {
         let reminderRecord = CKRecord(
           recordType: Reminder.tableName,
@@ -199,7 +199,7 @@ extension BaseCloudKitTests {
       await modifications.notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
             privateCloudDatabase: MockCloudDatabase(
@@ -264,20 +264,20 @@ extension BaseCloudKitTests {
         deleting: [Parent.recordID(for: 2)]
       )
       try await withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
           try ChildWithOnDeleteSetNull.find(1).update { $0.parentID = 2 }.execute(db)
         }
       }
       try await withDependencies {
-        $0.date.now.addTimeInterval(2)
+        $0.datetime.now.addTimeInterval(2)
       } operation: {
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
         await modifications.notify()
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
             privateCloudDatabase: MockCloudDatabase(
@@ -344,20 +344,20 @@ extension BaseCloudKitTests {
         deleting: [Parent.recordID(for: 2)]
       )
       try await withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
           try ChildWithOnDeleteSetDefault.find(1).update { $0.parentID = 2 }.execute(db)
         }
       }
       try await withDependencies {
-        $0.date.now.addTimeInterval(2)
+        $0.datetime.now.addTimeInterval(2)
       } operation: {
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
         await modifications.notify()
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
             privateCloudDatabase: MockCloudDatabase(

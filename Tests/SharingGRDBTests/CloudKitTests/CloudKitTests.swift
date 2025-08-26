@@ -192,21 +192,13 @@ extension BaseCloudKitTests {
             tableName: "tags",
             schema: """
               CREATE TABLE "tags" (
-                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
+                "title" TEXT PRIMARY KEY NOT NULL COLLATE NOCASE 
               ) STRICT
               """,
             tableInfo: [
               [0]: TableInfo(
                 defaultValue: nil,
                 isPrimaryKey: true,
-                name: "id",
-                notNull: true,
-                type: "INTEGER"
-              ),
-              [1]: TableInfo(
-                defaultValue: "\'\'",
-                isPrimaryKey: false,
                 name: "title",
                 notNull: true,
                 type: "TEXT"
@@ -219,7 +211,7 @@ extension BaseCloudKitTests {
               CREATE TABLE "reminderTags" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "reminderID" INTEGER NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
-                "tagID" INTEGER NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
+                "tagID" TEXT NOT NULL REFERENCES "tags"("title") ON DELETE CASCADE ON UPDATE CASCADE
               ) STRICT
               """,
             tableInfo: [
@@ -242,7 +234,7 @@ extension BaseCloudKitTests {
                 isPrimaryKey: false,
                 name: "tagID",
                 notNull: true,
-                type: "INTEGER"
+                type: "TEXT"
               )
             ]
           ),
@@ -352,7 +344,8 @@ extension BaseCloudKitTests {
             schema: """
               CREATE TABLE "modelAs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+                "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
+                "isEven" INTEGER GENERATED ALWAYS AS ("count" % 2 == 0) VIRTUAL 
               )
               """,
             tableInfo: [
@@ -468,7 +461,7 @@ extension BaseCloudKitTests {
         }
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -514,7 +507,7 @@ extension BaseCloudKitTests {
         }
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -565,7 +558,8 @@ extension BaseCloudKitTests {
           [0]: "sqlitedata_icloud_datetime",
           [1]: "sqlitedata_icloud_diddelete",
           [2]: "sqlitedata_icloud_didupdate",
-          [3]: "sqlitedata_icloud_syncengineissynchronizingchanges"
+          [3]: "sqlitedata_icloud_haspermission",
+          [4]: "sqlitedata_icloud_syncengineissynchronizingchanges"
         ]
         """
       }
@@ -594,7 +588,7 @@ extension BaseCloudKitTests {
           .execute(db)
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -619,7 +613,7 @@ extension BaseCloudKitTests {
       }
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(60)
+        $0.datetime.now.addTimeInterval(60)
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersList
@@ -629,7 +623,7 @@ extension BaseCloudKitTests {
         }
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -660,7 +654,7 @@ extension BaseCloudKitTests {
           .execute(db)
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -684,7 +678,7 @@ extension BaseCloudKitTests {
         }
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -735,7 +729,7 @@ extension BaseCloudKitTests {
         }
       )
       #expect(metadata.userModificationDate == serverModificationDate)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -770,7 +764,7 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       try await withDependencies {
-        $0.date.now.addTimeInterval(1)
+        $0.datetime.now.addTimeInterval(1)
       } operation: {
         try await userDatabase.userWrite { db in
           try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)
@@ -780,7 +774,7 @@ extension BaseCloudKitTests {
       let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
       try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -813,7 +807,7 @@ extension BaseCloudKitTests {
         }
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -863,7 +857,7 @@ extension BaseCloudKitTests {
         }
       )
       #expect(metadata.userModificationDate == userModificationDate)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -896,7 +890,7 @@ extension BaseCloudKitTests {
         }
       }
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -933,7 +927,7 @@ extension BaseCloudKitTests {
           .fetchOne(db)
       }
       #expect(metadata == nil)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -952,8 +946,8 @@ extension BaseCloudKitTests {
     @Test func cascadingDeletionOrder() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
-          Tag(id: 1, title: "")
-          Tag(id: 2, title: "")
+          Tag(title: "fun")
+          Tag(title: "weekend")
         }
       }
       for _ in 1...100 {
@@ -965,14 +959,14 @@ extension BaseCloudKitTests {
             Reminder(id: 2, title: "", remindersListID: 1)
             Reminder(id: 3, title: "", remindersListID: 1)
             Reminder(id: 4, title: "", remindersListID: 1)
-            ReminderTag(id: 1, reminderID: 1, tagID: 1)
-            ReminderTag(id: 2, reminderID: 2, tagID: 1)
-            ReminderTag(id: 3, reminderID: 3, tagID: 1)
-            ReminderTag(id: 4, reminderID: 4, tagID: 1)
-            ReminderTag(id: 5, reminderID: 1, tagID: 2)
-            ReminderTag(id: 6, reminderID: 2, tagID: 2)
-            ReminderTag(id: 7, reminderID: 3, tagID: 2)
-            ReminderTag(id: 8, reminderID: 4, tagID: 2)
+            ReminderTag(id: 1, reminderID: 1, tagID: "fun")
+            ReminderTag(id: 2, reminderID: 2, tagID: "fun")
+            ReminderTag(id: 3, reminderID: 3, tagID: "fun")
+            ReminderTag(id: 4, reminderID: 4, tagID: "fun")
+            ReminderTag(id: 5, reminderID: 1, tagID: "weekend")
+            ReminderTag(id: 6, reminderID: 2, tagID: "weekend")
+            ReminderTag(id: 7, reminderID: 3, tagID: "weekend")
+            ReminderTag(id: 8, reminderID: 4, tagID: "weekend")
           }
         }
 
@@ -983,27 +977,25 @@ extension BaseCloudKitTests {
         }
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+        assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
             privateCloudDatabase: MockCloudDatabase(
               databaseScope: .private,
               storage: [
                 [0]: CKRecord(
-                  recordID: CKRecord.ID(1:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordID: CKRecord.ID(fun:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                   recordType: "tags",
                   parent: nil,
                   share: nil,
-                  id: 1,
-                  title: ""
+                  title: "fun"
                 ),
                 [1]: CKRecord(
-                  recordID: CKRecord.ID(2:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordID: CKRecord.ID(weekend:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                   recordType: "tags",
                   parent: nil,
                   share: nil,
-                  id: 2,
-                  title: ""
+                  title: "weekend"
                 )
               ]
             ),
@@ -1015,6 +1007,73 @@ extension BaseCloudKitTests {
           """
         }
       }
+    }
+  }
+
+  @Test func generatedColumns() async throws {
+    try await userDatabase.userWrite { db in
+      try db.seed {
+        ModelA(id: 1, count: 42, isEven: true)
+      }
+    }
+    try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+    assertInlineSnapshot(of: container, as: .customDump) {
+      """
+      MockCloudContainer(
+        privateCloudDatabase: MockCloudDatabase(
+          databaseScope: .private,
+          storage: [
+            [0]: CKRecord(
+              recordID: CKRecord.ID(1:modelAs/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordType: "modelAs",
+              parent: nil,
+              share: nil,
+              count: 42,
+              id: 1
+            )
+          ]
+        ),
+        sharedCloudDatabase: MockCloudDatabase(
+          databaseScope: .shared,
+          storage: []
+        )
+      )
+      """
+    }
+
+
+    let record = try syncEngine.private.database.record(for: ModelA.recordID(for: 1))
+    record.encryptedValues["isEven"] = false
+    try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
+
+    assertInlineSnapshot(of: container, as: .customDump) {
+      """
+      MockCloudContainer(
+        privateCloudDatabase: MockCloudDatabase(
+          databaseScope: .private,
+          storage: [
+            [0]: CKRecord(
+              recordID: CKRecord.ID(1:modelAs/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordType: "modelAs",
+              parent: nil,
+              share: nil,
+              count: 42,
+              id: 1,
+              isEven: 0
+            )
+          ]
+        ),
+        sharedCloudDatabase: MockCloudDatabase(
+          databaseScope: .shared,
+          storage: []
+        )
+      )
+      """
+    }
+
+    try await userDatabase.read { db in
+      let modelA = try #require(try ModelA.find(1).fetchOne(db))
+      #expect(modelA.isEven == true)
     }
   }
 

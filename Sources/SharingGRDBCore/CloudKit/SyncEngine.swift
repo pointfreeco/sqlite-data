@@ -2,6 +2,7 @@
   import CloudKit
   import ConcurrencyExtras
   import CustomDump
+  import Dependencies
   import OrderedCollections
   import OSLog
   import StructuredQueriesCore
@@ -13,6 +14,20 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Sendable {
+    #if SharingGRDBSwiftLog
+      public static let defaultLogger = {
+        if isTesting {
+          return Logger(label: "disabled") { _ in
+            SwiftLogNoOpLogHandler()
+          }
+        }
+        return Logger(label: "cloudkit.sqlite.data")
+      }()
+    #else
+      public static let defaultLogger = isTesting
+        ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
+    #endif
+    
     package let userDatabase: UserDatabase
     package let logger: Logger
     package let metadatabase: any DatabaseReader
@@ -27,8 +42,8 @@
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
-
     let dataManager = Dependency(\.dataManager)
+    public static let writePermissionError = "co.pointfree.sqlitedata-icloud.write-permission-error"
 
     public convenience init<each T1: PrimaryKeyedTable, each T2: PrimaryKeyedTable>(
       for database: any DatabaseWriter,
@@ -36,14 +51,62 @@
       privateTables: repeat (each T2).Type,
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
-      logger: Logger = .syncEngine
+      logger: Logger = defaultLogger
     ) throws
     where
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
       repeat (each T2).PrimaryKey.QueryOutput: IdentifierStringConvertible
     {
-      let containerIdentifier = containerIdentifier
+      let containerIdentifier =
+        containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
+
+      var allTables: [any PrimaryKeyedTable.Type] = []
+      var allPrivateTables: [any PrimaryKeyedTable.Type] = []
+      for table in repeat each tables {
+        allTables.append(table)
+      }
+      for privateTable in repeat each privateTables {
+        allPrivateTables.append(privateTable)
+      }
+      let userDatabase = UserDatabase(database: database)
+
+      guard !isTesting
+      else {
+        let privateDatabase = MockCloudDatabase(databaseScope: .private)
+        let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+        try self.init(
+          container: MockCloudContainer(
+            containerIdentifier: containerIdentifier ?? "co.pointfree.sqlitedata-icloud.testing",
+            privateCloudDatabase: privateDatabase,
+            sharedCloudDatabase: sharedDatabase
+          ),
+          defaultZone: defaultZone,
+          defaultSyncEngines: { _, syncEngine in
+            (
+              private: MockSyncEngine(
+                database: privateDatabase,
+                delegate: syncEngine,
+                state: MockSyncEngineState()
+              ),
+              shared: MockSyncEngine(
+                database: sharedDatabase,
+                delegate: syncEngine,
+                state: MockSyncEngineState()
+              )
+            )
+          },
+          userDatabase: userDatabase,
+          logger: logger,
+          tables: allTables,
+          privateTables: allPrivateTables
+        )
+        _ = try setUpSyncEngine(
+          userDatabase: userDatabase,
+          metadatabase: metadatabase
+        )
+        return
+      }
 
       guard let containerIdentifier else {
         throw SchemaError(
@@ -56,16 +119,6 @@
       }
 
       let container = CKContainer(identifier: containerIdentifier)
-      var allTables: [any PrimaryKeyedTable.Type] = []
-      var allPrivateTables: [any PrimaryKeyedTable.Type] = []
-      for table in repeat each tables {
-        allTables.append(table)
-      }
-      for privateTable in repeat each privateTables {
-        allPrivateTables.append(privateTable)
-      }
-
-      let userDatabase = UserDatabase(database: database)
       try self.init(
         container: container,
         defaultZone: defaultZone,
@@ -219,6 +272,7 @@
         db.add(function: .syncEngineIsSynchronizingChanges)
         db.add(function: .didUpdate(syncEngine: self))
         db.add(function: .didDelete(syncEngine: self))
+        db.add(function: .hasPermission)
 
         for trigger in SyncMetadata.callbackTriggers {
           try trigger.execute(db)
@@ -373,6 +427,7 @@
         for trigger in SyncMetadata.callbackTriggers.reversed() {
           try trigger.drop().execute(db)
         }
+        db.remove(function: .hasPermission)
         db.remove(function: .didDelete(syncEngine: self))
         db.remove(function: .didUpdate(syncEngine: self))
         db.remove(function: .syncEngineIsSynchronizingChanges)
@@ -421,39 +476,35 @@
       )
     }
 
-    func didDelete(recordName: String, zoneID: CKRecordZone.ID?) {
+    func didDelete(recordName: String, zoneID: CKRecordZone.ID?, share: CKShare?) {
       let zoneID = zoneID ?? defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
-      syncEngine?.state.add(
-        pendingRecordZoneChanges: [
-          .deleteRecord(
-            CKRecord.ID(
-              recordName: recordName,
-              zoneID: zoneID
-            )
+      var changes: [CKSyncEngine.PendingRecordZoneChange] = [
+        .deleteRecord(
+          CKRecord.ID(
+            recordName: recordName,
+            zoneID: zoneID
           )
-        ]
-      )
+        )
+      ]
+      if let share {
+        changes.append(.deleteRecord(share.recordID))
+      }
+      syncEngine?.state.add(pendingRecordZoneChanges: changes)
     }
 
-    // TODO: Possible to get test coverage on this?
     package func acceptShare(metadata: ShareMetadata) async throws {
-      guard let metadata = metadata.rawValue
-      else {
-        reportIssue("TODO")
-        return
-      }
       guard let rootRecordID = metadata.hierarchicalRootRecordID
       else {
-        reportIssue("TODO")
+        reportIssue("Attempting to share without root record information.")
         return
       }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
       _ = try await container.accept(metadata)
       try await syncEngines.shared?.fetchChanges(
-        .init(
+        CKSyncEngine.FetchChangesOptions(
           scope: .zoneIDs([rootRecordID.zoneID]),
           operationGroup: nil
         )
@@ -560,11 +611,11 @@
       options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(scope: .all),
       syncEngine: any SyncEngineProtocol
     ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-      let allChanges = syncEngine.state.pendingRecordZoneChanges.filter(options.scope.contains)
-      guard !allChanges.isEmpty
+      var changes = await pendingRecordZoneChanges(options: options, syncEngine: syncEngine)
+      guard !changes.isEmpty
       else { return nil }
 
-      let changes = allChanges.sorted { lhs, rhs in
+      changes.sort { lhs, rhs in
         switch (lhs, rhs) {
         case (.saveRecord(let lhs), .saveRecord(let rhs)):
           guard
@@ -717,6 +768,101 @@
         return await open(table)
       }
       return batch
+    }
+
+    private func pendingRecordZoneChanges(
+      options: CKSyncEngine.SendChangesOptions,
+      syncEngine: any SyncEngineProtocol
+    ) async -> [CKSyncEngine.PendingRecordZoneChange] {
+      var changes = syncEngine.state.pendingRecordZoneChanges.filter(options.scope.contains)
+      guard !changes.isEmpty
+      else { return [] }
+
+      let deletedRecordIDs: [CKRecord.ID] = changes.compactMap {
+        switch $0 {
+        case .saveRecord(_):
+          return nil
+        case .deleteRecord(let recordID):
+          return recordID
+        @unknown default:
+          return nil
+        }
+      }
+      let deletedRecordNames = deletedRecordIDs.map(\.recordName)
+
+      let (metadataOfDeletions, recordsWithRoot): ([SyncMetadata], [RecordWithRoot]) =
+        await withErrorReporting {
+          try await userDatabase.read { db in
+            let metadataOfDeletions = try SyncMetadata.where {
+              $0.recordName.in(deletedRecordNames)
+            }
+            .fetchAll(db)
+
+            let recordsWithRoot =
+              try With {
+                SyncMetadata
+                  .where { $0.parentRecordName.is(nil) && $0.recordName.in(deletedRecordNames) }
+                  .select {
+                    RecordWithRoot.Columns(
+                      parentRecordName: $0.parentRecordName,
+                      recordName: $0.recordName,
+                      lastKnownServerRecord: $0.lastKnownServerRecord,
+                      rootRecordName: $0.recordName,
+                      rootLastKnownServerRecord: $0.lastKnownServerRecord
+                    )
+                  }
+                  .union(
+                    all: true,
+                    SyncMetadata
+                      .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
+                      .select { metadata, tree in
+                        RecordWithRoot.Columns(
+                          parentRecordName: metadata.parentRecordName,
+                          recordName: metadata.recordName,
+                          lastKnownServerRecord: metadata.lastKnownServerRecord,
+                          rootRecordName: tree.rootRecordName,
+                          rootLastKnownServerRecord: tree.lastKnownServerRecord
+                        )
+                      }
+                  )
+              } query: {
+                RecordWithRoot
+                  .where { $0.recordName.in(deletedRecordNames) }
+              }
+              .fetchAll(db)
+
+            return (metadataOfDeletions, recordsWithRoot)
+          }
+        }
+        ?? ([], [])
+
+      let shareRecordIDsToDelete = metadataOfDeletions.compactMap(\.share?.recordID)
+
+      for recordWithRoot in recordsWithRoot {
+        guard
+          let lastKnownServerRecord = recordWithRoot.lastKnownServerRecord,
+          let rootLastKnownServerRecord = recordWithRoot.rootLastKnownServerRecord
+        else { continue }
+        guard let rootShareRecordID = rootLastKnownServerRecord.share?.recordID
+        else { continue }
+        guard shareRecordIDsToDelete.contains(rootShareRecordID)
+        else { continue }
+        changes.removeAll(where: { $0 == .deleteRecord(lastKnownServerRecord.recordID) })
+        syncEngine.state.remove(
+          pendingRecordZoneChanges: [.deleteRecord(lastKnownServerRecord.recordID)]
+        )
+      }
+
+      await withErrorReporting {
+        try await userDatabase.write { db in
+          try SyncMetadata
+            .where { $0.recordName.in(deletedRecordNames) }
+            .delete()
+            .execute(db)
+        }
+      }
+
+      return changes
     }
 
     package func handleAccountChange(
@@ -877,8 +1023,8 @@
           }
           open(table)
         } else if recordType == CKRecord.SystemType.share {
-          withErrorReporting {
-            for recordID in recordIDs {
+          for recordID in recordIDs {
+            withErrorReporting {
               try deleteShare(recordID: recordID)
             }
           }
@@ -1118,30 +1264,24 @@
     }
 
     private func cacheShare(_ share: CKShare) async throws {
-      guard let url = share.url
-      else { return }
-
       guard
-        let metadata = try? await container.shareMetadata(
-          for: url,
-          shouldFetchRootRecord: true
-        )
+        let metadata = try? await container.shareMetadata(for: share, shouldFetchRootRecord: false)
       else {
         // TODO: should we delete this record if it doesn't exist in the container?
         return
       }
 
-      guard let rootRecord = metadata.rootRecord
+      guard let rootRecordID = metadata.hierarchicalRootRecordID
       else { return }
       try await userDatabase.write { db in
         try SyncMetadata
-          .where { $0.recordName.eq(rootRecord.recordID.recordName) }
+          .where { $0.recordName.eq(rootRecordID.recordName) }
           .update { $0.share = share }
           .execute(db)
       }
     }
 
-    private func deleteShare(recordID: CKRecord.ID) throws {
+    func deleteShare(recordID: CKRecord.ID) throws {
       try userDatabase.write { db in
         let shareAndRecordName =
           try SyncMetadata
@@ -1382,7 +1522,7 @@
   @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
   extension DatabaseFunction {
     fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
-      Self("didUpdate") { recordName, zoneID in
+      Self("didUpdate") { recordName, zoneID, _ in
         syncEngine.didUpdate(
           recordName: recordName,
           zoneID: zoneID
@@ -1391,20 +1531,41 @@
     }
 
     fileprivate static func didDelete(syncEngine: SyncEngine) -> Self {
-      return Self("didDelete") { recordName, zoneID in
-        syncEngine.didDelete(recordName: recordName, zoneID: zoneID)
+      return Self("didDelete") { recordName, zoneID, share in
+        syncEngine
+          .didDelete(
+            recordName: recordName,
+            zoneID: zoneID,
+            share: share
+          )
       }
     }
 
     fileprivate static var datetime: Self {
       Self(.sqliteDataCloudKitSchemaName + "_datetime", argumentCount: 0) { _ in
-        @Dependency(\.date.now) var now
+        @Dependency(\.datetime.now) var now
         return now.formatted(
           .iso8601
             .year().month().day()
             .dateTimeSeparator(.space)
             .time(includingFractionalSeconds: true)
         )
+      }
+    }
+
+    fileprivate static var hasPermission: Self {
+      Self(.sqliteDataCloudKitSchemaName + "_hasPermission", argumentCount: 1) { arguments in
+        let share = try Data.fromDatabaseValue(arguments[0]).flatMap {
+          let coder = try NSKeyedUnarchiver(forReadingFrom: $0)
+          coder.requiresSecureCoding = true
+          return CKShare(coder: coder)
+        }
+        guard let share
+        else { return true }
+        let hasPermission =
+          share.publicPermission == .readWrite
+          || share.currentUserParticipant?.permission == .readWrite
+        return hasPermission
       }
     }
 
@@ -1420,9 +1581,9 @@
 
     private convenience init(
       _ name: String,
-      function: @escaping @Sendable (String, CKRecordZone.ID?) -> Void
+      function: @escaping @Sendable (String, CKRecordZone.ID?, CKShare?) -> Void
     ) {
-      self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 2) { arguments in
+      self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 3) { arguments in
         guard
           let recordName = String.fromDatabaseValue(arguments[0])
         else {
@@ -1433,7 +1594,14 @@
           coder.requiresSecureCoding = true
           return CKRecord(coder: coder)?.recordID.zoneID
         }
-        function(recordName, zoneID)
+
+        let share = try Data.fromDatabaseValue(arguments[2]).flatMap {
+          let coder = try NSKeyedUnarchiver(forReadingFrom: $0)
+          coder.requiresSecureCoding = true
+          return CKShare(coder: coder)
+        }
+
+        function(recordName, zoneID, share)
         return nil
       }
     }
@@ -1459,7 +1627,8 @@
       else {
         return URL(string: "file:\(String.sqliteDataCloudKitSchemaName)?mode=memory&cache=shared")!
       }
-      return databaseURL
+      return
+        databaseURL
         .deletingLastPathComponent()
         .appending(component: ".\(databaseURL.deletingPathExtension().lastPathComponent)")
         .appendingPathExtension("metadata\(containerIdentifier.map { "-\($0)" } ?? "").sqlite")
@@ -1527,7 +1696,8 @@
     /// - Parameter containerIdentifier: The identifier of the CloudKit container used to synchronize
     ///                                  data.
     public func attachMetadatabase(containerIdentifier: String? = nil) throws {
-      let containerIdentifier = containerIdentifier
+      let containerIdentifier =
+        containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
 
       guard let containerIdentifier else {

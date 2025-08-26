@@ -56,7 +56,7 @@ extension BaseCloudKitTests {
       )
       #expect(saveRecordResults.allSatisfy({ (try? $1.get()) != nil }))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -102,7 +102,7 @@ extension BaseCloudKitTests {
 
       try await syncEngine.modifyRecords(scope: .private, saving: [child]).notify()
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -134,7 +134,7 @@ extension BaseCloudKitTests {
       }
       #expect(error == CKError(.zoneNotFound))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -162,7 +162,7 @@ extension BaseCloudKitTests {
       )
       #expect(deleteResults.allSatisfy({ (try? $1.get()) != nil }))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -187,7 +187,7 @@ extension BaseCloudKitTests {
       )
       #expect(deleteResults.allSatisfy({ (try? $1.get()) != nil }))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -218,7 +218,7 @@ extension BaseCloudKitTests {
       }
       #expect(error == CKError(.zoneNotFound))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -249,7 +249,7 @@ extension BaseCloudKitTests {
       }
       #expect(error == CKError(.referenceViolation))
 
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -372,6 +372,43 @@ extension BaseCloudKitTests {
         _ = try await self.syncEngine.private.database.records(for: [CKRecord.ID(recordName: "test")])
       }
       #expect(error == CKError(.notAuthenticated))
+    }
+
+    @Test func incorrectlyCreatingNewRecordIdentity() async throws {
+      let record1 = CKRecord(recordType: "A", recordID: CKRecord.ID.init(recordName: "1"))
+      _ = try syncEngine.modifyRecords(scope: .private, saving: [record1])
+      let record2 = CKRecord(recordType: "A", recordID: CKRecord.ID.init(recordName: "1"))
+      try withKnownIssue {
+        _ = try syncEngine.modifyRecords(scope: .private, saving: [record2])
+      } matching: { issue in
+        issue.description == """
+          Issue recorded: A new identity was created for an existing 'CKRecord' ('1'). Rather than \
+          creating 'CKRecord' from scratch for an existing record, use the database to fetch the \ 
+          current record.
+          """
+      }
+    }
+
+    @Test func saveShareWithoutRootRecord() async throws {
+      let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
+      let share = CKShare(rootRecord: record, shareID: CKRecord.ID(recordName: "share"))
+      try withKnownIssue {
+        _ = try syncEngine.modifyRecords(scope: .private, saving: [share])
+      } matching: { issue in
+        issue.description == """
+          Issue recorded: An added share is being saved without its rootRecord being saved in the \
+          same operation.
+          """
+      }
+    }
+
+    @Test func saveShareAndRootThenSaveShareAlone() async throws {
+      let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
+      let share = CKShare(rootRecord: record, shareID: CKRecord.ID(recordName: "share"))
+      _ = try syncEngine.modifyRecords(scope: .private, saving: [share, record])
+
+      let newShare = try syncEngine.private.database.record(for: CKRecord.ID(recordName: "share"))
+      _ = try syncEngine.modifyRecords(scope: .private, saving: [newShare])
     }
   }
 }

@@ -21,7 +21,7 @@ extension BaseCloudKitTests {
       }
 
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -73,7 +73,7 @@ extension BaseCloudKitTests {
       }
 
       try withDependencies {
-        $0.date.now.addTimeInterval(60)
+        $0.datetime.now.addTimeInterval(60)
       } operation: {
         _ = try {
           try userDatabase.userWrite { db in
@@ -91,7 +91,7 @@ extension BaseCloudKitTests {
       }
 
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -139,13 +139,13 @@ extension BaseCloudKitTests {
         try db.seed {
           RemindersList(id: 1, title: "Personal")
           Reminder(id: 1, title: "Groceries", remindersListID: 1)
-          Tag(id: 1, title: "weekend")
-          ReminderTag(id: 1, reminderID: 1, tagID: 1)
+          Tag(title: "weekend")
+          ReminderTag(id: 1, reminderID: 1, tagID: "weekend")
         }
       }
 
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-      assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+      assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
@@ -158,7 +158,7 @@ extension BaseCloudKitTests {
                 share: nil,
                 id: 1,
                 reminderID: 1,
-                tagID: 1
+                tagID: "weekend"
               ),
               [1]: CKRecord(
                 recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
@@ -179,11 +179,10 @@ extension BaseCloudKitTests {
                 title: "Personal"
               ),
               [3]: CKRecord(
-                recordID: CKRecord.ID(1:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(weekend:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
                 recordType: "tags",
                 parent: nil,
                 share: nil,
-                id: 1,
                 title: "weekend"
               )
             ]

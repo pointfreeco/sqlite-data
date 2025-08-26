@@ -13,7 +13,7 @@ import os
 @Suite(
   .snapshots(record: .missing),
   .dependencies {
-    $0.date.now = Date(timeIntervalSince1970: 0)
+    $0.datetime.now = Date(timeIntervalSince1970: 0)
     $0.dataManager = InMemoryDataManager()
   }
 )
@@ -22,14 +22,12 @@ class BaseCloudKitTests: @unchecked Sendable {
   let userDatabase: UserDatabase
   private let _syncEngine: any Sendable
 
-  @Dependency(\.date.now) var now
+  @Dependency(\.datetime.now) var now
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   var syncEngine: SyncEngine {
     _syncEngine as! SyncEngine
   }
-
-  typealias SendablePrimaryKeyedTable<T> = PrimaryKeyedTable<T> & Sendable
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   init(
@@ -159,13 +157,11 @@ extension SyncEngine {
           MockSyncEngine(
             database: container.privateCloudDatabase as! MockCloudDatabase,
             delegate: syncEngine,
-            scope: .private,
             state: MockSyncEngineState()
           ),
           MockSyncEngine(
             database: container.sharedCloudDatabase as! MockCloudDatabase,
             delegate: syncEngine,
-            scope: .shared,
             state: MockSyncEngineState()
           )
         )

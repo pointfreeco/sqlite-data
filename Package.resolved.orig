@@ -1,5 +1,9 @@
 {
-  "originHash" : "5ded5ba49617fcf43253f921c393a9829acb4bd0620c1d273ad236940406de92",
+<<<<<<< HEAD
+  "originHash" : "493bf6e940098a804cf8989b9f72881f75a5c49199e8c67acd3bcf701cf32b20",
+=======
+  "originHash" : "d87ac3bfcdef05674d1d54c62277ab77a7f1a74d2b106a3e0a8eb5567e2ff1ed",
+>>>>>>> origin/main
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -17,15 +21,6 @@
       "state" : {
         "revision" : "8ba1bc9a96afc731a000fd4136dd13a5a46297bd",
         "version" : "7.6.1"
-      }
-    },
-    {
-      "identity" : "swift-case-paths",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/swift-case-paths",
-      "state" : {
-        "revision" : "9810c8d6c2914de251e072312f01d3bf80071852",
-        "version" : "1.7.1"
       }
     },
     {
@@ -69,8 +64,31 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-dependencies",
       "state" : {
+<<<<<<< HEAD
         "revision" : "eefcdaa88d2e2fd82e3405dfb6eb45872011a0b5",
         "version" : "1.9.3"
+=======
+        "revision" : "a501eebe552fd23691c560adf474fca2169ad8aa",
+        "version" : "1.9.4"
+>>>>>>> origin/main
+      }
+    },
+    {
+      "identity" : "swift-docc-plugin",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-docc-plugin",
+      "state" : {
+        "revision" : "3e4f133a77e644a5812911a0513aeb7288b07d06",
+        "version" : "1.4.5"
+      }
+    },
+    {
+      "identity" : "swift-docc-symbolkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-docc-symbolkit",
+      "state" : {
+        "revision" : "b45d1f2ed151d057b54504d653e0da5552844e34",
+        "version" : "1.0.0"
       }
     },
     {
@@ -80,15 +98,6 @@
       "state" : {
         "revision" : "322d9ffeeba85c9f7c4984b39422ec7cc3c56597",
         "version" : "1.1.1"
-      }
-    },
-    {
-      "identity" : "swift-navigation",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/swift-navigation",
-      "state" : {
-        "revision" : "4e89284c1966538109dc783497405bc680e9bc96",
-        "version" : "2.4.0"
       }
     },
     {
@@ -105,14 +114,19 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-sharing",
       "state" : {
+<<<<<<< HEAD
         "revision" : "bddb52233714512f63e0dfa8cd0ee8203103f3b1",
         "version" : "2.7.1"
+=======
+        "revision" : "530c98ac2c3e393615616bd6d8fc604600c99f6f",
+        "version" : "2.7.2"
+>>>>>>> origin/main
       }
     },
     {
       "identity" : "swift-snapshot-testing",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/swift-snapshot-testing.git",
+      "location" : "https://github.com/pointfreeco/swift-snapshot-testing",
       "state" : {
         "revision" : "d7e40607dcd6bc26543f5d9433103f06e0b28f8f",
         "version" : "1.18.6"
