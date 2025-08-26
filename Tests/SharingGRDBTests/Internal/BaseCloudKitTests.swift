@@ -142,13 +142,6 @@ extension SyncEngine {
     tables: [any PrimaryKeyedTable.Type],
     privateTables: [any PrimaryKeyedTable.Type] = []
   ) async throws {
-    #if SharingGRDBSwiftLog
-      let logger = Logger(label: "disabled") { _ in
-        SwiftLogNoOpLogHandler()
-      }
-    #else
-      let logger = Logger(.disabled)
-    #endif
     try self.init(
       container: container,
       defaultZone: Self.defaultTestZone,
@@ -167,7 +160,7 @@ extension SyncEngine {
         )
       },
       userDatabase: userDatabase,
-      logger: logger,
+      logger: .osLogger(os.Logger(.disabled)),
       tables: tables,
       privateTables: privateTables
     )
