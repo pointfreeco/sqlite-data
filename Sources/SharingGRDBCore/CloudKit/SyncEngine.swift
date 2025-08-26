@@ -270,12 +270,20 @@
     }
 
     public func stop() {
+      guard isRunning else { return }
       syncEngines.withValue {
         $0 = SyncEngines()
       }
     }
 
+    public var isRunning: Bool {
+      syncEngines.withValue {
+        $0.isRunning
+      }
+    }
+
     private func start() throws -> Task<Void, Never> {
+      guard !isRunning else { return Task {} }
       let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
       syncEngines.withValue {
         $0 = SyncEngines(
@@ -1633,31 +1641,31 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package struct SyncEngines {
-    let _private: (any SyncEngineProtocol)?
-    let _shared: (any SyncEngineProtocol)?
+    private let rawValue: (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)?
     init() {
-      _private = nil
-      _shared = nil
+      rawValue = nil
     }
     init(private: any SyncEngineProtocol, shared: any SyncEngineProtocol) {
-      self._private = `private`
-      self._shared = shared
+      rawValue = (`private`, shared)
+    }
+    var isRunning: Bool {
+      rawValue != nil
     }
     package var `private`: (any SyncEngineProtocol)? {
-      guard let _private
+      guard let `private` = rawValue?.private
       else {
         reportIssue("Private sync engine has not been set.")
         return nil
       }
-      return _private
+      return `private`
     }
     package var `shared`: (any SyncEngineProtocol)? {
-      guard let _shared
+      guard let `shared` = rawValue?.shared
       else {
         reportIssue("Shared sync engine has not been set.")
         return nil
       }
-      return _shared
+      return `shared`
     }
   }
 

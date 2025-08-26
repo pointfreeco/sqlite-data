@@ -12,7 +12,8 @@ class RemindersListsModel {
     RemindersList
       .group(by: \.id)
       .order(by: \.position)
-      .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted
+      .leftJoin(Reminder.all) {
+        $0.id.eq($1.remindersListID) && !$1.isCompleted
       }
       .leftJoin(SyncMetadata.all) { $0.recordName.eq($2.recordName) }
       .select {
@@ -131,7 +132,7 @@ class RemindersListsModel {
             let ids = Array(ids.enumerated())
             let (first, rest) = (ids.first!, ids.dropFirst())
             $0.position =
-            rest
+              rest
               .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
                 cases.when(id.element, then: id.offset)
               }
@@ -143,13 +144,13 @@ class RemindersListsModel {
   }
 
   #if DEBUG
-  func seedDatabaseButtonTapped() {
-    withErrorReporting {
-      try database.write { db in
-        try db.seedSampleData()
+    func seedDatabaseButtonTapped() {
+      withErrorReporting {
+        try database.write { db in
+          try db.seedSampleData()
+        }
       }
     }
-  }
   #endif
 
   @CasePathable
@@ -191,6 +192,8 @@ class RemindersListsModel {
 
 struct RemindersListsView: View {
   @Bindable var model: RemindersListsModel
+  @State var id = UUID()
+  @Dependency(\.defaultSyncEngine) var syncEngine
 
   var body: some View {
     List {
@@ -305,13 +308,29 @@ struct RemindersListsView: View {
     .listStyle(.insetGrouped)
     .toolbar {
       #if DEBUG
-      ToolbarItem(placement: .automatic) {
+        ToolbarItem(placement: .automatic) {
           Menu {
             Button {
               model.seedDatabaseButtonTapped()
             } label: {
               Text("Seed data")
               Image(systemName: "leaf")
+            }
+            Button {
+              if syncEngine.isRunning {
+                syncEngine.stop()
+                id = UUID()
+              } else {
+                Task {
+                  await withErrorReporting {
+                    try await syncEngine.start()
+                  }
+                  id = UUID()
+                }
+              }
+            } label: {
+              Text("\(syncEngine.isRunning ? "Stop" : "Start") Synchronizing")
+              Image(systemName: syncEngine.isRunning ? "stop" : "play")
             }
           } label: {
             Image(systemName: "ellipsis.circle")
@@ -368,6 +387,7 @@ struct RemindersListsView: View {
     .navigationDestination(item: $model.destination.detail) { detailModel in
       RemindersDetailView(model: detailModel)
     }
+    .id(id)
   }
 }
 
