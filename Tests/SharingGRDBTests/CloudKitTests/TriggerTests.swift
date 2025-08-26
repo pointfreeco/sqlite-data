@@ -982,7 +982,7 @@ extension BaseCloudKitTests {
         }
       #endif
 
-      try await syncEngine.tearDownSyncEngine()
+      try syncEngine.tearDownSyncEngine()
       let triggersAfterTearDown = try await userDatabase.userWrite { db in
         try #sql("SELECT sql FROM sqlite_temp_master", as: String?.self).fetchAll(db)
       }
@@ -992,7 +992,8 @@ extension BaseCloudKitTests {
         """
       }
 
-      try await syncEngine.setUpSyncEngine()
+      try syncEngine.setUpSyncEngine()
+      try await syncEngine.start()
       let triggersAfterReSetUp = try await userDatabase.userWrite { db in
         try #sql("SELECT sql FROM sqlite_temp_master ORDER BY sql", as: String?.self).fetchAll(db)
       }

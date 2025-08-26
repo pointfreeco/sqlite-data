@@ -489,7 +489,7 @@ extension BaseCloudKitTests {
         let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
         #expect(metadataCount == 1)
       }
-      try await syncEngine.tearDownSyncEngine()
+      try syncEngine.tearDownSyncEngine()
       try await self.userDatabase.userRead { db in
         let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
         #expect(metadataCount == 0)
@@ -498,8 +498,9 @@ extension BaseCloudKitTests {
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tearDownAndReSetUp() async throws {
-      try await syncEngine.tearDownSyncEngine()
-      try await syncEngine.setUpSyncEngine()
+      try syncEngine.tearDownSyncEngine()
+      try syncEngine.setUpSyncEngine()
+      try await syncEngine.start()
 
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -563,7 +564,7 @@ extension BaseCloudKitTests {
         ]
         """
       }
-      try await syncEngine.tearDownSyncEngine()
+      try syncEngine.tearDownSyncEngine()
 
       assertInlineSnapshot(
         of: try { try userDatabase.userRead { try query.fetchAll($0) } }(),

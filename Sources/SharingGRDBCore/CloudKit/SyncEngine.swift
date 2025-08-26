@@ -33,6 +33,7 @@
       privateTables: repeat (each T2).Type,
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
+      startImmediately: Bool = true,
       logger: Logger = isTesting
         ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
     ) throws
@@ -60,7 +61,7 @@
         let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
         try self.init(
           container: MockCloudContainer(
-            containerIdentifier: containerIdentifier ?? "co.pointfree.sqlitedata-icloud.testing",
+            containerIdentifier: containerIdentifier ?? "iCloud.co.pointfree.SQLiteData.Tests",
             privateCloudDatabase: privateDatabase,
             sharedCloudDatabase: sharedDatabase
           ),
@@ -84,10 +85,10 @@
           tables: allTables,
           privateTables: allPrivateTables
         )
-        _ = try setUpSyncEngine(
-          userDatabase: userDatabase,
-          metadatabase: metadatabase
-        )
+        try setUpSyncEngine()
+        if startImmediately {
+          _ = try start()
+        }
         return
       }
 
@@ -138,10 +139,10 @@
         tables: allTables,
         privateTables: allPrivateTables
       )
-      _ = try setUpSyncEngine(
-        userDatabase: userDatabase,
-        metadatabase: metadatabase
-      )
+      try setUpSyncEngine()
+      if startImmediately {
+        _ = try start()
+      }
     }
 
     package init(
@@ -208,14 +209,7 @@
 
     @TaskLocal package static var _isSynchronizingChanges = false
 
-    package func setUpSyncEngine() async throws {
-      try await setUpSyncEngine(userDatabase: userDatabase, metadatabase: metadatabase)?.value
-    }
-
-    nonisolated package func setUpSyncEngine(
-      userDatabase: UserDatabase,
-      metadatabase: any DatabaseReader
-    ) throws -> Task<Void, Never>? {
+    nonisolated package func setUpSyncEngine() throws {
       try userDatabase.write { db in
         let attachedMetadatabasePath: String? =
           try SQLQueryExpression(
@@ -238,7 +232,7 @@
               ),
               debugDescription: """
                 Metadatabase attached in 'prepareDatabase' does not match metadatabase prepared in \
-                'SyncEngine.init'. Are the CloudKit container identifiers different?
+                'SyncEngine.init'. Are different CloudKit container identifiers being provided?
                 """
             )
           }
@@ -269,7 +263,19 @@
           )
         }
       }
+    }
 
+    public func start() async throws {
+      try await start().value
+    }
+
+    public func stop() {
+      syncEngines.withValue {
+        $0 = SyncEngines()
+      }
+    }
+
+    private func start() throws -> Task<Void, Never> {
       let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
       syncEngines.withValue {
         $0 = SyncEngines(
@@ -402,9 +408,9 @@
       }
     }
 
-    package func tearDownSyncEngine() async throws {
-      try await userDatabase.write { db in
-        for table in self.tables {
+    package func tearDownSyncEngine() throws {
+      try userDatabase.write { db in
+        for table in tables {
           try table.dropTriggers(db: db)
         }
         for trigger in SyncMetadata.callbackTriggers.reversed() {
@@ -415,8 +421,6 @@
         db.remove(function: .didUpdate(syncEngine: self))
         db.remove(function: .syncEngineIsSynchronizingChanges)
         db.remove(function: .datetime)
-      }
-      try await userDatabase.write { db in
         // TODO: Do an `.erase()` + re-migrate
         try SyncMetadata.delete().execute(db)
         try RecordType.delete().execute(db)
@@ -425,8 +429,8 @@
       }
     }
 
-    func deleteLocalData() async throws {
-      try await tearDownSyncEngine()
+    func deleteLocalData() throws {
+      try tearDownSyncEngine()
       withErrorReporting(.sqliteDataCloudKitFailure) {
         try userDatabase.write { db in
           for table in tables {
@@ -439,7 +443,7 @@
           }
         }
       }
-      try await setUpSyncEngine()
+      try setUpSyncEngine()
     }
 
     func didUpdate(recordName: String, zoneID: CKRecordZone.ID?) {
@@ -866,8 +870,8 @@
           }
         }
       case .signOut, .switchAccounts:
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await deleteLocalData()
+        withErrorReporting(.sqliteDataCloudKitFailure) {
+          try deleteLocalData()
         }
       @unknown default:
         break

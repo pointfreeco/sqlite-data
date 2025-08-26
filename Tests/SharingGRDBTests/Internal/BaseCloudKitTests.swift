@@ -160,7 +160,8 @@ extension SyncEngine {
       tables: tables,
       privateTables: privateTables
     )
-    try await setUpSyncEngine(userDatabase: userDatabase, metadatabase: metadatabase)?.value
+    try setUpSyncEngine()
+    try await start()
   }
 }
 
