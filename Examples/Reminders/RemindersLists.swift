@@ -1,3 +1,4 @@
+import CloudKit
 import SharingGRDB
 import SwiftUI
 import SwiftUINavigation
@@ -11,9 +12,15 @@ class RemindersListsModel {
     RemindersList
       .group(by: \.id)
       .order(by: \.position)
-      .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted }
+      .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted
+      }
+      .leftJoin(SyncMetadata.all) { $0.recordName.eq($2.recordName) }
       .select {
-        ReminderListState.Columns(remindersCount: $1.id.count(), remindersList: $0)
+        ReminderListState.Columns(
+          remindersCount: $1.id.count(),
+          remindersList: $0,
+          share: $2.share
+        )
       },
     animation: .default
   )
@@ -157,6 +164,8 @@ class RemindersListsModel {
     var id: RemindersList.ID { remindersList.id }
     var remindersCount: Int
     var remindersList: RemindersList
+    @Column(as: CKShare?.SystemFieldsRepresentation.self)
+    var share: CKShare?
   }
 
   @Selection
@@ -249,7 +258,8 @@ struct RemindersListsView: View {
             } label: {
               RemindersListRow(
                 remindersCount: state.remindersCount,
-                remindersList: state.remindersList
+                remindersList: state.remindersList,
+                share: state.share
               )
             }
             .buttonStyle(.borderless)

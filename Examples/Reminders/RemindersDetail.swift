@@ -1,4 +1,5 @@
 import CasePaths
+import CloudKit
 import SharingGRDB
 import SwiftUI
 import SwiftUINavigation
@@ -13,8 +14,10 @@ class RemindersDetailModel: HashableObject {
 
   let detailType: DetailType
   var isNewReminderSheetPresented = false
+  var sharedRecord: SharedRecord?
 
   @ObservationIgnored @Dependency(\.defaultDatabase) private var database
+  @ObservationIgnored @Dependency(\.defaultSyncEngine) private var syncEngine
 
   init(detailType: DetailType) {
     self.detailType = detailType
@@ -66,6 +69,16 @@ class RemindersDetailModel: HashableObject {
     }
     $ordering.withLock { $0 = .manual }
     await updateQuery()
+  }
+
+  func shareButtonTapped() async {
+    guard let remindersList = detailType.remindersList
+    else { return }
+    sharedRecord = await withErrorReporting {
+      try await syncEngine.share(record: remindersList) { share in
+        share[CKShare.SystemFieldKey.title] = remindersList.title
+      }
+    }
   }
 
   private func updateQuery() async {
@@ -194,6 +207,9 @@ struct RemindersDetailView: View {
         }
       }
     }
+    .sheet(item: $model.sharedRecord) { sharedRecord in
+      CloudSharingView(sharedRecord: sharedRecord)
+    }
     .toolbar {
       ToolbarItem(placement: .principal) {
         Text(model.detailType.navigationTitle)
@@ -220,6 +236,15 @@ struct RemindersDetailView: View {
         }
       }
       ToolbarItem(placement: .primaryAction) {
+        HStack(alignment: .firstTextBaseline) {
+          if model.detailType.is(\.remindersList) {
+            Button {
+              Task { await model.shareButtonTapped() }
+            } label: {
+              Image(systemName: "square.and.arrow.up")
+            }
+          }
+        }
         Menu {
           Group {
             Menu {
