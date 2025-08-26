@@ -164,6 +164,8 @@ extension QueryBinding {
         return uuid.uuidString.lowercased().databaseValue
       case let .invalid(error):
         throw error
+      case let .bool(bool):
+          return bool.databaseValue
       }
     }
   }
