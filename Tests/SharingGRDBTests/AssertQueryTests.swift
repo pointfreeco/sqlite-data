@@ -41,46 +41,50 @@ struct AssertQueryTests {
       """
     }
   }
-  @Test func assertQueryBasicIncludeSQL() throws {
-    assertQuery(
-      includeSQL: true,
-      Record.all.select(\.id)
-    ) {
-      """
-      SELECT "records"."id"
-      FROM "records"
-      """
-    } results: {
-      """
-      ┌───┐
-      │ 1 │
-      │ 2 │
-      │ 3 │
-      └───┘
-      """
+  #if DEBUG
+    @Test func assertQueryBasicIncludeSQL() throws {
+      assertQuery(
+        includeSQL: true,
+        Record.all.select(\.id)
+      ) {
+        """
+        SELECT "records"."id"
+        FROM "records"
+        """
+      } results: {
+        """
+        ┌───┐
+        │ 1 │
+        │ 2 │
+        │ 3 │
+        └───┘
+        """
+      }
     }
-  }
-  @Test func assertQueryRecordIncludeSQL() throws {
-    assertQuery(
-      includeSQL: true,
-      Record.where { $0.id == 1 }
-    ) {
-      """
-      SELECT "records"."id", "records"."date"
-      FROM "records"
-      WHERE ("records"."id" = 1)
-      """
-    } results: {
-      """
-      ┌────────────────────────────────────────┐
-      │ Record(                                │
-      │   id: 1,                               │
-      │   date: Date(1970-01-01T00:00:42.000Z) │
-      │ )                                      │
-      └────────────────────────────────────────┘
-      """
+  #endif
+  #if DEBUG
+    @Test func assertQueryRecordIncludeSQL() throws {
+      assertQuery(
+        includeSQL: true,
+        Record.where { $0.id == 1 }
+      ) {
+        """
+        SELECT "records"."id", "records"."date"
+        FROM "records"
+        WHERE ("records"."id" = 1)
+        """
+      } results: {
+        """
+        ┌────────────────────────────────────────┐
+        │ Record(                                │
+        │   id: 1,                               │
+        │   date: Date(1970-01-01T00:00:42.000Z) │
+        │ )                                      │
+        └────────────────────────────────────────┘
+        """
+      }
     }
-  }
+  #endif
 }
 
 @Table
