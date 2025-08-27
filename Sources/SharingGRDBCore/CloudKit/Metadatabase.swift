@@ -19,7 +19,7 @@ func defaultMetadatabase(
         logger.trace("\(event.expandedDescription)")
       #if SharingGRDBSwiftLog
         case .swiftLogger(let logger):
-        logger.trace("\(event.expandedDescription)")
+          logger.trace("\(event.expandedDescription)")
       #endif
       }
     }

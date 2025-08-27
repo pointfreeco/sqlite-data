@@ -148,32 +148,28 @@ extension os.Logger {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension Logging.Logger {
     func log(_ event: SyncEngine.Event, syncEngine: any SyncEngineProtocol) {
-      var defaultMetadata: Logging.Logger.Metadata = [
+      var metadata: Logging.Logger.Metadata = [
         "databaseScope.label": "\(syncEngine.database.databaseScope.label)"
       ]
       switch event {
       case .stateUpdate:
-        debug("stateUpdate", metadata: defaultMetadata)
+        debug("stateUpdate", metadata: metadata)
       case .accountChange(let changeType):
         switch changeType {
         case .signIn(let currentUser):
-          var metadata = defaultMetadata
           metadata["currentUser"] = "\(currentUser.recordName).\(currentUser.zoneID.ownerName).\(currentUser.zoneID.zoneName)"
           debug("signIn", metadata: metadata)
         case .signOut(let previousUser):
-          var metadata = defaultMetadata
           metadata["previousUser"] = "\(previousUser.recordName).\(previousUser.zoneID.ownerName).\(previousUser.zoneID.zoneName)"
           debug("signOut", metadata: metadata)
         case .switchAccounts(let previousUser, let currentUser):
-          var metadata = defaultMetadata
           metadata["currentUser"] = "\(currentUser.recordName).\(currentUser.zoneID.ownerName).\(currentUser.zoneID.zoneName)"
           metadata["previousUser"] = "\(previousUser.recordName).\(previousUser.zoneID.ownerName).\(previousUser.zoneID.zoneName)"
           debug("switchAccounts", metadata: metadata)
         @unknown default:
-          debug("unknown", metadata: defaultMetadata)
+          debug("unknown", metadata: metadata)
         }
       case .fetchedDatabaseChanges(_, let deletions):
-        var metadata = defaultMetadata
         metadata["zones.deleted"] = "\(deletedZones(ids: deletions.map(\.zoneID)))"
         debug("fetchedDatabaseChanges", metadata: metadata)
       case .fetchedRecordZoneChanges(let modifications, let deletions):
@@ -181,7 +177,6 @@ extension os.Logger {
           modifications: modifications,
           deletions: deletions
         )
-        var metadata = defaultMetadata
         metadata["records.modifications"] = "\(modifications)"
         metadata["records.deleted"] = "\(deletions)"
         debug("fetchedRecordZoneChanges", metadata: metadata)
@@ -197,7 +192,6 @@ extension os.Logger {
           deletedZoneIDs: deletedZoneIDs,
           failedZoneDeletes: failedZoneDeletes
         )
-        var metadata = defaultMetadata
         metadata["zones.saved"] = "\(savedZones)"
         metadata["zones.deleted"] = "\(deletedZones)"
         metadata["zones.failed.saves"] = "\(failedZoneSaves)"
@@ -220,7 +214,6 @@ extension os.Logger {
           deletedRecordIDs: deletedRecordIDs,
           failedRecordDeletes: failedRecordDeletes
         )
-        var metadata = defaultMetadata
         metadata["records.saves"] = "\(savedRecords)"
         metadata["records.deletes"] = "\(deletedRecords)"
         metadata["records.failed.saves"] = "\(failedRecordSaves)"
@@ -229,11 +222,9 @@ extension os.Logger {
       case .willFetchChanges:
         debug("willFetchChanges", metadata: defaultMetadata)
       case .willFetchRecordZoneChanges(let zoneID):
-        var metadata = defaultMetadata
         metadata["zone"] = "\(zoneID.zoneName):\(zoneID.ownerName)"
         debug("willFetchRecordZoneChanges", metadata: metadata)
       case .didFetchRecordZoneChanges(let zoneID, let error):
-        var metadata = defaultMetadata
         metadata["zone"] = "\(zoneID.zoneName):\(zoneID.ownerName)"
         if let error {
           metadata["error"] = "\(error.code.type)"
@@ -242,15 +233,12 @@ extension os.Logger {
       case .didFetchChanges:
         debug("didFetchChanges", metadata: defaultMetadata)
       case .willSendChanges(let context):
-        var metadata = defaultMetadata
         metadata["context.reason"] = "\(context.reason.description)"
         debug("willSendChanges", metadata: metadata)
       case .didSendChanges(let context):
-        var metadata = defaultMetadata
         metadata["context.reason"] = "\(context.reason.description)"
         debug("didSendChanges", metadata: metadata)
       @unknown default:
-        var metadata = defaultMetadata
         metadata["event"] = "\(event.description)"
         warning("⚠️ unknown event", metadata: metadata)
       }

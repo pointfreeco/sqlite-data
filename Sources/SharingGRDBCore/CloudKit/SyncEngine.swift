@@ -679,7 +679,7 @@
           #if SharingGRDBSwiftLog
             case .swiftLogger(let logger):
               logger.debug(
-                "Next Record Zone Change Batch",
+                "nextRecordZoneChangeBatch",
                 metadata: [
                   "databaseScope.label": "\(syncEngine.database.databaseScope.label)",
                   "syncEngine.reason": "\(reason)",
