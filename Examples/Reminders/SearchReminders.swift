@@ -17,6 +17,7 @@ class SearchRemindersModel {
         if searchText.hasSuffix("\t") {
           searchTokens.append(Token(kind: .near, rawValue: String(searchText.dropLast())))
           searchText = ""
+          return
         }
 
         searchTask = Task { try await updateQuery() }
@@ -91,7 +92,7 @@ class SearchRemindersModel {
         for token in searchTokens {
           switch token.kind {
           case .near:
-            $0.match("NEAR(\(token.rawValue.quoted())")
+            $0.match("NEAR(\(token.rawValue.quoted()))")
           case .tag:
             $0.tags.match(token.rawValue)
           }
