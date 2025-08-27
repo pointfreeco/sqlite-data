@@ -84,11 +84,11 @@ import Testing
 }
 
 private struct Fetch1: FetchKeyRequest {
-  func fetch(_ db: Database) throws {
+    func fetch(_ db: GRDB.Database) throws {
   }
 }
 private struct Fetch2: FetchKeyRequest {
-  func fetch(_ db: Database) throws {
+    func fetch(_ db: GRDB.Database) throws {
   }
 }
 

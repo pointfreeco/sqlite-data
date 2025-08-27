@@ -31,9 +31,9 @@ let package = Package(
   dependencies: [
     .package(url: "https://github.com/groue/GRDB.swift", from: "7.4.0"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
+    .package(url: "https://github.com/pointfreeco/swift-structured-queries", from: "0.13.0"),
     .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
-    .package(url: "https://github.com/coenttb/swift-structured-queries", branch: "feature/native-boolean-support"),
   ],
   targets: [
     .target(
@@ -41,6 +41,7 @@ let package = Package(
       dependencies: [
         "SharingGRDBCore",
         "StructuredQueriesGRDB",
+        .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries")
       ]
     ),
     .target(
@@ -57,6 +58,8 @@ let package = Package(
         "SharingGRDB",
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
+        .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries")
+
       ]
     ),
     .target(
@@ -66,6 +69,7 @@ let package = Package(
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
         .product(name: "StructuredQueriesCore", package: "swift-structured-queries"),
+        .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries"),
       ]
     ),
     .target(

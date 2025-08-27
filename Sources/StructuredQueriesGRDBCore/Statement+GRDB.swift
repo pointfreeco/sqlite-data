@@ -1,6 +1,7 @@
 import GRDB
 import GRDBSQLite
 import StructuredQueriesCore
+import StructuredQueriesSQLite
 
 extension StructuredQueriesCore.Statement {
   /// Executes a structured query on the given database connection.
@@ -18,7 +19,7 @@ extension StructuredQueriesCore.Statement {
   ///
   /// - Parameter db: A database connection.
   @inlinable
-  public func execute(_ db: Database) throws where QueryValue == () {
+    public func execute(_ db: GRDB.Database) throws where QueryValue == () {
     try QueryVoidCursor(db: db, query: query).next()
   }
 
@@ -40,7 +41,7 @@ extension StructuredQueriesCore.Statement {
   /// - Parameter db: A database connection.
   /// - Returns: An array of all values decoded from the database.
   @inlinable
-  public func fetchAll(_ db: Database) throws -> [QueryValue.QueryOutput]
+    public func fetchAll(_ db: GRDB.Database) throws -> [QueryValue.QueryOutput]
   where QueryValue: QueryRepresentable {
     let cursor = try QueryValueCursor<QueryValue>(db: db, query: query)
     var output: [QueryValue.QueryOutput] = []
@@ -68,7 +69,7 @@ extension StructuredQueriesCore.Statement {
   /// - Parameter db: A database connection.
   /// - Returns: A single value decoded from the database.
   @inlinable
-  public func fetchOne(_ db: Database) throws -> QueryValue.QueryOutput?
+    public func fetchOne(_ db: GRDB.Database) throws -> QueryValue.QueryOutput?
   where QueryValue: QueryRepresentable {
     try fetchCursor(db).next()
   }
@@ -91,7 +92,7 @@ extension StructuredQueriesCore.Statement {
   /// - Parameter db: A database connection.
   /// - Returns: A cursor to all values decoded from the database.
   @inlinable
-  public func fetchCursor(_ db: Database) throws -> QueryCursor<QueryValue.QueryOutput>
+    public func fetchCursor(_ db: GRDB.Database) throws -> QueryCursor<QueryValue.QueryOutput>
   where QueryValue: QueryRepresentable {
     try QueryValueCursor<QueryValue>(db: db, query: query)
   }
@@ -106,7 +107,7 @@ extension StructuredQueriesCore.Statement {
   @_documentation(visibility: private)
   @inlinable
   public func fetchAll<each Value: QueryRepresentable>(
-    _ db: Database
+    _ db: GRDB.Database
   ) throws -> [(repeat (each Value).QueryOutput)]
   where QueryValue == (repeat each Value) {
     let cursor = try fetchCursor(db)
@@ -120,7 +121,7 @@ extension StructuredQueriesCore.Statement {
   @_documentation(visibility: private)
   @inlinable
   public func fetchOne<each Value: QueryRepresentable>(
-    _ db: Database
+    _ db: GRDB.Database
   ) throws -> (repeat (each Value).QueryOutput)?
   where QueryValue == (repeat each Value) {
     let cursor = try fetchCursor(db)
@@ -134,7 +135,7 @@ extension StructuredQueriesCore.Statement {
   @_documentation(visibility: private)
   @inlinable
   public func fetchCursor<each Value: QueryRepresentable>(
-    _ db: Database
+    _ db: GRDB.Database
   ) throws -> QueryCursor<(repeat (each Value).QueryOutput)>
   where QueryValue == (repeat each Value) {
     try QueryPackCursor<repeat each Value>(db: db, query: query)
@@ -147,7 +148,7 @@ extension SelectStatement where QueryValue == (), Joins == () {
   /// - Parameter db: A database connection.
   /// - Returns: The number of rows fetched by the query.
   @inlinable
-  public func fetchCount(_ db: Database) throws -> Int {
+    public func fetchCount(_ db: GRDB.Database) throws -> Int {
     let query = asSelect().count()
     return try query.fetchOne(db) ?? 0
   }
@@ -160,7 +161,7 @@ extension SelectStatement where QueryValue == (), Joins == () {
   /// - Returns: An array of all values decoded from the database.
   @_documentation(visibility: private)
   @inlinable
-  public func fetchAll(_ db: Database) throws -> [From.QueryOutput] {
+    public func fetchAll(_ db: GRDB.Database) throws -> [From.QueryOutput] {
     let cursor = try QueryValueCursor<From>(db: db, query: query)
     var output: [From.QueryOutput] = []
     try cursor.forEach { output.append($0) }
@@ -173,7 +174,7 @@ extension SelectStatement where QueryValue == (), Joins == () {
   /// - Returns: A single value decoded from the database.
   @_documentation(visibility: private)
   @inlinable
-  public func fetchOne(_ db: Database) throws -> From.QueryOutput? {
+    public func fetchOne(_ db: GRDB.Database) throws -> From.QueryOutput? {
     try asSelect().limit(1).fetchCursor(db).next()
   }
 
@@ -183,7 +184,7 @@ extension SelectStatement where QueryValue == (), Joins == () {
   /// - Returns: A cursor to all values decoded from the database.
   @_documentation(visibility: private)
   @inlinable
-  public func fetchCursor(_ db: Database) throws -> QueryCursor<From.QueryOutput> {
+    public func fetchCursor(_ db: GRDB.Database) throws -> QueryCursor<From.QueryOutput> {
     try QueryValueCursor<From>(db: db, query: query)
   }
 }
@@ -197,7 +198,7 @@ extension SelectStatement where QueryValue == () {
   @_documentation(visibility: private)
   @inlinable
   public func fetchAll<each J: StructuredQueriesCore.Table>(
-    _ db: Database
+    _ db: GRDB.Database
   ) throws -> [(From.QueryOutput, repeat (each J).QueryOutput)]
   where Joins == (repeat each J) {
     try Array(fetchCursor(db))
@@ -210,7 +211,7 @@ extension SelectStatement where QueryValue == () {
   @_documentation(visibility: private)
   @inlinable
   public func fetchOne<each J: StructuredQueriesCore.Table>(
-    _ db: Database
+    _ db: GRDB.Database
   ) throws -> (From.QueryOutput, repeat (each J).QueryOutput)?
   where Joins == (repeat each J) {
     try asSelect().limit(1).fetchCursor(db).next()
@@ -223,7 +224,7 @@ extension SelectStatement where QueryValue == () {
   @_documentation(visibility: private)
   @inlinable
   public func fetchCursor<each J: StructuredQueriesCore.Table>(
-    _ db: Database
+    _ db: GRDB.Database
   ) throws -> QueryCursor<(From.QueryOutput, repeat (each J).QueryOutput)>
   where Joins == (repeat each J) {
     try QueryPackCursor<From, repeat each J>(db: db, query: query)

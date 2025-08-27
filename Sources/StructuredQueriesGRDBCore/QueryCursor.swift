@@ -148,25 +148,63 @@ extension QueryBinding {
   var databaseValue: DatabaseValue {
     get throws {
       switch self {
-      case let .blob(blob):
-        return Data(blob).databaseValue
-      case let .date(date):
-        return date.iso8601String.databaseValue
-      case let .double(double):
-        return double.databaseValue
-      case let .int(int):
-        return int.databaseValue
-      case .null:
+      case let blob as BlobBinding:
+        return Data(blob.value).databaseValue
+      case let bool as BoolBinding:
+        // SQLite stores booleans as integers
+        return (bool.value ? 1 : 0).databaseValue
+      case let date as DateBinding:
+        return date.value.iso8601String.databaseValue
+      case let double as DoubleBinding:
+        return double.value.databaseValue
+      case let int as IntBinding:
+        return int.value.databaseValue
+      case is NullBinding:
         return .null
-      case let .text(text):
-        return text.databaseValue
-      case let .uuid(uuid):
-        return uuid.uuidString.lowercased().databaseValue
-      case let .invalid(error):
-        throw error
-      case let .bool(bool):
-          return bool.databaseValue
+      case let text as TextBinding:
+        return text.value.databaseValue
+      case let uuid as UUIDBinding:
+        return uuid.value.uuidString.lowercased().databaseValue
+      case let uint64 as UInt64Binding:
+        if let int64Value = uint64.int64Value {
+          return int64Value.databaseValue
+        } else {
+          throw OverflowError()
+        }
+      case let invalid as InvalidBinding:
+        throw invalid.error
+      case let conditional as ConditionalQueryBinding<TextBinding, InvalidBinding>:
+        // Handle ConditionalQueryBinding by recursively processing
+        return try conditional.underlyingBinding.databaseValue
+      default:
+        // Check if it's an OptionalBinding
+        let typeName = String(describing: type(of: self))
+        if typeName.contains("OptionalBinding") {
+          let mirror = Mirror(reflecting: self)
+          if let wrappedValue = mirror.children.first(where: { $0.label == "wrapped" })?.value,
+             let wrappedBinding = wrappedValue as? (any QueryBinding)? {
+            if let unwrapped = wrappedBinding {
+              return try unwrapped.databaseValue
+            } else {
+              return .null
+            }
+          }
+        }
+        // Handle unknown binding types - add type name for debugging
+        throw InvalidBindingError(typeName: typeName)
       }
     }
   }
+}
+
+public struct InvalidBindingError: Error {
+    public let typeName: String
+    
+    public init(typeName: String = "Unknown") {
+        self.typeName = typeName
+    }
+}
+
+public struct OverflowError: Error {
+    public init() {}
 }

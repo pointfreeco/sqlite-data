@@ -1,8 +1,10 @@
 import Dependencies
 import DependenciesTestSupport
+import GRDB
 import Sharing
 import SharingGRDB
 import StructuredQueries
+import StructuredQueriesSQLite
 import Testing
 
 @Suite(.dependency(\.defaultDatabase, try .syncUps()))
@@ -11,7 +13,7 @@ struct IntegrationTests {
 
   @Test
   func fetchAll_SQLString() async throws {
-    @FetchAll(SyncUp.where(\.isActive)) var syncUps: [SyncUp]
+    @FetchAll(SyncUp.where { $0.isActive.eq(BoolAsInt(true)) }) var syncUps: [SyncUp]
     #expect(syncUps == [])
 
     try await database.write { db in
@@ -63,6 +65,7 @@ struct IntegrationTests {
 @Table
 private struct SyncUp: Equatable, Identifiable {
   let id: Int
+  @Column(as: BoolAsInt.self)
   var isActive: Bool
   var title: String
 }
@@ -108,9 +111,9 @@ extension DatabaseWriter where Self == DatabaseQueue {
 }
 
 private struct ActiveSyncUps: FetchKeyRequest {
-  func fetch(_ db: Database) throws -> [SyncUp] {
+  func fetch(_ db: GRDB.Database) throws -> [SyncUp] {
     try SyncUp
-      .where(\.isActive)
+      .where { $0.isActive.eq(BoolAsInt(true)) }
       .fetchAll(db)
   }
 }
