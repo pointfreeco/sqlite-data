@@ -2,6 +2,7 @@ import Foundation
 import GRDB
 import GRDBSQLite
 import StructuredQueriesCore
+import StructuredQueriesSQLite
 
 /// A cursor of a structured query.
 ///
@@ -14,7 +15,7 @@ public class QueryCursor<Element>: DatabaseCursor {
   var decoder: SQLiteQueryDecoder
 
   @usableFromInline
-  init(db: Database, query: QueryFragment) throws {
+    init(db: GRDB.Database, query: QueryFragment) throws {
     (_statement, decoder) = try db.prepare(query: query)
   }
 
@@ -57,7 +58,7 @@ final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryV
   // NB: Required to workaround a "Legacy previews execution" bug
   //     https://github.com/pointfreeco/sharing-grdb/pull/60
   @usableFromInline
-  override init(db: Database, query: QueryFragment) throws {
+    override init(db: GRDB.Database, query: QueryFragment) throws {
     try super.init(db: db, query: query)
   }
 
@@ -88,7 +89,7 @@ final class QueryPackCursor<
   // NB: Required to workaround a "Legacy previews execution" bug
   //     https://github.com/pointfreeco/sharing-grdb/pull/60
   @usableFromInline
-  override init(db: Database, query: QueryFragment) throws {
+    override init(db: GRDB.Database, query: QueryFragment) throws {
     try super.init(db: db, query: query)
   }
 
@@ -116,7 +117,7 @@ final class QueryVoidCursor: QueryCursor<Void> {
   // NB: Required to workaround a "Legacy previews execution" bug
   //     https://github.com/pointfreeco/sharing-grdb/pull/60
   @usableFromInline
-  override init(db: Database, query: QueryFragment) throws {
+    override init(db: GRDB.Database, query: QueryFragment) throws {
     try super.init(db: db, query: query)
   }
 
@@ -127,7 +128,7 @@ final class QueryVoidCursor: QueryCursor<Void> {
   }
 }
 
-extension Database {
+extension GRDB.Database {
   @inlinable
   func prepare(query: QueryFragment) throws -> (GRDB.Statement, SQLiteQueryDecoder) {
     var (sql, bindings) = query.prepare { _ in "?" }
