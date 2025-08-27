@@ -351,6 +351,28 @@
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
     ) async throws {
+      let recordNames = try await userDatabase.read { db in
+        try dump(SyncMetadata.all.fetchAll(db))
+        return try SyncMetadata
+          // TODO: Add/index a generated 'isSynchronized' column instead?
+          .where { $0.lastKnownServerRecord.is(nil) }
+          .select(\.recordName)
+          .fetchAll(db)
+      }
+
+      syncEngines.withValue {
+        $0.private?.state.add(
+          pendingRecordZoneChanges: recordNames.map {
+            .saveRecord(
+              CKRecord.ID(
+                recordName: $0,
+                zoneID: defaultZone.zoneID
+              )
+            )
+          }
+        )
+      }
+
       let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
         previousRecordTypeByTableName[tableName] == nil
       }
@@ -455,6 +477,7 @@
     }
 
     func didUpdate(recordName: String, zoneID: CKRecordZone.ID?) {
+      guard isRunning else { return }
       let zoneID = zoneID ?? defaultZone.zoneID
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
