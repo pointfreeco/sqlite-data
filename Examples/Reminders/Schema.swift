@@ -106,8 +106,7 @@ extension DependencyValues {
       RemindersListAsset.self,
       Reminder.self,
       Tag.self,
-      ReminderTag.self,
-      startImmediately: false
+      ReminderTag.self
     )
   }
 }

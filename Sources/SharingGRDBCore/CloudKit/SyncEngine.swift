@@ -1660,8 +1660,8 @@
     ) throws -> URL {
       guard let databaseURL = URL(string: databasePath)
       else {
-        struct InvalidDatabsePath: Error {}
-        throw InvalidDatabsePath()
+        struct InvalidDatabasePath: Error {}
+        throw InvalidDatabasePath()
       }
       guard !databaseURL.isInMemory
       else {
