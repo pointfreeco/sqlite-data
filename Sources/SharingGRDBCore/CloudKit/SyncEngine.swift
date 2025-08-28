@@ -971,7 +971,7 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
-      let recordIDsByRecordType = OrderedDictionary(
+      let deletedRecordIDsByRecordType = OrderedDictionary(
         grouping: deletions.sorted { lhs, rhs in
           guard
             let lhsIndex = tablesByOrder[lhs.recordType],
@@ -982,7 +982,7 @@
         by: \.recordType
       )
       .mapValues { $0.map(\.recordID) }
-      for (recordType, recordIDs) in recordIDsByRecordType {
+      for (recordType, recordIDs) in deletedRecordIDsByRecordType {
         let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
         if let table = tablesByName[recordType] {
           func open<T: PrimaryKeyedTable>(_: T.Type) {
@@ -1953,11 +1953,7 @@
     columnNames: some Collection<String>
   ) -> QueryFragment {
     let allColumnNames = T.TableColumns.writableColumns.map(\.name)
-    guard
-      columnNames.contains(where: { $0 != T.columns.primaryKey.name })
-    else {
-      return ""
-    }
+    let hasNonPrimaryKeyColumns = columnNames.contains(where: { $0 != T.columns.primaryKey.name })
     var query: QueryFragment = "INSERT INTO \(T.self) ("
     query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
     query.append(") VALUES (")
@@ -1974,17 +1970,23 @@
         }
         .joined(separator: ", ")
     )
-    query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
-    query.append(
-      columnNames
-        .filter { columnName in columnName != T.columns.primaryKey.name }
-        .map {
+    query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO ")
+    if hasNonPrimaryKeyColumns {
+      query.append("UPDATE SET ")
+      query.append(
+        columnNames
+          .filter { columnName in columnName != T.columns.primaryKey.name }
+          .map {
           """
           \(quote: $0) = "excluded".\(quote: $0)
           """
-        }
-        .joined(separator: ", ")
-    )
+          }
+          .joined(separator: ", ")
+      )
+    } else {
+      // TODO: write a unit test for this
+      query.append("NOTHING")
+    }
     return query
   }
 #endif
