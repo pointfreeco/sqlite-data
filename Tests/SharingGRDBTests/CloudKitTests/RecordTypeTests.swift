@@ -463,6 +463,7 @@ extension BaseCloudKitTests {
       let recordTypes = try await userDatabase.userRead { db in
         try RecordType.all.fetchAll(db)
       }
+      syncEngine.stop()
       try syncEngine.tearDownSyncEngine()
       try syncEngine.setUpSyncEngine()
       try await syncEngine.start()
@@ -476,6 +477,7 @@ extension BaseCloudKitTests {
       let recordTypes = try await userDatabase.userRead { db in
         try RecordType.order(by: \.tableName).fetchAll(db)
       }
+      syncEngine.stop()
       try syncEngine.tearDownSyncEngine()
       try await userDatabase.userWrite { db in
         try #sql(
