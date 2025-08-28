@@ -351,26 +351,26 @@
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
     ) async throws {
-      let recordNames = try await userDatabase.read { db in
-        try dump(SyncMetadata.all.fetchAll(db))
-        return try SyncMetadata
-          // TODO: Add/index a generated 'isSynchronized' column instead?
-          .where { $0.lastKnownServerRecord.is(nil) }
-          .select(\.recordName)
+      let pendingRecordZoneChanges = try await userDatabase.read { db in
+        try PendingRecordZoneChange
+          .select(\.pendingRecordZoneChange)
           .fetchAll(db)
       }
-
+      let changesByIsPrivate = Dictionary.init(grouping: pendingRecordZoneChanges) {
+        switch $0 {
+        case .deleteRecord(let recordID), .saveRecord(let recordID):
+          recordID.zoneID.ownerName == CKCurrentUserDefaultName
+        @unknown default:
+          false
+        }
+      }
       syncEngines.withValue {
-        $0.private?.state.add(
-          pendingRecordZoneChanges: recordNames.map {
-            .saveRecord(
-              CKRecord.ID(
-                recordName: $0,
-                zoneID: defaultZone.zoneID
-              )
-            )
-          }
-        )
+        $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
+        $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
+      }
+
+      try await userDatabase.write { db in
+        try PendingRecordZoneChange.delete().execute(db)
       }
 
       let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
@@ -477,28 +477,34 @@
     }
 
     func didUpdate(recordName: String, zoneID: CKRecordZone.ID?) {
-      guard isRunning else { return }
       let zoneID = zoneID ?? defaultZone.zoneID
+      let change = CKSyncEngine.PendingRecordZoneChange.saveRecord(
+        CKRecord.ID(
+          recordName: recordName,
+          zoneID: zoneID
+        )
+      )
+      guard isRunning else {
+        Task {
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await userDatabase.write { db in
+              try PendingRecordZoneChange
+                .insert { PendingRecordZoneChange(change) }
+                .execute(db)
+            }
+          }
+        }
+        return
+      }
+
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
-      syncEngine?.state.add(
-        pendingRecordZoneChanges: [
-          .saveRecord(
-            CKRecord.ID(
-              recordName: recordName,
-              zoneID: zoneID
-            )
-          )
-        ]
-      )
+      syncEngine?.state.add(pendingRecordZoneChanges: [change])
     }
 
     func didDelete(recordName: String, zoneID: CKRecordZone.ID?, share: CKShare?) {
       let zoneID = zoneID ?? defaultZone.zoneID
-      let syncEngine = self.syncEngines.withValue {
-        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-      }
       var changes: [CKSyncEngine.PendingRecordZoneChange] = [
         .deleteRecord(
           CKRecord.ID(
@@ -509,6 +515,22 @@
       ]
       if let share {
         changes.append(.deleteRecord(share.recordID))
+      }
+      guard isRunning else {
+        Task { [changes] in 
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await userDatabase.write { db in
+              try PendingRecordZoneChange
+                .insert { changes.map { PendingRecordZoneChange($0) } }
+                .execute(db)
+            }
+          }
+        }
+        return
+      }
+
+      let syncEngine = self.syncEngines.withValue {
+        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
       syncEngine?.state.add(pendingRecordZoneChanges: changes)
     }

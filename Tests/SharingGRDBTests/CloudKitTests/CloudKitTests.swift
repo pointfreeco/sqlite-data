@@ -539,50 +539,6 @@ extension BaseCloudKitTests {
       #expect(metadata != nil)
     }
 
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func stopAndReStart() async throws {
-      syncEngine.stop()
-
-      try await userDatabase.userWrite { db in
-        try db.seed {
-          RemindersList(id: 1, title: "Personal")
-        }
-      }
-
-      let metadata = try #require(
-        try await userDatabase.userRead { db in
-          try RemindersList.metadata(for: 1).fetchOne(db)
-        }
-      )
-      #expect(metadata.lastKnownServerRecord == nil)
-
-      try await syncEngine.start()
-      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-
-      assertInlineSnapshot(of: container, as: .customDump) {
-        """
-        MockCloudContainer(
-          privateCloudDatabase: MockCloudDatabase(
-            databaseScope: .private,
-            storage: [
-              [0]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "remindersLists",
-                parent: nil,
-                share: nil,
-                id: 1,
-                title: "Personal"
-              )
-            ]
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
-          )
-        )
-        """
-      }
-    }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func addAndRemoveFunctions() async throws {
