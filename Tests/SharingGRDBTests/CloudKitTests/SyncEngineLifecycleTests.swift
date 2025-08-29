@@ -13,7 +13,8 @@ extension BaseCloudKitTests {
   struct SyncEngineLifecycleTests {
     @MainActor
     @Suite
-    final class SyncEngineLifecycleTests_ImmediatelyStarted: BaseCloudKitTests, @unchecked Sendable {
+    final class SyncEngineLifecycleTests_ImmediatelyStarted: BaseCloudKitTests, @unchecked Sendable
+    {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func stopAndReStart() async throws {
         syncEngine.stop()
@@ -35,55 +36,55 @@ extension BaseCloudKitTests {
         }
 
         assertInlineSnapshot(of: container, as: .customDump) {
-        """
-        MockCloudContainer(
-          privateCloudDatabase: MockCloudDatabase(
-            databaseScope: .private,
-            storage: []
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
           )
-        )
-        """
+          """
         }
 
         try await syncEngine.start()
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         assertInlineSnapshot(of: container, as: .customDump) {
-        """
-        MockCloudContainer(
-          privateCloudDatabase: MockCloudDatabase(
-            databaseScope: .private,
-            storage: [
-              [0]: CKRecord(
-                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "reminders",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
-                share: nil,
-                id: 1,
-                isCompleted: 0,
-                remindersListID: 1,
-                title: "Get milk"
-              ),
-              [1]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "remindersLists",
-                parent: nil,
-                share: nil,
-                id: 1,
-                title: "Personal"
-              )
-            ]
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                  share: nil,
+                  id: 1,
+                  isCompleted: 0,
+                  remindersListID: 1,
+                  title: "Get milk"
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
           )
-        )
-        """
+          """
         }
       }
 
@@ -127,24 +128,24 @@ extension BaseCloudKitTests {
           }
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        
+
         syncEngine.stop()
-        
+
         try await withDependencies {
           $0.datetime.now.addTimeInterval(1)
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).update { $0.title += "!" }.execute(db)
           }
-          
+
           try await userDatabase.read { db in
             try #expect(PendingRecordZoneChange.all.fetchCount(db) == 1)
             try #expect(RemindersList.find(1).fetchOne(db)?.title == "Personal!")
           }
-          
+
           try await syncEngine.start()
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-          
+
           assertInlineSnapshot(of: container, as: .customDump) {
             """
             MockCloudContainer(
@@ -168,7 +169,7 @@ extension BaseCloudKitTests {
             )
             """
           }
-          
+
           try await userDatabase.read { db in
             try #expect(PendingRecordZoneChange.all.fetchCount(db) == 0)
           }
@@ -244,7 +245,9 @@ extension BaseCloudKitTests {
         }
       }
 
-      @Test func extenalSharedRecord_StopSyncEngine_DeleteSharedRecord_StartSyncEngine() async throws {
+      @Test func extenalSharedRecord_StopSyncEngine_DeleteSharedRecord_StartSyncEngine()
+        async throws
+      {
         let externalZoneID = CKRecordZone.ID(
           zoneName: "external.zone",
           ownerName: "external.owner"
@@ -350,7 +353,8 @@ extension BaseCloudKitTests {
     }
 
     @MainActor
-    final class SyncEngineLifecycleTests_ImmediatelyStopped: BaseCloudKitTests, @unchecked Sendable {
+    final class SyncEngineLifecycleTests_ImmediatelyStopped: BaseCloudKitTests, @unchecked Sendable
+    {
       init() async throws {
         try await super.init(startImmediately: false)
       }
@@ -374,18 +378,18 @@ extension BaseCloudKitTests {
         }
 
         assertInlineSnapshot(of: container, as: .customDump) {
-        """
-        MockCloudContainer(
-          privateCloudDatabase: MockCloudDatabase(
-            databaseScope: .private,
-            storage: []
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
           )
-        )
-        """
+          """
         }
 
         try await syncEngine.start()
@@ -394,37 +398,37 @@ extension BaseCloudKitTests {
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         assertInlineSnapshot(of: container, as: .customDump) {
-        """
-        MockCloudContainer(
-          privateCloudDatabase: MockCloudDatabase(
-            databaseScope: .private,
-            storage: [
-              [0]: CKRecord(
-                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "reminders",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
-                share: nil,
-                id: 1,
-                isCompleted: 0,
-                remindersListID: 1,
-                title: "Get milk"
-              ),
-              [1]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                recordType: "remindersLists",
-                parent: nil,
-                share: nil,
-                id: 1,
-                title: "Personal"
-              )
-            ]
-          ),
-          sharedCloudDatabase: MockCloudDatabase(
-            databaseScope: .shared,
-            storage: []
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                  share: nil,
+                  id: 1,
+                  isCompleted: 0,
+                  remindersListID: 1,
+                  title: "Get milk"
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
           )
-        )
-        """
+          """
         }
       }
     }
