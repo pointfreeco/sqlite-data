@@ -10,6 +10,7 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class AccountLifecycleTests: BaseCloudKitTests, @unchecked Sendable {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func signOutClearsUserDatabaseAndMetadatabase() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -34,8 +35,8 @@ extension BaseCloudKitTests {
       }()
     }
 
-    @Test(.accountStatus(.noAccount))
-    func signInUploadsLocalRecordsToCloudKit() async throws {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test(.accountStatus(.noAccount)) func signInUploadsLocalRecordsToCloudKit() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: 1, title: "Personal")
@@ -107,6 +108,7 @@ extension BaseCloudKitTests {
   @MainActor
   @Suite(.accountStatus(.noAccount))
   final class SignedOutTests: BaseCloudKitTests, @unchecked Sendable {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     init() async throws {
       try await super.init { userDatabase in
         try await userDatabase.write { db in
@@ -120,6 +122,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func doNotUploadExistingDataToCloudKitWhenSignedOut() {
     }
   }

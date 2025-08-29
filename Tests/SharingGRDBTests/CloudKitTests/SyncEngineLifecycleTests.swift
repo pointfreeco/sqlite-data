@@ -88,6 +88,7 @@ extension BaseCloudKitTests {
         }
       }
 
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func writeStopDeleteStart() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
@@ -121,6 +122,7 @@ extension BaseCloudKitTests {
         }
       }
 
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func addRemindersList_StopSyncEngine_EditTitle_StartSyncEngine() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
@@ -176,6 +178,7 @@ extension BaseCloudKitTests {
         }
       }
 
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func getSharedRecord_StopSyncEngine_WriteToSharedRecord_StartSyncing() async throws {
         let externalZoneID = CKRecordZone.ID(
           zoneName: "external.zone",
@@ -245,7 +248,8 @@ extension BaseCloudKitTests {
         }
       }
 
-      @Test func extenalSharedRecord_StopSyncEngine_DeleteSharedRecord_StartSyncEngine()
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func externalSharedRecord_StopSyncEngine_DeleteSharedRecord_StartSyncEngine()
         async throws
       {
         let externalZoneID = CKRecordZone.ID(
@@ -290,6 +294,7 @@ extension BaseCloudKitTests {
         }
       }
 
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func sharedRecord_StopSyncEngine_DeleteSharedRecord_StartSyncEngine() async throws {
         let remindersList = RemindersList(id: 1, title: "Personal")
         try await userDatabase.userWrite { db in
@@ -355,6 +360,7 @@ extension BaseCloudKitTests {
     @MainActor
     final class SyncEngineLifecycleTests_ImmediatelyStopped: BaseCloudKitTests, @unchecked Sendable
     {
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       init() async throws {
         try await super.init(startImmediately: false)
       }

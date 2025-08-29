@@ -9,6 +9,7 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class NextRecordZoneChangeBatchTests: BaseCloudKitTests, @unchecked Sendable {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func noMetadataForRecord() async throws {
       syncEngine.private.state.add(
         pendingRecordZoneChanges: [.saveRecord(Reminder.recordID(for: 1))]
@@ -31,6 +32,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func nonExistentTable() async throws {
       try await userDatabase.userWrite { db in
         try SyncMetadata.insert {
@@ -60,6 +62,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func metadataRowWithNoCorrespondingRecordRow() async throws {
       try await userDatabase.userWrite { db in
         try SyncMetadata.insert {
@@ -89,6 +92,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func saveRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -122,8 +126,8 @@ extension BaseCloudKitTests {
       }
     }
 
-    @Test
-    func saveRecordWithParent() async throws {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func saveRecordWithParent() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: 1, title: "Personal")
@@ -167,6 +171,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func savePrivateRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {

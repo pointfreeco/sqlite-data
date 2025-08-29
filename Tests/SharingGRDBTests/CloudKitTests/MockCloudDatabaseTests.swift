@@ -10,6 +10,7 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class MockCloudDatabaseTests: BaseCloudKitTests, @unchecked Sendable {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     init() async throws {
       try await super.init()
       let (saveZoneResults, _) = try syncEngine.private.database.modifyRecordZones(
@@ -374,6 +375,7 @@ extension BaseCloudKitTests {
       #expect(error == CKError(.notAuthenticated))
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func incorrectlyCreatingNewRecordIdentity() async throws {
       let record1 = CKRecord(recordType: "A", recordID: CKRecord.ID.init(recordName: "1"))
       _ = try syncEngine.modifyRecords(scope: .private, saving: [record1])
@@ -389,6 +391,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func saveShareWithoutRootRecord() async throws {
       let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
       let share = CKShare(rootRecord: record, shareID: CKRecord.ID(recordName: "share"))
@@ -402,6 +405,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func saveShareAndRootThenSaveShareAlone() async throws {
       let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
       let share = CKShare(rootRecord: record, shareID: CKRecord.ID(recordName: "share"))

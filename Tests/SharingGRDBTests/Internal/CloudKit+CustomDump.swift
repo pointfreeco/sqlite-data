@@ -18,10 +18,12 @@
     }
   }
 
+  extension CKRecord {
+    @TaskLocal static var printTimestamps = false
+  }
+
   @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
   extension CKRecord: @retroactive CustomDumpReflectable {
-    @TaskLocal static var printTimestamps = false
-
     public var customDumpMirror: Mirror {
       let keys = encryptedValues.allKeys()
         .filter { key in

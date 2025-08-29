@@ -11,6 +11,7 @@ extension BaseCloudKitTests {
   @MainActor
   @Suite
   final class FetchRecordZoneChangeTests: BaseCloudKitTests, @unchecked Sendable {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func saveExtraFieldsToSyncMetadata() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -105,6 +106,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func remoteChangeParentRelationship() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -201,6 +203,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func receiveNewRecordFromCloudKit() async throws {
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
@@ -284,6 +287,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func receiveNewRecordFromCloudKit_ChildBeforeParent() async throws {
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
@@ -415,6 +419,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func deleteMultipleRecords() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
