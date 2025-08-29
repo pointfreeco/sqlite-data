@@ -453,7 +453,7 @@ extension BaseCloudKitTests {
     }
 
     @Test func tearDown() async throws {
-      try await syncEngine.tearDownSyncEngine()
+      try syncEngine.tearDownSyncEngine()
       try await userDatabase.userRead { db in
         try #expect(RecordType.all.fetchAll(db) == [])
       }
@@ -463,8 +463,10 @@ extension BaseCloudKitTests {
       let recordTypes = try await userDatabase.userRead { db in
         try RecordType.all.fetchAll(db)
       }
-      try await syncEngine.tearDownSyncEngine()
-      try await syncEngine.setUpSyncEngine()
+      syncEngine.stop()
+      try syncEngine.tearDownSyncEngine()
+      try syncEngine.setUpSyncEngine()
+      try await syncEngine.start()
       let recordTypesAfterReSetup = try await userDatabase.userRead { db in
         try RecordType.all.fetchAll(db)
       }
@@ -475,7 +477,8 @@ extension BaseCloudKitTests {
       let recordTypes = try await userDatabase.userRead { db in
         try RecordType.order(by: \.tableName).fetchAll(db)
       }
-      try await syncEngine.tearDownSyncEngine()
+      syncEngine.stop()
+      try syncEngine.tearDownSyncEngine()
       try await userDatabase.userWrite { db in
         try #sql(
           """
@@ -484,7 +487,8 @@ extension BaseCloudKitTests {
         )
         .execute(db)
       }
-      try await syncEngine.setUpSyncEngine()
+      try syncEngine.setUpSyncEngine()
+      try await syncEngine.start()
 
       let recordTypesAfterMigration = try await userDatabase.userRead { db in
         try RecordType.order(by: \.tableName).fetchAll(db)

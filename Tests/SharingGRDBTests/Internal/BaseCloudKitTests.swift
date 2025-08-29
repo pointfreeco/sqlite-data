@@ -28,7 +28,8 @@ class BaseCloudKitTests: @unchecked Sendable {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   init(
     accountStatus: CKAccountStatus = _AccountStatusScope.accountStatus,
-    setUpUserDatabase: @Sendable (UserDatabase) async throws -> Void = { _ in }
+    setUpUserDatabase: @Sendable (UserDatabase) async throws -> Void = { _ in },
+    startImmediately: Bool = true
   ) async throws {
     let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
 
@@ -64,9 +65,10 @@ class BaseCloudKitTests: @unchecked Sendable {
       ],
       privateTables: [
         RemindersListPrivate.self
-      ]
+      ],
+      startImmediately: startImmediately
     )
-    if accountStatus == .available {
+    if startImmediately, accountStatus == .available {
       await syncEngine.handleEvent(
         .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
         syncEngine: syncEngine.private
@@ -136,7 +138,8 @@ extension SyncEngine {
     container: any CloudContainer,
     userDatabase: UserDatabase,
     tables: [any PrimaryKeyedTable.Type],
-    privateTables: [any PrimaryKeyedTable.Type] = []
+    privateTables: [any PrimaryKeyedTable.Type] = [],
+    startImmediately: Bool = true
   ) async throws {
     try self.init(
       container: container,
@@ -160,7 +163,10 @@ extension SyncEngine {
       tables: tables,
       privateTables: privateTables
     )
-    try await setUpSyncEngine(userDatabase: userDatabase, metadatabase: metadatabase)?.value
+    try setUpSyncEngine()
+    if startImmediately {
+      try await start()
+    }
   }
 }
 

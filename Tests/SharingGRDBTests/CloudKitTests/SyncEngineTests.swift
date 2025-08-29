@@ -86,7 +86,7 @@ extension BaseCloudKitTests {
             attachedPath: "/private/tmp/.db.metadata-iCloud.co.pointfree.sqlite",
             syncEngineConfiguredPath: "/tmp/.db.metadata-iCloud.co.point-free.sqlite"
           ),
-          debugDescription: "Metadatabase attached in \'prepareDatabase\' does not match metadatabase prepared in \'SyncEngine.init\'. Are the CloudKit container identifiers different?"
+          debugDescription: "Metadatabase attached in \'prepareDatabase\' does not match metadatabase prepared in \'SyncEngine.init\'. Are different CloudKit container identifiers being provided?"
         )
         """#
       }

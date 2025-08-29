@@ -36,9 +36,7 @@ public struct _SystemFieldsRepresentation<Record: CKRecord>: QueryBindable, Quer
   }
 
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-    guard let data = try Data?(decoder: &decoder) else {
-      throw QueryDecodingError.missingRequiredColumn
-    }
+    let data = try Data(decoder: &decoder)
     let coder = try NSKeyedUnarchiver(forReadingFrom: data)
     coder.requiresSecureCoding = true
     guard let queryOutput = Record(coder: coder) else {
@@ -71,9 +69,7 @@ package struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryR
   }
 
   package init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-    guard let data = try Data?(decoder: &decoder) else {
-      throw QueryDecodingError.missingRequiredColumn
-    }
+    let data = try Data(decoder: &decoder)
     let coder = try NSKeyedUnarchiver(forReadingFrom: data)
     coder.requiresSecureCoding = true
     guard let queryOutput = Record(coder: coder) else {
@@ -166,7 +162,7 @@ extension CKRecord {
     let asset = CKAsset(fileURL: URL(hash: newValue))
     guard let fileURL = asset.fileURL, (self[key] as? CKAsset)?.fileURL != fileURL
     else { return false }
-    withErrorReporting {
+    withErrorReporting(.sqliteDataCloudKitFailure) {
       try dataManager.save(Data(newValue), to: fileURL)
     }
     self[key] = asset
