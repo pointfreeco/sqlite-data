@@ -167,7 +167,7 @@ extension BaseCloudKitTests {
               [1]: "temporary_trigger"
             ]
           ),
-          debugDescription: #"Triggers must include 'sqlitedata_icloud_syncEngineIsSynchronizingChanges()' check: '("non_temporary_trigger", "remindersLists", "CREATE TRIGGER \"non_temporary_trigger\"\nAFTER UPDATE ON \"remindersLists\"\nFOR EACH ROW BEGIN\n  SELECT 1;\nEND")', '("temporary_trigger", "remindersLists", "CREATE TRIGGER \"temporary_trigger\"\nAFTER UPDATE ON \"remindersLists\"\nFOR EACH ROW BEGIN\n  SELECT 1;\nEND")'."#
+          debugDescription: "Triggers must include \'sqlitedata_icloud_syncEngineIsSynchronizingChanges()\' check: \'non_temporary_trigger\', \'temporary_trigger\'."
         )
         """#
       }

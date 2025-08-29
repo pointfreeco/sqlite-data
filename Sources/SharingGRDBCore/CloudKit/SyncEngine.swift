@@ -1874,7 +1874,7 @@
           reason: .triggersWithoutSynchronizationCheck(invalidTriggers),
           debugDescription: """
             Triggers must include '\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()' \
-            check: \(triggers.map { "'\($0)'" }.joined(separator: ", ")).
+            check: \(invalidTriggers.map { "'\($0)'" }.joined(separator: ", ")).
             """
         )
       }
