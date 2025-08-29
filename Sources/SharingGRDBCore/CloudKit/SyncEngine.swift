@@ -1873,7 +1873,8 @@
         throw SyncEngine.SchemaError(
           reason: .triggersWithoutSynchronizationCheck(invalidTriggers),
           debugDescription: """
-            Triggers must include '\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()' \
+            Triggers must include 'SyncEngine.isSynchronizingChanges()' \
+            ('\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()') \
             check: \(invalidTriggers.map { "'\($0)'" }.joined(separator: ", ")).
             """
         )

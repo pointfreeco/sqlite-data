@@ -167,7 +167,7 @@ extension BaseCloudKitTests {
               [1]: "temporary_trigger"
             ]
           ),
-          debugDescription: "Triggers must include \'sqlitedata_icloud_syncEngineIsSynchronizingChanges()\' check: \'non_temporary_trigger\', \'temporary_trigger\'."
+          debugDescription: "Triggers must include \'SyncEngine.isSynchronizingChanges()\' (\'sqlitedata_icloud_syncEngineIsSynchronizingChanges()\') check: \'non_temporary_trigger\', \'temporary_trigger\'."
         )
         """#
       }
