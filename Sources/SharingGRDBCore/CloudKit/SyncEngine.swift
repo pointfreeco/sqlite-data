@@ -1984,7 +1984,6 @@
           .joined(separator: ", ")
       )
     } else {
-      // TODO: write a unit test for this
       query.append("NOTHING")
     }
     return query

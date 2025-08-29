@@ -442,5 +442,93 @@ extension BaseCloudKitTests {
         try #expect(RemindersList.all.fetchCount(db) == 0)
       }
     }
+
+    @Test func receiveRecord_SingleFieldPrimaryKey() async throws {
+      let tagRecord = CKRecord(recordType: "tags", recordID: Tag.recordID(for: "weekend"))
+      tagRecord.encryptedValues["title"] = "weekend"
+      try await syncEngine.modifyRecords(scope: .private, saving: [tagRecord]).notify()
+
+      try await userDatabase.read { db in
+        try #expect(Tag.all.fetchAll(db) == [Tag(title: "weekend")])
+      }
+    }
+
+    @Test func renamePrimaryKey() async throws {
+      try await userDatabase.userWrite { db in
+        try db.seed {
+          Tag(title: "weekend")
+          RemindersList(id: 1, title: "Personal")
+          Reminder(id: 1, title: "Get milk", remindersListID: 1)
+          ReminderTag(id: 1, reminderID: 1, tagID: "weekend")
+        }
+      }
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+      try await withDependencies {
+        $0.datetime.now.addTimeInterval(1)
+      } operation: {
+        try await userDatabase.userWrite { db in
+          try Tag.find("weekend").update { $0.title = "optional" }.execute(db)
+        }
+      }
+      try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+      assertInlineSnapshot(of: container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminderTags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminderTags",
+                parent: nil,
+                share: nil,
+                id: 1,
+                reminderID: 1,
+                tagID: "optional"
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                share: nil,
+                id: 1,
+                isCompleted: 0,
+                remindersListID: 1,
+                title: "Get milk"
+              ),
+              [2]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 1,
+                title: "Personal"
+              ),
+              [3]: CKRecord(
+                recordID: CKRecord.ID(optional:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "tags",
+                parent: nil,
+                share: nil,
+                title: "optional"
+              ),
+              [4]: CKRecord(
+                recordID: CKRecord.ID(weekend:tags/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordType: "tags",
+                parent: nil,
+                share: nil,
+                title: "weekend"
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
+          )
+        )
+        """
+      }
+    }
   }
 }

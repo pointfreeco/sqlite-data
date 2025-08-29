@@ -18,32 +18,6 @@ struct RemindersApp: App {
       try! prepareDependencies {
         try $0.bootstrapDatabase()
       }
-
-      let container = CKContainer(identifier: ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier!)
-
-//      Task {
-//        do {
-//          let record = CKRecord.init(recordType: "foo", recordID: CKRecord.ID.init(recordName: "bar"))
-//          let (saves, _) = try await container.privateCloudDatabase.modifyRecords(saving: [record], deleting: [])
-//          print(#line, saves)
-//
-//          let fetchedRecord = try await container.privateCloudDatabase.record(for: record.recordID)
-//          print(fetchedRecord)
-//
-//          let (_, deletes) = try await container.privateCloudDatabase.modifyRecords(saving: [], deleting: [record.recordID])
-//          print(#line, deletes)
-//
-//          let newRecord = CKRecord.init(recordType: "foo", recordID: CKRecord.ID.init(recordName: "bar"))
-//          let (newSaves, _) = try await container.privateCloudDatabase.modifyRecords(saving: [newRecord], deleting: [])
-//          print(#line, newSaves)
-//
-//          print("!!!")
-//
-//        } catch {
-//          print(error)
-//          print("-----")
-//        }
-//      }
     }
   }
 
