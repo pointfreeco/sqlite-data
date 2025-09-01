@@ -3,6 +3,7 @@
   import ConcurrencyExtras
   import CustomDump
   import Dependencies
+  import GRDB
   import OrderedCollections
   import OSLog
   import StructuredQueriesCore
