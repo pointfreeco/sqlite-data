@@ -2,18 +2,17 @@ import GRDB
 import GRDBSQLite
 import Foundation
 
-extension ScalarDatabaseFunction {
+extension Database {
   /// Adds a user-defined `@DatabaseFunction` to a connection.
   ///
-  /// - Parameter db: A database connection.
-  public func install(db: Database) {
-    let db = db.sqliteConnection
-    let box = Unmanaged.passRetained(ScalarDatabaseFunctionBox(self)).toOpaque()
+  /// - Parameter function: A database function to add.
+  public func add(function: some ScalarDatabaseFunction) {
+    let box = Unmanaged.passRetained(ScalarDatabaseFunctionBox(function)).toOpaque()
     sqlite3_create_function_v2(
-      db,
-      name,
-      argumentCount,
-      textEncoding,
+      sqliteConnection,
+      function.name,
+      function.argumentCount,
+      function.textEncoding,
       box,
       { context, argumentCount, arguments in
         Unmanaged<ScalarDatabaseFunctionBox>
@@ -25,23 +24,22 @@ extension ScalarDatabaseFunction {
       },
       nil,
       nil,
-      { context in
-        guard let context else { return }
-        Unmanaged<ScalarDatabaseFunctionBox>.fromOpaque(context).release()
+      { box in
+        guard let box else { return }
+        Unmanaged<ScalarDatabaseFunctionBox>.fromOpaque(box).release()
       }
     )
   }
 
   /// Deletes a user-defined `@DatabaseFunction` from a connection.
   ///
-  /// - Parameter db: A database connection.
-  public func uninstall(db: Database) {
-    let db = db.sqliteConnection
+  /// - Parameter function: A database function to delete.
+  public func remove(function: some ScalarDatabaseFunction) {
     sqlite3_create_function_v2(
-      db,
-      name,
-      argumentCount,
-      textEncoding,
+      sqliteConnection,
+      function.name,
+      function.argumentCount,
+      function.textEncoding,
       nil,
       nil,
       nil,
@@ -49,12 +47,14 @@ extension ScalarDatabaseFunction {
       nil
     )
   }
+}
 
-  private var argumentCount: Int32 {
+extension ScalarDatabaseFunction {
+  fileprivate var argumentCount: Int32 {
     Int32(argumentCount ?? -1)
   }
 
-  private var textEncoding: Int32 {
+  fileprivate var textEncoding: Int32 {
     SQLITE_UTF8 | (isDeterministic ? SQLITE_DETERMINISTIC : 0)
   }
 }
