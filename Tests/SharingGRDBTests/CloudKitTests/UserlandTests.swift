@@ -3,6 +3,7 @@ import Testing
 import SharingGRDB
 
 @Suite struct UserlandTests {
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func basics() async throws {
     let database = try SharingGRDBTests.database(containerIdentifier: "tests")
     let syncEngine = try SyncEngine(

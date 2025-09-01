@@ -1,14 +1,12 @@
 import Dependencies
 import Foundation
 
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 package protocol DataManager: Sendable {
   func load(_ url: URL) throws -> Data
   func save(_ data: Data, to url: URL) throws
   var temporaryDirectory: URL { get }
 }
 
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 struct LiveDataManager: DataManager {
   func load(_ url: URL) throws -> Data {
     try Data(contentsOf: url)
@@ -17,11 +15,10 @@ struct LiveDataManager: DataManager {
     try data.write(to: url)
   }
   var temporaryDirectory: URL {
-    .temporaryDirectory
+    URL(fileURLWithPath: NSTemporaryDirectory())
   }
 }
 
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 package struct InMemoryDataManager: DataManager {
   package let storage = LockIsolated<[URL: Data]>([:])
 
@@ -43,11 +40,10 @@ package struct InMemoryDataManager: DataManager {
   }
 
   package var temporaryDirectory: URL {
-    URL(filePath: "/")
+    URL(fileURLWithPath: "/")
   }
 }
 
-@available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
 private enum DataManagerKey: DependencyKey {
   static var liveValue: any DataManager {
     LiveDataManager()
@@ -58,8 +54,7 @@ private enum DataManagerKey: DependencyKey {
 }
 
 extension DependencyValues {
-  @available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *)
-  package var dataManager: DataManager {
+    package var dataManager: DataManager {
     get { self[DataManagerKey.self] }
     set { self[DataManagerKey.self] = newValue }
   }

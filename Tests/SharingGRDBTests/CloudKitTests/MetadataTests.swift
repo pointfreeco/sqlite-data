@@ -134,6 +134,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func noParentRecordForRecordsWithMultipleForeignKeys() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -204,6 +205,7 @@ extension BaseCloudKitTests {
       #expect(parentRecordNames.allSatisfy { $0 == nil })
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func recordType() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -230,6 +232,7 @@ extension BaseCloudKitTests {
       )
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func parentRecordType() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -257,6 +260,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func parentRecordPrimaryKey() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {

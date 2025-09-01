@@ -9,6 +9,7 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class ForeignKeyConstraintTests: BaseCloudKitTests, @unchecked Sendable {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func receiveChildBeforeParent() async throws {
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
@@ -153,6 +154,7 @@ extension BaseCloudKitTests {
      * Remote deletes record B and C.
      * C should be deleted from local client.
      */
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func remoteCreatesRecordABC_localReceivesAC_remoteDeletesBC() async throws {
       let modelARecord = CKRecord(recordType: ModelA.tableName, recordID: ModelA.recordID(for: 1))
       let modelBRecord = CKRecord(recordType: ModelB.tableName, recordID: ModelB.recordID(for: 1))
@@ -207,6 +209,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test(
       """
       1) Receive child record without parent.
@@ -293,6 +296,7 @@ extension BaseCloudKitTests {
         }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func receiveChild_Relaunch_ReceiveParent() async throws {
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
@@ -437,6 +441,7 @@ extension BaseCloudKitTests {
         }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test(
       """
       Remote changes parent relationship to an unknown record which is synchronized later.
@@ -579,6 +584,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func changeParentRelationship_RemotelyThenLocally() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -659,6 +665,7 @@ extension BaseCloudKitTests {
         }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test
     func changeParentRelationship_RemoteFirstEdited_LocalSecondEdited_SendBatch_ReceiveCloudKit()
       async throws
@@ -759,6 +766,7 @@ extension BaseCloudKitTests {
         }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func cascadingDeletes() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {

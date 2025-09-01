@@ -76,6 +76,7 @@ import Testing
   }
 
   @Test(.dependency(\.defaultDatabase, try .database()))
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   func fetchAnimationHashValue() async throws {
     let fetchKey1: some SharedReaderKey<Void> = .fetch(Fetch1())
     let fetchKey2: some SharedReaderKey<Void> = .fetch(Fetch2(), animation: .default)

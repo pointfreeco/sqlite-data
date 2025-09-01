@@ -10,6 +10,7 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class SyncEngineTests {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func inMemory() throws {
       #expect(URL(string: "")?.isInMemory == nil)
       #expect(URL(string: ":memory:")?.isInMemory == true)
@@ -18,6 +19,7 @@ extension BaseCloudKitTests {
       #expect(URL(string: "file:memdb1?mode=memory&cache=shared")?.isInMemory == true)
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func inMemoryUserDatabase() async throws {
       let syncEngine = try await SyncEngine(
         container: MockCloudContainer(
@@ -39,6 +41,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test(.dependency(\.context, .live))
     func inMemoryUserDatabase_LiveContext() async throws {
       let error = await #expect(throws: (any Error).self) {
@@ -59,6 +62,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func metadatabaseMismatch() async throws {
       let error = await #expect(throws: (any Error).self) {
         var configuration = Configuration()

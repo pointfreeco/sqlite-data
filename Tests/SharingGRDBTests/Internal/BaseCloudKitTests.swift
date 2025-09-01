@@ -14,11 +14,16 @@ import os
   }
 )
 class BaseCloudKitTests: @unchecked Sendable {
-  let container: MockCloudContainer
   let userDatabase: UserDatabase
   private let _syncEngine: any Sendable
+  private let _container: any Sendable
 
   @Dependency(\.datetime.now) var now
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  var container: MockCloudContainer {
+    _container as! MockCloudContainer
+  }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   var syncEngine: SyncEngine {
@@ -39,12 +44,13 @@ class BaseCloudKitTests: @unchecked Sendable {
     try await setUpUserDatabase(userDatabase)
     let privateDatabase = MockCloudDatabase(databaseScope: .private)
     let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
-    container = MockCloudContainer(
+    let container = MockCloudContainer(
       accountStatus: accountStatus,
       containerIdentifier: testContainerIdentifier,
       privateCloudDatabase: privateDatabase,
       sharedCloudDatabase: sharedDatabase
     )
+    _container = container
     privateDatabase.set(container: container)
     sharedDatabase.set(container: container)
     _syncEngine = try await SyncEngine(
@@ -81,6 +87,7 @@ class BaseCloudKitTests: @unchecked Sendable {
     }
   }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   func signOut() async {
     container._accountStatus.withValue { $0 = .noAccount }
     await syncEngine.handleEvent(
@@ -93,6 +100,7 @@ class BaseCloudKitTests: @unchecked Sendable {
     )
   }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   func signIn() async {
     container._accountStatus.withValue { $0 = .available }
     await syncEngine.handleEvent(
@@ -124,6 +132,7 @@ class BaseCloudKitTests: @unchecked Sendable {
   }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
   var `private`: MockSyncEngine {
     syncEngines.private as! MockSyncEngine

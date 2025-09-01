@@ -452,6 +452,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tearDown() async throws {
       try syncEngine.tearDownSyncEngine()
       try await userDatabase.userRead { db in
@@ -459,6 +460,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func resetUp() async throws {
       let recordTypes = try await userDatabase.userRead { db in
         try RecordType.all.fetchAll(db)
@@ -473,6 +475,7 @@ extension BaseCloudKitTests {
       expectNoDifference(recordTypes, recordTypesAfterReSetup)
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func migration() async throws {
       let recordTypes = try await userDatabase.userRead { db in
         try RecordType.order(by: \.tableName).fetchAll(db)
