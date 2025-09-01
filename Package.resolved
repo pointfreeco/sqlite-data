@@ -1,5 +1,5 @@
 {
-  "originHash" : "d87ac3bfcdef05674d1d54c62277ab77a7f1a74d2b106a3e0a8eb5567e2ff1ed",
+  "originHash" : "1932408fc9a59e0236b9a7e2c6038962acd4027e2acea33c798d3e20a50fbf02",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
-        "revision" : "b5b5a9ed9ff321f43a02f07394f2831eba5e11f2",
-        "version" : "0.13.0"
+        "branch" : "custom-functions",
+        "revision" : "038b40be3b89d1794854b48bfc942fd09811885e"
       }
     },
     {

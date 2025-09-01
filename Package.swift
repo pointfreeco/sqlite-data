@@ -39,7 +39,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
-    .package(url: "https://github.com/pointfreeco/swift-structured-queries", from: "0.13.0"),
+    .package(url: "https://github.com/pointfreeco/swift-structured-queries", branch: "custom-functions"),
   ],
   targets: [
     .target(
@@ -82,6 +82,7 @@ let package = Package(
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
         .product(name: "StructuredQueriesCore", package: "swift-structured-queries"),
+        .product(name: "StructuredQueriesSQLiteCore", package: "swift-structured-queries"),
       ]
     ),
     .target(
@@ -89,6 +90,7 @@ let package = Package(
       dependencies: [
         "StructuredQueriesGRDBCore",
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
+        .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries"),
       ]
     ),
     .testTarget(
