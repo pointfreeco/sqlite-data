@@ -116,7 +116,7 @@ func defaultMetadatabase(
     )
     .execute(db)
   }
-  migrator.registerMigration("Create PendingRecodZoneChanges Table") { db in
+  migrator.registerMigration("Create PendingRecordZoneChanges Table") { db in
     try SQLQueryExpression("""
       CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_pendingRecordZoneChanges" (
         "pendingRecordZoneChange" BLOB NOT NULL

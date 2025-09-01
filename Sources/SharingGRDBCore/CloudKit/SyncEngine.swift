@@ -1265,10 +1265,13 @@
             try open(table)
           }
 
+        case .permissionFailure:
+          fatalError()
+
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
           .notAuthenticated, .operationCancelled, .batchRequestFailed,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
-          .permissionFailure, .invalidArguments, .resultsTruncated, .assetFileNotFound,
+          .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
           .badDatabase, .quotaExceeded, .limitExceeded, .userDeletedZone, .tooManyParticipants,
           .alreadyShared, .managedAccountRestricted, .participantMayNeedVerification,
