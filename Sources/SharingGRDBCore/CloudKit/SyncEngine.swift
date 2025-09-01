@@ -1561,7 +1561,7 @@
   }
 
   @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
-  extension DatabaseFunction {
+  extension GRDB.DatabaseFunction {
     fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
       Self("didUpdate") { recordName, zoneID, _ in
         syncEngine.didUpdate(
