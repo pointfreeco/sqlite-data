@@ -345,6 +345,12 @@ extension FetchAll {
   }
 }
 
+extension FetchAll: CustomReflectable {
+  public var customMirror: Mirror {
+    Mirror(reflecting: wrappedValue)
+  }
+}
+
 extension FetchAll: Equatable where Element: Equatable {
   public static func == (lhs: Self, rhs: Self) -> Bool {
     lhs.sharedReader == rhs.sharedReader
