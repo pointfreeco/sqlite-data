@@ -945,6 +945,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func cascadingDeletionOrder() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -1012,6 +1013,7 @@ extension BaseCloudKitTests {
     }
   }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func generatedColumns() async throws {
     try await userDatabase.userWrite { db in
       try db.seed {

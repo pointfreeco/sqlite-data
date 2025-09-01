@@ -10,6 +10,7 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   @Suite(.printTimestamps) final class MergeConflictTests: BaseCloudKitTests, @unchecked Sendable {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func merge_clientRecordUpdatedBeforeServerRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -164,6 +165,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func serverRecordUpdatedBeforeClientRecord() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -318,6 +320,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func serverAndClientEditDifferentFields() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -387,6 +390,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func serverRecordEditedAfterClientButProcessedBeforeClient() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -463,6 +467,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func serverRecordEditedAndProcessedBeforeClient() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -532,6 +537,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func serverRecordEditedBeforeClientButProcessedAfterClient() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {

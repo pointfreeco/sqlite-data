@@ -5,6 +5,7 @@ import OrderedCollections
 import SharingGRDBCore
 import Testing
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConvertible {
   static func recordID(
     for id: PrimaryKey.QueryOutput,
@@ -17,8 +18,7 @@ extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConver
   }
 }
 
-
-
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
   struct ModifyRecordsCallback {
     fileprivate let operation: @Sendable () async -> Void

@@ -14,6 +14,7 @@ extension BaseCloudKitTests {
 
   @MainActor
   struct SyncEngineValidationTests {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func tableNameValidation() async throws {
       let error = try #require(
         await #expect(throws: (any Error).self) {
@@ -44,6 +45,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func foreignKeyActionValidation() async throws {
       let error = try #require(
         await #expect(throws: (any Error).self) {
@@ -104,6 +106,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func userTriggerValidation() async throws {
       let error = try await #require(
         #expect(throws: (any Error).self) {
@@ -164,12 +167,13 @@ extension BaseCloudKitTests {
               [1]: "temporary_trigger"
             ]
           ),
-          debugDescription: #"Triggers must include 'sqlitedata_icloud_syncEngineIsSynchronizingChanges()' check: '("non_temporary_trigger", "remindersLists", "CREATE TRIGGER \"non_temporary_trigger\"\nAFTER UPDATE ON \"remindersLists\"\nFOR EACH ROW BEGIN\n  SELECT 1;\nEND")', '("temporary_trigger", "remindersLists", "CREATE TRIGGER \"temporary_trigger\"\nAFTER UPDATE ON \"remindersLists\"\nFOR EACH ROW BEGIN\n  SELECT 1;\nEND")'."#
+          debugDescription: "Triggers must include \'SyncEngine.isSynchronizingChanges()\' (\'sqlitedata_icloud_syncEngineIsSynchronizingChanges()\') check: \'non_temporary_trigger\', \'temporary_trigger\'."
         )
         """#
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func doNotValidateTriggersOnNonSyncedTables() async throws {
       let database = try DatabaseQueue(
         path: URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite").path()

@@ -72,7 +72,7 @@ import SharingGRDB
   let id: Int
 }
 
-@available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 func database(containerIdentifier: String) throws -> DatabasePool {
   var configuration = Configuration()
   configuration.prepareDatabase { db in

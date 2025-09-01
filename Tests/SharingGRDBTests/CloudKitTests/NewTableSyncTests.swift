@@ -9,6 +9,7 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class NewTableSyncTests: BaseCloudKitTests, @unchecked Sendable {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     init() async throws {
       try await super.init(
         setUpUserDatabase: { userDatabase in
@@ -22,8 +23,8 @@ extension BaseCloudKitTests {
       )
     }
 
-    @Test
-    func initialSync() async throws {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func initialSync() async throws {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
       assertInlineSnapshot(of: container, as: .customDump) {
         """

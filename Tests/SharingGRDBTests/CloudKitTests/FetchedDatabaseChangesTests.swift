@@ -11,6 +11,7 @@ extension BaseCloudKitTests {
   @MainActor
   @Suite
   final class FetchedDatabaseChangesTests: BaseCloudKitTests, @unchecked Sendable {
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func deleteSyncEngineZone() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
@@ -42,6 +43,7 @@ extension BaseCloudKitTests {
       }
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func deleteSyncEngineZone_EncryptedDataReset() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
