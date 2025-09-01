@@ -1798,7 +1798,6 @@
         case metadatabaseMismatch(attachedPath: String, syncEngineConfiguredPath: String)
         case noCloudKitContainer
         case nonNullColumnsWithoutDefault(tableName: String, columnNames: [String])
-        case triggersWithoutSynchronizationCheck([String])
         case unknown
       }
       let reason: Reason
@@ -1862,24 +1861,6 @@
       )
       .fetchAll(db)
       .filter { _, tableName, _ in tableNames.contains(tableName) }
-      let invalidTriggers = triggers.compactMap { name, _, sql in
-        let isValid =
-          sql
-          .lowercased()
-          .contains("\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()".lowercased())
-        return isValid ? nil : name
-      }
-      guard invalidTriggers.isEmpty
-      else {
-        throw SyncEngine.SchemaError(
-          reason: .triggersWithoutSynchronizationCheck(invalidTriggers),
-          debugDescription: """
-            Triggers must include 'SyncEngine.isSynchronizingChanges()' \
-            ('\(DatabaseFunction.syncEngineIsSynchronizingChanges.name)()') \
-            check: \(invalidTriggers.map { "'\($0)'" }.joined(separator: ", ")).
-            """
-        )
-      }
 
       for (tableName, foreignKeys) in foreignKeysByTableName {
         if foreignKeys.count == 1,
