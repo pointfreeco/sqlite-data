@@ -1266,7 +1266,26 @@
           }
 
         case .permissionFailure:
-          fatalError()
+          guard
+            let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
+            let table = tablesByName[failedRecord.recordType]
+          else { continue }
+          func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
+            do {
+              let serverRecord = try await container.sharedCloudDatabase.record(for: failedRecord.recordID)
+              upsertFromServerRecord(serverRecord, force: true)
+            } catch let error as CKError where error.code == .unknownItem {
+              try await userDatabase.write { db in
+                try T
+                  .where { SQLQueryExpression("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
+                  .delete()
+                  .execute(db)
+              }
+            }
+          }
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await open(table)
+          }
 
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
           .notAuthenticated, .operationCancelled, .batchRequestFailed,
@@ -1341,7 +1360,10 @@
       }
     }
 
-    private func upsertFromServerRecord(_ serverRecord: CKRecord) {
+    private func upsertFromServerRecord(
+      _ serverRecord: CKRecord,
+      force: Bool = false
+    ) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
         guard let table = tablesByName[serverRecord.recordType]
         else {
@@ -1379,7 +1401,7 @@
 
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
           var columnNames = T.TableColumns.writableColumns.map(\.name)
-          if let metadata, let allFields = metadata._lastKnownServerRecordAllFields {
+          if !force, let metadata, let allFields = metadata._lastKnownServerRecordAllFields {
             let row = try userDatabase.read { db in
               try T.find(SQLQueryExpression("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
             }

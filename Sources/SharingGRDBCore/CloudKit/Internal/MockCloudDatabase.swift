@@ -88,7 +88,9 @@ package final class MockCloudDatabase: CloudDatabase {
       case .ifServerRecordUnchanged:
         for recordToSave in recordsToSave {
           if let share = recordToSave as? CKShare {
-            let isSavingRootRecord = recordsToSave.contains(where: { $0.share?.recordID == share.recordID })
+            let isSavingRootRecord = recordsToSave.contains(where: {
+              $0.share?.recordID == share.recordID
+            })
             let shareWasPreviouslySaved = storage[share.recordID.zoneID]?[share.recordID] != nil
             guard shareWasPreviouslySaved || isSavingRootRecord
             else {
@@ -102,7 +104,7 @@ package final class MockCloudDatabase: CloudDatabase {
               continue
             }
           }
-          
+
           guard storage[recordToSave.recordID.zoneID] != nil
           else {
             saveResults[recordToSave.recordID] = .failure(CKError(.zoneNotFound))
@@ -124,6 +126,35 @@ package final class MockCloudDatabase: CloudDatabase {
               return
             }
 
+            func root(of record: CKRecord) -> CKRecord {
+              guard let parent = record.parent
+              else { return record }
+              return (storage[parent.recordID.zoneID]?[parent.recordID]).map(root) ?? record
+            }
+            func share(for rootRecord: CKRecord) -> CKShare? {
+              for (_, record) in storage[rootRecord.recordID.zoneID] ?? [:] {
+                guard record.recordID == rootRecord.share?.recordID
+                else { continue }
+                return record as? CKShare
+              }
+              return nil
+            }
+            let share = share(for: root(of: recordToSave))
+            if
+              !(recordToSave is CKShare),
+              let share,
+              !(share.publicPermission == .readWrite
+                || share.currentUserParticipant?.permission == .readWrite)
+            {
+              saveResults[recordToSave.recordID] = .failure(CKError(.permissionFailure))
+//              reportIssue(
+//                """
+//                You do not have permission to write to this record: \(recordToSave.recordID.recordName)
+//                """
+//              )
+              return
+            }
+
             guard let copy = recordToSave.copy() as? CKRecord
             else { fatalError("Could not copy CKRecord.") }
             copy._recordChangeTag = UUID().uuidString
@@ -137,7 +168,7 @@ package final class MockCloudDatabase: CloudDatabase {
               }
             }
 
-            // TODO: this should merge copy's values into storage but not sure how right now. 
+            // TODO: this should merge copy's values into storage but not sure how right now.
             storage[recordToSave.recordID.zoneID]?[recordToSave.recordID] = copy
             saveResults[recordToSave.recordID] = .success(copy)
           }
