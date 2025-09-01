@@ -7,13 +7,12 @@ extension Database {
   ///
   /// - Parameter function: A database function to add.
   public func add(function: some ScalarDatabaseFunction) {
-    let box = Unmanaged.passRetained(ScalarDatabaseFunctionBox(function)).toOpaque()
     sqlite3_create_function_v2(
       sqliteConnection,
       function.name,
       function.argumentCount,
       function.textEncoding,
-      box,
+      Unmanaged.passRetained(ScalarDatabaseFunctionBox(function)).toOpaque(),
       { context, argumentCount, arguments in
         Unmanaged<ScalarDatabaseFunctionBox>
           .fromOpaque(sqlite3_user_data(context))
