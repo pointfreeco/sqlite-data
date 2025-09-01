@@ -1,2 +1,3 @@
 @_exported import StructuredQueries
+@_exported import StructuredQueriesSQLite
 @_exported import StructuredQueriesGRDBCore

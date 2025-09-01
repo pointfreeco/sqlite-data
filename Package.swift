@@ -20,6 +20,10 @@ let package = Package(
       targets: ["SharingGRDBCore"]
     ),
     .library(
+      name: "SharingGRDBTestSupport",
+      targets: ["SharingGRDBTestSupport"]
+    ),
+    .library(
       name: "StructuredQueriesGRDB",
       targets: ["StructuredQueriesGRDB"]
     ),
@@ -36,14 +40,15 @@ let package = Package(
     .default(enabledTraits: ["SharingGRDBTagged"]),
   ],
   dependencies: [
-    .package(url: "https://github.com/groue/GRDB.swift", from: "7.6.0"),
     .package(url: "https://github.com/apple/swift-collections", from: "1.0.0"),
+    .package(url: "https://github.com/groue/GRDB.swift", from: "7.6.0"),
+    .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.3"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
-    .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.0.0"),
+    .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.13.0",
+      from: "0.15.0",
       traits: [
         .trait(name: "StructuredQueriesTagged", condition: .when(traits: ["SharingGRDBTagged"])),
       ]
@@ -78,10 +83,20 @@ let package = Package(
       name: "SharingGRDBTests",
       dependencies: [
         "SharingGRDB",
+        "SharingGRDBTestSupport",
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
         .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
         .product(name: "SnapshotTestingCustomDump", package: "swift-snapshot-testing"),
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
+      ]
+    ),
+    .target(
+      name: "SharingGRDBTestSupport",
+      dependencies: [
+        "SharingGRDB",
+        .product(name: "CustomDump", package: "swift-custom-dump"),
+        .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
+        .product(name: "StructuredQueriesTestSupport", package: "swift-structured-queries"),
       ]
     ),
     .target(
@@ -91,6 +106,7 @@ let package = Package(
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
         .product(name: "StructuredQueriesCore", package: "swift-structured-queries"),
+        .product(name: "StructuredQueriesSQLiteCore", package: "swift-structured-queries"),
       ]
     ),
     .target(
@@ -98,6 +114,7 @@ let package = Package(
       dependencies: [
         "StructuredQueriesGRDBCore",
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
+        .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries"),
       ]
     ),
     .testTarget(
