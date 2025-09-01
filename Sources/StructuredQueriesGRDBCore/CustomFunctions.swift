@@ -1,6 +1,6 @@
+import Foundation
 import GRDB
 import GRDBSQLite
-import Foundation
 
 extension Database {
   /// Adds a user-defined `@DatabaseFunction` to a connection.
