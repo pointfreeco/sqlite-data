@@ -24,27 +24,6 @@ extension SharedReaderKey {
   where Self == FetchKey<Records>.Default {
     Self[.fetch(request, database: database), default: Value()]
   }
-
-  static func fetchAll<Record: FetchableRecord>(
-    sql: String,
-    arguments: StatementArguments = StatementArguments(),
-    database: (any DatabaseReader)? = nil
-  ) -> Self
-  where Self == FetchKey<[Record]>.Default {
-    Self[
-      .fetch(FetchAllRequest(sql: sql, arguments: arguments), database: database),
-      default: []
-    ]
-  }
-
-  static func fetchOne<Value: DatabaseValueConvertible>(
-    sql: String,
-    arguments: StatementArguments = StatementArguments(),
-    database: (any DatabaseReader)? = nil
-  ) -> Self
-  where Self == FetchKey<Value> {
-    .fetch(FetchOneRequest(sql: sql, arguments: arguments), database: database)
-  }
 }
 
 extension SharedReaderKey {
@@ -64,33 +43,6 @@ extension SharedReaderKey {
   ) -> Self
   where Self == FetchKey<Records>.Default {
     Self[.fetch(request, database: database, scheduler: scheduler), default: Value()]
-  }
-
-  static func fetchAll<Record: FetchableRecord>(
-    sql: String,
-    arguments: StatementArguments = StatementArguments(),
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  ) -> Self
-  where Self == FetchKey<[Record]>.Default {
-    Self[
-      .fetch(
-        FetchAllRequest(sql: sql, arguments: arguments), database: database, scheduler: scheduler
-      ),
-      default: []
-    ]
-  }
-
-  static func fetchOne<Value: DatabaseValueConvertible>(
-    sql: String,
-    arguments: StatementArguments = StatementArguments(),
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  ) -> Self
-  where Self == FetchKey<Value> {
-    .fetch(
-      FetchOneRequest(sql: sql, arguments: arguments), database: database, scheduler: scheduler
-    )
   }
 }
 
@@ -223,24 +175,6 @@ struct FetchKeyID: Hashable {
     self.request = AnyHashableSendable(request)
     self.requestTypeID = ObjectIdentifier(type(of: request))
     self.scheduler = scheduler.map { AnyHashableSendable($0) }
-  }
-}
-
-private struct FetchAllRequest<Element: FetchableRecord>: FetchKeyRequest {
-  var sql: String
-  var arguments: StatementArguments = StatementArguments()
-  func fetch(_ db: Database) throws -> [Element] {
-    try Element.fetchAll(db, sql: sql, arguments: arguments)
-  }
-}
-
-private struct FetchOneRequest<Value: DatabaseValueConvertible>: FetchKeyRequest {
-  var sql: String
-  var arguments: StatementArguments = StatementArguments()
-  func fetch(_ db: Database) throws -> Value {
-    guard let value = try Value.fetchOne(db, sql: sql, arguments: arguments)
-    else { throw NotFound() }
-    return value
   }
 }
 

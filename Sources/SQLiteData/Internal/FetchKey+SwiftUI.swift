@@ -22,36 +22,6 @@
     where Self == FetchKey<Records>.Default {
       .fetch(request, database: database, scheduler: .animation(animation))
     }
-
-    static func fetchAll<Record: FetchableRecord>(
-      sql: String,
-      arguments: StatementArguments = StatementArguments(),
-      database: (any DatabaseReader)? = nil,
-      animation: Animation
-    ) -> Self
-    where Self == FetchKey<[Record]>.Default {
-      .fetchAll(
-        sql: sql,
-        arguments: arguments,
-        database: database,
-        scheduler: .animation(animation)
-      )
-    }
-
-    static func fetchOne<Value: DatabaseValueConvertible>(
-      sql: String,
-      arguments: StatementArguments = StatementArguments(),
-      database: (any DatabaseReader)? = nil,
-      animation: Animation
-    ) -> Self
-    where Self == FetchKey<Value> {
-      .fetchOne(
-        sql: sql,
-        arguments: arguments,
-        database: database,
-        scheduler: .animation(animation)
-      )
-    }
   }
 
   package struct AnimatedScheduler: ValueObservationScheduler, Equatable {
