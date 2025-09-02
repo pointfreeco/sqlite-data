@@ -1,4 +1,4 @@
-# ``SQLiteDataCore/FetchOne``
+# ``SQLiteData/FetchOne``
 
 ## Overview
 
@@ -7,7 +7,6 @@
 ### Fetching data
 
 - ``init(wrappedValue:database:)``
-- ``init(database:)``
 - ``init(wrappedValue:_:database:)``
 - ``load(_:database:)``
 

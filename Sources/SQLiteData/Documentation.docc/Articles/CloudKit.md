@@ -92,7 +92,7 @@ struct MyApp: App {
 ```
 
 The `SyncEngine` 
-[initializer](<doc:SyncEngine/init(for:tables:privateTables:containerIdentifier:defaultZone:logger:)>)
+[initializer](<doc:SyncEngine/init(for:tables:privateTables:containerIdentifier:defaultZone:startImmediately:logger:)>)
 has more options you may be interested in configuring.
 
 > Important: You must explicitly provide all tables that you want to synchronize. We do this so that

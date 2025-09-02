@@ -1,4 +1,4 @@
-# ``SQLiteDataCore/Fetch``
+# ``SQLiteData/Fetch``
 
 ## Overview
 
@@ -8,8 +8,6 @@
 
 - ``FetchKeyRequest``
 - ``init(wrappedValue:_:database:)``
-- ``init(_:database:)``
-- ``init(database:)``
 - ``init(wrappedValue:)``
 - ``load(_:database:)``
 

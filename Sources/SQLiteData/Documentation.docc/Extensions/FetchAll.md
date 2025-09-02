@@ -1,4 +1,4 @@
-# ``SQLiteDataCore/FetchAll``
+# ``SQLiteData/FetchAll``
 
 ## Overview
 

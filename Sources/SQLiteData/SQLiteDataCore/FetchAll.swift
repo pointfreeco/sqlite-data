@@ -70,6 +70,11 @@ public struct FetchAll<Element: Sendable>: Sendable {
   #endif
 
   /// Initializes this property with a query that fetches every row from a table.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   public init(
     wrappedValue: [Element] = [],
     database: (any DatabaseReader)? = nil
@@ -88,6 +93,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   /// Initializes this property with a query associated with the wrapped value.
   ///
   /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
@@ -109,6 +115,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   /// Initializes this property with a query associated with the wrapped value.
   ///
   /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
@@ -133,6 +140,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   /// Initializes this property with a query associated with the wrapped value.
   ///
   /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
@@ -201,6 +209,7 @@ extension FetchAll {
   /// Initializes this property with a query that fetches every row from a table.
   ///
   /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
@@ -218,6 +227,7 @@ extension FetchAll {
   /// Initializes this property with a query associated with the wrapped value.
   ///
   /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
@@ -242,6 +252,7 @@ extension FetchAll {
   /// Initializes this property with a query associated with the wrapped value.
   ///
   /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
@@ -270,6 +281,7 @@ extension FetchAll {
   /// Initializes this property with a query associated with the wrapped value.
   ///
   /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
@@ -366,6 +378,7 @@ extension FetchAll: Equatable where Element: Equatable {
     /// Initializes this property with a query that fetches every row from a table.
     ///
     /// - Parameters:
+    ///   - wrappedValue: A default collection to associate with this property.
     ///   - database: The database to read from. A value of `nil` will use the default database
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
@@ -383,6 +396,7 @@ extension FetchAll: Equatable where Element: Equatable {
     /// Initializes this property with a query associated with the wrapped value.
     ///
     /// - Parameters:
+    ///   - wrappedValue: A default collection to associate with this property.
     ///   - statement: A query associated with the wrapped value.
     ///   - database: The database to read from. A value of `nil` will use the default database
     ///     (`@Dependency(\.defaultDatabase)`).
@@ -412,6 +426,7 @@ extension FetchAll: Equatable where Element: Equatable {
     /// Initializes this property with a query associated with the wrapped value.
     ///
     /// - Parameters:
+    ///   - wrappedValue: A default collection to associate with this property.
     ///   - statement: A query associated with the wrapped value.
     ///   - database: The database to read from. A value of `nil` will use the default database
     ///     (`@Dependency(\.defaultDatabase)`).
@@ -439,6 +454,7 @@ extension FetchAll: Equatable where Element: Equatable {
     /// Initializes this property with a query associated with the wrapped value.
     ///
     /// - Parameters:
+    ///   - wrappedValue: A default collection to associate with this property.
     ///   - statement: A query associated with the wrapped value.
     ///   - database: The database to read from. A value of `nil` will use the default database
     ///     (`@Dependency(\.defaultDatabase)`).

@@ -1,12 +1,6 @@
-> [!IMPORTANT]
-> We are currently running a [public beta] to preview our upcoming CloudKit synchronization tools. Get all the details [here](https://www.pointfree.co/blog/posts/181-a-swiftdata-alternative-with-sqlite-cloudkit-public-beta) and let us know if you have any feedback!
-
-[public beta]: https://github.com/pointfreeco/sqlite-data/pull/112
-
 # SQLiteData
 
-A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL and supporting 
-CloudKit synchronization.
+A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL.
 
 [![CI](https://github.com/pointfreeco/sqlite-data/actions/workflows/ci.yml/badge.svg)](https://github.com/pointfreeco/sqlite-data/actions/workflows/ci.yml)
 [![Slack](https://img.shields.io/badge/slack-chat-informational.svg?label=Slack&logo=slack)](https://www.pointfree.co/slack-invite)
@@ -39,9 +33,10 @@ library, [subscribe today](https://www.pointfree.co/pricing).
 
 ## Overview
 
-SQLiteData is a [fast](#performance), lightweight replacement for SwiftData that deploys all the
-way back to the iOS 13 generation of targets. To populate data from the database you can use
-the `@FetchAll` property wrapper, which is similar to SwiftData's `@Query` macro:
+SQLiteData is a [fast](#performance), lightweight replacement for SwiftData, including CloudKit
+synchronization (and even CloudKit sharing) that deploys all the way back to the iOS 13 generation
+of targets. To populate data from the database you can use `@Table` and @FetchAll`, which are
+similar to SwiftData's `@Model` and `@Query`:
 
 <table>
 <tr>
@@ -94,8 +89,8 @@ class Item {
 
 Both of the above examples fetch items from an external data store using Swift data types, and both
 are automatically observed by SwiftUI so that views are recomputed when the external data changes,
-but SQLiteData is powered directly by SQLite using [Sharing][], [StructuredQueries][], and
-[GRDB][], and is usable from UIKit, `@Observable` models, and more.
+but SQLiteData is powered directly by SQLite and is usable from UIKit, `@Observable` models, and
+more.
 
 For more information on SQLiteData's querying capabilities, see
 [Fetching model data][fetching-article].
@@ -288,15 +283,15 @@ the [articles][articles] below to learn how to best utilize this library:
   * [CloudKit Synchronization]
   * [Comparison with SwiftData][comparison-swiftdata-article]
 
-[observing-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/observing
-[dynamic-queries-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/dynamicqueries
-[articles]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore#Essentials
-[comparison-swiftdata-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/comparisonwithswiftdata
-[fetching-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/fetching
-[preparing-db-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/preparingdatabase
-[CloudKit Synchronization]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/cloudkit
-[fetchall-docs]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/fetchall
-[fetchone-docs]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/fetchone
+[observing-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/observing
+[dynamic-queries-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/dynamicqueries
+[articles]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata#Essentials
+[comparison-swiftdata-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/comparisonwithswiftdata
+[fetching-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/fetching
+[preparing-db-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/preparingdatabase
+[CloudKit Synchronization]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/cloudkit
+[fetchall-docs]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/fetchall
+[fetchone-docs]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/fetchone
 
 ## Performance
 
@@ -332,7 +327,6 @@ for data and keep your views up-to-date when data in the database changes, and y
 [StructuredQueries][] to build queries, either using its type-safe, discoverable
 [query building APIs][], or using its `#sql` macro for writing [safe SQL strings][].
 
-[Sharing]: https://github.com/pointfreeco/swift-sharing
 [StructuredQueries]: https://github.com/pointfreeco/swift-structured-queries
 [GRDB]: https://github.com/groue/GRDB.swift
 [query building APIs]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore
@@ -341,7 +335,7 @@ for data and keep your views up-to-date when data in the database changes, and y
 ## Demos
 
 This repo comes with _lots_ of examples to demonstrate how to solve common and complex problems with
-Sharing. Check out [this](./Examples) directory to see them all, including:
+SQLiteData. Check out [this](./Examples) directory to see them all, including:
 
   * [Case Studies](./Examples/CaseStudies): A number of case studies demonstrating the built-in
     features of the library.
@@ -361,8 +355,8 @@ Sharing. Check out [this](./Examples) directory to see them all, including:
 
 The documentation for releases and `main` are available here:
 
-  * [`main`](https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/)
-  * [0.x.x](https://swiftpackageindex.com/pointfreeco/sqlite-data/~/documentation/sqlitedatabcore/)
+  * [`main`](https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/)
+  * [0.x.x](https://swiftpackageindex.com/pointfreeco/sqlite-data/~/documentation/sqlitedata/)
 
 ## Installation
 
@@ -372,33 +366,12 @@ You can add SQLiteData to an Xcode project by adding it to your project as a pac
 
 …and adding the `SQLiteData` product to your target.
 
-> [!TIP]
-> SQLiteData's primary product is the `SQLiteData` module, which includes all of the library's
-> functionality, including the `@Fetch` family of property wrappers, the `@Table` macro, and tools
-> for driving StructuredQueries using GRDB. This is the module that most library users should depend
-> on.
->
-> If you are a library author that wishes to extend SQLiteData with additional functionality, you
-> may want to depend on a different module:
->
->   * `SQLiteDataCore`: This product includes everything in `SQLiteData` _except_ the macros
->     (`@Table`, `#sql`, _etc._). This module can be imported to extend SQLiteData with additional
->     functionality without forcing the heavyweight dependency of SwiftSyntax on your users.
->   * `StructuredQueriesGRDB`: This product includes everything in `SQLiteData` _except_ the
->     `@Fetch` family of property wrappers. It can be imported if you want to extend
->     StructuredQueries' GRDB driver but do not need access to observation tools provided by
->     Sharing.
->   * `StructuredQueriesGRDBCore`: This product includes everything in `StructuredQueriesGRDB`
->     _except_ the macros. This module can be imported to extend StructuredQueries' GRDB driver with
->     additional functionality without forcing the heavyweight dependency of SwiftSyntax on your
->     users.
-
 If you want to use SQLiteData in a [SwiftPM](https://swift.org/package-manager/) project, it's as
 simple as adding it to your `Package.swift`:
 
 ``` swift
 dependencies: [
-  .package(url: "https://github.com/pointfreeco/sqlite-data", from: "0.6.0")
+  .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.0.0")
 ]
 ```
 

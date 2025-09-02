@@ -1,4 +1,4 @@
-# ``SQLiteDataCore/FetchKey``
+# ``SQLiteData/FetchKey``
 
 ## Topics
 

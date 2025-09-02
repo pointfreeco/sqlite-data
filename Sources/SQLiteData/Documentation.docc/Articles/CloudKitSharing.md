@@ -4,13 +4,13 @@ Learn how to allow your users to share certain records with other iCloud users f
 
 ## Overview
 
-SQLiteData provides the tools necessary to share a record with another iCloud user so that 
-multiple users can collaborate on a single record. Sharing a record with another user brings
-extra complications to an app that go beyond the existing complications of sharing a schema
-across many devices. Please read the documentation carefully and thoroughly to understand
-how to best design your schema for sharing that does not cause problems down the road.
+SQLiteData provides the tools necessary to share a record with another iCloud user so that multiple
+users can collaborate on a single record. Sharing a record with another user brings extra
+complications to an app that go beyond the existing complications of sharing a schema across many
+devices. Please read the documentation carefully and thoroughly to understand how to best design
+your schema for sharing that does not cause problems down the road.
 
-> Important: To enable sharing of records be sure to add a `CKSharingSupported` key to your 
+> Important: To enable sharing of records be sure to add a `CKSharingSupported` key to your
 Info.plist with a value of `true`. This is subtly documented in [Apple's documentation for sharing].
 
 [Apple's documentation for sharing]: https://developer.apple.com/documentation/cloudkit/sharing-cloudkit-data-with-other-icloud-users#Create-and-Share-a-Topic
@@ -29,14 +29,14 @@ Info.plist with a value of `true`. This is subtly documented in [Apple's documen
 
 ## Creating CKShare records
 
-To share a record with another user one must first create a `CKShare`. SQLiteData provides
-the method ``SyncEngine/share(record:configure:)`` on ``SyncEngine`` for generating a `CKShare`
-for a record. Further, the value returned from this method can be stored in a view and be used
-to drive a sheet to display a ``CloudSharingView``, which is a wrapper around UIKit's
+To share a record with another user one must first create a `CKShare`. SQLiteData provides the
+method ``SyncEngine/share(record:configure:)`` on ``SyncEngine`` for generating a `CKShare` for a
+record. Further, the value returned from this method can be stored in a view and be used to drive a
+sheet to display a ``CloudSharingView``, which is a wrapper around UIKit's
 `UICloudSharingController`.
 
-As an example, a reminders app that wants to allow sharing a reminders list with another user
-can do so like this:
+As an example, a reminders app that wants to allow sharing a reminders list with another user can do
+so like this:
 
 ```swift
 struct RemindersListView: View {
@@ -65,17 +65,17 @@ struct RemindersListView: View {
 }
 ```
 
-When the "Share" button is tapped, a ``SharedRecord`` will be generated and stored as local state
-in the view. That will cause a ``CloudSharingView`` sheet to be presented where the user can 
-configure how they want to share the record. A record can be _unshared_ by presenting the same
+When the "Share" button is tapped, a ``SharedRecord`` will be generated and stored as local state in
+the view. That will cause a ``CloudSharingView`` sheet to be presented where the user can configure
+how they want to share the record. A record can be _unshared_ by presenting the same
 ``CloudSharingView`` to the user so that they can tap the "Stop sharing" button in the UI.
 
 ## Accepting shared records
 
-Extra steps must be taken to allow a user to _accept_ a shared record. Once the user taps on the 
-share link sent to them (whether that is by text, email, etc.), the app will be launched with 
+Extra steps must be taken to allow a user to _accept_ a shared record. Once the user taps on the
+share link sent to them (whether that is by text, email, etc.), the app will be launched with
 special options provided or a special delegate method will be invoked in the app's scene delegate.
-You must implement these delegate methods and invoke the ``SyncEngine/acceptShare(metadata:)`` 
+You must implement these delegate methods and invoke the ``SyncEngine/acceptShare(metadata:)``
 method.
 
 As a simplified example, a `UIWindowSceneDelegate` subclass can implement the delegate method like
@@ -116,7 +116,7 @@ and the `acceptShare` method is async.
 
 ## Diving deeper into sharing
 
-The above gives a broad overview of how one shares a record with a user, and how a user accepts a 
+The above gives a broad overview of how one shares a record with a user, and how a user accepts a
 shared record. There is, however, a lot more to know about sharing. There are important restrictions
 placed on what kind of records you are allowed to share, and what associations of those records are
 shared.
@@ -157,8 +157,8 @@ struct Reminder: Identifiable {
 }
 ```
 
-Such records cannot be shared because it is not appropriate to also share the parent record
-(_i.e._ the reminders list). 
+Such records cannot be shared because it is not appropriate to also share the parent record (_i.e._
+the reminders list). 
 
 For example, suppose you have a list named "Personal" with a reminder "Get milk". If you share this
 reminder with someone, then it becomes difficult to figure out what to do when they make certain
@@ -166,13 +166,12 @@ changes to the reminder:
 
   * If they decide to reassign the reminder to their personal "Life" list, what should
     happen? Should their "Life" list suddenly be synchronized to your device?
-  * Or what if they delete the list? Would you want that to delete your list and all of the reminders
-    in the list?
+  * Or what if they delete the list? Would you want that to delete your list and all of the
+    reminders in the list?
 
 For these reasons, and more, it is not possible to share non-root records, like reminders. Instead,
 you can share root records, like reminders lists. If you do invoke
-``SyncEngine/share(record:configure:)`` with a non-root record, a
-``SyncEngine/CantShareRecordWithParent`` error will be thrown.
+``SyncEngine/share(record:configure:)`` with a non-root record, an error will be thrown.
 
 > Note: A reminder can still be shared as an association to a shared reminders list, as discussed
 > [in the next section](<doc:CloudKit#Sharing-foreign-key-relationships>). However, a single 
@@ -186,19 +185,19 @@ For a more complex example, consider the following diagrammatic schema for a rem
 
 In this schema, a `RemindersList` can have many `Reminder`s, can have a `CoverImage`, and a
 `Reminder` can have multiple `Tag`s, and vice-versa. The only table in this diagram that constitutes
-a "root" is `RemindersList`. It is the only one with no foreign key relationships.
-None of `Reminder`, `CoverImage`, `Tag` or `ReminderTag` can be directly shared on their own
-because they are not root tables.
+a "root" is `RemindersList`. It is the only one with no foreign key relationships. None of
+`Reminder`, `CoverImage`, `Tag` or `ReminderTag` can be directly shared on their own because they
+are not root tables.
 
 #### Sharing foreign key relationships
 
 > Important: Foreign key relationships are automatically synchronized, but only if the related
 > record has a single foreign key. Records with multiple foreign keys cannot be synchronized.
 
-Relationships between models will automatically be shared when sharing a root record, but with
-some limitations. An associated record of a shared record will only be shared if it has exactly
-one foreign key pointing to the root shared record, whether directly or indirectly
-through other records satisfying this property.
+Relationships between models will automatically be shared when sharing a root record, but with some
+limitations. An associated record of a shared record will only be shared if it has exactly one
+foreign key pointing to the root shared record, whether directly or indirectly through other records
+satisfying this property.
 
 Below we describe some of the most common types of relationships in SQL databases, as well as
 which are possible to synchronize, which cannot be synchronized, and which can be adapted to
@@ -206,8 +205,8 @@ play nicely with synchronization.
 
 ##### One-to-many relationships
 
-One-to-many relationships are the simplest to share with other users. As an example, 
-consider a `RemindersList` table that can have many `Reminder`s associated with it:
+One-to-many relationships are the simplest to share with other users. As an example, consider a
+`RemindersList` table that can have many `Reminder`s associated with it:
 
 ```swift
 @Table 
@@ -228,7 +227,7 @@ struct Reminder: Identifiable {
 Since `RemindersList` is a [root record](#Sharing-root-records) it can be shared, and since
 `Reminder` has only one foreign key pointing to `RemindersList`, it too will be shared.
 
-Further, suppose there was a `ChildReminder` table that had a single foreign key pointing to a 
+Further, suppose there was a `ChildReminder` table that had a single foreign key pointing to a
 `Reminder`:
 
 ```swift
@@ -241,8 +240,8 @@ struct ChildReminder: Identifiable {
 }
 ```
 
-This too will be shared because it has one single foreign key pointing to a table that also has
-one single foreign key pointing to the root record being shared.
+This too will be shared because it has one single foreign key pointing to a table that also has one
+single foreign key pointing to the root record being shared.
 
 As a more complex example, consider the following diagrammatic schema:
 
@@ -250,21 +249,19 @@ As a more complex example, consider the following diagrammatic schema:
   The green node is a shareable root record, and all blue records are relationships that will also
   be shared when the root is shared.
 }
-![Synchronizing one-to-many relationships]()
 
-In this schema, a `RemindersList` can have many `Reminder`s and a `CoverImage`, and a `Reminder`
-can have many `ChildReminder`s. Sharing a `RemindersList` will share all associated reminders,
-cover image, and even child reminders. The child reminders are synchronized because it has a 
-single foreign key pointing to a table that also has a single foreign key pointing to the root 
-record.
+In this schema, a `RemindersList` can have many `Reminder`s and a `CoverImage`, and a `Reminder` can
+have many `ChildReminder`s. Sharing a `RemindersList` will share all associated reminders, cover
+image, and even child reminders. The child reminders are synchronized because it has a single
+foreign key pointing to a table that also has a single foreign key pointing to the root record.
 
 ##### Many-to-many relationships
 
-Many-to-many relationships pose a significant problem to sharing and cannot be supported. If a 
-table has multiple foreign keys, then it will not be shared even if one of those 
-foreign keys points to the shared record. 
+Many-to-many relationships pose a significant problem to sharing and cannot be supported. If a table
+has multiple foreign keys, then it will not be shared even if one of those  foreign keys points to
+the shared record. 
 
-As an example, suppose we had a many-to-many association of a `Tag` table to `Reminder` via a 
+As an example, suppose we had a many-to-many association of a `Tag` table to `Reminder` via a
 `ReminderTag` join table:
 
 ```swift
@@ -288,19 +285,18 @@ In diagrammatic form, this schema looks like the following:
   and the light purple records cannot be shared.
 }
 
-The `ReminderTag` records will _not_ be shared because it has two foreign key 
-relationships, represented by the two arrows leaving the `ReminderTag` node. As a consequence,
-the `Tag` records will also not be shared. Sharing these records cannot be done in a consistent and 
-logical manner. 
+The `ReminderTag` records will _not_ be shared because it has two foreign key relationships,
+represented by the two arrows leaving the `ReminderTag` node. As a consequence, the `Tag` records
+will also not be shared. Sharing these records cannot be done in a consistent and logical manner.
 
-> Note: `CKShare` in CloudKit, which is what our tools are built on, does not support sharing 
-> many-to-many relationships. This is also how the Reminders app works on Apple's platforms. 
-> Sharing a list of reminders with another use does not share its tags with that user. 
+> Note: `CKShare` in CloudKit, which is what our tools are built on, does not support sharing
+> many-to-many relationships. This is also how the Reminders app works on Apple's platforms. Sharing
+> a list of reminders with another use does not share its tags with that user. 
 
-To see why this is an acceptable limitation, suppose you share a "Personal" list with someone, which 
-holds a "Get milk" reminder, and that reminder has a "weekend" tag associated with it. If the tag 
-were shared with your friend, then what happens when they delete the tag? Would it be appropriate to 
-delete that tag from all of your reminders, even the ones that were not shared? For this reason, 
+To see why this is an acceptable limitation, suppose you share a "Personal" list with someone, which
+holds a "Get milk" reminder, and that reminder has a "weekend" tag associated with it. If the tag
+were shared with your friend, then what happens when they delete the tag? Would it be appropriate to
+delete that tag from all of your reminders, even the ones that were not shared? For this reason,
 and more, records with multiple foreign keys cannot be shared with a record.
 
 If you want to support many tags associated with a single reminder, you will have no choice
@@ -318,8 +314,8 @@ struct Tag: Identifiable {
 In diagrammatic form this schema now looks like the following:
 
 @Image(source: sync-diagram-many-to-many-refactor.png) {
-  The green record is a shareable root record, and the blue records will be shared when the root
-  is shared.
+  The green record is a shareable root record, and the blue records will be shared when the root is
+  shared.
 }
 
 This kind of relationship will now be synchronized automatically. Sharing a `RemindersList` will
@@ -334,9 +330,9 @@ excels at.
 ##### One-to-"at most one" relationships
 
 One-to-"at most one" relationships in SQLite allow you to associate zero or one records with
-another record. For an example of this, suppose we wanted to hold onto a cover image for reminders 
-lists (see <doc:CloudKit#Assets> for more information on synchronizing assets such as images). It 
-is perfectly fine to hold onto large binary data in SQLite, such as image data, but typically one 
+another record. For an example of this, suppose we wanted to hold onto a cover image for reminders
+lists (see <doc:CloudKit#Assets> for more information on synchronizing assets such as images). It
+is perfectly fine to hold onto large binary data in SQLite, such as image data, but typically one
 should put this data in a separate table.
 
 The way to model this kind of relationship in SQLite is by making a foreign key point from the image
@@ -368,7 +364,7 @@ data you share with other users. These permissions are automatically observed by
 enforced when writing to your database. If your application tries to write to a record that it
 does not have permission for, a `DatabaseError` will be emitted.
 
-To check for this error you can catch `DatabaseError` and compare its message to 
+To check for this error you can catch `DatabaseError` and compare its message to
 ``SyncEngine/writePermissionError``:
 
 ```swift
@@ -384,11 +380,11 @@ do {
 ```
 
 See <doc:CloudKit#Accessing-CloudKit-metadata> for more information on accessing the metadata
-associationed with your user's data.
+associated with your user's data.
 
 Ideally your app would not allow the user to write to records that they do not have permissions for.
-To check their permissions for a record, you can join the root record table to 
-``SyncMetadata`` and select the ``SyncMetadata/share`` value:
+To check their permissions for a record, you can join the root record table to ``SyncMetadata`` and
+select the ``SyncMetadata/share`` value:
 
 ```swift
 let share = try await database.read { db in 
@@ -428,9 +424,9 @@ Sharing this record will mean also sharing the position of the list. That means 
 reorders their local lists, even ones that are private to them, it will reorder the lists for
 everyone shared. This is probably not what you want.
 
-So, private and non-shareable information about this record can be stored in a separate table,
-and we can use the trick mentioned in <doc:CloudKitSharing#One-to-at-most-one-relationships>
-by making the foreign key of the table also be the table's primary key:
+So, private and non-shareable information about this record can be stored in a separate table, and
+we can use the trick mentioned in <doc:CloudKitSharing#One-to-at-most-one-relationships> by making
+the foreign key of the table also be the table's primary key:
 
 ```swift
 @Table 
@@ -446,8 +442,8 @@ struct RemindersListPrivate: Identifiable {
 }
 ```
 
-And then when creating the ``SyncEngine`` we can specifically ask it to not share this record
-when the reminders list is shared by specifying the `privateTables` argument:
+And then when creating the ``SyncEngine`` we can specifically ask it to not share this record when
+the reminders list is shared by specifying the `privateTables` argument:
 
 ```swift
 @main 
