@@ -65,7 +65,7 @@ configure how they want to share the record. A record can be _unshared_ by prese
 Extra steps must be taken to allow a user to _accept_ a shared record. Once the user taps on the 
 share link sent to them (whether that is by text, email, etc.), the app will be launched with 
 special options provided or a special delegate method will be invoked in the app's scene delegate.
-You must impelement these delegate methods and invoke the ``SyncEngine/acceptShare(metadata:)`` 
+You must implement these delegate methods and invoke the ``SyncEngine/acceptShare(metadata:)`` 
 method.
 
 As a simplified example, a `UIWindowSceneDelegate` subclass can implement the delegate method like
