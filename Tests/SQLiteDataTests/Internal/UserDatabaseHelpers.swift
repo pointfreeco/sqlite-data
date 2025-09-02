@@ -1,5 +1,5 @@
 import GRDB
-import SQLiteDataCore
+import SQLiteData
 
 extension UserDatabase {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

@@ -16,20 +16,8 @@ let package = Package(
       targets: ["SQLiteData"]
     ),
     .library(
-      name: "SQLiteDataCore",
-      targets: ["SQLiteDataCore"]
-    ),
-    .library(
       name: "SQLiteDataTestSupport",
       targets: ["SQLiteDataTestSupport"]
-    ),
-    .library(
-      name: "StructuredQueriesGRDB",
-      targets: ["StructuredQueriesGRDB"]
-    ),
-    .library(
-      name: "StructuredQueriesGRDBCore",
-      targets: ["StructuredQueriesGRDBCore"]
     ),
   ],
   traits: [
@@ -60,34 +48,17 @@ let package = Package(
     .target(
       name: "SQLiteData",
       dependencies: [
-        "SQLiteDataCore",
-        "StructuredQueriesGRDB",
-      ]
-    ),
-    .target(
-      name: "SQLiteDataCore",
-      dependencies: [
-        "StructuredQueriesGRDBCore",
+        .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "GRDB", package: "GRDB.swift"),
+        .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
         .product(name: "OrderedCollections", package: "swift-collections"),
         .product(name: "Sharing", package: "swift-sharing"),
-        .product(name: "StructuredQueriesCore", package: "swift-structured-queries"),
+        .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries"),
         .product(
           name: "Tagged",
           package: "swift-tagged",
           condition: .when(traits: ["SQLiteDataTagged"])
         ),
-      ]
-    ),
-    .testTarget(
-      name: "SQLiteDataTests",
-      dependencies: [
-        "SQLiteData",
-        "SQLiteDataTestSupport",
-        .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
-        .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
-        .product(name: "SnapshotTestingCustomDump", package: "swift-snapshot-testing"),
-        .product(name: "StructuredQueries", package: "swift-structured-queries"),
       ]
     ),
     .target(
@@ -99,29 +70,14 @@ let package = Package(
         .product(name: "StructuredQueriesTestSupport", package: "swift-structured-queries"),
       ]
     ),
-    .target(
-      name: "StructuredQueriesGRDBCore",
-      dependencies: [
-        .product(name: "GRDB", package: "GRDB.swift"),
-        .product(name: "Dependencies", package: "swift-dependencies"),
-        .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
-        .product(name: "StructuredQueriesCore", package: "swift-structured-queries"),
-        .product(name: "StructuredQueriesSQLiteCore", package: "swift-structured-queries"),
-      ]
-    ),
-    .target(
-      name: "StructuredQueriesGRDB",
-      dependencies: [
-        "StructuredQueriesGRDBCore",
-        .product(name: "StructuredQueries", package: "swift-structured-queries"),
-        .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries"),
-      ]
-    ),
     .testTarget(
-      name: "StructuredQueriesGRDBTests",
+      name: "SQLiteDataTests",
       dependencies: [
-        "StructuredQueriesGRDB",
+        "SQLiteData",
+        "SQLiteDataTestSupport",
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
+        .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
+        .product(name: "SnapshotTestingCustomDump", package: "swift-snapshot-testing"),
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
       ]
     ),

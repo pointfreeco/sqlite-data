@@ -187,7 +187,7 @@
       )
       self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
       self.foreignKeysByTableName = foreignKeysByTableName
-      tablesByOrder = try SQLiteDataCore.tablesByOrder(
+      tablesByOrder = try SQLiteData.tablesByOrder(
         userDatabase: userDatabase,
         tables: allTables,
         tablesByName: tablesByName

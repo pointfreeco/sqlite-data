@@ -3,8 +3,8 @@ import Dependencies
 import Foundation
 import GRDB
 import InlineSnapshotTesting
+import SQLiteData
 import StructuredQueriesCore
-import StructuredQueriesGRDBCore
 import StructuredQueriesTestSupport
 
 /// An end-to-end snapshot testing helper for database content.
