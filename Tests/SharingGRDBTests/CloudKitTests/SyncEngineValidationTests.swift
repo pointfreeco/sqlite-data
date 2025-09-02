@@ -167,6 +167,72 @@ extension BaseCloudKitTests {
       }
     }
 
+    @Table struct Child: Identifiable {
+      let id: Int
+      var parentID: Parent.ID
+    }
+    @Table struct Parent: Identifiable {
+      let id: Int
+    }
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func foreignKeyPointsToOtherSynchronizedTable() async throws {
+      let error = try #require(
+        await #expect(throws: (any Error).self) {
+          let database = try DatabaseQueue()
+          try await database.write { db in
+            try #sql(
+              """
+              CREATE TABLE "parents" (
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
+              ) STRICT
+              """
+            )
+            .execute(db)
+            try #sql(
+              """
+              CREATE TABLE "childs" (
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                "parentID" INTEGER REFERENCES "parents"("id") ON DELETE CASCADE
+              ) STRICT
+              """
+            )
+            .execute(db)
+          }
+          _ = try await SyncEngine(
+            container: MockCloudContainer(
+              containerIdentifier: "deadbeef",
+              privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+              sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+            ),
+            userDatabase: UserDatabase(database: database),
+            tables: [Child.self]
+          )
+        }
+      )
+      assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+        """
+        "Could not synchronize data with iCloud."
+        """
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        """
+        SyncEngine.SchemaError(
+          reason: .invalidForeignKey(
+            ForeignKey(
+              table: "parents",
+              from: "parentID",
+              to: "id",
+              onUpdate: .noAction,
+              onDelete: .cascade,
+              notnull: false
+            )
+          ),
+          debugDescription: #"Foreign key "childs"."parentID" references table "parents" that is not synchronized. Update 'SyncEngine.init' to synchronize "parents". "#
+        )
+        """
+      }
+    }
+
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func doNotValidateTriggersOnNonSyncedTables() async throws {
       let database = try DatabaseQueue(
