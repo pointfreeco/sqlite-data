@@ -46,7 +46,7 @@ extension BaseCloudKitTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func foreignKeyActionValidation() async throws {
+    @Test func foreignKeyActionValidation_NoAction() async throws {
       let error = try #require(
         await #expect(throws: (any Error).self) {
           var configuration = Configuration()
@@ -97,6 +97,67 @@ extension BaseCloudKitTests {
               to: "id",
               onUpdate: .noAction,
               onDelete: .noAction,
+              notnull: false
+            )
+          ),
+          debugDescription: #"Foreign key "children"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
+        )
+        """
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func foreignKeyActionValidation_Restrict() async throws {
+      let error = try #require(
+        await #expect(throws: (any Error).self) {
+          var configuration = Configuration()
+          configuration.foreignKeysEnabled = false
+          let database = try DatabaseQueue(configuration: configuration)
+          try await database.write { db in
+            try #sql(
+              """
+              CREATE TABLE "parents" (
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
+              ) STRICT
+              """
+            )
+            .execute(db)
+            try #sql(
+              """
+              CREATE TABLE "children" (
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                "parentID" INTEGER REFERENCES "parents"("id") ON DELETE RESTRICT
+              ) STRICT
+              """
+            )
+            .execute(db)
+          }
+          _ = try await SyncEngine(
+            container: MockCloudContainer(
+              containerIdentifier: "deadbeef",
+              privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+              sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+            ),
+            userDatabase: UserDatabase(database: database),
+            tables: []
+          )
+        }
+      )
+      assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+        """
+        "Could not synchronize data with iCloud."
+        """
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        """
+        SyncEngine.SchemaError(
+          reason: .invalidForeignKeyAction(
+            ForeignKey(
+              table: "parents",
+              from: "parentID",
+              to: "id",
+              onUpdate: .noAction,
+              onDelete: .restrict,
               notnull: false
             )
           ),

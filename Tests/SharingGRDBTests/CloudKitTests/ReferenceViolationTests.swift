@@ -9,13 +9,11 @@ import Testing
 extension BaseCloudKitTests {
   @MainActor
   final class ReferenceViolationTests: BaseCloudKitTests, @unchecked Sendable {
+    // * Local client moves a reminder to a list.
+    // * At same time, remote deletes that list.
+    // => When data is synchronized the reminder and list are deleted.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test(
-      """
-      * The local client moves a reminder to a list.
-      * The remote client deletes that list.
-      """
-    ) func moveReminderToList_RemoteDeletesList() async throws {
+    @Test func moveReminderToList_RemoteDeletesList() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: 1, title: "Personal")
@@ -41,6 +39,10 @@ extension BaseCloudKitTests {
       await modifications.notify()
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
+      try await userDatabase.read { db in
+        try #expect(Reminder.find(1).fetchCount(db) == 0)
+        try #expect(RemindersList.find(2).fetchCount(db) == 0)
+      }
       assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
@@ -75,13 +77,12 @@ extension BaseCloudKitTests {
       }
     }
 
+    // * Local client deletes a list
+    // * At the same time, remote adds a reminder to that list.
+    // * Local data is sync'd first, then remote data syncs.
+    // => Deletion is rejected and the list and reminder are sync'd to local client.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test(
-      """
-      * The local client deletes a list.
-      * The remote client adds reminder to that list.
-      """
-    ) func deleteList_RemoteAddsReminderToList() async throws {
+    @Test func deleteList_RemoteAddsReminderToList() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: 1, title: "Personal")
@@ -158,14 +159,12 @@ extension BaseCloudKitTests {
       }
     }
 
+    // * Local client deletes a list
+    // * At the same time, remote adds a reminder to that list.
+    // * Remote data is sync'd first, then local data syncs.
+    // => Deletion is rejected and the list and reminder are sync'd to local client.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test(
-      """
-      * The local client deletes a list.
-      * The remote client adds reminder to that list.
-      * Remote syncs to local client before local sends batch.
-      """
-    ) func deleteList_RemoteAddsReminderToList_Variation() async throws {
+    @Test func deleteList_RemoteAddsReminderToList_Variation() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
           RemindersList(id: 1, title: "Personal")
@@ -242,14 +241,12 @@ extension BaseCloudKitTests {
       }
     }
 
+    // * Local client move child to parent.
+    // * Remote client deletes parent.
+    // * Local data is sync'd first, then remote data syncs.
+    // => Local client sets parent relationship to NULL and parent is deleted.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test(
-      """
-      * The local client moves child to parent.
-      * The remote client deletes parent.
-      * Local client sets parent relationship to NULL.
-      """
-    ) func moveChildToParent_RemoteDeletesParent_CascadeSetNull() async throws {
+    @Test func moveChildToParent_RemoteDeletesParent_CascadeSetNull() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
           Parent(id: 1)
@@ -321,14 +318,12 @@ extension BaseCloudKitTests {
       }
     }
 
+    // * Local client move child to parent.
+    // * Remote client deletes parent.
+    // * Local data is sync'd first, then remote data syncs.
+    // => Local client sets parent relationship to default value.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test(
-      """
-      * The local client moves child to parent.
-      * The remote client deletes parent.
-      * Local client sets parent relationship to default value.
-      """
-    ) func moveChildToParent_RemoteDeletesParent_CascadeSetDefault() async throws {
+    @Test func moveChildToParent_RemoteDeletesParent_CascadeSetDefault() async throws {
       try await userDatabase.userWrite { db in
         try db.seed {
           Parent(id: 0)

@@ -26,7 +26,7 @@ extension BaseCloudKitTests {
       reminderRecord.setValue("Get milk", forKey: "title", at: now)
       reminderRecord.setValue(1, forKey: "remindersListID", at: now)
       reminderRecord.parent = CKRecord.Reference(
-        recordID: RemindersList.recordID(for: 1),
+        record: remindersListRecord,
         action: .none
       )
 
@@ -159,10 +159,10 @@ extension BaseCloudKitTests {
       let modelARecord = CKRecord(recordType: ModelA.tableName, recordID: ModelA.recordID(for: 1))
       let modelBRecord = CKRecord(recordType: ModelB.tableName, recordID: ModelB.recordID(for: 1))
       modelBRecord.setValue(1, forKey: "modelAID", at: now)
-      modelBRecord.parent = CKRecord.Reference(recordID: modelARecord.recordID, action: .none)
+      modelBRecord.parent = CKRecord.Reference(record: modelARecord, action: .none)
       let modelCRecord = CKRecord(recordType: ModelC.tableName, recordID: ModelC.recordID(for: 1))
       modelCRecord.setValue(1, forKey: "modelBID", at: now)
-      modelCRecord.parent = CKRecord.Reference(recordID: modelBRecord.recordID, action: .none)
+      modelCRecord.parent = CKRecord.Reference(record: modelBRecord, action: .none)
 
       try await syncEngine.modifyRecords(scope: .private, saving: [modelARecord]).notify()
       _ = try syncEngine.modifyRecords(scope: .private, saving: [modelBRecord])
@@ -209,13 +209,11 @@ extension BaseCloudKitTests {
       }
     }
 
+    // * Receive child record with no parent record.
+    // * Receive parent record.
+    // => Both records are synchronized.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test(
-      """
-      1) Receive child record without parent.
-      2) Receive child record with parent
-      """
-    ) func receiveChildRecordBeforeParent_ReceiveChildAndParentRecord() async throws {
+    @Test func receiveChildRecordBeforeParent_ReceiveChildAndParentRecord() async throws {
       let remindersListRecord = CKRecord(
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: 1)
@@ -231,7 +229,7 @@ extension BaseCloudKitTests {
       reminderRecord.setValue("Get milk", forKey: "title", at: now)
       reminderRecord.setValue(1, forKey: "remindersListID", at: now)
       reminderRecord.parent = CKRecord.Reference(
-        recordID: RemindersList.recordID(for: 1),
+        record: remindersListRecord,
         action: .none
       )
 
@@ -441,12 +439,12 @@ extension BaseCloudKitTests {
         }
     }
 
+    // * Remote moves child to a parent the local client does not know about.
+    // * Remote syncs child to local.
+    // * Remote syncs parent to local.
+    // => Parent and child records are synchronized.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test(
-      """
-      Remote changes parent relationship to an unknown record which is synchronized later.
-      """
-    )
+    @Test
     func changeParentRelationshipToUnknownRecord() async throws {
       let personalListRecord = CKRecord(
         recordType: RemindersList.tableName,
@@ -470,7 +468,7 @@ extension BaseCloudKitTests {
       reminderRecord.setValue("Get milk", forKey: "title", at: now)
       reminderRecord.setValue(1, forKey: "remindersListID", at: now)
       reminderRecord.parent = CKRecord.Reference(
-        recordID: RemindersList.recordID(for: 1),
+        record: personalListRecord,
         action: .none
       )
       

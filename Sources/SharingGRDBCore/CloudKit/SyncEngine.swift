@@ -1872,21 +1872,6 @@
       }
     }
     try userDatabase.read { db in
-      let triggers = try SQLQueryExpression(
-        """
-        SELECT "name", "tbl_name", "sql"
-          FROM "sqlite_master"
-          WHERE "type" = 'trigger'
-        UNION
-        SELECT "name", "tbl_name", "sql"
-          FROM "sqlite_temp_master"
-          WHERE "type" = 'trigger'
-        """,
-        as: (String, String, String).self
-      )
-      .fetchAll(db)
-      .filter { _, tableName, _ in tableNames.contains(tableName) }
-
       for (tableName, foreignKeys) in foreignKeysByTableName {
         if foreignKeys.count == 1,
           let foreignKey = foreignKeys.first,
