@@ -1,5 +1,5 @@
 {
-  "originHash" : "96fc55dd49af697ce0e0bf306c46a68e5c589a1cabb04749621327771c159fb5",
+  "originHash" : "bf7f65a97bc0744011b5a84033dae2413dabad76028eccac59d6837fd798cf8a",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-concurrency-extras",
       "state" : {
-        "revision" : "82a4ae7170d98d8538ec77238b7eb8e7199ef2e8",
-        "version" : "1.3.1"
+        "revision" : "5a3825302b1a0d744183200915a47b508c828e6f",
+        "version" : "1.3.2"
       }
     },
     {
@@ -96,8 +96,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-perception",
       "state" : {
-        "revision" : "7d3509c7f4de78ad3eb3d804e036fb62e3585141",
-        "version" : "2.0.5"
+        "revision" : "59b00dfa5548b5b91ebbda6d94d6328d82ca00fe",
+        "version" : "2.0.6"
       }
     },
     {
@@ -105,8 +105,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-sharing",
       "state" : {
-        "revision" : "530c98ac2c3e393615616bd6d8fc604600c99f6f",
-        "version" : "2.7.2"
+        "revision" : "aaf605733bd93126d1a3658b4021146d95c94cb6",
+        "version" : "2.7.3"
       }
     },
     {
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
-        "revision" : "e53cd5c87b31eeba77a801eec9a7e82c6d7faaab",
-        "version" : "0.15.0"
+        "revision" : "14f79c6dad72e385c564c66dbe333522a11eaa48",
+        "version" : "0.16.0"
       }
     },
     {
