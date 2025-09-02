@@ -79,7 +79,7 @@ package final class MockSyncEngine: SyncEngineProtocol {
       }
     }
 
-    state.remove(pendingRecordZoneChanges: recordIDsSkipped.map { .saveRecord($0) })
+    state.remove(pendingRecordZoneChanges: recordsToSave.map { .saveRecord($0.recordID) })
 
     return CKSyncEngine.RecordZoneChangeBatch(
       recordsToSave: recordsToSave,
