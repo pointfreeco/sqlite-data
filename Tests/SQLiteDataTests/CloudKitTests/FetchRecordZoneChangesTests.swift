@@ -4,7 +4,7 @@ import Foundation
 import InlineSnapshotTesting
 import OrderedCollections
 import SQLiteData
-import SharingGRDBTestSupport
+import SQLiteDataTestSupport
 import SnapshotTestingCustomDump
 import Testing
 
