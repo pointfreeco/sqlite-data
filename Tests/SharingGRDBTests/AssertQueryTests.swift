@@ -41,6 +41,38 @@ struct AssertQueryTests {
       """
     }
   }
+  @Test func assertQueryBasicUpdate() throws {
+    assertQuery(
+      Record.all
+        .update { $0.date = Date(timeIntervalSince1970: 45) }
+        .returning { ($0.id, $0.date) }
+    ) {
+      """
+      ┌───┬────────────────────────────────┐
+      │ 1 │ Date(1970-01-01T00:00:45.000Z) │
+      │ 2 │ Date(1970-01-01T00:00:45.000Z) │
+      │ 3 │ Date(1970-01-01T00:00:45.000Z) │
+      └───┴────────────────────────────────┘
+      """
+    }
+  }
+  @Test func assertQueryRecordUpdate() throws {
+    assertQuery(
+      Record
+        .where { $0.id == 1 }
+        .update { $0.date = Date(timeIntervalSince1970: 45) }
+        .returning(\.self)
+    ) {
+      """
+      ┌────────────────────────────────────────┐
+      │ Record(                                │
+      │   id: 1,                               │
+      │   date: Date(1970-01-01T00:00:45.000Z) │
+      │ )                                      │
+      └────────────────────────────────────────┘
+      """
+    }
+  }
   #if DEBUG
     @Test func assertQueryBasicIncludeSQL() throws {
       assertQuery(
