@@ -12,7 +12,9 @@ struct CloudKitPlaygroundApp: App {
       $0.defaultDatabase = try! appDatabase()
       $0.defaultSyncEngine = try! SyncEngine(
         for: $0.defaultDatabase,
-        tables: ModelA.self, ModelB.self, ModelC.self
+        tables: ModelA.self,
+        ModelB.self,
+        ModelC.self
       )
     }
   }
@@ -48,12 +50,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 }
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+  @Dependency(\.defaultSyncEngine) var syncEngine
   var window: UIWindow?
+
   func windowScene(
     _ windowScene: UIWindowScene,
     userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
   ) {
-    @Dependency(\.defaultSyncEngine) var syncEngine
+    Task {
+      try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
+    }
+  }
+
+  func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions
+  ) {
+    guard let cloudKitShareMetadata = connectionOptions.cloudKitShareMetadata
+    else {
+      return
+    }
     Task {
       try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
     }
