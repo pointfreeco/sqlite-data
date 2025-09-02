@@ -49,9 +49,7 @@ extension BaseCloudKitTests {
     @Test func foreignKeyActionValidation_NoAction() async throws {
       let error = try #require(
         await #expect(throws: (any Error).self) {
-          var configuration = Configuration()
-          configuration.foreignKeysEnabled = false
-          let database = try DatabaseQueue(configuration: configuration)
+          let database = try DatabaseQueue()
           try await database.write { db in
             try #sql(
               """
@@ -63,7 +61,7 @@ extension BaseCloudKitTests {
             .execute(db)
             try #sql(
               """
-              CREATE TABLE "children" (
+              CREATE TABLE "childs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "parentID" INTEGER REFERENCES "parents"("id") ON DELETE NO ACTION
               ) STRICT
@@ -78,7 +76,7 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            tables: []
+            tables: [Child.self, Parent.self]
           )
         }
       )
@@ -100,7 +98,7 @@ extension BaseCloudKitTests {
               notnull: false
             )
           ),
-          debugDescription: #"Foreign key "children"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
+          debugDescription: #"Foreign key "childs"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
         )
         """
       }
@@ -110,9 +108,7 @@ extension BaseCloudKitTests {
     @Test func foreignKeyActionValidation_Restrict() async throws {
       let error = try #require(
         await #expect(throws: (any Error).self) {
-          var configuration = Configuration()
-          configuration.foreignKeysEnabled = false
-          let database = try DatabaseQueue(configuration: configuration)
+          let database = try DatabaseQueue()
           try await database.write { db in
             try #sql(
               """
@@ -124,7 +120,7 @@ extension BaseCloudKitTests {
             .execute(db)
             try #sql(
               """
-              CREATE TABLE "children" (
+              CREATE TABLE "childs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "parentID" INTEGER REFERENCES "parents"("id") ON DELETE RESTRICT
               ) STRICT
@@ -139,7 +135,7 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            tables: []
+            tables: [Parent.self, Child.self]
           )
         }
       )
@@ -161,7 +157,7 @@ extension BaseCloudKitTests {
               notnull: false
             )
           ),
-          debugDescription: #"Foreign key "children"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
+          debugDescription: #"Foreign key "childs"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
         )
         """
       }
@@ -278,6 +274,53 @@ extension BaseCloudKitTests {
         userDatabase: UserDatabase(database: database),
         tables: []
       )
+    }
+
+    @Table struct ModelWithUniqueColumn {
+      let id: Int
+      let uniqueValue: Int
+    }
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func uniquenessConstraint() async throws {
+      let error = try #require(
+        await #expect(throws: (any Error).self) {
+          let database = try DatabaseQueue()
+          try await database.write { db in
+            try #sql(
+              """
+              CREATE TABLE "modelWithUniqueColumns" (
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                "uniqueValue" INTEGER NOT NULL,
+                UNIQUE("uniqueValue")
+              ) STRICT
+              """
+            )
+            .execute(db)
+          }
+          _ = try await SyncEngine(
+            container: MockCloudContainer(
+              containerIdentifier: "deadbeef",
+              privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+              sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+            ),
+            userDatabase: UserDatabase(database: database),
+            tables: [ModelWithUniqueColumn.self]
+          )
+        }
+      )
+      assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+        """
+        "Could not synchronize data with iCloud."
+        """
+      }
+      assertInlineSnapshot(of: error, as: .customDump) {
+        """
+        SyncEngine.SchemaError(
+          reason: .uniquenessConstraint,
+          debugDescription: "Uniqueness constraints are not supported for synchronized tables."
+        )
+        """
+      }
     }
   }
 }

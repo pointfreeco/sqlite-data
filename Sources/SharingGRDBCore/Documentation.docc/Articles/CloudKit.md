@@ -183,6 +183,9 @@ CREATE TABLE "reminders" (
 )
 ```
 
+> Tip: If you want the database to generate random UUID's in a deterministic fashion for tests
+> you can register a custom database function to be used. 
+
 #### Primary keys on every table
 
 > TL;DR: Each synchronized table must have a single, non-compound primary key to aid in 
@@ -204,24 +207,6 @@ CREATE TABLE "reminderTags" (
 Note that the `id` column might not be needed for your application's logic, but it is necessary to 
 facilitate synchronizing to CloudKit.
 
-<!--
-TODO: think more about this
-
-#### Default values for columns
-
-> TL;DR: All columns must have a default in order to allow for multiple devices to run your
-> app with different versions of the schema.
-
-Your tables' schemas should be defined to provide a default for every non-null column. To see why 
-this is necessary, consider if device A is running with a schema in which `Reminder` has an 
-`isFlagged` column and device B is running with a schema that does not. When device B creates a 
-record without the `isFlagged` value, and that record is synchronized to device A, it will fail to 
-insert into the database because there is not value for `isFlagged`. 
-
-For this reason all columns in your schema must have a default value, and this will be validated
-when a ``SyncEngine`` is first created. If a non-null column without a default is detected,
-a ``NonNullColumnMustHaveDefault`` error will be thrown.
-
 #### Unique constraints
 
 > TL;DR: SQLite tables cannot have `UNIQUE` constraints on their columns in order to allow
@@ -235,9 +220,8 @@ they will have a conflict on the uniqueness constraint, but it would not be corr
 discard one of the tags.
 
 For this reason uniqueness constraints are not allowed in schemas, and this will be validated
-when a ``SyncEngine`` is first created. If a uniqueness constraint is detected a 
-``UniqueConstraintDisallowed`` error will be thrown.
--->
+when a ``SyncEngine`` is first created. If a uniqueness constraint is detected an error will be 
+thrown.
 
 #### Foreign key relationships
 
@@ -289,7 +273,7 @@ has been added to the schema, it will populate the table with the cached records
 
 #### Adding columns
 
-> TL;DR: When adding columns to a table that has already been deployed to user's devices, you will
+> TL;DR: When adding columns to a table that has already been deployed to users' devices, you will
 either need to make the column nullable, or it can be `NOT NULL` but a default value must be 
 provided with an `ON CONFLICT REPLACE` clause.
 
@@ -491,7 +475,8 @@ exposed for you to query it in whichever way you want.
 
 > Important: In order to query the `SyncMetadata` table from your database connection you will need 
 to attach the metadatabase to your database connection. This can be done with the
-``GRDB/Database/attachMetadatabase(containerIdentifier:)`` method defined on `Database`.
+``GRDB/Database/attachMetadatabase(containerIdentifier:)`` method defined on `Database`. See
+<doc:CloudKit#Setting-up-a-SyncEngine> for more information on how to do this.
 
 With that done you can use the ``StructuredQueriesCore/PrimaryKeyedTable/metadata(for:)`` method
 to construct a SQL query for fetching the meta data associated with one of your records.
@@ -506,6 +491,7 @@ let lastKnownServerRecord = try database.read { db in
     .metadata(for: remindersListID)
     .select(\.lastKnownServerRecord)
     .fetchOne(db)
+    ?? nil
 }
 guard let lastKnownServerRecord 
 else { return }
@@ -544,16 +530,94 @@ let ckRecord = try await container.sharedCloudDatabase
 appropriate to use when fetching the details of a `CKShare` as they are always stored in the 
 shared database.
 
-<!--
-TODO: finish
-* show example of joining tables to SyncMetadata
--->
+It is also possible to join the ``SyncMetadata`` table directly to your tables so that you can 
+select this additional information on a per-record basis. For example, if you want to select all
+reminders lists, along with a boolean that determines if it is shared or not, you can do the 
+following:
+
+```swift
+@Selection struct Row {
+  let remindersList: RemindersList
+  let isShared: Bool
+}
+
+@FetchAll(
+  RemindersList
+    .leftJoin(SyncMetadata.all) { $0.recordName.eq($1.recordName) }
+    .select {
+      Row.Columns(
+        remindersList: $0, 
+        isShared: $1.isShared ?? false
+      )
+    }
+)
+var rows
+```
+
+Here we have used the ``StructuredQueriesCore/PrimaryKeyedTableDefinition/recordName`` helper that
+is defined on all primary key tables so that we can join ``SyncMetadata`` to `RemindersList`.
 
 ## How SharingGRDB handles distributed schema scenarios
 
 <!-- todo: finish -->
 
 ## Unit testing and Xcode previews
+
+It is possible to run your features in tests and previews even when using the ``SyncEngine``. You
+will need to prepare it for dependencies exactly as you do in the entry point of your app. This
+can lead to some code duplication, and so you may want to extract that work to a mutating 
+`bootstrapDatabase` method on `DependencyValues` like so:
+
+```swift
+extension DependencyValues {
+  mutating func bootstrapDatabase() throws {
+    defaultDatabase = try Reminders.appDatabase()
+    defaultSyncEngine = try SyncEngine(
+      for: defaultDatabase,
+      tables: RemindersList.self,
+      RemindersListAsset.self,
+      Reminder.self,
+      Tag.self,
+      ReminderTag.self
+    )
+  }
+}
+```
+
+Then in your app entry point you can use it like so:
+
+```swift
+@main 
+struct MyApp: App {
+  init() {
+    try! prepareDependencies {
+      try! $0.bootstrapDatabase()
+    }
+  }
+  
+  // ...
+}
+```
+
+In tests you can use it like so:
+
+```swift
+@Suite(.dependencies { try! $0.bootstrapDatabase() }) 
+struct MySuite {
+  // ...
+}
+```
+
+And in preivews you can use it like so:
+
+```swift
+#Preview {
+  try! prepareDependencies {
+    try! $0.bootstrapDatabase()
+  }
+  // ...
+}
+```
 
 ## Preparing an existing schema for synchronization
 
