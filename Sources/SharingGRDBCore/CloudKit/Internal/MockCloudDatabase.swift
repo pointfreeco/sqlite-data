@@ -150,11 +150,6 @@ package final class MockCloudDatabase: CloudDatabase {
                 || share.currentUserParticipant?.permission == .readWrite)
             {
               saveResults[recordToSave.recordID] = .failure(CKError(.permissionFailure))
-//              reportIssue(
-//                """
-//                You do not have permission to write to this record: \(recordToSave.recordID.recordName)
-//                """
-//              )
               return
             }
 
