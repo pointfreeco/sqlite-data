@@ -234,7 +234,7 @@
           .execute(db)
         }
         db.add(function: $datetime)
-        db.add(function: .syncEngineIsSynchronizingChanges)
+        db.add(function: $syncEngineIsSynchronizingChanges)
         db.add(function: .didUpdate(syncEngine: self))
         db.add(function: .didDelete(syncEngine: self))
         db.add(function: .hasPermission)
@@ -437,7 +437,7 @@
         db.remove(function: .hasPermission)
         db.remove(function: .didDelete(syncEngine: self))
         db.remove(function: .didUpdate(syncEngine: self))
-        db.remove(function: .syncEngineIsSynchronizingChanges)
+        db.remove(function: $syncEngineIsSynchronizingChanges)
         db.remove(function: $datetime)
         // TODO: Do an `.erase()` + re-migrate
         try SyncMetadata.delete().execute(db)
@@ -539,8 +539,8 @@
       )
     }
 
-    public static func isSynchronizingChanges() -> SQLQueryExpression<Bool> {
-      SQLQueryExpression("\(raw: DatabaseFunction.syncEngineIsSynchronizingChanges.name)()")
+    public static func isSynchronizingChanges() -> some QueryExpression<Bool> {
+      $syncEngineIsSynchronizingChanges()
     }
   }
 
@@ -1621,16 +1621,6 @@
           share.publicPermission == .readWrite
           || share.currentUserParticipant?.permission == .readWrite
         return hasPermission
-      }
-    }
-
-    fileprivate static var syncEngineIsSynchronizingChanges: Self {
-      Self(
-        .sqliteDataCloudKitSchemaName + "_" + "syncEngineIsSynchronizingChanges",
-        argumentCount: 0
-      ) {
-        _ in
-        SyncEngine._isSynchronizingChanges
       }
     }
 
