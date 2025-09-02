@@ -33,9 +33,9 @@ extension BaseCloudKitTests {
             databaseScope: .private,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                 recordType: "reminders",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
                 share: nil,
                 id: 1,
                 isCompleted: 0,
@@ -43,7 +43,7 @@ extension BaseCloudKitTests {
                 title: "Write blog post"
               ),
               [1]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
@@ -74,15 +74,15 @@ extension BaseCloudKitTests {
             parentRecordType: "remindersLists",
             parentRecordName: "1:remindersLists",
             lastKnownServerRecord: CKRecord(
-              recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
               recordType: "reminders",
-              parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+              parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
               share: nil
             ),
             _lastKnownServerRecordAllFields: CKRecord(
-              recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
               recordType: "reminders",
-              parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+              parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
               share: nil,
               id: 1,
               isCompleted: 0,
@@ -102,13 +102,13 @@ extension BaseCloudKitTests {
             parentRecordType: nil,
             parentRecordName: nil,
             lastKnownServerRecord: CKRecord(
-              recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
               recordType: "remindersLists",
               parent: nil,
               share: nil
             ),
             _lastKnownServerRecordAllFields: CKRecord(
-              recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+              recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
               recordType: "remindersLists",
               parent: nil,
               share: nil,

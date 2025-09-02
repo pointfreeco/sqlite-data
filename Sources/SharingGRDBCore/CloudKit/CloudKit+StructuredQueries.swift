@@ -35,8 +35,16 @@ public struct _SystemFieldsRepresentation<Record: CKRecord>: QueryBindable, Quer
     self.queryOutput = queryOutput
   }
 
+  public init?(queryBinding: QueryBinding) {
+    guard case .blob(let bytes) = queryBinding else { return nil }
+    try? self.init(data: Data(bytes))
+  }
+
   public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-    let data = try Data(decoder: &decoder)
+    try self.init(data: try Data(decoder: &decoder))
+  }
+
+  private init(data: Data) throws {
     let coder = try NSKeyedUnarchiver(forReadingFrom: data)
     coder.requiresSecureCoding = true
     guard let queryOutput = Record(coder: coder) else {
@@ -68,8 +76,16 @@ package struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryR
     self.queryOutput = queryOutput
   }
 
+  package init?(queryBinding: QueryBinding) {
+    guard case .blob(let bytes) = queryBinding else { return nil }
+    try? self.init(data: Data(bytes))
+  }
+
   package init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-    let data = try Data(decoder: &decoder)
+    try self.init(data: try Data(decoder: &decoder))
+  }
+
+  private init(data: Data) throws {
     let coder = try NSKeyedUnarchiver(forReadingFrom: data)
     coder.requiresSecureCoding = true
     guard let queryOutput = Record(coder: coder) else {
@@ -98,15 +114,20 @@ extension CKDatabase.Scope {
     public init(queryOutput: CKDatabase.Scope) {
       self.queryOutput = queryOutput
     }
-    public init(decoder: inout some QueryDecoder) throws {
-      guard
-        let rawValue = try Int?(decoder: &decoder),
-        let scope = CKDatabase.Scope(rawValue: rawValue)
-      else {
-        throw QueryDecodingError.missingRequiredColumn
-      }
-      self.init(queryOutput: scope)
+    public init?(queryBinding: QueryBinding) {
+      guard case .int(let rawValue) = queryBinding else { return nil }
+      try? self.init(rawValue: Int(rawValue))
     }
+    public init(decoder: inout some QueryDecoder) throws {
+      try self.init(rawValue: Int(decoder: &decoder))
+    }
+    private init(rawValue: Int) throws {
+      guard let queryOutput = CKDatabase.Scope(rawValue: rawValue) else {
+        throw DecodingError()
+      }
+      self.init(queryOutput: queryOutput)
+    }
+    private struct DecodingError: Error {}
   }
 }
 

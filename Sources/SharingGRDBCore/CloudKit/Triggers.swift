@@ -10,7 +10,26 @@
         afterUpdate(parentForeignKey: parentForeignKey),
         afterDeleteFromUser(parentForeignKey: parentForeignKey),
         afterDeleteFromSyncEngine,
+        afterPrimaryKeyChange(parentForeignKey: parentForeignKey),
       ]
+    }
+
+    fileprivate static func afterPrimaryKeyChange(parentForeignKey: ForeignKey?) -> TemporaryTrigger<Self> {
+      createTemporaryTrigger(
+        "\(String.sqliteDataCloudKitSchemaName)_after_primary_key_change_on_\(tableName)",
+        ifNotExists: true,
+        after: .update(of: \.primaryKey) { old, new in
+          checkWritePermissions(alias: new, parentForeignKey: parentForeignKey)
+          SyncMetadata 
+            .where {
+              $0.recordPrimaryKey.eq(SQLQueryExpression("\(old.primaryKey)"))
+              && $0.recordType.eq(tableName)
+            }
+            .update { $0._isDeleted = true }
+        } when: { old, new in
+          old.primaryKey.neq(new.primaryKey)
+        }
+      )
     }
 
     fileprivate static func afterInsert(parentForeignKey: ForeignKey?) -> TemporaryTrigger<Self> {

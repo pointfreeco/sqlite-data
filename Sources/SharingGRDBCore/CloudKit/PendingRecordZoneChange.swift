@@ -39,8 +39,16 @@
         return archiver.encodedData.queryBinding
       }
 
+      package init?(queryBinding: StructuredQueriesCore.QueryBinding) {
+        guard case .blob(let bytes) = queryBinding else { return nil }
+        try? self.init(data: Data(bytes))
+      }
+
       package init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-        let data = try Data(decoder: &decoder)
+        try self.init(data: Data(decoder: &decoder))
+      }
+
+      private init(data: Data) throws {
         let coder = try NSKeyedUnarchiver(forReadingFrom: data)
         coder.requiresSecureCoding = true
         guard let recordID = CKRecord.ID(coder: coder) else {

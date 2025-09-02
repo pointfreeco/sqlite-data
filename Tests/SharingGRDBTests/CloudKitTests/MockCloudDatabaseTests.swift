@@ -30,7 +30,7 @@ extension BaseCloudKitTests {
         try self.syncEngine.private.database.record(
           for: CKRecord.ID(
             recordName: "A",
-            zoneID: CKRecordZone.ID(zoneName: "zone")
+            zoneID: CKRecordZone.ID(zoneName: "unknownZone")
           )
         )
       }
@@ -123,7 +123,7 @@ extension BaseCloudKitTests {
     @Test func saveInUnknownZone() async throws {
       let record = CKRecord(
         recordType: "Record",
-        recordID: CKRecord.ID(recordName: "Record", zoneID: CKRecordZone.ID(zoneName: "zone"))
+        recordID: CKRecord.ID(recordName: "Record", zoneID: CKRecordZone.ID(zoneName: "unknownZone"))
       )
 
       let (saveRecordResults, _) = try syncEngine.private.database.modifyRecords(
@@ -208,7 +208,7 @@ extension BaseCloudKitTests {
     @Test func deleteRecordInUnknownZone() async throws {
       let record = CKRecord(
         recordType: "A",
-        recordID: CKRecord.ID(recordName: "A", zoneID: CKRecordZone.ID(zoneName: "zone"))
+        recordID: CKRecord.ID(recordName: "A", zoneID: CKRecordZone.ID(zoneName: "unknownZone"))
       )
 
       let (_, deleteResults) = try syncEngine.private.database.modifyRecords(
@@ -283,10 +283,10 @@ extension BaseCloudKitTests {
     @Test func deleteUnknownZone() async throws {
       let (_, deleteResults) = try syncEngine.private.database.modifyRecordZones(
         saving: [],
-        deleting: [CKRecordZone.ID(zoneName: "zone")]
+        deleting: [CKRecordZone.ID(zoneName: "unknownZone")]
       )
       let error = #expect(throws: CKError.self) {
-        try deleteResults[CKRecordZone.ID(zoneName: "zone")]?.get()
+        try deleteResults[CKRecordZone.ID(zoneName: "unknownZone")]?.get()
       }
       #expect(error == CKError(.zoneNotFound))
     }

@@ -177,11 +177,6 @@
           }
         }
       )
-      try validateSchema(
-        tables: tables,
-        foreignKeysByTableName: foreignKeysByTableName,
-        userDatabase: userDatabase
-      )
       self.container = container
       self.defaultZone = defaultZone
       self.defaultSyncEngines = defaultSyncEngines
@@ -206,6 +201,7 @@
         tables: tables,
         tablesByName: tablesByName
       )
+      try validateSchema()
     }
 
     @TaskLocal package static var _isSynchronizingChanges = false
@@ -518,7 +514,7 @@
         changes.append(.deleteRecord(share.recordID))
       }
       guard isRunning else {
-        Task { [changes] in 
+        Task { [changes] in
           await withErrorReporting(.sqliteDataCloudKitFailure) {
             try await userDatabase.write { db in
               try PendingRecordZoneChange
@@ -1273,7 +1269,9 @@
           else { continue }
           func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
             do {
-              let serverRecord = try await container.sharedCloudDatabase.record(for: failedRecord.recordID)
+              let serverRecord = try await container.sharedCloudDatabase.record(
+                for: failedRecord.recordID
+              )
               upsertFromServerRecord(serverRecord, force: true)
             } catch let error as CKError where error.code == .unknownItem {
               try await userDatabase.write { db in
@@ -1822,6 +1820,7 @@
     struct SchemaError: LocalizedError {
       enum Reason {
         case inMemoryDatabase
+        case invalidForeignKey(ForeignKey)
         case invalidForeignKeyAction(ForeignKey)
         case invalidTableName(String)
         case metadatabaseMismatch(attachedPath: String, syncEngineConfiguredPath: String)
@@ -1837,8 +1836,81 @@
         "Could not synchronize data with iCloud."
       }
     }
+
+    fileprivate func validateSchema() throws {
+      let tableNames = Set(tables.map { $0.tableName })
+      for tableName in tableNames {
+        if tableName.contains(":") {
+          throw SyncEngine.SchemaError(
+            reason: .invalidTableName(tableName),
+            debugDescription: "Table name contains invalid character ':'"
+          )
+        }
+      }
+      try userDatabase.read { db in
+        for (tableName, foreignKeys) in foreignKeysByTableName {
+
+          let invalidForeignKey = foreignKeys.first(where: { tablesByName[$0.table] == nil })
+          if let invalidForeignKey {
+            throw SyncEngine.SchemaError(
+              reason: .invalidForeignKey(invalidForeignKey),
+              debugDescription: """
+                Foreign key \(tableName.debugDescription).\(invalidForeignKey.from.debugDescription) \
+                references table \(invalidForeignKey.table.debugDescription) that is not \
+                synchronized. Update 'SyncEngine.init' to synchronize \
+                \(invalidForeignKey.table.debugDescription). 
+                """
+            )
+          }
+
+          if foreignKeys.count == 1,
+            let foreignKey = foreignKeys.first,
+            [.restrict, .noAction].contains(foreignKey.onDelete)
+          {
+            throw SyncEngine.SchemaError(
+              reason: .invalidForeignKeyAction(foreignKey),
+              debugDescription: """
+                Foreign key \(tableName.debugDescription).\(foreignKey.from.debugDescription) action \
+                not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'.
+                """
+            )
+          }
+        }
+
+        for table in tables {
+          // // TODO: write tests for this
+          // let columnsWithUniqueConstraints =
+          //   try SQLQueryExpression(
+          //     """
+          //     SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
+          //     WHERE "unique" = 1 AND "origin" <> 'pk'
+          //     """,
+          //     as: String.self
+          //   )
+          //   .fetchAll(db)
+          // if !columnsWithUniqueConstraints.isEmpty {
+          //   throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
+          // }
+
+          // // TODO: write tests for this
+          // let nonNullColumnsWithNoDefault =
+          //   try SQLQueryExpression(
+          //     """
+          //     SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
+          //     WHERE "notnull" = 1 AND "dflt_value" IS NULL
+          //     """,
+          //     as: String.self
+          //   )
+          //   .fetchAll(db)
+          // if !nonNullColumnsWithNoDefault.isEmpty {
+          //   throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
+          // }
+        }
+      }
+    }
   }
 
+<<<<<<< HEAD
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func validateSchema(
     tables: [any PrimaryKeyedTable.Type],
@@ -1891,6 +1963,29 @@
       }
     }
   }
+=======
+  // TODO: Private, opaque error
+  // public struct UniqueConstraintDisallowed: Error {
+  //   let localizedDescription: String
+  //   init(table: any PrimaryKeyedTable.Type, columns: [String]) {
+  //     localizedDescription = """
+  //       Table '\(table.tableName)' has column\(columns.count == 1 ? "" : "s") with unique \
+  //       constraints: \(columns.map { "'\($0)'" }.joined(separator: ", "))
+  //       """
+  //   }
+  // }
+
+  // TODO: Private, opaque error
+  // public struct NonNullColumnMustHaveDefault: Error {
+  //   let localizedDescription: String
+  //   init(table: any PrimaryKeyedTable.Type, columns: [String]) {
+  //     localizedDescription = """
+  //       Table '\(table.tableName)' has non-null column\(columns.count == 1 ? "" : "s") with no \
+  //       default: \(columns.map { "'\($0)'" }.joined(separator: ", "))
+  //       """
+  //   }
+  // }
+>>>>>>> origin/cloudkit
 
   private struct HashablePrimaryKeyedTableType: Hashable {
     let type: any PrimaryKeyedTable.Type
@@ -2000,9 +2095,9 @@
         columnNames
           .filter { columnName in columnName != T.columns.primaryKey.name }
           .map {
-          """
-          \(quote: $0) = "excluded".\(quote: $0)
-          """
+            """
+            \(quote: $0) = "excluded".\(quote: $0)
+            """
           }
           .joined(separator: ", ")
       )
