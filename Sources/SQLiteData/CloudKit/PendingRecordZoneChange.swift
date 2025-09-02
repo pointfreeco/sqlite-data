@@ -1,10 +1,10 @@
 #if canImport(CloudKit)
   import CloudKit
 
-  // @Table("\(String.sqliteDataCloudKitSchemaName)_pendingRecordZoneChanges")
+  @Table("sqlitedata_icloud_pendingRecordZoneChanges")
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package struct PendingRecordZoneChange {
-    //  @Column(as: CKSyncEngine.PendingRecordZoneChange.DataRepresentation.self)
+    @Column(as: CKSyncEngine.PendingRecordZoneChange.DataRepresentation.self)
     package let pendingRecordZoneChange: CKSyncEngine.PendingRecordZoneChange
   }
 

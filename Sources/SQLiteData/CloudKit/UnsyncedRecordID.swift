@@ -2,7 +2,7 @@
   import CloudKit
   import StructuredQueriesCore
 
-  // @Table("\(String.sqliteDataCloudKitSchemaName)_unsyncedRecordIDs")
+  @Table("sqlitedata_icloud_unsyncedRecordIDs")
   package struct UnsyncedRecordID: Equatable {
     package let recordName: String
     package let zoneName: String

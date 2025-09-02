@@ -5,17 +5,17 @@
   import StructuredQueriesCore
 
   extension _CKRecord where Self == CKRecord {
-    typealias AllFieldsRepresentation = _AllFieldsRepresentation<CKRecord>
+    public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<CKRecord>
     public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKRecord>
   }
 
   extension _CKRecord where Self == CKShare {
-    typealias AllFieldsRepresentation = _AllFieldsRepresentation<CKRecord>
+    public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<CKRecord>
     public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKRecord>
   }
 
   extension Optional where Wrapped: CKRecord {
-    package typealias AllFieldsRepresentation = _AllFieldsRepresentation<Wrapped>?
+    public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<Wrapped>?
     public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<Wrapped>?
   }
 
@@ -61,10 +61,10 @@
     private struct DecodingError: Error {}
   }
 
-  package struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
-    package let queryOutput: Record
+  public struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
+    public let queryOutput: Record
 
-    package var queryBinding: QueryBinding {
+    public var queryBinding: QueryBinding {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encode(with: archiver)
       if isTesting {
@@ -73,16 +73,16 @@
       return archiver.encodedData.queryBinding
     }
 
-    package init(queryOutput: Record) {
+    public init(queryOutput: Record) {
       self.queryOutput = queryOutput
     }
 
-    package init?(queryBinding: QueryBinding) {
+    public init?(queryBinding: QueryBinding) {
       guard case .blob(let bytes) = queryBinding else { return nil }
       try? self.init(data: Data(bytes))
     }
 
-    package init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
       try self.init(data: try Data(decoder: &decoder))
     }
 

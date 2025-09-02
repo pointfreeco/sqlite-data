@@ -10,7 +10,7 @@
   ///
   ///
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  // @Table("\(String.sqliteDataCloudKitSchemaName)_metadata")
+  @Table("sqlitedata_icloud_metadata")
   public struct SyncMetadata: Hashable, Sendable {
     /// The unique identifier of the record synchronized.
     public var recordPrimaryKey: String
@@ -26,7 +26,7 @@
     /// ```swift
     /// "8c4d1e4e-49b2-4f60-b6df-3c23881b87c6:reminders"
     /// ```
-    // @Column(generated: .virtual)
+    @Column(generated: .virtual)
     public let recordName: String
 
     /// The unique identifier of this record's parent, if any.
@@ -43,21 +43,21 @@
     /// ```swift
     /// "d35e1f81-46e4-45d1-904b-2b7df1661e3e:remindersLists"
     /// ```
-    // @Column(generated: .virtual)
+    @Column(generated: .virtual)
     public let parentRecordName: String?
 
     /// The last known `CKRecord` received from the server.
     ///
     /// This record holds only the fields that are archived when using `encodeSystemFields(with:)`.
-    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
     public var lastKnownServerRecord: CKRecord?
 
     /// The last known `CKRecord` received from the server with all fields archived.
-    // @Column(as: CKRecord?.AllFieldsRepresentation.self)
-    package var _lastKnownServerRecordAllFields: CKRecord?
+    @Column(as: CKRecord?._AllFieldsRepresentation.self)
+    public var _lastKnownServerRecordAllFields: CKRecord?
 
     /// The `CKShare` associated with this record, if it is shared.
-    // @Column(as: CKShare?.SystemFieldsRepresentation.self)
+    @Column(as: CKShare?.SystemFieldsRepresentation.self)
     public var share: CKShare?
 
     /// Determines if the metadata has been "soft" deleted. It will be fully deleted once the
@@ -72,31 +72,31 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  // @Table @Selection
+  @Table @Selection
   struct AncestorMetadata {
     let recordName: String
     let parentRecordName: String?
-    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
     let lastKnownServerRecord: CKRecord?
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  // @Table @Selection
+  @Table @Selection
   struct RecordWithRoot {
     let parentRecordName: String?
     let recordName: String
-    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
     let lastKnownServerRecord: CKRecord?
     let rootRecordName: String
-    // @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
     let rootLastKnownServerRecord: CKRecord?
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  // @Table @Selection
+  @Table @Selection
   struct RootShare {
     let parentRecordName: String?
-    // @Column(as: CKShare?.SystemFieldsRepresentation.self)
+    @Column(as: CKShare?.SystemFieldsRepresentation.self)
     let share: CKShare?
   }
 
@@ -128,7 +128,6 @@
       self.isShared = share != nil
       self.userModificationDate = userModificationDate
     }
-
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
