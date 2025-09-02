@@ -2,7 +2,7 @@ import Dependencies
 import Foundation
 import IssueReporting
 import OSLog
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 
 @Table

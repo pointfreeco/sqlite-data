@@ -8,7 +8,7 @@ extension DependencyValues {
   /// SwiftUI, using `prepareDependencies`:
   ///
   /// ```swift
-  /// import SharingGRDB
+  /// import SQLiteData
   /// import SwiftUI
   ///
   /// @main

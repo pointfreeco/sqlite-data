@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-  name: "sharing-grdb",
+  name: "sqlite-data",
   platforms: [
     .iOS(.v13),
     .macOS(.v10_15),
@@ -12,16 +12,16 @@ let package = Package(
   ],
   products: [
     .library(
-      name: "SharingGRDB",
-      targets: ["SharingGRDB"]
+      name: "SQLiteData",
+      targets: ["SQLiteData"]
     ),
     .library(
-      name: "SharingGRDBCore",
-      targets: ["SharingGRDBCore"]
+      name: "SQLiteDataCore",
+      targets: ["SQLiteDataCore"]
     ),
     .library(
-      name: "SharingGRDBTestSupport",
-      targets: ["SharingGRDBTestSupport"]
+      name: "SQLiteDataTestSupport",
+      targets: ["SQLiteDataTestSupport"]
     ),
     .library(
       name: "StructuredQueriesGRDB",
@@ -43,14 +43,14 @@ let package = Package(
   ],
   targets: [
     .target(
-      name: "SharingGRDB",
+      name: "SQLiteData",
       dependencies: [
-        "SharingGRDBCore",
+        "SQLiteDataCore",
         "StructuredQueriesGRDB",
       ]
     ),
     .target(
-      name: "SharingGRDBCore",
+      name: "SQLiteDataCore",
       dependencies: [
         "StructuredQueriesGRDBCore",
         .product(name: "GRDB", package: "GRDB.swift"),
@@ -58,18 +58,18 @@ let package = Package(
       ]
     ),
     .testTarget(
-      name: "SharingGRDBTests",
+      name: "SQLiteDataTests",
       dependencies: [
-        "SharingGRDB",
-        "SharingGRDBTestSupport",
+        "SQLiteData",
+        "SQLiteDataTestSupport",
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
       ]
     ),
     .target(
-      name: "SharingGRDBTestSupport",
+      name: "SQLiteDataTestSupport",
       dependencies: [
-        "SharingGRDB",
+        "SQLiteData",
         .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
         .product(name: "StructuredQueriesTestSupport", package: "swift-structured-queries"),

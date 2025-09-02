@@ -1,5 +1,5 @@
 import IssueReporting
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 
 @MainActor

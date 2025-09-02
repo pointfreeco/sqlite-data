@@ -1,6 +1,6 @@
 import Foundation
 import OSLog
-import SharingGRDB
+import SQLiteData
 
 @Table
 struct Counter: Identifiable {

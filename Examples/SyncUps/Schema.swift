@@ -1,5 +1,5 @@
 import OSLog
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 
 @Table

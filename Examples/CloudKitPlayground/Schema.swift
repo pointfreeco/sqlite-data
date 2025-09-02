@@ -1,5 +1,5 @@
 import Foundation
-import SharingGRDB
+import SQLiteData
 import os
 
 @Table struct ModelA: Identifiable {

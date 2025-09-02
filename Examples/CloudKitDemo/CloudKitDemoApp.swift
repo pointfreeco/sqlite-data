@@ -1,5 +1,5 @@
 import CloudKit
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 
 #if canImport

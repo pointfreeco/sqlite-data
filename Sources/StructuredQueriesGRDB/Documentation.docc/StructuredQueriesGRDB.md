@@ -1,7 +1,7 @@
 # ``StructuredQueriesGRDB``
 
 A library interfacing StructuredQueries with GRDB. This module is automatically imported when you
-`import SharingGRDB`.
+`import SQLiteData`.
 
 ## Overview
 

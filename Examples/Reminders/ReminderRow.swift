@@ -1,4 +1,4 @@
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 
 struct ReminderRow: View {

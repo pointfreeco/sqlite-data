@@ -1,7 +1,7 @@
 import CloudKit
 import Combine
 import Dependencies
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 import UIKit
 
