@@ -1757,10 +1757,14 @@
     /// }
     /// ```
     ///
+    /// By default this method will use the container identifier assigned in your app's
+    /// entitlements. If you wish to use a different container identifier then you can provide
+    /// the `containerIdentifier` argument.
+    ///
     /// See <doc:PreparingDatabase> for more information on preparing your database.
     ///
-    /// - Parameter containerIdentifier: The identifier of the CloudKit container used to synchronize
-    ///                                  data.
+    /// - Parameter containerIdentifier: The identifier of the CloudKit container used to
+    /// synchronize data. Defaults to the value set in the app's entitlements.
     public func attachMetadatabase(containerIdentifier: String? = nil) throws {
       let containerIdentifier =
         containerIdentifier
@@ -1824,6 +1828,7 @@
         case noCloudKitContainer
         case nonNullColumnsWithoutDefault(tableName: String, columnNames: [String])
         case unknown
+        case uniquenessConstraint
       }
       let reason: Reason
       let debugDescription: String
@@ -1833,28 +1838,6 @@
       }
     }
   }
-
-  // TODO: Private, opaque error
-  // public struct UniqueConstraintDisallowed: Error {
-  //   let localizedDescription: String
-  //   init(table: any PrimaryKeyedTable.Type, columns: [String]) {
-  //     localizedDescription = """
-  //       Table '\(table.tableName)' has column\(columns.count == 1 ? "" : "s") with unique \
-  //       constraints: \(columns.map { "'\($0)'" }.joined(separator: ", "))
-  //       """
-  //   }
-  // }
-
-  // TODO: Private, opaque error
-  // public struct NonNullColumnMustHaveDefault: Error {
-  //   let localizedDescription: String
-  //   init(table: any PrimaryKeyedTable.Type, columns: [String]) {
-  //     localizedDescription = """
-  //       Table '\(table.tableName)' has non-null column\(columns.count == 1 ? "" : "s") with no \
-  //       default: \(columns.map { "'\($0)'" }.joined(separator: ", "))
-  //       """
-  //   }
-  // }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func validateSchema(
@@ -1888,33 +1871,23 @@
       }
 
       for table in tables {
-        // // TODO: write tests for this
-        // let columnsWithUniqueConstraints =
-        //   try SQLQueryExpression(
-        //     """
-        //     SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
-        //     WHERE "unique" = 1 AND "origin" <> 'pk'
-        //     """,
-        //     as: String.self
-        //   )
-        //   .fetchAll(db)
-        // if !columnsWithUniqueConstraints.isEmpty {
-        //   throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
-        // }
-
-        // // TODO: write tests for this
-        // let nonNullColumnsWithNoDefault =
-        //   try SQLQueryExpression(
-        //     """
-        //     SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
-        //     WHERE "notnull" = 1 AND "dflt_value" IS NULL
-        //     """,
-        //     as: String.self
-        //   )
-        //   .fetchAll(db)
-        // if !nonNullColumnsWithNoDefault.isEmpty {
-        //   throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
-        // }
+         let columnsWithUniqueConstraints =
+           try SQLQueryExpression(
+             """
+             SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
+             WHERE "unique" = 1 AND "origin" <> 'pk'
+             """,
+             as: String.self
+           )
+           .fetchAll(db)
+         if !columnsWithUniqueConstraints.isEmpty {
+           throw SyncEngine.SchemaError(
+            reason: .uniquenessConstraint,
+            debugDescription: """
+              Uniqueness constraints are not supported for synchronized tables.
+              """
+           )
+         }
       }
     }
   }

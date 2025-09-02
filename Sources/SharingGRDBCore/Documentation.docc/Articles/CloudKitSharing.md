@@ -15,7 +15,17 @@ Info.plist with a value of `true`. This is subtly documented in [Apple's documen
 
 [Apple's documentation for sharing]: https://developer.apple.com/documentation/cloudkit/sharing-cloudkit-data-with-other-icloud-users#Create-and-Share-a-Topic
 
-TODO: ToC
+  - [Creating CKShare records](#Creating-CKShare-records)
+  - [Accepting shared records](#Accepting-shared-records)
+  - [Diving deeper into sharing](#Diving-deeper-into-sharing)
+    - [Sharing root records](#Sharing-root-records)
+      - [Sharing foreign key relationships](#Sharing-foreign-key-relationships)
+        - [One-to-many relationships](#One-to-many-relationships)
+        - [Many-to-many relationships](#Many-to-many-relationships)
+        - [One-to-"at most one" relationships](#One-to-at-most-one-relationships)
+  - [Sharing permissions](#Sharing-permissions)
+  - [Controlling what data is shared](#Controlling-what-data-is-shared)
+  - [Querying share metadata](#Querying-share-metadata)
 
 ## Creating CKShare records
 
@@ -353,7 +363,51 @@ it is also the primary key of the table it enforces that at most one cover image
 
 ## Sharing permissions
 
-TODO: finish
+CloudKit sharing supports permissions so that you can give read-only or read-write access to the
+data you share with other users. These permissions are automatically observed by the library and
+enforced when writing to your database. If your application tries to write to a record that it
+does not have permission for, a `DatabaseError` will be emitted.
+
+To check for this error you can catch `DatabaseError` and compare its message to 
+``SyncEngine/writePermissionError``:
+
+```swift
+do {
+  try await database.write { db in
+    Reminder.find(id)
+      .update { $0.title = "Personal" }
+      .execute(db)
+  }
+} catch let error as DatabaseError where error.message == SyncEngine.writePermissionError {
+  // User does not have permission to write to this record.
+}
+```
+
+See <doc:CloudKit#Accessing-CloudKit-metadata> for more information on accessing the metadata
+associationed with your user's data.
+
+Ideally your app would not allow the user to write to records that they do not have permissions for.
+To check their permissions for a record, you can join the root record table to 
+``SyncMetadata`` and select the ``SyncMetadata/share`` value:
+
+```swift
+let share = try await database.read { db in 
+  RemindersList
+    .metadata(for: id)
+    .select(\.share)
+    .fetchOne(db) 
+    ?? nil
+}
+guard
+  share?.currentUserParticipant?.permission == .readWrite
+    || share?.permission == .readWrite
+else {
+  // User does not have permissions to write to record.
+  return 
+}
+```
+
+This allows you to determine the sharing permissions for a root record.
 
 ## Controlling what data is shared
 

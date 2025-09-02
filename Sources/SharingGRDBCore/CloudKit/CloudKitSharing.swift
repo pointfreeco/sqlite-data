@@ -185,34 +185,30 @@
       let availablePermissions: UICloudSharingController.PermissionOptions
       let didFinish: (Result<Void, Error>) -> Void
       let didStopSharing: () -> Void
-      public init(
-        sharedRecord: SharedRecord,
-        availablePermissions: UICloudSharingController.PermissionOptions = []
-      ) {
-        self.init(
-          sharedRecord: sharedRecord,
-          availablePermissions: availablePermissions,
-          didFinish: { _ in },
-          didStopSharing: {}
-        )
-      }
+      let syncEngine: SyncEngine
       public init(
         sharedRecord: SharedRecord,
         availablePermissions: UICloudSharingController.PermissionOptions = [],
-        didFinish: @escaping (Result<Void, Error>) -> Void,
-        didStopSharing: @escaping () -> Void
+        didFinish: @escaping (Result<Void, Error>) -> Void = { _ in },
+        didStopSharing: @escaping () -> Void = { },
+        syncEngine: SyncEngine = {
+          @Dependency(\.defaultSyncEngine) var defaultSyncEngine
+          return defaultSyncEngine
+        }()
       ) {
         self.sharedRecord = sharedRecord
         self.didFinish = didFinish
         self.didStopSharing = didStopSharing
         self.availablePermissions = availablePermissions
+        self.syncEngine = syncEngine
       }
 
       public func makeCoordinator() -> CloudSharingDelegate {
         CloudSharingDelegate(
           share: sharedRecord.share,
           didFinish: didFinish,
-          didStopSharing: didStopSharing
+          didStopSharing: didStopSharing,
+          syncEngine: syncEngine
         )
       }
 
@@ -238,14 +234,17 @@
       let share: CKShare
       let didFinish: (Result<Void, Error>) -> Void
       let didStopSharing: () -> Void
+      let syncEngine: SyncEngine
       init(
         share: CKShare,
         didFinish: @escaping (Result<Void, Error>) -> Void,
-        didStopSharing: @escaping () -> Void
+        didStopSharing: @escaping () -> Void,
+        syncEngine: SyncEngine
       ) {
         self.share = share
         self.didFinish = didFinish
         self.didStopSharing = didStopSharing
+        self.syncEngine = syncEngine
       }
 
       public func itemThumbnailData(for csc: UICloudSharingController) -> Data? {
@@ -261,7 +260,6 @@
       }
 
       public func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
-        @Dependency(\.defaultSyncEngine) var syncEngine
         withErrorReporting(.sqliteDataCloudKitFailure) {
           try syncEngine.deleteShare(recordID: share.recordID)
         }
