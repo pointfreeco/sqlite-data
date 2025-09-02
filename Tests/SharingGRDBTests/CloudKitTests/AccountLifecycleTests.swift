@@ -67,9 +67,9 @@ extension BaseCloudKitTests {
             databaseScope: .private,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                 recordType: "reminders",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
                 share: nil,
                 id: 1,
                 isCompleted: 0,
@@ -77,16 +77,16 @@ extension BaseCloudKitTests {
                 title: "Get milk"
               ),
               [1]: CKRecord(
-                recordID: CKRecord.ID(1:remindersListPrivates/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:remindersListPrivates/zone/__defaultOwner__),
                 recordType: "remindersListPrivates",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
                 share: nil,
                 id: 1,
                 position: 0,
                 remindersListID: 1
               ),
               [2]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,

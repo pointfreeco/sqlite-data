@@ -2,7 +2,7 @@ import Dependencies
 import GRDB
 
 package struct UserDatabase {
-  private let database: any DatabaseWriter
+  package let database: any DatabaseWriter
   package init(database: any DatabaseWriter) {
     self.database = database
   }

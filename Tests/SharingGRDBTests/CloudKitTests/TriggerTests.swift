@@ -702,6 +702,258 @@ extension BaseCloudKitTests {
             END
             """,
             [39]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_childWithOnDeleteSetDefaults"
+            AFTER UPDATE OF "id" ON "childWithOnDeleteSetDefaults"
+            FOR EACH ROW WHEN ("old"."id" <> "new"."id") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" IS 'parents'))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'childWithOnDeleteSetDefaults'));
+            END
+            """,
+            [40]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_childWithOnDeleteSetNulls"
+            AFTER UPDATE OF "id" ON "childWithOnDeleteSetNulls"
+            FOR EACH ROW WHEN ("old"."id" <> "new"."id") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" IS 'parents'))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'childWithOnDeleteSetNulls'));
+            END
+            """,
+            [41]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_modelAs"
+            AFTER UPDATE OF "id" ON "modelAs"
+            FOR EACH ROW WHEN ("old"."id" <> "new"."id") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS NULL) AND ("sqlitedata_icloud_metadata"."recordType" IS NULL))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'));
+            END
+            """,
+            [42]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_modelBs"
+            AFTER UPDATE OF "id" ON "modelBs"
+            FOR EACH ROW WHEN ("old"."id" <> "new"."id") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS "new"."modelAID") AND ("sqlitedata_icloud_metadata"."recordType" IS 'modelAs'))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'));
+            END
+            """,
+            [43]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_modelCs"
+            AFTER UPDATE OF "id" ON "modelCs"
+            FOR EACH ROW WHEN ("old"."id" <> "new"."id") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS "new"."modelBID") AND ("sqlitedata_icloud_metadata"."recordType" IS 'modelBs'))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelCs'));
+            END
+            """,
+            [44]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_parents"
+            AFTER UPDATE OF "id" ON "parents"
+            FOR EACH ROW WHEN ("old"."id" <> "new"."id") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS NULL) AND ("sqlitedata_icloud_metadata"."recordType" IS NULL))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'));
+            END
+            """,
+            [45]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_reminderTags"
+            AFTER UPDATE OF "id" ON "reminderTags"
+            FOR EACH ROW WHEN ("old"."id" <> "new"."id") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS NULL) AND ("sqlitedata_icloud_metadata"."recordType" IS NULL))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'reminderTags'));
+            END
+            """,
+            [46]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_reminders"
+            AFTER UPDATE OF "id" ON "reminders"
+            FOR EACH ROW WHEN ("old"."id" <> "new"."id") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" IS 'remindersLists'))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'reminders'));
+            END
+            """,
+            [47]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_remindersListAssets"
+            AFTER UPDATE OF "id" ON "remindersListAssets"
+            FOR EACH ROW WHEN ("old"."id" <> "new"."id") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" IS 'remindersLists'))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersListAssets'));
+            END
+            """,
+            [48]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_remindersListPrivates"
+            AFTER UPDATE OF "id" ON "remindersListPrivates"
+            FOR EACH ROW WHEN ("old"."id" <> "new"."id") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" IS 'remindersLists'))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersListPrivates'));
+            END
+            """,
+            [49]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_remindersLists"
+            AFTER UPDATE OF "id" ON "remindersLists"
+            FOR EACH ROW WHEN ("old"."id" <> "new"."id") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS NULL) AND ("sqlitedata_icloud_metadata"."recordType" IS NULL))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."id") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'));
+            END
+            """,
+            [50]: """
+            CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_tags"
+            AFTER UPDATE OF "title" ON "tags"
+            FOR EACH ROW WHEN ("old"."title" <> "new"."title") BEGIN
+              WITH "rootShares" AS (
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS NULL) AND ("sqlitedata_icloud_metadata"."recordType" IS NULL))
+                  UNION ALL
+                SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                FROM "sqlitedata_icloud_metadata"
+                JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
+              )
+              SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+              FROM "rootShares"
+              WHERE ((NOT (sqlitedata_icloud_syncEngineIsSynchronizingChanges()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT (sqlitedata_icloud_hasPermission("rootShares"."share")));
+              UPDATE "sqlitedata_icloud_metadata"
+              SET "_isDeleted" = 1
+              WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "old"."title") AND ("sqlitedata_icloud_metadata"."recordType" = 'tags'));
+            END
+            """,
+            [51]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_childWithOnDeleteSetDefaults"
             AFTER UPDATE ON "childWithOnDeleteSetDefaults"
             FOR EACH ROW BEGIN
@@ -724,7 +976,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [40]: """
+            [52]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_childWithOnDeleteSetNulls"
             AFTER UPDATE ON "childWithOnDeleteSetNulls"
             FOR EACH ROW BEGIN
@@ -747,7 +999,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [41]: """
+            [53]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelAs"
             AFTER UPDATE ON "modelAs"
             FOR EACH ROW BEGIN
@@ -770,7 +1022,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [42]: """
+            [54]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelBs"
             AFTER UPDATE ON "modelBs"
             FOR EACH ROW BEGIN
@@ -793,7 +1045,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [43]: """
+            [55]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelCs"
             AFTER UPDATE ON "modelCs"
             FOR EACH ROW BEGIN
@@ -816,7 +1068,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [44]: """
+            [56]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_parents"
             AFTER UPDATE ON "parents"
             FOR EACH ROW BEGIN
@@ -839,7 +1091,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [45]: """
+            [57]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_reminderTags"
             AFTER UPDATE ON "reminderTags"
             FOR EACH ROW BEGIN
@@ -862,7 +1114,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [46]: """
+            [58]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_reminders"
             AFTER UPDATE ON "reminders"
             FOR EACH ROW BEGIN
@@ -885,7 +1137,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [47]: """
+            [59]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersListAssets"
             AFTER UPDATE ON "remindersListAssets"
             FOR EACH ROW BEGIN
@@ -908,7 +1160,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [48]: """
+            [60]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersListPrivates"
             AFTER UPDATE ON "remindersListPrivates"
             FOR EACH ROW BEGIN
@@ -931,7 +1183,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [49]: """
+            [61]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersLists"
             AFTER UPDATE ON "remindersLists"
             FOR EACH ROW BEGIN
@@ -954,7 +1206,7 @@ extension BaseCloudKitTests {
               DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
             END
             """,
-            [50]: """
+            [62]: """
             CREATE TRIGGER "sqlitedata_icloud_after_update_on_tags"
             AFTER UPDATE ON "tags"
             FOR EACH ROW BEGIN

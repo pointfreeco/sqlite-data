@@ -140,7 +140,14 @@ extension BaseCloudKitTests {
         MockCloudContainer(
           privateCloudDatabase: MockCloudDatabase(
             databaseScope: .private,
-            storage: []
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(Record/zone/__defaultOwner__),
+                recordType: "Record",
+                parent: nil,
+                share: nil
+              )
+            ]
           ),
           sharedCloudDatabase: MockCloudDatabase(
             databaseScope: .shared,

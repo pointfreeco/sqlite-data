@@ -50,7 +50,7 @@ extension BaseCloudKitTests {
             databaseScope: .private,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
@@ -123,16 +123,16 @@ extension BaseCloudKitTests {
             databaseScope: .private,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                 recordType: "reminders",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
                 share: nil,
                 id: 1,
                 remindersListID: 1,
                 title: "Get milk"
               ),
               [1]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
@@ -199,36 +199,36 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
       assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:reminders/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                  recordType: "reminders",
-                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
-                  share: nil,
-                  id: 1,
-                  remindersListID: 1,
-                  title: "Get milk"
-                ),
-                [1]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: nil,
-                  id: 1,
-                  title: "Personal"
-                )
-              ]
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                share: nil,
+                id: 1,
+                remindersListID: 1,
+                title: "Get milk"
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 1,
+                title: "Personal"
+              )
+            ]
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
           )
-          """
+        )
+        """
       }
 
       try await userDatabase.read { db in
@@ -281,14 +281,14 @@ extension BaseCloudKitTests {
               databaseScope: .private,
               storage: [
                 [0]: CKRecord(
-                  recordID: CKRecord.ID(1:childWithOnDeleteSetNulls/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordID: CKRecord.ID(1:childWithOnDeleteSetNulls/zone/__defaultOwner__),
                   recordType: "childWithOnDeleteSetNulls",
                   parent: nil,
                   share: nil,
                   id: 1
                 ),
                 [1]: CKRecord(
-                  recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordID: CKRecord.ID(1:parents/zone/__defaultOwner__),
                   recordType: "parents",
                   parent: nil,
                   share: nil,
@@ -359,22 +359,22 @@ extension BaseCloudKitTests {
               databaseScope: .private,
               storage: [
                 [0]: CKRecord(
-                  recordID: CKRecord.ID(1:childWithOnDeleteSetDefaults/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordID: CKRecord.ID(1:childWithOnDeleteSetDefaults/zone/__defaultOwner__),
                   recordType: "childWithOnDeleteSetDefaults",
-                  parent: CKReference(recordID: CKRecord.ID(0:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                  parent: CKReference(recordID: CKRecord.ID(0:parents/zone/__defaultOwner__)),
                   share: nil,
                   id: 1,
                   parentID: 0
                 ),
                 [1]: CKRecord(
-                  recordID: CKRecord.ID(0:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordID: CKRecord.ID(0:parents/zone/__defaultOwner__),
                   recordType: "parents",
                   parent: nil,
                   share: nil,
                   id: 0
                 ),
                 [2]: CKRecord(
-                  recordID: CKRecord.ID(1:parents/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                  recordID: CKRecord.ID(1:parents/zone/__defaultOwner__),
                   recordType: "parents",
                   parent: nil,
                   share: nil,

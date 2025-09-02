@@ -33,9 +33,9 @@ extension BaseCloudKitTests {
             databaseScope: .private,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(1:remindersListAssets/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:remindersListAssets/zone/__defaultOwner__),
                 recordType: "remindersListAssets",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
                 share: nil,
                 id: 1,
                 remindersListID: 1,
@@ -45,7 +45,7 @@ extension BaseCloudKitTests {
                 )
               ),
               [1]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
@@ -89,9 +89,9 @@ extension BaseCloudKitTests {
             databaseScope: .private,
             storage: [
               [0]: CKRecord(
-                recordID: CKRecord.ID(1:remindersListAssets/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:remindersListAssets/zone/__defaultOwner__),
                 recordType: "remindersListAssets",
-                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__)),
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
                 share: nil,
                 id: 1,
                 remindersListID: 1,
@@ -101,7 +101,7 @@ extension BaseCloudKitTests {
                 )
               ),
               [1]: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/co.pointfree.SQLiteData.defaultZone/__defaultOwner__),
+                recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                 recordType: "remindersLists",
                 parent: nil,
                 share: nil,
