@@ -1,8 +1,6 @@
-import Dependencies
 import DependenciesTestSupport
+import Foundation
 import SQLiteData
-import Sharing
-import StructuredQueries
 import Testing
 
 @Suite(.dependency(\.defaultDatabase, try .syncUps()))
