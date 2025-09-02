@@ -32,9 +32,7 @@
 - ``init(wrappedValue:_:database:scheduler:)``
 - ``load(_:database:scheduler:)``
 
-### Sharing infrastructure
+### Sharing integration
 
 - ``sharedReader``
 - ``subscript(dynamicMember:)``
-- ``FetchKey``
-- ``FetchKeyID``
