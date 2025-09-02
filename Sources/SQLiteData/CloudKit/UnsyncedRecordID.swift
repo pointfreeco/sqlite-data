@@ -22,7 +22,9 @@
           && $0.ownerName.eq(recordID.zoneID.ownerName)
       }
     }
-    package static func findAll(_ recordIDs: some Collection<CKRecord.ID>) -> Where<UnsyncedRecordID> {
+    package static func findAll(_ recordIDs: some Collection<CKRecord.ID>) -> Where<
+      UnsyncedRecordID
+    > {
       let condition: QueryFragment = recordIDs.map {
         "(\(bind: $0.recordName), \(bind: $0.zoneID.zoneName), \(bind: $0.zoneID.ownerName))"
       }

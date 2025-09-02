@@ -54,7 +54,7 @@ private enum DataManagerKey: DependencyKey {
 }
 
 extension DependencyValues {
-    package var dataManager: DataManager {
+  package var dataManager: DataManager {
     get { self[DataManagerKey.self] }
     set { self[DataManagerKey.self] = newValue }
   }

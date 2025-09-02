@@ -47,7 +47,9 @@ import StructuredQueriesTestSupport
 ///   - column: The source `#column` associated with the assertion.
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 @_disfavoredOverload
-public func assertQuery<each V: QueryRepresentable, S: StructuredQueriesCore.Statement<(repeat each V)>>(
+public func assertQuery<
+  each V: QueryRepresentable, S: StructuredQueriesCore.Statement<(repeat each V)>
+>(
   includeSQL: Bool = false,
   _ query: S,
   database: (any DatabaseWriter)? = nil,

@@ -1870,20 +1870,20 @@
 
         for table in tables {
           let columnsWithUniqueConstraints =
-          try SQLQueryExpression(
-             """
-             SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
-             WHERE "unique" = 1 AND "origin" <> 'pk'
-             """,
-             as: String.self
-          )
-          .fetchAll(db)
+            try SQLQueryExpression(
+              """
+              SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
+              WHERE "unique" = 1 AND "origin" <> 'pk'
+              """,
+              as: String.self
+            )
+            .fetchAll(db)
           if !columnsWithUniqueConstraints.isEmpty {
             throw SyncEngine.SchemaError(
               reason: .uniquenessConstraint,
               debugDescription: """
-              Uniqueness constraints are not supported for synchronized tables.
-              """
+                Uniqueness constraints are not supported for synchronized tables.
+                """
             )
           }
         }

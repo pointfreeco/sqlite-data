@@ -1,5 +1,5 @@
-import CustomDump
 import CloudKit
+import CustomDump
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
@@ -42,9 +42,10 @@ package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
     for share: CKShare,
     shouldFetchRootRecord: Bool
   ) async throws -> ShareMetadata {
-    let database = share.recordID.zoneID.ownerName == CKCurrentUserDefaultName
-    ? privateCloudDatabase
-    : sharedCloudDatabase
+    let database =
+      share.recordID.zoneID.ownerName == CKCurrentUserDefaultName
+      ? privateCloudDatabase
+      : sharedCloudDatabase
 
     let rootRecord: CKRecord? = database.storage.withValue {
       $0[share.recordID.zoneID]?.values.first { record in
@@ -73,7 +74,8 @@ package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
     return metadata.share
   }
 
-  package static func createContainer(identifier containerIdentifier: String) -> MockCloudContainer {
+  package static func createContainer(identifier containerIdentifier: String) -> MockCloudContainer
+  {
     @Dependency(\.mockCloudContainers) var mockCloudContainers
     return mockCloudContainers.withValue { storage in
       let container: MockCloudContainer

@@ -160,7 +160,8 @@
       }
       guard let share
       else {
-        reportIssue("""
+        reportIssue(
+          """
           No share found associated with record.
           """)
         return
@@ -190,7 +191,7 @@
         sharedRecord: SharedRecord,
         availablePermissions: UICloudSharingController.PermissionOptions = [],
         didFinish: @escaping (Result<Void, Error>) -> Void = { _ in },
-        didStopSharing: @escaping () -> Void = { },
+        didStopSharing: @escaping () -> Void = {},
         syncEngine: SyncEngine = {
           @Dependency(\.defaultSyncEngine) var defaultSyncEngine
           return defaultSyncEngine

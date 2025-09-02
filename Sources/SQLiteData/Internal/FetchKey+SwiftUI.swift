@@ -66,8 +66,8 @@
     }
   }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension AnimatedScheduler: Hashable {}
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension AnimatedScheduler: Hashable {}
 
   extension ValueObservationScheduler where Self == AnimatedScheduler {
     package static func animation(_ animation: Animation) -> Self {
