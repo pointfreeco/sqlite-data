@@ -48,10 +48,13 @@ The steps to set up your SharingGRDB project for CloudKit synchronization are th
   * If you want to enable sharing of records with other iCloud users, be sure to add a 
     `CKSharingSupported` key to your Info.plist with a value of `true`. This is subtly documented 
     in [Apple's documentation for sharing].
+  * Once you are ready to deploy your app be sure to read Apple's documentation on
+    [Deploying an iCloud Container’s Schema].
 
 With those steps completed, you are ready to configure a ``SyncEngine`` that will facilitate
 synchronizing your database to and from CloudKit.
 
+[Deploying an iCloud Container’s Schema]: https://developer.apple.com/documentation/CloudKit/deploying-an-icloud-container-s-schema
 [Apple's documentation for sharing]: https://developer.apple.com/documentation/cloudkit/sharing-cloudkit-data-with-other-icloud-users#Create-and-Share-a-Topic
 [setup-cloudkit-apple]: https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices#Add-the-iCloud-and-Background-Modes-capabilities
 [Configuring iCloud services]: https://developer.apple.com/documentation/Xcode/configuring-icloud-services
