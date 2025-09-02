@@ -61,7 +61,7 @@ extension BaseCloudKitTests {
             .execute(db)
             try #sql(
               """
-              CREATE TABLE "children" (
+              CREATE TABLE "childs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "parentID" INTEGER REFERENCES "parents"("id") ON DELETE NO ACTION
               ) STRICT
@@ -76,7 +76,7 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            tables: []
+            tables: [Child.self, Parent.self]
           )
         }
       )
@@ -98,7 +98,7 @@ extension BaseCloudKitTests {
               notnull: false
             )
           ),
-          debugDescription: #"Foreign key "children"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
+          debugDescription: #"Foreign key "childs"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
         )
         """
       }
@@ -120,7 +120,7 @@ extension BaseCloudKitTests {
             .execute(db)
             try #sql(
               """
-              CREATE TABLE "children" (
+              CREATE TABLE "childs" (
                 "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 "parentID" INTEGER REFERENCES "parents"("id") ON DELETE RESTRICT
               ) STRICT
@@ -135,7 +135,7 @@ extension BaseCloudKitTests {
               sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
             ),
             userDatabase: UserDatabase(database: database),
-            tables: []
+            tables: [Parent.self, Child.self]
           )
         }
       )
@@ -157,7 +157,7 @@ extension BaseCloudKitTests {
               notnull: false
             )
           ),
-          debugDescription: #"Foreign key "children"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
+          debugDescription: #"Foreign key "childs"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
         )
         """
       }

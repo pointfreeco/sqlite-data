@@ -158,21 +158,17 @@
       tables: [any PrimaryKeyedTable.Type],
       privateTables: [any PrimaryKeyedTable.Type] = []
     ) throws {
-      let allTables = try userDatabase.read { db in
-        try SQLQueryExpression(
-          """
-          SELECT "name" FROM "sqlite_master" WHERE "type" = 'table'
-          """,
-          as: String.self
-        )
-        .fetchAll(db)
-      }
+      let allTables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
+        .map(\.type)
+      self.tables = allTables
+      self.privateTables = privateTables
+
       let foreignKeysByTableName = Dictionary(
         uniqueKeysWithValues: try userDatabase.read { db in
           try allTables.map { table -> (String, [ForeignKey]) in
             (
-              table,
-              try ForeignKey.all(table).fetchAll(db)
+              table.tableName,
+              try ForeignKey.all(table.tableName).fetchAll(db)
             )
           }
         }
@@ -189,16 +185,11 @@
           containerIdentifier: container.containerIdentifier
         )
       )
-      let tables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
-        .map(\.type)
-      self.tables = tables
-      self.privateTables = privateTables
-
       self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
       self.foreignKeysByTableName = foreignKeysByTableName
       tablesByOrder = try SharingGRDBCore.tablesByOrder(
         userDatabase: userDatabase,
-        tables: tables,
+        tables: allTables,
         tablesByName: tablesByName
       )
       try validateSchema()
@@ -1878,114 +1869,27 @@
         }
 
         for table in tables {
-          // // TODO: write tests for this
-          // let columnsWithUniqueConstraints =
-          //   try SQLQueryExpression(
-          //     """
-          //     SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
-          //     WHERE "unique" = 1 AND "origin" <> 'pk'
-          //     """,
-          //     as: String.self
-          //   )
-          //   .fetchAll(db)
-          // if !columnsWithUniqueConstraints.isEmpty {
-          //   throw UniqueConstraintDisallowed(table: table, columns: columnsWithUniqueConstraints)
-          // }
-
-          // // TODO: write tests for this
-          // let nonNullColumnsWithNoDefault =
-          //   try SQLQueryExpression(
-          //     """
-          //     SELECT "name" FROM pragma_table_info(\(quote: table.tableName, delimiter: .text))
-          //     WHERE "notnull" = 1 AND "dflt_value" IS NULL
-          //     """,
-          //     as: String.self
-          //   )
-          //   .fetchAll(db)
-          // if !nonNullColumnsWithNoDefault.isEmpty {
-          //   throw NonNullColumnMustHaveDefault(table: table, columns: nonNullColumnsWithNoDefault)
-          // }
-        }
-      }
-    }
-  }
-
-<<<<<<< HEAD
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func validateSchema(
-    tables: [any PrimaryKeyedTable.Type],
-    foreignKeysByTableName: [String: [ForeignKey]],
-    userDatabase: UserDatabase
-  ) throws {
-    let tableNames = Set(tables.map { $0.tableName })
-    for tableName in tableNames {
-      if tableName.contains(":") {
-        throw SyncEngine.SchemaError(
-          reason: .invalidTableName(tableName),
-          debugDescription: "Table name contains invalid character ':'"
-        )
-      }
-    }
-    try userDatabase.read { db in
-      for (tableName, foreignKeys) in foreignKeysByTableName {
-        if foreignKeys.count == 1,
-          let foreignKey = foreignKeys.first,
-          [.restrict, .noAction].contains(foreignKey.onDelete)
-        {
-          throw SyncEngine.SchemaError(
-            reason: .invalidForeignKeyAction(foreignKey),
-            debugDescription: """
-              Foreign key \(tableName.debugDescription).\(foreignKey.from.debugDescription) action \
-              not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'.
-              """
-          )
-        }
-      }
-
-      for table in tables {
-         let columnsWithUniqueConstraints =
-           try SQLQueryExpression(
+          let columnsWithUniqueConstraints =
+          try SQLQueryExpression(
              """
              SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
              WHERE "unique" = 1 AND "origin" <> 'pk'
              """,
              as: String.self
-           )
-           .fetchAll(db)
-         if !columnsWithUniqueConstraints.isEmpty {
-           throw SyncEngine.SchemaError(
-            reason: .uniquenessConstraint,
-            debugDescription: """
+          )
+          .fetchAll(db)
+          if !columnsWithUniqueConstraints.isEmpty {
+            throw SyncEngine.SchemaError(
+              reason: .uniquenessConstraint,
+              debugDescription: """
               Uniqueness constraints are not supported for synchronized tables.
               """
-           )
-         }
+            )
+          }
+        }
       }
     }
   }
-=======
-  // TODO: Private, opaque error
-  // public struct UniqueConstraintDisallowed: Error {
-  //   let localizedDescription: String
-  //   init(table: any PrimaryKeyedTable.Type, columns: [String]) {
-  //     localizedDescription = """
-  //       Table '\(table.tableName)' has column\(columns.count == 1 ? "" : "s") with unique \
-  //       constraints: \(columns.map { "'\($0)'" }.joined(separator: ", "))
-  //       """
-  //   }
-  // }
-
-  // TODO: Private, opaque error
-  // public struct NonNullColumnMustHaveDefault: Error {
-  //   let localizedDescription: String
-  //   init(table: any PrimaryKeyedTable.Type, columns: [String]) {
-  //     localizedDescription = """
-  //       Table '\(table.tableName)' has non-null column\(columns.count == 1 ? "" : "s") with no \
-  //       default: \(columns.map { "'\($0)'" }.joined(separator: ", "))
-  //       """
-  //   }
-  // }
->>>>>>> origin/cloudkit
 
   private struct HashablePrimaryKeyedTableType: Hashable {
     let type: any PrimaryKeyedTable.Type
