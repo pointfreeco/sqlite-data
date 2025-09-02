@@ -64,7 +64,7 @@
     /// next batch of pending changes is processed.
     public var _isDeleted = false
 
-    // @Column(generated: .virtual)
+    @Column(generated: .virtual)
     public let isShared: Bool
 
     /// The date the user last modified the record.

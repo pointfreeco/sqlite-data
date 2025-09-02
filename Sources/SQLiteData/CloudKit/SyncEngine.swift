@@ -233,7 +233,7 @@
           )
           .execute(db)
         }
-        db.add(function: .datetime)
+        db.add(function: $datetime)
         db.add(function: .syncEngineIsSynchronizingChanges)
         db.add(function: .didUpdate(syncEngine: self))
         db.add(function: .didDelete(syncEngine: self))
@@ -438,7 +438,7 @@
         db.remove(function: .didDelete(syncEngine: self))
         db.remove(function: .didUpdate(syncEngine: self))
         db.remove(function: .syncEngineIsSynchronizingChanges)
-        db.remove(function: .datetime)
+        db.remove(function: $datetime)
         // TODO: Do an `.erase()` + re-migrate
         try SyncMetadata.delete().execute(db)
         try RecordType.delete().execute(db)
@@ -1596,17 +1596,17 @@
       }
     }
 
-    fileprivate static var datetime: Self {
-      Self(.sqliteDataCloudKitSchemaName + "_datetime", argumentCount: 0) { _ in
-        @Dependency(\.datetime.now) var now
-        return now.formatted(
-          .iso8601
-            .year().month().day()
-            .dateTimeSeparator(.space)
-            .time(includingFractionalSeconds: true)
-        )
-      }
-    }
+//    fileprivate static var datetime: Self {
+//      Self(.sqliteDataCloudKitSchemaName + "_datetime", argumentCount: 0) { _ in
+//        @Dependency(\.datetime.now) var now
+//        return now.formatted(
+//          .iso8601
+//            .year().month().day()
+//            .dateTimeSeparator(.space)
+//            .time(includingFractionalSeconds: true)
+//        )
+//      }
+//    }
 
     fileprivate static var hasPermission: Self {
       Self(.sqliteDataCloudKitSchemaName + "_hasPermission", argumentCount: 1) { arguments in

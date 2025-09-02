@@ -63,7 +63,7 @@
           "_lastKnownServerRecordAllFields" BLOB,
           "share" BLOB,
           "isShared" INTEGER NOT NULL AS ("share" IS NOT NULL),
-          "userModificationDate" TEXT NOT NULL DEFAULT (\(.datetime())),
+          "userModificationDate" TEXT NOT NULL DEFAULT (\($datetime())),
           "_isDeleted" INTEGER NOT NULL DEFAULT 0,
 
           PRIMARY KEY ("recordPrimaryKey", "recordType"),
@@ -129,11 +129,5 @@
     }
     try migrator.migrate(metadatabase)
     return metadatabase
-  }
-
-  extension QueryFragment {
-    static func datetime() -> Self {
-      Self("\(raw: .sqliteDataCloudKitSchemaName)_datetime()")
-    }
   }
 #endif
