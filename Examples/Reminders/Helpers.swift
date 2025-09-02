@@ -2,26 +2,18 @@ import SharingGRDB
 import SwiftUI
 
 extension Color {
-  public struct HexRepresentation: QueryBindable, QueryRepresentable {
+  public struct HexRepresentation: QueryRepresentable {
     public var queryOutput: Color
-    public var queryBinding: QueryBinding {
-      guard let hexValue else {
-        struct InvalidColor: Error {}
-        return .invalid(InvalidColor())
-      }
-      return .int(hexValue)
-    }
     public init(queryOutput: Color) {
       self.queryOutput = queryOutput
     }
-    public init(decoder: inout some QueryDecoder) throws {
-      let hex = try Int(decoder: &decoder)
+    public init(hexValue: Int64) {
       self.init(
         queryOutput: Color(
-          red: Double((hex >> 24) & 0xFF) / 0xFF,
-          green: Double((hex >> 16) & 0xFF) / 0xFF,
-          blue: Double((hex >> 8) & 0xFF) / 0xFF,
-          opacity: Double(hex & 0xFF) / 0xFF
+          red: Double((hexValue >> 24) & 0xFF) / 0xFF,
+          green: Double((hexValue >> 16) & 0xFF) / 0xFF,
+          blue: Double((hexValue >> 8) & 0xFF) / 0xFF,
+          opacity: Double(hexValue & 0xFF) / 0xFF
         )
       )
     }
@@ -34,5 +26,25 @@ extension Color {
       let a = Int64((components.indices.contains(3) ? components[3] : 1) * 0xFF)
       return r | g | b | a
     }
+  }
+}
+
+extension Color.HexRepresentation: QueryBindable {
+  public init?(queryBinding: StructuredQueriesCore.QueryBinding) {
+    guard case .int(let hexValue) = queryBinding else { return nil }
+    self.init(hexValue: hexValue)
+  }
+  public var queryBinding: QueryBinding {
+    guard let hexValue else {
+      struct InvalidColor: Error {}
+      return .invalid(InvalidColor())
+    }
+    return .int(hexValue)
+  }
+}
+
+extension Color.HexRepresentation: QueryDecodable {
+  public init(decoder: inout some QueryDecoder) throws {
+    try self.init(hexValue: Int64(decoder: &decoder))
   }
 }
