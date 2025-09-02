@@ -1,5 +1,4 @@
 @_exported import Dependencies
-@_exported import Sharing
 @_exported import StructuredQueriesSQLite
 
 @_exported import struct GRDB.Configuration

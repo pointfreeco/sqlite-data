@@ -1,3 +1,5 @@
+import Sharing
+
 #if canImport(Combine)
   import Combine
 #endif
