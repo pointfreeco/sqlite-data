@@ -581,10 +581,14 @@ If you have triggers installed on your tables, then you may want to customize th
 to behave differently depending on whether a write is happening to your database from your own
 code or from the sync engine. For example, if you have a trigger that refreshes an `updatedAt`
 timestamp on a row when it is edited, it would not be appropriate to do that when the sync engine
-updates a row from data received from CloudKit.
+updates a row from data received from CloudKit. But, if you have a trigger that updates a local 
+[FTS] index, then you would want to perform that work regardless if your app is updating the data
+or CloudKit is updating the data.
 
-To prevent this you can use the ``SyncEngine/isSynchronizingChanges()`` SQL expression. It 
-represents a custom database function that is installed in your database connection, and it will 
+[FTS]: https://sqlite.org/fts5.html
+
+To customize this behavior you can use the ``SyncEngine/isSynchronizingChanges()`` SQL expression. 
+It represents a custom database function that is installed in your database connection, and it will 
 return true if the write to your database originates from the sync engine. You can use it in a 
 trigger like so:
 
