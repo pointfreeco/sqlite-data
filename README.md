@@ -1,17 +1,17 @@
 > [!IMPORTANT]
 > We are currently running a [public beta] to preview our upcoming CloudKit synchronization tools. Get all the details [here](https://www.pointfree.co/blog/posts/181-a-swiftdata-alternative-with-sqlite-cloudkit-public-beta) and let us know if you have any feedback!
 
-[public beta]: https://github.com/pointfreeco/sharing-grdb/pull/112
+[public beta]: https://github.com/pointfreeco/sqlite-data/pull/112
 
 # SQLiteData
 
 A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL and supporting 
 CloudKit synchronization.
 
-[![CI](https://github.com/pointfreeco/sharing-grdb/actions/workflows/ci.yml/badge.svg)](https://github.com/pointfreeco/sharing-grdb/actions/workflows/ci.yml)
+[![CI](https://github.com/pointfreeco/sqlite-data/actions/workflows/ci.yml/badge.svg)](https://github.com/pointfreeco/sqlite-data/actions/workflows/ci.yml)
 [![Slack](https://img.shields.io/badge/slack-chat-informational.svg?label=Slack&logo=slack)](https://www.pointfree.co/slack-invite)
-[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
-[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsharing-grdb%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/pointfreeco/sharing-grdb)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsqlite-data%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/pointfreeco/sqlite-data)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fsqlite-data%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/pointfreeco/sqlite-data)
 
   * [Learn more](#Learn-more)
   * [Overview](#Overview)
@@ -288,15 +288,15 @@ the [articles][articles] below to learn how to best utilize this library:
   * [CloudKit Synchronization]
   * [Comparison with SwiftData][comparison-swiftdata-article]
 
-[observing-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/observing
-[dynamic-queries-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/dynamicqueries
-[articles]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore#Essentials
-[comparison-swiftdata-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/comparisonwithswiftdata
-[fetching-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/fetching
-[preparing-db-article]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/preparingdatabase
-[CloudKit Synchronization]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/cloudkit
-[fetchall-docs]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/fetchall
-[fetchone-docs]: https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/fetchone
+[observing-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/observing
+[dynamic-queries-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/dynamicqueries
+[articles]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore#Essentials
+[comparison-swiftdata-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/comparisonwithswiftdata
+[fetching-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/fetching
+[preparing-db-article]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/preparingdatabase
+[CloudKit Synchronization]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/cloudkit
+[fetchall-docs]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/fetchall
+[fetchone-docs]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/fetchone
 
 ## Performance
 
@@ -361,14 +361,14 @@ Sharing. Check out [this](./Examples) directory to see them all, including:
 
 The documentation for releases and `main` are available here:
 
-  * [`main`](https://swiftpackageindex.com/pointfreeco/sharing-grdb/main/documentation/sharinggrdbcore/)
-  * [0.x.x](https://swiftpackageindex.com/pointfreeco/sharing-grdb/~/documentation/sharinggrdbcore/)
+  * [`main`](https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedatabcore/)
+  * [0.x.x](https://swiftpackageindex.com/pointfreeco/sqlite-data/~/documentation/sqlitedatabcore/)
 
 ## Installation
 
 You can add SQLiteData to an Xcode project by adding it to your project as a package…
 
-> https://github.com/pointfreeco/sharing-grdb
+> https://github.com/pointfreeco/sqlite-data
 
 …and adding the `SQLiteData` product to your target.
 
@@ -398,14 +398,14 @@ simple as adding it to your `Package.swift`:
 
 ``` swift
 dependencies: [
-  .package(url: "https://github.com/pointfreeco/sharing-grdb", from: "0.6.0")
+  .package(url: "https://github.com/pointfreeco/sqlite-data", from: "0.6.0")
 ]
 ```
 
 And then adding the following product to any target that needs access to the library:
 
 ```swift
-.product(name: "SQLiteData", package: "sharing-grdb"),
+.product(name: "SQLiteData", package: "sqlite-data"),
 ```
 
 ## Community
@@ -415,7 +415,7 @@ problem, there are a number of places you can discuss with fellow
 [Point-Free](http://www.pointfree.co) enthusiasts:
 
   * For long-form discussions, we recommend the
-    [discussions](http://github.com/pointfreeco/sharing-grdb/discussions) tab of this repo.
+    [discussions](http://github.com/pointfreeco/sqlite-data/discussions) tab of this repo.
 
   * For casual chat, we recommend the
     [Point-Free Community Slack](http://www.pointfree.co/slack-invite).

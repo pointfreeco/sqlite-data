@@ -55,7 +55,7 @@ final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryV
   public typealias Element = QueryValue.QueryOutput
 
   // NB: Required to workaround a "Legacy previews execution" bug
-  //     https://github.com/pointfreeco/sharing-grdb/pull/60
+  //     https://github.com/pointfreeco/sqlite-data/pull/60
   @usableFromInline
   override init(db: Database, query: QueryFragment) throws {
     try super.init(db: db, query: query)
@@ -86,7 +86,7 @@ final class QueryPackCursor<
   public typealias Element = (repeat (each QueryValue).QueryOutput)
 
   // NB: Required to workaround a "Legacy previews execution" bug
-  //     https://github.com/pointfreeco/sharing-grdb/pull/60
+  //     https://github.com/pointfreeco/sqlite-data/pull/60
   @usableFromInline
   override init(db: Database, query: QueryFragment) throws {
     try super.init(db: db, query: query)
@@ -114,7 +114,7 @@ final class QueryVoidCursor: QueryCursor<Void> {
   typealias Element = ()
 
   // NB: Required to workaround a "Legacy previews execution" bug
-  //     https://github.com/pointfreeco/sharing-grdb/pull/60
+  //     https://github.com/pointfreeco/sqlite-data/pull/60
   @usableFromInline
   override init(db: Database, query: QueryFragment) throws {
     try super.init(db: db, query: query)

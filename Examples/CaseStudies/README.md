@@ -1,7 +1,7 @@
 # Case Studies
 
 This project includes a number of digestible examples of how to solve common problems using 
-SharingGRDB, including:
+SQLiteData, including:
 
   * [Animations](Animations.swift): Shows how to animate changes when the database changes and 
     updates state in features.

@@ -4,7 +4,7 @@ Learn how to allow your users to share certain records with other iCloud users f
 
 ## Overview
 
-SharingGRDB provides the tools necessary to share a record with another iCloud user so that 
+SQLiteData provides the tools necessary to share a record with another iCloud user so that 
 multiple users can collaborate on a single record. Sharing a record with another user brings
 extra complications to an app that go beyond the existing complications of sharing a schema
 across many devices. Please read the documentation carefully and thoroughly to understand
@@ -29,7 +29,7 @@ Info.plist with a value of `true`. This is subtly documented in [Apple's documen
 
 ## Creating CKShare records
 
-To share a record with another user one must first create a `CKShare`. SharingGRDB provides
+To share a record with another user one must first create a `CKShare`. SQLiteData provides
 the method ``SyncEngine/share(record:configure:)`` on ``SyncEngine`` for generating a `CKShare`
 for a record. Further, the value returned from this method can be stored in a view and be used
 to drive a sheet to display a ``CloudSharingView``, which is a wrapper around UIKit's

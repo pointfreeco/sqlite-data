@@ -1,4 +1,4 @@
-# ``SharingGRDBCore/FetchOne``
+# ``SQLiteDataCore/FetchOne``
 
 ## Overview
 

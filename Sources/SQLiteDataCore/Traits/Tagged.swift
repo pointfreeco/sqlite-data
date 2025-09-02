@@ -1,4 +1,4 @@
-#if SharingGRDBTagged
+#if SQLiteDataTagged
   import Tagged
 
   extension Tagged: IdentifierStringConvertible where RawValue: IdentifierStringConvertible {

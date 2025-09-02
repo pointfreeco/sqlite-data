@@ -1,8 +1,8 @@
 # Examples
 
 This directory holds many case studies and applications to demonstrate solving various problems 
-with [SharingGRDB](http://github.com/pointfreeco/sharing-grdb). Open the 
-`SharingGRDB.xcworkspace` at the root of the repo to see all example projects in one single 
+with [SQLiteData](http://github.com/pointfreeco/sqlite-data). Open the 
+`SQLiteData.xcworkspace` at the root of the repo to see all example projects in one single 
 workspace, or you can open each example application individually.
 
 * **Case Studies**

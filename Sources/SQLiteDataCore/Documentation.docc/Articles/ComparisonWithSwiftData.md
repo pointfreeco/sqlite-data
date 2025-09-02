@@ -1,10 +1,10 @@
 # Comparison with SwiftData
 
-Learn how SharingGRDB compares to SwiftData when solving a variety of problems.
+Learn how SQLiteData compares to SwiftData when solving a variety of problems.
 
 ## Overview
 
-The SharingGRDB library can replace SwiftData for many kinds of apps, and provide additional
+The SQLiteData library can replace SwiftData for many kinds of apps, and provide additional
 benefits such as direct access to the underlying SQLite schema, and better integration outside of
 SwiftUI views (including UIKit, `@Observable` models, _etc._). This article describes how the two
 approaches compare in a variety of situations, such as setting up the data store, fetching data,
@@ -26,8 +26,8 @@ associations, and more.
 
 ### Defining your schema
 
-Both SharingGRDB and SwiftData come with tools to expose your data types' fields to the compiler
-so that type-safe and schema-safe queries can be written. SharingGRDB uses another library of ours
+Both SQLiteData and SwiftData come with tools to expose your data types' fields to the compiler
+so that type-safe and schema-safe queries can be written. SQLiteData uses another library of ours
 to provide these tools, called [StructuredQueries][sq-gh], and its `@Table` macro works similarly
 to SwiftData's `@Model` macro:
 
@@ -36,7 +36,7 @@ to SwiftData's `@Model` macro:
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     @Table
     struct Item {
       let id: Int
@@ -82,15 +82,15 @@ to define your schema.
 
 ### Setting up external storage
 
-Both SharingGRDB and SwiftData require some work to be done at the entry point of the app in order
-to set up the external storage system that will be used throughout the app. In SharingGRDB we use
+Both SQLiteData and SwiftData require some work to be done at the entry point of the app in order
+to set up the external storage system that will be used throughout the app. In SQLiteData we use
 the `prepareDependencies` function to set up the default database used, and in SwiftUI you construct
 a `ModelContainer` and propagate it through the environment:
 
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     @main
     struct MyApp: App {
       init() {
@@ -126,17 +126,17 @@ a `ModelContainer` and propagate it through the environment:
 }
 
 See <doc:PreparingDatabase> for more advice on the various ways you will want to create and
-configure your SQLite database for use with SharingGRDB.
+configure your SQLite database for use with SQLiteData.
 
 ### Fetching data for a view
 
-To fetch data from a SQLite database you use the `@FetchAll` property wrapper in SharingGRDB,
+To fetch data from a SQLite database you use the `@FetchAll` property wrapper in SQLiteData,
 whereas you use the `@Query` macro with SwiftData:
 
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     struct ItemsView: View {
       @FetchAll(Item.order(by: \.title))
       var items
@@ -199,7 +199,7 @@ its functionality from scratch:
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     @Observable
     class FeatureModel {
       @ObservationIgnored
@@ -261,7 +261,7 @@ search for rows in a table:
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     struct ItemsView: View {
       @State var searchText = ""
       @FetchAll var items: [Item]
@@ -348,7 +348,7 @@ For example, to get access to `defaultDatabase`, you use the `@Dependency` prope
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     @Dependency(\.defaultDatabase) var database
     ```
   }
@@ -360,12 +360,12 @@ For example, to get access to `defaultDatabase`, you use the `@Dependency` prope
   }
 }
 
-Then, to create a new row in a table you use the `write` and `insert` methods from SharingGRDB:
+Then, to create a new row in a table you use the `write` and `insert` methods from SQLiteData:
 
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     @Dependency(\.defaultDatabase) var database
     
     try database.write { db in
@@ -386,12 +386,12 @@ Then, to create a new row in a table you use the `write` and `insert` methods fr
   }
 }
 
-To update an existing row you can use the `write` and `update` methods from SharingGRDB:
+To update an existing row you can use the `write` and `update` methods from SQLiteData:
 
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     @Dependency(\.defaultDatabase) var database
     
     existingItem.title = "Computer"
@@ -411,12 +411,12 @@ To update an existing row you can use the `write` and `update` methods from Shar
   }
 }
 
-And to delete an existing row, you can use the `write` and `delete` methods from SharingGRDB:
+And to delete an existing row, you can use the `write` and `delete` methods from SQLiteData:
 
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     @Dependency(\.defaultDatabase) var database
     
     try database.write { db in
@@ -437,8 +437,8 @@ And to delete an existing row, you can use the `write` and `delete` methods from
 
 ### Associations
 
-The biggest difference between SwiftData and SharingGRDB is that SwiftData provides tools for an
-Object Relational Mapping (ORM), whereas SharingGRDB is largely just a nice API for interacting with SQLite
+The biggest difference between SwiftData and SQLiteData is that SwiftData provides tools for an
+Object Relational Mapping (ORM), whereas SQLiteData is largely just a nice API for interacting with SQLite
 directly.
 
 For example, SwiftData allows you to model a `Sport` type that belongs to many `Team`s like
@@ -473,7 +473,7 @@ get all sports, and then executing a query for each sport to get the number of t
 sport. And on top of that, we are loading every team into memory just to compute the number of 
 teams.  We don't actually need any data from the team, only their aggregate count.
 
-SharingGRDB does not provide these kinds of tools, and for good reason. Instead, if you know you 
+SQLiteData does not provide these kinds of tools, and for good reason. Instead, if you know you 
 want to fetch all of the teams with their corresponding sport, you can simply perform a single 
 query that joins the two tables together:
 
@@ -564,7 +564,7 @@ var highPriorityReminders: [Reminder]
 This will now work, but of course these fields can now hold over 9 quintillion possible values when
 only a few values are valid.
 
-On the other hand, booleans and enums work just fine in SharingGRDB:
+On the other hand, booleans and enums work just fine in SQLiteData:
 
 ```swift
 @Table
@@ -607,7 +607,7 @@ Lightweight migrations in SwiftData work for simple situations, such as adding a
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     @Table
     struct Item {
       let id: Int
@@ -727,7 +727,7 @@ structure of your data types. The overall steps to follow are as such:
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     migrator.registerMigration("Make 'title' unique") { db in
       // 1️⃣ Delete all items that have duplicate title, keeping the first created one:
       try Item
@@ -863,20 +863,20 @@ other way around.
 
 ### CloudKit
 
-Both SharingGRDB and SwiftData support basic synchronization of models to CloudKit so that data
-can be made available on all of a user's devices. However, SharingGRDB also supports sharing records
+Both SQLiteData and SwiftData support basic synchronization of models to CloudKit so that data
+can be made available on all of a user's devices. However, SQLiteData also supports sharing records
 with other iCloud users, and it exposes the underlying CloudKit data types (e.g. `CKRecord`) so
 that you can interact directly with CloudKit if needed.
 
-Setting up a database and sync engine in SharingGRDB isn't much different from setting up a
+Setting up a database and sync engine in SQLiteData isn't much different from setting up a
 SwiftData stack with CloudKit. The main difference is that one must explicitly provide the 
-container identifier in SharingGRDB because SwiftData has been privileged in being able to 
+container identifier in SQLiteData because SwiftData has been privileged in being able to 
 inspect the Entitlements.plist in order to automatically extract that information:
 
 @Row {
   @Column {
     ```swift
-    // SharingGRDB
+    // SQLiteData
     @main 
     struct MyApp: App {
       init() {
@@ -926,7 +926,7 @@ SwiftData also has a few limitations in what features you are allowed to use in 
 * All properties on a model must be optional or have a default value.
 * All relationships must be optional.
 
-SharingGRDB has only one of these limitations:
+SQLiteData has only one of these limitations:
 
 * Unique constraints on columns (except for the primary key) cannot be upheld on a distributed
 schema. For example, if you have a `Tag` table with a unique `title` column, then what
@@ -947,6 +947,6 @@ information about CloudKit synchronization, see <doc:CloudKit>.
 SwiftData and the `@Query` macro require iOS 17, macOS 14, tvOS 17, watchOS 10 and higher, and 
 some newer features require even more recent versions of iOS.
 
-Meanwhile, SharingGRDB has a broad set of deployment targets supporting all the way back to iOS 13,
+Meanwhile, SQLiteData has a broad set of deployment targets supporting all the way back to iOS 13,
 macOS 10.15, tvOS 13, and watchOS 6. This means you can use these tools on essentially any 
 application today with no restrictions.

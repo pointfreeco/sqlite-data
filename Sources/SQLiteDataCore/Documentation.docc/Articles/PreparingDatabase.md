@@ -89,7 +89,7 @@ when running your app in the simulator/device and using `Swift.print` in preview
 > is surrounded in `#if DEBUG`, but it is something to be careful of in your own apps.
 
 > Tip: `@Dependency(\.context)` comes from the [Swift Dependencies][swift-dependencies-gh] library,
-> which SharingGRDB uses to share its database connection across fetch keys. It allows you to
+> which SQLiteData uses to share its database connection across fetch keys. It allows you to
 > inspect the context your app is running in: live, preview or test.
 
 [swift-dependencies-gh]: https://github.com/pointfreeco/swift-dependencies

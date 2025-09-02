@@ -54,7 +54,7 @@ struct ItemsView: View {
 ```
 
 > Note: Due to how macros work in Swift, property wrappers must be annotated with
-> `@ObservationIgnored`, but this does not affect observation as SharingGRDB handles its own
+> `@ObservationIgnored`, but this does not affect observation as SQLiteData handles its own
 > observation.
 
 ### UIKit

@@ -44,7 +44,7 @@ every single time `displayedItems` is evaluated, which will be at least once for
 view's body is computed, but could also be more.
 
 This kind of data processing is exactly what SQLite excels at, and so we can offload this work by
-modifying the query itself. One can do this with SharingGRDB by using the `load` method on
+modifying the query itself. One can do this with SQLiteData by using the `load` method on
 ``FetchAll``, ``FetchOne`` or ``Fetch`` in order to load a new key, and hence execute a new query:
 
 ```swift

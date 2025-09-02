@@ -1,4 +1,4 @@
-# ``SharingGRDBCore/Fetch``
+# ``SQLiteDataCore/Fetch``
 
 ## Overview
 

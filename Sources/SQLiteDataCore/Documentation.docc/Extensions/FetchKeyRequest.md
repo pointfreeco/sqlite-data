@@ -1,4 +1,4 @@
-# ``SharingGRDBCore/FetchKeyRequest``
+# ``SQLiteDataCore/FetchKeyRequest``
 
 ## Topics
 

@@ -15,15 +15,15 @@
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "SharingGRDBTests",
-        "name" : "SharingGRDBTests"
+        "identifier" : "StructuredQueriesGRDBTests",
+        "name" : "StructuredQueriesGRDBTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "StructuredQueriesGRDBTests",
-        "name" : "StructuredQueriesGRDBTests"
+        "identifier" : "SQLiteDataTests",
+        "name" : "SQLiteDataTests"
       }
     }
   ],

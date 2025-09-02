@@ -4,7 +4,7 @@ Update your code to make use of powerful new querying capabilities.
 
 ## Overview
 
-SharingGRDB is under constant development, and we are always looking for ways to
+SQLiteData is under constant development, and we are always looking for ways to
 simplify the library, and make it more powerful. As such, we often need to deprecate certain APIs
 in favor of newer ones. We recommend people update their code as quickly as possible to the newest
 APIs, and these guides contain tips to do so.
@@ -15,7 +15,7 @@ APIs, and these guides contain tips to do so.
 
 ## @FetchAll, @FetchOne, @Fetch
 
-SharingGRDB 0.2.0 comes with 3 brand new property wrappers that largely replace the need for 
+SQLiteData 0.2.0 comes with 3 brand new property wrappers that largely replace the need for 
 SwiftData and its `@Query` macro. In 0.1.0, one would perform queries as either a hard coded SQL
 string:
 
@@ -39,7 +39,7 @@ struct CompletedReminders: FetchKeyRequest {
 var completedReminders
 ```
 
-Each of these are cumbersome, and version 0.2.0 of SharingGRDB fixes things thanks to our newly 
+Each of these are cumbersome, and version 0.2.0 of SQLiteData fixes things thanks to our newly 
 released [StructuredQueries][] library. You can now describe the query for your data in a type-safe
 manner, and directly inline:
 
@@ -58,13 +58,13 @@ The [`.fetchAll`](<doc:Sharing/SharedReaderKey/fetchAll(sql:arguments:database:)
 [`.fetchOne`](<doc:Sharing/SharedReaderKey/fetchOne(sql:arguments:database:)>),
 and [`.fetch`](<doc:Sharing/SharedReaderKey/fetch(_:database:)>) APIs have been soft-deprecated
 in favor of the more modern tools described above and in <doc:Fetching>. They will be hard 
-deprecated in a future release of SharingGRDB, and removed in 1.0.
+deprecated in a future release of SQLiteData, and removed in 1.0.
 
 ## Avoiding the cost of macros
 
-SharingGRDB introduces a macro in version 0.2.0 (in particular, the `@Table` macro), and 
+SQLiteData introduces a macro in version 0.2.0 (in particular, the `@Table` macro), and 
 unfortunately macros currently come with an unfortunate cost in that you have to compile SwiftSyntax
 from scratch, which can take time. If the cost of macros is too high for you, then you can depend 
-on the SharingGRDBCore module instead of the full SharingGRDB module. This will give you access to 
-only a subset of tools provided by SharingGRDB, but you will have access to all tools that were
+on the SQLiteDataCore module instead of the full SQLiteData module. This will give you access to 
+only a subset of tools provided by SQLiteData, but you will have access to all tools that were
 available in version 0.1.0 of the library.

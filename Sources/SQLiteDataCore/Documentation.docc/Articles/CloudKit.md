@@ -1,10 +1,10 @@
 # CloudKit synchronization
 
-Learn how to seamlessly add CloudKit synchronization to your SharingGRDB application.
+Learn how to seamlessly add CloudKit synchronization to your SQLiteData application.
 
 ## Overview
 
-SharingGRDB allows you to seamlessly synchronize your SQLite database with CloudKit. After a few
+SQLiteData allows you to seamlessly synchronize your SQLite database with CloudKit. After a few
 steps to set up your project and a ``SyncEngine``, your database can be automatically synchronized
 to CloudKit. However, distributing your app's schema across many devices is an impactful decision
 to make, and so an abundance of care must be taken to make sure all devices remain consistent
@@ -25,12 +25,12 @@ to make sure you understand how to best prepare your app for cloud synchronizati
   * [Sharing records with other iCloud users](#Sharing-records-with-other-iCloud-users)
   * [Assets](#Assets)
   * [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)
-  * [How SharingGRDB handles distributed schema scenarios](#How-SharingGRDB-handles-distributed-schema-scenarios)
+  * [How SQLiteData handles distributed schema scenarios](#How-SQLiteData-handles-distributed-schema-scenarios)
   * [Unit testing and Xcode previews](#Unit-testing-and-Xcode-previews)
   * [Preparing an existing schema for synchronization](#Preparing-an-existing-schema-for-synchronization)
       * [Convert Int primary keys to UUID](#Convert-Int-primary-keys-to-UUID)
       * [Add primary key to all tables](#Add-primary-key-to-all-tables)
-  * [Migrating from Swift Data to SharingGRDB](#Migrating-from-Swift-Data-to-SharingGRDB)
+  * [Migrating from Swift Data to SQLiteData](#Migrating-from-Swift-Data-to-SQLiteData)
   * [Separating schema migrations from data migrations](#Separating-schema-migrations-from-data-migrations)
   * [Tips and tricks](#Tips-and-tricks)
       * [Updating triggers to be compatible with synchronization](#Updating-triggers-to-be-compatible-with-synchronization)
@@ -39,7 +39,7 @@ to make sure you understand how to best prepare your app for cloud synchronizati
 
 ## Setting up your project
 
-The steps to set up your SharingGRDB project for CloudKit synchronization are the 
+The steps to set up your SQLiteData project for CloudKit synchronization are the 
 [same for setting up][setup-cloudkit-apple] any other kind of project for CloudKit:
 
   * Follow the [Configuring iCloud services] guide for enabling iCloud entitlements in your project.
@@ -228,7 +228,7 @@ thrown.
 > TL;DR: Foreign key constraints can be enabled and you can use `ON DELETE` actions to
 > cascade deletions.
 
-SharingGRDB can synchronize many-to-one and many-to-many relationships to CloudKit, 
+SQLiteData can synchronize many-to-one and many-to-many relationships to CloudKit, 
 and you can enforce foreign key constraints in your database connection. While it is possible for
 the sync engine to receive records in an order that could cause a foreign key constraint failure, 
 such as receiving a child record before its parent, the sync engine will cache the child record
@@ -413,7 +413,7 @@ devices. They are:
 
 ## Sharing records with other iCloud users
 
-SharingGRDB provides the tools necessary to share a record with another iCloud user so that 
+SQLiteData provides the tools necessary to share a record with another iCloud user so that 
 multiple users can collaborate on a single record. Sharing a record with another user brings
 extra complications to an app that go beyond the existing complications of sharing a schema
 across many devices. Please read the documentation carefully and thoroughly to understand
@@ -557,7 +557,7 @@ var rows
 Here we have used the ``StructuredQueriesCore/PrimaryKeyedTableDefinition/recordName`` helper that
 is defined on all primary key tables so that we can join ``SyncMetadata`` to `RemindersList`.
 
-## How SharingGRDB handles distributed schema scenarios
+## How SQLiteData handles distributed schema scenarios
 
 <!-- todo: finish -->
 
@@ -633,7 +633,7 @@ And in preivews you can use it like so:
 
 <!-- TODO: talk about simulator push restrictions -->
 
-## Migrating from Swift Data to SharingGRDB
+## Migrating from Swift Data to SQLiteData
 
 ## Separating schema migrations from data migrations
 

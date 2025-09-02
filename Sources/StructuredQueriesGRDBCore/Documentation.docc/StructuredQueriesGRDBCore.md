@@ -8,7 +8,7 @@ imported when you `import SQLiteData` or `StructuredQueriesGRDB`.
 This library can be used to directly execute queries built using the [StructuredQueries][sq-gh]
 library and a [GRDB][grdb-gh] database.
 
-While the `SharingGRDB` module provides tools to observe queries using the `@FetchAll`, `@FetchOne`,
+While the `SQLiteData` module provides tools to observe queries using the `@FetchAll`, `@FetchOne`,
 and `@Fetch` property wrappers, you will also want to execute one-off queries directly, especially
 when it comes to `INSERT`, `UPDATE`, and `DELETE` statements. This module extends
 StructuredQueries' `Statement` type with `execute`, `fetchAll`, `fetchOne`, and `fetchCount` methods
