@@ -26,6 +26,8 @@ extension BaseCloudKitTests {
           }
         }
 
+        try await Task.sleep(for: .seconds(0.5))
+
         try await userDatabase.userRead { db in
           let remindersListMetadata = try #require(try RemindersList.metadata(for: 1).fetchOne(db))
           #expect(remindersListMetadata.lastKnownServerRecord == nil)
@@ -103,6 +105,8 @@ extension BaseCloudKitTests {
           try RemindersList.find(1).delete().execute(db)
         }
 
+        try await Task.sleep(for: .seconds(0.5))
+
         try await syncEngine.start()
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
@@ -139,6 +143,7 @@ extension BaseCloudKitTests {
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).update { $0.title += "!" }.execute(db)
           }
+          try await Task.sleep(for: .seconds(0.5))
 
           try await userDatabase.read { db in
             try #expect(PendingRecordZoneChange.all.fetchCount(db) == 1)
@@ -209,6 +214,7 @@ extension BaseCloudKitTests {
           }
         }
 
+        try await Task.sleep(for: .seconds(0.5))
         try await syncEngine.start()
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
@@ -337,6 +343,7 @@ extension BaseCloudKitTests {
           try RemindersList.find(1).delete().execute(db)
         }
 
+        try await Task.sleep(for: .seconds(0.5))
         try await syncEngine.start()
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 

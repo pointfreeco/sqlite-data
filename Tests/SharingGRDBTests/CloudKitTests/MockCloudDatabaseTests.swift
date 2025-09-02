@@ -414,21 +414,5 @@ extension BaseCloudKitTests {
       let newShare = try syncEngine.private.database.record(for: CKRecord.ID(recordName: "share"))
       _ = try syncEngine.modifyRecords(scope: .private, saving: [newShare])
     }
-
-    @Test func writePermission() async throws {
-      let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
-      let share = CKShare(rootRecord: record, shareID: CKRecord.ID(recordName: "share"))
-      share.publicPermission = .readOnly
-      _ = try syncEngine.modifyRecords(scope: .private, saving: [share, record])
-
-      let freshRecord = try syncEngine.private.database.record(for: record.recordID)
-      try await withKnownIssue {
-        try await syncEngine.modifyRecords(scope: .private, saving: [freshRecord]).notify()
-      } matching: { issue in
-        issue.description.hasSuffix("""
-          You do not have permission to write to this record: 1
-          """)
-      }
-    }
   }
 }

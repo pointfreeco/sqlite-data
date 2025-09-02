@@ -139,8 +139,11 @@ package final class MockCloudDatabase: CloudDatabase {
               }
               return nil
             }
-            let share = share(for: root(of: recordToSave))
+            let rootRecord = root(of: recordToSave)
+            let share = share(for: rootRecord)
+            let isSavingShare = recordsToSave.contains { $0.recordID == share?.recordID }
             if
+              !isSavingShare,
               !(recordToSave is CKShare),
               let share,
               !(share.publicPermission == .readWrite

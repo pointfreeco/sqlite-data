@@ -105,11 +105,29 @@ extension BaseCloudKitTests {
       )
       remindersListRecord.setValue(1, forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
+      let reminderRecord = CKRecord(
+        recordType: Reminder.tableName,
+        recordID: Reminder.recordID(for: 1, zoneID: externalZone.zoneID)
+      )
+      reminderRecord.setValue(1, forKey: "id", at: now)
+      reminderRecord.setValue("Get milk", forKey: "title", at: now)
+      reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+      reminderRecord.parent = CKRecord.Reference(record: remindersListRecord, action: .none)
+
+      _ = try syncEngine.modifyRecords(
+        scope: .shared,
+        saving: [reminderRecord, remindersListRecord]
+      )
+
+      let freshRemindersListRecord = try syncEngine.shared.database.record(
+        for: remindersListRecord.recordID
+      )
+
       let share = CKShare(
-        rootRecord: remindersListRecord,
+        rootRecord: freshRemindersListRecord,
         shareID: CKRecord.ID(
-          recordName: "share-\(remindersListRecord.recordID.recordName)",
-          zoneID: remindersListRecord.recordID.zoneID
+          recordName: "share-\(freshRemindersListRecord.recordID.recordName)",
+          zoneID: freshRemindersListRecord.recordID.zoneID
         )
       )
       share.publicPermission = .readOnly
@@ -119,20 +137,11 @@ extension BaseCloudKitTests {
         .acceptShare(
           metadata: ShareMetadata(
             containerIdentifier: container.containerIdentifier!,
-            hierarchicalRootRecordID: remindersListRecord.recordID,
-            rootRecord: remindersListRecord,
+            hierarchicalRootRecordID: freshRemindersListRecord.recordID,
+            rootRecord: freshRemindersListRecord,
             share: share
           )
         )
-      let reminderRecord = CKRecord(
-        recordType: Reminder.tableName,
-        recordID: Reminder.recordID(for: 1, zoneID: externalZone.zoneID)
-      )
-      reminderRecord.setValue(1, forKey: "id", at: now)
-      reminderRecord.setValue("Get milk", forKey: "title", at: now)
-      reminderRecord.setValue(1, forKey: "remindersListID", at: now)
-      reminderRecord.parent = CKRecord.Reference(record: remindersListRecord, action: .none)
-      try await syncEngine.modifyRecords(scope: .shared, saving: [reminderRecord]).notify()
 
       try await self.userDatabase.userWrite { db in
         let error = #expect(throws: DatabaseError.self) {
@@ -198,25 +207,6 @@ extension BaseCloudKitTests {
       )
       remindersListRecord.setValue(1, forKey: "id", at: now)
       remindersListRecord.setValue("Personal", forKey: "title", at: now)
-      let share = CKShare(
-        rootRecord: remindersListRecord,
-        shareID: CKRecord.ID(
-          recordName: "share-\(remindersListRecord.recordID.recordName)",
-          zoneID: remindersListRecord.recordID.zoneID
-        )
-      )
-      share.publicPermission = .readOnly
-      share.currentUserParticipant?.permission = .readOnly
-
-      try await syncEngine
-        .acceptShare(
-          metadata: ShareMetadata(
-            containerIdentifier: container.containerIdentifier!,
-            hierarchicalRootRecordID: remindersListRecord.recordID,
-            rootRecord: remindersListRecord,
-            share: share
-          )
-        )
       let reminderRecord = CKRecord(
         recordType: Reminder.tableName,
         recordID: Reminder.recordID(for: 1, zoneID: externalZone.zoneID)
@@ -226,7 +216,33 @@ extension BaseCloudKitTests {
       reminderRecord.setValue(1, forKey: "remindersListID", at: now)
       reminderRecord.setValue(false, forKey: "isCompleted", at: now)
       reminderRecord.parent = CKRecord.Reference(record: remindersListRecord, action: .none)
-      try await syncEngine.modifyRecords(scope: .shared, saving: [reminderRecord]).notify()
+      _ = try syncEngine.modifyRecords(
+        scope: .shared,
+        saving: [remindersListRecord, reminderRecord]
+      )
+
+      let freshRemindersListRecord = try syncEngine.shared.database.record(
+        for: remindersListRecord.recordID
+      )
+      let share = CKShare(
+        rootRecord: freshRemindersListRecord,
+        shareID: CKRecord.ID(
+          recordName: "share-\(freshRemindersListRecord.recordID.recordName)",
+          zoneID: freshRemindersListRecord.recordID.zoneID
+        )
+      )
+      share.publicPermission = .readOnly
+      share.currentUserParticipant?.permission = .readOnly
+
+      try await syncEngine
+        .acceptShare(
+          metadata: ShareMetadata(
+            containerIdentifier: container.containerIdentifier!,
+            hierarchicalRootRecordID: freshRemindersListRecord.recordID,
+            rootRecord: freshRemindersListRecord,
+            share: share
+          )
+        )
 
       try await self.userDatabase.userWrite { db in
         let error = #expect(throws: DatabaseError.self) {
@@ -316,6 +332,7 @@ extension BaseCloudKitTests {
 
       let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
       freshShare.publicPermission = .readOnly
+      freshShare.currentUserParticipant?.permission = .readOnly
       let _ = try syncEngine.modifyRecords(scope: .shared, saving: [freshShare])
       try await withDependencies {
         $0.datetime.now.addTimeInterval(1)
@@ -326,7 +343,6 @@ extension BaseCloudKitTests {
           }
         }
       }
-      try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
       try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
       try await self.userDatabase.userRead { db in
@@ -404,6 +420,7 @@ extension BaseCloudKitTests {
 
       let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
       freshShare.publicPermission = .readOnly
+      freshShare.currentUserParticipant?.permission = .readOnly
       let _ = try syncEngine.modifyRecords(scope: .shared, saving: [freshShare])
 
       try await withDependencies {

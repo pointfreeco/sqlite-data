@@ -356,7 +356,7 @@
           .select(\.pendingRecordZoneChange)
           .fetchAll(db)
       }
-      let changesByIsPrivate = Dictionary.init(grouping: pendingRecordZoneChanges) {
+      let changesByIsPrivate = Dictionary(grouping: pendingRecordZoneChanges) {
         switch $0 {
         case .deleteRecord(let recordID), .saveRecord(let recordID):
           recordID.zoneID.ownerName == CKCurrentUserDefaultName
