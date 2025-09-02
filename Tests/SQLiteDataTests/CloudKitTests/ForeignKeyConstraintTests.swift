@@ -280,18 +280,18 @@ extension BaseCloudKitTests {
         """
       }
 
-        try await userDatabase.read { db in
-          try #expect(
-            RemindersList.all.fetchAll(db) == [
-              RemindersList(id: 1, title: "Personal")
-            ]
-          )
-          try #expect(
-            Reminder.all.fetchAll(db) == [
-              Reminder(id: 1, title: "Get milk", remindersListID: 1)
-            ]
-          )
-        }
+      try await userDatabase.read { db in
+        try #expect(
+          RemindersList.all.fetchAll(db) == [
+            RemindersList(id: 1, title: "Personal")
+          ]
+        )
+        try #expect(
+          Reminder.all.fetchAll(db) == [
+            Reminder(id: 1, title: "Get milk", remindersListID: 1)
+          ]
+        )
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -369,25 +369,25 @@ extension BaseCloudKitTests {
           syncEngine: relaunchedSyncEngine.private
         )
 
-        try await userDatabase.read { db in
-          let reminderMetadata = try #require(
-            try Reminder.metadata(for: 1).fetchOne(db)
-          )
-          #expect(reminderMetadata.recordName == Reminder.recordName(for: 1))
-          #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
+      try await userDatabase.read { db in
+        let reminderMetadata = try #require(
+          try Reminder.metadata(for: 1).fetchOne(db)
+        )
+        #expect(reminderMetadata.recordName == Reminder.recordName(for: 1))
+        #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
 
-          let remindersListMetadata = try #require(
-            try RemindersList.metadata(for: 1).fetchOne(db)
-          )
-          #expect(remindersListMetadata.recordName == RemindersList.recordName(for: 1))
-          #expect(remindersListMetadata.parentRecordName == nil)
+        let remindersListMetadata = try #require(
+          try RemindersList.metadata(for: 1).fetchOne(db)
+        )
+        #expect(remindersListMetadata.recordName == RemindersList.recordName(for: 1))
+        #expect(remindersListMetadata.parentRecordName == nil)
 
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 1))
+        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+        #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 1))
 
-          let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
-          #expect(remindersList == RemindersList(id: 1, title: "Personal"))
-        }
+        let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
+        #expect(remindersList == RemindersList(id: 1, title: "Personal"))
+      }
 
       try await withDependencies {
         $0.datetime.now.addTimeInterval(1)
@@ -433,10 +433,10 @@ extension BaseCloudKitTests {
         """
       }
 
-        try await userDatabase.read { db in
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder.init(id: 1, title: "Buy milk", remindersListID: 1))
-        }
+      try await userDatabase.read { db in
+        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+        #expect(reminder == Reminder.init(id: 1, title: "Buy milk", remindersListID: 1))
+      }
     }
 
     // * Remote moves child to a parent the local client does not know about.
@@ -452,14 +452,14 @@ extension BaseCloudKitTests {
       )
       personalListRecord.setValue(1, forKey: "id", at: now)
       personalListRecord.setValue("Personal", forKey: "title", at: now)
-      
+
       let businessListRecord = CKRecord(
         recordType: RemindersList.tableName,
         recordID: RemindersList.recordID(for: 2)
       )
       businessListRecord.setValue(2, forKey: "id", at: now)
       businessListRecord.setValue("Business", forKey: "title", at: now)
-      
+
       let reminderRecord = CKRecord(
         recordType: Reminder.tableName,
         recordID: Reminder.recordID(for: 1)
@@ -471,12 +471,12 @@ extension BaseCloudKitTests {
         record: personalListRecord,
         action: .none
       )
-      
+
       try await syncEngine.modifyRecords(
         scope: .private,
         saving: [reminderRecord, personalListRecord]
       ).notify()
-      
+
       assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
@@ -509,7 +509,7 @@ extension BaseCloudKitTests {
         )
         """
       }
-      
+
       let modifications = try await withDependencies {
         $0.datetime.now.addTimeInterval(1)
       } operation: {
@@ -518,7 +518,7 @@ extension BaseCloudKitTests {
         )
         reminderRecord.setValue(2, forKey: "remindersListID", at: now)
         reminderRecord.parent = CKRecord.Reference(record: businessListRecord, action: .none)
-        
+
         let modifications = try syncEngine.modifyRecords(
           scope: .private,
           saving: [businessListRecord]
@@ -526,9 +526,9 @@ extension BaseCloudKitTests {
         try await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord]).notify()
         return modifications
       }
-      
+
       await modifications.notify()
-      
+
       assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(
@@ -569,11 +569,11 @@ extension BaseCloudKitTests {
         )
         """
       }
-      
+
       try await userDatabase.read { db in
         let reminder = try #require(try Reminder.find(1).fetchOne(db))
         #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 2))
-        
+
         let reminderMetadata = try #require(
           try Reminder.metadata(for: 1)
             .fetchOne(db)
@@ -622,14 +622,14 @@ extension BaseCloudKitTests {
 
       await modifications.notify()
 
-        try await userDatabase.read { db in
-          let metadata = try #require(
-            try Reminder.metadata(for: 1).fetchOne(db)
-          )
-          #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder(id: 1, title: "Buy milk", remindersListID: 3))
-        }
+      try await userDatabase.read { db in
+        let metadata = try #require(
+          try Reminder.metadata(for: 1).fetchOne(db)
+        )
+        #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
+        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+        #expect(reminder == Reminder(id: 1, title: "Buy milk", remindersListID: 3))
+      }
 
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
@@ -653,14 +653,14 @@ extension BaseCloudKitTests {
         """
       }
 
-        try await userDatabase.read { db in
-          let metadata = try #require(
-            try Reminder.metadata(for: 1).fetchOne(db)
-          )
-          #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder(id: 1, title: "Buy milk", remindersListID: 3))
-        }
+      try await userDatabase.read { db in
+        let metadata = try #require(
+          try Reminder.metadata(for: 1).fetchOne(db)
+        )
+        #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
+        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+        #expect(reminder == Reminder(id: 1, title: "Buy milk", remindersListID: 3))
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -701,14 +701,14 @@ extension BaseCloudKitTests {
 
       try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        try await userDatabase.read { db in
-          let metadata = try #require(
-            try Reminder.metadata(for: 1).fetchOne(db)
-          )
-          #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 3))
-        }
+      try await userDatabase.read { db in
+        let metadata = try #require(
+          try Reminder.metadata(for: 1).fetchOne(db)
+        )
+        #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
+        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+        #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 3))
+      }
 
       await modifications.notify()
 
@@ -754,14 +754,14 @@ extension BaseCloudKitTests {
         """
       }
 
-        try await userDatabase.read { db in
-          let metadata = try #require(
-            try Reminder.metadata(for: 1).fetchOne(db)
-          )
-          #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 3))
-        }
+      try await userDatabase.read { db in
+        let metadata = try #require(
+          try Reminder.metadata(for: 1).fetchOne(db)
+        )
+        #expect(metadata.parentRecordName == RemindersList.recordName(for: 3))
+        let reminder = try #require(try Reminder.find(1).fetchOne(db))
+        #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 3))
+      }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

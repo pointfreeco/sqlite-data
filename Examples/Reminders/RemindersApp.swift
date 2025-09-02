@@ -2,10 +2,9 @@ import CloudKit
 import Combine
 import Dependencies
 import SQLiteData
+import SwiftData
 import SwiftUI
 import UIKit
-
-import SwiftData
 
 @main
 struct RemindersApp: App {

@@ -40,7 +40,7 @@ It fetches _all_ items from the backing database into memory and then Swift does
 filtering, sorting, and truncating this data before it is displayed to the user. This means if the
 table contains thousands, or even hundreds of thousands of rows, every single one will be loaded
 into memory and processed, which is incredibly inefficient to do. Worse, this work will be performed
-every single time `displayedItems` is evaluated, which will be at least once for each time the 
+every single time `displayedItems` is evaluated, which will be at least once for each time the
 view's body is computed, but could also be more.
 
 This kind of data processing is exactly what SQLite excels at, and so we can offload this work by
@@ -87,5 +87,5 @@ struct ContentView: View {
 
 > Important: If a parent view refreshes, a dynamically-updated query can be overwritten with the
 > initial `@FetchAll`'s value, taken from the parent. To manage the state of this dynamic query
-> locally to this view, we use `@State @FetchAll`, instead, and to access the underlying 
+> locally to this view, we use `@State @FetchAll`, instead, and to access the underlying
 > `FetchAll` value you can use `wrappedValue`.

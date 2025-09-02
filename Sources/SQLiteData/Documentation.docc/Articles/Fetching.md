@@ -16,17 +16,17 @@ queries in a single transaction.
 ### @FetchAll
 
 The [`@FetchAll`](<doc:FetchAll>) property wrapper allows you to fetch a collection of results from
-your database using a SQL query. The query is created using our 
+your database using a SQL query. The query is created using our
 [StructuredQueries][structured-queries-gh] library, which can build type-safe queries that safely
 and performantly decode into Swift data types.
 
-To get access to these tools you must apply the `@Table` macro to your data type that represents 
+To get access to these tools you must apply the `@Table` macro to your data type that represents
 your table:
 
 ```swift
 @Table
 struct Reminder {
-  let id: Int 
+  let id: Int
   var title = ""
   var dueAt: Date?
   var isCompleted = false
@@ -40,15 +40,15 @@ simply doing:
 @FetchAll var reminders: [Reminder]
 ```
 
-If you want to execute a more complex query, such as one that sorts the results by the reminder's 
-title, then you can use the various query building APIs on `Reminder`: 
+If you want to execute a more complex query, such as one that sorts the results by the reminder's
+title, then you can use the various query building APIs on `Reminder`:
 
 ```swift
 @FetchAll(Reminder.order(by: \.title))
 var reminders
 ```
 
-Or if you want to only select the completed reminders, sorted by their titles in a descending 
+Or if you want to only select the completed reminders, sorted by their titles in a descending
 fashion:
 
 ```swift
@@ -68,7 +68,7 @@ You can even execute a SQL string to populate the data in your features:
 var completedReminders: [Reminder]
 ```
 
-This uses the `#sql` macro for constructing [safe SQL strings][sq-safe-sql-strings]. You are 
+This uses the `#sql` macro for constructing [safe SQL strings][sq-safe-sql-strings]. You are
 automatically protected from SQL injection attacks, and it is even possible to use the static
 description of your schema to prevent accidental typos:
 
@@ -97,7 +97,7 @@ exactly one list:
 ```swift
 @Table
 struct Reminder {
-  let id: Int 
+  let id: Int
   var title = ""
   var dueAt: Date?
   var isCompleted = false
@@ -105,7 +105,7 @@ struct Reminder {
 }
 @Table
 struct RemindersList: Identifiable {
-  let id: Int 
+  let id: Int
   var title = ""
 }
 ```
@@ -123,7 +123,7 @@ struct Record {
 }
 ```
 
-And then we construct a query that joins the `Reminder` table to the `RemindersList` table and 
+And then we construct a query that joins the `Reminder` table to the `RemindersList` table and
 selects the titles from each table:
 
 ```swift
@@ -132,7 +132,7 @@ selects the titles from each table:
     .join(RemindersList.all) { $0.remindersListID.eq($1.id) }
     .select {
       Record.Columns(
-        reminderTitle: $0.title, 
+        reminderTitle: $0.title,
         remindersListTitle: $1.title
       )
     }
@@ -219,9 +219,9 @@ Here we have defined a ``FetchKeyRequest/Value`` type inside the conformance tha
 data we want to query for in a single transaction, and then we can construct it and return it from
 the ``FetchKeyRequest/fetch(_:)`` method.
 
-With this conformance defined we can use the 
+With this conformance defined we can use the
 [`@Fetch`](<doc:Fetch>) property wrapper to execute the query specified by
-the `Reminders` type, and we can access the `completedReminders` and `remindersCount` properties 
+the `Reminders` type, and we can access the `completedReminders` and `remindersCount` properties
 to get to the queried data:
 
 ```swift

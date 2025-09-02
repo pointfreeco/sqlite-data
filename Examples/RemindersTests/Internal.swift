@@ -8,7 +8,7 @@ import Testing
 
 @Suite(
   .dependency(\.continuousClock, ImmediateClock()),
-  .dependency(\.date.now, Date(timeIntervalSince1970: 1234567890)),
+  .dependency(\.date.now, Date(timeIntervalSince1970: 1_234_567_890)),
   .dependency(\.uuid, .incrementing),
   .dependencies {
     $0.defaultDatabase = try Reminders.appDatabase()
@@ -27,7 +27,7 @@ extension RemindersList: @retroactive CustomDumpReflectable {
         "id": id,
         "color": Color.HexRepresentation(queryOutput: color).hexValue ?? 0,
         "position": position,
-        "title": title
+        "title": title,
       ],
       displayStyle: .struct
     )

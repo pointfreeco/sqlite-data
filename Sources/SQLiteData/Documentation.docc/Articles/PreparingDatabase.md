@@ -4,7 +4,7 @@ Learn how to create and configure the SQLite database that holds your applicatio
 
 ## Overview
 
-Before you can use any of the tools of this library you must create and configure the SQLite 
+Before you can use any of the tools of this library you must create and configure the SQLite
 database that will be used throughout the app. There are a few steps to getting this right, and
 a few optional steps you can perform to make the database you provision work well for testing
 and Xcode previews.
@@ -35,7 +35,7 @@ func appDatabase() -> any DatabaseWriter {
 ### Step 2: Create configuration
 
 Inside this static variable we can create a [`Configuration`][config-docs] value that is used to
-configure the database. We recommend turning on 
+configure the database. We recommend turning on
 [foreign key](https://www.sqlite.org/foreignkeys.html) constraints to protect the integrity of your
 data:
 
@@ -47,9 +47,9 @@ data:
 ```
 
 > Important: If you are synchronizing your database to CloudKit, then you must not enable
-> foreign keys. See <doc:CloudKit#Foreign-key-relationships> for more information. 
+> foreign keys. See <doc:CloudKit#Foreign-key-relationships> for more information.
 
-This will prevent you from deleting rows that leave other rows with invalid associations. For 
+This will prevent you from deleting rows that leave other rows with invalid associations. For
 example, if a "reminders" table had an association to a "remindersLists" table, you would not be
 allowed to delete a list row unless there were no reminders associated with it, or if you had
 specified a cascading action (such as delete).
@@ -129,7 +129,7 @@ way to do this is to construct the database connection for a path on the file sy
  }
 ```
 
-However, this can be improved. First, this code will crash if it is executed in Xcode previews 
+However, this can be improved. First, this code will crash if it is executed in Xcode previews
 because SQLite is unable to form a connection to a database on disk in a preview context. And
 second, in tests we should write this databadse to the temporary directoy on disk with a unique
 name so that each test gets a fresh database and so that multiple tests can run in parallel.
@@ -174,7 +174,7 @@ context or if we're in a preview or test.
 
 ### Step 4: Migrate database
 
-Now that the database connection is created we can migrate the database. GRDB provides all the 
+Now that the database connection is created we can migrate the database. GRDB provides all the
 tools necessary to perform [database migrations][grdb-migration-docs], but the basics include
 creating a `DatabaseMigrator`, registering migrations with it, and then using it to migrate the
 database connection:
@@ -220,9 +220,9 @@ database connection:
 
 As your application evolves you will register more and more migrations with the migrator.
 
-It is up to you how you want to actually execute the SQL that creates your tables. There are 
-[APIs in the community][grdb-table-definition] for building table definition statements using Swift 
-code, but we personally feel that it is simpler, more flexible and more powerful to use 
+It is up to you how you want to actually execute the SQL that creates your tables. There are
+[APIs in the community][grdb-table-definition] for building table definition statements using Swift
+code, but we personally feel that it is simpler, more flexible and more powerful to use
 [plain SQL strings][table-definition-tools]:
 
 [grdb-table-definition]: https://swiftpackageindex.com/groue/grdb.swift/v7.6.1/documentation/grdb/database/create(table:options:body:)
@@ -252,7 +252,7 @@ migrator.registerMigration("Create tables") { db in
 It may seem counterintuitive that we recommend using SQL strings for table definitions when so much
 of the library provides type-safe and schema-safe tools for executing SQL. But table definition SQL
 is fundamentally different from other SQL as it is frozen in time and should never be edited
-after it has been deployed to users. Read [this article][table-definition-tools] from our 
+after it has been deployed to users. Read [this article][table-definition-tools] from our
 StructuredQueries library to learn more about this decision.
 
 [table-definition-tools]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/definingyourschema#Table-definition-tools
@@ -319,7 +319,7 @@ import SwiftUI
 @main
 struct MyApp: App {
   init() {
-    prepareDependencies { 
+    prepareDependencies {
       $0.defaultDatabase = try! appDatabase()
     }
   }
@@ -354,7 +354,7 @@ It is also important to prepare the database in Xcode previews. This can be done
 
 ```swift
 #Preview {
-  let _ = prepareDependencies { 
+  let _ = prepareDependencies {
     $0.defaultDatabase = try! appDatabase()
   }
   // ...

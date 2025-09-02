@@ -143,26 +143,32 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       """
     )
     .execute(db)
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "parents"(
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
       ) STRICT
-      """)
+      """
+    )
     .execute(db)
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "childWithOnDeleteSetNulls"(
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "parentID" INTEGER REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
       ) STRICT
-      """)
+      """
+    )
     .execute(db)
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "childWithOnDeleteSetDefaults"(
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "parentID" INTEGER NOT NULL DEFAULT 0 
           REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
       ) STRICT
-      """)
+      """
+    )
     .execute(db)
     try #sql(
       """
@@ -174,35 +180,43 @@ func database(containerIdentifier: String) throws -> DatabasePool {
       """
     )
     .execute(db)
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "modelAs" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "isEven" INTEGER GENERATED ALWAYS AS ("count" % 2 == 0) VIRTUAL 
       )
-      """)
+      """
+    )
     .execute(db)
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "modelBs" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "isOn" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
       )
-      """)
+      """
+    )
     .execute(db)
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "modelCs" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
         "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
       )
-      """)
+      """
+    )
     .execute(db)
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "unsyncedModels" (
         "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
       )
-      """)
+      """
+    )
     .execute(db)
   }
   return database

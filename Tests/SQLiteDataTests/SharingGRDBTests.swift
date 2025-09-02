@@ -1,8 +1,8 @@
 import Dependencies
 import DependenciesTestSupport
 import GRDB
-import Sharing
 import SQLiteData
+import Sharing
 import StructuredQueries
 import SwiftUI
 import Testing

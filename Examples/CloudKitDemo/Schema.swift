@@ -13,7 +13,8 @@ func appDatabase() throws -> any DatabaseWriter {
   let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.prepareDatabase { db in
-    try db.attachMetadatabase(containerIdentifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitDemo")
+    try db.attachMetadatabase(
+      containerIdentifier: "iCloud.co.pointfree.SQLiteData.demos.CloudKitDemo")
     #if DEBUG
       db.trace(options: .profile) {
         if context == .live {
@@ -42,15 +43,17 @@ func appDatabase() throws -> any DatabaseWriter {
 
   var migrator = DatabaseMigrator()
   #if DEBUG
-  migrator.eraseDatabaseOnSchemaChange = true
+    migrator.eraseDatabaseOnSchemaChange = true
   #endif
   migrator.registerMigration("Create tables") { db in
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "counters" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "count" INT NOT NULL DEFAULT 0
       )
-      """)
+      """
+    )
     .execute(db)
   }
   try migrator.migrate(database)

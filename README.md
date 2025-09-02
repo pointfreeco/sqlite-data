@@ -45,7 +45,7 @@ similar to SwiftData's `@Model` and `@Query`:
 </tr>
 <tr valign=top>
 <td width=415>
-      
+
 ```swift
 @FetchAll
 var items: [Item]
@@ -116,7 +116,7 @@ struct MyApp: App {
   init() {
     prepareDependencies {
       let db = try! DatabaseQueue(
-        // Create/migrate a database 
+        // Create/migrate a database
         // connection
       )
       $0.defaultDatabase = db
@@ -132,11 +132,11 @@ struct MyApp: App {
 ```swift
 @main
 struct MyApp: App {
-  let container = { 
+  let container = {
     // Create/configure a container
     try! ModelContainer(/* ... */)
   }()
-  
+
   var body: some Scene {
     WindowGroup {
       ContentView()
@@ -154,7 +154,7 @@ struct MyApp: App {
 > For more information on preparing a SQLite database, see
 > [Preparing a SQLite database][preparing-db-article].
 
-This `defaultDatabase` connection is used implicitly by SQLiteData's strategies, like 
+This `defaultDatabase` connection is used implicitly by SQLiteData's strategies, like
 [`@FetchAll`][fetchall-docs] and [`@FetchOne`][fetchone-docs], which are similar to SwiftData's
 `@Query` macro, but more powerful:
 
@@ -219,9 +219,9 @@ a model context, via a property wrapper:
 <td width=415>
 
 ```swift
-@Dependency(\.defaultDatabase) 
+@Dependency(\.defaultDatabase)
 var database
-    
+
 let newItem = Item(/* ... */)
 try database.write { db in
   try Item.insert { newItem }
@@ -233,9 +233,9 @@ try database.write { db in
 <td width=415>
 
 ```swift
-@Environment(\.modelContext) 
+@Environment(\.modelContext)
 var modelContext
-    
+
 let newItem = Item(/* ... */)
 modelContext.insert(newItem)
 try modelContext.save()
@@ -251,7 +251,7 @@ try modelContext.save()
 > [Comparison with SwiftData][comparison-swiftdata-article].
 
 Further, if you want to synchronize the local database to CloudKit so that it is available on
-all your user's devices, simply configure a `SyncEngine` in the entry point of the app: 
+all your user's devices, simply configure a `SyncEngine` in the entry point of the app:
 
 ```swift
 @main
@@ -315,8 +315,8 @@ Orders.fetchAll                          setup    rampup   duration
 
 ## SQLite knowledge required
 
-SQLite is one of the 
-[most established and widely distributed](https://www.sqlite.org/mostdeployed.html) pieces of 
+SQLite is one of the
+[most established and widely distributed](https://www.sqlite.org/mostdeployed.html) pieces of
 software in the history of software. Knowledge of SQLite is a great skill for any app developer to
 have, and this library does not want to conceal it from you. So, we feel that to best wield this
 library you should be familiar with the basics of SQLite, including schema design and normalization,
@@ -343,7 +343,7 @@ SQLiteData. Check out [this](./Examples) directory to see them all, including:
   * [SyncUps](./Examples/SyncUps): We also rebuilt Apple's [Scrumdinger][] demo application using
     modern, best practices for SwiftUI development, including using this library to query and
     persist state using SQLite.
-    
+
   * [Reminders](./Examples/Reminders): A rebuild of Apple's [Reminders][reminders-app-store] app
     that uses a SQLite database to model the reminders, lists and tags. It features many advanced
     queries, such as searching, and stats aggregation.

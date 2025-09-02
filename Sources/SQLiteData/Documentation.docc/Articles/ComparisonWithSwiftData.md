@@ -41,7 +41,7 @@ to SwiftData's `@Model` macro:
     struct Item {
       let id: Int
       var title = ""
-      var isInStock = true 
+      var isInStock = true
       var notes = ""
     }
     ```
@@ -55,8 +55,8 @@ to SwiftData's `@Model` macro:
       var isInStock: Bool
       var notes: String
       init(
-        title: String = "", 
-        isInStock: Bool = true, 
+        title: String = "",
+        isInStock: Bool = true,
         notes: String = ""
       ) {
         self.title = title
@@ -109,11 +109,11 @@ a `ModelContainer` and propagate it through the environment:
     // SwiftData
     @main
     struct MyApp: App {
-      let container = { 
+      let container = {
         // Create/configure a container
         try! ModelContainer(/* ... */)
       }()
-      
+
       var body: some Scene {
         WindowGroup {
           ContentView()
@@ -140,7 +140,7 @@ whereas you use the `@Query` macro with SwiftData:
     struct ItemsView: View {
       @FetchAll(Item.order(by: \.title))
       var items
-      
+
       var body: some View {
         ForEach(items) { item in
           Text(item.name)
@@ -155,7 +155,7 @@ whereas you use the `@Query` macro with SwiftData:
     struct ItemsView: View {
       @Query(sort: \Item.title)
       var items: [Item]
-      
+
       var body: some View {
         ForEach(items) { item in
           Text(item.name)
@@ -166,8 +166,8 @@ whereas you use the `@Query` macro with SwiftData:
   }
 }
 
-The `@FetchAll` property wrapper takes a variety of options and allows you to write queries using a 
-type-safe and schema-safe builder syntax, or you can write safe SQL strings that are schema-safe and 
+The `@FetchAll` property wrapper takes a variety of options and allows you to write queries using a
+type-safe and schema-safe builder syntax, or you can write safe SQL strings that are schema-safe and
 protect you from SQL injection.
 
 The library also ships a few other property wrappres that have no equivalent in SwiftData. For
@@ -187,8 +187,8 @@ data from your database using the tools of this library.
 ### Fetching data for an @Observable model
 
 There are many reasons one may want to move logic out of the view and into an `@Observable` model,
-such as allowing to unit test your feature's logic, and making it possible to deep link in your 
-app. The `@FetchAll` property warpper, and other [data fetching tools](<doc:Fetching>) work just as 
+such as allowing to unit test your feature's logic, and making it possible to deep link in your
+app. The `@FetchAll` property warpper, and other [data fetching tools](<doc:Fetching>) work just as
 well in an `@Observable` model as they do in a SwiftUI view. The state held in the property wrapper
 automatically updates when changes are made to the database.
 
@@ -228,11 +228,11 @@ its functionality from scratch:
         }
         fetchItems()
       }
-      
+
       deinit {
         NotificationCenter.default.removeObserver(observer)
       }
-      
+
       func fetchItems() {
         do {
           items = try modelContext.fetch(
@@ -248,7 +248,7 @@ its functionality from scratch:
   }
 }
 
-> Note: It is necessary to annotate `@FetchAll` with `@ObservationIgnored` when using the 
+> Note: It is necessary to annotate `@FetchAll` with `@ObservationIgnored` when using the
 > `@Observable` macro due to how macros interact with property wrappers. However, `@FetchAll`
 > handles its own observation, and so state will still be observed when accessed in a view.
 
@@ -265,7 +265,7 @@ search for rows in a table:
     struct ItemsView: View {
       @State var searchText = ""
       @FetchAll var items: [Item]
-      
+
       var body: some View {
         ForEach(items) { item in
           Text(item.name)
@@ -275,7 +275,7 @@ search for rows in a table:
           await updateSearchQuery()
         }
       }
-      
+
       func updateSearchQuery() {
         await $items.load(
           .fetchAll(
@@ -293,7 +293,7 @@ search for rows in a table:
     // SwiftData
     struct ItemsView: View {
       @State var searchText = ""
-      
+
       var body: some View {
         SearchResultsView(
           searchText: searchText
@@ -301,18 +301,18 @@ search for rows in a table:
         .searchable(text: $searchText)
       }
     }
-    
+
     struct SearchResultsView: View {
       @Query var items: [Item]
-      
+
       init(searchText: String) {
         _items = Query(
-          filter: #Predicate<Item> { 
-            $0.title.contains(searchText) 
+          filter: #Predicate<Item> {
+            $0.title.contains(searchText)
           }
         )
       }
-      
+
       var body: some View {
         ForEach(items) { item in
           Text(item.name)
@@ -323,10 +323,10 @@ search for rows in a table:
   }
 }
 
-Note that the SwiftData version of this code must have two views. The outer view, `ItemsView`, 
+Note that the SwiftData version of this code must have two views. The outer view, `ItemsView`,
 holds onto the `searchText` state that the user can change and uses the `searchable` SwiftUI view
 modifier. Then, the inner view, `SearchResultsView`, holds onto the `@Query` state so that it can
-initialize with a dynamic predicate based on the `searchText`. These two views are necessary 
+initialize with a dynamic predicate based on the `searchText`. These two views are necessary
 because `@Query` state is not mutable after it is initialized. The only way to change `@Query`
 state is if the view holding it is reinitialized, which requires a parent view to recreate the
 child view.
@@ -367,7 +367,7 @@ Then, to create a new row in a table you use the `write` and `insert` methods fr
     ```swift
     // SQLiteData
     @Dependency(\.defaultDatabase) var database
-    
+
     try database.write { db in
       try Item.insert(Item(/* ... */))
         .execute(db)
@@ -378,7 +378,7 @@ Then, to create a new row in a table you use the `write` and `insert` methods fr
     ```swift
     // SwiftData
     @Environment(\.modelContext) var modelContext
-    
+
     let newItem = Item(/* ... */)
     modelContext.insert(newItem)
     try modelContext.save()
@@ -393,7 +393,7 @@ To update an existing row you can use the `write` and `update` methods from SQLi
     ```swift
     // SQLiteData
     @Dependency(\.defaultDatabase) var database
-    
+
     existingItem.title = "Computer"
     try database.write { db in
       try Item.update(existingItem).execute(db)
@@ -404,7 +404,7 @@ To update an existing row you can use the `write` and `update` methods from SQLi
     ```swift
     // SwiftData
     @Environment(\.modelContext) var modelContext
-    
+
     existingItem.title = "Computer"
     try modelContext.save()
     ```
@@ -418,7 +418,7 @@ And to delete an existing row, you can use the `write` and `delete` methods from
     ```swift
     // SQLiteData
     @Dependency(\.defaultDatabase) var database
-    
+
     try database.write { db in
       try Item.delete(existingItem).execute(db)
     }
@@ -428,7 +428,7 @@ And to delete an existing row, you can use the `write` and `delete` methods from
     ```swift
     // SwiftData
     @Environment(\.modelContext) var modelContext
-    
+
     modelContext.delete(existingItem))
     try modelContext.save()
     ```
@@ -470,11 +470,11 @@ mechanism to work is for `Team` and `Sport` to be classes, and the `@Model` macr
 Second, because the SQLite execution is so abstracted from us, it makes it easy to execute many,
 _many_ queries, leading to inefficient code. In this case, we are first executing a query to
 get all sports, and then executing a query for each sport to get the number of teams in each
-sport. And on top of that, we are loading every team into memory just to compute the number of 
+sport. And on top of that, we are loading every team into memory just to compute the number of
 teams.  We don't actually need any data from the team, only their aggregate count.
 
-SQLiteData does not provide these kinds of tools, and for good reason. Instead, if you know you 
-want to fetch all of the teams with their corresponding sport, you can simply perform a single 
+SQLiteData does not provide these kinds of tools, and for good reason. Instead, if you know you
+want to fetch all of the teams with their corresponding sport, you can simply perform a single
 query that joins the two tables together:
 
 ```swift
@@ -499,12 +499,12 @@ If either of the "sports" or "teams" tables change, this query will be executed 
 state will update to the freshest values.
 
 This style of handling associations does require you to be knowledgable in SQL to wield it
-correctly, but that is a benefit! SQL (and SQLite) are some of the most proven pieces of 
+correctly, but that is a benefit! SQL (and SQLite) are some of the most proven pieces of
 technologies in the history of computers, and knowing how to wield their powers is a huge benefit.
 
 ### Booleans and enums
 
-While it may be hard to believe at first, SwiftData does not fully support boolean or enum values 
+While it may be hard to believe at first, SwiftData does not fully support boolean or enum values
 for fields of a model. Take for example this following model:
 
 ```swift
@@ -513,11 +513,11 @@ class Reminder {
   var isCompleted = false
   var priority: Priority?
   init(isCompleted: Bool = false, priority: Priority? = nil) {
-    self.isCompleted = isCompleted 
+    self.isCompleted = isCompleted
     self.priority = priority
   }
 
-  enum Priority: Int, Codable { 
+  enum Priority: Int, Codable {
     case low, medium, high
   }
 }
@@ -549,7 +549,7 @@ class Reminder {
   var isCompleted = 0
   var priority: Int?
   init(isCompleted: Int = 0, priority: Int? = nil) {
-    self.isCompleted = isCompleted 
+    self.isCompleted = isCompleted
     self.priority = priority
   }
 }
@@ -571,7 +571,7 @@ On the other hand, booleans and enums work just fine in SQLiteData:
 struct Reminder {
   var isCompleted = false
   var priority: Priority?
-  enum Priority: Int, QueryBindable { 
+  enum Priority: Int, QueryBindable {
     case low, medium, high
   }
 }
@@ -595,7 +595,7 @@ can even leave off the type annotation for `reminders` because it is inferred fr
 explicit where you make direct changes to the schemas in your database. This includes creating
 tables, adding, removing or altering columns, adding or removing indices, and more.
 
-Whereas SwiftData has two flavors of migrations. The simplest, "lightweight" migrations, work 
+Whereas SwiftData has two flavors of migrations. The simplest, "lightweight" migrations, work
 implicitly by comparing your data types to the database schema and updating the schema accordingly.
 That cannot always work, and so there are "manual" migrations where you explicitly describe how
 to change the database schema.
@@ -614,7 +614,7 @@ Lightweight migrations in SwiftData work for simple situations, such as adding a
       var title = ""
       var isInStock = true
     }
-    
+
     migrator.registerMigration("Create 'items' table") { db in
       try #sql(
         """
@@ -641,7 +641,7 @@ Lightweight migrations in SwiftData work for simple situations, such as adding a
   }
 }
 
-Note that in GRDB we must explicitly create the table, specify its columns, as well as its 
+Note that in GRDB we must explicitly create the table, specify its columns, as well as its
 constraints, such as if it is nullable or has a default value.
 
 Similarly, adding a column to a data type is also a lightweight migration in SwiftData, such as
@@ -657,11 +657,11 @@ adding a `description` field to the `Item` type:
       var description = ""
       var isInStock = true
     }
-    
+
     migrator.registerMigration("Add 'description' column to 'items'") { db in
       try #sql(
         """
-        ALTER TABLE "items" 
+        ALTER TABLE "items"
         ADD COLUMN "description" TEXT
         """
       )
@@ -682,21 +682,21 @@ adding a `description` field to the `Item` type:
   }
 }
 
-In each of these cases, the lightweight migration of SwiftData is less code and the actual 
+In each of these cases, the lightweight migration of SwiftData is less code and the actual
 migration logic is implicit and hidden away from you.
 
 #### Manual migrations
 
 However, unfortunately, not all migrations can be "lightweight". In fact, from our experience,
-real world apps tend to require complex logic when performing most migrations. Something as simple 
+real world apps tend to require complex logic when performing most migrations. Something as simple
 as changing an optional field to be a non-optional field cannot be done as a lightweight migration
-since SwiftData does not know what value to insert into the database for any rows with a NULL 
+since SwiftData does not know what value to insert into the database for any rows with a NULL
 value. Even adding a unique index to a column is not possible because that may introduce constraint
 errors if two rows have the same value.
 
-For the times that a lightweight migration is not possible in SwiftData, one must turn to 
+For the times that a lightweight migration is not possible in SwiftData, one must turn to
 "manual" migrations via the `VersionedSchema` protocol. As an example, consider adding a unique
-index on the "title" column of the "items" table. 
+index on the "title" column of the "items" table.
 
 In GRDB this is a simple two-step process:
 
@@ -705,7 +705,7 @@ In GRDB this is a simple two-step process:
     incorporate a "#" suffix to differentiate between items with the same name.
   1. Add the unique index.
 
-In SwiftData this is a much more involved process since migrations are implicitly tied to the 
+In SwiftData this is a much more involved process since migrations are implicitly tied to the
 structure of your data types. The overall steps to follow are as such:
 
   1. Create a type that conforms to the `VersionedSchema` protocol, which represents the current
@@ -715,7 +715,7 @@ structure of your data types. The overall steps to follow are as such:
   1. Duplicate the entire `@Model` data type so that you can specify the unique index. This type
      will need a new name so as to not conflict with the current, and so often it is nested in
      the type created in the previous step.
-  1. Because you now have different data types representing `Item` it is customary to add a 
+  1. Because you now have different data types representing `Item` it is customary to add a
      type alias that represents the most "current" version of the `Item`.
   1. Create a type that conforms to the `SchemaMigrationPlan` which allows you to specify the
     "stages" that will be executed when a migration is performed.
@@ -743,8 +743,8 @@ structure of your data types. The overall steps to follow are as such:
       // 2️⃣ Create unique index
       try #sql(
         """
-        CREATE UNIQUE INDEX 
-        "items_title" ON "items" ("title") 
+        CREATE UNIQUE INDEX
+        "items_title" ON "items" ("title")
         """
       )
       .execute(db)
@@ -764,7 +764,7 @@ structure of your data types. The overall steps to follow are as such:
         var isInStock = true
       }
     }
-    
+
     // 2️⃣ Create type to conform to VersionedSchema:
     enum Schema2: VersionedSchema {
       static var versionIdentifier = Schema.Version(2, 0, 0)
@@ -778,19 +778,19 @@ structure of your data types. The overall steps to follow are as such:
         var isInStock = true
       }
     }
-    
+
     // 4️⃣ Create a type alias for the newest Item schema:
     typealias Item = Schema2.Item
-    
+
     // 5️⃣ Create a type to conform to the SchemaMigrationPlan protocol:
     enum MigrationPlan: SchemaMigrationPlan {
       static var schemas: [any VersionedSchema.Type] {
         [
-          Schema1.self, 
+          Schema1.self,
           Schema2.self
         ]
       }
-      
+
       // 6️⃣ Create MigrationStage values to implement the logic for migration from one schema
       //    to the next:
       static var stages: [MigrationStage] {
@@ -817,12 +817,12 @@ structure of your data types. The overall steps to follow are as such:
               }
             }
             try context.save()
-          } didMigrate: { _ in 
+          } didMigrate: { _ in
           }
         ]
       }
     }
-    
+
     // 7️⃣ Create ModelContainer with migration plan in entry point of app:
     @main
     struct MyApp: App {
@@ -845,19 +845,19 @@ Some things to note about the above comparison:
     with a duplicate title (keeping the first) by using a subquery.
   * The SwiftData migration is many, many times longer than the equivalent SQLite version involving
     many intricate steps that are hard to remember and easy to get wrong.
-  * Because database schemas are tightly coupled to type definitions we have no choice but to 
+  * Because database schemas are tightly coupled to type definitions we have no choice but to
     duplicate our data type so that we can apply the `@Attribute(.unique)` macro.
-  * Further, we will need to move all helper methods and computed properties from the previous 
+  * Further, we will need to move all helper methods and computed properties from the previous
     version of the data type to the new version.
   * The work in step #6 that deletes items if they have a duplicate titles is very inefficient, but
     it's not possible to make much more efficient. SwiftData does not provide us with tools to run
-    raw SQL on the tables, and so we have no choice but to load all of the items into memory and 
-    manually check for unique titles. This is memory intensive and CPU intensive work and may 
-    require extra attention if there are thousands of items in the table. On the other hand, SQLite 
-    can perform this work efficiently on millions of rows without ever loading a single `Item` into 
+    raw SQL on the tables, and so we have no choice but to load all of the items into memory and
+    manually check for unique titles. This is memory intensive and CPU intensive work and may
+    require extra attention if there are thousands of items in the table. On the other hand, SQLite
+    can perform this work efficiently on millions of rows without ever loading a single `Item` into
     memory.
 
-So, while lightweight migrations are one of the "magical" features of SwiftData, we feel that 
+So, while lightweight migrations are one of the "magical" features of SwiftData, we feel that
 complex "manual" migrations are common enough that one should optimize for them rather than the
 other way around.
 
@@ -869,15 +869,15 @@ with other iCloud users, and it exposes the underlying CloudKit data types (e.g.
 that you can interact directly with CloudKit if needed.
 
 Setting up a database and sync engine in SQLiteData isn't much different from setting up a
-SwiftData stack with CloudKit. The main difference is that one must explicitly provide the 
-container identifier in SQLiteData because SwiftData has been privileged in being able to 
+SwiftData stack with CloudKit. The main difference is that one must explicitly provide the
+container identifier in SQLiteData because SwiftData has been privileged in being able to
 inspect the Entitlements.plist in order to automatically extract that information:
 
 @Row {
   @Column {
     ```swift
     // SQLiteData
-    @main 
+    @main
     struct MyApp: App {
       init() {
         try! prepareDependencies {
@@ -888,7 +888,7 @@ inspect the Entitlements.plist in order to automatically extract that informatio
           )
         }
       }
-      
+
       …
     }
     ```
@@ -906,7 +906,7 @@ inspect the Entitlements.plist in order to automatically extract that informatio
         ])
         let modelConfiguration = ModelConfiguration(schema: schema)
         modelContainer = try! ModelContainer(
-          for: schema, 
+          for: schema,
           configurations: [modelConfiguration]
         )
       }
@@ -932,7 +932,7 @@ SQLiteData has only one of these limitations:
 schema. For example, if you have a `Tag` table with a unique `title` column, then what
 are you to do if two different devices create a tag with the title "family" at the same time?
 * Columns on freshly created tables do not need to have default values or be nullable. Only
-newly added columns to existing tables need to either be nullable or have a default. See 
+newly added columns to existing tables need to either be nullable or have a default. See
 <doc:CloudKit#Adding-columns> for more info.
 * Relationships on freshly created do not need to be nullable. Only newly added columns to
 existing tables need to be nullable. See <doc:CloudKit#Adding-columns> for more info.
@@ -944,9 +944,9 @@ information about CloudKit synchronization, see <doc:CloudKit>.
 
 ### Supported Apple platforms
 
-SwiftData and the `@Query` macro require iOS 17, macOS 14, tvOS 17, watchOS 10 and higher, and 
+SwiftData and the `@Query` macro require iOS 17, macOS 14, tvOS 17, watchOS 10 and higher, and
 some newer features require even more recent versions of iOS.
 
 Meanwhile, SQLiteData has a broad set of deployment targets supporting all the way back to iOS 13,
-macOS 10.15, tvOS 13, and watchOS 6. This means you can use these tools on essentially any 
+macOS 10.15, tvOS 13, and watchOS 6. This means you can use these tools on essentially any
 application today with no restrictions.

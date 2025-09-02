@@ -67,7 +67,7 @@ let package = Package(
 )
 
 let swiftSettings: [SwiftSetting] = [
-  .enableUpcomingFeature("MemberImportVisibility"),
+  .enableUpcomingFeature("MemberImportVisibility")
   // .unsafeFlags([
   //   "-Xfrontend",
   //   "-warn-long-function-bodies=50",

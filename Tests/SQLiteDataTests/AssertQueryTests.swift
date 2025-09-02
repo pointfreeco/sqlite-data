@@ -2,9 +2,9 @@ import Dependencies
 import DependenciesTestSupport
 import Foundation
 import GRDB
-import Sharing
 import SQLiteData
 import SQLiteDataTestSupport
+import Sharing
 import SnapshotTesting
 import StructuredQueries
 import Testing

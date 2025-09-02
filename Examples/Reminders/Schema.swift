@@ -224,61 +224,73 @@ func appDatabase() throws -> any DatabaseWriter {
       try db.seedSampleData()
     }
 
-    try RemindersList.createTemporaryTrigger(after: .insert { new in
-      RemindersList
-        .find(new.id)
-        .update { $0.position = RemindersList.select { ($0.position.max() ?? -1) + 1} }
-    })
-    .execute(db)
-
-    try Reminder.createTemporaryTrigger(after: .insert { new in
-      Reminder
-        .find(new.id)
-        .update { $0.position = Reminder.select { ($0.position.max() ?? -1) + 1} }
-    })
-    .execute(db)
-
-    try RemindersList.createTemporaryTrigger(after: .delete { _ in
-      RemindersList.insert {
-        RemindersList.Draft(
-          color: RemindersList.defaultColor,
-          title: RemindersList.defaultTitle
-        )
+    try RemindersList.createTemporaryTrigger(
+      after: .insert { new in
+        RemindersList
+          .find(new.id)
+          .update { $0.position = RemindersList.select { ($0.position.max() ?? -1) + 1 } }
       }
-    } when: { _ in
-      !RemindersList.exists()
-    })
+    )
     .execute(db)
 
-    try Reminder.createTemporaryTrigger(after: .insert { new in
-      ReminderText.insert {
-        ReminderText.Columns(
-          rowid: new.rowid,
-          title: new.title,
-          notes: new.notes.replace("\n", " "),
-          tags: ""
-        )
+    try Reminder.createTemporaryTrigger(
+      after: .insert { new in
+        Reminder
+          .find(new.id)
+          .update { $0.position = Reminder.select { ($0.position.max() ?? -1) + 1 } }
       }
-    })
+    )
     .execute(db)
 
-    try Reminder.createTemporaryTrigger(after: .update {
-      ($0.title, $0.notes)
-    } forEachRow: { _, new in
-      ReminderText
-        .where { $0.rowid.eq(new.rowid) }
-        .update {
-          $0.title = new.title
-          $0.notes = new.notes.replace("\n", " ")
+    try RemindersList.createTemporaryTrigger(
+      after: .delete { _ in
+        RemindersList.insert {
+          RemindersList.Draft(
+            color: RemindersList.defaultColor,
+            title: RemindersList.defaultTitle
+          )
         }
-    })
+      } when: { _ in
+        !RemindersList.exists()
+      }
+    )
     .execute(db)
 
-    try Reminder.createTemporaryTrigger(after: .delete { old in
-      ReminderText
-        .where { $0.rowid.eq(old.rowid) }
-        .delete()
-    })
+    try Reminder.createTemporaryTrigger(
+      after: .insert { new in
+        ReminderText.insert {
+          ReminderText.Columns(
+            rowid: new.rowid,
+            title: new.title,
+            notes: new.notes.replace("\n", " "),
+            tags: ""
+          )
+        }
+      }
+    )
+    .execute(db)
+
+    try Reminder.createTemporaryTrigger(
+      after: .update {
+        ($0.title, $0.notes)
+      } forEachRow: { _, new in
+        ReminderText
+          .where { $0.rowid.eq(new.rowid) }
+          .update {
+            $0.title = new.title
+            $0.notes = new.notes.replace("\n", " ")
+          }
+      }
+    )
+    .execute(db)
+
+    try Reminder.createTemporaryTrigger(
+      after: .delete { old in
+        ReminderText
+          .where { $0.rowid.eq(old.rowid) }
+          .delete()
+      }
+    )
     .execute(db)
 
     func updateReminderTextTags(
@@ -287,7 +299,8 @@ func appDatabase() throws -> any DatabaseWriter {
       ReminderText
         .where { $0.rowid.eq(Reminder.find(reminderID).select(\.rowid)) }
         .update {
-          $0.tags = ReminderTag
+          $0.tags =
+            ReminderTag
             .order(by: \.tagID)
             .where { $0.reminderID.eq(reminderID) }
             .join(Tag.all) { $0.tagID.eq($1.primaryKey) }
@@ -295,14 +308,18 @@ func appDatabase() throws -> any DatabaseWriter {
         }
     }
 
-    try ReminderTag.createTemporaryTrigger(after: .insert { new in
-      updateReminderTextTags(for: new.reminderID)
-    })
+    try ReminderTag.createTemporaryTrigger(
+      after: .insert { new in
+        updateReminderTextTags(for: new.reminderID)
+      }
+    )
     .execute(db)
 
-    try ReminderTag.createTemporaryTrigger(after: .delete { old in
-      updateReminderTextTags(for: old.reminderID)
-    })
+    try ReminderTag.createTemporaryTrigger(
+      after: .delete { old in
+        updateReminderTextTags(for: old.reminderID)
+      }
+    )
     .execute(db)
   }
 

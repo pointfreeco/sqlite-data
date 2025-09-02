@@ -50,28 +50,34 @@ func appDatabase() throws -> any DatabaseWriter {
   }
   var migrator = DatabaseMigrator()
   migrator.registerMigration("Create tables") { db in
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "modelAs" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "count" INTEGER NOT NULL
       )
-      """)
+      """
+    )
     .execute(db)
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "modelBs" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "isOn" INTEGER NOT NULL,
         "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
       )
-      """)
+      """
+    )
     .execute(db)
-    try #sql("""
+    try #sql(
+      """
       CREATE TABLE "modelCs" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "title" TEXT NOT NULL,
         "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
       )
-      """)
+      """
+    )
     .execute(db)
   }
   try migrator.migrate(database)

@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 import SQLiteData
+import Testing
 
 @Suite struct UserlandTests {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

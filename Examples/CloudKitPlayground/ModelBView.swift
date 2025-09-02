@@ -15,15 +15,17 @@ struct ModelBView: View {
     List {
       ForEach(models) { model in
         HStack {
-          Toggle("On? \(model.isOn ? "YES" : "NO")", isOn: Binding {
-            model.isOn
-          } set: { newValue in
-            withErrorReporting {
-              try database.write { db in
-                try ModelB.find(model.id).update { $0.isOn = newValue }.execute(db)
+          Toggle(
+            "On? \(model.isOn ? "YES" : "NO")",
+            isOn: Binding {
+              model.isOn
+            } set: { newValue in
+              withErrorReporting {
+                try database.write { db in
+                  try ModelB.find(model.id).update { $0.isOn = newValue }.execute(db)
+                }
               }
-            }
-          })
+            })
 
           Spacer()
           NavigationLink("Go") {
@@ -53,7 +55,8 @@ struct ModelBView: View {
       Button("Special") {
         withErrorReporting {
           try database.write { db in
-            let modelB = try ModelB.insert { ModelB.Draft(modelAID: modelA.id) }.returning(\.self).fetchOne(db)
+            let modelB = try ModelB.insert { ModelB.Draft(modelAID: modelA.id) }.returning(\.self)
+              .fetchOne(db)
             guard let modelB
             else { return }
 

@@ -9,7 +9,7 @@ simplify the library, and make it more powerful. As such, we often need to depre
 in favor of newer ones. We recommend people update their code as quickly as possible to the newest
 APIs, and these guides contain tips to do so.
 
-> Important: Before following any particular migration guide be sure you have followed all the 
+> Important: Before following any particular migration guide be sure you have followed all the
 > preceding migration guides.
 
 ## Topics

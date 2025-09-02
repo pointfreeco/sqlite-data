@@ -38,7 +38,7 @@ let package = Package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
       from: "0.16.0",
       traits: [
-        .trait(name: "StructuredQueriesTagged", condition: .when(traits: ["SQLiteDataTagged"])),
+        .trait(name: "StructuredQueriesTagged", condition: .when(traits: ["SQLiteDataTagged"]))
       ]
     ),
     .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
@@ -86,7 +86,7 @@ let package = Package(
 )
 
 let swiftSettings: [SwiftSetting] = [
-  .enableUpcomingFeature("MemberImportVisibility"),
+  .enableUpcomingFeature("MemberImportVisibility")
   // .unsafeFlags([
   //   "-Xfrontend",
   //   "-warn-long-function-bodies=50",

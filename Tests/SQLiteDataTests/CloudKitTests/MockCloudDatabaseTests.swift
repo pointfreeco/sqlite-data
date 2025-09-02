@@ -123,7 +123,8 @@ extension BaseCloudKitTests {
     @Test func saveInUnknownZone() async throws {
       let record = CKRecord(
         recordType: "Record",
-        recordID: CKRecord.ID(recordName: "Record", zoneID: CKRecordZone.ID(zoneName: "unknownZone"))
+        recordID: CKRecord.ID(
+          recordName: "Record", zoneID: CKRecordZone.ID(zoneName: "unknownZone"))
       )
 
       let (saveRecordResults, _) = try syncEngine.private.database.modifyRecords(
@@ -307,7 +308,9 @@ extension BaseCloudKitTests {
       }
       #expect(error == CKError(.accountTemporarilyUnavailable))
       error = await #expect(throws: CKError.self) {
-        _ = try await self.syncEngine.private.database.records(for: [CKRecord.ID(recordName: "test")])
+        _ = try await self.syncEngine.private.database.records(for: [
+          CKRecord.ID(recordName: "test")
+        ])
       }
       #expect(error == CKError(.accountTemporarilyUnavailable))
     }
@@ -328,7 +331,9 @@ extension BaseCloudKitTests {
       }
       #expect(error == CKError(.notAuthenticated))
       error = await #expect(throws: CKError.self) {
-        _ = try await self.syncEngine.private.database.records(for: [CKRecord.ID(recordName: "test")])
+        _ = try await self.syncEngine.private.database.records(for: [
+          CKRecord.ID(recordName: "test")
+        ])
       }
       #expect(error == CKError(.notAuthenticated))
     }
@@ -349,7 +354,9 @@ extension BaseCloudKitTests {
       }
       #expect(error == CKError(.notAuthenticated))
       error = await #expect(throws: CKError.self) {
-        _ = try await self.syncEngine.private.database.records(for: [CKRecord.ID(recordName: "test")])
+        _ = try await self.syncEngine.private.database.records(for: [
+          CKRecord.ID(recordName: "test")
+        ])
       }
       #expect(error == CKError(.notAuthenticated))
     }
@@ -370,7 +377,9 @@ extension BaseCloudKitTests {
       }
       #expect(error == CKError(.notAuthenticated))
       error = await #expect(throws: CKError.self) {
-        _ = try await self.syncEngine.private.database.records(for: [CKRecord.ID(recordName: "test")])
+        _ = try await self.syncEngine.private.database.records(for: [
+          CKRecord.ID(recordName: "test")
+        ])
       }
       #expect(error == CKError(.notAuthenticated))
     }
@@ -385,7 +394,7 @@ extension BaseCloudKitTests {
       } matching: { issue in
         issue.description == """
           Issue recorded: A new identity was created for an existing 'CKRecord' ('1'). Rather than \
-          creating 'CKRecord' from scratch for an existing record, use the database to fetch the \ 
+          creating 'CKRecord' from scratch for an existing record, use the database to fetch the \
           current record.
           """
       }

@@ -1,7 +1,7 @@
 import Dependencies
 import DependenciesTestSupport
-import Sharing
 import SQLiteData
+import Sharing
 import StructuredQueries
 import Testing
 

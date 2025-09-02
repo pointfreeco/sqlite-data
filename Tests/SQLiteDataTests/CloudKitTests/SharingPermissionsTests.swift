@@ -1,7 +1,7 @@
 import CloudKit
 import CustomDump
-import GRDB
 import Foundation
+import GRDB
 import InlineSnapshotTesting
 import OrderedCollections
 import SQLiteData
@@ -47,7 +47,6 @@ extension BaseCloudKitTests {
             share: share
           )
         )
-
 
       try await self.userDatabase.userWrite { db in
         let error = #expect(throws: DatabaseError.self) {
@@ -379,7 +378,6 @@ extension BaseCloudKitTests {
         """
       }
     }
-
 
     // Edit a record while locally we think we have permission, but CloudKit has newer permissions
     // that are read only.

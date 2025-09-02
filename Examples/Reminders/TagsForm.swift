@@ -103,7 +103,7 @@ struct TagsView: View {
             .execute(db)
         } else {
           try Tag.insert(or: .ignore) { tag }
-          .execute(db)
+            .execute(db)
         }
       }
       selectedTags.append(tag)

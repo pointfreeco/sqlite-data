@@ -499,8 +499,11 @@ extension BaseCloudKitTests {
       let remindersTableIndex = try #require(
         recordTypesAfterMigration.firstIndex { $0.tableName == Reminder.tableName }
       )
-      #expect(recordTypes[0..<remindersTableIndex] == recordTypesAfterMigration[0..<remindersTableIndex])
-      #expect(recordTypes[(remindersTableIndex+1)...] == recordTypesAfterMigration[(remindersTableIndex+1)...])
+      #expect(
+        recordTypes[0..<remindersTableIndex] == recordTypesAfterMigration[0..<remindersTableIndex])
+      #expect(
+        recordTypes[(remindersTableIndex + 1)...]
+          == recordTypesAfterMigration[(remindersTableIndex + 1)...])
 
       assertInlineSnapshot(of: recordTypesAfterMigration[remindersTableIndex], as: .customDump) {
         #"""

@@ -75,7 +75,7 @@ extension BaseCloudKitTests {
           userDatabase: syncEngine.userDatabase,
           tables: syncEngine.tables
             .filter { $0 != Reminder.self && $0 != RemindersList.self }
-          + [ReminderWithPosition.self, RemindersListWithPosition.self],
+            + [ReminderWithPosition.self, RemindersListWithPosition.self],
           privateTables: syncEngine.privateTables
         )
         defer { _ = relaunchedSyncEngine }
@@ -148,7 +148,7 @@ extension BaseCloudKitTests {
           userDatabase: syncEngine.userDatabase,
           tables: syncEngine.tables
             .filter { $0 != RemindersList.self }
-          + [RemindersListWithData.self],
+            + [RemindersListWithData.self],
           privateTables: syncEngine.privateTables
         )
         defer { _ = relaunchedSyncEngine }
@@ -217,7 +217,7 @@ extension BaseCloudKitTests {
           userDatabase: syncEngine.userDatabase,
           tables: syncEngine.tables
             .filter { $0 != RemindersList.self }
-          + [RemindersListWithData.self],
+            + [RemindersListWithData.self],
           privateTables: syncEngine.privateTables
         )
         defer { _ = relaunchedSyncEngine }

@@ -34,7 +34,8 @@ struct RemindersListForm: View {
       ZStack(alignment: .topTrailing) {
         ZStack {
           if let coverImageData,
-             let uiImage = UIImage(data: coverImageData) {
+            let uiImage = UIImage(data: coverImageData)
+          {
             Image(uiImage: uiImage)
               .resizable()
               .scaledToFill()
@@ -77,7 +78,8 @@ struct RemindersListForm: View {
           Task { [remindersList, coverImageData] in
             await withErrorReporting {
               try await database.write { db in
-                let remindersListID = try RemindersList
+                let remindersListID =
+                  try RemindersList
                   .upsert { remindersList }
                   .returning(\.id)
                   .fetchOne(db)

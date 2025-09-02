@@ -44,7 +44,11 @@ xcodebuild: warm-simulator
 xcodebuild-raw: warm-simulator
 	$(XCODEBUILD_COMMAND)
 
-.PHONY: warm-simulator xcodebuild xcodebuild-raw
+format:
+	swift format . --recursive --in-place
+	find README.md Sources -name '*.md' -exec sed -i '' -e 's/ *$$//g' {} \;
+
+.PHONY: format warm-simulator xcodebuild xcodebuild-raw
 
 define udid_for
 $(shell xcrun simctl list --json devices available '$(1)' | jq -r '[.devices|to_entries|sort_by(.key)|reverse|.[].value|select(length > 0)|.[0]][0].udid')

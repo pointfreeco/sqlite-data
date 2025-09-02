@@ -130,7 +130,7 @@ extension SyncEngine {
       )
       return
     }
-    
+
     let batch = await nextRecordZoneChangeBatch(
       reason: .scheduled,
       options: options,

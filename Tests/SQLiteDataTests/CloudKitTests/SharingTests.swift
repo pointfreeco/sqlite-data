@@ -1,7 +1,7 @@
 import CloudKit
 import CustomDump
-import GRDB
 import Foundation
+import GRDB
 import InlineSnapshotTesting
 import OrderedCollections
 import SQLiteData
@@ -526,8 +526,8 @@ extension BaseCloudKitTests {
         try await syncEngine.unshare(record: remindersList)
       } matching: { issue in
         issue.description == """
-        Issue recorded: No share found associated with record.
-        """
+          Issue recorded: No share found associated with record.
+          """
       }
     }
 
@@ -637,9 +637,9 @@ extension BaseCloudKitTests {
         let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
         let metadata = try #require(
           try SyncMetadata
-          .where { $0.recordName.eq(remindersListRecord.recordID.recordName) }
-          .fetchOne(db)
-          )
+            .where { $0.recordName.eq(remindersListRecord.recordID.recordName) }
+            .fetchOne(db)
+        )
         #expect(remindersList.title == "Personal")
         #expect(
           metadata.share?.recordID.recordName == "share-\(remindersListRecord.recordID.recordName)"
@@ -722,9 +722,9 @@ extension BaseCloudKitTests {
       try await userDatabase.read { db in
         let metadata = try #require(
           try SyncMetadata
-          .where { $0.recordName.eq("1:reminders") }
-          .fetchOne(db)
-          )
+            .where { $0.recordName.eq("1:reminders") }
+            .fetchOne(db)
+        )
         #expect(metadata.parentRecordName == "1:remindersLists")
       }
 
@@ -805,7 +805,7 @@ extension BaseCloudKitTests {
         """
       }
     }
-    
+
     /// Deleting a root shared record that is not owned by current user should only delete
     /// the CKShare but not the actual records.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -857,7 +857,8 @@ extension BaseCloudKitTests {
       try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
       try await userDatabase.read { db in
-        let share = try SyncMetadata
+        let share =
+          try SyncMetadata
           .where { $0.recordName.eq(remindersListRecord.recordID.recordName) }
           .select(\.share)
           .fetchOne(db)

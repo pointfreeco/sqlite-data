@@ -15,15 +15,17 @@ struct ModelCView: View {
     List {
       ForEach(models) { model in
         HStack {
-          TextField("Title", text: Binding {
-            model.title
-          } set: { newValue in
-            withErrorReporting {
-              try database.write { db in
-                try ModelC.find(model.id).update { $0.title = newValue }.execute(db)
+          TextField(
+            "Title",
+            text: Binding {
+              model.title
+            } set: { newValue in
+              withErrorReporting {
+                try database.write { db in
+                  try ModelC.find(model.id).update { $0.title = newValue }.execute(db)
+                }
               }
-            }
-          })
+            })
         }
         .buttonStyle(.plain)
       }

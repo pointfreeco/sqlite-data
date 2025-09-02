@@ -533,12 +533,11 @@ extension BaseCloudKitTests {
       }
 
       let metadata =
-      try await userDatabase.userRead { db in
-        try RemindersList.metadata(for: 1).fetchOne(db)
-      }
+        try await userDatabase.userRead { db in
+          try RemindersList.metadata(for: 1).fetchOne(db)
+        }
       #expect(metadata != nil)
     }
-
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func addAndRemoveFunctions() async throws {
@@ -718,8 +717,10 @@ extension BaseCloudKitTests {
       try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
 
       expectNoDifference(
-        try { try userDatabase.userRead { db in
-          try RemindersList.find(1).fetchOne(db) }
+        try {
+          try userDatabase.userRead { db in
+            try RemindersList.find(1).fetchOne(db)
+          }
         }(),
         RemindersList(id: 1, title: "Work")
       )
@@ -1044,7 +1045,6 @@ extension BaseCloudKitTests {
       )
       """
     }
-
 
     let record = try syncEngine.private.database.record(for: ModelA.recordID(for: 1))
     record.encryptedValues["isEven"] = false

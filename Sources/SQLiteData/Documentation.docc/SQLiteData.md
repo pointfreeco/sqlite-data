@@ -85,11 +85,11 @@ in SwiftData:
     // SwiftData
     @main
     struct MyApp: App {
-      let container = { 
+      let container = {
         // Create/configure a container
         try! ModelContainer(/* ... */)
       }()
-      
+
       var body: some Scene {
         WindowGroup {
           ContentView()
@@ -148,7 +148,7 @@ a model context, via a property wrapper:
     ```swift
     // SQLiteData
     @Dependency(\.defaultDatabase) var database
-    
+
     try database.write { db in
       try Item.insert(Item(/* ... */))
         .execute(db)
@@ -159,7 +159,7 @@ a model context, via a property wrapper:
     ```swift
     // SwiftData
     @Environment(\.modelContext) var modelContext
-    
+
     let newItem = Item(/* ... */)
     modelContext.insert(newItem)
     try modelContext.save()
@@ -171,7 +171,7 @@ a model context, via a property wrapper:
 > <doc:ComparisonWithSwiftData>.
 
 Further, if you want to synchronize the local database to CloudKit so that it is available on
-all your user's devices, simply configure a `SyncEngine` in the entry point of the app: 
+all your user's devices, simply configure a `SyncEngine` in the entry point of the app:
 
 ```swift
 @main
@@ -222,7 +222,7 @@ Orders.fetchAll                          setup    rampup   duration
 
 ## SQLite knowledge required
 
-SQLite is one of the 
+SQLite is one of the
 [most established and widely distributed](https://www.sqlite.org/mostdeployed.html) pieces of
 software in the history of software. Knowledge of SQLite is a great skill for any app developer to
 have, and this library does not want to conceal it from you. So, we feel that to best wield this

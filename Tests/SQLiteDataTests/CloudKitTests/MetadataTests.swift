@@ -247,7 +247,7 @@ extension BaseCloudKitTests {
 
       try await userDatabase.userRead { db in
         let reminderMetadata =
-        try SyncMetadata
+          try SyncMetadata
           .where { $0.parentRecordType == RemindersList.tableName }
           .fetchAll(db)
         #expect(
@@ -275,7 +275,7 @@ extension BaseCloudKitTests {
 
       try await userDatabase.userRead { db in
         let reminderMetadata =
-        try SyncMetadata
+          try SyncMetadata
           .where { $0.parentRecordPrimaryKey.eq("1") }
           .fetchAll(db)
         #expect(

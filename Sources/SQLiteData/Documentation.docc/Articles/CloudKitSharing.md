@@ -40,7 +40,7 @@ so like this:
 
 ```swift
 struct RemindersListView: View {
-  let remindersList: RemindersList 
+  let remindersList: RemindersList
   @State var sharedRecord: SharedRecord?
 
   var body: some View {
@@ -121,7 +121,7 @@ shared record. There is, however, a lot more to know about sharing. There are im
 placed on what kind of records you are allowed to share, and what associations of those records are
 shared.
 
-In a nutshell, only "root" records can be directly shared, _i.e._ records with no foreign keys. 
+In a nutshell, only "root" records can be directly shared, _i.e._ records with no foreign keys.
 Further, an association of a root record can only be shared if it has only one foreign key pointing
 to the root record. And this last rule applies recursively: a leaf association is shared only if
 it has exactly one foreign key pointing to a record that also satisfies this property.
@@ -133,13 +133,13 @@ For more in-depth information, keep reading.
 > Important: It is only possible to share "root" records, _i.e._ records with no foreign keys.
 
 A record can be shared only if it is a "root" record. That means it cannot have any
-foreign keys whatsoever. As an example, the following `RemindersList` table is a root record because 
+foreign keys whatsoever. As an example, the following `RemindersList` table is a root record because
 it does not have any fields pointing to other tables:
 
 ```swift
-@Table 
+@Table
 struct RemindersList: Identifiable {
-  let id: UUID 
+  let id: UUID
   var title = ""
 }
 ```
@@ -148,9 +148,9 @@ On the other hand, a `Reminder` table with a foreign key pointing to the `Remind
 a root record:
 
 ```swift
-@Table 
+@Table
 struct Reminder: Identifiable {
-  let id: UUID 
+  let id: UUID
   var title = ""
   var isCompleted = false
   var remindersListID: RemindersList.ID
@@ -158,7 +158,7 @@ struct Reminder: Identifiable {
 ```
 
 Such records cannot be shared because it is not appropriate to also share the parent record (_i.e._
-the reminders list). 
+the reminders list).
 
 For example, suppose you have a list named "Personal" with a reminder "Get milk". If you share this
 reminder with someone, then it becomes difficult to figure out what to do when they make certain
@@ -174,7 +174,7 @@ you can share root records, like reminders lists. If you do invoke
 ``SyncEngine/share(record:configure:)`` with a non-root record, an error will be thrown.
 
 > Note: A reminder can still be shared as an association to a shared reminders list, as discussed
-> [in the next section](<doc:CloudKit#Sharing-foreign-key-relationships>). However, a single 
+> [in the next section](<doc:CloudKit#Sharing-foreign-key-relationships>). However, a single
 > reminder cannot be shared on its own.
 
 For a more complex example, consider the following diagrammatic schema for a reminders app:
@@ -209,15 +209,15 @@ One-to-many relationships are the simplest to share with other users. As an exam
 `RemindersList` table that can have many `Reminder`s associated with it:
 
 ```swift
-@Table 
+@Table
 struct RemindersList: Identifiable {
-  let id: UUID 
+  let id: UUID
   var title = ""
 }
 
-@Table 
+@Table
 struct Reminder: Identifiable {
-  let id: UUID 
+  let id: UUID
   var title = ""
   var isCompleted = false
   var remindersListID: RemindersList.ID
@@ -231,9 +231,9 @@ Further, suppose there was a `ChildReminder` table that had a single foreign key
 `Reminder`:
 
 ```swift
-@Table 
+@Table
 struct ChildReminder: Identifiable {
-  let id: UUID 
+  let id: UUID
   var title = ""
   var isCompleted = false
   var parentReminderID: Reminders.ID
@@ -259,7 +259,7 @@ foreign key pointing to a table that also has a single foreign key pointing to t
 
 Many-to-many relationships pose a significant problem to sharing and cannot be supported. If a table
 has multiple foreign keys, then it will not be shared even if one of those  foreign keys points to
-the shared record. 
+the shared record.
 
 As an example, suppose we had a many-to-many association of a `Tag` table to `Reminder` via a
 `ReminderTag` join table:
@@ -267,12 +267,12 @@ As an example, suppose we had a many-to-many association of a `Tag` table to `Re
 ```swift
 @Table
 struct Tag: Identifiable {
-  let id: UUID 
+  let id: UUID
   var title = ""
 }
 @Table
 struct ReminderTag: Identifiable {
-  let id: UUID 
+  let id: UUID
   var reminderID: Reminder.ID
   var tagID: Tag.ID
 }
@@ -291,7 +291,7 @@ will also not be shared. Sharing these records cannot be done in a consistent an
 
 > Note: `CKShare` in CloudKit, which is what our tools are built on, does not support sharing
 > many-to-many relationships. This is also how the Reminders app works on Apple's platforms. Sharing
-> a list of reminders with another use does not share its tags with that user. 
+> a list of reminders with another use does not share its tags with that user.
 
 To see why this is an acceptable limitation, suppose you share a "Personal" list with someone, which
 holds a "Get milk" reminder, and that reminder has a "weekend" tag associated with it. If the tag
@@ -305,8 +305,8 @@ but to turn it into a one-to-many relationship so that each tag belongs to exact
 ```swift
 @Table
 struct Tag: Identifiable {
-  let id: UUID 
-  var title = "" 
+  let id: UUID
+  var title = ""
   var reminderID: Reminder.ID
 }
 ```
@@ -320,7 +320,7 @@ In diagrammatic form this schema now looks like the following:
 
 This kind of relationship will now be synchronized automatically. Sharing a `RemindersList` will
 automatically share all of its `Reminder`s, which will subsequently also share all of their
-`Tag`s. 
+`Tag`s.
 
 But, this does now mean it's possible to have multiple `Tag` rows in the database that have the
 same title and thus represent the same tag. You wil have to put extra care in your queries and
@@ -387,11 +387,11 @@ To check their permissions for a record, you can join the root record table to `
 select the ``SyncMetadata/share`` value:
 
 ```swift
-let share = try await database.read { db in 
+let share = try await database.read { db in
   RemindersList
     .metadata(for: id)
     .select(\.share)
-    .fetchOne(db) 
+    .fetchOne(db)
     ?? nil
 }
 guard
@@ -399,7 +399,7 @@ guard
     || share?.permission == .readWrite
 else {
   // User does not have permissions to write to record.
-  return 
+  return
 }
 ```
 
@@ -412,9 +412,9 @@ suppose that you want reminders lists to be sorted by your user, and so add a `p
 the table:
 
 ```swift
-@Table 
+@Table
 struct RemindersList: Identifiable {
-  let id: UUID 
+  let id: UUID
   var position = 0
   var title = ""
 }
@@ -429,15 +429,15 @@ we can use the trick mentioned in <doc:CloudKitSharing#One-to-at-most-one-relati
 the foreign key of the table also be the table's primary key:
 
 ```swift
-@Table 
+@Table
 struct RemindersList: Identifiable {
-  let id: UUID 
+  let id: UUID
   var title = ""
 }
-@Table 
+@Table
 struct RemindersListPrivate: Identifiable {
   @Column(primaryKey: true)
-  let remindersListID: RemindersList.ID 
+  let remindersListID: RemindersList.ID
   var position = 0
 }
 ```
@@ -446,7 +446,7 @@ And then when creating the ``SyncEngine`` we can specifically ask it to not shar
 the reminders list is shared by specifying the `privateTables` argument:
 
 ```swift
-@main 
+@main
 struct MyApp: App {
   init() {
     try! prepareDependencies {
@@ -458,7 +458,7 @@ struct MyApp: App {
       )
     }
   }
-  
+
   …
 }
 ```
