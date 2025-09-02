@@ -63,10 +63,10 @@ configure how they want to share the record. A record can be _unshared_ by prese
 ## Accepting shared records
 
 Extra steps must be taken to allow a user to _accept_ a shared record. Once the user taps on the 
-share link sent to them (whether that is by text, email, etc.), the app will be launched and a 
-special `userDidAcceptCloudKitShareWith` delegate method will be invoked in the app's scene 
-delegate. Your app must implement this delegate method and invoke the 
-``SyncEngine/acceptShare(metadata:)`` method.
+share link sent to them (whether that is by text, email, etc.), the app will be launched with 
+special options provided or a special delegate method will be invoked in the app's scene delegate.
+You must implement these delegate methods and invoke the ``SyncEngine/acceptShare(metadata:)`` 
+method.
 
 As a simplified example, a `UIWindowSceneDelegate` subclass can implement the delegate method like
 so:
@@ -75,10 +75,25 @@ so:
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   @Dependency(\.defaultSyncEngine) var syncEngine
   var window: UIWindow?
+
   func windowScene(
     _ windowScene: UIWindowScene,
     userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
   ) {
+    Task {
+      try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
+    }
+  }
+
+  func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions
+  ) {
+    guard let cloudKitShareMetadata = connectionOptions.cloudKitShareMetadata
+    else {
+      return
+    }
     Task {
       try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
     }
