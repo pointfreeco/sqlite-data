@@ -33,7 +33,7 @@
         )
 
         try await syncEngine.userDatabase.read { db in
-          try SQLQueryExpression(
+          try #sql(
             """
             SELECT 1 FROM "sqlitedata_icloud_metadata"
             """

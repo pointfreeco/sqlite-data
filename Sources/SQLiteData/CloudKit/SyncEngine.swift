@@ -200,7 +200,7 @@
     nonisolated package func setUpSyncEngine() throws {
       try userDatabase.write { db in
         let attachedMetadatabasePath: String? =
-          try SQLQueryExpression(
+          try #sql(
             """
             SELECT "file"
             FROM pragma_database_list()
@@ -226,7 +226,7 @@
           }
 
         } else {
-          try SQLQueryExpression(
+          try #sql(
             """
             ATTACH DATABASE \(bind: metadatabase.path) AS \(quote: .sqliteDataCloudKitSchemaName)
             """
@@ -418,7 +418,7 @@
               changedColumnNames: changedColumns
             )
             try await userDatabase.write { db in
-              try SQLQueryExpression(query).execute(db)
+              try #sql(query).execute(db)
             }
           }
         }
@@ -751,7 +751,7 @@
               try userDatabase.read { db in
                 try T
                   .where {
-                    SQLQueryExpression("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
+                    #sql("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
                   }
                   .fetchOne(db)
               }
@@ -1036,7 +1036,7 @@
                 try T
                   .where {
                     $0.primaryKey.in(
-                      recordPrimaryKeys.map { SQLQueryExpression("\(bind: $0)") }
+                      recordPrimaryKeys.map { #sql("\(bind: $0)") }
                     )
                   }
                   .delete()
@@ -1208,7 +1208,7 @@
                 switch foreignKey.onDelete {
                 case .cascade:
                   try T
-                    .where { SQLQueryExpression("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
+                    .where { #sql("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
                     .delete()
                     .execute(db)
                 case .restrict:
@@ -1223,7 +1223,7 @@
                     })
                   else { return }
                   let defaultValue = columnInfo.defaultValue ?? "NULL"
-                  try SQLQueryExpression(
+                  try #sql(
                     """
                     UPDATE \(T.self)
                     SET \(quote: foreignKey.from, delimiter: .identifier) = (\(raw: defaultValue))
@@ -1233,7 +1233,7 @@
                   .execute(db)
                   break
                 case .setNull:
-                  try SQLQueryExpression(
+                  try #sql(
                     """
                     UPDATE \(T.self)
                     SET \(quote: foreignKey.from, delimiter: .identifier) = NULL
@@ -1267,7 +1267,7 @@
             } catch let error as CKError where error.code == .unknownItem {
               try await userDatabase.write { db in
                 try T
-                  .where { SQLQueryExpression("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
+                  .where { #sql("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
                   .delete()
                   .execute(db)
               }
@@ -1393,7 +1393,7 @@
           var columnNames = T.TableColumns.writableColumns.map(\.name)
           if !force, let metadata, let allFields = metadata._lastKnownServerRecordAllFields {
             let row = try userDatabase.read { db in
-              try T.find(SQLQueryExpression("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
+              try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
             }
             guard let row
             else {
@@ -1419,7 +1419,7 @@
           try userDatabase.write { db in
             do {
               let query = upsert(T.self, record: serverRecord, columnNames: columnNames)
-              try SQLQueryExpression(query).execute(db)
+              try #sql(query).execute(db)
               try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
               try SyncMetadata
                 .where { $0.recordName.eq(serverRecord.recordID.recordName) }
@@ -1759,7 +1759,7 @@
         )
       }
 
-      let databasePath = try SQLQueryExpression(
+      let databasePath = try #sql(
         """
         SELECT "file" FROM pragma_database_list()
         """,
@@ -1785,9 +1785,9 @@
         withIntermediateDirectories: true
       )
       _ = try DatabasePool(path: path).write { db in
-        try SQLQueryExpression("SELECT 1").execute(db)
+        try #sql("SELECT 1").execute(db)
       }
-      try SQLQueryExpression(
+      try #sql(
         """
         ATTACH DATABASE \(bind: path) AS \(quote: .sqliteDataCloudKitSchemaName)
         """
@@ -1860,7 +1860,7 @@
 
         for table in tables {
           let columnsWithUniqueConstraints =
-            try SQLQueryExpression(
+            try #sql(
               """
               SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
               WHERE "unique" = 1 AND "origin" <> 'pk'
@@ -1903,7 +1903,7 @@
     let tableDependencies = try userDatabase.read { db in
       var dependencies: [HashablePrimaryKeyedTableType: [any PrimaryKeyedTable.Type]] = [:]
       for table in tables {
-        let toTables = try SQLQueryExpression(
+        let toTables = try #sql(
           """
           SELECT "table" FROM pragma_foreign_key_list(\(quote: table.tableName, delimiter: .text))
           """,

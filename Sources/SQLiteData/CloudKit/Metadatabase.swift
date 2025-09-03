@@ -50,7 +50,7 @@
       migrator.eraseDatabaseOnSchemaChange = true
     #endif
     migrator.registerMigration("Create Metadata Tables") { db in
-      try SQLQueryExpression(
+      try #sql(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
           "recordPrimaryKey" TEXT NOT NULL,
@@ -72,21 +72,21 @@
         """
       )
       .execute(db)
-      try SQLQueryExpression(
+      try #sql(
         """
         CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_parentRecordName"
         ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("parentRecordName")
         """
       )
       .execute(db)
-      try SQLQueryExpression(
+      try #sql(
         """
         CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_isShared"
         ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("isShared")
         """
       )
       .execute(db)
-      try SQLQueryExpression(
+      try #sql(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_recordTypes" (
           "tableName" TEXT NOT NULL PRIMARY KEY,
@@ -96,7 +96,7 @@
         """
       )
       .execute(db)
-      try SQLQueryExpression(
+      try #sql(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_stateSerialization" (
           "scope" TEXT NOT NULL PRIMARY KEY,
@@ -105,7 +105,7 @@
         """
       )
       .execute(db)
-      try SQLQueryExpression(
+      try #sql(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_unsyncedRecordIDs" (
           "recordName" TEXT NOT NULL,
@@ -118,7 +118,7 @@
       .execute(db)
     }
     migrator.registerMigration("Create PendingRecordZoneChanges Table") { db in
-      try SQLQueryExpression(
+      try #sql(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_pendingRecordZoneChanges" (
           "pendingRecordZoneChange" BLOB NOT NULL

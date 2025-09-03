@@ -23,7 +23,7 @@ struct SQLiteSchema: QueryDecodable, QueryRepresentable {
   }
 
   static var all: some StructuredQueriesCore.Statement<Self> {
-    SQLQueryExpression(
+    #sql(
       """
       SELECT \(columns) FROM "sqlite_schema"
       """,

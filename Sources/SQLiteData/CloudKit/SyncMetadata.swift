@@ -134,7 +134,7 @@
   extension PrimaryKeyedTable where PrimaryKey: IdentifierStringConvertible {
     public static func metadata(for primaryKey: PrimaryKey.QueryOutput) -> Where<SyncMetadata> {
       SyncMetadata.where {
-        SQLQueryExpression(
+        #sql(
           """
           \($0.recordPrimaryKey) = \(PrimaryKey(queryOutput: primaryKey)) \
           AND \($0.recordType) = \(bind: tableName)
@@ -168,7 +168,7 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTableDefinition {
     var _recordName: some QueryExpression<String> {
-      SQLQueryExpression("\(primaryKey) || ':' || \(quote: QueryValue.tableName, delimiter: .text)")
+      #sql("\(primaryKey) || ':' || \(quote: QueryValue.tableName, delimiter: .text)")
     }
   }
 #endif

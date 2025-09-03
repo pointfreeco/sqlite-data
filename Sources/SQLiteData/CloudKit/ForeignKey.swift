@@ -42,7 +42,7 @@
     static func all(
       _ tableName: String
     ) -> some StructuredQueriesCore.Statement<Self> {
-      SQLQueryExpression(
+      #sql(
         """
         SELECT \(columns)
         FROM pragma_foreign_key_list(\(bind: tableName)) AS "foreign_keys"

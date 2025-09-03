@@ -28,7 +28,7 @@ package struct TableInfo: Codable, Hashable, QueryDecodable, QueryRepresentable 
   static func all(
     _ tableName: String
   ) -> some StructuredQueriesCore.Statement<Self> {
-    SQLQueryExpression(
+    #sql(
       """
       SELECT \(columns) FROM pragma_table_info(\(bind: tableName))
       """,

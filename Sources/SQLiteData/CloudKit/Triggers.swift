@@ -24,7 +24,7 @@
           checkWritePermissions(alias: new, parentForeignKey: parentForeignKey)
           SyncMetadata
             .where {
-              $0.recordPrimaryKey.eq(SQLQueryExpression("\(old.primaryKey)"))
+              $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
                 && $0.recordType.eq(tableName)
             }
             .update { $0._isDeleted = true }
@@ -66,7 +66,7 @@
           checkWritePermissions(alias: old, parentForeignKey: parentForeignKey)
           SyncMetadata
             .where {
-              $0.recordPrimaryKey.eq(SQLQueryExpression("\(old.primaryKey)"))
+              $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
                 && $0.recordType.eq(tableName)
             }
             .update { $0._isDeleted = true }
@@ -83,7 +83,7 @@
         after: .delete { old in
           SyncMetadata
             .where {
-              $0.recordPrimaryKey.eq(SQLQueryExpression("\(old.primaryKey)"))
+              $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
                 && $0.recordType.eq(tableName)
             }
             .delete()
@@ -108,10 +108,10 @@
         ($0.recordPrimaryKey, $0.recordType, $0.parentRecordPrimaryKey, $0.parentRecordType)
       } select: {
         Values(
-          SQLQueryExpression("\(new.primaryKey)"),
+          #sql("\(new.primaryKey)"),
           T.tableName,
-          SQLQueryExpression(parentRecordPrimaryKey),
-          SQLQueryExpression(parentRecordType)
+          #sql(parentRecordPrimaryKey),
+          #sql(parentRecordType)
         )
       } onConflict: {
         ($0.recordPrimaryKey, $0.recordType)
@@ -213,7 +213,7 @@
   }
 
   private func isUpdatingWithServerRecord() -> SQLQueryExpression<Bool> {
-    SQLQueryExpression("\(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
+    #sql("\(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
   }
 
   private func parentFields<Base, Name>(
@@ -238,8 +238,8 @@
     return With {
       SyncMetadata
         .where {
-          $0.recordPrimaryKey.is(SQLQueryExpression(parentRecordPrimaryKey))
-            && $0.recordType.is(SQLQueryExpression(parentRecordType))
+          $0.recordPrimaryKey.is(#sql(parentRecordPrimaryKey))
+            && $0.recordType.is(#sql(parentRecordType))
         }
         .select { RootShare.Columns(parentRecordName: $0.parentRecordName, share: $0.share) }
         .union(
@@ -253,7 +253,7 @@
     } query: {
       RootShare
         .select { _ in
-          SQLQueryExpression(
+          #sql(
             "RAISE(ABORT, \(quote: SyncEngine.writePermissionError, delimiter: .text))",
             as: Never.self
           )
@@ -261,7 +261,7 @@
         .where {
           !SyncEngine.isSynchronizingChanges()
             && $0.parentRecordName.is(nil)
-            && !SQLQueryExpression(
+            && !#sql(
               "\(raw: String.sqliteDataCloudKitSchemaName)_hasPermission(\($0.share))"
             )
         }

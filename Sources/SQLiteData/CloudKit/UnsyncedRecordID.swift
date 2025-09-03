@@ -30,12 +30,7 @@
       }
       .joined(separator: ", ")
       return Self.where {
-        SQLQueryExpression(
-          """
-          (\($0.recordName), \($0.zoneName), \($0.ownerName)) \
-          IN (\(condition))
-          """
-        )
+        #sql("(\($0.recordName), \($0.zoneName), \($0.ownerName)) IN (\(condition))")
       }
     }
   }
