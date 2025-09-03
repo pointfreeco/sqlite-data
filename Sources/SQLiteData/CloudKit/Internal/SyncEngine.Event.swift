@@ -82,7 +82,7 @@
         }
       }
 
-      public var description: String {
+      package var description: String {
         switch self {
         case .stateUpdate: "stateUpdate"
         case .accountChange: "accountChange"

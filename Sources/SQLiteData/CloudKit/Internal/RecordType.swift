@@ -15,11 +15,8 @@ extension RecordType: CustomDumpReflectable {
       self,
       children: [
         ("tableName", tableName as Any),
-        ("schema", schema as Any),
-        (
-          "tableInfo",
-          tableInfo.sorted(by: { $0.name < $1.name }) as Any
-        ),
+        ("schema", schema),
+        ("tableInfo", tableInfo.sorted(by: { $0.name < $1.name })),
       ],
       displayStyle: .struct
     )
