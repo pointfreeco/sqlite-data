@@ -22,7 +22,7 @@
               CREATE TRIGGER "after_delete_on_sqlitedata_icloud_metadata"
               AFTER UPDATE OF "_isDeleted" ON "sqlitedata_icloud_metadata"
               FOR EACH ROW WHEN ((NOT ("old"."_isDeleted") AND "new"."_isDeleted") AND NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) BEGIN
-                SELECT sqlitedata_icloud_didDelete("new"."recordName", coalesce("new"."lastKnownServerRecord", (
+                SELECT "sqlitedata_icloud_didDelete"("new"."recordName", coalesce("new"."lastKnownServerRecord", (
                   WITH "ancestorMetadatas" AS (
                     SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."lastKnownServerRecord" AS "lastKnownServerRecord"
                     FROM "sqlitedata_icloud_metadata"
@@ -42,7 +42,9 @@
               CREATE TRIGGER "after_insert_on_sqlitedata_icloud_metadata"
               AFTER INSERT ON "sqlitedata_icloud_metadata"
               FOR EACH ROW WHEN NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) BEGIN
-                SELECT sqlitedata_icloud_didUpdate("new"."recordName", coalesce("new"."lastKnownServerRecord", (
+                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.invalid-record-name-error')
+                WHERE NOT (((substr("new"."recordName", 1, 1) <> '_') AND (octet_length("new"."recordName") <= 255)) AND (octet_length("new"."recordName") = length("new"."recordName")));
+                SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", coalesce("new"."lastKnownServerRecord", (
                   WITH "ancestorMetadatas" AS (
                     SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."lastKnownServerRecord" AS "lastKnownServerRecord"
                     FROM "sqlitedata_icloud_metadata"
@@ -55,14 +57,16 @@
                   SELECT "ancestorMetadatas"."lastKnownServerRecord"
                   FROM "ancestorMetadatas"
                   WHERE ("ancestorMetadatas"."parentRecordName" IS NULL)
-                )), "new"."share");
+                )));
               END
               """,
               [2]: """
               CREATE TRIGGER "after_update_on_sqlitedata_icloud_metadata"
               AFTER UPDATE ON "sqlitedata_icloud_metadata"
               FOR EACH ROW WHEN (("old"."_isDeleted" = "new"."_isDeleted") AND NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) BEGIN
-                SELECT sqlitedata_icloud_didUpdate("new"."recordName", coalesce("new"."lastKnownServerRecord", (
+                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.invalid-record-name-error')
+                WHERE NOT (((substr("new"."recordName", 1, 1) <> '_') AND (octet_length("new"."recordName") <= 255)) AND (octet_length("new"."recordName") = length("new"."recordName")));
+                SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", coalesce("new"."lastKnownServerRecord", (
                   WITH "ancestorMetadatas" AS (
                     SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."lastKnownServerRecord" AS "lastKnownServerRecord"
                     FROM "sqlitedata_icloud_metadata"
@@ -75,7 +79,7 @@
                   SELECT "ancestorMetadatas"."lastKnownServerRecord"
                   FROM "ancestorMetadatas"
                   WHERE ("ancestorMetadatas"."parentRecordName" IS NULL)
-                )), "new"."share");
+                )));
               END
               """,
               [3]: """

@@ -7,6 +7,9 @@
     import UIKit
   #endif
 
+  /// A shared record that can be used to present a ``CloudSharingView``.
+  ///
+  /// See <doc:CloudKitSharing#Creating-CKShare-records> for more information.,
   @available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
   public struct SharedRecord: Hashable, Identifiable, Sendable {
     let container: any CloudContainer
@@ -43,7 +46,26 @@
         "The record could not be shared."
       }
     }
-
+    
+    /// Shares a record in CloudKit.
+    ///
+    /// This method will thrown an error if:
+    ///
+    /// * The table the `record` belongs to is not synchronized to CloudKit.
+    /// * The `record` has any foreign keys. Only root records are shareable in CloudKit.
+    /// * The table the `record` belongs to is a "private" table as determined by the
+    /// [`SyncEngine` initializer](<doc:SyncEngine/init(for:tables:privateTables:containerIdentifier:defaultZone:startImmediately:logger:)>).
+    /// * The `record` is being shared before it has been synchronized to CloudKit.
+    /// * Any of the CloudKit APIs invoked throw an error.
+    ///
+    /// The value returned from this method can be used to present a ``CloudSharingView`` which
+    /// allows the user to send a share URL to another user.
+    ///
+    /// - Parameters:
+    ///   - record: The record to be shared on CloudKit.
+    ///   - configure: A trailing closure that can customize the `CKShare` sent to CloudKit. See
+    ///   [Apple's documentation](https://developer.apple.com/documentation/cloudkit/ckshare/systemfieldkey)
+    ///   for more info on what can be configured.
     public func share<T: PrimaryKeyedTable>(
       record: T,
       configure: @Sendable (CKShare) -> Void
@@ -56,7 +78,8 @@
           recordPrimaryKey: record.primaryKey.rawIdentifier,
           reason: .recordTableNotSynchronized,
           debugDescription: """
-            Table is not shareable: table type not passed to 'tables' parameter of 'SyncEngine.init'.
+            Table is not shareable: table type not passed to 'tables' parameter of \
+            'SyncEngine.init'.
             """
         )
       }
@@ -116,7 +139,6 @@
             return try await container.database(for: rootRecord.recordID)
               .record(for: shareRecordID) as? CKShare
           } catch let error as CKError where error.code == .unknownItem {
-            reportIssue("This would have been a problem before")
             return nil
           }
         }
@@ -133,8 +155,6 @@
         )
 
       configure(sharedRecord)
-      // TODO: We are getting an "client oplock error updating record" error in the logs when
-      //       creating new shares / editing existing shares.
       _ = try await container.privateCloudDatabase.modifyRecords(
         saving: [sharedRecord, rootRecord],
         deleting: []
@@ -173,13 +193,21 @@
       )
       try result?.deleteResults.values.forEach { _ = try $0.get() }
     }
-
+    
+    /// Accepts a shared record.
+    ///
+    /// This method should be invoked from various delegate methods on the scene delegate of the
+    /// app. See <doc:CloudKitSharing#Accepting-shared-records> for more info.
     public func acceptShare(metadata: CKShare.Metadata) async throws {
       try await acceptShare(metadata: ShareMetadata(rawValue: metadata))
     }
   }
 
-  #if canImport(UIKit) && !os(watchOS)
+#if canImport(UIKit) && !os(watchOS)
+    /// A view that presents standard screens for adding and removing people from a CloudKit share \
+    /// record.
+    ///
+    /// See <doc:CloudKitSharing#Creating-CKShare-records> for more info.
     @available(iOS 17, macOS 14, tvOS 17, *)
     public struct CloudSharingView: UIViewControllerRepresentable {
       let sharedRecord: SharedRecord
@@ -204,8 +232,8 @@
         self.syncEngine = syncEngine
       }
 
-      public func makeCoordinator() -> CloudSharingDelegate {
-        CloudSharingDelegate(
+      public func makeCoordinator() -> _CloudSharingDelegate {
+        _CloudSharingDelegate(
           share: sharedRecord.share,
           didFinish: didFinish,
           didStopSharing: didStopSharing,
@@ -231,7 +259,7 @@
     }
 
     @available(iOS 17, macOS 14, tvOS 17, *)
-    public final class CloudSharingDelegate: NSObject, UICloudSharingControllerDelegate {
+    public final class _CloudSharingDelegate: NSObject, UICloudSharingControllerDelegate {
       let share: CKShare
       let didFinish: (Result<Void, Error>) -> Void
       let didStopSharing: () -> Void

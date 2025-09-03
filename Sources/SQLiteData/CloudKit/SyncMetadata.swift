@@ -8,7 +8,7 @@
   /// application is the number of rows this one single table holds. However, this table is held
   /// in a database separate from your app's database.
   ///
-  ///
+/// See <doc:CloudKit#Accessing-CloudKit-metadata> for more info.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Table("sqlitedata_icloud_metadata")
   public struct SyncMetadata: Hashable, Sendable {
@@ -131,7 +131,10 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension PrimaryKeyedTable where PrimaryKey: IdentifierStringConvertible {
+extension PrimaryKeyedTable where PrimaryKey: IdentifierStringConvertible {
+    /// A query for finding the metadata associated with a record.
+    ///
+    /// - Parameter primaryKey: The primary key of the record whose metadata to look up.
     public static func metadata(for primaryKey: PrimaryKey.QueryOutput) -> Where<SyncMetadata> {
       SyncMetadata.where {
         #sql(

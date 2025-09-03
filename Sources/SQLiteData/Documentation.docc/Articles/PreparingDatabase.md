@@ -14,6 +14,7 @@ and Xcode previews.
 * [Step 3: Create database connection](#Step-3-Create-database-connection)
 * [Step 4: Migrate database](#Step-4-Migrate-database)
 * [Step 5: Set database connection in entry point](#Step-5-Set-database-connection-in-entry-point)
+* [(Optional) Step 6: Set up CloudKit SyncEngine](#Optional-Step-6-Set-up-CloudKit-SyncEngine)
 
 ### Step 1: App database connection
 
@@ -45,10 +46,7 @@ data:
 +  configuration.foreignKeysEnabled = true
  }
 ```
-
-> Important: If you are synchronizing your database to CloudKit, then you must not enable
-> foreign keys. See <doc:CloudKit#Foreign-key-relationships> for more information.
-
+ 
 This will prevent you from deleting rows that leave other rows with invalid associations. For
 example, if a "reminders" table had an association to a "remindersLists" table, you would not be
 allowed to delete a list row unless there were no reminders associated with it, or if you had
@@ -156,16 +154,16 @@ context or if we're in a preview or test.
 -  let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
 -  logger.info("open \(path)")
 -  let database = try DatabasePool(path: path, configuration: configuration)
-+  @Dependency(\.context) var context
 +  let database: any DatabaseWriter
-+  if context == .live {
++  switch context {
++  case .live:
 +    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
 +    logger.info("open \(path)")
 +    database = try DatabasePool(path: path, configuration: configuration)
-+  } else if context == .test {
++  case .test:
 +    let path = URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
 +    database = try DatabasePool(path: path, configuration: configuration)
-+  } else {
++  case .preview:
 +    database = try DatabaseQueue(configuration: configuration)
 +  }
    return database
@@ -196,14 +194,15 @@ database connection:
      }
    #endif
    let database: any DatabaseWriter
-   if context == .live {
+   switch context {
+   case .live:
      let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
      logger.info("open \(path)")
      database = try DatabasePool(path: path, configuration: configuration)
-   } else if context == .test {
+   case .test:
      let path = URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
      database = try DatabasePool(path: path, configuration: configuration)
-   } else {
+   case .preview:
      database = try DatabaseQueue(configuration: configuration)
    }
 +  var migrator = DatabaseMigrator()
@@ -265,31 +264,32 @@ import OSLog
 import SQLiteData
 
 func appDatabase() throws -> any DatabaseWriter {
-   @Dependency(\.context) var context
-   var configuration = Configuration()
-   configuration.foreignKeysEnabled = true
-   #if DEBUG
-     configuration.prepareDatabase { db in
-       db.trace(options: .profile) {
-         if context == .preview {
-           print("\($0.expandedDescription)")
-         } else {
-           logger.debug("\($0.expandedDescription)")
-         }
-       }
-     }
-   #endif
-   let database: any DatabaseWriter
-   if context == .live {
-     let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-     logger.info("open \(path)")
-     database = try DatabasePool(path: path, configuration: configuration)
-   } else if context == .test {
-     let path = URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
-     database = try DatabasePool(path: path, configuration: configuration)
-   } else {
-     database = try DatabaseQueue(configuration: configuration)
-   }
+  @Dependency(\.context) var context
+  var configuration = Configuration()
+  configuration.foreignKeysEnabled = true
+  #if DEBUG
+    configuration.prepareDatabase { db in
+      db.trace(options: .profile) {
+        if context == .preview {
+          print("\($0.expandedDescription)")
+        } else {
+          logger.debug("\($0.expandedDescription)")
+        }
+      }
+    }
+  #endif
+  let database: any DatabaseWriter
+  switch context {
+  case .live:
+    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
+    logger.info("open \(path)")
+    database = try DatabasePool(path: path, configuration: configuration)
+  case .test:
+    let path = URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
+    database = try DatabasePool(path: path, configuration: configuration)
+  case .preview:
+    database = try DatabaseQueue(configuration: configuration)
+  }
   var migrator = DatabaseMigrator()
   #if DEBUG
     migrator.eraseDatabaseOnSchemaChange = true
@@ -369,3 +369,9 @@ func feature() {
   // ...
 }
 ```
+
+### (Optional) Step 6: Set up CloudKit SyncEngine
+
+If you plan on synchronizing your local database to CloudKit so that your user's data is available
+on all of their devices, there is an additional step you must take. See
+<doc:CloudKit> for more information.

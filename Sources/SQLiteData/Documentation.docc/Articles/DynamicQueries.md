@@ -89,3 +89,6 @@ struct ContentView: View {
 > initial `@FetchAll`'s value, taken from the parent. To manage the state of this dynamic query
 > locally to this view, we use `@State @FetchAll`, instead, and to access the underlying
 > `FetchAll` value you can use `wrappedValue`.
+>
+> This only happens when using `@FetchAll`/`@FetchOne`/`@Fetch` directly in a view, and does not
+> affect using these tools elsewhere in your application.

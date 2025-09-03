@@ -194,14 +194,6 @@ package final class MockCloudDatabase: CloudDatabase {
             // We are trying to save a record that does not have a change tag yet also already
             // exists in the DB. This means the user has created a new CKRecord from scratch,
             // giving it a new identity, rather than leveraging an existing CKRecord.
-            reportIssue(
-              """
-              A new identity was created for an existing 'CKRecord' \
-              ('\(existingRecord.recordID.recordName)'). Rather than creating \
-              'CKRecord' from scratch for an existing record, use the database to fetch the \
-              current record.
-              """
-            )
             saveResults[recordToSave.recordID] = .failure(
               CKError(
                 .serverRejectedRequest,

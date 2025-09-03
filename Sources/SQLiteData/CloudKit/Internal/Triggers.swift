@@ -51,6 +51,7 @@
         ifNotExists: true,
         after: .update { _, new in
           checkWritePermissions(alias: new, parentForeignKey: parentForeignKey)
+          // TODO: change to update?
           SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey)
         }
       )
@@ -125,95 +126,72 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
-    static var callbackTriggers: [TemporaryTrigger<Self>] {
+    static func callbackTriggers(for syncEngine: SyncEngine) -> [TemporaryTrigger<Self>] {
       [
-        afterInsertTrigger,
-        afterUpdateTrigger,
-        afterSoftDeleteTrigger,
+        afterInsertTrigger(for: syncEngine),
+        afterUpdateTrigger(for: syncEngine),
+        afterSoftDeleteTrigger(for: syncEngine),
       ]
     }
 
     private enum ParentSyncMetadata: AliasName {}
 
-    fileprivate static let afterInsertTrigger = createTemporaryTrigger(
-      "after_insert_on_sqlitedata_icloud_metadata",
-      ifNotExists: true,
-      after: .insert { new in
-        Values(.didUpdate(new))
-      } when: { _ in
-        !SyncEngine.isSynchronizingChanges()
-      }
-    )
-
-    fileprivate static let afterUpdateTrigger = createTemporaryTrigger(
-      "after_update_on_sqlitedata_icloud_metadata",
-      ifNotExists: true,
-      after: .update { _, new in
-        Values(.didUpdate(new))
-      } when: { old, new in
-        old._isDeleted.eq(new._isDeleted) && !SyncEngine.isSynchronizingChanges()
-      }
-    )
-
-    fileprivate static let afterSoftDeleteTrigger = createTemporaryTrigger(
-      "after_delete_on_sqlitedata_icloud_metadata",
-      ifNotExists: true,
-      after: .update(of: \._isDeleted) { _, new in
-        Values(
-          .didDelete(
-            recordName: new.recordName,
-            lastKnownServerRecord: new.lastKnownServerRecord
-              ?? rootServerRecord(recordName: new.recordName),
-            share: new.share
+    fileprivate static func afterInsertTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self> {
+      createTemporaryTrigger(
+        "after_insert_on_sqlitedata_icloud_metadata",
+        ifNotExists: true,
+        after: .insert { new in
+          validate(recordName: new.recordName)
+          Values(
+            syncEngine.$didUpdate(
+              recordName: new.recordName,
+              record: new.lastKnownServerRecord
+                ?? rootServerRecord(recordName: new.recordName)
+            )
           )
-        )
-      } when: { old, new in
-        !old._isDeleted && new._isDeleted && !SyncEngine.isSynchronizingChanges()
-      }
-    )
-  }
-
-  extension QueryExpression where Self == SQLQueryExpression<()> {
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    fileprivate static func didUpdate(
-      _ new: StructuredQueriesCore.TableAlias<
-        SyncMetadata, TemporaryTrigger<SyncMetadata>.Operation._New
-      >
-        .TableColumns
-    ) -> Self {
-      .didUpdate(
-        recordName: new.recordName,
-        lastKnownServerRecord: new.lastKnownServerRecord
-          ?? rootServerRecord(recordName: new.recordName),
-        share: new.share
+        } when: { _ in
+          !SyncEngine.isSynchronizingChanges()
+        }
       )
     }
 
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    private static func didUpdate(
-      recordName: some QueryExpression<String>,
-      lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>,
-      share: some QueryExpression<CKShare?.SystemFieldsRepresentation>
-    ) -> Self {
-      Self(
-        "\(raw: .sqliteDataCloudKitSchemaName)_didUpdate(\(recordName), \(lastKnownServerRecord), \(share))"
+    fileprivate static func afterUpdateTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self> {
+      createTemporaryTrigger(
+        "after_update_on_sqlitedata_icloud_metadata",
+        ifNotExists: true,
+        after: .update { _, new in
+          validate(recordName: new.recordName)
+          Values(
+            syncEngine.$didUpdate(
+              recordName: new.recordName,
+              record: new.lastKnownServerRecord
+              ?? rootServerRecord(recordName: new.recordName)
+            )
+          )
+        } when: { old, new in
+          old._isDeleted.eq(new._isDeleted) && !SyncEngine.isSynchronizingChanges()
+        }
       )
     }
 
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    fileprivate static func didDelete(
-      recordName: some QueryExpression<String>,
-      lastKnownServerRecord: some QueryExpression<CKRecord.SystemFieldsRepresentation?>,
-      share: some QueryExpression<CKShare?.SystemFieldsRepresentation>
-    ) -> Self {
-      Self(
-        "\(raw: .sqliteDataCloudKitSchemaName)_didDelete(\(recordName), \(lastKnownServerRecord), \(share))"
+    fileprivate static func afterSoftDeleteTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self> {
+      createTemporaryTrigger(
+        "after_delete_on_sqlitedata_icloud_metadata",
+        ifNotExists: true,
+        after: .update(of: \._isDeleted) { _, new in
+          Values(
+            syncEngine.$didDelete(
+              recordName: new.recordName,
+              record: new.lastKnownServerRecord
+              ?? rootServerRecord(recordName: new.recordName),
+              share: new.share
+            )
+          )
+        } when: { old, new in
+          !old._isDeleted && new._isDeleted && !SyncEngine.isSynchronizingChanges()
+        }
       )
     }
-  }
-
-  private func isUpdatingWithServerRecord() -> SQLQueryExpression<Bool> {
-    #sql("\(raw: .sqliteDataCloudKitSchemaName)_isUpdatingWithServerRecord()")
   }
 
   private func parentFields<Base, Name>(
@@ -223,6 +201,19 @@
     parentForeignKey
       .map { (#"\#(type(of: alias).QueryValue.self).\#(quote: $0.from)"#, "\(bind: $0.table)") }
       ?? ("NULL", "NULL")
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func validate(
+    recordName: some QueryExpression<String>
+  ) -> some StructuredQueriesCore.Statement<Never> {
+    #sql(
+      """
+      SELECT RAISE(ABORT, \(quote: SyncEngine.invalidRecordNameError, delimiter: .text))
+      WHERE NOT \(recordName.isValidCloudKitRecordName)
+      """,
+      as: Never.self
+    )
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -295,6 +286,12 @@
         parentRecordName: metadata.parentRecordName,
         lastKnownServerRecord: metadata.lastKnownServerRecord
       )
+    }
+  }
+
+  extension QueryExpression<String> {
+    fileprivate var isValidCloudKitRecordName: some QueryExpression<Bool> {
+      substr(1, 1).neq("_") && octetLength().lte(255) && octetLength().eq(length())
     }
   }
 #endif

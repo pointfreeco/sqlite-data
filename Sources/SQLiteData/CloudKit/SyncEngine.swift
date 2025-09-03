@@ -9,6 +9,7 @@
   import StructuredQueriesCore
   import SwiftData
 
+  /// An object that manages the synchronization of local and remote SQLite data.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Sendable {
     package let userDatabase: UserDatabase
@@ -26,8 +27,43 @@
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
     let dataManager = Dependency(\.dataManager)
-    public static let writePermissionError = "co.pointfree.sqlitedata-icloud.write-permission-error"
 
+    /// The error message used when a write occurs to a record for which the current user
+    /// does not have permission.
+    ///
+    /// This error is thrown from any database write to a row for which the current user does
+    /// not have permissions to write, as determined by its `CKShare` (if applicable). To catch
+    /// this error try casting it to `DatabaseError` and checking its message:
+    ///
+    /// ```swift
+    /// do {
+    ///   try await database.write { db in
+    ///     Reminder.find(id)
+    ///       .update { $0.title = "Personal" }
+    ///       .execute(db)
+    ///   }
+    /// } catch let error as DatabaseError where error.message == SyncEngine.writePermissionError {
+    ///   // User does not have permission to write to this record.
+    /// }
+    /// ```
+    public static let writePermissionError = "co.pointfree.sqlitedata-icloud.write-permission-error"
+    public static let invalidRecordNameError = "co.pointfree.sqlitedata-icloud.invalid-record-name-error"
+
+    /// Initialize a sync engine.
+    ///
+    /// - Parameters:
+    ///   - database: The database to synchronize to CloudKit.
+    ///   - tables: A list of tables that you want to synchronize _and_ that you want to be
+    ///   shareable with other users on CloudKit.
+    ///   - privateTables: A list of tables that you want to synchronize to CloudKit but that
+    ///   you do not want to be shareable with other users.
+    ///   - containerIdentifier: The container identifier in CloudKit to synchronize to. If omitted
+    ///   the container will be determined from the entitlements of your app.
+    ///   - defaultZone: The zone for all records to be stored in.
+    ///   - startImmediately: Determines if the sync engine starts right away or requires an
+    ///   explicit call to ``stop()``. By default this argument is `true`.
+    ///   - logger: The logger used to log events in the sync engine. By default a `.disabled`
+    ///   logger is used, which means logs are not printed.
     public convenience init<each T1: PrimaryKeyedTable, each T2: PrimaryKeyedTable>(
       for database: any DatabaseWriter,
       tables: repeat (each T1).Type,
@@ -235,11 +271,11 @@
         }
         db.add(function: $datetime)
         db.add(function: $syncEngineIsSynchronizingChanges)
-        db.add(function: .didUpdate(syncEngine: self))
-        db.add(function: .didDelete(syncEngine: self))
+        db.add(function: $didUpdate)
+        db.add(function: $didDelete)
         db.add(function: $hasPermission)
 
-        for trigger in SyncMetadata.callbackTriggers {
+        for trigger in SyncMetadata.callbackTriggers(for: self) {
           try trigger.execute(db)
         }
 
@@ -252,11 +288,22 @@
         }
       }
     }
-
+    
+    /// Starts the sync engine if it is stopped.
+    ///
+    /// When a sync engine is started it will upload all data stored locally that has not yet
+    /// been synchronized to CloudKit, and will download all changes from CloudKit since the
+    /// last time it synchronized.
+    ///
+    /// > Note: By default, sync engines start syncing when initialized.
     public func start() async throws {
       try await start().value
     }
 
+    /// Stops the sync engine if it is running.
+    ///
+    /// All edits made after stopping the sync engine will not be synchronized to CloudKit.
+    /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
       guard isRunning else { return }
       syncEngines.withValue {
@@ -264,6 +311,8 @@
       }
     }
 
+    // TODO: Should we make isRunning observable?
+    /// Determines if the sync engine is currently running or not.
     public var isRunning: Bool {
       syncEngines.withValue {
         $0.isRunning
@@ -431,12 +480,12 @@
         for table in tables {
           try table.dropTriggers(db: db)
         }
-        for trigger in SyncMetadata.callbackTriggers.reversed() {
+        for trigger in SyncMetadata.callbackTriggers(for: self).reversed() {
           try trigger.drop().execute(db)
         }
         db.remove(function: $hasPermission)
-        db.remove(function: .didDelete(syncEngine: self))
-        db.remove(function: .didUpdate(syncEngine: self))
+        db.remove(function: $didDelete)
+        db.remove(function: $didUpdate)
         db.remove(function: $syncEngineIsSynchronizingChanges)
         db.remove(function: $datetime)
         // TODO: Do an `.erase()` + re-migrate
@@ -464,8 +513,12 @@
       try setUpSyncEngine()
     }
 
-    func didUpdate(recordName: String, zoneID: CKRecordZone.ID?) {
-      let zoneID = zoneID ?? defaultZone.zoneID
+    @DatabaseFunction(
+      "sqlitedata_icloud_didUpdate",
+      as: ((String, CKRecord?.SystemFieldsRepresentation) -> Void).self
+    )
+    func didUpdate(recordName: String, record: CKRecord?) {
+      let zoneID = record?.recordID.zoneID ?? defaultZone.zoneID
       let change = CKSyncEngine.PendingRecordZoneChange.saveRecord(
         CKRecord.ID(
           recordName: recordName,
@@ -491,8 +544,14 @@
       syncEngine?.state.add(pendingRecordZoneChanges: [change])
     }
 
-    func didDelete(recordName: String, zoneID: CKRecordZone.ID?, share: CKShare?) {
-      let zoneID = zoneID ?? defaultZone.zoneID
+    @DatabaseFunction(
+      "sqlitedata_icloud_didDelete",
+      as: (
+        (String, CKRecord?.SystemFieldsRepresentation, CKShare?.SystemFieldsRepresentation) -> Void
+      ).self
+    )
+    func didDelete(recordName: String, record: CKRecord?, share: CKShare?) {
+      let zoneID = record?.recordID.zoneID ?? defaultZone.zoneID
       var changes: [CKSyncEngine.PendingRecordZoneChange] = [
         .deleteRecord(
           CKRecord.ID(
@@ -539,6 +598,10 @@
       )
     }
 
+    /// A query expression that can be used in SQL queries to determine if the ``SyncEngine``
+    /// is currently writing changes to the database.
+    ///
+    /// See <doc:CloudKit#Updating-triggers-to-be-compatible-with-synchronization> for more info.
     public static func isSynchronizingChanges() -> some QueryExpression<Bool> {
       $syncEngineIsSynchronizingChanges()
     }
@@ -1571,56 +1634,6 @@
         !recordPrimaryKeyBytes.isEmpty
       else { return nil }
       return String(Substring(recordPrimaryKeyBytes))
-    }
-  }
-
-  @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
-  extension GRDB.DatabaseFunction {
-    fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
-      Self("didUpdate") { recordName, zoneID, _ in
-        syncEngine.didUpdate(
-          recordName: recordName,
-          zoneID: zoneID
-        )
-      }
-    }
-
-    fileprivate static func didDelete(syncEngine: SyncEngine) -> Self {
-      return Self("didDelete") { recordName, zoneID, share in
-        syncEngine
-          .didDelete(
-            recordName: recordName,
-            zoneID: zoneID,
-            share: share
-          )
-      }
-    }
-
-    private convenience init(
-      _ name: String,
-      function: @escaping @Sendable (String, CKRecordZone.ID?, CKShare?) -> Void
-    ) {
-      self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 3) { arguments in
-        guard
-          let recordName = String.fromDatabaseValue(arguments[0])
-        else {
-          return nil
-        }
-        let zoneID = try Data.fromDatabaseValue(arguments[1]).flatMap {
-          let coder = try NSKeyedUnarchiver(forReadingFrom: $0)
-          coder.requiresSecureCoding = true
-          return CKRecord(coder: coder)?.recordID.zoneID
-        }
-
-        let share = try Data.fromDatabaseValue(arguments[2]).flatMap {
-          let coder = try NSKeyedUnarchiver(forReadingFrom: $0)
-          coder.requiresSecureCoding = true
-          return CKShare(coder: coder)
-        }
-
-        function(recordName, zoneID, share)
-        return nil
-      }
     }
   }
 
