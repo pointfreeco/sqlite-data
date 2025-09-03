@@ -70,6 +70,11 @@ the view. That will cause a ``CloudSharingView`` sheet to be presented where the
 how they want to share the record. A record can be _unshared_ by presenting the same
 ``CloudSharingView`` to the user so that they can tap the "Stop sharing" button in the UI.
 
+If you would like to provide a custom sharing experience outside of what `UICloudSharingController`
+offers, you can find more info in [Apple's documentation].
+
+[Apple's documentation]: https://developer.apple.com/documentation/cloudkit/shared-records
+
 ## Accepting shared records
 
 Extra steps must be taken to allow a user to _accept_ a shared record. Once the user taps on the

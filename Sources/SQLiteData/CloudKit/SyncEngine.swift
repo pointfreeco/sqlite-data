@@ -9,6 +9,7 @@
   import StructuredQueriesCore
   import SwiftData
 
+  /// An object that manages the synchronization of local and remote SQLite data.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Sendable {
     package let userDatabase: UserDatabase
@@ -26,6 +27,25 @@
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
     let dataManager = Dependency(\.dataManager)
+
+    /// The error message used when a write occurs to a record for which the current user
+    /// does not have permission.
+    ///
+    /// This error is thrown from any database write to a row for which the current user does
+    /// not have permissions to write, as determined by its `CKShare` (if applicable). To catch
+    /// this error try casting it to `DatabaseError` and checking its message:
+    ///
+    /// ```swift
+    /// do {
+    ///   try await database.write { db in
+    ///     Reminder.find(id)
+    ///       .update { $0.title = "Personal" }
+    ///       .execute(db)
+    ///   }
+    /// } catch let error as DatabaseError where error.message == SyncEngine.writePermissionError {
+    ///   // User does not have permission to write to this record.
+    /// }
+    /// ```
     public static let writePermissionError = "co.pointfree.sqlitedata-icloud.write-permission-error"
 
     public convenience init<each T1: PrimaryKeyedTable, each T2: PrimaryKeyedTable>(
@@ -252,11 +272,22 @@
         }
       }
     }
-
+    
+    /// Starts the sync engine if it is stopped.
+    ///
+    /// When a sync engine is started it will upload all data stored locally that has not yet
+    /// been synchronized to CloudKit, and will download all changes from CloudKit since the
+    /// last time it synchronized.
+    ///
+    /// > Note: By default, sync engines start syncing when initialized.
     public func start() async throws {
       try await start().value
     }
 
+    /// Stops the sync engine if it is running.
+    ///
+    /// All edits made after stopping the sync engine will not be synchronized to CloudKit.
+    /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
       guard isRunning else { return }
       syncEngines.withValue {
@@ -264,6 +295,7 @@
       }
     }
 
+    /// Determines if the sync engine is currently running or not.
     public var isRunning: Bool {
       syncEngines.withValue {
         $0.isRunning
@@ -539,6 +571,10 @@
       )
     }
 
+    /// A query expression that can be used in SQL queries to determine if the ``SyncEngine``
+    /// is currently writing changes to the database.
+    ///
+    /// See <doc:CloudKit#Updating-triggers-to-be-compatible-with-synchronization> for more info.
     public static func isSynchronizingChanges() -> some QueryExpression<Bool> {
       $syncEngineIsSynchronizingChanges()
     }

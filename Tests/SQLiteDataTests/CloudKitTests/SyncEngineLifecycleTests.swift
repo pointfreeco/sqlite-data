@@ -93,6 +93,11 @@
           }
         }
 
+        // * Create list
+        // * Stop sync engine
+        // * Delete list
+        // * Start sync engine
+        // => List is deleted from CloudKit
         @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
         @Test func writeStopDeleteStart() async throws {
           try await userDatabase.userWrite { db in
@@ -129,6 +134,10 @@
           }
         }
 
+        // * Stop sync engine
+        // * Edit list
+        // * Start sync engine
+        // => List is updated on CloudKit
         @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
         @Test func addRemindersList_StopSyncEngine_EditTitle_StartSyncEngine() async throws {
           try await userDatabase.userWrite { db in

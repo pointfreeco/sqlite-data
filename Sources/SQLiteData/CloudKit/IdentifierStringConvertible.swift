@@ -1,5 +1,6 @@
 import Foundation
 
+/// A type that can be represented by a string identifier.
 public protocol IdentifierStringConvertible {
   init?(rawIdentifier: String)
   var rawIdentifier: String { get }
