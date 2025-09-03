@@ -1,7 +1,7 @@
 import CloudKit
 import CustomDump
 import InlineSnapshotTesting
-import SharingGRDB
+import SQLiteData
 import SnapshotTestingCustomDump
 import Testing
 

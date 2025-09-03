@@ -42,7 +42,7 @@
               CREATE TRIGGER "after_insert_on_sqlitedata_icloud_metadata"
               AFTER INSERT ON "sqlitedata_icloud_metadata"
               FOR EACH ROW WHEN NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) BEGIN
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.invalid-record-name-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.invalid-record-name-error')
                 WHERE NOT (((substr("new"."recordName", 1, 1) <> '_') AND (octet_length("new"."recordName") <= 255)) AND (octet_length("new"."recordName") = length("new"."recordName")));
                 SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", coalesce("new"."lastKnownServerRecord", (
                   WITH "ancestorMetadatas" AS (
@@ -64,7 +64,7 @@
               CREATE TRIGGER "after_update_on_sqlitedata_icloud_metadata"
               AFTER UPDATE ON "sqlitedata_icloud_metadata"
               FOR EACH ROW WHEN (("old"."_isDeleted" = "new"."_isDeleted") AND NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) BEGIN
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.invalid-record-name-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.invalid-record-name-error')
                 WHERE NOT (((substr("new"."recordName", 1, 1) <> '_') AND (octet_length("new"."recordName") <= 255)) AND (octet_length("new"."recordName") = length("new"."recordName")));
                 SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", coalesce("new"."lastKnownServerRecord", (
                   WITH "ancestorMetadatas" AS (
@@ -103,7 +103,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -132,7 +132,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -161,7 +161,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -190,7 +190,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -219,7 +219,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -248,7 +248,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -277,7 +277,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -306,7 +306,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -335,7 +335,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -364,7 +364,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -393,7 +393,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -422,7 +422,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -443,7 +443,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -466,7 +466,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -489,7 +489,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -512,7 +512,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -535,7 +535,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -558,7 +558,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -581,7 +581,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -604,7 +604,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -627,7 +627,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -650,7 +650,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -673,7 +673,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -696,7 +696,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -719,7 +719,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -740,7 +740,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -761,7 +761,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -782,7 +782,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -803,7 +803,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -824,7 +824,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -845,7 +845,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -866,7 +866,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -887,7 +887,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -908,7 +908,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -929,7 +929,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -950,7 +950,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 UPDATE "sqlitedata_icloud_metadata"
@@ -971,7 +971,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -994,7 +994,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -1017,7 +1017,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -1040,7 +1040,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -1063,7 +1063,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -1086,7 +1086,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -1109,7 +1109,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -1132,7 +1132,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -1155,7 +1155,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -1178,7 +1178,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -1201,7 +1201,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
@@ -1224,7 +1224,7 @@
                   FROM "sqlitedata_icloud_metadata"
                   JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName" IS "rootShares"."parentRecordName")
                 )
-                SELECT RAISE(ABORT, 'co.pointfree.sqlitedata-icloud.write-permission-error')
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
                 FROM "rootShares"
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"

@@ -46,8 +46,10 @@
     ///   // User does not have permission to write to this record.
     /// }
     /// ```
-    public static let writePermissionError = "co.pointfree.sqlitedata-icloud.write-permission-error"
-    public static let invalidRecordNameError = "co.pointfree.sqlitedata-icloud.invalid-record-name-error"
+    public static let writePermissionError =
+      "co.pointfree.SQLiteData.CloudKit.write-permission-error"
+    public static let invalidRecordNameError =
+      "co.pointfree.SQLiteData.CloudKit.invalid-record-name-error"
 
     /// Initialize a sync engine.
     ///
@@ -185,10 +187,11 @@
     package init(
       container: any CloudContainer,
       defaultZone: CKRecordZone,
-      defaultSyncEngines: @escaping @Sendable (
-        any DatabaseReader,
-        SyncEngine
-      ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
+      defaultSyncEngines:
+        @escaping @Sendable (
+          any DatabaseReader,
+          SyncEngine
+        ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
       userDatabase: UserDatabase,
       logger: Logger,
       tables: [any PrimaryKeyedTable.Type],
@@ -288,7 +291,7 @@
         }
       }
     }
-    
+
     /// Starts the sync engine if it is stopped.
     ///
     /// When a sync engine is started it will upload all data stored locally that has not yet
@@ -546,9 +549,8 @@
 
     @DatabaseFunction(
       "sqlitedata_icloud_didDelete",
-      as: (
-        (String, CKRecord?.SystemFieldsRepresentation, CKShare?.SystemFieldsRepresentation) -> Void
-      ).self
+      as: ((String, CKRecord?.SystemFieldsRepresentation, CKShare?.SystemFieldsRepresentation)
+        -> Void).self
     )
     func didDelete(recordName: String, record: CKRecord?, share: CKShare?) {
       let zoneID = record?.recordID.zoneID ?? defaultZone.zoneID
