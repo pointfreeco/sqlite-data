@@ -134,7 +134,7 @@
 extension PrimaryKeyedTable where PrimaryKey: IdentifierStringConvertible {
     /// A query for finding the metadata associated with a record.
     ///
-    /// - Parameter primaryKey: The primary key of the record whose metadatab to look up.
+    /// - Parameter primaryKey: The primary key of the record whose metadata to look up.
     public static func metadata(for primaryKey: PrimaryKey.QueryOutput) -> Where<SyncMetadata> {
       SyncMetadata.where {
         #sql(
