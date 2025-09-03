@@ -124,7 +124,7 @@
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
         "branch" : "support-void-database-functions",
-        "revision" : "a6e0175d305547a29055085a89aab6c63c6fb3ce"
+        "revision" : "0eada18fb533047e7336cedd7d99da8dd9e0a8d8"
       }
     },
     {
