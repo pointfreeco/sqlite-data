@@ -71,8 +71,7 @@ Before constructing a ``SyncEngine`` you must have already created and migrated 
 SQLite database as detailed in <doc:PreparingDatabase>. Immediately after that is done in the
 `prepareDependencies` of the entry point of your app you will override the
 ``Dependencies/DependencyValues/defaultSyncEngine`` dependency with a sync engine that specifies
-the CloudKit container to use, the database to synchronize, as well as the tables you want to
-synchronize:
+the database to synchronize, as well as the tables you want to synchronize:
 
 ```swift
 @main
@@ -96,7 +95,8 @@ The `SyncEngine`
 has more options you may be interested in configuring.
 
 > Important: You must explicitly provide all tables that you want to synchronize. We do this so that
-> you can have the option of having some local tables that are not synchronized to CloudKit.
+> you can have the option of having some local tables that are not synchronized to CloudKit, such
+> full-text search indices, cached data, etc.
 
 Once this work is done the app should work exactly as it did before, but now any changes made
 to the database will be synchronized to CloudKit. You will still interact with your local SQLite
@@ -143,7 +143,7 @@ a unique ID by simply adding 1 to the largest ID in the table. However, that doe
 with distributed schemas. That would make it possible for two devices to create a record with
 `id: 1`, and when those records synchronize there would be an irreconcilable conflict.
 
-For this reason, primary keys in SQLite tables should be globally unique, such as a UUID. The
+For this reason, primary keys in SQLite tables should be _globally_ unique, such as a UUID. The
 easiest way to do this is to store your table's ID in a `TEXT` column, adding a
 default with a freshly generated UUID, and further adding a `ON CONFLICT REPLACE` constraint:
 
@@ -163,7 +163,7 @@ the primary key from the default value specified. This kind of pattern is common
 ```swift
 try database.write { db in
   try Reminder.upsert {
-    // Do not provide 'id', let database initialize it for you.
+    // ℹ️ Omitting 'id' allows the database to initialize it for you.
     Reminder.Draft(title: "Get milk")
   }
   .execute(db)
@@ -183,8 +183,8 @@ CREATE TABLE "reminders" (
 )
 ```
 
-> Tip: If you want the database to generate random UUID's in a deterministic fashion for tests
-> you can register a custom database function to be used.
+Registering custom database functions for ID generation also makes it possible to generate 
+deterministic IDs for tests, making it easier to test your queries.
 
 #### Primary keys on every table
 
@@ -201,7 +201,7 @@ CREATE TABLE "reminderTags" (
   "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
   "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
   "tagID" TEXT NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
-)
+) STRICT
 ```
 
 Note that the `id` column might not be needed for your application's logic, but it is necessary to
@@ -222,6 +222,12 @@ discard one of the tags.
 For this reason uniqueness constraints are not allowed in schemas, and this will be validated
 when a ``SyncEngine`` is first created. If a uniqueness constraint is detected an error will be
 thrown.
+
+Sometimes it is possible to make the column that you want to be unique
+
+> Important: discuss limitations of custom PK
+
+[CKRecord.ID]: https://developer.apple.com/documentation/cloudkit/ckrecord/id
 
 #### Foreign key relationships
 

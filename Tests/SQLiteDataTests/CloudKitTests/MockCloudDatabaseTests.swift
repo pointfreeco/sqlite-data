@@ -386,22 +386,6 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func incorrectlyCreatingNewRecordIdentity() async throws {
-        let record1 = CKRecord(recordType: "A", recordID: CKRecord.ID.init(recordName: "1"))
-        _ = try syncEngine.modifyRecords(scope: .private, saving: [record1])
-        let record2 = CKRecord(recordType: "A", recordID: CKRecord.ID.init(recordName: "1"))
-        try withKnownIssue {
-          _ = try syncEngine.modifyRecords(scope: .private, saving: [record2])
-        } matching: { issue in
-          issue.description == """
-            Issue recorded: A new identity was created for an existing 'CKRecord' ('1'). Rather than \
-            creating 'CKRecord' from scratch for an existing record, use the database to fetch the \
-            current record.
-            """
-        }
-      }
-
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func saveShareWithoutRootRecord() async throws {
         let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
         let share = CKShare(rootRecord: record, shareID: CKRecord.ID(recordName: "share"))

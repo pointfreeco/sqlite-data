@@ -26,7 +26,7 @@ your table:
 ```swift
 @Table
 struct Reminder {
-  let id: Int
+  let id: UUID
   var title = ""
   var dueAt: Date?
   var isCompleted = false
@@ -97,7 +97,7 @@ exactly one list:
 ```swift
 @Table
 struct Reminder {
-  let id: Int
+  let id: UUID
   var title = ""
   var dueAt: Date?
   var isCompleted = false
@@ -105,7 +105,7 @@ struct Reminder {
 }
 @Table
 struct RemindersList: Identifiable {
-  let id: Int
+  let id: UUID
   var title = ""
 }
 ```
@@ -151,9 +151,9 @@ you must construct a dedicated `FetchDescriptor` value and set its `propertiesTo
 ### @FetchOne
 
 The [`@FetchOne`](<doc:FetchOne>) property wrapper works similarly to `@FetchAll`, but fetches
-only a single record from the database and you must provide a default for when no record is found.
-This tool can be handy for computing aggregate data, such as the number of reminders in the
-database:
+only a single record from the database and you must provide a default for when no record is found or
+use an optional value. This tool can be handy for computing aggregate data, such as the number of
+reminders in the database:
 
 ```swift
 @FetchOne(Reminder.count())
@@ -179,9 +179,9 @@ var completedRemindersCount = 0
 It is also possible to execute multiple database queries to fetch data for your features. This can
 be useful for performing several queries in a single database transaction:
 
-Each instance of `@FetchAll` in a feature executes their queries in a separate transaction. So, if
-we wanted to query for all completed reminders, along with a total count of reminders (completed and
-uncompleted), we could do so like this:
+Each instance of `@FetchAll` and `@FetchOne` executes their queries in a separate transaction and
+manage separate observations of the database. So, if we wanted to query for all completed reminders,
+along with a total count of reminders (completed and uncompleted), we could do so like this:
 
 ```swift
 @FetchOne(Reminder.count())
@@ -191,13 +191,13 @@ var remindersCount = 0
 var completedReminders
 ```
 
-…this is technically 2 queries run in 2 separate database transactions.
+…this is technically 2 separate database transactions with 2 separate observations.
 
 Often this can be just fine, but if you have multiple queries that tend to change at the same time
 (_e.g._, when reminders are created or deleted, `remindersCount` and `completedReminders` will
 change at the same time), then you can bundle these two queries into a single transaction.
 
-To do this, one simply defines a conformance to our ``FetchKeyRequest`` protocol, and in that
+To do this, one defines a conformance to our ``FetchKeyRequest`` protocol, and in that
 conformance one can use the builder tools to query the database:
 
 ```swift

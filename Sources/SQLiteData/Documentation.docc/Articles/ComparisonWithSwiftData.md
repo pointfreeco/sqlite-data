@@ -39,7 +39,7 @@ to SwiftData's `@Model` macro:
     // SQLiteData
     @Table
     struct Item {
-      let id: Int
+      let id: UUID
       var title = ""
       var isInStock = true
       var notes = ""
@@ -610,7 +610,7 @@ Lightweight migrations in SwiftData work for simple situations, such as adding a
     // SQLiteData
     @Table
     struct Item {
-      let id: Int
+      let id: UUID
       var title = ""
       var isInStock = true
     }
@@ -652,7 +652,7 @@ adding a `description` field to the `Item` type:
     ```swift
     @Table
     struct Item {
-      let id: Int
+      let id: UUID
       var title = ""
       var description = ""
       var isInStock = true

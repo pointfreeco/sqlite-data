@@ -47,7 +47,8 @@
     /// }
     /// ```
     public static let writePermissionError = "co.pointfree.sqlitedata-icloud.write-permission-error"
-    
+    public static let invalidRecordNameError = "co.pointfree.sqlitedata-icloud.invalid-record-name-error"
+
     /// Initialize a sync engine.
     ///
     /// - Parameters:
@@ -270,11 +271,11 @@
         }
         db.add(function: $datetime)
         db.add(function: $syncEngineIsSynchronizingChanges)
-        db.add(function: .didUpdate(syncEngine: self))
-        db.add(function: .didDelete(syncEngine: self))
+        db.add(function: $didUpdate)
+        db.add(function: $didDelete)
         db.add(function: $hasPermission)
 
-        for trigger in SyncMetadata.callbackTriggers {
+        for trigger in SyncMetadata.callbackTriggers(for: self) {
           try trigger.execute(db)
         }
 
@@ -310,6 +311,7 @@
       }
     }
 
+    // TODO: Should we make isRunning observable?
     /// Determines if the sync engine is currently running or not.
     public var isRunning: Bool {
       syncEngines.withValue {
@@ -478,12 +480,12 @@
         for table in tables {
           try table.dropTriggers(db: db)
         }
-        for trigger in SyncMetadata.callbackTriggers.reversed() {
+        for trigger in SyncMetadata.callbackTriggers(for: self).reversed() {
           try trigger.drop().execute(db)
         }
         db.remove(function: $hasPermission)
-        db.remove(function: .didDelete(syncEngine: self))
-        db.remove(function: .didUpdate(syncEngine: self))
+        db.remove(function: $didDelete)
+        db.remove(function: $didUpdate)
         db.remove(function: $syncEngineIsSynchronizingChanges)
         db.remove(function: $datetime)
         // TODO: Do an `.erase()` + re-migrate
@@ -511,8 +513,12 @@
       try setUpSyncEngine()
     }
 
-    func didUpdate(recordName: String, zoneID: CKRecordZone.ID?) {
-      let zoneID = zoneID ?? defaultZone.zoneID
+    @DatabaseFunction(
+      "sqlitedata_icloud_didUpdate",
+      as: ((String, CKRecord?.SystemFieldsRepresentation) -> Void).self
+    )
+    func didUpdate(recordName: String, record: CKRecord?) {
+      let zoneID = record?.recordID.zoneID ?? defaultZone.zoneID
       let change = CKSyncEngine.PendingRecordZoneChange.saveRecord(
         CKRecord.ID(
           recordName: recordName,
@@ -538,8 +544,14 @@
       syncEngine?.state.add(pendingRecordZoneChanges: [change])
     }
 
-    func didDelete(recordName: String, zoneID: CKRecordZone.ID?, share: CKShare?) {
-      let zoneID = zoneID ?? defaultZone.zoneID
+    @DatabaseFunction(
+      "sqlitedata_icloud_didDelete",
+      as: (
+        (String, CKRecord?.SystemFieldsRepresentation, CKShare?.SystemFieldsRepresentation) -> Void
+      ).self
+    )
+    func didDelete(recordName: String, record: CKRecord?, share: CKShare?) {
+      let zoneID = record?.recordID.zoneID ?? defaultZone.zoneID
       var changes: [CKSyncEngine.PendingRecordZoneChange] = [
         .deleteRecord(
           CKRecord.ID(
@@ -1622,56 +1634,6 @@
         !recordPrimaryKeyBytes.isEmpty
       else { return nil }
       return String(Substring(recordPrimaryKeyBytes))
-    }
-  }
-
-  @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
-  extension GRDB.DatabaseFunction {
-    fileprivate static func didUpdate(syncEngine: SyncEngine) -> Self {
-      Self("didUpdate") { recordName, zoneID, _ in
-        syncEngine.didUpdate(
-          recordName: recordName,
-          zoneID: zoneID
-        )
-      }
-    }
-
-    fileprivate static func didDelete(syncEngine: SyncEngine) -> Self {
-      return Self("didDelete") { recordName, zoneID, share in
-        syncEngine
-          .didDelete(
-            recordName: recordName,
-            zoneID: zoneID,
-            share: share
-          )
-      }
-    }
-
-    private convenience init(
-      _ name: String,
-      function: @escaping @Sendable (String, CKRecordZone.ID?, CKShare?) -> Void
-    ) {
-      self.init(.sqliteDataCloudKitSchemaName + "_" + name, argumentCount: 3) { arguments in
-        guard
-          let recordName = String.fromDatabaseValue(arguments[0])
-        else {
-          return nil
-        }
-        let zoneID = try Data.fromDatabaseValue(arguments[1]).flatMap {
-          let coder = try NSKeyedUnarchiver(forReadingFrom: $0)
-          coder.requiresSecureCoding = true
-          return CKRecord(coder: coder)?.recordID.zoneID
-        }
-
-        let share = try Data.fromDatabaseValue(arguments[2]).flatMap {
-          let coder = try NSKeyedUnarchiver(forReadingFrom: $0)
-          coder.requiresSecureCoding = true
-          return CKShare(coder: coder)
-        }
-
-        function(recordName, zoneID, share)
-        return nil
-      }
     }
   }
 

@@ -542,6 +542,239 @@
           """
         }
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func createTagLocallyThenCreateSameTagRemotely() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            Tag(title: "tag")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let tagRecord = CKRecord(
+          recordType: Tag.tableName,
+          recordID: Tag.recordID(for: "tag")
+        )
+        tagRecord.encryptedValues["title"] = "tag"
+        try await syncEngine.modifyRecords(scope: .private, saving: [tagRecord]).notify()
+
+        assertQuery(Tag.all, database: userDatabase.database) {
+          """
+          ┌───────────────────┐
+          │ Tag(title: "tag") │
+          └───────────────────┘
+          """
+        }
+        assertQuery(SyncMetadata.all, database: userDatabase.database) {
+          """
+          ┌────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                              │
+          │   recordPrimaryKey: "tag",                                 │
+          │   recordType: "tags",                                      │
+          │   recordName: "tag:tags",                                  │
+          │   parentRecordPrimaryKey: nil,                             │
+          │   parentRecordType: nil,                                   │
+          │   parentRecordName: nil,                                   │
+          │   lastKnownServerRecord: CKRecord(                         │
+          │     recordID: CKRecord.ID(tag:tags/zone/__defaultOwner__), │
+          │     recordType: "tags",                                    │
+          │     parent: nil,                                           │
+          │     share: nil                                             │
+          │   ),                                                       │
+          │   _lastKnownServerRecordAllFields: CKRecord(               │
+          │     recordID: CKRecord.ID(tag:tags/zone/__defaultOwner__), │
+          │     recordType: "tags",                                    │
+          │     parent: nil,                                           │
+          │     share: nil,                                            │
+          │     title: "tag"                                           │
+          │   ),                                                       │
+          │   share: nil,                                              │
+          │   _isDeleted: false,                                       │
+          │   isShared: false,                                         │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)     │
+          │ )                                                          │
+          └────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(tag:tags/zone/__defaultOwner__),
+                  recordType: "tags",
+                  parent: nil,
+                  share: nil,
+                  title: "tag"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func createTagRemotelyThenCreateSameTagLocally() async throws {
+        let tagRecord = CKRecord(
+          recordType: Tag.tableName,
+          recordID: Tag.recordID(for: "tag")
+        )
+        tagRecord.encryptedValues["title"] = "tag"
+        let modifications = try syncEngine.modifyRecords(scope: .private, saving: [tagRecord])
+
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            Tag(title: "tag")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        await modifications.notify()
+
+        assertQuery(Tag.all, database: userDatabase.database) {
+          """
+          ┌───────────────────┐
+          │ Tag(title: "tag") │
+          └───────────────────┘
+          """
+        }
+        assertQuery(SyncMetadata.all, database: userDatabase.database) {
+          """
+          ┌────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                              │
+          │   recordPrimaryKey: "tag",                                 │
+          │   recordType: "tags",                                      │
+          │   recordName: "tag:tags",                                  │
+          │   parentRecordPrimaryKey: nil,                             │
+          │   parentRecordType: nil,                                   │
+          │   parentRecordName: nil,                                   │
+          │   lastKnownServerRecord: CKRecord(                         │
+          │     recordID: CKRecord.ID(tag:tags/zone/__defaultOwner__), │
+          │     recordType: "tags",                                    │
+          │     parent: nil,                                           │
+          │     share: nil                                             │
+          │   ),                                                       │
+          │   _lastKnownServerRecordAllFields: CKRecord(               │
+          │     recordID: CKRecord.ID(tag:tags/zone/__defaultOwner__), │
+          │     recordType: "tags",                                    │
+          │     parent: nil,                                           │
+          │     share: nil,                                            │
+          │     title: "tag"                                           │
+          │   ),                                                       │
+          │   share: nil,                                              │
+          │   _isDeleted: false,                                       │
+          │   isShared: false,                                         │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)     │
+          │ )                                                          │
+          └────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(tag:tags/zone/__defaultOwner__),
+                  recordType: "tags",
+                  parent: nil,
+                  share: nil,
+                  title: "tag"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+
+        try await userDatabase.userWrite { db in
+          try Tag.find("tag").update { $0.title = "weekend" }.execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertQuery(Tag.all, database: userDatabase.database) {
+          """
+          ┌───────────────────────┐
+          │ Tag(title: "weekend") │
+          └───────────────────────┘
+          """
+        }
+        assertQuery(SyncMetadata.all, database: userDatabase.database) {
+          """
+          ┌────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                  │
+          │   recordPrimaryKey: "weekend",                                 │
+          │   recordType: "tags",                                          │
+          │   recordName: "weekend:tags",                                  │
+          │   parentRecordPrimaryKey: nil,                                 │
+          │   parentRecordType: nil,                                       │
+          │   parentRecordName: nil,                                       │
+          │   lastKnownServerRecord: CKRecord(                             │
+          │     recordID: CKRecord.ID(weekend:tags/zone/__defaultOwner__), │
+          │     recordType: "tags",                                        │
+          │     parent: nil,                                               │
+          │     share: nil                                                 │
+          │   ),                                                           │
+          │   _lastKnownServerRecordAllFields: CKRecord(                   │
+          │     recordID: CKRecord.ID(weekend:tags/zone/__defaultOwner__), │
+          │     recordType: "tags",                                        │
+          │     parent: nil,                                               │
+          │     share: nil,                                                │
+          │     title: "weekend"                                           │
+          │   ),                                                           │
+          │   share: nil,                                                  │
+          │   _isDeleted: false,                                           │
+          │   isShared: false,                                             │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)         │
+          │ )                                                              │
+          └────────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(weekend:tags/zone/__defaultOwner__),
+                  recordType: "tags",
+                  parent: nil,
+                  share: nil,
+                  title: "weekend"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func invalidRecordName() async throws {
+        let error = await #expect(throws: DatabaseError.self) {
+          try await self.userDatabase.userWrite { db in
+            try Tag.insert { Tag(title: "_tag") }.execute(db)
+          }
+        }
+        #expect(error?.message == SyncEngine.invalidRecordNameError)
+      }
     }
   }
 #endif
