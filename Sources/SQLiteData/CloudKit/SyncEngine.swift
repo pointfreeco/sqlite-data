@@ -237,7 +237,7 @@
         db.add(function: $syncEngineIsSynchronizingChanges)
         db.add(function: .didUpdate(syncEngine: self))
         db.add(function: .didDelete(syncEngine: self))
-        db.add(function: .hasPermission)
+        db.add(function: $hasPermission)
 
         for trigger in SyncMetadata.callbackTriggers {
           try trigger.execute(db)
@@ -434,7 +434,7 @@
         for trigger in SyncMetadata.callbackTriggers.reversed() {
           try trigger.drop().execute(db)
         }
-        db.remove(function: .hasPermission)
+        db.remove(function: $hasPermission)
         db.remove(function: .didDelete(syncEngine: self))
         db.remove(function: .didUpdate(syncEngine: self))
         db.remove(function: $syncEngineIsSynchronizingChanges)
@@ -1593,34 +1593,6 @@
             zoneID: zoneID,
             share: share
           )
-      }
-    }
-
-//    fileprivate static var datetime: Self {
-//      Self(.sqliteDataCloudKitSchemaName + "_datetime", argumentCount: 0) { _ in
-//        @Dependency(\.datetime.now) var now
-//        return now.formatted(
-//          .iso8601
-//            .year().month().day()
-//            .dateTimeSeparator(.space)
-//            .time(includingFractionalSeconds: true)
-//        )
-//      }
-//    }
-
-    fileprivate static var hasPermission: Self {
-      Self(.sqliteDataCloudKitSchemaName + "_hasPermission", argumentCount: 1) { arguments in
-        let share = try Data.fromDatabaseValue(arguments[0]).flatMap {
-          let coder = try NSKeyedUnarchiver(forReadingFrom: $0)
-          coder.requiresSecureCoding = true
-          return CKShare(coder: coder)
-        }
-        guard let share
-        else { return true }
-        let hasPermission =
-          share.publicPermission == .readWrite
-          || share.currentUserParticipant?.permission == .readWrite
-        return hasPermission
       }
     }
 

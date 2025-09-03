@@ -261,9 +261,7 @@
         .where {
           !SyncEngine.isSynchronizingChanges()
             && $0.parentRecordName.is(nil)
-            && !#sql(
-              "\(raw: String.sqliteDataCloudKitSchemaName)_hasPermission(\($0.share))"
-            )
+            && $hasPermission($0.share)
         }
     }
   }
