@@ -261,7 +261,7 @@
         .where {
           !SyncEngine.isSynchronizingChanges()
             && $0.parentRecordName.is(nil)
-            && $hasPermission($0.share)
+            && !$hasPermission($0.share)
         }
     }
   }
