@@ -388,7 +388,7 @@
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
     ) async throws {
-      let pendingRecordZoneChanges = try await userDatabase.read { db in
+      let pendingRecordZoneChanges = try await metadatabase.read { db in
         try PendingRecordZoneChange
           .select(\.pendingRecordZoneChange)
           .fetchAll(db)
