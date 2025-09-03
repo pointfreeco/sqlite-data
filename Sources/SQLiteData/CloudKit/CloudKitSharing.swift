@@ -7,7 +7,7 @@
     import UIKit
   #endif
 
-  /// A shared record that can be used to present a ``CloudSharingView``
+  /// A shared record that can be used to present a ``CloudSharingView``.
   ///
   /// See <doc:CloudKitSharing#Creating-CKShare-records> for more information.,
   @available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
