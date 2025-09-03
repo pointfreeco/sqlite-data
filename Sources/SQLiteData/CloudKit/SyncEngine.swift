@@ -47,7 +47,22 @@
     /// }
     /// ```
     public static let writePermissionError = "co.pointfree.sqlitedata-icloud.write-permission-error"
-
+    
+    /// Initialize a sync engine.
+    ///
+    /// - Parameters:
+    ///   - database: The database to synchronize to CloudKit.
+    ///   - tables: A list of tables that you want to synchronize _and_ that you want to be
+    ///   shareable with other users on CloudKit.
+    ///   - privateTables: A list of tables that you want to synchronize to CloudKit but that
+    ///   you do not want to be shareable with other users.
+    ///   - containerIdentifier: The container identifier in CloudKit to synchronize to. If omitted
+    ///   the container will be determined from the entitlements of your app.
+    ///   - defaultZone: The zone for all records to be stored in.
+    ///   - startImmediately: Determines if the sync engine starts right away or requires an
+    ///   explicit call to ``stop()``. By default this argument is `true`.
+    ///   - logger: The logger used to log events in the sync engine. By default a `.disabled`
+    ///   logger is used, which means logs are not printed.
     public convenience init<each T1: PrimaryKeyedTable, each T2: PrimaryKeyedTable>(
       for database: any DatabaseWriter,
       tables: repeat (each T1).Type,
