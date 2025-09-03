@@ -95,7 +95,7 @@ The `SyncEngine`
 has more options you may be interested in configuring.
 
 > Important: You must explicitly provide all tables that you want to synchronize. We do this so that
-> you can have the option of having some local tables that are not synchronized to CloudKit, such
+> you can have the option of having some local tables that are not synchronized to CloudKit, such as
 > full-text search indices, cached data, etc.
 
 Once this work is done the app should work exactly as it did before, but now any changes made
