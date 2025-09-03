@@ -11,31 +11,32 @@ to make, and so an abundance of care must be taken to make sure all devices rema
 and capable of communicating with each other. Please read the documentation closely and thoroughly
 to make sure you understand how to best prepare your app for cloud synchronization.
 
-  * [Setting up your project](#Setting-up-your-project)
-  * [Setting up a SyncEngine](#Setting-up-a-SyncEngine)
-  * [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)
-      * [Primary keys](#Primary-keys)
-      * [Primary keys on every table](#Primary-keys-on-every-table)
-      * [Foreign key relationships](#Foreign-key-relationships)
-  * [Record conflicts](#Record-conflicts)
-  * [Backwards compatible migrations](#Backwards-compatible-migrations)
-      * [Adding tables](#Adding-tables)
-      * [Adding columns](#Adding-columns)
-      * [Disallowed migrations](#Disallowed-migrations)
-  * [Sharing records with other iCloud users](#Sharing-records-with-other-iCloud-users)
-  * [Assets](#Assets)
-  * [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)
-  * [How SQLiteData handles distributed schema scenarios](#How-SQLiteData-handles-distributed-schema-scenarios)
-  * [Unit testing and Xcode previews](#Unit-testing-and-Xcode-previews)
-  * [Preparing an existing schema for synchronization](#Preparing-an-existing-schema-for-synchronization)
-      * [Convert Int primary keys to UUID](#Convert-Int-primary-keys-to-UUID)
-      * [Add primary key to all tables](#Add-primary-key-to-all-tables)
-  * [Migrating from Swift Data to SQLiteData](#Migrating-from-Swift-Data-to-SQLiteData)
-  * [Separating schema migrations from data migrations](#Separating-schema-migrations-from-data-migrations)
-  * [Tips and tricks](#Tips-and-tricks)
-      * [Updating triggers to be compatible with synchronization](#Updating-triggers-to-be-compatible-with-synchronization)
-  * [Topics](#Topics)
-      * [Go deeper](#Go-deeper)
+  - [Setting up your project](#Setting-up-your-project)
+  - [Setting up a SyncEngine](#Setting-up-a-SyncEngine)
+  - [Designing your schema with synchronization in mind](#Designing-your-schema-with-synchronization-in-mind)
+    - [Primary keys](#Primary-keys)
+    - [Primary keys on every table](#Primary-keys-on-every-table)
+    - [Uniqueness constraints](#Uniqueness-constraints)
+    - [Foreign key relationships](#Foreign-key-relationships)
+  - [Record conflicts](#Record-conflicts)
+  - [Backwards compatible migrations](#Backwards-compatible-migrations)
+    - [Adding tables](#Adding-tables)
+    - [Adding columns](#Adding-columns)
+    - [Disallowed migrations](#Disallowed-migrations)
+  - [Sharing records with other iCloud users](#Sharing-records-with-other-iCloud-users)
+  - [Assets](#Assets)
+  - [Accessing CloudKit metadata](#Accessing-CloudKit-metadata)
+  - [How SQLiteData handles distributed schema scenarios](#How-SQLiteData-handles-distributed-schema-scenarios)
+  - [Unit testing and Xcode previews](#Unit-testing-and-Xcode-previews)
+  - [Preparing an existing schema for synchronization](#Preparing-an-existing-schema-for-synchronization)
+    - [Convert Int primary keys to UUID](#Convert-Int-primary-keys-to-UUID)
+    - [Add primary key to all tables](#Add-primary-key-to-all-tables)
+  - [Migrating from Swift Data to SQLiteData](#Migrating-from-Swift-Data-to-SQLiteData)
+  - [Separating schema migrations from data migrations](#Separating-schema-migrations-from-data-migrations)
+  - [Tips and tricks](#Tips-and-tricks)
+    - [Updating triggers to be compatible with synchronization](#Updating-triggers-to-be-compatible-with-synchronization)
+  - [Topics](#Topics)
+    - [Go deeper](#Go-deeper)
 
 ## Setting up your project
 
@@ -207,7 +208,7 @@ CREATE TABLE "reminderTags" (
 Note that the `id` column might not be needed for your application's logic, but it is necessary to
 facilitate synchronizing to CloudKit.
 
-#### Unique constraints
+#### Uniqueness constraints
 
 > TL;DR: SQLite tables cannot have `UNIQUE` constraints on their columns in order to allow
 > for distributed creation of records.
@@ -223,9 +224,30 @@ For this reason uniqueness constraints are not allowed in schemas, and this will
 when a ``SyncEngine`` is first created. If a uniqueness constraint is detected an error will be
 thrown.
 
-Sometimes it is possible to make the column that you want to be unique
+Sometimes it is possible to make the column that you want to be unique into the primary key of 
+your table. For example, tags with a unique title could be modeled like so:
 
-> Important: discuss limitations of custom PK
+```swift
+@Table struct Tag {
+  let title: String 
+}
+// CREATE TABLE "tags" (
+//   "title" TEXT NOT NULL PRIMARY KEY
+// ) STRICT
+```
+
+This will make it so that there can be at most one tag with a specific title. However, there are
+important caveats to be aware of:
+
+> Important: The primary key of a row is encoded into the `recordName` of a `CKRecord`, along with
+> the table name. There are [restrictions][CKRecord.ID] on the value of `recordName`:
+>
+> * It may only contain ASCII characters
+> * It must be less than 255 characters
+> * It must not begin with an underscore
+>
+> If your primary key violates any of these rules, a `DatabaseError` will be thrown with a message
+> of ``SyncEngine/invalidRecordNameError``.
 
 [CKRecord.ID]: https://developer.apple.com/documentation/cloudkit/ckrecord/id
 
