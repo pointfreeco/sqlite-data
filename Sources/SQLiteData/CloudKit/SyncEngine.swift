@@ -152,7 +152,7 @@
                 database: container.privateCloudDatabase,
                 stateSerialization: try? metadatabase.read { db in
                   try StateSerialization
-                    .find(BindQueryExpression(CKDatabase.Scope.private))
+                    .find(#bind(.private))
                     .select(\.data)
                     .fetchOne(db)
                 },
@@ -164,7 +164,7 @@
                 database: container.sharedCloudDatabase,
                 stateSerialization: try? metadatabase.read { db in
                   try StateSerialization
-                    .find(BindQueryExpression(CKDatabase.Scope.shared))
+                    .find(#bind(.shared))
                     .select(\.data)
                     .fetchOne(db)
                 },
@@ -238,13 +238,12 @@
 
     nonisolated package func setUpSyncEngine() throws {
       let migrator = metadatabaseMigrator()
-      // TODO: figure this out
-      //    #if DEBUG
-      //      try metadatabase.read { db in
-      //        let hasSchemaChanges = try migrator.hasSchemaChanges(db)
-      //        precondition(!hasSchemaChanges, "")
-      //      }
-      //    #endif
+      #if DEBUG
+        try metadatabase.read { db in
+          let hasSchemaChanges = try migrator.hasSchemaChanges(db)
+          assert(!hasSchemaChanges, "Metadatabase migrations must not be modified after release")
+        }
+      #endif
       try migrator.migrate(metadatabase)
 
       try userDatabase.write { db in
