@@ -98,7 +98,7 @@ struct ReminderText: FTS5 {
 }
 
 extension DependencyValues {
-  mutating func bootstrapDatabase() async throws {
+  mutating func bootstrapDatabase() throws {
     defaultDatabase = try Reminders.appDatabase()
     defaultSyncEngine = try SyncEngine(
       for: defaultDatabase,
@@ -106,15 +106,8 @@ extension DependencyValues {
       RemindersListAsset.self,
       Reminder.self,
       Tag.self,
-      ReminderTag.self,
-      startImmediately: false
+      ReminderTag.self
     )
-    try await defaultSyncEngine.start()
-    if context != .live {
-      try await defaultDatabase.write { db in
-        try db.seedSampleData()
-      }
-    }
   }
 }
 
@@ -323,6 +316,10 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     )
     .execute(db)
+
+    if context != .live {
+      try db.seedSampleData()
+    }
   }
 
   return database
