@@ -123,7 +123,7 @@ class BaseCloudKitTests: @unchecked Sendable {
       syncEngine.private.state.assertPendingDatabaseChanges([])
       syncEngine.private.state.assertPendingRecordZoneChanges([])
       syncEngine.private.assertAcceptedShareMetadata([])
-      try! userDatabase.read { db in
+      try! syncEngine.metadatabase.read { db in
         try #expect(UnsyncedRecordID.count().fetchOne(db) == 0)
       }
     } else {

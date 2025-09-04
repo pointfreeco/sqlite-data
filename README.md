@@ -180,7 +180,7 @@ var items
 
 @FetchAll(Item.order(by: \.isInStock))
 var items
-   
+
 @FetchOne(Item.count())
 var itemsCount = 0
 

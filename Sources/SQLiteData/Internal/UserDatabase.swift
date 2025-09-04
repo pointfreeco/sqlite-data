@@ -53,9 +53,7 @@ package struct UserDatabase {
     _ updates: (Database) throws -> T
   ) throws -> T {
     try database.read { db in
-      try SyncEngine.$_isSynchronizingChanges.withValue(true) {
-        try updates(db)
-      }
+      try updates(db)
     }
   }
 }

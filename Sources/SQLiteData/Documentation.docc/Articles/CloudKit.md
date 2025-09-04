@@ -133,7 +133,7 @@ versions of your app. There are a number of principles to keep in mind while des
 your schema to make sure every device can synchronize changes to every other device, no matter the
 version.
 
-#### Primary keys
+#### Globally unique primary keys
 
 > TL;DR: Primary keys should be globally unique identifiers, such as UUID. We further recommend
 > specifying a `NOT NULL` constraint with a `ON CONFLICT REPLACE` action.
@@ -184,7 +184,7 @@ CREATE TABLE "reminders" (
 )
 ```
 
-Registering custom database functions for ID generation also makes it possible to generate 
+Registering custom database functions for ID generation also makes it possible to generate
 deterministic IDs for tests, making it easier to test your queries.
 
 #### Primary keys on every table
@@ -208,6 +208,22 @@ CREATE TABLE "reminderTags" (
 Note that the `id` column might not be needed for your application's logic, but it is necessary to
 facilitate synchronizing to CloudKit.
 
+#### Foreign key relationships
+
+> TL;DR: Foreign key constraints can be enabled and you can use `ON DELETE` actions to
+> cascade deletions.
+
+SQLiteData can synchronize many-to-one and many-to-many relationships to CloudKit,
+and you can enforce foreign key constraints in your database connection. While it is possible for
+the sync engine to receive records in an order that could cause a foreign key constraint failure,
+such as receiving a child record before its parent, the sync engine will cache the child record
+until the parent record has been synchronized, at which point the child record will also be
+synchronized.
+
+Currently the only actions supported for `ON DELETE` are `CASCADE`, `SET NULL` and `SET DEFAULT`.
+In particular, `RESTRICT` and `NO ACTION` are not supported, and if you try to use those actions
+in your schema an error will be thrown when constructing ``SyncEngine``.
+
 #### Uniqueness constraints
 
 > TL;DR: SQLite tables cannot have `UNIQUE` constraints on their columns in order to allow
@@ -224,12 +240,12 @@ For this reason uniqueness constraints are not allowed in schemas, and this will
 when a ``SyncEngine`` is first created. If a uniqueness constraint is detected an error will be
 thrown.
 
-Sometimes it is possible to make the column that you want to be unique into the primary key of 
+Sometimes it is possible to make the column that you want to be unique into the primary key of
 your table. For example, tags with a unique title could be modeled like so:
 
 ```swift
 @Table struct Tag {
-  let title: String 
+  let title: String
 }
 // CREATE TABLE "tags" (
 //   "title" TEXT NOT NULL PRIMARY KEY
@@ -250,37 +266,6 @@ important caveats to be aware of:
 > of ``SyncEngine/invalidRecordNameError``.
 
 [CKRecord.ID]: https://developer.apple.com/documentation/cloudkit/ckrecord/id
-
-#### Foreign key relationships
-
-> TL;DR: Foreign key constraints can be enabled and you can use `ON DELETE` actions to
-> cascade deletions.
-
-SQLiteData can synchronize many-to-one and many-to-many relationships to CloudKit,
-and you can enforce foreign key constraints in your database connection. While it is possible for
-the sync engine to receive records in an order that could cause a foreign key constraint failure,
-such as receiving a child record before its parent, the sync engine will cache the child record
-until the parent record has been synchronized, at which point the child record will also be
-synchronized.
-
-Currently the only actions supported for `ON DELETE` are `CASCADE`, `SET NULL` and `SET DEFAULT`.
-In particular, `RESTRICT` and `NO ACTION` are not supported, and if you try to use those actions
-in your schema an error will be thrown when constructing ``SyncEngine``.
-
-## Record conflicts
-
-> TL;DR: Conflicts are handled automatically using a "last edit wins" strategy for each
-> column of the record.
-
-Conflicts between record edits will inevitably happen, and it's just a fact of dealing with
-distributed data. The library handles conflicts automatically, but does so with a single strategy
-that is currently not customizable. When a column is edited on a record, the library keeps track
-of the timestamp for that particular column. When merging two conflicting records, each column
-is analyzed, and the column that was most recently edited will win over the older data.
-
-We do not employ more advanced merge conflict strategies, such as CRDT synchronization. We may
-allow for these kinds of strategies in the future, but for now "field-wise last edit wins" is
-the only strategy available and we feel serves the needs of the most number of people.
 
 ## Backwards compatible migrations
 
@@ -439,6 +424,21 @@ devices. They are:
   * Renaming columns
   * Renaming tables
 
+## Record conflicts
+
+> TL;DR: Conflicts are handled automatically using a "last edit wins" strategy for each
+> column of the record.
+
+Conflicts between record edits will inevitably happen, and it's just a fact of dealing with
+distributed data. The library handles conflicts automatically, but does so with a single strategy
+that is currently not customizable. When a column is edited on a record, the library keeps track
+of the timestamp for that particular column. When merging two conflicting records, each column
+is analyzed, and the column that was most recently edited will win over the older data.
+
+We do not employ more advanced merge conflict strategies, such as CRDT synchronization. We may
+allow for these kinds of strategies in the future, but for now "field-wise last edit wins" is
+the only strategy available and we feel serves the needs of the most number of people.
+
 ## Sharing records with other iCloud users
 
 SQLiteData provides the tools necessary to share a record with another iCloud user so that
@@ -585,9 +585,11 @@ var rows
 Here we have used the ``StructuredQueriesCore/PrimaryKeyedTableDefinition/recordName`` helper that
 is defined on all primary key tables so that we can join ``SyncMetadata`` to `RemindersList`.
 
+<!--
 ## How SQLiteData handles distributed schema scenarios
 
-<!-- todo: finish -->
+todo: finish
+-->
 
 ## Unit testing and Xcode previews
 
@@ -659,8 +661,6 @@ And in preivews you can use it like so:
 
 <!-- todo: finish -->
 
-<!-- TODO: talk about simulator push restrictions -->
-
 ## Migrating from Swift Data to SQLiteData
 
 ## Separating schema migrations from data migrations
@@ -713,3 +713,9 @@ Model.createTemporaryTrigger(
 
 This will skip the trigger's action when the row is being updated due to data being synchronized
 from CloudKit.
+
+<!--
+### Developing in the simulator
+
+TODO: talk about simulator push restrictions
+-->

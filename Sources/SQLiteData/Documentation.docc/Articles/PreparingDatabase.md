@@ -46,7 +46,7 @@ data:
 +  configuration.foreignKeysEnabled = true
  }
 ```
- 
+
 This will prevent you from deleting rows that leave other rows with invalid associations. For
 example, if a "reminders" table had an association to a "remindersLists" table, you would not be
 allowed to delete a list row unless there were no reminders associated with it, or if you had
