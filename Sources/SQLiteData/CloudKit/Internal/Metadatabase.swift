@@ -46,10 +46,10 @@
     return metadatabase
   }
 
-func metadatabaseMigrator() -> DatabaseMigrator {
-  var migrator = DatabaseMigrator()
-  migrator.registerMigration("Create Metadata Tables") { db in
-    try #sql(
+  func metadatabaseMigrator() -> DatabaseMigrator {
+    var migrator = DatabaseMigrator()
+    migrator.registerMigration("Create Metadata Tables") { db in
+      try #sql(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
           "recordPrimaryKey" TEXT NOT NULL,
@@ -64,28 +64,28 @@ func metadatabaseMigrator() -> DatabaseMigrator {
           "isShared" INTEGER NOT NULL AS ("share" IS NOT NULL),
           "userModificationDate" TEXT NOT NULL DEFAULT (\($datetime())),
           "_isDeleted" INTEGER NOT NULL DEFAULT 0,
-        
+
           PRIMARY KEY ("recordPrimaryKey", "recordType"),
           UNIQUE ("recordName")
         ) STRICT
         """
-    )
-    .execute(db)
-    try #sql(
+      )
+      .execute(db)
+      try #sql(
         """
         CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_parentRecordName"
         ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("parentRecordName")
         """
-    )
-    .execute(db)
-    try #sql(
+      )
+      .execute(db)
+      try #sql(
         """
         CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_isShared"
         ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("isShared")
         """
-    )
-    .execute(db)
-    try #sql(
+      )
+      .execute(db)
+      try #sql(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_recordTypes" (
           "tableName" TEXT NOT NULL PRIMARY KEY,
@@ -93,18 +93,18 @@ func metadatabaseMigrator() -> DatabaseMigrator {
           "tableInfo" TEXT NOT NULL
         ) STRICT
         """
-    )
-    .execute(db)
-    try #sql(
+      )
+      .execute(db)
+      try #sql(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_stateSerialization" (
           "scope" TEXT NOT NULL PRIMARY KEY,
           "data" TEXT NOT NULL
         ) STRICT
         """
-    )
-    .execute(db)
-    try #sql(
+      )
+      .execute(db)
+      try #sql(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_unsyncedRecordIDs" (
           "recordName" TEXT NOT NULL,
@@ -113,17 +113,17 @@ func metadatabaseMigrator() -> DatabaseMigrator {
           PRIMARY KEY ("recordName", "zoneName", "ownerName")
         ) STRICT
         """
-    )
-    .execute(db)
-    try #sql(
+      )
+      .execute(db)
+      try #sql(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_pendingRecordZoneChanges" (
           "pendingRecordZoneChange" BLOB NOT NULL
         ) STRICT
         """
-    )
-    .execute(db)
+      )
+      .execute(db)
+    }
+    return migrator
   }
-  return migrator
-}
 #endif
