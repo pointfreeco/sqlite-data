@@ -45,26 +45,6 @@
               ]
             ),
             [1]: RecordType(
-              tableName: "sqlite_sequence",
-              schema: "CREATE TABLE sqlite_sequence(name,seq)",
-              tableInfo: [
-                [0]: TableInfo(
-                  defaultValue: nil,
-                  isPrimaryKey: false,
-                  name: "name",
-                  notNull: false,
-                  type: ""
-                ),
-                [1]: TableInfo(
-                  defaultValue: nil,
-                  isPrimaryKey: false,
-                  name: "seq",
-                  notNull: false,
-                  type: ""
-                )
-              ]
-            ),
-            [2]: RecordType(
               tableName: "remindersListAssets",
               schema: """
                 CREATE TABLE "remindersListAssets" (
@@ -97,7 +77,7 @@
                 )
               ]
             ),
-            [3]: RecordType(
+            [2]: RecordType(
               tableName: "remindersListPrivates",
               schema: """
                 CREATE TABLE "remindersListPrivates" (
@@ -130,7 +110,7 @@
                 )
               ]
             ),
-            [4]: RecordType(
+            [3]: RecordType(
               tableName: "reminders",
               schema: """
                 CREATE TABLE "reminders" (
@@ -189,7 +169,7 @@
                 )
               ]
             ),
-            [5]: RecordType(
+            [4]: RecordType(
               tableName: "tags",
               schema: """
                 CREATE TABLE "tags" (
@@ -206,7 +186,7 @@
                 )
               ]
             ),
-            [6]: RecordType(
+            [5]: RecordType(
               tableName: "reminderTags",
               schema: """
                 CREATE TABLE "reminderTags" (
@@ -239,7 +219,7 @@
                 )
               ]
             ),
-            [7]: RecordType(
+            [6]: RecordType(
               tableName: "parents",
               schema: """
                 CREATE TABLE "parents"(
@@ -256,7 +236,7 @@
                 )
               ]
             ),
-            [8]: RecordType(
+            [7]: RecordType(
               tableName: "childWithOnDeleteSetNulls",
               schema: """
                 CREATE TABLE "childWithOnDeleteSetNulls"(
@@ -281,7 +261,7 @@
                 )
               ]
             ),
-            [9]: RecordType(
+            [8]: RecordType(
               tableName: "childWithOnDeleteSetDefaults",
               schema: """
                 CREATE TABLE "childWithOnDeleteSetDefaults"(
@@ -307,40 +287,7 @@
                 )
               ]
             ),
-            [10]: RecordType(
-              tableName: "localUsers",
-              schema: """
-                CREATE TABLE "localUsers" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                  "name" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
-                  "parentID" INTEGER REFERENCES "localUsers"("id") ON DELETE CASCADE
-                ) STRICT
-                """,
-              tableInfo: [
-                [0]: TableInfo(
-                  defaultValue: nil,
-                  isPrimaryKey: true,
-                  name: "id",
-                  notNull: true,
-                  type: "INTEGER"
-                ),
-                [1]: TableInfo(
-                  defaultValue: "\'\'",
-                  isPrimaryKey: false,
-                  name: "name",
-                  notNull: true,
-                  type: "TEXT"
-                ),
-                [2]: TableInfo(
-                  defaultValue: nil,
-                  isPrimaryKey: false,
-                  name: "parentID",
-                  notNull: false,
-                  type: "INTEGER"
-                )
-              ]
-            ),
-            [11]: RecordType(
+            [9]: RecordType(
               tableName: "modelAs",
               schema: """
                 CREATE TABLE "modelAs" (
@@ -366,7 +313,7 @@
                 )
               ]
             ),
-            [12]: RecordType(
+            [10]: RecordType(
               tableName: "modelBs",
               schema: """
                 CREATE TABLE "modelBs" (
@@ -399,7 +346,7 @@
                 )
               ]
             ),
-            [13]: RecordType(
+            [11]: RecordType(
               tableName: "modelCs",
               schema: """
                 CREATE TABLE "modelCs" (
@@ -429,23 +376,6 @@
                   name: "title",
                   notNull: true,
                   type: "TEXT"
-                )
-              ]
-            ),
-            [14]: RecordType(
-              tableName: "unsyncedModels",
-              schema: """
-                CREATE TABLE "unsyncedModels" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
-                )
-                """,
-              tableInfo: [
-                [0]: TableInfo(
-                  defaultValue: nil,
-                  isPrimaryKey: true,
-                  name: "id",
-                  notNull: true,
-                  type: "INTEGER"
                 )
               ]
             )

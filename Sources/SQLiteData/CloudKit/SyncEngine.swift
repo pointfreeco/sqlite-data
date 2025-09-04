@@ -336,9 +336,12 @@
         try RecordType.all.fetchAll(db)
       }
       let currentRecordTypes = try userDatabase.read { db in
-        let namesAndSchemas = try SQLiteSchema.all
+        let namesAndSchemas = try SQLiteSchema
+          .where {
+            $0.type.eq("table")
+            && $0.tableName.in(tables.map { $0.tableName })
+          }
           .fetchAll(db)
-          .filter { $0.type == "table" }
         return try namesAndSchemas.compactMap { schema -> RecordType? in
           guard let sql = schema.sql
           else { return nil }
@@ -349,8 +352,6 @@
           )
         }
       }
-      // TODO: don't update record type if migration wasn't successful
-      defer { cacheUserTables(recordTypes: currentRecordTypes) }
       let previousRecordTypeByTableName = Dictionary(
         uniqueKeysWithValues: previousRecordTypes.map {
           ($0.tableName, $0)
@@ -373,17 +374,16 @@
             previousRecordTypeByTableName: previousRecordTypeByTableName,
             currentRecordTypeByTableName: currentRecordTypeByTableName
           )
+          try await cacheUserTables(recordTypes: currentRecordTypes)
         }
       }
     }
 
-    private func cacheUserTables(recordTypes: [RecordType]) {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.write { db in
-          try RecordType
-            .upsert { recordTypes.map { RecordType.Draft($0) } }
-            .execute(db)
-        }
+    private func cacheUserTables(recordTypes: [RecordType]) async throws {
+      try await userDatabase.write { db in
+        try RecordType
+          .upsert { recordTypes.map { RecordType.Draft($0) } }
+          .execute(db)
       }
     }
 
@@ -885,7 +885,7 @@
 
       let (metadataOfDeletions, recordsWithRoot): ([SyncMetadata], [RecordWithRoot]) =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await userDatabase.read { db in
+          try await metadatabase.read { db in
             let metadataOfDeletions = try SyncMetadata.where {
               $0.recordName.in(deletedRecordNames)
             }
@@ -1817,7 +1817,6 @@
       }
       try userDatabase.read { db in
         for (tableName, foreignKeys) in foreignKeysByTableName {
-
           let invalidForeignKey = foreignKeys.first(where: { tablesByName[$0.table] == nil })
           if let invalidForeignKey {
             throw SyncEngine.SchemaError(
