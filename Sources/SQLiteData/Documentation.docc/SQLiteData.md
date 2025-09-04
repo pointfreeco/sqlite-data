@@ -117,12 +117,12 @@ This `defaultDatabase` connection is used implicitly by SQLiteData's property wr
 
     @FetchAll(Item.where(\.isInStock))
     var items
- 
- 
- 
+
+
+
    @FetchAll(Item.order(by: \.isInStock))
    var items
- 
+
     @FetchOne(Item.count())
     var itemsCount = 0
     ```
@@ -139,7 +139,7 @@ This `defaultDatabase` connection is used implicitly by SQLiteData's property wr
       $0.isInStock
     })
     var items: [Item]
-    
+
     // No @Query equivalent of ordering
     // by boolean column.
 

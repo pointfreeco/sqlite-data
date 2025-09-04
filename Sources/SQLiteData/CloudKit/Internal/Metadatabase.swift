@@ -6,7 +6,7 @@
   func defaultMetadatabase(
     logger: Logger,
     url: URL
-  ) throws -> any DatabaseReader {
+  ) throws -> any DatabaseWriter {
     var configuration = Configuration()
     configuration.prepareDatabase { [logger] db in
       db.trace {
@@ -43,12 +43,11 @@
           configuration: configuration
         )
       }
-    // TODO: go towards idempotent migrations instead of GRDB migrator by the end of all of this
+    return metadatabase
+  }
+
+  func metadatabaseMigrator() -> DatabaseMigrator {
     var migrator = DatabaseMigrator()
-    // TODO: do we want this?
-    #if DEBUG
-      migrator.eraseDatabaseOnSchemaChange = true
-    #endif
     migrator.registerMigration("Create Metadata Tables") { db in
       try #sql(
         """
@@ -116,8 +115,6 @@
         """
       )
       .execute(db)
-    }
-    migrator.registerMigration("Create PendingRecordZoneChanges Table") { db in
       try #sql(
         """
         CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_pendingRecordZoneChanges" (
@@ -127,7 +124,6 @@
       )
       .execute(db)
     }
-    try migrator.migrate(metadatabase)
-    return metadatabase
+    return migrator
   }
 #endif

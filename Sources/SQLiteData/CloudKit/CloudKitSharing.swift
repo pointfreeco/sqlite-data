@@ -46,7 +46,7 @@
         "The record could not be shared."
       }
     }
-    
+
     /// Shares a record in CloudKit.
     ///
     /// This method will thrown an error if:
@@ -193,7 +193,7 @@
       )
       try result?.deleteResults.values.forEach { _ = try $0.get() }
     }
-    
+
     /// Accepts a shared record.
     ///
     /// This method should be invoked from various delegate methods on the scene delegate of the
@@ -203,7 +203,7 @@
     }
   }
 
-#if canImport(UIKit) && !os(watchOS)
+  #if canImport(UIKit) && !os(watchOS)
     /// A view that presents standard screens for adding and removing people from a CloudKit share \
     /// record.
     ///

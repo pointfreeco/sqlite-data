@@ -14,7 +14,7 @@
   public final class SyncEngine: Sendable {
     package let userDatabase: UserDatabase
     package let logger: Logger
-    package let metadatabase: any DatabaseReader
+    package let metadatabase: any DatabaseWriter
     package let tables: [any PrimaryKeyedTable.Type]
     package let privateTables: [any PrimaryKeyedTable.Type]
     let tablesByName: [String: any PrimaryKeyedTable.Type]
@@ -237,6 +237,16 @@
     @TaskLocal package static var _isSynchronizingChanges = false
 
     nonisolated package func setUpSyncEngine() throws {
+      let migrator = metadatabaseMigrator()
+      // TODO: figure this out
+      //    #if DEBUG
+      //      try metadatabase.read { db in
+      //        let hasSchemaChanges = try migrator.hasSchemaChanges(db)
+      //        precondition(!hasSchemaChanges, "")
+      //      }
+      //    #endif
+      try migrator.migrate(metadatabase)
+
       try userDatabase.write { db in
         let attachedMetadatabasePath: String? =
           try #sql(
@@ -336,9 +346,13 @@
         try RecordType.all.fetchAll(db)
       }
       let currentRecordTypes = try userDatabase.read { db in
-        let namesAndSchemas = try SQLiteSchema.all
+        let namesAndSchemas =
+          try SQLiteSchema
+          .where {
+            $0.type.eq("table")
+              && $0.tableName.in(tables.map { $0.tableName })
+          }
           .fetchAll(db)
-          .filter { $0.type == "table" }
         return try namesAndSchemas.compactMap { schema -> RecordType? in
           guard let sql = schema.sql
           else { return nil }
@@ -349,8 +363,6 @@
           )
         }
       }
-      // TODO: don't update record type if migration wasn't successful
-      defer { cacheUserTables(recordTypes: currentRecordTypes) }
       let previousRecordTypeByTableName = Dictionary(
         uniqueKeysWithValues: previousRecordTypes.map {
           ($0.tableName, $0)
@@ -373,17 +385,16 @@
             previousRecordTypeByTableName: previousRecordTypeByTableName,
             currentRecordTypeByTableName: currentRecordTypeByTableName
           )
+          try await cacheUserTables(recordTypes: currentRecordTypes)
         }
       }
     }
 
-    private func cacheUserTables(recordTypes: [RecordType]) {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.write { db in
-          try RecordType
-            .upsert { recordTypes.map { RecordType.Draft($0) } }
-            .execute(db)
-        }
+    private func cacheUserTables(recordTypes: [RecordType]) async throws {
+      try await userDatabase.write { db in
+        try RecordType
+          .upsert { recordTypes.map { RecordType.Draft($0) } }
+          .execute(db)
       }
     }
 
@@ -480,7 +491,7 @@
 
     package func tearDownSyncEngine() throws {
       try userDatabase.write { db in
-        for table in tables {
+        for table in tables.reversed() {
           try table.dropTriggers(db: db)
         }
         for trigger in SyncMetadata.callbackTriggers(for: self).reversed() {
@@ -491,12 +502,8 @@
         db.remove(function: $didUpdate)
         db.remove(function: $syncEngineIsSynchronizingChanges)
         db.remove(function: $datetime)
-        // TODO: Do an `.erase()` + re-migrate
-        try SyncMetadata.delete().execute(db)
-        try RecordType.delete().execute(db)
-        try StateSerialization.delete().execute(db)
-        try UnsyncedRecordID.delete().execute(db)
       }
+      try metadatabase.erase()
     }
 
     func deleteLocalData() throws {
@@ -885,7 +892,7 @@
 
       let (metadataOfDeletions, recordsWithRoot): ([SyncMetadata], [RecordWithRoot]) =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await userDatabase.read { db in
+          try await metadatabase.read { db in
             let metadataOfDeletions = try SyncMetadata.where {
               $0.recordName.in(deletedRecordNames)
             }
@@ -1381,13 +1388,7 @@
     }
 
     private func cacheShare(_ share: CKShare) async throws {
-      guard
-        let metadata = try? await container.shareMetadata(for: share, shouldFetchRootRecord: false)
-      else {
-        // TODO: should we delete this record if it doesn't exist in the container?
-        return
-      }
-
+      let metadata = try await container.shareMetadata(for: share, shouldFetchRootRecord: false)
       guard let rootRecordID = metadata.hierarchicalRootRecordID
       else { return }
       try await userDatabase.write { db in
@@ -1479,12 +1480,9 @@
             )
           }
 
-          // TODO: Append more ON CONFLICT clauses for each unique constraint?
-          // TODO: Use WHERE to scope the update?
           try userDatabase.write { db in
             do {
-              let query = upsert(T.self, record: serverRecord, columnNames: columnNames)
-              try #sql(query).execute(db)
+              try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
               try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
               try SyncMetadata
                 .where { $0.recordName.eq(serverRecord.recordID.recordName) }
@@ -1817,7 +1815,6 @@
       }
       try userDatabase.read { db in
         for (tableName, foreignKeys) in foreignKeysByTableName {
-
           let invalidForeignKey = foreignKeys.first(where: { tablesByName[$0.table] == nil })
           if let invalidForeignKey {
             throw SyncEngine.SchemaError(
@@ -1919,7 +1916,6 @@
       else { return }
       guard !marked.contains(table)
       else {
-        // TODO: Can possibly allow cycles by assigning all elements in the cycle the same level and forcing "DELETE CASCADE" on the relationships.
         struct CycleError: Error {}
         throw CycleError()
       }
