@@ -6,12 +6,13 @@
   import GRDB
   import OrderedCollections
   import OSLog
+  import Observation
   import StructuredQueriesCore
   import SwiftData
 
   /// An object that manages the synchronization of local and remote SQLite data.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  public final class SyncEngine: Sendable {
+  public final class SyncEngine: Observable, Sendable {
     package let userDatabase: UserDatabase
     package let logger: Logger
     package let metadatabase: any DatabaseWriter
@@ -27,6 +28,7 @@
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
     let dataManager = Dependency(\.dataManager)
+    private let observationRegistrar = ObservationRegistrar()
 
     /// The error message used when a write occurs to a record for which the current user
     /// does not have permission.
@@ -318,14 +320,17 @@
     /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
       guard isRunning else { return }
-      syncEngines.withValue {
-        $0 = SyncEngines()
+      observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
+        syncEngines.withValue {
+          $0 = SyncEngines()
+        }
       }
     }
 
     /// Determines if the sync engine is currently running or not.
     public var isRunning: Bool {
-      syncEngines.withValue {
+      observationRegistrar.access(self, keyPath: \.isRunning)
+      return syncEngines.withValue {
         $0.isRunning
       }
     }
@@ -333,11 +338,13 @@
     private func start() throws -> Task<Void, Never> {
       guard !isRunning else { return Task {} }
       let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
-      syncEngines.withValue {
-        $0 = SyncEngines(
-          private: privateSyncEngine,
-          shared: sharedSyncEngine
-        )
+      observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
+        syncEngines.withValue {
+          $0 = SyncEngines(
+            private: privateSyncEngine,
+            shared: sharedSyncEngine
+          )
+        }
       }
 
       let previousRecordTypes = try metadatabase.read { db in
