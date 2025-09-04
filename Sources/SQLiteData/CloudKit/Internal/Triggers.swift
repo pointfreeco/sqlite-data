@@ -136,7 +136,8 @@
 
     private enum ParentSyncMetadata: AliasName {}
 
-    fileprivate static func afterInsertTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self> {
+    fileprivate static func afterInsertTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self>
+    {
       createTemporaryTrigger(
         "after_insert_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
@@ -155,7 +156,8 @@
       )
     }
 
-    fileprivate static func afterUpdateTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self> {
+    fileprivate static func afterUpdateTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self>
+    {
       createTemporaryTrigger(
         "after_update_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
@@ -165,7 +167,7 @@
             syncEngine.$didUpdate(
               recordName: new.recordName,
               record: new.lastKnownServerRecord
-              ?? rootServerRecord(recordName: new.recordName)
+                ?? rootServerRecord(recordName: new.recordName)
             )
           )
         } when: { old, new in
@@ -174,7 +176,9 @@
       )
     }
 
-    fileprivate static func afterSoftDeleteTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self> {
+    fileprivate static func afterSoftDeleteTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<
+      Self
+    > {
       createTemporaryTrigger(
         "after_delete_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
@@ -183,7 +187,7 @@
             syncEngine.$didDelete(
               recordName: new.recordName,
               record: new.lastKnownServerRecord
-              ?? rootServerRecord(recordName: new.recordName),
+                ?? rootServerRecord(recordName: new.recordName),
               share: new.share
             )
           )

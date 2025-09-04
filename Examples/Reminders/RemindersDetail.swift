@@ -1,7 +1,7 @@
 import CasePaths
 import CloudKit
-import Sharing
 import SQLiteData
+import Sharing
 import SwiftUI
 import SwiftUINavigation
 

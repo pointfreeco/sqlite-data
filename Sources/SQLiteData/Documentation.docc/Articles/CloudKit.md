@@ -184,7 +184,7 @@ CREATE TABLE "reminders" (
 )
 ```
 
-Registering custom database functions for ID generation also makes it possible to generate 
+Registering custom database functions for ID generation also makes it possible to generate
 deterministic IDs for tests, making it easier to test your queries.
 
 #### Primary keys on every table
@@ -240,12 +240,12 @@ For this reason uniqueness constraints are not allowed in schemas, and this will
 when a ``SyncEngine`` is first created. If a uniqueness constraint is detected an error will be
 thrown.
 
-Sometimes it is possible to make the column that you want to be unique into the primary key of 
+Sometimes it is possible to make the column that you want to be unique into the primary key of
 your table. For example, tags with a unique title could be modeled like so:
 
 ```swift
 @Table struct Tag {
-  let title: String 
+  let title: String
 }
 // CREATE TABLE "tags" (
 //   "title" TEXT NOT NULL PRIMARY KEY
@@ -585,10 +585,10 @@ var rows
 Here we have used the ``StructuredQueriesCore/PrimaryKeyedTableDefinition/recordName`` helper that
 is defined on all primary key tables so that we can join ``SyncMetadata`` to `RemindersList`.
 
-<!-- 
+<!--
 ## How SQLiteData handles distributed schema scenarios
 
-todo: finish 
+todo: finish
 -->
 
 ## Unit testing and Xcode previews

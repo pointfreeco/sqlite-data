@@ -346,10 +346,11 @@
         try RecordType.all.fetchAll(db)
       }
       let currentRecordTypes = try userDatabase.read { db in
-        let namesAndSchemas = try SQLiteSchema
+        let namesAndSchemas =
+          try SQLiteSchema
           .where {
             $0.type.eq("table")
-            && $0.tableName.in(tables.map { $0.tableName })
+              && $0.tableName.in(tables.map { $0.tableName })
           }
           .fetchAll(db)
         return try namesAndSchemas.compactMap { schema -> RecordType? in
