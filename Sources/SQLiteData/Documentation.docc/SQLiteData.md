@@ -277,12 +277,18 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 - <doc:Observing>
 - <doc:PreparingDatabase>
 - <doc:DynamicQueries>
-- <doc:CloudKit>
 - <doc:ComparisonWithSwiftData>
 
 ### Database configuration and access
 
+- ``GRDB/Database``
 - ``Dependencies/DependencyValues/defaultDatabase``
+
+### Querying model data
+
+- ``StructuredQueriesCore/Statement``
+- ``StructuredQueriesCore/SelectStatement``
+- ``QueryCursor``
 
 ### Observing model data
 
@@ -290,19 +296,12 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 - ``FetchOne``
 - ``Fetch``
 
-### Fetching model data
+### CloudKit synchronization and sharing
 
-- ``StructuredQueriesCore/Statement/execute(_:)``
-- ``StructuredQueriesCore/Statement/fetchAll(_:)``
-- ``StructuredQueriesCore/Statement/fetchOne(_:)``
-- ``StructuredQueriesCore/Statement/fetchCursor(_:)``
-- ``StructuredQueriesCore/SelectStatement/fetchCount(_:)``
-
-### Seeding model data
-
-- ``GRDB/Database/seed(_:)``
-
-### User-defined functions
-
-- ``GRDB/Database/add(function:)``
-- ``GRDB/Database/remove(function:)``
+- <doc:CloudKit>
+- <doc:CloudKitSharing>
+- ``SyncEngine``
+- ``Dependencies/DependencyValues/defaultSyncEngine``
+- ``IdentifierStringConvertible``
+- ``SyncMetadata``
+- ``SharedRecord``
