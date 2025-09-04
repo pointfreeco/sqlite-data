@@ -279,7 +279,6 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 - <doc:DynamicQueries>
 - <doc:CloudKit>
 - <doc:ComparisonWithSwiftData>
-- <doc:MigrationGuides>
 
 ### Database configuration and access
 
@@ -302,7 +301,3 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 ### Seeding data
 
 - ``GRDB/Database/seed(_:)``
-
-### Deprecated interfaces
-
-- <doc:Deprecations>
