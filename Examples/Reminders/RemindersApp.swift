@@ -14,8 +14,10 @@ struct RemindersApp: App {
 
   init() {
     if context == .live {
-      try! prepareDependencies {
-        try $0.bootstrapDatabase()
+      Task {
+        try! await prepareDependencies {
+          try await $0.bootstrapDatabase()
+        }
       }
     }
   }

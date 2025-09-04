@@ -98,7 +98,7 @@ struct ReminderText: FTS5 {
 }
 
 extension DependencyValues {
-  mutating func bootstrapDatabase() throws {
+  mutating func bootstrapDatabase() async throws {
     defaultDatabase = try Reminders.appDatabase()
     defaultSyncEngine = try SyncEngine(
       for: defaultDatabase,
@@ -106,10 +106,12 @@ extension DependencyValues {
       RemindersListAsset.self,
       Reminder.self,
       Tag.self,
-      ReminderTag.self
+      ReminderTag.self,
+      startImmediately: false
     )
+    try await defaultSyncEngine.start()
     if context != .live {
-      try defaultDatabase.write { db in
+      try await defaultDatabase.write { db in
         try db.seedSampleData()
       }
     }
@@ -118,7 +120,6 @@ extension DependencyValues {
 
 func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
-  let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
   configuration.prepareDatabase { db in
@@ -133,21 +134,17 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     #endif
   }
-  if context == .preview {
-    database = try DatabaseQueue(configuration: configuration)
-  } else {
-    let path =
-      context == .live
-      ? URL.documentsDirectory.appending(component: "db.sqlite").path()
-      : URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
-    logger.debug(
-      """
-      App database:
-      open "\(path)"
-      """
-    )
-    database = try DatabasePool(path: path, configuration: configuration)
-  }
+  let path =
+    context == .live
+    ? URL.documentsDirectory.appending(component: "db.sqlite").path()
+    : URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
+  let database = try DatabasePool(path: path, configuration: configuration)
+  logger.debug(
+    """
+    App database:
+    open "\(path)"
+    """
+  )
   var migrator = DatabaseMigrator()
   #if DEBUG
     migrator.eraseDatabaseOnSchemaChange = true

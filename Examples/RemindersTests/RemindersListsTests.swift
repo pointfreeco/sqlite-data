@@ -24,7 +24,8 @@ extension BaseTestSuite {
               color: 1218047999,
               position: 1,
               title: "Personal"
-            )
+            ),
+            share: nil
           ),
           [1]: RemindersListsModel.ReminderListState(
             remindersCount: 2,
@@ -33,7 +34,8 @@ extension BaseTestSuite {
               color: 3985191935,
               position: 2,
               title: "Family"
-            )
+            ),
+            share: nil
           ),
           [2]: RemindersListsModel.ReminderListState(
             remindersCount: 2,
@@ -42,7 +44,8 @@ extension BaseTestSuite {
               color: 2992493567,
               position: 3,
               title: "Business"
-            )
+            ),
+            share: nil
           )
         ]
         """
