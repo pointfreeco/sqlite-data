@@ -323,7 +323,6 @@
       }
     }
 
-    // TODO: Should we make isRunning observable?
     /// Determines if the sync engine is currently running or not.
     public var isRunning: Bool {
       syncEngines.withValue {

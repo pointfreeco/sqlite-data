@@ -165,7 +165,7 @@ package final class MockCloudDatabase: CloudDatabase {
               }
             }
 
-            // TODO: this should merge copy's values into storage but not sure how right now.
+            // TODO: This should merge copy's values to more accurately reflect reality
             storage[recordToSave.recordID.zoneID]?[recordToSave.recordID] = copy
             saveResults[recordToSave.recordID] = .success(copy)
           }
