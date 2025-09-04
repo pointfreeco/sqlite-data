@@ -51,7 +51,6 @@
         ifNotExists: true,
         after: .update { _, new in
           checkWritePermissions(alias: new, parentForeignKey: parentForeignKey)
-          // TODO: change to update?
           SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey)
         }
       )

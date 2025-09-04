@@ -1,4 +1,4 @@
-# CloudKit synchronization
+# Getting started with CloudKit
 
 Learn how to seamlessly add CloudKit synchronization to your SQLiteData application.
 
@@ -714,13 +714,8 @@ Model.createTemporaryTrigger(
 This will skip the trigger's action when the row is being updated due to data being synchronized
 from CloudKit.
 
+<!--
 ### Developing in the simulator
 
-<!-- TODO: talk about simulator push restrictions -->
-
-
-## Topics
-
-### Go deeper
-
-- <doc:CloudKitSharing>
+TODO: talk about simulator push restrictions
+-->
