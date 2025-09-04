@@ -385,50 +385,6 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func tearDown() async throws {
-        try await userDatabase.userWrite { db in
-          try db.seed {
-            RemindersList(id: 1, title: "Personal")
-          }
-        }
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: nil,
-                  id: 1,
-                  title: "Personal"
-                )
-              ]
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
-          )
-          """
-        }
-
-        try await userDatabase.userRead { db in
-          let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
-          #expect(metadataCount == 1)
-        }
-        try syncEngine.tearDownSyncEngine()
-        try await self.userDatabase.userRead { db in
-          let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
-          #expect(metadataCount == 0)
-        }
-        try syncEngine.setUpSyncEngine()
-      }
-
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func tearDownAndReSetUp() async throws {
         try syncEngine.tearDownSyncEngine()
         try syncEngine.setUpSyncEngine()

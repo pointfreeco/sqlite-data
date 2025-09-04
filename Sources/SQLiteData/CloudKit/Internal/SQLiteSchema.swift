@@ -1,8 +1,8 @@
 @Table("sqlite_schema")
-struct SQLiteSchema {
-  let type: String
-  let name: String
+package struct SQLiteSchema {
+  package let type: String
+  package let name: String
   @Column("tbl_name")
-  let tableName: String
-  let sql: String?
+  package let tableName: String
+  package let sql: String?
 }

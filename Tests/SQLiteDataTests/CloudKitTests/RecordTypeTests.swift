@@ -386,8 +386,8 @@
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func tearDown() async throws {
         try syncEngine.tearDownSyncEngine()
-        try await userDatabase.userRead { db in
-          try #expect(RecordType.all.fetchAll(db) == [])
+        try await syncEngine.metadatabase.read { db in
+          try #expect(SQLiteSchema.all.fetchCount(db) == 0)
         }
         try syncEngine.setUpSyncEngine()
       }
