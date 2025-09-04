@@ -16,9 +16,9 @@
 		CA6A1D242E68A0A600604D6A /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA6A1D232E68A0A600604D6A /* SQLiteData */; };
 		CAD001872D874F1F00FA977A /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CAD001862D874F1F00FA977A /* DependenciesTestSupport */; };
 		DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = DC5FA7472D4C63D60082743E /* DependenciesMacros */; };
+		DC9A3DDE2E6A280700DE41FB /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = DC9A3DDD2E6A280700DE41FB /* SQLiteData */; };
+		DC9A3DE02E6A280F00DE41FB /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = DC9A3DDF2E6A280F00DE41FB /* SQLiteData */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
-		DCD9AC8B2E02176700FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8A2E02176700FB20F8 /* SharingGRDB */; };
-		DCD9AC8F2E02177900FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8E2E02177900FB20F8 /* SharingGRDB */; };
 		DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = DCF267382D48437300B680BE /* SwiftUINavigation */; };
 /* End PBXBuildFile section */
 
@@ -147,7 +147,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DCD9AC8B2E02176700FB20F8 /* SharingGRDB in Frameworks */,
+				DC9A3DDE2E6A280700DE41FB /* SQLiteData in Frameworks */,
 				CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -175,7 +175,7 @@
 			files = (
 				DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */,
 				DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */,
-				DCD9AC8F2E02177900FB20F8 /* SharingGRDB in Frameworks */,
+				DC9A3DE02E6A280F00DE41FB /* SQLiteData in Frameworks */,
 				DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -289,7 +289,7 @@
 			name = CaseStudies;
 			packageProductDependencies = (
 				CA2908C82D4AF70E003F165F /* UIKitNavigation */,
-				DCD9AC8A2E02176700FB20F8 /* SharingGRDB */,
+				DC9A3DDD2E6A280700DE41FB /* SQLiteData */,
 			);
 			productName = Examples;
 			productReference = CAF836982D4735620047AEB5 /* CaseStudies.app */;
@@ -363,7 +363,7 @@
 				DCBE8A132D4842BF0071F499 /* CasePaths */,
 				DCF267382D48437300B680BE /* SwiftUINavigation */,
 				DC5FA7472D4C63D60082743E /* DependenciesMacros */,
-				DCD9AC8E2E02177900FB20F8 /* SharingGRDB */,
+				DC9A3DDF2E6A280F00DE41FB /* SQLiteData */,
 			);
 			productName = SyncUps;
 			productReference = DCBE89CC2D483FB90071F499 /* SyncUps.app */;
@@ -416,7 +416,7 @@
 				DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */,
 				DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */,
 				CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
-				DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */,
+				DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CAF836992D4735620047AEB5 /* Products */;
@@ -1004,9 +1004,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */ = {
+		DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../sharing-grdb";
+			relativePath = "..";
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -1078,7 +1078,7 @@
 		};
 		CA6A1D232E68A0A600604D6A /* SQLiteData */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */;
+			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */;
 			productName = SQLiteData;
 		};
 		CAD001862D874F1F00FA977A /* DependenciesTestSupport */ = {
@@ -1091,19 +1091,20 @@
 			package = DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */;
 			productName = DependenciesMacros;
 		};
+		DC9A3DDD2E6A280700DE41FB /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */;
+			productName = SQLiteData;
+		};
+		DC9A3DDF2E6A280F00DE41FB /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference ".." */;
+			productName = SQLiteData;
+		};
 		DCBE8A132D4842BF0071F499 /* CasePaths */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
 			productName = CasePaths;
-		};
-		DCD9AC8A2E02176700FB20F8 /* SharingGRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = SharingGRDB;
-		};
-		DCD9AC8E2E02177900FB20F8 /* SharingGRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */;
-			productName = SharingGRDB;
 		};
 		DCF267382D48437300B680BE /* SwiftUINavigation */ = {
 			isa = XCSwiftPackageProductDependency;

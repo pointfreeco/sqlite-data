@@ -20,7 +20,7 @@
       "parallelizable" : true,
       "target" : {
         "containerPath" : "container:Examples.xcodeproj",
-        "identifier" : "CA9F99472DF9134D00934431",
+        "identifier" : "CA5E46952DEBFE410069E0F8",
         "name" : "RemindersTests"
       }
     }
