@@ -10,10 +10,7 @@ import Testing
   .dependency(\.continuousClock, ImmediateClock()),
   .dependency(\.date.now, Date(timeIntervalSince1970: 1_234_567_890)),
   .dependency(\.uuid, .incrementing),
-  .dependencies {
-    $0.defaultDatabase = try Reminders.appDatabase()
-    try $0.defaultDatabase.write { try $0.seedSampleData() }
-  },
+  .dependencies { try $0.bootstrapDatabase() },
   .snapshots(record: .failed)
 )
 struct BaseTestSuite {}

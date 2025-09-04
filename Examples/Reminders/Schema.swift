@@ -108,6 +108,11 @@ extension DependencyValues {
       Tag.self,
       ReminderTag.self
     )
+    if context != .live {
+      try defaultDatabase.write { db in
+        try db.seedSampleData()
+      }
+    }
   }
 }
 

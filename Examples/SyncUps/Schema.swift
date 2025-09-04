@@ -145,13 +145,6 @@ func appDatabase() throws -> any DatabaseWriter {
   }
 
   try migrator.migrate(database)
-
-  if context == .preview {
-    try database.write { db in
-      try db.seedSampleData()
-    }
-  }
-
   return database
 }
 
