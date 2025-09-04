@@ -425,6 +425,7 @@
           let metadataCount = try SyncMetadata.count().fetchOne(db) ?? 0
           #expect(metadataCount == 0)
         }
+        try syncEngine.setUpSyncEngine()
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -505,6 +506,8 @@
           []
           """
         }
+
+        try syncEngine.setUpSyncEngine()
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

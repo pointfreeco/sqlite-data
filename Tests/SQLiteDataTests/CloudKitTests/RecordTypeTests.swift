@@ -389,6 +389,7 @@
         try await userDatabase.userRead { db in
           try #expect(RecordType.all.fetchAll(db) == [])
         }
+        try syncEngine.setUpSyncEngine()
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

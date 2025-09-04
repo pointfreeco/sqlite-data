@@ -504,8 +504,6 @@
         db.remove(function: $datetime)
       }
       try metadatabase.erase()
-      let migrator = metadatabaseMigrator()
-      try migrator.migrate(metadatabase)
     }
 
     func deleteLocalData() throws {
