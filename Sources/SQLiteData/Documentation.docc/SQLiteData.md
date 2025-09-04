@@ -284,13 +284,13 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 
 - ``Dependencies/DependencyValues/defaultDatabase``
 
-### Fetching and observing queries
+### Observing model data
 
 - ``FetchAll``
 - ``FetchOne``
 - ``Fetch``
 
-### Executing statements
+### Fetching model data
 
 - ``StructuredQueriesCore/Statement/execute(_:)``
 - ``StructuredQueriesCore/Statement/fetchAll(_:)``
@@ -298,6 +298,11 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 - ``StructuredQueriesCore/Statement/fetchCursor(_:)``
 - ``StructuredQueriesCore/SelectStatement/fetchCount(_:)``
 
-### Seeding data
+### Seeding model data
 
 - ``GRDB/Database/seed(_:)``
+
+### User-defined functions
+
+- ``GRDB/Database/add(function:)``
+- ``GRDB/Database/remove(function:)``

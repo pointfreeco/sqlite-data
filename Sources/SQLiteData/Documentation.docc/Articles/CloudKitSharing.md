@@ -473,3 +473,9 @@ shares a list with a friend, it will _not_ share the private table, allowing eac
 their own personal ordering of lists.
 
 ## Querying share metadata
+
+## Topics
+
+### Accessing share metadata
+
+- ``SharedRecord``

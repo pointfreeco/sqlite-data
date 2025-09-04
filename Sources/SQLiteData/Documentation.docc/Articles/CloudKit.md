@@ -716,6 +716,15 @@ from CloudKit.
 
 ## Topics
 
+### CloudKit synchronization
+
+- ``SyncEngine``
+- ``SyncMetadata``
+
+### Record identification
+
+- ``IdentifierStringConvertible``
+
 ### Go deeper
 
 - <doc:CloudKitSharing>
