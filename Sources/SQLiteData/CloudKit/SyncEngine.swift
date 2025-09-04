@@ -348,7 +348,7 @@
         let namesAndSchemas =
           try SQLiteSchema
           .where {
-            $0.type.eq("table")
+            $0.type.eq(#bind(.table))
               && $0.tableName.in(tables.map { $0.tableName })
           }
           .fetchAll(db)
