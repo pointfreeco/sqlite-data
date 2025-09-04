@@ -13,7 +13,7 @@
     final class CloudKitTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func setUp() throws {
-        let zones = try userDatabase.userRead { db in
+        let zones = try syncEngine.metadatabase.read { db in
           try RecordType.all.fetchAll(db)
         }
         assertInlineSnapshot(of: zones, as: .customDump) {
@@ -505,11 +505,6 @@
           []
           """
         }
-      }
-
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func migration() async throws {
-        // TODO: how to test what happens after a migration? need to assert that zones are fetched.
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -1011,7 +1006,5 @@
         #expect(modelA.isEven == true)
       }
     }
-
-    // TODO: Test what happens when we delete locally and then an edit comes in from the server
   }
 #endif
