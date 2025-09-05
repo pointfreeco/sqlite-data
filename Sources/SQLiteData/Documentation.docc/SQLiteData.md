@@ -1,10 +1,11 @@
 # ``SQLiteData``
 
-A fast, lightweight replacement for SwiftData, powered by SQL.
+A fast, lightweight replacement for SwiftData, powered by SQL and supporting CloudKit 
+synchronization.
 
 ## Overview
 
-SQLiteData is a [fast](#Performance), lightweight replacement for SwiftData, including CloudKit
+SQLiteData is a [fast](#Performance), lightweight replacement for SwiftData, supporting CloudKit
 synchronization (and even CloudKit sharing), that deploys all the way back to the iOS 13 generation
 of targets.
 

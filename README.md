@@ -1,6 +1,7 @@
 # SQLiteData
 
-A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL.
+A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL and supporting 
+CloudKit synchronization.
 
 [![CI](https://github.com/pointfreeco/sqlite-data/actions/workflows/ci.yml/badge.svg)](https://github.com/pointfreeco/sqlite-data/actions/workflows/ci.yml)
 [![Slack](https://img.shields.io/badge/slack-chat-informational.svg?label=Slack&logo=slack)](https://www.pointfree.co/slack-invite)
