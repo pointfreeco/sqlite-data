@@ -208,27 +208,27 @@
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
           assertInlineSnapshot(of: container, as: .customDump) {
-              """
-              MockCloudContainer(
-                privateCloudDatabase: MockCloudDatabase(
-                  databaseScope: .private,
-                  storage: [
-                    [0]: CKRecord(
-                      recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                      recordType: "remindersLists",
-                      parent: nil,
-                      share: nil,
-                      id: 1,
-                      title: "Personal!"
-                    )
-                  ]
-                ),
-                sharedCloudDatabase: MockCloudDatabase(
-                  databaseScope: .shared,
-                  storage: []
-                )
+            """
+            MockCloudContainer(
+              privateCloudDatabase: MockCloudDatabase(
+                databaseScope: .private,
+                storage: [
+                  [0]: CKRecord(
+                    recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                    recordType: "remindersLists",
+                    parent: nil,
+                    share: nil,
+                    id: 1,
+                    title: "Personal!"
+                  )
+                ]
+              ),
+              sharedCloudDatabase: MockCloudDatabase(
+                databaseScope: .shared,
+                storage: []
               )
-              """
+            )
+            """
           }
           assertQuery(PendingRecordZoneChange.all, database: syncEngine.metadatabase)
         }
@@ -413,7 +413,7 @@
             """
           }
         }
-      
+
         // * Start with sync engine off
         // * Write a few rows
         // * Verify sync metadata is created.

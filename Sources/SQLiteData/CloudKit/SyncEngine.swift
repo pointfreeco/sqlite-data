@@ -247,7 +247,7 @@
             !hasSchemaChanges,
             """
             A previously run migration has been removed or edited.
-            
+
             Metadatabase migrations must not be modified after release.
             """
           )

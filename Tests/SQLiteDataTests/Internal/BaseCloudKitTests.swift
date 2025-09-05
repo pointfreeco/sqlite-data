@@ -73,8 +73,7 @@ class BaseCloudKitTests: @unchecked Sendable {
       ],
       startImmediately: _StartImmediatelyTrait.startImmediately
     )
-    if
-      _StartImmediatelyTrait.startImmediately,
+    if _StartImmediatelyTrait.startImmediately,
       _AccountStatusScope.accountStatus == .available
     {
       await syncEngine.handleEvent(
