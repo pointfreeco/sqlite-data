@@ -434,13 +434,11 @@
 
       try await userDatabase.write { db in
         try PendingRecordZoneChange.delete().execute(db)
-      }
 
-      let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
-        previousRecordTypeByTableName[tableName] == nil
-      }
+        let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
+          previousRecordTypeByTableName[tableName] == nil
+        }
 
-      try await userDatabase.write { db in
         try Self.$_isSynchronizingChanges.withValue(false) {
           for tableName in newTableNames {
             try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
@@ -987,15 +985,6 @@
       switch changeType {
       case .signIn:
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await userDatabase.write { db in
-            try Self.$_isSynchronizingChanges.withValue(false) {
-              for table in self.tables {
-                try self.uploadRecordsToCloudKit(table: table, db: db)
-              }
-            }
-          }
-        }
       case .signOut, .switchAccounts:
         withErrorReporting(.sqliteDataCloudKitFailure) {
           try deleteLocalData()

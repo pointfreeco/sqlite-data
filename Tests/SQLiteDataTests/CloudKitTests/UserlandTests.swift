@@ -6,7 +6,10 @@
   @Suite struct UserlandTests {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func basics() async throws {
-      let database = try SQLiteDataTests.database(containerIdentifier: "tests")
+      let database = try SQLiteDataTests.database(
+        containerIdentifier: "tests",
+        attachMetadatabase: false
+      )
       let syncEngine = try SyncEngine(
         for: database,
         tables: ModelA.self,

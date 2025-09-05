@@ -413,17 +413,7 @@
             """
           }
         }
-      }
-
-      @MainActor
-      final class SyncEngineLifecycleTests_ImmediatelyStopped: BaseCloudKitTests, @unchecked
-        Sendable
-      {
-        @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-        init() async throws {
-          try await super.init(startImmediately: false)
-        }
-
+      
         // * Start with sync engine off
         // * Write a few rows
         // * Verify sync metadata is created.
@@ -431,7 +421,7 @@
         // * Start sync engine
         // * Verify that data is sent to CloudKit database and cached locally.
         @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-        @Test func writeAndThenStart() async throws {
+        @Test(.startImmediately(false)) func writeAndThenStart() async throws {
           try await userDatabase.userWrite { db in
             try db.seed {
               RemindersList(id: 1, title: "Personal")

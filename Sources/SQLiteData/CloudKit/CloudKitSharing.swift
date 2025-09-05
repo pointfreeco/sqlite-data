@@ -289,8 +289,10 @@
       }
 
       public func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
-        withErrorReporting(.sqliteDataCloudKitFailure) {
-          try syncEngine.deleteShare(recordID: share.recordID)
+        Task {
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await syncEngine.deleteShare(recordID: share.recordID)
+          }
         }
         didStopSharing()
       }

@@ -10,21 +10,17 @@
 
   extension BaseCloudKitTests {
     @MainActor
-    final class NewTableSyncTests: BaseCloudKitTests, @unchecked Sendable {
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      init() async throws {
-        try await super.init(
-          setUpUserDatabase: { userDatabase in
-            try await userDatabase.userWrite { db in
-              try db.seed {
-                RemindersList(id: 1, title: "Personal")
-                Reminder(id: 1, title: "Write blog post", remindersListID: 1)
-              }
-            }
+    @Suite(
+      .prepareDatabase { userDatabase in
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            Reminder(id: 1, title: "Write blog post", remindersListID: 1)
           }
-        )
+        }
       }
-
+    )
+    final class NewTableSyncTests: BaseCloudKitTests, @unchecked Sendable {
       // * Create records before sync engine starts
       // => Records are sent to CloudKit
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
