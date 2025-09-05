@@ -403,7 +403,7 @@
     }
 
     private func cacheUserTables(recordTypes: [RecordType]) async throws {
-      try await metadatabase.write { db in
+      try await userDatabase.write { db in
         try RecordType
           .upsert { recordTypes.map { RecordType.Draft($0) } }
           .execute(db)
@@ -432,7 +432,7 @@
         $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
       }
 
-      try await metadatabase.write { db in
+      try await userDatabase.write { db in
         try PendingRecordZoneChange.delete().execute(db)
       }
 
@@ -550,7 +550,7 @@
       guard isRunning else {
         Task {
           await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await metadatabase.write { db in
+            try await userDatabase.write { db in
               try PendingRecordZoneChange
                 .insert { PendingRecordZoneChange(change) }
                 .execute(db)
@@ -587,7 +587,7 @@
       guard isRunning else {
         Task { [changes] in
           await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await metadatabase.write { db in
+            try await userDatabase.write { db in
               try PendingRecordZoneChange
                 .insert { changes.map { PendingRecordZoneChange($0) } }
                 .execute(db)
@@ -671,7 +671,7 @@
       case .accountChange(let changeType):
         await handleAccountChange(changeType: changeType, syncEngine: syncEngine)
       case .stateUpdate(let stateSerialization):
-        handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
+        await handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
       case .fetchedDatabaseChanges(let modifications, let deletions):
         await handleFetchedDatabaseChanges(
           modifications: modifications,
@@ -966,7 +966,7 @@
       }
 
       await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await metadatabase.write { db in
+        try await userDatabase.write { db in
           try SyncMetadata
             .where { $0.recordName.in(deletedRecordNames) }
             .delete()
@@ -989,8 +989,11 @@
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.write { db in
-            for table in self.tables {
-              try self.uploadRecordsToCloudKit(table: table, db: db)
+            // TODO: write a test for this
+            try Self.$_isSynchronizingChanges.withValue(false) {
+              for table in self.tables {
+                try self.uploadRecordsToCloudKit(table: table, db: db)
+              }
             }
           }
         }
@@ -1006,9 +1009,9 @@
     package func handleStateUpdate(
       stateSerialization: CKSyncEngine.State.Serialization,
       syncEngine: any SyncEngineProtocol
-    ) {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.write { db in
+    ) async {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await userDatabase.write { db in
           try StateSerialization.upsert {
             StateSerialization.Draft(
               scope: syncEngine.database.databaseScope,
@@ -1136,8 +1139,8 @@
           open(table)
         } else if recordType == CKRecord.SystemType.share {
           for recordID in recordIDs {
-            withErrorReporting(.sqliteDataCloudKitFailure) {
-              try deleteShare(recordID: recordID)
+            await withErrorReporting(.sqliteDataCloudKitFailure) {
+              try await deleteShare(recordID: recordID)
             }
           }
         } else {
@@ -1249,9 +1252,9 @@
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
       for (failedRecord, error) in failedRecordSaves {
-        func clearServerRecord() {
-          withErrorReporting(.sqliteDataCloudKitFailure) {
-            try userDatabase.write { db in
+        func clearServerRecord() async {
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await userDatabase.write { db in
               try SyncMetadata
                 .where { $0.recordName.eq(failedRecord.recordID.recordName) }
                 .update { $0.setLastKnownServerRecord(nil) }
@@ -1270,14 +1273,14 @@
           let zone = CKRecordZone(zoneID: failedRecord.recordID.zoneID)
           newPendingDatabaseChanges.append(.saveZone(zone))
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
-          clearServerRecord()
+          await clearServerRecord()
 
         case .unknownItem:
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
-          clearServerRecord()
+          await clearServerRecord()
 
         case .serverRejectedRequest:
-          clearServerRecord()
+          await clearServerRecord()
 
         case .referenceViolation:
           guard
@@ -1286,8 +1289,8 @@
             foreignKeysByTableName[table.tableName]?.count == 1,
             let foreignKey = foreignKeysByTableName[table.tableName]?.first
           else { continue }
-          func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-            try userDatabase.write { db in
+          func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
+            try await userDatabase.write { db in
               try Self.$_isSynchronizingChanges.withValue(false) {
                 switch foreignKey.onDelete {
                 case .cascade:
@@ -1333,8 +1336,8 @@
               }
             }
           }
-          withErrorReporting(.sqliteDataCloudKitFailure) {
-            try open(table)
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await open(table)
           }
 
         case .permissionFailure:
@@ -1411,8 +1414,8 @@
       }
     }
 
-    func deleteShare(recordID: CKRecord.ID) throws {
-      try userDatabase.write { db in
+    func deleteShare(recordID: CKRecord.ID) async throws {
+      try await userDatabase.write { db in
         let shareAndRecordName =
           try SyncMetadata
           .where(\.isShared)
@@ -1522,9 +1525,9 @@
     private func refreshLastKnownServerRecord(_ record: CKRecord) async {
       let metadata = await metadataFor(recordName: record.recordID.recordName)
 
-      func updateLastKnownServerRecord() {
-        withErrorReporting(.sqliteDataCloudKitFailure) {
-          try userDatabase.write { db in
+      func updateLastKnownServerRecord() async {
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await userDatabase.write { db in
             try SyncMetadata
               .where { $0.recordName.eq(record.recordID.recordName) }
               .update { $0.setLastKnownServerRecord(record) }
@@ -1535,10 +1538,10 @@
 
       if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
         if let recordDate = record.modificationDate, lastKnownDate < recordDate {
-          updateLastKnownServerRecord()
+          await updateLastKnownServerRecord()
         }
       } else {
-        updateLastKnownServerRecord()
+        await updateLastKnownServerRecord()
       }
     }
 

@@ -29,7 +29,7 @@
             }
           }
 
-          try await Task.sleep(for: .seconds(0.5))
+          try await Task.sleep(for: .seconds(1))
 
           assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
             """
@@ -330,6 +330,7 @@
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).delete().execute(db)
           }
+          try await Task.sleep(for: .seconds(1))
 
           try await syncEngine.start()
           try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
@@ -437,7 +438,7 @@
               Reminder(id: 1, title: "Get milk", remindersListID: 1)
             }
           }
-          try await Task.sleep(for: .seconds(0.1))
+          try await Task.sleep(for: .seconds(1))
 
           assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
             """
