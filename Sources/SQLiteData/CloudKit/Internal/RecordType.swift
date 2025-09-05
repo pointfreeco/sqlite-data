@@ -1,7 +1,7 @@
 import CustomDump
 
 @Table("sqlitedata_icloud_recordTypes")
-package struct RecordType: Hashable, Sendable {
+package struct RecordType: Hashable {
   @Column(primaryKey: true)
   package let tableName: String
   package let schema: String
