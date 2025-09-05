@@ -6,6 +6,7 @@
   import SQLiteData
   import SnapshotTestingCustomDump
   import Testing
+  import SQLiteDataTestSupport
 
   extension BaseCloudKitTests {
     @MainActor
@@ -124,6 +125,21 @@
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func doNotUploadExistingDataToCloudKitWhenSignedOut() {
+        assertQuery(SyncMetadata.all, database: userDatabase.database)
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
       }
     }
   }
