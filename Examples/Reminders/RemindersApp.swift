@@ -36,7 +36,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    return true
+    true
   }
 
   func application(

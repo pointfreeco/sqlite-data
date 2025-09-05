@@ -113,6 +113,7 @@ extension DependencyValues {
 
 func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
+  let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
   configuration.prepareDatabase { db in
@@ -127,17 +128,21 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     #endif
   }
-  let path =
-    context == .live
-    ? URL.documentsDirectory.appending(component: "db.sqlite").path()
-    : URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
-  let database = try DatabasePool(path: path, configuration: configuration)
-  logger.debug(
-    """
-    App database:
-    open "\(path)"
-    """
-  )
+  if context == .preview {
+    database = try DatabaseQueue(configuration: configuration)
+  } else {
+    let path =
+      context == .live
+      ? URL.documentsDirectory.appending(component: "db.sqlite").path()
+      : URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
+    logger.debug(
+      """
+      App database:
+      open "\(path)"
+      """
+    )
+    database = try DatabasePool(path: path, configuration: configuration)
+  }
   var migrator = DatabaseMigrator()
   #if DEBUG
     migrator.eraseDatabaseOnSchemaChange = true
