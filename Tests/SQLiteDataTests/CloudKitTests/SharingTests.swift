@@ -1,6 +1,7 @@
 #if canImport(CloudKit)
   import CloudKit
   import CustomDump
+  import SQLiteDataTestSupport
   import Foundation
   import GRDB
   import InlineSnapshotTesting
@@ -283,45 +284,42 @@
           """
         }
 
-        let metadata = try await userDatabase.read { db in
-          try SyncMetadata.order(by: \.recordName).fetchAll(db)
-        }
-        assertInlineSnapshot(of: metadata, as: .customDump) {
+        assertQuery(SyncMetadata.order(by: \.recordName), database: syncEngine.metadatabase) {
           """
-          [
-            [0]: SyncMetadata(
-              recordPrimaryKey: "1",
-              recordType: "remindersLists",
-              recordName: "1:remindersLists",
-              parentRecordPrimaryKey: nil,
-              parentRecordType: nil,
-              parentRecordName: nil,
-              lastKnownServerRecord: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-                recordType: "remindersLists",
-                parent: nil,
-                share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner))
-              ),
-              _lastKnownServerRecordAllFields: CKRecord(
-                recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-                recordType: "remindersLists",
-                parent: nil,
-                share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
-                id: 1,
-                isCompleted: 0,
-                title: "Personal"
-              ),
-              share: CKRecord(
-                recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
-                recordType: "cloudkit.share",
-                parent: nil,
-                share: nil
-              ),
-              _isDeleted: false,
-              isShared: true,
-              userModificationDate: Date(1970-01-01T00:00:00.000Z)
-            )
-          ]
+          ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                                                       │
+          │   recordPrimaryKey: "1",                                                                            │
+          │   recordType: "remindersLists",                                                                     │
+          │   recordName: "1:remindersLists",                                                                   │
+          │   parentRecordPrimaryKey: nil,                                                                      │
+          │   parentRecordType: nil,                                                                            │
+          │   parentRecordName: nil,                                                                            │
+          │   lastKnownServerRecord: CKRecord(                                                                  │
+          │     recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),                           │
+          │     recordType: "remindersLists",                                                                   │
+          │     parent: nil,                                                                                    │
+          │     share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner))  │
+          │   ),                                                                                                │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                                        │
+          │     recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),                           │
+          │     recordType: "remindersLists",                                                                   │
+          │     parent: nil,                                                                                    │
+          │     share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)), │
+          │     id: 1,                                                                                          │
+          │     isCompleted: 0,                                                                                 │
+          │     title: "Personal"                                                                               │
+          │   ),                                                                                                │
+          │   share: CKRecord(                                                                                  │
+          │     recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),                     │
+          │     recordType: "cloudkit.share",                                                                   │
+          │     parent: nil,                                                                                    │
+          │     share: nil                                                                                      │
+          │   ),                                                                                                │
+          │   _isDeleted: false,                                                                                │
+          │   isShared: true,                                                                                   │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                              │
+          │ )                                                                                                   │
+          └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
           """
         }
       }
@@ -474,15 +472,19 @@
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        let sharedRecord = try await syncEngine.share(record: remindersList, configure: { _ in })
+        let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
 
-        try await userDatabase.read { db in
-          let metadata = try #require(
-            try SyncMetadata
-              .where { $0.recordPrimaryKey.eq("1") }
-              .fetchOne(db)
-          )
-          #expect(metadata.share?.recordID == sharedRecord.share.recordID)
+        assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────────────────────────────────────────────────────┐
+          │ CKRecord(                                                              │
+          │   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__), │
+          │   recordType: "cloudkit.share",                                        │
+          │   parent: nil,                                                         │
+          │   share: nil                                                           │
+          │ )                                                                      │
+          └────────────────────────────────────────────────────────────────────────┘
+          """
         }
 
         assertInlineSnapshot(of: container, as: .customDump) {
@@ -635,18 +637,17 @@
             )
           )
 
-        try await userDatabase.read { db in
-          let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
-          let metadata = try #require(
-            try SyncMetadata
-              .where { $0.recordName.eq(remindersListRecord.recordID.recordName) }
-              .fetchOne(db)
-          )
-          #expect(remindersList.title == "Personal")
-          #expect(
-            metadata.share?.recordID.recordName
-              == "share-\(remindersListRecord.recordID.recordName)"
-          )
+        assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase) {
+          """
+          ┌───────────────────────────────────────────────────────────────────────────────┐
+          │ CKRecord(                                                                     │
+          │   recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner), │
+          │   recordType: "cloudkit.share",                                               │
+          │   parent: nil,                                                                │
+          │   share: nil                                                                  │
+          │ )                                                                             │
+          └───────────────────────────────────────────────────────────────────────────────┘
+          """
         }
 
         assertInlineSnapshot(of: container, as: .customDump) {
@@ -722,13 +723,16 @@
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
-        try await userDatabase.read { db in
-          let metadata = try #require(
-            try SyncMetadata
-              .where { $0.recordName.eq("1:reminders") }
-              .fetchOne(db)
-          )
-          #expect(metadata.parentRecordName == "1:remindersLists")
+        assertQuery(
+          SyncMetadata.select { ($0.recordName, $0.parentRecordName) },
+          database: syncEngine.metadatabase
+        ) {
+          """
+          ┌────────────────────┬────────────────────┐
+          │ "1:remindersLists" │ nil                │
+          │ "1:reminders"      │ "1:remindersLists" │
+          └────────────────────┴────────────────────┘
+          """
         }
 
         assertInlineSnapshot(of: container, as: .customDump) {
@@ -859,13 +863,12 @@
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
-        try await userDatabase.read { db in
-          let share =
-            try SyncMetadata
-            .where { $0.recordName.eq(remindersListRecord.recordID.recordName) }
-            .select(\.share)
-            .fetchOne(db)
-          #expect(share == .none)
+        assertQuery(
+          SyncMetadata.select { ($0.recordName, $0.share) },
+          database: syncEngine.metadatabase
+        ) {
+          """
+          """
         }
 
         assertInlineSnapshot(of: container, as: .customDump) {

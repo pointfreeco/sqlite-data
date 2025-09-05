@@ -12,7 +12,7 @@
     @MainActor
     final class MockCloudDatabaseTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      init() async throws {
+      override init() async throws {
         try await super.init()
         let (saveZoneResults, _) = try syncEngine.private.database.modifyRecordZones(
           saving: [

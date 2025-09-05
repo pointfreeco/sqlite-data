@@ -258,7 +258,14 @@
       #if DEBUG
         try metadatabase.read { db in
           let hasSchemaChanges = try migrator.hasSchemaChanges(db)
-          assert(!hasSchemaChanges, "Metadatabase migrations must not be modified after release")
+          assert(
+            !hasSchemaChanges,
+            """
+            A previously run migration has been removed or edited.
+
+            Metadatabase migrations must not be modified after release.
+            """
+          )
         }
       #endif
       try migrator.migrate(metadatabase)
@@ -347,9 +354,9 @@
 
     private func start() throws -> Task<Void, Never> {
       guard !isRunning else { return Task {} }
-      let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
         syncEngines.withValue {
+          let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
           $0 = SyncEngines(
             private: privateSyncEngine,
             shared: sharedSyncEngine
@@ -452,13 +459,11 @@
 
       try await userDatabase.write { db in
         try PendingRecordZoneChange.delete().execute(db)
-      }
 
-      let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
-        previousRecordTypeByTableName[tableName] == nil
-      }
+        let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
+          previousRecordTypeByTableName[tableName] == nil
+        }
 
-      try await userDatabase.write { db in
         try Self.$_isSynchronizingChanges.withValue(false) {
           for tableName in newTableNames {
             try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
@@ -689,7 +694,7 @@
       case .accountChange(let changeType):
         await handleAccountChange(changeType: changeType, syncEngine: syncEngine)
       case .stateUpdate(let stateSerialization):
-        handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
+        await handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
       case .fetchedDatabaseChanges(let modifications, let deletions):
         await handleFetchedDatabaseChanges(
           modifications: modifications,
@@ -1005,13 +1010,6 @@
       switch changeType {
       case .signIn:
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await userDatabase.write { db in
-            for table in self.tables {
-              try self.uploadRecordsToCloudKit(table: table, db: db)
-            }
-          }
-        }
       case .signOut, .switchAccounts:
         withErrorReporting(.sqliteDataCloudKitFailure) {
           try deleteLocalData()
@@ -1024,9 +1022,9 @@
     package func handleStateUpdate(
       stateSerialization: CKSyncEngine.State.Serialization,
       syncEngine: any SyncEngineProtocol
-    ) {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.write { db in
+    ) async {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await userDatabase.write { db in
           try StateSerialization.upsert {
             StateSerialization.Draft(
               scope: syncEngine.database.databaseScope,
@@ -1154,8 +1152,8 @@
           open(table)
         } else if recordType == CKRecord.SystemType.share {
           for recordID in recordIDs {
-            withErrorReporting(.sqliteDataCloudKitFailure) {
-              try deleteShare(recordID: recordID)
+            await withErrorReporting(.sqliteDataCloudKitFailure) {
+              try await deleteShare(recordID: recordID)
             }
           }
         } else {
@@ -1267,9 +1265,9 @@
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
       for (failedRecord, error) in failedRecordSaves {
-        func clearServerRecord() {
-          withErrorReporting(.sqliteDataCloudKitFailure) {
-            try userDatabase.write { db in
+        func clearServerRecord() async {
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await userDatabase.write { db in
               try SyncMetadata
                 .where { $0.recordName.eq(failedRecord.recordID.recordName) }
                 .update { $0.setLastKnownServerRecord(nil) }
@@ -1288,14 +1286,14 @@
           let zone = CKRecordZone(zoneID: failedRecord.recordID.zoneID)
           newPendingDatabaseChanges.append(.saveZone(zone))
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
-          clearServerRecord()
+          await clearServerRecord()
 
         case .unknownItem:
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
-          clearServerRecord()
+          await clearServerRecord()
 
         case .serverRejectedRequest:
-          clearServerRecord()
+          await clearServerRecord()
 
         case .referenceViolation:
           guard
@@ -1304,8 +1302,8 @@
             foreignKeysByTableName[table.tableName]?.count == 1,
             let foreignKey = foreignKeysByTableName[table.tableName]?.first
           else { continue }
-          func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-            try userDatabase.write { db in
+          func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
+            try await userDatabase.write { db in
               try Self.$_isSynchronizingChanges.withValue(false) {
                 switch foreignKey.onDelete {
                 case .cascade:
@@ -1351,8 +1349,8 @@
               }
             }
           }
-          withErrorReporting(.sqliteDataCloudKitFailure) {
-            try open(table)
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await open(table)
           }
 
         case .permissionFailure:
@@ -1429,8 +1427,8 @@
       }
     }
 
-    func deleteShare(recordID: CKRecord.ID) throws {
-      try userDatabase.write { db in
+    func deleteShare(recordID: CKRecord.ID) async throws {
+      try await userDatabase.write { db in
         let shareAndRecordName =
           try SyncMetadata
           .where(\.isShared)
@@ -1540,9 +1538,9 @@
     private func refreshLastKnownServerRecord(_ record: CKRecord) async {
       let metadata = await metadataFor(recordName: record.recordID.recordName)
 
-      func updateLastKnownServerRecord() {
-        withErrorReporting(.sqliteDataCloudKitFailure) {
-          try userDatabase.write { db in
+      func updateLastKnownServerRecord() async {
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await userDatabase.write { db in
             try SyncMetadata
               .where { $0.recordName.eq(record.recordID.recordName) }
               .update { $0.setLastKnownServerRecord(record) }
@@ -1553,10 +1551,10 @@
 
       if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
         if let recordDate = record.modificationDate, lastKnownDate < recordDate {
-          updateLastKnownServerRecord()
+          await updateLastKnownServerRecord()
         }
       } else {
-        updateLastKnownServerRecord()
+        await updateLastKnownServerRecord()
       }
     }
 
@@ -1807,8 +1805,9 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
-    struct SchemaError: LocalizedError {
-      enum Reason {
+    package struct SchemaError: LocalizedError {
+      package enum Reason {
+        case cycleDetected
         case inMemoryDatabase
         case invalidForeignKey(ForeignKey)
         case invalidForeignKeyAction(ForeignKey)
@@ -1819,10 +1818,10 @@
         case unknown
         case uniquenessConstraint
       }
-      let reason: Reason
-      let debugDescription: String
+      package let reason: Reason
+      package let debugDescription: String
 
-      var errorDescription: String? {
+      package var errorDescription: String? {
         "Could not synchronize data with iCloud."
       }
     }
@@ -1936,8 +1935,12 @@
       else { return }
       guard !marked.contains(table)
       else {
-        struct CycleError: Error {}
-        throw CycleError()
+        throw SyncEngine.SchemaError(
+          reason: .cycleDetected,
+          debugDescription: """
+            Cycles are not currently permitted in schemas, e.g. a table that references itself.
+            """
+        )
       }
 
       marked.insert(table)

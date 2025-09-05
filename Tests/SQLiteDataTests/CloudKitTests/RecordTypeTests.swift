@@ -12,7 +12,7 @@
     final class RecordTypeTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func setUp() async throws {
-        let recordTypes = try await userDatabase.userRead { db in
+        let recordTypes = try await syncEngine.metadatabase.read { db in
           try RecordType.all.fetchAll(db)
         }
         assertInlineSnapshot(of: recordTypes, as: .customDump) {
@@ -393,15 +393,15 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func resetUp() async throws {
-        let recordTypes = try await userDatabase.userRead { db in
+      @Test func reSetUp() async throws {
+        let recordTypes = try await syncEngine.metadatabase.read { db in
           try RecordType.all.fetchAll(db)
         }
         syncEngine.stop()
         try syncEngine.tearDownSyncEngine()
         try syncEngine.setUpSyncEngine()
         try await syncEngine.start()
-        let recordTypesAfterReSetup = try await userDatabase.userRead { db in
+        let recordTypesAfterReSetup = try await syncEngine.metadatabase.read { db in
           try RecordType.all.fetchAll(db)
         }
         expectNoDifference(recordTypes, recordTypesAfterReSetup)
@@ -409,7 +409,7 @@
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func migration() async throws {
-        let recordTypes = try await userDatabase.userRead { db in
+        let recordTypes = try await syncEngine.metadatabase.read { db in
           try RecordType.order(by: \.tableName).fetchAll(db)
         }
         syncEngine.stop()
@@ -425,7 +425,7 @@
         try syncEngine.setUpSyncEngine()
         try await syncEngine.start()
 
-        let recordTypesAfterMigration = try await userDatabase.userRead { db in
+        let recordTypesAfterMigration = try await syncEngine.metadatabase.read { db in
           try RecordType.order(by: \.tableName).fetchAll(db)
         }
         let remindersTableIndex = try #require(

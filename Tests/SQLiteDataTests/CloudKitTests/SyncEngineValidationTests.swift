@@ -323,6 +323,53 @@
           """
         }
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func cycleValidation() async throws {
+        let error = try #require(
+          await #expect(throws: (any Error).self) {
+            let database = try DatabaseQueue()
+            try await database.write { db in
+              try #sql(
+                """
+                CREATE TABLE "recursiveTables" (
+                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                  "parentID" INTEGER REFERENCES "recursiveTables"("id")
+                ) STRICT
+                """
+              )
+              .execute(db)
+            }
+            _ = try await SyncEngine(
+              container: MockCloudContainer(
+                containerIdentifier: "deadbeef",
+                privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+                sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+              ),
+              userDatabase: UserDatabase(database: database),
+              tables: [RecursiveTable.self]
+            )
+          }
+        )
+        assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
+          """
+          "Could not synchronize data with iCloud."
+          """
+        }
+        assertInlineSnapshot(of: error, as: .customDump) {
+          """
+          SyncEngine.SchemaError(
+            reason: .cycleDetected,
+            debugDescription: "Cycles are not currently permitted in schemas, e.g. a table that references itself."
+          )
+          """
+        }
+      }
     }
+  }
+
+  @Table struct RecursiveTable: Identifiable {
+    let id: Int
+    let parentID: RecursiveTable.ID?
   }
 #endif

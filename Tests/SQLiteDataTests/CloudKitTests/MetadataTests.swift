@@ -1,6 +1,7 @@
 #if canImport(CloudKit)
   import CloudKit
   import CustomDump
+  import SQLiteDataTestSupport
   import Foundation
   import InlineSnapshotTesting
   import OrderedCollections
@@ -12,7 +13,7 @@
     @MainActor
     final class MetadataTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func parentRecordName() async throws {
+      @Test func parentRecordNameUpdatesAfterMovingReminderToDifferentList() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")
@@ -22,76 +23,45 @@
         }
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
-                  recordType: "reminders",
-                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
-                  share: nil,
-                  id: 1,
-                  isCompleted: 0,
-                  remindersListID: 1,
-                  title: "Groceries"
-                ),
-                [1]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: nil,
-                  id: 1,
-                  title: "Personal"
-                ),
-                [2]: CKRecord(
-                  recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: nil,
-                  id: 2,
-                  title: "Work"
-                )
-              ]
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
-          )
-          """
-        }
-
-        try await userDatabase.userRead { db in
-          let reminderMetadata = try #require(
-            try SyncMetadata
-              .where { $0.recordName.eq(Reminder.recordName(for: 1)) }
-              .fetchOne(db)
-          )
-          #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
-        }
 
         try withDependencies {
           $0.datetime.now.addTimeInterval(60)
         } operation: {
-          _ = try {
-            try userDatabase.userWrite { db in
-              try Reminder.find(1)
-                .update { $0.remindersListID = 2 }
-                .execute(db)
-              let reminderMetadata = try #require(
-                try SyncMetadata
-                  .where { $0.recordName.eq(Reminder.recordName(for: 1)) }
-                  .fetchOne(db)
-              )
-              #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 2))
-            }
-          }()
+          try userDatabase.userWrite { db in
+            try Reminder.find(1)
+              .update { $0.remindersListID = 2 }
+              .execute(db)
+          }
         }
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          ┌───────────────────────┐
+          │ Reminder(             │
+          │   id: 1,              │
+          │   dueDate: nil,       │
+          │   isCompleted: false, │
+          │   priority: nil,      │
+          │   title: "Groceries", │
+          │   remindersListID: 2  │
+          │ )                     │
+          └───────────────────────┘
+          """
+        }
+        assertQuery(
+          SyncMetadata.select { ($0.recordName, $0.parentRecordName) },
+          database: syncEngine.metadatabase
+        ) {
+          """
+          ┌────────────────────┬────────────────────┐
+          │ "1:remindersLists" │ nil                │
+          │ "2:remindersLists" │ nil                │
+          │ "1:reminders"      │ "2:remindersLists" │
+          └────────────────────┴────────────────────┘
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -135,6 +105,7 @@
         }
       }
 
+      // 'parent' association is not set on CKRecord for records with multiple foreign keys.
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func noParentRecordForRecordsWithMultipleForeignKeys() async throws {
         try await userDatabase.userWrite { db in
@@ -197,95 +168,324 @@
           """
         }
 
-        let parentRecordNames = try await userDatabase.userRead { db in
-          try SyncMetadata
-            .where { $0.recordType != Reminder.tableName }
-            .select(\.parentRecordName)
-            .fetchAll(db)
+        assertQuery(
+          SyncMetadata.order(by: \.recordName).select { ($0.recordName, $0.parentRecordName) },
+          database: syncEngine.metadatabase
+        ) {
+          """
+          ┌────────────────────┬────────────────────┐
+          │ "1:reminderTags"   │ nil                │
+          │ "1:reminders"      │ "1:remindersLists" │
+          │ "1:remindersLists" │ nil                │
+          │ "weekend:tags"     │ nil                │
+          └────────────────────┴────────────────────┘
+          """
         }
-        #expect(parentRecordNames.allSatisfy { $0 == nil })
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func recordType() async throws {
+      @Test func metadataFields() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")
-            Reminder(id: 2, title: "Groceries", remindersListID: 1)
-            Reminder(id: 3, title: "Groceries", remindersListID: 1)
-            Reminder(id: 4, title: "Groceries", remindersListID: 1)
+            RemindersList(id: 2, title: "Business")
+            Reminder(id: 1, title: "Groceries", remindersListID: 1)
+            Reminder(id: 2, title: "Take a walk", remindersListID: 1)
+            Reminder(id: 3, title: "Call accountant", remindersListID: 2)
+            Tag(title: "weekend")
+            Tag(title: "optional")
+            ReminderTag(id: 1, reminderID: 1, tagID: "weekend")
+            ReminderTag(id: 2, reminderID: 2, tagID: "weekend")
+            ReminderTag(id: 3, reminderID: 3, tagID: "optional")
           }
         }
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        let reminderMetadata = try await userDatabase.userRead { db in
-          try SyncMetadata
-            .where { $0.recordType == Reminder.tableName }
-            .fetchAll(db)
-        }
-        #expect(
-          reminderMetadata.map(\.recordName) == [
-            Reminder.recordName(for: 2),
-            Reminder.recordName(for: 3),
-            Reminder.recordName(for: 4),
-          ]
-        )
-      }
-
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func parentRecordType() async throws {
-        try await userDatabase.userWrite { db in
-          try db.seed {
-            RemindersList(id: 1, title: "Personal")
-            Reminder(id: 2, title: "Groceries", remindersListID: 1)
-            Reminder(id: 3, title: "Groceries", remindersListID: 1)
-            Reminder(id: 4, title: "Groceries", remindersListID: 1)
-          }
-        }
-
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-
-        try await userDatabase.userRead { db in
-          let reminderMetadata =
-            try SyncMetadata
-            .where { $0.parentRecordType == RemindersList.tableName }
-            .fetchAll(db)
-          #expect(
-            reminderMetadata.map(\.recordName) == [
-              Reminder.recordName(for: 2),
-              Reminder.recordName(for: 3),
-              Reminder.recordName(for: 4),
-            ]
-          )
-        }
-      }
-
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func parentRecordPrimaryKey() async throws {
-        try await userDatabase.userWrite { db in
-          try db.seed {
-            RemindersList(id: 1, title: "Personal")
-            Reminder(id: 2, title: "Groceries", remindersListID: 1)
-            Reminder(id: 3, title: "Groceries", remindersListID: 1)
-            Reminder(id: 4, title: "Groceries", remindersListID: 1)
-          }
-        }
-
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-
-        try await userDatabase.userRead { db in
-          let reminderMetadata =
-            try SyncMetadata
-            .where { $0.parentRecordPrimaryKey.eq("1") }
-            .fetchAll(db)
-          #expect(
-            reminderMetadata.map(\.recordName) == [
-              Reminder.recordName(for: 2),
-              Reminder.recordName(for: 3),
-              Reminder.recordName(for: 4),
-            ]
-          )
+        assertQuery(
+          SyncMetadata.order(by: \.recordName),
+          database: syncEngine.metadatabase
+        ) {
+          """
+          ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "1",                                                                │
+          │   recordType: "reminderTags",                                                           │
+          │   recordName: "1:reminderTags",                                                         │
+          │   parentRecordPrimaryKey: nil,                                                          │
+          │   parentRecordType: nil,                                                                │
+          │   parentRecordName: nil,                                                                │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(1:reminderTags/zone/__defaultOwner__),                        │
+          │     recordType: "reminderTags",                                                         │
+          │     parent: nil,                                                                        │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(1:reminderTags/zone/__defaultOwner__),                        │
+          │     recordType: "reminderTags",                                                         │
+          │     parent: nil,                                                                        │
+          │     share: nil,                                                                         │
+          │     id: 1,                                                                              │
+          │     reminderID: 1,                                                                      │
+          │     tagID: "weekend"                                                                    │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │ )                                                                                       │
+          ├─────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "1",                                                                │
+          │   recordType: "reminders",                                                              │
+          │   recordName: "1:reminders",                                                            │
+          │   parentRecordPrimaryKey: "1",                                                          │
+          │   parentRecordType: "remindersLists",                                                   │
+          │   parentRecordName: "1:remindersLists",                                                 │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),                           │
+          │     recordType: "reminders",                                                            │
+          │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)), │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),                           │
+          │     recordType: "reminders",                                                            │
+          │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)), │
+          │     share: nil,                                                                         │
+          │     id: 1,                                                                              │
+          │     isCompleted: 0,                                                                     │
+          │     remindersListID: 1,                                                                 │
+          │     title: "Groceries"                                                                  │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │ )                                                                                       │
+          ├─────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "1",                                                                │
+          │   recordType: "remindersLists",                                                         │
+          │   recordName: "1:remindersLists",                                                       │
+          │   parentRecordPrimaryKey: nil,                                                          │
+          │   parentRecordType: nil,                                                                │
+          │   parentRecordName: nil,                                                                │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),                      │
+          │     recordType: "remindersLists",                                                       │
+          │     parent: nil,                                                                        │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),                      │
+          │     recordType: "remindersLists",                                                       │
+          │     parent: nil,                                                                        │
+          │     share: nil,                                                                         │
+          │     id: 1,                                                                              │
+          │     title: "Personal"                                                                   │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │ )                                                                                       │
+          ├─────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "2",                                                                │
+          │   recordType: "reminderTags",                                                           │
+          │   recordName: "2:reminderTags",                                                         │
+          │   parentRecordPrimaryKey: nil,                                                          │
+          │   parentRecordType: nil,                                                                │
+          │   parentRecordName: nil,                                                                │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(2:reminderTags/zone/__defaultOwner__),                        │
+          │     recordType: "reminderTags",                                                         │
+          │     parent: nil,                                                                        │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(2:reminderTags/zone/__defaultOwner__),                        │
+          │     recordType: "reminderTags",                                                         │
+          │     parent: nil,                                                                        │
+          │     share: nil,                                                                         │
+          │     id: 2,                                                                              │
+          │     reminderID: 2,                                                                      │
+          │     tagID: "weekend"                                                                    │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │ )                                                                                       │
+          ├─────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "2",                                                                │
+          │   recordType: "reminders",                                                              │
+          │   recordName: "2:reminders",                                                            │
+          │   parentRecordPrimaryKey: "1",                                                          │
+          │   parentRecordType: "remindersLists",                                                   │
+          │   parentRecordName: "1:remindersLists",                                                 │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(2:reminders/zone/__defaultOwner__),                           │
+          │     recordType: "reminders",                                                            │
+          │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)), │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(2:reminders/zone/__defaultOwner__),                           │
+          │     recordType: "reminders",                                                            │
+          │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)), │
+          │     share: nil,                                                                         │
+          │     id: 2,                                                                              │
+          │     isCompleted: 0,                                                                     │
+          │     remindersListID: 1,                                                                 │
+          │     title: "Take a walk"                                                                │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │ )                                                                                       │
+          ├─────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "2",                                                                │
+          │   recordType: "remindersLists",                                                         │
+          │   recordName: "2:remindersLists",                                                       │
+          │   parentRecordPrimaryKey: nil,                                                          │
+          │   parentRecordType: nil,                                                                │
+          │   parentRecordName: nil,                                                                │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__),                      │
+          │     recordType: "remindersLists",                                                       │
+          │     parent: nil,                                                                        │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__),                      │
+          │     recordType: "remindersLists",                                                       │
+          │     parent: nil,                                                                        │
+          │     share: nil,                                                                         │
+          │     id: 2,                                                                              │
+          │     title: "Business"                                                                   │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │ )                                                                                       │
+          ├─────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "3",                                                                │
+          │   recordType: "reminderTags",                                                           │
+          │   recordName: "3:reminderTags",                                                         │
+          │   parentRecordPrimaryKey: nil,                                                          │
+          │   parentRecordType: nil,                                                                │
+          │   parentRecordName: nil,                                                                │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(3:reminderTags/zone/__defaultOwner__),                        │
+          │     recordType: "reminderTags",                                                         │
+          │     parent: nil,                                                                        │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(3:reminderTags/zone/__defaultOwner__),                        │
+          │     recordType: "reminderTags",                                                         │
+          │     parent: nil,                                                                        │
+          │     share: nil,                                                                         │
+          │     id: 3,                                                                              │
+          │     reminderID: 3,                                                                      │
+          │     tagID: "optional"                                                                   │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │ )                                                                                       │
+          ├─────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "3",                                                                │
+          │   recordType: "reminders",                                                              │
+          │   recordName: "3:reminders",                                                            │
+          │   parentRecordPrimaryKey: "2",                                                          │
+          │   parentRecordType: "remindersLists",                                                   │
+          │   parentRecordName: "2:remindersLists",                                                 │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(3:reminders/zone/__defaultOwner__),                           │
+          │     recordType: "reminders",                                                            │
+          │     parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)), │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(3:reminders/zone/__defaultOwner__),                           │
+          │     recordType: "reminders",                                                            │
+          │     parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)), │
+          │     share: nil,                                                                         │
+          │     id: 3,                                                                              │
+          │     isCompleted: 0,                                                                     │
+          │     remindersListID: 2,                                                                 │
+          │     title: "Call accountant"                                                            │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │ )                                                                                       │
+          ├─────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "optional",                                                         │
+          │   recordType: "tags",                                                                   │
+          │   recordName: "optional:tags",                                                          │
+          │   parentRecordPrimaryKey: nil,                                                          │
+          │   parentRecordType: nil,                                                                │
+          │   parentRecordName: nil,                                                                │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(optional:tags/zone/__defaultOwner__),                         │
+          │     recordType: "tags",                                                                 │
+          │     parent: nil,                                                                        │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(optional:tags/zone/__defaultOwner__),                         │
+          │     recordType: "tags",                                                                 │
+          │     parent: nil,                                                                        │
+          │     share: nil,                                                                         │
+          │     title: "optional"                                                                   │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │ )                                                                                       │
+          ├─────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "weekend",                                                          │
+          │   recordType: "tags",                                                                   │
+          │   recordName: "weekend:tags",                                                           │
+          │   parentRecordPrimaryKey: nil,                                                          │
+          │   parentRecordType: nil,                                                                │
+          │   parentRecordName: nil,                                                                │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(weekend:tags/zone/__defaultOwner__),                          │
+          │     recordType: "tags",                                                                 │
+          │     parent: nil,                                                                        │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(weekend:tags/zone/__defaultOwner__),                          │
+          │     recordType: "tags",                                                                 │
+          │     parent: nil,                                                                        │
+          │     share: nil,                                                                         │
+          │     title: "weekend"                                                                    │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │ )                                                                                       │
+          └─────────────────────────────────────────────────────────────────────────────────────────┘
+          """
         }
       }
     }
