@@ -192,7 +192,6 @@ class RemindersListsModel {
 
 struct RemindersListsView: View {
   @Bindable var model: RemindersListsModel
-  @State var id = UUID()
   @Dependency(\.defaultSyncEngine) var syncEngine
 
   var body: some View {
@@ -319,13 +318,11 @@ struct RemindersListsView: View {
             Button {
               if syncEngine.isRunning {
                 syncEngine.stop()
-                id = UUID()
               } else {
                 Task {
                   await withErrorReporting {
                     try await syncEngine.start()
                   }
-                  id = UUID()
                 }
               }
             } label: {
@@ -387,7 +384,6 @@ struct RemindersListsView: View {
     .navigationDestination(item: $model.destination.detail) { detailModel in
       RemindersDetailView(model: detailModel)
     }
-    .id(id)
   }
 }
 
