@@ -76,7 +76,7 @@ import SQLiteData
 func database(containerIdentifier: String) throws -> DatabasePool {
   var configuration = Configuration()
   configuration.prepareDatabase { db in
-    try db.attachMetadatabase(containerIdentifier: containerIdentifier)
+    //try db.attachMetadatabase(containerIdentifier: containerIdentifier)
   }
   let url = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite")
   let database = try DatabasePool(path: url.path(), configuration: configuration)

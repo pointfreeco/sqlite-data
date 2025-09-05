@@ -2,6 +2,7 @@
   import CloudKit
   import DependenciesTestSupport
   import InlineSnapshotTesting
+  import SQLiteDataTestSupport
   import OrderedCollections
   import SQLiteData
   import SnapshotTesting
@@ -30,16 +31,41 @@
 
           try await Task.sleep(for: .seconds(0.5))
 
-          try await userDatabase.userRead { db in
-            let remindersListMetadata = try #require(
-              try RemindersList.metadata(for: 1).fetchOne(db))
-            #expect(remindersListMetadata.lastKnownServerRecord == nil)
-
-            let reminderMetadata = try #require(try Reminder.metadata(for: 1).fetchOne(db))
-            #expect(reminderMetadata.lastKnownServerRecord == nil)
-            #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
+          assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+            """
+            ┌────────────────────────────────────────────────────────┐
+            │ SyncMetadata(                                          │
+            │   recordPrimaryKey: "1",                               │
+            │   recordType: "remindersLists",                        │
+            │   recordName: "1:remindersLists",                      │
+            │   parentRecordPrimaryKey: nil,                         │
+            │   parentRecordType: nil,                               │
+            │   parentRecordName: nil,                               │
+            │   lastKnownServerRecord: nil,                          │
+            │   _lastKnownServerRecordAllFields: nil,                │
+            │   share: nil,                                          │
+            │   _isDeleted: false,                                   │
+            │   isShared: false,                                     │
+            │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
+            │ )                                                      │
+            ├────────────────────────────────────────────────────────┤
+            │ SyncMetadata(                                          │
+            │   recordPrimaryKey: "1",                               │
+            │   recordType: "reminders",                             │
+            │   recordName: "1:reminders",                           │
+            │   parentRecordPrimaryKey: "1",                         │
+            │   parentRecordType: "remindersLists",                  │
+            │   parentRecordName: "1:remindersLists",                │
+            │   lastKnownServerRecord: nil,                          │
+            │   _lastKnownServerRecordAllFields: nil,                │
+            │   share: nil,                                          │
+            │   _isDeleted: false,                                   │
+            │   isShared: false,                                     │
+            │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
+            │ )                                                      │
+            └────────────────────────────────────────────────────────┘
+            """
           }
-
           assertInlineSnapshot(of: container, as: .customDump) {
             """
             MockCloudContainer(
@@ -155,17 +181,33 @@
             try await userDatabase.userWrite { db in
               try RemindersList.find(1).update { $0.title += "!" }.execute(db)
             }
-            try await Task.sleep(for: .seconds(0.5))
+          }
+          try await Task.sleep(for: .seconds(0.5))
 
-            try await userDatabase.read { db in
-              try #expect(PendingRecordZoneChange.all.fetchCount(db) == 1)
-              try #expect(RemindersList.find(1).fetchOne(db)?.title == "Personal!")
-            }
+          assertQuery(PendingRecordZoneChange.all, database: syncEngine.metadatabase) {
+            """
+            ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+            │ PendingRecordZoneChange(                                                                    │
+            │   pendingRecordZoneChange: .saveRecord(CKRecord.ID(1:remindersLists/zone/__defaultOwner__)) │
+            │ )                                                                                           │
+            └─────────────────────────────────────────────────────────────────────────────────────────────┘
+            """
+          }
+          assertQuery(RemindersList.all, database: userDatabase.database) {
+            """
+            ┌──────────────────────┐
+            │ RemindersList(       │
+            │   id: 1,             │
+            │   title: "Personal!" │
+            │ )                    │
+            └──────────────────────┘
+            """
+          }
 
-            try await syncEngine.start()
-            try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+          try await syncEngine.start()
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-            assertInlineSnapshot(of: container, as: .customDump) {
+          assertInlineSnapshot(of: container, as: .customDump) {
               """
               MockCloudContainer(
                 privateCloudDatabase: MockCloudDatabase(
@@ -187,12 +229,8 @@
                 )
               )
               """
-            }
-
-            try await userDatabase.read { db in
-              try #expect(PendingRecordZoneChange.all.fetchCount(db) == 0)
-            }
           }
+          assertQuery(PendingRecordZoneChange.all, database: syncEngine.metadatabase)
         }
 
         @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -385,6 +423,12 @@
           try await super.init(startImmediately: false)
         }
 
+        // * Start with sync engine off
+        // * Write a few rows
+        // * Verify sync metadata is created.
+        // * Verify cloud data is still empty
+        // * Start sync engine
+        // * Verify that data is sent to CloudKit database and cached locally.
         @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
         @Test func writeAndThenStart() async throws {
           try await userDatabase.userWrite { db in
@@ -393,17 +437,43 @@
               Reminder(id: 1, title: "Get milk", remindersListID: 1)
             }
           }
+          try await Task.sleep(for: .seconds(0.1))
 
-          try await userDatabase.userRead { db in
-            let remindersListMetadata = try #require(
-              try RemindersList.metadata(for: 1).fetchOne(db))
-            #expect(remindersListMetadata.lastKnownServerRecord == nil)
-
-            let reminderMetadata = try #require(try Reminder.metadata(for: 1).fetchOne(db))
-            #expect(reminderMetadata.lastKnownServerRecord == nil)
-            #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
+          assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+            """
+            ┌────────────────────────────────────────────────────────┐
+            │ SyncMetadata(                                          │
+            │   recordPrimaryKey: "1",                               │
+            │   recordType: "remindersLists",                        │
+            │   recordName: "1:remindersLists",                      │
+            │   parentRecordPrimaryKey: nil,                         │
+            │   parentRecordType: nil,                               │
+            │   parentRecordName: nil,                               │
+            │   lastKnownServerRecord: nil,                          │
+            │   _lastKnownServerRecordAllFields: nil,                │
+            │   share: nil,                                          │
+            │   _isDeleted: false,                                   │
+            │   isShared: false,                                     │
+            │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
+            │ )                                                      │
+            ├────────────────────────────────────────────────────────┤
+            │ SyncMetadata(                                          │
+            │   recordPrimaryKey: "1",                               │
+            │   recordType: "reminders",                             │
+            │   recordName: "1:reminders",                           │
+            │   parentRecordPrimaryKey: "1",                         │
+            │   parentRecordType: "remindersLists",                  │
+            │   parentRecordName: "1:remindersLists",                │
+            │   lastKnownServerRecord: nil,                          │
+            │   _lastKnownServerRecordAllFields: nil,                │
+            │   share: nil,                                          │
+            │   _isDeleted: false,                                   │
+            │   isShared: false,                                     │
+            │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
+            │ )                                                      │
+            └────────────────────────────────────────────────────────┘
+            """
           }
-
           assertInlineSnapshot(of: container, as: .customDump) {
             """
             MockCloudContainer(
@@ -424,6 +494,67 @@
           try await syncEngine.processPendingDatabaseChanges(scope: .private)
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
+          assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+            """
+            ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+            │ SyncMetadata(                                                                           │
+            │   recordPrimaryKey: "1",                                                                │
+            │   recordType: "remindersLists",                                                         │
+            │   recordName: "1:remindersLists",                                                       │
+            │   parentRecordPrimaryKey: nil,                                                          │
+            │   parentRecordType: nil,                                                                │
+            │   parentRecordName: nil,                                                                │
+            │   lastKnownServerRecord: CKRecord(                                                      │
+            │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),                      │
+            │     recordType: "remindersLists",                                                       │
+            │     parent: nil,                                                                        │
+            │     share: nil                                                                          │
+            │   ),                                                                                    │
+            │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+            │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),                      │
+            │     recordType: "remindersLists",                                                       │
+            │     parent: nil,                                                                        │
+            │     share: nil,                                                                         │
+            │     id: 1,                                                                              │
+            │     title: "Personal"                                                                   │
+            │   ),                                                                                    │
+            │   share: nil,                                                                           │
+            │   _isDeleted: false,                                                                    │
+            │   isShared: false,                                                                      │
+            │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+            │ )                                                                                       │
+            ├─────────────────────────────────────────────────────────────────────────────────────────┤
+            │ SyncMetadata(                                                                           │
+            │   recordPrimaryKey: "1",                                                                │
+            │   recordType: "reminders",                                                              │
+            │   recordName: "1:reminders",                                                            │
+            │   parentRecordPrimaryKey: "1",                                                          │
+            │   parentRecordType: "remindersLists",                                                   │
+            │   parentRecordName: "1:remindersLists",                                                 │
+            │   lastKnownServerRecord: CKRecord(                                                      │
+            │     recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),                           │
+            │     recordType: "reminders",                                                            │
+            │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)), │
+            │     share: nil                                                                          │
+            │   ),                                                                                    │
+            │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+            │     recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),                           │
+            │     recordType: "reminders",                                                            │
+            │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)), │
+            │     share: nil,                                                                         │
+            │     id: 1,                                                                              │
+            │     isCompleted: 0,                                                                     │
+            │     remindersListID: 1,                                                                 │
+            │     title: "Get milk"                                                                   │
+            │   ),                                                                                    │
+            │   share: nil,                                                                           │
+            │   _isDeleted: false,                                                                    │
+            │   isShared: false,                                                                      │
+            │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+            │ )                                                                                       │
+            └─────────────────────────────────────────────────────────────────────────────────────────┘
+            """
+          }
           assertInlineSnapshot(of: container, as: .customDump) {
             """
             MockCloudContainer(

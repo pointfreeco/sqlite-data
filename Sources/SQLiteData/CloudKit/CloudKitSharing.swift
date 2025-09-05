@@ -171,7 +171,7 @@
 
     public func unshare<T: PrimaryKeyedTable>(record: T) async throws
     where T.TableColumns.PrimaryKey.QueryOutput: IdentifierStringConvertible {
-      let share = try await userDatabase.read { [recordName = record.recordName] db in
+      let share = try await metadatabase.read { [recordName = record.recordName] db in
         try SyncMetadata
           .where { $0.recordName.eq(recordName) }
           .select(\.share)

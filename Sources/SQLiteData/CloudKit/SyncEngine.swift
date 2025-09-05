@@ -344,9 +344,9 @@
 
     private func start() throws -> Task<Void, Never> {
       guard !isRunning else { return Task {} }
-      let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
         syncEngines.withValue {
+          let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
           $0 = SyncEngines(
             private: privateSyncEngine,
             shared: sharedSyncEngine
