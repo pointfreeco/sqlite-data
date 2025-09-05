@@ -1797,6 +1797,7 @@
   extension SyncEngine {
     package struct SchemaError: LocalizedError {
       package enum Reason {
+        case cycleDetected
         case inMemoryDatabase
         case invalidForeignKey(ForeignKey)
         case invalidForeignKeyAction(ForeignKey)
@@ -1928,8 +1929,12 @@
       else { return }
       guard !marked.contains(table)
       else {
-        struct CycleError: Error {}
-        throw CycleError()
+        throw SyncEngine.SchemaError(
+          reason: .cycleDetected,
+          debugDescription: """
+            Cycles are not currently permitted in schemas, e.g. a table that references itself.
+            """
+        )
       }
 
       marked.insert(table)
