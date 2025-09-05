@@ -651,6 +651,8 @@ And in preivews you can use it like so:
 
 ## Preparing an existing schema for synchronization
 
+
+
 <!-- todo: finish -->
 
 ### Convert Int primary keys to UUID
@@ -747,11 +749,70 @@ migrator.registerMigration("Convert 'reminders' table primary key to UUID") { db
 
 ### Add primary key to all tables
 
-<!-- todo: finish -->
+All tables must have a primary key to be synchronized to CloudKit, even typically you would not
+add one to the table. For example, a join table that joins reminders to tags:
 
-## Migrating from Swift Data to SQLiteData
+```swift
+@Table
+struct ReminderTag {
+  let reminderID: Reminder.ID
+  let tagID: Tag.ID
+}
+```
 
-## Separating schema migrations from data migrations
+…must be updated to have a primary key:
+
+
+```diff
+ @Table
+ struct ReminderTag {
++  let id: UUID
+   let reminderID: Reminder.ID
+   let tagID: Tag.ID
+ }
+```
+
+And a migration must be run to add that column to the table. However, you must perform a multi-step
+migration similar to what is described above in <doc:CloudKit#Convert-Int-primary-keys-to-UUID>.
+You must 1) create a new table with the new primary key column, 2) copy data from the old table
+to the new table, 3) delete the old table, and finally 4) rename the new table.
+
+Here is how such a migration can look like for the `ReminderTag` table above:
+
+```swift
+migrator.registerMigration("Add primary key to 'reminderTags' table") { db in
+  // Step 1: Create new table with updated schema
+  try #sql("""
+    CREATE TABLE "new_reminderTags" (
+      "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+      "reminderID" TEXT NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
+      "tagID" TEXT NOT NULL REFERENCES "tags"("id") ON DELETE CASCADE
+    ) STRICT
+    """)
+    .execute(db)
+
+  // Step 2: Copy data from 'reminderTags' to 'new_reminderTags'
+  try #sql("""
+    INSERT INTO "new_reminderTags"
+    ("reminderID", "tagID")
+    SELECT "reminderID", "tagID"
+    FROM "reminderTags"
+    """)
+    .execute(db)
+
+  // Step 3: Drop the old 'reminderTags' table
+  try #sql("""
+    DROP TABLE "reminderTags"
+    """)
+    .execute(db)
+
+  // Step 4: Rename 'new_reminderTags' to 'reminderTags'
+  try #sql("""
+    ALTER TABLE "new_reminderTags" RENAME TO "reminderTags"
+    """)
+    .execute(db)
+}
+```
 
 ## Tips and tricks
 
@@ -802,8 +863,10 @@ Model.createTemporaryTrigger(
 This will skip the trigger's action when the row is being updated due to data being synchronized
 from CloudKit.
 
-<!--
 ### Developing in the simulator
 
-TODO: talk about simulator push restrictions
--->
+It is possible to develop your app with CloudKit synchronization using the iOS simulator, but
+you must be aware that simulators do not support push notifications, and so changes do not 
+synchronize from CloudKit to simulator automatically. Sometimes you can simply close and re-open
+the app to have the simulator sync with CloudKit, but the most certain way to force synchronization
+is to kill the app and relaunch it fresh.
