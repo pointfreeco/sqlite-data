@@ -107,8 +107,8 @@
       }
     }
 
-    @MainActor
-    @Suite(
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test(
       .accountStatus(.noAccount),
       .prepareDatabase { userDatabase in
         try await userDatabase.write { db in
@@ -121,24 +121,21 @@
         }
       }
     )
-    final class SignedOutTests: BaseCloudKitTests, @unchecked Sendable {
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func doNotUploadExistingDataToCloudKitWhenSignedOut() {
-        assertQuery(SyncMetadata.all, database: userDatabase.database)
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: []
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
+    func doNotUploadExistingDataToCloudKitWhenSignedOut() {
+      assertQuery(SyncMetadata.all, database: userDatabase.database)
+      assertInlineSnapshot(of: container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
           )
-          """
-        }
+        )
+        """
       }
     }
   }
