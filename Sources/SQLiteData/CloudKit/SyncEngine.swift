@@ -989,7 +989,6 @@
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.write { db in
-            // TODO: write a test for this
             try Self.$_isSynchronizingChanges.withValue(false) {
               for table in self.tables {
                 try self.uploadRecordsToCloudKit(table: table, db: db)
