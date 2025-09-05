@@ -243,7 +243,14 @@
       #if DEBUG
         try metadatabase.read { db in
           let hasSchemaChanges = try migrator.hasSchemaChanges(db)
-          assert(!hasSchemaChanges, "Metadatabase migrations must not be modified after release")
+          assert(
+            !hasSchemaChanges,
+            """
+            A previously run migration has been removed or edited.
+            
+            Metadatabase migrations must not be modified after release.
+            """
+          )
         }
       #endif
       try migrator.migrate(metadatabase)
@@ -1788,8 +1795,8 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
-    struct SchemaError: LocalizedError {
-      enum Reason {
+    package struct SchemaError: LocalizedError {
+      package enum Reason {
         case inMemoryDatabase
         case invalidForeignKey(ForeignKey)
         case invalidForeignKeyAction(ForeignKey)
@@ -1800,10 +1807,10 @@
         case unknown
         case uniquenessConstraint
       }
-      let reason: Reason
-      let debugDescription: String
+      package let reason: Reason
+      package let debugDescription: String
 
-      var errorDescription: String? {
+      package var errorDescription: String? {
         "Could not synchronize data with iCloud."
       }
     }

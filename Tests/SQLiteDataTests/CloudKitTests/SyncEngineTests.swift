@@ -65,13 +65,14 @@
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func metadatabaseMismatch() async throws {
-        let error = await #expect(throws: (any Error).self) {
+        let error = await #expect(throws: SyncEngine.SchemaError.self) {
           var configuration = Configuration()
           configuration.prepareDatabase { db in
             try db.attachMetadatabase(containerIdentifier: "iCloud.co.pointfree")
           }
+          let path = "/tmp/\(UUID()).sqlite"
           let database = try DatabasePool(
-            path: "/tmp/db.sqlite",
+            path: path,
             configuration: configuration
           )
           _ = try await SyncEngine(
@@ -84,17 +85,13 @@
             tables: []
           )
         }
-        assertInlineSnapshot(of: error, as: .customDump) {
-          #"""
-          SyncEngine.SchemaError(
-            reason: .metadatabaseMismatch(
-              attachedPath: "/private/tmp/.db.metadata-iCloud.co.pointfree.sqlite",
-              syncEngineConfiguredPath: "/tmp/.db.metadata-iCloud.co.point-free.sqlite"
-            ),
-            debugDescription: "Metadatabase attached in \'prepareDatabase\' does not match metadatabase prepared in \'SyncEngine.init\'. Are different CloudKit container identifiers being provided?"
-          )
-          """#
-        }
+
+        #expect(
+          error?.debugDescription == """
+            Metadatabase attached in 'prepareDatabase' does not match metadatabase prepared in \
+            'SyncEngine.init'. Are different CloudKit container identifiers being provided?
+            """
+        )
       }
     }
   }

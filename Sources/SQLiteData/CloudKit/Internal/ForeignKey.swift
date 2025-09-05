@@ -2,7 +2,7 @@
   import Foundation
   import StructuredQueriesCore
 
-  struct ForeignKey: QueryDecodable, QueryRepresentable {
+  package struct ForeignKey: QueryDecodable, QueryRepresentable {
     typealias QueryValue = Self
 
     let table: String
@@ -12,7 +12,7 @@
     let onDelete: Action
     let notnull: Bool
 
-    init(decoder: inout some QueryDecoder) throws {
+    package init(decoder: inout some QueryDecoder) throws {
       guard
         let table = try decoder.decode(String.self),
         let from = try decoder.decode(String.self),
