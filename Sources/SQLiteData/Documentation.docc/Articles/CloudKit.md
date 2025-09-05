@@ -658,13 +658,13 @@ And in preivews you can use it like so:
 ### Convert Int primary keys to UUID
 
 The most important step for migrating an existing SQLite database to be compatible with CloudKit
-synchronization is converting any `Int` primary keys in your tables to UUID, or some other 
+synchronization is converting any `Int` primary keys in your tables to UUID, or some other
 globally unique identifier. This can be done in a new migration that is registered when provisioning
-your database, but it does take a few queries to accomplish because SQLite does not support 
-changing the definition of an existing column. 
+your database, but it does take a few queries to accomplish because SQLite does not support
+changing the definition of an existing column.
 
-The steps are roughly: 1) create a table with the new schema, 2) copy data over from old 
-table to new table and convert integer IDs to UUIDs, 3) drop the old table, and finally 4) rename 
+The steps are roughly: 1) create a table with the new schema, 2) copy data over from old
+table to new table and convert integer IDs to UUIDs, 3) drop the old table, and finally 4) rename
 the new table to have the same name as the old table.
 
 ```swift
@@ -683,7 +683,7 @@ migrator.registerMigration("Convert 'remindersLists' table primary key to UUID")
   try #sql("""
     INSERT INTO "new_remindersLists"
     (
-      "id", 
+      "id",
       -- all other columns from 'remindersLists' table
     )
     SELECT
@@ -708,7 +708,7 @@ migrator.registerMigration("Convert 'remindersLists' table primary key to UUID")
 }
 ```
 
-This will need to be done for every table that uses an integer for its primary key. Further, 
+This will need to be done for every table that uses an integer for its primary key. Further,
 for tables with foreign keys, you will need to adapt step 1 to change the types of those
 columns to TEXT and will need to perform the integer-to-UUID conversion for those columns in
 step 2:
@@ -730,7 +730,7 @@ migrator.registerMigration("Convert 'reminders' table primary key to UUID") { db
   try #sql("""
     INSERT INTO "new_reminders"
     (
-      "id", 
+      "id",
       "remindersListID",
       -- all other columns from 'reminders' table
     )
@@ -866,7 +866,7 @@ from CloudKit.
 ### Developing in the simulator
 
 It is possible to develop your app with CloudKit synchronization using the iOS simulator, but
-you must be aware that simulators do not support push notifications, and so changes do not 
+you must be aware that simulators do not support push notifications, and so changes do not
 synchronize from CloudKit to simulator automatically. Sometimes you can simply close and re-open
 the app to have the simulator sync with CloudKit, but the most certain way to force synchronization
 is to kill the app and relaunch it fresh.

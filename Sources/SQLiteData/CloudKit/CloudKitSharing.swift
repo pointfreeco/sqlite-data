@@ -171,7 +171,7 @@
 
     public func unshare<T: PrimaryKeyedTable>(record: T) async throws
     where T.TableColumns.PrimaryKey.QueryOutput: IdentifierStringConvertible {
-      let share = try await userDatabase.read { [recordName = record.recordName] db in
+      let share = try await metadatabase.read { [recordName = record.recordName] db in
         try SyncMetadata
           .where { $0.recordName.eq(recordName) }
           .select(\.share)
@@ -289,8 +289,10 @@
       }
 
       public func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
-        withErrorReporting(.sqliteDataCloudKitFailure) {
-          try syncEngine.deleteShare(recordID: share.recordID)
+        Task {
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await syncEngine.deleteShare(recordID: share.recordID)
+          }
         }
         didStopSharing()
       }

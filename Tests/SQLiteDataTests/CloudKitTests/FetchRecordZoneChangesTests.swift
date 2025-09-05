@@ -133,89 +133,38 @@
           try await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord]).notify()
         }
 
-        assertInlineSnapshot(
-          of: syncEngine.private.database
-            .storage[syncEngine.defaultZone.zoneID]?[Reminder.recordID(for: 1)],
-          as: .customDump
-        ) {
-          """
-          CKRecord(
-            recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
-            recordType: "reminders",
-            parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)),
-            share: nil,
-            id: 1,
-            isCompleted: 0,
-            remindersListID: "2",
-            title: "Get milk"
-          )
-          """
-        }
-
-        try await userDatabase.read { db in
-          let metadata = try #require(
-            try Reminder.metadata(for: 1).fetchOne(db)
-          )
-          #expect(metadata.parentRecordName == RemindersList.recordName(for: 2))
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 2))
-        }
-
         try await userDatabase.userWrite { db in
           try Reminder.find(1).update { $0.isCompleted.toggle() }.execute(db)
         }
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        assertInlineSnapshot(
-          of: syncEngine.private.database.storage[syncEngine.defaultZone.zoneID]?[
-            Reminder.recordID(for: 1)
-          ],
-          as: .customDump
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          ┌──────────────────────┐
+          │ Reminder(            │
+          │   id: 1,             │
+          │   dueDate: nil,      │
+          │   isCompleted: true, │
+          │   priority: nil,     │
+          │   title: "Get milk", │
+          │   remindersListID: 2 │
+          │ )                    │
+          └──────────────────────┘
+          """
+        }
+        assertQuery(
+          SyncMetadata.order(by: \.recordName).select { ($0.recordName, $0.parentRecordName) },
+          database: syncEngine.metadatabase
         ) {
           """
-          CKRecord(
-            recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
-            recordType: "reminders",
-            parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)),
-            share: nil,
-            id: 1,
-            isCompleted: 0,
-            remindersListID: "2",
-            title: "Get milk"
-          )
+          ┌────────────────────┬────────────────────┐
+          │ "1:reminders"      │ "2:remindersLists" │
+          │ "1:remindersLists" │ nil                │
+          │ "2:remindersLists" │ nil                │
+          └────────────────────┴────────────────────┘
           """
         }
-
-        try await userDatabase.read { db in
-          let metadata = try #require(
-            try Reminder.metadata(for: 1).fetchOne(db)
-          )
-          #expect(metadata.parentRecordName == RemindersList.recordName(for: 2))
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(
-            reminder
-              == Reminder(
-                id: 1,
-                isCompleted: true,
-                title: "Get milk",
-                remindersListID: 2
-              )
-          )
-        }
-      }
-
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func receiveNewRecordFromCloudKit() async throws {
-        let remindersListRecord = CKRecord(
-          recordType: RemindersList.tableName,
-          recordID: RemindersList.recordID(for: 1)
-        )
-        remindersListRecord.setValue("1", forKey: "id", at: now)
-        remindersListRecord.setValue("Personal", forKey: "title", at: now)
-
-        try await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]).notify()
-
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -223,12 +172,30 @@
               databaseScope: .private,
               storage: [
                 [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)),
+                  share: nil,
+                  id: 1,
+                  isCompleted: 0,
+                  remindersListID: "2",
+                  title: "Get milk"
+                ),
+                [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                   recordType: "remindersLists",
                   parent: nil,
                   share: nil,
-                  id: "1",
+                  id: 1,
                   title: "Personal"
+                ),
+                [2]: CKRecord(
+                  recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 2,
+                  title: "Business"
                 )
               ]
             ),
@@ -239,15 +206,18 @@
           )
           """
         }
+      }
 
-        try await userDatabase.read { db in
-          let metadata = try #require(
-            try RemindersList.metadata(for: 1).fetchOne(db)
-          )
-          #expect(metadata.recordName == RemindersList.recordName(for: 1))
-          let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
-          #expect(remindersList == RemindersList(id: 1, title: "Personal"))
-        }
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func editRecordReceivedFromCloudKit() async throws {
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue("1", forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+        try await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]).notify()
 
         try await withDependencies {
           $0.datetime.now.addTimeInterval(1)
@@ -255,10 +225,29 @@
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)
           }
-
-          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
         }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          ┌─────────────────────┐
+          │ RemindersList(      │
+          │   id: 1,            │
+          │   title: "My stuff" │
+          │ )                   │
+          └─────────────────────┘
+          """
+        }
+        assertQuery(
+          SyncMetadata.order(by: \.recordName).select(\.recordName),
+          database: syncEngine.metadatabase
+        ) {
+          """
+          ┌────────────────────┐
+          │ "1:remindersLists" │
+          └────────────────────┘
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -281,11 +270,6 @@
             )
           )
           """
-        }
-
-        try await userDatabase.read { db in
-          let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
-          #expect(remindersList == RemindersList(id: 1, title: "My stuff"))
         }
       }
 
@@ -315,61 +299,7 @@
           saving: [remindersListRecord]
         )
         try await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord]).notify()
-
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
-                  recordType: "reminders",
-                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
-                  share: nil,
-                  id: "1",
-                  remindersListID: "1",
-                  title: "Get milk"
-                ),
-                [1]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: nil,
-                  id: "1",
-                  title: "Personal"
-                )
-              ]
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
-          )
-          """
-        }
-
         await remindersListModification.notify()
-
-        try await userDatabase.read { db in
-          let reminderMetadata = try #require(
-            try Reminder.metadata(for: 1).fetchOne(db)
-          )
-          #expect(reminderMetadata.recordName == Reminder.recordName(for: 1))
-          #expect(reminderMetadata.parentRecordName == RemindersList.recordName(for: 1))
-
-          let remindersListMetadata = try #require(
-            try RemindersList.metadata(for: 1).fetchOne(db)
-          )
-          #expect(remindersListMetadata.recordName == RemindersList.recordName(for: 1))
-          #expect(remindersListMetadata.parentRecordName == nil)
-
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder(id: 1, title: "Get milk", remindersListID: 1))
-
-          let remindersList = try #require(try RemindersList.find(1).fetchOne(db))
-          #expect(remindersList == RemindersList(id: 1, title: "Personal"))
-        }
 
         try await withDependencies {
           $0.datetime.now.addTimeInterval(1)
@@ -377,10 +307,33 @@
           try await userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.title = "Buy milk" }.execute(db)
           }
-
-          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
         }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          ┌───────────────────────┐
+          │ Reminder(             │
+          │   id: 1,              │
+          │   dueDate: nil,       │
+          │   isCompleted: false, │
+          │   priority: nil,      │
+          │   title: "Buy milk",  │
+          │   remindersListID: 1  │
+          │ )                     │
+          └───────────────────────┘
+          """
+        }
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          ┌─────────────────────┐
+          │ RemindersList(      │
+          │   id: 1,            │
+          │   title: "Personal" │
+          │ )                   │
+          └─────────────────────┘
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -413,11 +366,6 @@
             )
           )
           """
-        }
-
-        try await userDatabase.read { db in
-          let reminder = try #require(try Reminder.find(1).fetchOne(db))
-          #expect(reminder == Reminder(id: 1, title: "Buy milk", remindersListID: 1))
         }
       }
 

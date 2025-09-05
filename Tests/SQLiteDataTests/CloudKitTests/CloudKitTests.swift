@@ -5,6 +5,7 @@
   import InlineSnapshotTesting
   import OrderedCollections
   import SQLiteData
+  import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
 
@@ -396,6 +397,14 @@
           }
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertQuery(SyncMetadata.select(\.recordName), database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────┐
+          │ "1:remindersLists" │
+          └────────────────────┘
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -419,12 +428,6 @@
           )
           """
         }
-
-        let metadata =
-          try await userDatabase.userRead { db in
-            try RemindersList.metadata(for: 1).fetchOne(db)
-          }
-        #expect(metadata != nil)
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -564,59 +567,35 @@
           }
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: nil,
-                  id: 1,
-                  title: "Personal"
-                )
-              ]
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
-          )
-          """
+
+        try await withDependencies {
+          $0.datetime.now.addTimeInterval(60)
+        } operation: {
+          let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
+          record.setValue("Work", forKey: "title", at: now)
+          try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
         }
 
-        let userModificationDate = try #require(
-          try await userDatabase.userRead { db in
-            try RemindersList.metadata(for: 1)
-              .select(\.userModificationDate)
-              .fetchOne(db) ?? nil
-          }
-        )
-
-        let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
-        let serverModificationDate = userModificationDate.addingTimeInterval(60)
-        record.setValue("Work", forKey: "title", at: serverModificationDate)
-        try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
-
-        expectNoDifference(
-          try {
-            try userDatabase.userRead { db in
-              try RemindersList.find(1).fetchOne(db)
-            }
-          }(),
-          RemindersList(id: 1, title: "Work")
-        )
-
-        let metadata = try #require(
-          try await userDatabase.userRead { db in
-            try RemindersList.metadata(for: 1)
-              .fetchOne(db)
-          }
-        )
-        #expect(metadata.userModificationDate == serverModificationDate)
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          ┌─────────────────┐
+          │ RemindersList(  │
+          │   id: 1,        │
+          │   title: "Work" │
+          │ )               │
+          └─────────────────┘
+          """
+        }
+        assertQuery(
+          SyncMetadata.select(\.userModificationDate),
+          database: syncEngine.metadatabase
+        ) {
+          """
+          ┌────────────────────────────────┐
+          │ Date(1970-01-01T00:01:00.000Z) │
+          └────────────────────────────────┘
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -695,56 +674,24 @@
           }
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: nil,
-                  id: 1,
-                  title: "Personal"
-                )
-              ]
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
-          )
-          """
-        }
-
-        let userModificationDate = try #require(
-          try await userDatabase.userRead { db in
-            try RemindersList.metadata(for: 1)
-              .select(\.userModificationDate)
-              .fetchOne(db) ?? nil
-          }
-        )
 
         let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
-        record.encryptedValues["title"] = "Work"
+        record.setValue("Work", forKey: "title", at: now)
         // NB: Manually setting '_recordChangeTag' simulates another device saving a record.
         record._recordChangeTag = UUID().uuidString
         try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
 
-        expectNoDifference(
-          try { try userDatabase.userRead { db in try RemindersList.find(1).fetchOne(db) } }(),
-          RemindersList(id: 1, title: "Personal")
-        )
-
-        let metadata = try #require(
-          try await userDatabase.userRead { db in
-            try RemindersList.metadata(for: 1)
-              .fetchOne(db)
-          }
-        )
-        #expect(metadata.userModificationDate == userModificationDate)
+        assertQuery(Reminder.all, database: userDatabase.database)
+        assertQuery(
+          SyncMetadata.select(\.userModificationDate),
+          database: syncEngine.metadatabase
+        ) {
+          """
+          ┌────────────────────────────────┐
+          │ Date(1970-01-01T00:00:00.000Z) │
+          └────────────────────────────────┘
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -778,43 +725,21 @@
           }
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: nil,
-                  id: 1,
-                  title: "Personal"
-                )
-              ]
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
-          )
-          """
-        }
 
-        let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
-        try await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID]).notify()
-
-        #expect(
-          try await userDatabase.userRead { db in
-            try RemindersList.find(1).fetchAll(db)
-          } == []
+        try await syncEngine.modifyRecords(
+          scope: .private,
+          deleting: [RemindersList.recordID(for: 1)]
         )
-        let metadata = try await userDatabase.userRead { db in
-          try RemindersList.metadata(for: 1)
-            .fetchOne(db)
+        .notify()
+
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          """
         }
-        #expect(metadata == nil)
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(

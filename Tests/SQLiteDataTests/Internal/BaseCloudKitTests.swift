@@ -31,21 +31,20 @@ class BaseCloudKitTests: @unchecked Sendable {
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  init(
-    accountStatus: CKAccountStatus = _AccountStatusScope.accountStatus,
-    setUpUserDatabase: @Sendable (UserDatabase) async throws -> Void = { _ in },
-    startImmediately: Bool = true
-  ) async throws {
+  init() async throws {
     let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
 
     self.userDatabase = UserDatabase(
-      database: try SQLiteDataTests.database(containerIdentifier: testContainerIdentifier)
+      database: try SQLiteDataTests.database(
+        containerIdentifier: testContainerIdentifier,
+        attachMetadatabase: _AttachMetadatabaseTrait.attachMetadatabase
+      )
     )
-    try await setUpUserDatabase(userDatabase)
+    try await _PrepareDatabaseTrait.prepareDatabase(userDatabase)
     let privateDatabase = MockCloudDatabase(databaseScope: .private)
     let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
     let container = MockCloudContainer(
-      accountStatus: accountStatus,
+      accountStatus: _AccountStatusScope.accountStatus,
       containerIdentifier: testContainerIdentifier,
       privateCloudDatabase: privateDatabase,
       sharedCloudDatabase: sharedDatabase
@@ -72,9 +71,11 @@ class BaseCloudKitTests: @unchecked Sendable {
       privateTables: [
         RemindersListPrivate.self
       ],
-      startImmediately: startImmediately
+      startImmediately: _StartImmediatelyTrait.startImmediately
     )
-    if startImmediately, accountStatus == .available {
+    if _StartImmediatelyTrait.startImmediately,
+      _AccountStatusScope.accountStatus == .available
+    {
       await syncEngine.handleEvent(
         .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
         syncEngine: syncEngine.private

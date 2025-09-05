@@ -25,15 +25,16 @@
 
         await signOut()
 
-        try {
-          try userDatabase.userRead { db in
-            try #expect(RemindersList.count().fetchOne(db) == 0)
-            try #expect(Reminder.count().fetchOne(db) == 0)
-            try #expect(RemindersListPrivate.count().fetchOne(db) == 0)
-            try #expect(UnsyncedModel.count().fetchOne(db) == 1)
-            try #expect(SyncMetadata.count().fetchOne(db) == 0)
-          }
-        }()
+        try await userDatabase.userRead { db in
+          try #expect(RemindersList.count().fetchOne(db) == 0)
+          try #expect(Reminder.count().fetchOne(db) == 0)
+          try #expect(RemindersListPrivate.count().fetchOne(db) == 0)
+          try #expect(UnsyncedModel.count().fetchOne(db) == 1)
+        }
+
+        try await syncEngine.metadatabase.read { db in
+          try #expect(SyncMetadata.count().fetchOne(db) == 0)
+        }
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -47,15 +48,15 @@
           }
         }
 
-        try {
-          try userDatabase.read { db in
-            try #expect(RemindersList.count().fetchOne(db) == 1)
-            try #expect(Reminder.count().fetchOne(db) == 1)
-            try #expect(RemindersListPrivate.count().fetchOne(db) == 1)
-            try #expect(UnsyncedModel.count().fetchOne(db) == 1)
-            try #expect(SyncMetadata.count().fetchOne(db) == 3)
-          }
-        }()
+        try await userDatabase.read { db in
+          try #expect(RemindersList.count().fetchOne(db) == 1)
+          try #expect(Reminder.count().fetchOne(db) == 1)
+          try #expect(RemindersListPrivate.count().fetchOne(db) == 1)
+          try #expect(UnsyncedModel.count().fetchOne(db) == 1)
+        }
+        try await syncEngine.metadatabase.read { db in
+          try #expect(SyncMetadata.count().fetchOne(db) == 3)
+        }
 
         await signIn()
 
@@ -106,40 +107,35 @@
       }
     }
 
-    @MainActor
-    @Suite(.accountStatus(.noAccount))
-    final class SignedOutTests: BaseCloudKitTests, @unchecked Sendable {
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      init() async throws {
-        try await super.init { userDatabase in
-          try await userDatabase.write { db in
-            try db.seed {
-              RemindersList(id: 1, title: "Personal")
-              Reminder(id: 1, title: "Get milk", remindersListID: 1)
-              RemindersListPrivate(id: 1, remindersListID: 1)
-              UnsyncedModel(id: 1)
-            }
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test(
+      .accountStatus(.noAccount),
+      .prepareDatabase { userDatabase in
+        try await userDatabase.write { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            Reminder(id: 1, title: "Get milk", remindersListID: 1)
+            RemindersListPrivate(id: 1, remindersListID: 1)
+            UnsyncedModel(id: 1)
           }
         }
       }
-
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func doNotUploadExistingDataToCloudKitWhenSignedOut() {
-        assertQuery(SyncMetadata.all, database: userDatabase.database)
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: []
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
+    )
+    func doNotUploadExistingDataToCloudKitWhenSignedOut() {
+      assertQuery(SyncMetadata.all, database: userDatabase.database)
+      assertInlineSnapshot(of: container, as: .customDump) {
+        """
+        MockCloudContainer(
+          privateCloudDatabase: MockCloudDatabase(
+            databaseScope: .private,
+            storage: []
+          ),
+          sharedCloudDatabase: MockCloudDatabase(
+            databaseScope: .shared,
+            storage: []
           )
-          """
-        }
+        )
+        """
       }
     }
   }
