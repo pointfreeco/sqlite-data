@@ -207,10 +207,25 @@
       let foreignKeysByTableName = Dictionary(
         uniqueKeysWithValues: try userDatabase.read { db in
           try allTables.map { table -> (String, [ForeignKey]) in
-            (
-              table.tableName,
-              try ForeignKey.all(table.tableName).fetchAll(db)
-            )
+            func open<T: StructuredQueriesCore.Table>(_: T.Type) throws -> (String, [ForeignKey]) {
+              (
+                table.tableName,
+                try PragmaForeignKeyList<T>
+                  .join(PragmaTableInfo<T>.all) { $0.from.eq($1.name) }
+                  .select {
+                    ForeignKey.Columns(
+                      table: $0.table,
+                      from: $0.from,
+                      to: $0.to,
+                      onUpdate: $0.onUpdate,
+                      onDelete: $0.onDelete,
+                      isNotNull: $1.isNotNull
+                    )
+                  }
+                  .fetchAll(db)
+              )
+            }
+            return try open(table)
           }
         }
       )
@@ -250,14 +265,9 @@
 
       try userDatabase.write { db in
         let attachedMetadatabasePath: String? =
-          try #sql(
-            """
-            SELECT "file"
-            FROM pragma_database_list()
-            WHERE "name" = \(bind: String.sqliteDataCloudKitSchemaName)
-            """,
-            as: String.self
-          )
+          try PragmaDatabaseList
+          .where { $0.name.eq(String.sqliteDataCloudKitSchemaName) }
+          .select(\.file)
           .fetchOne(db)
         if let attachedMetadatabasePath {
           let attachedMetadatabaseName = URL(filePath: metadatabase.path).lastPathComponent
@@ -359,13 +369,28 @@
           }
           .fetchAll(db)
         return try namesAndSchemas.compactMap { schema -> RecordType? in
-          guard let sql = schema.sql
+          guard let sql = schema.sql, let table = tablesByName[schema.name]
           else { return nil }
-          return RecordType(
-            tableName: schema.name,
-            schema: sql,
-            tableInfo: Set(try TableInfo.all(schema.name).fetchAll(db))
-          )
+          func open<T: StructuredQueriesCore.Table>(_: T.Type) throws -> RecordType {
+            try RecordType(
+              tableName: schema.name,
+              schema: sql,
+              tableInfo: Set(
+                PragmaTableInfo<T>
+                  .select {
+                    TableInfo.Columns(
+                      defaultValue: $0.defaultValue,
+                      isPrimaryKey: $0.isPrimaryKey,
+                      name: $0.name,
+                      isNotNull: $0.isNotNull,
+                      type: $0.type
+                    )
+                  }
+                  .fetchAll(db)
+              )
+            )
+          }
+          return try open(table)
         }
       }
       let previousRecordTypeByTableName = Dictionary(
@@ -1749,13 +1774,7 @@
         )
       }
 
-      let databasePath = try #sql(
-        """
-        SELECT "file" FROM pragma_database_list()
-        """,
-        as: String.self
-      )
-      .fetchOne(self)
+      let databasePath = try PragmaDatabaseList.select(\.file).fetchOne(self)
       guard let databasePath else {
         struct PathError: Error {}
         throw SyncEngine.SchemaError(
@@ -1848,23 +1867,21 @@
         }
 
         for table in tables {
-          let columnsWithUniqueConstraints =
-            try #sql(
-              """
-              SELECT "name" FROM pragma_index_list(\(quote: table.tableName, delimiter: .text))
-              WHERE "unique" = 1 AND "origin" <> 'pk'
-              """,
-              as: String.self
-            )
-            .fetchAll(db)
-          if !columnsWithUniqueConstraints.isEmpty {
-            throw SyncEngine.SchemaError(
-              reason: .uniquenessConstraint,
-              debugDescription: """
+          func open<T: StructuredQueriesCore.Table>(_: T.Type) throws {
+            let columnsWithUniqueConstraints = try PragmaIndexList<T>
+              .where { $0.isUnique && $0.origin != "pk" }
+              .select(\.name)
+              .fetchAll(db)
+            if !columnsWithUniqueConstraints.isEmpty {
+              throw SyncEngine.SchemaError(
+                reason: .uniquenessConstraint,
+                debugDescription: """
                 Uniqueness constraints are not supported for synchronized tables.
                 """
-            )
+              )
+            }
           }
+          try open(table)
         }
       }
     }
@@ -1892,13 +1909,11 @@
     let tableDependencies = try userDatabase.read { db in
       var dependencies: [HashablePrimaryKeyedTableType: [any PrimaryKeyedTable.Type]] = [:]
       for table in tables {
-        let toTables = try #sql(
-          """
-          SELECT "table" FROM pragma_foreign_key_list(\(quote: table.tableName, delimiter: .text))
-          """,
-          as: String.self
-        )
-        .fetchAll(db)
+        func open<T: StructuredQueriesCore.Table>(_: T.Type) throws -> [String] {
+          try PragmaForeignKeyList<T>.select(\.table)
+            .fetchAll(db)
+        }
+        let toTables = try open(table)
         for toTable in toTables {
           guard let toTableType = tablesByName[toTable]
           else { continue }
