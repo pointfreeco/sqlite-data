@@ -403,7 +403,7 @@
     }
 
     private func cacheUserTables(recordTypes: [RecordType]) async throws {
-      try await userDatabase.write { db in
+      try await metadatabase.write { db in
         try RecordType
           .upsert { recordTypes.map { RecordType.Draft($0) } }
           .execute(db)
@@ -432,7 +432,7 @@
         $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
       }
 
-      try await userDatabase.write { db in
+      try await metadatabase.write { db in
         try PendingRecordZoneChange.delete().execute(db)
       }
 
@@ -550,7 +550,7 @@
       guard isRunning else {
         Task {
           await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await userDatabase.write { db in
+            try await metadatabase.write { db in
               try PendingRecordZoneChange
                 .insert { PendingRecordZoneChange(change) }
                 .execute(db)
@@ -587,7 +587,7 @@
       guard isRunning else {
         Task { [changes] in
           await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await userDatabase.write { db in
+            try await metadatabase.write { db in
               try PendingRecordZoneChange
                 .insert { changes.map { PendingRecordZoneChange($0) } }
                 .execute(db)
@@ -966,7 +966,7 @@
       }
 
       await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await userDatabase.write { db in
+        try await metadatabase.write { db in
           try SyncMetadata
             .where { $0.recordName.in(deletedRecordNames) }
             .delete()

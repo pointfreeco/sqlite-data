@@ -159,7 +159,7 @@
         saving: [sharedRecord, rootRecord],
         deleting: []
       )
-      try await userDatabase.write { db in
+      try await metadatabase.write { db in
         try SyncMetadata
           .where { $0.recordName.eq(recordName) }
           .update { $0.share = sharedRecord }
