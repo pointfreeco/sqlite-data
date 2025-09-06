@@ -571,6 +571,7 @@ following:
 
 @FetchAll(
   RemindersList
+    // TODO: update this
     .leftJoin(SyncMetadata.all) { $0.recordName.eq($1.recordName) }
     .select {
       Row.Columns(
