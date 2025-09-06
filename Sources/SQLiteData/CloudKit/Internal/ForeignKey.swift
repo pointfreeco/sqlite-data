@@ -3,7 +3,7 @@
   import StructuredQueriesCore
 
   @Selection
-  struct ForeignKey {
+  package struct ForeignKey {
     let table: String
     let from: String
     let to: String
