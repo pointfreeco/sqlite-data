@@ -48,24 +48,6 @@
   }
 
   func migrate(metadatabase: some DatabaseWriter) throws {
-    let migrator = metadatabaseMigrator()
-    #if DEBUG
-      try metadatabase.read { db in
-        let hasSchemaChanges = try migrator.hasSchemaChanges(db)
-        assert(
-          !hasSchemaChanges,
-          """
-          A previously run migration has been removed or edited.
-          Metadatabase migrations must not be modified after release.
-          """
-        )
-      }
-    #endif
-    try migrator.migrate(metadatabase)
-  }
-
-// TODO: merge this into migrate above?
-  func metadatabaseMigrator() -> DatabaseMigrator {
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create Metadata Tables") { db in
       try #sql(
@@ -143,6 +125,18 @@
       )
       .execute(db)
     }
-    return migrator
+    #if DEBUG
+      try metadatabase.read { db in
+        let hasSchemaChanges = try migrator.hasSchemaChanges(db)
+        assert(
+          !hasSchemaChanges,
+          """
+          A previously run migration has been removed or edited.
+          Metadatabase migrations must not be modified after release.
+          """
+        )
+      }
+    #endif
+    try migrator.migrate(metadatabase)
   }
 #endif
