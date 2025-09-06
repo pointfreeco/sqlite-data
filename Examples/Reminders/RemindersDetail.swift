@@ -245,33 +245,33 @@ struct RemindersDetailView: View {
               Image(systemName: "square.and.arrow.up")
             }
           }
-        }
-        Menu {
-          Group {
-            Menu {
-              ForEach(RemindersDetailModel.Ordering.allCases, id: \.self) { ordering in
-                Button {
-                  Task { await model.orderingButtonTapped(ordering) }
-                } label: {
-                  Text(ordering.rawValue)
-                  ordering.icon
+          Menu {
+            Group {
+              Menu {
+                ForEach(RemindersDetailModel.Ordering.allCases, id: \.self) { ordering in
+                  Button {
+                    Task { await model.orderingButtonTapped(ordering) }
+                  } label: {
+                    Text(ordering.rawValue)
+                    ordering.icon
+                  }
                 }
+              } label: {
+                Text("Sort By")
+                Text(model.ordering.rawValue)
+                Image(systemName: "arrow.up.arrow.down")
               }
-            } label: {
-              Text("Sort By")
-              Text(model.ordering.rawValue)
-              Image(systemName: "arrow.up.arrow.down")
+              Button {
+                Task { await model.showCompletedButtonTapped() }
+              } label: {
+                Text(model.showCompleted ? "Hide Completed" : "Show Completed")
+                Image(systemName: model.showCompleted ? "eye.slash.fill" : "eye")
+              }
             }
-            Button {
-              Task { await model.showCompletedButtonTapped() }
-            } label: {
-              Text(model.showCompleted ? "Hide Completed" : "Show Completed")
-              Image(systemName: model.showCompleted ? "eye.slash.fill" : "eye")
-            }
+            .tint(model.detailType.color)
+          } label: {
+            Image(systemName: "ellipsis.circle")
           }
-          .tint(model.detailType.color)
-        } label: {
-          Image(systemName: "ellipsis.circle")
         }
       }
     }
