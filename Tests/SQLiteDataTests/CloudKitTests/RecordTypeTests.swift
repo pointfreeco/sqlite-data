@@ -384,12 +384,24 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func tearDown() async throws {
-        try syncEngine.tearDownSyncEngine()
-        try await syncEngine.metadatabase.read { db in
-          try #expect(SQLiteSchema.all.fetchCount(db) == 0)
+      @Test func tearDownErasesMetadata() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed { RemindersList(id: 1, title: "Personal") }
         }
-        try syncEngine.setUpSyncEngine()
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        try await syncEngine.metadatabase.read { db in
+          try #expect(SyncMetadata.all.fetchCount(db) > 0)
+          try #expect(RecordType.all.fetchCount(db) > 0)
+          try #expect(StateSerialization.all.fetchCount(db) == 0)
+        }
+
+        try syncEngine.tearDownSyncMetadata()
+        try await syncEngine.metadatabase.read { db in
+          try #expect(SyncMetadata.all.fetchCount(db) == 0)
+          try #expect(RecordType.all.fetchCount(db) == 0)
+          try #expect(StateSerialization.all.fetchCount(db) == 0)
+        }
+        try syncEngine.setUpSyncMetadata()
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -398,8 +410,8 @@
           try RecordType.all.fetchAll(db)
         }
         syncEngine.stop()
-        try syncEngine.tearDownSyncEngine()
-        try syncEngine.setUpSyncEngine()
+        try syncEngine.tearDownSyncMetadata()
+        try syncEngine.setUpSyncMetadata()
         try await syncEngine.start()
         let recordTypesAfterReSetup = try await syncEngine.metadatabase.read { db in
           try RecordType.all.fetchAll(db)
@@ -413,7 +425,7 @@
           try RecordType.order(by: \.tableName).fetchAll(db)
         }
         syncEngine.stop()
-        try syncEngine.tearDownSyncEngine()
+        try syncEngine.tearDownSyncMetadata()
         try await userDatabase.userWrite { db in
           try #sql(
             """
@@ -422,7 +434,7 @@
           )
           .execute(db)
         }
-        try syncEngine.setUpSyncEngine()
+        try syncEngine.setUpSyncMetadata()
         try await syncEngine.start()
 
         let recordTypesAfterMigration = try await syncEngine.metadatabase.read { db in
