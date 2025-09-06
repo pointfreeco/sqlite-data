@@ -11,6 +11,8 @@
   import SwiftData
 
   /// An object that manages the synchronization of local and remote SQLite data.
+  ///
+  /// See <doc:CloudKit> for more information.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Observable, Sendable {
     package let userDatabase: UserDatabase
@@ -253,70 +255,58 @@
 
     @TaskLocal package static var _isSynchronizingChanges = false
 
-    nonisolated package func setUpSyncEngine() throws {
-      let migrator = metadatabaseMigrator()
-      #if DEBUG
-        try metadatabase.read { db in
-          let hasSchemaChanges = try migrator.hasSchemaChanges(db)
-          assert(
-            !hasSchemaChanges,
-            """
-            A previously run migration has been removed or edited.
-
-            Metadatabase migrations must not be modified after release.
-            """
-          )
-        }
-      #endif
-      try migrator.migrate(metadatabase)
-
+    package func setUpSyncEngine() throws {
       try userDatabase.write { db in
-        let attachedMetadatabasePath: String? =
-          try PragmaDatabaseList
-          .where { $0.name.eq(String.sqliteDataCloudKitSchemaName) }
-          .select(\.file)
-          .fetchOne(db)
-        if let attachedMetadatabasePath {
-          let attachedMetadatabaseName = URL(filePath: metadatabase.path).lastPathComponent
-          let metadatabaseName = URL(filePath: attachedMetadatabasePath).lastPathComponent
-          if attachedMetadatabaseName != metadatabaseName {
-            throw SchemaError(
-              reason: .metadatabaseMismatch(
-                attachedPath: attachedMetadatabasePath,
-                syncEngineConfiguredPath: metadatabase.path
-              ),
-              debugDescription: """
+        try setUpSyncEngine(writeableDB: db)
+      }
+    }
+
+    package func setUpSyncEngine(writeableDB db: Database) throws {
+      let attachedMetadatabasePath: String? =
+      try PragmaDatabaseList
+        .where { $0.name.eq(String.sqliteDataCloudKitSchemaName) }
+        .select(\.file)
+        .fetchOne(db)
+      if let attachedMetadatabasePath {
+        let attachedMetadatabaseName = URL(filePath: metadatabase.path).lastPathComponent
+        let metadatabaseName = URL(filePath: attachedMetadatabasePath).lastPathComponent
+        if attachedMetadatabaseName != metadatabaseName {
+          throw SchemaError(
+            reason: .metadatabaseMismatch(
+              attachedPath: attachedMetadatabasePath,
+              syncEngineConfiguredPath: metadatabase.path
+            ),
+            debugDescription: """
                 Metadatabase attached in 'prepareDatabase' does not match metadatabase prepared in \
                 'SyncEngine.init'. Are different CloudKit container identifiers being provided?
                 """
-            )
-          }
+          )
+        }
 
-        } else {
-          try #sql(
+      } else {
+        try #sql(
             """
             ATTACH DATABASE \(bind: metadatabase.path) AS \(quote: .sqliteDataCloudKitSchemaName)
             """
-          )
-          .execute(db)
-        }
-        db.add(function: $datetime)
-        db.add(function: $syncEngineIsSynchronizingChanges)
-        db.add(function: $didUpdate)
-        db.add(function: $didDelete)
-        db.add(function: $hasPermission)
+        )
+        .execute(db)
+      }
+      db.add(function: $datetime)
+      db.add(function: $syncEngineIsSynchronizingChanges)
+      db.add(function: $didUpdate)
+      db.add(function: $didDelete)
+      db.add(function: $hasPermission)
 
-        for trigger in SyncMetadata.callbackTriggers(for: self) {
-          try trigger.execute(db)
-        }
+      for trigger in SyncMetadata.callbackTriggers(for: self) {
+        try trigger.execute(db)
+      }
 
-        for table in tables {
-          try table.createTriggers(
-            foreignKeysByTableName: foreignKeysByTableName,
-            tablesByName: tablesByName,
-            db: db
-          )
-        }
+      for table in tables {
+        try table.createTriggers(
+          foreignKeysByTableName: foreignKeysByTableName,
+          tablesByName: tablesByName,
+          db: db
+        )
       }
     }
 
@@ -539,12 +529,14 @@
         db.remove(function: $datetime)
       }
       try metadatabase.erase()
+      try migrate(metadatabase: metadatabase)
     }
 
-    func deleteLocalData() throws {
+    func deleteLocalData() async throws {
+      try stop()
       try tearDownSyncEngine()
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.write { db in
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await userDatabase.write { db in
           for table in tables {
             func open<T: PrimaryKeyedTable>(_: T.Type) {
               withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -553,9 +545,10 @@
             }
             open(table)
           }
+          try setUpSyncEngine(writeableDB: db)
         }
       }
-      try setUpSyncEngine()
+      try await start()
     }
 
     @DatabaseFunction(
@@ -1011,8 +1004,8 @@
       case .signIn:
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
       case .signOut, .switchAccounts:
-        withErrorReporting(.sqliteDataCloudKitFailure) {
-          try deleteLocalData()
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await deleteLocalData()
         }
       @unknown default:
         break
@@ -1875,8 +1868,8 @@
               throw SyncEngine.SchemaError(
                 reason: .uniquenessConstraint,
                 debugDescription: """
-                Uniqueness constraints are not supported for synchronized tables.
-                """
+                  Uniqueness constraints are not supported for synchronized tables.
+                  """
               )
             }
           }

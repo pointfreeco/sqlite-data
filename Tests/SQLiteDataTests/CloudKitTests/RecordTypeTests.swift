@@ -384,10 +384,23 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func tearDown() async throws {
+      @Test func tearDownErasesMetadata() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed { RemindersList(id: 1, title: "Personal") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        try await syncEngine.metadatabase.read { db in
+          try #expect(SyncMetadata.all.fetchCount(db) > 0)
+          try #expect(RecordType.all.fetchCount(db) > 0)
+          try #expect(StateSerialization.all.fetchCount(db) == 0)
+        }
+        
         try syncEngine.tearDownSyncEngine()
         try await syncEngine.metadatabase.read { db in
           try #expect(SQLiteSchema.all.fetchCount(db) == 0)
+          try #expect(SyncMetadata.all.fetchCount(db) == 0)
+          try #expect(RecordType.all.fetchCount(db) == 0)
+          try #expect(StateSerialization.all.fetchCount(db) == 0)
         }
         try syncEngine.setUpSyncEngine()
       }
