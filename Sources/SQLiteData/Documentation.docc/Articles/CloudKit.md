@@ -651,9 +651,9 @@ And in preivews you can use it like so:
 
 ## Preparing an existing schema for synchronization
 
-
-
-<!-- todo: finish -->
+If you have an existing app deployed to the app store using SQLite, then there may be a number
+of steps you must take to prepare for adding CloudKit synchronization, mostly having to do with
+primary keys.
 
 ### Convert Int primary keys to UUID
 
