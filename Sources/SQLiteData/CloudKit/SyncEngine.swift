@@ -400,10 +400,7 @@
       }
     }
 
-    private func uploadRecordsToCloudKit(
-      previousRecordTypeByTableName: [String: RecordType],
-      currentRecordTypeByTableName: [String: RecordType]
-    ) async throws {
+    private func enqueueLocallyPendingChanges() async throws {
       let pendingRecordZoneChanges = try await metadatabase.read { db in
         try PendingRecordZoneChange
           .select(\.pendingRecordZoneChange)
@@ -421,7 +418,13 @@
         $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
         $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
       }
+    }
 
+    private func uploadRecordsToCloudKit(
+      previousRecordTypeByTableName: [String: RecordType],
+      currentRecordTypeByTableName: [String: RecordType]
+    ) async throws {
+      try await enqueueLocallyPendingChanges()
       try await userDatabase.write { db in
         try PendingRecordZoneChange.delete().execute(db)
 
@@ -448,6 +451,31 @@
         try uploadRecordsToCloudKit(table: T.self, db: db)
       }
       try open(table)
+    }
+
+    private func enqueueUnknownRecordsForCloudKit() async throws {
+      try await userDatabase.write { db in
+        let recordPrimaryKeysAndRecordTypes = try SyncMetadata
+          .where { !$0.hasLastKnownServerRecord }
+          .select { ($0.recordPrimaryKey, $0.recordType) }
+          .fetchAll(db)
+        let recordPrimaryKeysByRecordType = Dictionary(
+          grouping: recordPrimaryKeysAndRecordTypes,
+          by: { _, recordType in recordType }
+        )
+          .mapValues { $0.map(\.0) }
+        for (recordType, recordPrimaryKeys) in recordPrimaryKeysByRecordType {
+          guard let table = tablesByName[recordType]
+          else { continue }
+          func open<T: PrimaryKeyedTable>(_: T.Type) throws {
+            try T
+              .where { #sql("\($0.primaryKey)").in(recordPrimaryKeys) }
+              .update { $0.primaryKey = $0.primaryKey }
+              .execute(db)
+          }
+          try open(table)
+        }
+      }
     }
 
     private func updateLocalFromSchemaChange(
@@ -978,6 +1006,9 @@
       switch changeType {
       case .signIn:
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
+        await withErrorReporting {
+          try await enqueueUnknownRecordsForCloudKit()
+        }
       case .signOut, .switchAccounts:
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await deleteLocalData()
@@ -1056,6 +1087,7 @@
       func uploadRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
         let recordTypes = Set(
           try SyncMetadata
+            .where(\.hasLastKnownServerRecord)
             .select(\.lastKnownServerRecord)
             .fetchAll(db)
             .compactMap { $0?.recordID.zoneID == zoneID ? $0?.recordType : nil }
@@ -1263,9 +1295,6 @@
         case .serverRejectedRequest:
           await clearServerRecord()
 
-        case .notAuthenticated:
-          fatalError()
-
         case .referenceViolation:
           guard
             let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
@@ -1349,7 +1378,7 @@
           }
 
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .operationCancelled, .batchRequestFailed,
+          .notAuthenticated, .operationCancelled, .batchRequestFailed,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,

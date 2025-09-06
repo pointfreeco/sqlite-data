@@ -65,6 +65,9 @@
     public var _isDeleted = false
 
     @Column(generated: .virtual)
+    public let hasLastKnownServerRecord: Bool
+
+    @Column(generated: .virtual)
     public let isShared: Bool
 
     /// The date the user last modified the record.
@@ -125,6 +128,7 @@
       self.lastKnownServerRecord = lastKnownServerRecord
       self._lastKnownServerRecordAllFields = _lastKnownServerRecordAllFields
       self.share = share
+      self.hasLastKnownServerRecord = lastKnownServerRecord != nil
       self.isShared = share != nil
       self.userModificationDate = userModificationDate
     }
@@ -163,8 +167,8 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTableDefinition where PrimaryKey.QueryOutput: IdentifierStringConvertible {
-    public var recordName: some QueryExpression<String> {
-      _recordName
+    public var primaryKeyString: some QueryExpression<String> {
+      primaryKey.cast()
     }
   }
 
