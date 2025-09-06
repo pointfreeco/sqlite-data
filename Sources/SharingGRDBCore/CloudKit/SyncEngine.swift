@@ -9,6 +9,10 @@
   import StructuredQueriesCore
   import SwiftData
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Sendable {
     package let userDatabase: UserDatabase
@@ -192,6 +196,24 @@
         tables: allTables,
         tablesByName: tablesByName
       )
+
+#if canImport(UIKit)
+      NotificationCenter.default.addObserver(
+        forName: UIScene.willDeactivateNotification,
+        object: nil,
+        queue: nil
+      ) { [syncEngines] _ in
+        Task {
+          if let privateSyncEngine = syncEngines.withValue(\.private) {
+            try await privateSyncEngine.sendChanges(CKSyncEngine.SendChangesOptions())
+          }
+          if let sharedSyncEngine = syncEngines.withValue(\.shared) {
+            try await sharedSyncEngine.sendChanges(CKSyncEngine.SendChangesOptions())
+          }
+        }
+      }
+      #endif
+
       try validateSchema()
     }
 
