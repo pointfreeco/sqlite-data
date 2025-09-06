@@ -15,7 +15,9 @@ class RemindersListsModel {
       .leftJoin(Reminder.all) {
         $0.id.eq($1.remindersListID) && !$1.isCompleted
       }
-      .leftJoin(SyncMetadata.all) { $0.recordName.eq($2.recordName) }
+      .leftJoin(SyncMetadata.all) {
+        #sql("\($0.recordTypeAndPrimaryKey) = \($2.recordTypeAndPrimaryKey)")
+      }
       .select {
         ReminderListState.Columns(
           remindersCount: $1.id.count(),

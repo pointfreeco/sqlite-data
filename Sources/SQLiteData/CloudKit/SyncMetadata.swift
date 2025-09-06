@@ -130,6 +130,13 @@
     }
   }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncMetadata.TableColumns {
+  public var recordTypeAndPrimaryKey: some QueryExpression<(String, String)> {
+    #sql("(\(recordType), \(recordPrimaryKey))")
+  }
+}
+
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTable where PrimaryKey: IdentifierStringConvertible {
     /// A query for finding the metadata associated with a record.
@@ -163,8 +170,18 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTableDefinition where PrimaryKey.QueryOutput: IdentifierStringConvertible {
-    public var recordName: some QueryExpression<String> {
-      _recordName
+    /// A query expression for the primary key as a string.
+    ///
+    /// This helper can be useful when joining your tables to the ``SyncMetadata`` table. It
+    /// allows you to join the `primaryKey` of your table to the ``SyncMetadata/recordPrimaryKey``
+    /// column of ``SyncMetadata``:
+    ///
+    /// ```swift
+    /// RemindersList
+    ///   .leftJoin(SyncMetadata.all) { $0.primaryKeyString.eq($1.recordPrimaryKey) }
+    /// ```
+    public var recordTypeAndPrimaryKey: some QueryExpression<(String, String)> {
+      #sql("(\(QueryValue.tableName), \(primaryKey))")
     }
   }
 
