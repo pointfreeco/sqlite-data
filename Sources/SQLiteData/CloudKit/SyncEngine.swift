@@ -128,7 +128,7 @@
           tables: allTables,
           privateTables: allPrivateTables
         )
-        try setUpSyncMetadata()
+        try setUpSyncEngine()
         if startImmediately {
           _ = try start()
         }
@@ -182,7 +182,7 @@
         tables: allTables,
         privateTables: allPrivateTables
       )
-      try setUpSyncMetadata()
+      try setUpSyncEngine()
       if startImmediately {
         _ = try start()
       }
@@ -240,13 +240,13 @@
 
     @TaskLocal package static var _isSynchronizingChanges = false
 
-    package func setUpSyncMetadata() throws {
+    package func setUpSyncEngine() throws {
       try userDatabase.write { db in
-        try setUpSyncMetadata(writeableDB: db)
+        try setUpSyncEngine(writeableDB: db)
       }
     }
 
-    package func setUpSyncMetadata(writeableDB db: Database) throws {
+    package func setUpSyncEngine(writeableDB db: Database) throws {
       let attachedMetadatabasePath: String? =
         try #sql(
           """
@@ -489,7 +489,7 @@
       }
     }
 
-    package func tearDownSyncMetadata() throws {
+    package func tearDownSyncEngine() throws {
       try userDatabase.write { db in
         for table in tables.reversed() {
           try table.dropTriggers(db: db)
@@ -509,7 +509,7 @@
 
     func deleteLocalData() async throws {
       stop()
-      try tearDownSyncMetadata()
+      try tearDownSyncEngine()
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in
           for table in tables {
@@ -520,7 +520,7 @@
             }
             open(table)
           }
-          try setUpSyncMetadata(writeableDB: db)
+          try setUpSyncEngine(writeableDB: db)
         }
       }
       try await start()

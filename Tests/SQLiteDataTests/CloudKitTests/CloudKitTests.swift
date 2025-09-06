@@ -387,8 +387,8 @@
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func tearDownAndReSetUp() async throws {
-        try syncEngine.tearDownSyncMetadata()
-        try syncEngine.setUpSyncMetadata()
+        try syncEngine.tearDownSyncEngine()
+        try syncEngine.setUpSyncEngine()
         try await syncEngine.start()
 
         try await userDatabase.userWrite { db in
@@ -455,7 +455,7 @@
           ]
           """
         }
-        try syncEngine.tearDownSyncMetadata()
+        try syncEngine.tearDownSyncEngine()
 
         assertInlineSnapshot(
           of: try { try userDatabase.userRead { try query.fetchAll($0) } }(),
@@ -466,7 +466,7 @@
           """
         }
 
-        try syncEngine.setUpSyncMetadata()
+        try syncEngine.setUpSyncEngine()
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

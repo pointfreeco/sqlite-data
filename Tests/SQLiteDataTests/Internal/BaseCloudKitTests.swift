@@ -173,7 +173,7 @@ extension SyncEngine {
       tables: tables,
       privateTables: privateTables
     )
-    try setUpSyncMetadata()
+    try setUpSyncEngine()
     if startImmediately {
       try await start()
     }

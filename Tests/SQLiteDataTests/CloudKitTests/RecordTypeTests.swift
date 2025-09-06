@@ -395,13 +395,13 @@
           try #expect(StateSerialization.all.fetchCount(db) == 0)
         }
 
-        try syncEngine.tearDownSyncMetadata()
+        try syncEngine.tearDownSyncEngine()
         try await syncEngine.metadatabase.read { db in
           try #expect(SyncMetadata.all.fetchCount(db) == 0)
           try #expect(RecordType.all.fetchCount(db) == 0)
           try #expect(StateSerialization.all.fetchCount(db) == 0)
         }
-        try syncEngine.setUpSyncMetadata()
+        try syncEngine.setUpSyncEngine()
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -410,8 +410,8 @@
           try RecordType.all.fetchAll(db)
         }
         syncEngine.stop()
-        try syncEngine.tearDownSyncMetadata()
-        try syncEngine.setUpSyncMetadata()
+        try syncEngine.tearDownSyncEngine()
+        try syncEngine.setUpSyncEngine()
         try await syncEngine.start()
         let recordTypesAfterReSetup = try await syncEngine.metadatabase.read { db in
           try RecordType.all.fetchAll(db)
@@ -425,7 +425,7 @@
           try RecordType.order(by: \.tableName).fetchAll(db)
         }
         syncEngine.stop()
-        try syncEngine.tearDownSyncMetadata()
+        try syncEngine.tearDownSyncEngine()
         try await userDatabase.userWrite { db in
           try #sql(
             """
@@ -434,7 +434,7 @@
           )
           .execute(db)
         }
-        try syncEngine.setUpSyncMetadata()
+        try syncEngine.setUpSyncEngine()
         try await syncEngine.start()
 
         let recordTypesAfterMigration = try await syncEngine.metadatabase.read { db in
