@@ -46,7 +46,7 @@
                   to: "id",
                   onUpdate: .cascade,
                   onDelete: .cascade,
-                  notnull: true
+                  isNotNull: true
                 )
               ]
             ),
@@ -113,7 +113,7 @@
                   to: "id",
                   onUpdate: .noAction,
                   onDelete: .cascade,
-                  notnull: true
+                  isNotNull: true
                 )
               ]
             ),

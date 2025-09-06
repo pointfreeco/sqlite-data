@@ -31,14 +31,14 @@
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "id",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [1]: TableInfo(
                   defaultValue: "\'\'",
                   isPrimaryKey: false,
                   name: "title",
-                  notNull: true,
+                  isNotNull: true,
                   type: "TEXT"
                 )
               ]
@@ -57,21 +57,21 @@
                   defaultValue: nil,
                   isPrimaryKey: false,
                   name: "coverImage",
-                  notNull: true,
+                  isNotNull: true,
                   type: "BLOB"
                 ),
                 [1]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "id",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [2]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: false,
                   name: "remindersListID",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 )
               ]
@@ -90,21 +90,21 @@
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "id",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [1]: TableInfo(
                   defaultValue: "0",
                   isPrimaryKey: false,
                   name: "position",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [2]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: false,
                   name: "remindersListID",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 )
               ]
@@ -128,42 +128,42 @@
                   defaultValue: nil,
                   isPrimaryKey: false,
                   name: "dueDate",
-                  notNull: false,
+                  isNotNull: false,
                   type: "TEXT"
                 ),
                 [1]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "id",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [2]: TableInfo(
                   defaultValue: "0",
                   isPrimaryKey: false,
                   name: "isCompleted",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [3]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: false,
                   name: "priority",
-                  notNull: false,
+                  isNotNull: false,
                   type: "INTEGER"
                 ),
                 [4]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: false,
                   name: "remindersListID",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [5]: TableInfo(
                   defaultValue: "\'\'",
                   isPrimaryKey: false,
                   name: "title",
-                  notNull: true,
+                  isNotNull: true,
                   type: "TEXT"
                 )
               ]
@@ -180,7 +180,7 @@
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "title",
-                  notNull: true,
+                  isNotNull: true,
                   type: "TEXT"
                 )
               ]
@@ -199,21 +199,21 @@
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "id",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [1]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: false,
                   name: "reminderID",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [2]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: false,
                   name: "tagID",
-                  notNull: true,
+                  isNotNull: true,
                   type: "TEXT"
                 )
               ]
@@ -230,7 +230,7 @@
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "id",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 )
               ]
@@ -248,14 +248,14 @@
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "id",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [1]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: false,
                   name: "parentID",
-                  notNull: false,
+                  isNotNull: false,
                   type: "INTEGER"
                 )
               ]
@@ -274,14 +274,14 @@
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "id",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [1]: TableInfo(
                   defaultValue: "0",
                   isPrimaryKey: false,
                   name: "parentID",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 )
               ]
@@ -300,14 +300,14 @@
                   defaultValue: "0",
                   isPrimaryKey: false,
                   name: "count",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [1]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "id",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 )
               ]
@@ -326,21 +326,21 @@
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "id",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [1]: TableInfo(
                   defaultValue: "0",
                   isPrimaryKey: false,
                   name: "isOn",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [2]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: false,
                   name: "modelAID",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 )
               ]
@@ -359,21 +359,21 @@
                   defaultValue: nil,
                   isPrimaryKey: true,
                   name: "id",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [1]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: false,
                   name: "modelBID",
-                  notNull: true,
+                  isNotNull: true,
                   type: "INTEGER"
                 ),
                 [2]: TableInfo(
                   defaultValue: "\'\'",
                   isPrimaryKey: false,
                   name: "title",
-                  notNull: true,
+                  isNotNull: true,
                   type: "TEXT"
                 )
               ]
@@ -459,49 +459,49 @@
                 defaultValue: nil,
                 isPrimaryKey: false,
                 name: "dueDate",
-                notNull: false,
+                isNotNull: false,
                 type: "TEXT"
               ),
               [1]: TableInfo(
                 defaultValue: nil,
                 isPrimaryKey: true,
                 name: "id",
-                notNull: true,
+                isNotNull: true,
                 type: "INTEGER"
               ),
               [2]: TableInfo(
                 defaultValue: "0",
                 isPrimaryKey: false,
                 name: "isCompleted",
-                notNull: true,
+                isNotNull: true,
                 type: "INTEGER"
               ),
               [3]: TableInfo(
                 defaultValue: nil,
                 isPrimaryKey: false,
                 name: "newFeature",
-                notNull: true,
+                isNotNull: true,
                 type: "INTEGER"
               ),
               [4]: TableInfo(
                 defaultValue: nil,
                 isPrimaryKey: false,
                 name: "priority",
-                notNull: false,
+                isNotNull: false,
                 type: "INTEGER"
               ),
               [5]: TableInfo(
                 defaultValue: nil,
                 isPrimaryKey: false,
                 name: "remindersListID",
-                notNull: true,
+                isNotNull: true,
                 type: "INTEGER"
               ),
               [6]: TableInfo(
                 defaultValue: "\'\'",
                 isPrimaryKey: false,
                 name: "title",
-                notNull: true,
+                isNotNull: true,
                 type: "TEXT"
               )
             ]

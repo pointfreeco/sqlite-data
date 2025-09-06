@@ -96,7 +96,7 @@
                 to: "id",
                 onUpdate: .noAction,
                 onDelete: .noAction,
-                notnull: false
+                isNotNull: false
               )
             ),
             debugDescription: #"Foreign key "childs"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
@@ -155,7 +155,7 @@
                 to: "id",
                 onUpdate: .noAction,
                 onDelete: .restrict,
-                notnull: false
+                isNotNull: false
               )
             ),
             debugDescription: #"Foreign key "childs"."parentID" action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'."#
@@ -221,7 +221,7 @@
                 to: "id",
                 onUpdate: .noAction,
                 onDelete: .cascade,
-                notnull: false
+                isNotNull: false
               )
             ),
             debugDescription: #"Foreign key "childs"."parentID" references table "parents" that is not synchronized. Update 'SyncEngine.init' to synchronize "parents". "#
