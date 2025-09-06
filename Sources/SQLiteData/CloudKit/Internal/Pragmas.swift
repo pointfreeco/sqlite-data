@@ -25,7 +25,7 @@ struct PragmaForeignKeyList<Base: Table> {
   let match: String
 }
 
-enum ForeignKeyAction: String, QueryBindable {
+package enum ForeignKeyAction: String, QueryBindable {
   case cascade = "CASCADE"
   case restrict = "RESTRICT"
   case setDefault = "SET DEFAULT"
