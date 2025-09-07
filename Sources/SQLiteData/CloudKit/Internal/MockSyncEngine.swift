@@ -5,18 +5,18 @@ import OrderedCollections
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 package final class MockSyncEngine: SyncEngineProtocol {
   package let database: MockCloudDatabase
-  package let delegate: any SyncEngineDelegate
+  package let underlyingSyncEngine: SyncEngine
   private let _state: LockIsolated<MockSyncEngineState>
   private let _fetchChangesScopes = LockIsolated<[CKSyncEngine.FetchChangesOptions.Scope]>([])
   private let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
 
   package init(
     database: MockCloudDatabase,
-    delegate: any SyncEngineDelegate,
+    syncEngine: SyncEngine,
     state: MockSyncEngineState
   ) {
     self.database = database
-    self.delegate = delegate
+    self.underlyingSyncEngine = syncEngine
     self._state = LockIsolated(state)
   }
 
@@ -50,22 +50,17 @@ package final class MockSyncEngine: SyncEngineProtocol {
         ($0[zoneID]?.values).map { Array($0) } ?? []
       }
     }
-    await delegate.handleEvent(
+    await underlyingSyncEngine.handleEvent(
       .fetchedRecordZoneChanges(modifications: records, deletions: []),
       syncEngine: self
     )
   }
 
   package func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws {
-    guard let syncEngine = delegate as? SyncEngine
-    else {
-      reportIssue("TODO")
-      return
-    }
     guard
-      !syncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges.isEmpty
+      !underlyingSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges.isEmpty
     else { return }
-    try await syncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
+    try await underlyingSyncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
   }
 
   package func recordZoneChangeBatch(
@@ -321,7 +316,7 @@ extension SyncEngine {
     )
 
     return ModifyRecordsCallback {
-      await syncEngine.delegate
+      await syncEngine.underlyingSyncEngine
         .handleEvent(
           .fetchedDatabaseChanges(
             modifications: saveResults.values.compactMap { try? $0.get().zoneID },
@@ -356,7 +351,7 @@ extension SyncEngine {
     )
 
     return ModifyRecordsCallback {
-      await syncEngine.delegate.handleEvent(
+      await syncEngine.underlyingSyncEngine.handleEvent(
         .fetchedRecordZoneChanges(
           modifications: saveResults.values.compactMap { try? $0.get() },
           deletions: deleteResults.compactMap { recordID, result in
@@ -467,7 +462,7 @@ extension SyncEngine {
       pendingRecordZoneChanges: deletedRecordIDs.map { .deleteRecord($0) }
     )
 
-    await syncEngine.delegate
+    await syncEngine.underlyingSyncEngine
       .handleEvent(
         .sentRecordZoneChanges(
           savedRecords: savedRecords,
@@ -560,7 +555,7 @@ extension SyncEngine {
     syncEngine.state.remove(pendingDatabaseChanges: savedZones.map { .saveZone($0) })
     syncEngine.state.remove(pendingDatabaseChanges: deletedZoneIDs.map { .deleteZone($0) })
 
-    await syncEngine.delegate
+    await syncEngine.underlyingSyncEngine
       .handleEvent(
         .sentDatabaseChanges(
           savedZones: savedZones,
