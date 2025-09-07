@@ -25,6 +25,7 @@ package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {
     pendingChanges: [CKSyncEngine.PendingRecordZoneChange],
     recordProvider: @Sendable (CKRecord.ID) async -> CKRecord?
   ) async -> CKSyncEngine.RecordZoneChangeBatch?
+  func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

@@ -32,6 +32,9 @@ package final class MockSyncEngine: SyncEngineProtocol {
     _ = _acceptedShareMetadata.withValue { $0.insert(metadata) }
   }
 
+  package func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws {
+  }
+
   package func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws {
     let records: [CKRecord]
     let zoneIDs: [CKRecordZone.ID]
