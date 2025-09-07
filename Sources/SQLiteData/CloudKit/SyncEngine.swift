@@ -10,6 +10,10 @@
   import StructuredQueriesCore
   import SwiftData
 
+  #if canImport(UIKit)
+    import UIKit
+  #endif
+
   /// An object that manages the synchronization of local and remote SQLite data.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Observable, Sendable {
@@ -248,7 +252,37 @@
         tables: allTables,
         tablesByName: tablesByName
       )
+      #if canImport(UIKit)
+        observer.withValue {
+          $0 = NotificationCenter.default.addObserver(
+            forName: UIScene.willDeactivateNotification,
+            object: nil,
+            queue: nil
+          ) { [syncEngines] _ in
+            Task { @MainActor in
+              let taskIdentifier = UIApplication.shared.beginBackgroundTask()
+              defer { UIApplication.shared.endBackgroundTask(taskIdentifier) }
+              if let privateSyncEngine = syncEngines.withValue(\.private) {
+                try await privateSyncEngine.sendChanges(CKSyncEngine.SendChangesOptions())
+              }
+              if let sharedSyncEngine = syncEngines.withValue(\.shared) {
+                try await sharedSyncEngine.sendChanges(CKSyncEngine.SendChangesOptions())
+              }
+            }
+          }
+        }
+      #endif
       try validateSchema()
+    }
+
+    private let observer = LockIsolated<(any NSObjectProtocol)?>(nil)
+
+    deinit {
+      observer.withValue {
+        guard let observer = $0
+        else { return }
+        NotificationCenter.default.removeObserver(observer)
+      }
     }
 
     @TaskLocal package static var _isSynchronizingChanges = false
@@ -1875,8 +1909,8 @@
               throw SyncEngine.SchemaError(
                 reason: .uniquenessConstraint,
                 debugDescription: """
-                Uniqueness constraints are not supported for synchronized tables.
-                """
+                  Uniqueness constraints are not supported for synchronized tables.
+                  """
               )
             }
           }
