@@ -253,8 +253,9 @@
         tablesByName: tablesByName
       )
       #if canImport(UIKit)
+      @Dependency(\.defaultNotificationCenter) var defaultNotificationCenter
         observer.withValue {
-          $0 = NotificationCenter.default.addObserver(
+          $0 = defaultNotificationCenter.addObserver(
             forName: UIScene.willDeactivateNotification,
             object: nil,
             queue: nil
