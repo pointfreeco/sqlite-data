@@ -115,12 +115,12 @@
             (
               private: MockSyncEngine(
                 database: privateDatabase,
-                syncEngine: syncEngine,
+                delegate: syncEngine,
                 state: MockSyncEngineState()
               ),
               shared: MockSyncEngine(
                 database: sharedDatabase,
-                syncEngine: syncEngine,
+                delegate: syncEngine,
                 state: MockSyncEngineState()
               )
             )
