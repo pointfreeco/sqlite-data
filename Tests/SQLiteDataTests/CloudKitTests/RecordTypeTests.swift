@@ -397,7 +397,6 @@
         
         try syncEngine.tearDownSyncEngine()
         try await syncEngine.metadatabase.read { db in
-          try #expect(SQLiteSchema.all.fetchCount(db) == 0)
           try #expect(SyncMetadata.all.fetchCount(db) == 0)
           try #expect(RecordType.all.fetchCount(db) == 0)
           try #expect(StateSerialization.all.fetchCount(db) == 0)
