@@ -33,6 +33,7 @@
     package let container: any CloudContainer
     let dataManager = Dependency(\.dataManager)
     private let observationRegistrar = ObservationRegistrar()
+    private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
 
     /// The error message used when a write occurs to a record for which the current user
     /// does not have permission.
@@ -254,7 +255,7 @@
       )
       #if canImport(UIKit)
         @Dependency(\.defaultNotificationCenter) var defaultNotificationCenter
-        observer.withValue {
+        notificationsObserver.withValue {
           $0 = defaultNotificationCenter.addObserver(
             forName: UIScene.willDeactivateNotification,
             object: nil,
@@ -275,10 +276,8 @@
       try validateSchema()
     }
 
-    private let observer = LockIsolated<(any NSObjectProtocol)?>(nil)
-
     deinit {
-      observer.withValue {
+      notificationsObserver.withValue {
         guard let observer = $0
         else { return }
         NotificationCenter.default.removeObserver(observer)
