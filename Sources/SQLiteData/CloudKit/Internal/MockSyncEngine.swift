@@ -5,7 +5,7 @@ import OrderedCollections
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 package final class MockSyncEngine: SyncEngineProtocol {
   package let database: MockCloudDatabase
-  package let underlyingSyncEngine: SyncEngine
+  package let parentSyncEngine: SyncEngine
   private let _state: LockIsolated<MockSyncEngineState>
   private let _fetchChangesScopes = LockIsolated<[CKSyncEngine.FetchChangesOptions.Scope]>([])
   private let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
@@ -16,7 +16,7 @@ package final class MockSyncEngine: SyncEngineProtocol {
     state: MockSyncEngineState
   ) {
     self.database = database
-    self.underlyingSyncEngine = syncEngine
+    self.parentSyncEngine = syncEngine
     self._state = LockIsolated(state)
   }
 
@@ -50,7 +50,7 @@ package final class MockSyncEngine: SyncEngineProtocol {
         ($0[zoneID]?.values).map { Array($0) } ?? []
       }
     }
-    await underlyingSyncEngine.handleEvent(
+    await parentSyncEngine.handleEvent(
       .fetchedRecordZoneChanges(modifications: records, deletions: []),
       syncEngine: self
     )
@@ -58,9 +58,9 @@ package final class MockSyncEngine: SyncEngineProtocol {
 
   package func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws {
     guard
-      !underlyingSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges.isEmpty
+      !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges.isEmpty
     else { return }
-    try await underlyingSyncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
+    try await parentSyncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
   }
 
   package func recordZoneChangeBatch(
@@ -296,79 +296,6 @@ private func comparePendingDatabaseChange(
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
-  package struct ModifyRecordsCallback {
-    fileprivate let operation: @Sendable () async -> Void
-    package func notify() async {
-      await operation()
-    }
-  }
-
-  package func modifyRecordZones(
-    scope: CKDatabase.Scope,
-    saving recordZonesToSave: [CKRecordZone] = [],
-    deleting recordZoneIDsToDelete: [CKRecordZone.ID] = []
-  ) throws -> ModifyRecordsCallback {
-    let syncEngine = syncEngine(for: scope)
-
-    let (saveResults, deleteResults) = try syncEngine.database.modifyRecordZones(
-      saving: recordZonesToSave,
-      deleting: recordZoneIDsToDelete
-    )
-
-    return ModifyRecordsCallback {
-      await syncEngine.underlyingSyncEngine
-        .handleEvent(
-          .fetchedDatabaseChanges(
-            modifications: saveResults.values.compactMap { try? $0.get().zoneID },
-            deletions: deleteResults.compactMap { zoneID, result in
-              ((try? result.get()) != nil)
-              ? (zoneID, .deleted)
-              : nil
-            }
-          ),
-          syncEngine: syncEngine
-        )
-    }
-  }
-
-  package func modifyRecords(
-    scope: CKDatabase.Scope,
-    saving recordsToSave: [CKRecord] = [],
-    deleting recordIDsToDelete: [CKRecord.ID] = []
-  ) throws -> ModifyRecordsCallback {
-    let syncEngine = syncEngine(for: scope)
-    let recordsToDeleteByID = Dictionary(
-      grouping: syncEngine.database.storage.withValue { storage in
-        recordIDsToDelete.compactMap { recordID in storage[recordID.zoneID]?[recordID] }
-      },
-      by: \.recordID
-    )
-      .compactMapValues(\.first)
-
-    let (saveResults, deleteResults) = try syncEngine.database.modifyRecords(
-      saving: recordsToSave,
-      deleting: recordIDsToDelete
-    )
-
-    return ModifyRecordsCallback {
-      await syncEngine.underlyingSyncEngine.handleEvent(
-        .fetchedRecordZoneChanges(
-          modifications: saveResults.values.compactMap { try? $0.get() },
-          deletions: deleteResults.compactMap { recordID, result in
-            syncEngine.database.storage.withValue { storage in
-              (recordsToDeleteByID[recordID]?.recordType).flatMap { recordType in
-                (try? result.get()) != nil
-                ? (recordID, recordType)
-                : nil
-              }
-            }
-          }
-        ),
-        syncEngine: syncEngine
-      )
-    }
-  }
-
   package func processPendingRecordZoneChanges(
     options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(),
     scope: CKDatabase.Scope,
@@ -462,7 +389,7 @@ extension SyncEngine {
       pendingRecordZoneChanges: deletedRecordIDs.map { .deleteRecord($0) }
     )
 
-    await syncEngine.underlyingSyncEngine
+    await syncEngine.parentSyncEngine
       .handleEvent(
         .sentRecordZoneChanges(
           savedRecords: savedRecords,
@@ -555,7 +482,7 @@ extension SyncEngine {
     syncEngine.state.remove(pendingDatabaseChanges: savedZones.map { .saveZone($0) })
     syncEngine.state.remove(pendingDatabaseChanges: deletedZoneIDs.map { .deleteZone($0) })
 
-    await syncEngine.underlyingSyncEngine
+    await syncEngine.parentSyncEngine
       .handleEvent(
         .sentDatabaseChanges(
           savedZones: savedZones,
