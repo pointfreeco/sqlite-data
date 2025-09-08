@@ -45,6 +45,7 @@
             │   _lastKnownServerRecordAllFields: nil,                │
             │   share: nil,                                          │
             │   _isDeleted: false,                                   │
+            │   hasLastKnownServerRecord: false,                     │
             │   isShared: false,                                     │
             │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
             │ )                                                      │
@@ -60,6 +61,7 @@
             │   _lastKnownServerRecordAllFields: nil,                │
             │   share: nil,                                          │
             │   _isDeleted: false,                                   │
+            │   hasLastKnownServerRecord: false,                     │
             │   isShared: false,                                     │
             │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
             │ )                                                      │
@@ -444,6 +446,7 @@
             │   _lastKnownServerRecordAllFields: nil,                │
             │   share: nil,                                          │
             │   _isDeleted: false,                                   │
+            │   hasLastKnownServerRecord: false,                     │
             │   isShared: false,                                     │
             │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
             │ )                                                      │
@@ -459,6 +462,7 @@
             │   _lastKnownServerRecordAllFields: nil,                │
             │   share: nil,                                          │
             │   _isDeleted: false,                                   │
+            │   hasLastKnownServerRecord: false,                     │
             │   isShared: false,                                     │
             │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
             │ )                                                      │
@@ -511,6 +515,7 @@
             │   ),                                                                                    │
             │   share: nil,                                                                           │
             │   _isDeleted: false,                                                                    │
+            │   hasLastKnownServerRecord: true,                                                       │
             │   isShared: false,                                                                      │
             │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
             │ )                                                                                       │
@@ -540,6 +545,7 @@
             │   ),                                                                                    │
             │   share: nil,                                                                           │
             │   _isDeleted: false,                                                                    │
+            │   hasLastKnownServerRecord: true,                                                       │
             │   isShared: false,                                                                      │
             │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
             │ )                                                                                       │
