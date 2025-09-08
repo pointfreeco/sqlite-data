@@ -316,6 +316,7 @@
           │     share: nil                                                                                      │
           │   ),                                                                                                │
           │   _isDeleted: false,                                                                                │
+          │   hasLastKnownServerRecord: true,                                                                   │
           │   isShared: true,                                                                                   │
           │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                              │
           │ )                                                                                                   │
@@ -626,14 +627,17 @@
             zoneID: remindersListRecord.recordID.zoneID
           )
         )
+        _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, remindersListRecord])
+        let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+        let freshRemindersListRecord = try syncEngine.shared.database.record(for: remindersListRecord.recordID)
 
         try await syncEngine
           .acceptShare(
             metadata: ShareMetadata(
               containerIdentifier: container.containerIdentifier!,
-              hierarchicalRootRecordID: remindersListRecord.recordID,
-              rootRecord: remindersListRecord,
-              share: share
+              hierarchicalRootRecordID: freshRemindersListRecord.recordID,
+              rootRecord: freshRemindersListRecord,
+              share: freshShare
             )
           )
 

@@ -470,6 +470,23 @@
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
     ) async throws {
+      try await enqueueLocallyPendingChanges()
+      try await userDatabase.write { db in
+        try PendingRecordZoneChange.delete().execute(db)
+
+        let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
+          previousRecordTypeByTableName[tableName] == nil
+        }
+
+        try $_isSynchronizingChanges.withValue(false) {
+          for tableName in newTableNames {
+            try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
+          }
+        }
+      }
+    }
+
+    private func enqueueLocallyPendingChanges() async throws {
       let pendingRecordZoneChanges = try await metadatabase.read { db in
         try PendingRecordZoneChange
           .select(\.pendingRecordZoneChange)
@@ -487,18 +504,15 @@
         $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
         $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
       }
+    }
 
+    private func enqueueUnknownRecordsForCloudKit() async throws {
       try await userDatabase.write { db in
-        try PendingRecordZoneChange.delete().execute(db)
-
-        let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
-          previousRecordTypeByTableName[tableName] == nil
-        }
-
         try $_isSynchronizingChanges.withValue(false) {
-          for tableName in newTableNames {
-            try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
-          }
+          try SyncMetadata
+            .where { !$0.hasLastKnownServerRecord }
+            .update { $0.recordPrimaryKey = $0.recordPrimaryKey }
+            .execute(db)
         }
       }
     }
@@ -1044,6 +1058,9 @@
       switch changeType {
       case .signIn:
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
+        await withErrorReporting {
+          try await enqueueUnknownRecordsForCloudKit()
+        }
       case .signOut, .switchAccounts:
         withErrorReporting(.sqliteDataCloudKitFailure) {
           try deleteLocalData()
@@ -1103,6 +1120,7 @@
       func deleteRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
         let recordTypes = Set(
           try SyncMetadata
+            .where(\.hasLastKnownServerRecord)
             .select(\.lastKnownServerRecord)
             .fetchAll(db)
             .compactMap { $0?.recordID.zoneID == zoneID ? $0?.recordType : nil }
@@ -1122,6 +1140,7 @@
       func uploadRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
         let recordTypes = Set(
           try SyncMetadata
+            .where(\.hasLastKnownServerRecord)
             .select(\.lastKnownServerRecord)
             .fetchAll(db)
             .compactMap { $0?.recordID.zoneID == zoneID ? $0?.recordType : nil }

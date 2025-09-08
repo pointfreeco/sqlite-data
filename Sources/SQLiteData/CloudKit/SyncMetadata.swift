@@ -65,6 +65,14 @@
     public var _isDeleted = false
 
     @Column(generated: .virtual)
+    public let hasLastKnownServerRecord: Bool
+    
+    /// Determines if the record associated with this metadata is currently shared in CloudKit.
+    ///
+    /// This can only return `true` for root records. For example, the metadata associated with a
+    /// `RemindersList` can have `isShared == true`, but a `Reminder` associated with the list
+    /// will have `isShared == false`.
+    @Column(generated: .virtual)
     public let isShared: Bool
 
     /// The date the user last modified the record.
@@ -125,6 +133,7 @@
       self.lastKnownServerRecord = lastKnownServerRecord
       self._lastKnownServerRecordAllFields = _lastKnownServerRecordAllFields
       self.share = share
+      self.hasLastKnownServerRecord = lastKnownServerRecord != nil
       self.isShared = share != nil
       self.userModificationDate = userModificationDate
     }

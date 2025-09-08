@@ -61,6 +61,7 @@
           "lastKnownServerRecord" BLOB,
           "_lastKnownServerRecordAllFields" BLOB,
           "share" BLOB,
+          "hasLastKnownServerRecord" INTEGER NOT NULL AS ("lastKnownServerRecord" IS NOT NULL),
           "isShared" INTEGER NOT NULL AS ("share" IS NOT NULL),
           "userModificationDate" TEXT NOT NULL DEFAULT (\($datetime())),
           "_isDeleted" INTEGER NOT NULL DEFAULT 0,
@@ -82,6 +83,13 @@
         """
         CREATE INDEX "\(raw: .sqliteDataCloudKitSchemaName)_metadata_isShared"
         ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("isShared")
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_hasLastKnownServerRecord"
+        ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("hasLastKnownServerRecord")
         """
       )
       .execute(db)
