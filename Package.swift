@@ -39,7 +39,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
-    .package(url: "https://github.com/pointfreeco/swift-structured-queries", branch: "bool-query-bindings"),
+    .package(url: "https://github.com/pointfreeco/swift-structured-queries", from: "0.19.0"),
   ],
   targets: [
     .target(
