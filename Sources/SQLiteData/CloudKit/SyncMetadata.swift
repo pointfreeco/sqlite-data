@@ -172,7 +172,7 @@
     ///   .leftJoin(SyncMetadata.all) { $0.hasMetadata.in($1) }
     /// ```
     public func hasMetadata(in metadata: SyncMetadata.TableColumns) -> some QueryExpression<Bool> {
-      metadata.recordName.eq(QueryValue.tableName)
+      metadata.recordType.eq(QueryValue.tableName)
         && #sql("\(primaryKey)").eq(metadata.recordPrimaryKey)
     }
   }
