@@ -82,7 +82,7 @@ struct ReminderTag: Hashable, Identifiable {
 }
 
 @Table @Selection
-struct ReminderText: StructuredQueries.FTS5 {
+struct ReminderText: StructuredQueriesSQLite.FTS5 {
   let rowid: Int
   let title: String
   let notes: String
