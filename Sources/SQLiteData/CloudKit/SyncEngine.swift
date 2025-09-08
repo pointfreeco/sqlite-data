@@ -257,11 +257,11 @@
 
     package func setUpSyncEngine() throws {
       try userDatabase.write { db in
-        try setUpSyncEngine(writeableDB: db)
+        try setUpSyncEngine(writableDB: db)
       }
     }
 
-    package func setUpSyncEngine(writeableDB db: Database) throws {
+    package func setUpSyncEngine(writableDB db: Database) throws {
       let attachedMetadatabasePath: String? =
       try PragmaDatabaseList
         .where { $0.name.eq(String.sqliteDataCloudKitSchemaName) }
@@ -545,7 +545,7 @@
             }
             open(table)
           }
-          try setUpSyncEngine(writeableDB: db)
+          try setUpSyncEngine(writableDB: db)
         }
       }
       try await start()
