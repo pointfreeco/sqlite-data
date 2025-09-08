@@ -110,9 +110,10 @@
         try await metadatabase.read { db in
           try SyncMetadata
             .where { $0.recordName.eq(recordName) }
+            .select { ($0.recordType, $0.recordName, $0.lastKnownServerRecord) }
             .fetchOne(db)
         } ?? nil
-      guard let metadata
+      guard let (recordType, recordName, lastKnownServerRecord) = metadata
       else {
         throw SharingError(
           recordTableName: T.tableName,
@@ -125,10 +126,10 @@
       }
 
       let rootRecord =
-        metadata.lastKnownServerRecord
+      lastKnownServerRecord
         ?? CKRecord(
-          recordType: metadata.recordType,
-          recordID: CKRecord.ID(recordName: metadata.recordName, zoneID: defaultZone.zoneID)
+          recordType: recordType,
+          recordID: CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)
         )
 
       var existingShare: CKShare? {
