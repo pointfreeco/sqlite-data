@@ -57,6 +57,20 @@
         try await syncEngine.metadatabase.read { db in
           try #expect(SyncMetadata.count().fetchOne(db) == 3)
         }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
 
         await signIn()
 

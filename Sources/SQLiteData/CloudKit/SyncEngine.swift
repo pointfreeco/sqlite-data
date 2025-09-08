@@ -439,6 +439,23 @@
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
     ) async throws {
+      try await enqueueLocallyPendingChanges()
+      try await userDatabase.write { db in
+        try PendingRecordZoneChange.delete().execute(db)
+
+        let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
+          previousRecordTypeByTableName[tableName] == nil
+        }
+
+        try Self.$_isSynchronizingChanges.withValue(false) {
+          for tableName in newTableNames {
+            try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
+          }
+        }
+      }
+    }
+
+    private func enqueueLocallyPendingChanges() async throws {
       let pendingRecordZoneChanges = try await metadatabase.read { db in
         try PendingRecordZoneChange
           .select(\.pendingRecordZoneChange)
@@ -456,17 +473,31 @@
         $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
         $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
       }
+    }
 
+    private func enqueueUnknownRecordsForCloudKit() async throws {
       try await userDatabase.write { db in
-        try PendingRecordZoneChange.delete().execute(db)
-
-        let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
-          previousRecordTypeByTableName[tableName] == nil
-        }
-
-        try Self.$_isSynchronizingChanges.withValue(false) {
-          for tableName in newTableNames {
-            try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
+        try SyncEngine.$_isSynchronizingChanges.withValue(false) {
+          let recordPrimaryKeysAndRecordTypes =
+          try SyncMetadata
+            .where { !$0.hasLastKnownServerRecord }
+            .select { ($0.recordPrimaryKey, $0.recordType) }
+            .fetchAll(db)
+          let recordPrimaryKeysByRecordType = Dictionary(
+            grouping: recordPrimaryKeysAndRecordTypes,
+            by: { _, recordType in recordType }
+          )
+            .mapValues { $0.map(\.0) }
+          for (recordType, recordPrimaryKeys) in recordPrimaryKeysByRecordType {
+            guard let table = tablesByName[recordType]
+            else { continue }
+            func open<T: PrimaryKeyedTable>(_: T.Type) throws {
+              try T
+                .where { #sql("\($0.primaryKey)").in(recordPrimaryKeys) }
+                .update { $0.primaryKey = $0.primaryKey }
+                .execute(db)
+            }
+            try open(table)
           }
         }
       }
@@ -1010,6 +1041,9 @@
       switch changeType {
       case .signIn:
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
+        await withErrorReporting {
+          try await enqueueUnknownRecordsForCloudKit()
+        }
       case .signOut, .switchAccounts:
         withErrorReporting(.sqliteDataCloudKitFailure) {
           try deleteLocalData()
@@ -1069,6 +1103,7 @@
       func deleteRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
         let recordTypes = Set(
           try SyncMetadata
+            .where(\.hasLastKnownServerRecord)
             .select(\.lastKnownServerRecord)
             .fetchAll(db)
             .compactMap { $0?.recordID.zoneID == zoneID ? $0?.recordType : nil }
@@ -1088,6 +1123,7 @@
       func uploadRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
         let recordTypes = Set(
           try SyncMetadata
+            .where(\.hasLastKnownServerRecord)
             .select(\.lastKnownServerRecord)
             .fetchAll(db)
             .compactMap { $0?.recordID.zoneID == zoneID ? $0?.recordType : nil }
@@ -1875,8 +1911,8 @@
               throw SyncEngine.SchemaError(
                 reason: .uniquenessConstraint,
                 debugDescription: """
-                Uniqueness constraints are not supported for synchronized tables.
-                """
+                  Uniqueness constraints are not supported for synchronized tables.
+                  """
               )
             }
           }
