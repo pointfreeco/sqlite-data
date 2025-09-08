@@ -1218,7 +1218,7 @@
         if let share = record as? CKShare {
           shares.append(.share(share))
         } else {
-          upsertFromServerRecord(record)
+          await upsertFromServerRecord(record)
           if let shareReference = record.share {
             shares.append(.reference(shareReference))
           }
@@ -1279,7 +1279,7 @@
         switch error.code {
         case .serverRecordChanged:
           guard let serverRecord = error.serverRecord else { continue }
-          upsertFromServerRecord(serverRecord)
+          await upsertFromServerRecord(serverRecord)
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
 
         case .zoneNotFound:
@@ -1363,7 +1363,7 @@
               let serverRecord = try await container.sharedCloudDatabase.record(
                 for: failedRecord.recordID
               )
-              upsertFromServerRecord(serverRecord, force: true)
+              await upsertFromServerRecord(serverRecord, force: true)
             } catch let error as CKError where error.code == .unknownItem {
               try await userDatabase.write { db in
                 try T
@@ -1447,13 +1447,13 @@
     private func upsertFromServerRecord(
       _ serverRecord: CKRecord,
       force: Bool = false
-    ) {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
+    ) async {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
         guard let table = tablesByName[serverRecord.recordType]
         else {
           guard let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey
           else { return }
-          try userDatabase.write { db in
+          try await userDatabase.write { db in
             try SyncMetadata.insert {
               SyncMetadata(
                 recordPrimaryKey: recordPrimaryKey,
@@ -1475,7 +1475,7 @@
           return
         }
 
-        let metadata = try metadatabase.read { db in
+        let metadata = try await metadatabase.read { db in
           try SyncMetadata
             .where { $0.recordName.eq(serverRecord.recordID.recordName) }
             .fetchOne(db)
@@ -1483,32 +1483,36 @@
         serverRecord.userModificationDate =
           metadata?.userModificationDate ?? serverRecord.userModificationDate
 
-        func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-          var columnNames = T.TableColumns.writableColumns.map(\.name)
+        func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
+          let columnNames: [String]
           if !force, let metadata, let allFields = metadata._lastKnownServerRecordAllFields {
-            let row = try userDatabase.read { db in
-              try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
-            }
-            guard let row
-            else {
-              reportIssue(
+            columnNames = try await userDatabase.read { db in
+              var columnNames = T.TableColumns.writableColumns.map(\.name)
+              let row = try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
+              guard let row
+              else {
+                reportIssue(
                 """
                 Local database record could not be found for '\(serverRecord.recordID.recordName)'.
                 """
-              )
-              return
-            }
-            serverRecord.update(
-              with: allFields,
-              row: T(queryOutput: row),
-              columnNames: &columnNames,
-              parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
+                )
+                return columnNames
+              }
+              serverRecord.update(
+                with: allFields,
+                row: T(queryOutput: row),
+                columnNames: &columnNames,
+                parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
                 ? foreignKeysByTableName[T.tableName]?.first
                 : nil
-            )
+              )
+              return columnNames
+            }
+          } else {
+            columnNames = T.TableColumns.writableColumns.map(\.name)
           }
 
-          try userDatabase.write { db in
+          try await userDatabase.write { db in
             do {
               try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
               try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
@@ -1531,7 +1535,7 @@
             }
           }
         }
-        try open(table)
+        try await open(table)
       }
     }
 
