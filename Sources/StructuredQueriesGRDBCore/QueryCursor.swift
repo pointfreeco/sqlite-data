@@ -162,11 +162,24 @@ extension QueryBinding {
         return .null
       case let .text(text):
         return text.databaseValue
+      case let .uint(uint) where uint <= UInt64(Int64.max):
+        return uint.databaseValue
+      case let .uint(uint):
+        throw Int64OverflowError(unsignedInteger: uint)
       case let .uuid(uuid):
         return uuid.uuidString.lowercased().databaseValue
       case let .invalid(error):
         throw error
       }
     }
+  }
+}
+
+@usableFromInline
+struct Int64OverflowError: Error {
+  let unsignedInteger: UInt64
+  @usableFromInline
+  init(unsignedInteger: UInt64) {
+    self.unsignedInteger = unsignedInteger
   }
 }

@@ -124,7 +124,7 @@
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
         "branch" : "bool-query-bindings",
-        "revision" : "573ed393324a65d4d7e8e0782ff8fb3c5400508d"
+        "revision" : "952c1c3efd208556934dabd02bbfab212806eb8f"
       }
     },
     {

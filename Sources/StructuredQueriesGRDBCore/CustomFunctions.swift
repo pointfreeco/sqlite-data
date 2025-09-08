@@ -98,22 +98,26 @@ extension [QueryBinding] {
 extension QueryBinding {
   fileprivate func result(db: OpaquePointer?) {
     switch self {
-    case .blob(let value):
-      sqlite3_result_blob(db, Array(value), Int32(value.count), SQLITE_TRANSIENT)
-    case .bool(let value):
-      sqlite3_result_int64(db, value ? 1 : 0)
-    case .double(let value):
-      sqlite3_result_double(db, value)
-    case .date(let value):
-      sqlite3_result_text(db, value.iso8601String, -1, SQLITE_TRANSIENT)
-    case .int(let value):
-      sqlite3_result_int64(db, value)
+    case .blob(let blob):
+      sqlite3_result_blob(db, Array(blob), Int32(blob.count), SQLITE_TRANSIENT)
+    case .bool(let bool):
+      sqlite3_result_int64(db, bool ? 1 : 0)
+    case .double(let double):
+      sqlite3_result_double(db, double)
+    case .date(let date):
+      sqlite3_result_text(db, date.iso8601String, -1, SQLITE_TRANSIENT)
+    case .int(let int):
+      sqlite3_result_int64(db, int)
     case .null:
       sqlite3_result_null(db)
-    case .text(let value):
-      sqlite3_result_text(db, value, -1, SQLITE_TRANSIENT)
-    case .uuid(let value):
-      sqlite3_result_text(db, value.uuidString.lowercased(), -1, SQLITE_TRANSIENT)
+    case .text(let text):
+      sqlite3_result_text(db, text, -1, SQLITE_TRANSIENT)
+    case .uint(let uint) where uint <= UInt64(Int64.max):
+      sqlite3_result_int64(db, Int64(uint))
+    case .uint(let uint):
+      sqlite3_result_error(db, "Unsigned integer \(uint) overflows Int64.max", -1)
+    case .uuid(let uuid):
+      sqlite3_result_text(db, uuid.uuidString.lowercased(), -1, SQLITE_TRANSIENT)
     case .invalid(let error):
       sqlite3_result_error(db, error.underlyingError.localizedDescription, -1)
     }
