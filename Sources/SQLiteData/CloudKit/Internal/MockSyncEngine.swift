@@ -12,11 +12,11 @@ package final class MockSyncEngine: SyncEngineProtocol {
 
   package init(
     database: MockCloudDatabase,
-    syncEngine: SyncEngine,
+    parentSyncEngine: SyncEngine,
     state: MockSyncEngineState
   ) {
     self.database = database
-    self.parentSyncEngine = syncEngine
+    self.parentSyncEngine = parentSyncEngine
     self._state = LockIsolated(state)
   }
 

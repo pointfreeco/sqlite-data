@@ -115,12 +115,12 @@
             (
               private: MockSyncEngine(
                 database: privateDatabase,
-                syncEngine: syncEngine,
+                parentSyncEngine: syncEngine,
                 state: MockSyncEngineState()
               ),
               shared: MockSyncEngine(
                 database: sharedDatabase,
-                syncEngine: syncEngine,
+                parentSyncEngine: syncEngine,
                 state: MockSyncEngineState()
               )
             )
@@ -253,7 +253,7 @@
         tablesByName: tablesByName
       )
       #if canImport(UIKit)
-      @Dependency(\.defaultNotificationCenter) var defaultNotificationCenter
+        @Dependency(\.defaultNotificationCenter) var defaultNotificationCenter
         observer.withValue {
           $0 = defaultNotificationCenter.addObserver(
             forName: UIScene.willDeactivateNotification,
@@ -263,12 +263,11 @@
             Task { @MainActor in
               let taskIdentifier = UIApplication.shared.beginBackgroundTask()
               defer { UIApplication.shared.endBackgroundTask(taskIdentifier) }
-              if let privateSyncEngine = syncEngines.withValue(\.private) {
-                try await privateSyncEngine.sendChanges(CKSyncEngine.SendChangesOptions())
+              let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
+                ($0.private, $0.shared)
               }
-              if let sharedSyncEngine = syncEngines.withValue(\.shared) {
-                try await sharedSyncEngine.sendChanges(CKSyncEngine.SendChangesOptions())
-              }
+              try await privateSyncEngine?.sendChanges(CKSyncEngine.SendChangesOptions())
+              try await sharedSyncEngine?.sendChanges(CKSyncEngine.SendChangesOptions())
             }
           }
         }
