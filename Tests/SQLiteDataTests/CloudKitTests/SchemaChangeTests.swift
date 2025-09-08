@@ -81,10 +81,10 @@
           )
           defer { _ = relaunchedSyncEngine }
 
-          let remindersLists = try await userDatabase.userRead { db in
+          let remindersLists = try await userDatabase.read { db in
             try RemindersListWithPosition.order(by: \.id).fetchAll(db)
           }
-          let reminders = try await userDatabase.userRead { db in
+          let reminders = try await userDatabase.read { db in
             try ReminderWithPosition.order(by: \.id).fetchAll(db)
           }
 
@@ -154,7 +154,7 @@
           )
           defer { _ = relaunchedSyncEngine }
 
-          let remindersLists = try await userDatabase.userRead { db in
+          let remindersLists = try await userDatabase.read { db in
             try RemindersListWithData.order(by: \.id).fetchAll(db)
           }
 
@@ -223,7 +223,7 @@
           )
           defer { _ = relaunchedSyncEngine }
 
-          let remindersLists = try await userDatabase.userRead { db in
+          let remindersLists = try await userDatabase.read { db in
             try RemindersListWithData.order(by: \.id).fetchAll(db)
           }
 
@@ -280,7 +280,7 @@
           )
           defer { _ = relaunchedSyncEngine }
 
-          let images = try await userDatabase.userRead { db in
+          let images = try await userDatabase.read { db in
             try Image.order(by: \.id).fetchAll(db)
           }
 

@@ -442,7 +442,7 @@
           as: String.self
         )
         assertInlineSnapshot(
-          of: try { try userDatabase.userRead { try query.fetchAll($0) } }(),
+          of: try { try userDatabase.write { try query.fetchAll($0) } }(),
           as: .customDump
         ) {
           """
@@ -458,7 +458,7 @@
         try syncEngine.tearDownSyncEngine()
 
         assertInlineSnapshot(
-          of: try { try userDatabase.userRead { try query.fetchAll($0) } }(),
+          of: try { try userDatabase.read { try query.fetchAll($0) } }(),
           as: .customDump
         ) {
           """
