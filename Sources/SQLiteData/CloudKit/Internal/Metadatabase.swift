@@ -43,10 +43,11 @@
           configuration: configuration
         )
       }
+    try migrate(metadatabase: metadatabase)
     return metadatabase
   }
 
-  func metadatabaseMigrator() -> DatabaseMigrator {
+  func migrate(metadatabase: some DatabaseWriter) throws {
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create Metadata Tables") { db in
       try #sql(
@@ -132,6 +133,18 @@
       )
       .execute(db)
     }
-    return migrator
+    #if DEBUG
+      try metadatabase.read { db in
+        let hasSchemaChanges = try migrator.hasSchemaChanges(db)
+        assert(
+          !hasSchemaChanges,
+          """
+          A previously run migration has been removed or edited.
+          Metadatabase migrations must not be modified after release.
+          """
+        )
+      }
+    #endif
+    try migrator.migrate(metadatabase)
   }
 #endif

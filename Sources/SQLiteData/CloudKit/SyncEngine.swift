@@ -15,6 +15,8 @@
   #endif
 
   /// An object that manages the synchronization of local and remote SQLite data.
+  ///
+  /// See <doc:CloudKit> for more information.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Observable, Sendable {
     package let userDatabase: UserDatabase
@@ -285,69 +287,57 @@
     }
 
     nonisolated package func setUpSyncEngine() throws {
-      let migrator = metadatabaseMigrator()
-      #if DEBUG
-        try metadatabase.read { db in
-          let hasSchemaChanges = try migrator.hasSchemaChanges(db)
-          assert(
-            !hasSchemaChanges,
-            """
-            A previously run migration has been removed or edited.
-
-            Metadatabase migrations must not be modified after release.
-            """
-          )
-        }
-      #endif
-      try migrator.migrate(metadatabase)
-
       try userDatabase.write { db in
-        let attachedMetadatabasePath: String? =
-          try PragmaDatabaseList
-          .where { $0.name.eq(String.sqliteDataCloudKitSchemaName) }
-          .select(\.file)
-          .fetchOne(db)
-        if let attachedMetadatabasePath {
-          let attachedMetadatabaseName = URL(filePath: metadatabase.path).lastPathComponent
-          let metadatabaseName = URL(filePath: attachedMetadatabasePath).lastPathComponent
-          if attachedMetadatabaseName != metadatabaseName {
-            throw SchemaError(
-              reason: .metadatabaseMismatch(
-                attachedPath: attachedMetadatabasePath,
-                syncEngineConfiguredPath: metadatabase.path
-              ),
-              debugDescription: """
-                Metadatabase attached in 'prepareDatabase' does not match metadatabase prepared in \
-                'SyncEngine.init'. Are different CloudKit container identifiers being provided?
-                """
-            )
-          }
+        try setUpSyncEngine(writableDB: db)
+      }
+    }
 
-        } else {
-          try #sql(
-            """
-            ATTACH DATABASE \(bind: metadatabase.path) AS \(quote: .sqliteDataCloudKitSchemaName)
-            """
-          )
-          .execute(db)
-        }
-        db.add(function: $datetime)
-        db.add(function: $syncEngineIsSynchronizingChanges)
-        db.add(function: $didUpdate)
-        db.add(function: $didDelete)
-        db.add(function: $hasPermission)
-
-        for trigger in SyncMetadata.callbackTriggers(for: self) {
-          try trigger.execute(db)
-        }
-
-        for table in tables {
-          try table.createTriggers(
-            foreignKeysByTableName: foreignKeysByTableName,
-            tablesByName: tablesByName,
-            db: db
+    nonisolated package func setUpSyncEngine(writableDB db: Database) throws {
+      let attachedMetadatabasePath: String? =
+        try PragmaDatabaseList
+        .where { $0.name.eq(String.sqliteDataCloudKitSchemaName) }
+        .select(\.file)
+        .fetchOne(db)
+      if let attachedMetadatabasePath {
+        let attachedMetadatabaseName = URL(filePath: metadatabase.path).lastPathComponent
+        let metadatabaseName = URL(filePath: attachedMetadatabasePath).lastPathComponent
+        if attachedMetadatabaseName != metadatabaseName {
+          throw SchemaError(
+            reason: .metadatabaseMismatch(
+              attachedPath: attachedMetadatabasePath,
+              syncEngineConfiguredPath: metadatabase.path
+            ),
+            debugDescription: """
+              Metadatabase attached in 'prepareDatabase' does not match metadatabase prepared in \
+              'SyncEngine.init'. Are different CloudKit container identifiers being provided?
+              """
           )
         }
+
+      } else {
+        try #sql(
+          """
+          ATTACH DATABASE \(bind: metadatabase.path) AS \(quote: .sqliteDataCloudKitSchemaName)
+          """
+        )
+        .execute(db)
+      }
+      db.add(function: $datetime)
+      db.add(function: $syncEngineIsSynchronizingChanges)
+      db.add(function: $didUpdate)
+      db.add(function: $didDelete)
+      db.add(function: $hasPermission)
+
+      for trigger in SyncMetadata.callbackTriggers(for: self) {
+        try trigger.execute(db)
+      }
+
+      for table in tables {
+        try table.createTriggers(
+          foreignKeysByTableName: foreignKeysByTableName,
+          tablesByName: tablesByName,
+          db: db
+        )
       }
     }
 
@@ -584,12 +574,14 @@
         db.remove(function: $datetime)
       }
       try metadatabase.erase()
+      try migrate(metadatabase: metadatabase)
     }
 
-    func deleteLocalData() throws {
+    func deleteLocalData() async throws {
+      try stop()
       try tearDownSyncEngine()
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try userDatabase.write { db in
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await userDatabase.write { db in
           for table in tables {
             func open<T: PrimaryKeyedTable>(_: T.Type) {
               withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -598,9 +590,10 @@
             }
             open(table)
           }
+          try setUpSyncEngine(writableDB: db)
         }
       }
-      try setUpSyncEngine()
+      try await start()
     }
 
     @DatabaseFunction(
@@ -1062,8 +1055,8 @@
           try await enqueueUnknownRecordsForCloudKit()
         }
       case .signOut, .switchAccounts:
-        withErrorReporting(.sqliteDataCloudKitFailure) {
-          try deleteLocalData()
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await deleteLocalData()
         }
       @unknown default:
         break
@@ -1545,9 +1538,9 @@
               guard let row
               else {
                 reportIssue(
-                """
-                Local database record could not be found for '\(serverRecord.recordID.recordName)'.
-                """
+                  """
+                  Local database record could not be found for '\(serverRecord.recordID.recordName)'.
+                  """
                 )
                 return columnNames
               }
@@ -1556,8 +1549,8 @@
                 row: T(queryOutput: row),
                 columnNames: &columnNames,
                 parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
-                ? foreignKeysByTableName[T.tableName]?.first
-                : nil
+                  ? foreignKeysByTableName[T.tableName]?.first
+                  : nil
               )
               return columnNames
             }
