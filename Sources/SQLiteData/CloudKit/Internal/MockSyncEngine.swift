@@ -205,6 +205,11 @@ package final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpRe
     _pendingDatabaseChanges.withValue { Array($0) }
   }
 
+  package func removePendingChanges() {
+    _pendingDatabaseChanges.withValue { $0.removeAll() }
+    _pendingRecordZoneChanges.withValue { $0.removeAll() }
+  }
+
   package func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
     self._pendingRecordZoneChanges.withValue {
       $0.append(contentsOf: pendingRecordZoneChanges)

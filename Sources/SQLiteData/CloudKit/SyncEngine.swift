@@ -478,27 +478,10 @@
     private func enqueueUnknownRecordsForCloudKit() async throws {
       try await userDatabase.write { db in
         try SyncEngine.$_isSynchronizingChanges.withValue(false) {
-          let recordPrimaryKeysAndRecordTypes =
           try SyncMetadata
             .where { !$0.hasLastKnownServerRecord }
-            .select { ($0.recordPrimaryKey, $0.recordType) }
-            .fetchAll(db)
-          let recordPrimaryKeysByRecordType = Dictionary(
-            grouping: recordPrimaryKeysAndRecordTypes,
-            by: { _, recordType in recordType }
-          )
-            .mapValues { $0.map(\.0) }
-          for (recordType, recordPrimaryKeys) in recordPrimaryKeysByRecordType {
-            guard let table = tablesByName[recordType]
-            else { continue }
-            func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-              try T
-                .where { #sql("\($0.primaryKey)").in(recordPrimaryKeys) }
-                .update { $0.primaryKey = $0.primaryKey }
-                .execute(db)
-            }
-            try open(table)
-          }
+            .update { $0.recordPrimaryKey = $0.recordPrimaryKey }
+            .execute(db)
         }
       }
     }

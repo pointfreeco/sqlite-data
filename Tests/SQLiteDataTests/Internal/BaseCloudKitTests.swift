@@ -102,8 +102,16 @@ class BaseCloudKitTests: @unchecked Sendable {
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  func softSignOut() async {
+    container._accountStatus.withValue { $0 = .temporarilyUnavailable }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   func signIn() async {
     container._accountStatus.withValue { $0 = .available }
+    // NB: Emulates what CKSyncEngine does when signing in
+    syncEngine.private.state.removePendingChanges()
+    syncEngine.shared.state.removePendingChanges()
     await syncEngine.handleEvent(
       .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
       syncEngine: syncEngine.private
