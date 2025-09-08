@@ -69,6 +69,13 @@ struct SQLiteQueryDecoder: QueryDecoder {
   }
 
   @inlinable
+  mutating func decode(_ columnType: UInt64.Type) throws -> UInt64? {
+    guard let n = try decode(Int64.self) else { return nil }
+    guard n >= 0 else { throw UInt64OverflowError(signedInteger: n) }
+    return UInt64(n)
+  }
+
+  @inlinable
   mutating func decode(_ columnType: UUID.Type) throws -> UUID? {
     guard let uuidString = try decode(String.self) else { return nil }
     guard let uuid = UUID(uuidString: uuidString) else { throw InvalidUUID() }
@@ -80,4 +87,14 @@ struct SQLiteQueryDecoder: QueryDecoder {
 struct InvalidUUID: Error {
   @usableFromInline
   init() {}
+}
+
+@usableFromInline
+struct UInt64OverflowError: Error {
+  let signedInteger: Int64
+
+  @usableFromInline
+  init(signedInteger: Int64) {
+    self.signedInteger = signedInteger
+  }
 }
