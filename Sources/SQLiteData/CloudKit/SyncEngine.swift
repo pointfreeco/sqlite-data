@@ -253,23 +253,6 @@
       try validateSchema()
     }
 
-    nonisolated package func setUpSyncEngine() throws {
-      let migrator = metadatabaseMigrator()
-      #if DEBUG
-        try metadatabase.read { db in
-          let hasSchemaChanges = try migrator.hasSchemaChanges(db)
-          assert(
-            !hasSchemaChanges,
-            """
-            A previously run migration has been removed or edited.
-
-            Metadatabase migrations must not be modified after release.
-            """
-          )
-        }
-      #endif
-      try migrator.migrate(metadatabase)
-
     package func setUpSyncEngine() throws {
       try userDatabase.write { db in
         try setUpSyncEngine(writableDB: db)
@@ -278,7 +261,7 @@
 
     package func setUpSyncEngine(writableDB db: Database) throws {
       let attachedMetadatabasePath: String? =
-      try PragmaDatabaseList
+        try PragmaDatabaseList
         .where { $0.name.eq(String.sqliteDataCloudKitSchemaName) }
         .select(\.file)
         .fetchOne(db)
@@ -292,17 +275,17 @@
               syncEngineConfiguredPath: metadatabase.path
             ),
             debugDescription: """
-                Metadatabase attached in 'prepareDatabase' does not match metadatabase prepared in \
-                'SyncEngine.init'. Are different CloudKit container identifiers being provided?
-                """
+              Metadatabase attached in 'prepareDatabase' does not match metadatabase prepared in \
+              'SyncEngine.init'. Are different CloudKit container identifiers being provided?
+              """
           )
         }
 
       } else {
         try #sql(
-            """
-            ATTACH DATABASE \(bind: metadatabase.path) AS \(quote: .sqliteDataCloudKitSchemaName)
-            """
+          """
+          ATTACH DATABASE \(bind: metadatabase.path) AS \(quote: .sqliteDataCloudKitSchemaName)
+          """
         )
         .execute(db)
       }
@@ -1503,9 +1486,9 @@
               guard let row
               else {
                 reportIssue(
-                """
-                Local database record could not be found for '\(serverRecord.recordID.recordName)'.
-                """
+                  """
+                  Local database record could not be found for '\(serverRecord.recordID.recordName)'.
+                  """
                 )
                 return columnNames
               }
@@ -1514,8 +1497,8 @@
                 row: T(queryOutput: row),
                 columnNames: &columnNames,
                 parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
-                ? foreignKeysByTableName[T.tableName]?.first
-                : nil
+                  ? foreignKeysByTableName[T.tableName]?.first
+                  : nil
               )
               return columnNames
             }
