@@ -445,7 +445,7 @@
           previousRecordTypeByTableName[tableName] == nil
         }
 
-        try Self.$_isSynchronizingChanges.withValue(false) {
+        try $_isSynchronizingChanges.withValue(false) {
           for tableName in newTableNames {
             try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
           }
@@ -475,7 +475,7 @@
 
     private func enqueueUnknownRecordsForCloudKit() async throws {
       try await userDatabase.write { db in
-        try SyncEngine.$_isSynchronizingChanges.withValue(false) {
+        try $_isSynchronizingChanges.withValue(false) {
           try SyncMetadata
             .where { !$0.hasLastKnownServerRecord }
             .update { $0.recordPrimaryKey = $0.recordPrimaryKey }
