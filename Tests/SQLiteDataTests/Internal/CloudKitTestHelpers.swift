@@ -18,7 +18,6 @@ extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConver
   }
 }
 
-
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
   struct ModifyRecordsCallback {
@@ -47,8 +46,8 @@ extension SyncEngine {
             modifications: saveResults.values.compactMap { try? $0.get().zoneID },
             deletions: deleteResults.compactMap { zoneID, result in
               ((try? result.get()) != nil)
-              ? (zoneID, .deleted)
-              : nil
+                ? (zoneID, .deleted)
+                : nil
             }
           ),
           syncEngine: syncEngine
@@ -68,7 +67,7 @@ extension SyncEngine {
       },
       by: \.recordID
     )
-      .compactMapValues(\.first)
+    .compactMapValues(\.first)
 
     let (saveResults, deleteResults) = try syncEngine.database.modifyRecords(
       saving: recordsToSave,
@@ -83,8 +82,8 @@ extension SyncEngine {
             syncEngine.database.storage.withValue { storage in
               (recordsToDeleteByID[recordID]?.recordType).flatMap { recordType in
                 (try? result.get()) != nil
-                ? (recordID, recordType)
-                : nil
+                  ? (recordID, recordType)
+                  : nil
               }
             }
           }
@@ -104,25 +103,29 @@ extension SyncEngine {
     let syncEngine = syncEngine(for: scope)
     guard !syncEngine.state.pendingDatabaseChanges.isEmpty
     else {
-      reportIssue(
+      Issue.record(
         "Processing empty set of database changes.",
-        fileID: fileID,
-        filePath: filePath,
-        line: line,
-        column: column
+        sourceLocation: SourceLocation(
+          fileID: String(describing: fileID),
+          filePath: String(describing: filePath),
+          line: Int(line),
+          column: Int(column)
+        )
       )
       return
     }
     guard try await container.accountStatus() == .available
     else {
-      reportIssue(
+      Issue.record(
         """
         User must be logged in to process pending changes.
         """,
-        fileID: fileID,
-        filePath: filePath,
-        line: line,
-        column: column
+        sourceLocation: SourceLocation(
+          fileID: String(describing: fileID),
+          filePath: String(describing: filePath),
+          line: Int(line),
+          column: Int(column)
+        )
       )
       return
     }
@@ -140,13 +143,13 @@ extension SyncEngine {
       }
     }
     let results:
-    (
-      saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
-      deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
-    ) = try syncEngine.database.modifyRecordZones(
-      saving: zonesToSave,
-      deleting: zoneIDsToDelete
-    )
+      (
+        saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
+        deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
+      ) = try syncEngine.database.modifyRecordZones(
+        saving: zonesToSave,
+        deleting: zoneIDsToDelete
+      )
     var savedZones: [CKRecordZone] = []
     var failedZoneSaves: [(zone: CKRecordZone, error: CKError)] = []
     var deletedZoneIDs: [CKRecordZone.ID] = []
