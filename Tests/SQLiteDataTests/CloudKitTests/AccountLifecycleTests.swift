@@ -25,7 +25,7 @@
 
         await signOut()
 
-        try await userDatabase.userRead { db in
+        try await userDatabase.read { db in
           try #expect(RemindersList.count().fetchOne(db) == 0)
           try #expect(Reminder.count().fetchOne(db) == 0)
           try #expect(RemindersListPrivate.count().fetchOne(db) == 0)

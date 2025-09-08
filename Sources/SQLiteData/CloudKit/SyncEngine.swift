@@ -253,7 +253,22 @@
       try validateSchema()
     }
 
-    @TaskLocal package static var _isSynchronizingChanges = false
+    nonisolated package func setUpSyncEngine() throws {
+      let migrator = metadatabaseMigrator()
+      #if DEBUG
+        try metadatabase.read { db in
+          let hasSchemaChanges = try migrator.hasSchemaChanges(db)
+          assert(
+            !hasSchemaChanges,
+            """
+            A previously run migration has been removed or edited.
+
+            Metadatabase migrations must not be modified after release.
+            """
+          )
+        }
+      #endif
+      try migrator.migrate(metadatabase)
 
     package func setUpSyncEngine() throws {
       try userDatabase.write { db in
@@ -454,7 +469,7 @@
           previousRecordTypeByTableName[tableName] == nil
         }
 
-        try Self.$_isSynchronizingChanges.withValue(false) {
+        try $_isSynchronizingChanges.withValue(false) {
           for tableName in newTableNames {
             try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
           }
@@ -918,53 +933,56 @@
       }
       let deletedRecordNames = deletedRecordIDs.map(\.recordName)
 
-      let (metadataOfDeletions, recordsWithRoot): ([SyncMetadata], [RecordWithRoot]) =
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await metadatabase.read { db in
-            let metadataOfDeletions = try SyncMetadata.where {
-              $0.recordName.in(deletedRecordNames)
-            }
-            .fetchAll(db)
+      let (sharesToDelete, recordsWithRoot):
+        ([CKShare?], [(lastKnownServerRecord: CKRecord?, rootLastKnownServerRecord: CKRecord?)]) =
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await metadatabase.read { db in
+              let sharesToDelete =
+                try SyncMetadata
+                .where { $0.isShared && $0.recordName.in(deletedRecordNames) }
+                .select(\.share)
+                .fetchAll(db)
 
-            let recordsWithRoot =
-              try With {
-                SyncMetadata
-                  .where { $0.parentRecordName.is(nil) && $0.recordName.in(deletedRecordNames) }
-                  .select {
-                    RecordWithRoot.Columns(
-                      parentRecordName: $0.parentRecordName,
-                      recordName: $0.recordName,
-                      lastKnownServerRecord: $0.lastKnownServerRecord,
-                      rootRecordName: $0.recordName,
-                      rootLastKnownServerRecord: $0.lastKnownServerRecord
+              let recordsWithRoot =
+                try With {
+                  SyncMetadata
+                    .where { $0.parentRecordName.is(nil) && $0.recordName.in(deletedRecordNames) }
+                    .select {
+                      RecordWithRoot.Columns(
+                        parentRecordName: $0.parentRecordName,
+                        recordName: $0.recordName,
+                        lastKnownServerRecord: $0.lastKnownServerRecord,
+                        rootRecordName: $0.recordName,
+                        rootLastKnownServerRecord: $0.lastKnownServerRecord
+                      )
+                    }
+                    .union(
+                      all: true,
+                      SyncMetadata
+                        .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
+                        .select { metadata, tree in
+                          RecordWithRoot.Columns(
+                            parentRecordName: metadata.parentRecordName,
+                            recordName: metadata.recordName,
+                            lastKnownServerRecord: metadata.lastKnownServerRecord,
+                            rootRecordName: tree.rootRecordName,
+                            rootLastKnownServerRecord: tree.lastKnownServerRecord
+                          )
+                        }
                     )
-                  }
-                  .union(
-                    all: true,
-                    SyncMetadata
-                      .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
-                      .select { metadata, tree in
-                        RecordWithRoot.Columns(
-                          parentRecordName: metadata.parentRecordName,
-                          recordName: metadata.recordName,
-                          lastKnownServerRecord: metadata.lastKnownServerRecord,
-                          rootRecordName: tree.rootRecordName,
-                          rootLastKnownServerRecord: tree.lastKnownServerRecord
-                        )
-                      }
-                  )
-              } query: {
-                RecordWithRoot
-                  .where { $0.recordName.in(deletedRecordNames) }
-              }
-              .fetchAll(db)
+                } query: {
+                  RecordWithRoot
+                    .where { $0.recordName.in(deletedRecordNames) }
+                    .select { ($0.lastKnownServerRecord, $0.rootLastKnownServerRecord) }
+                }
+                .fetchAll(db)
 
-            return (metadataOfDeletions, recordsWithRoot)
+              return (sharesToDelete, recordsWithRoot)
+            }
           }
-        }
-        ?? ([], [])
+          ?? ([], [])
 
-      let shareRecordIDsToDelete = metadataOfDeletions.compactMap(\.share?.recordID)
+      let shareRecordIDsToDelete = sharesToDelete.compactMap(\.?.recordID)
 
       for recordWithRoot in recordsWithRoot {
         guard
@@ -1211,7 +1229,7 @@
         if let share = record as? CKShare {
           shares.append(.share(share))
         } else {
-          upsertFromServerRecord(record)
+          await upsertFromServerRecord(record)
           if let shareReference = record.share {
             shares.append(.reference(shareReference))
           }
@@ -1272,7 +1290,7 @@
         switch error.code {
         case .serverRecordChanged:
           guard let serverRecord = error.serverRecord else { continue }
-          upsertFromServerRecord(serverRecord)
+          await upsertFromServerRecord(serverRecord)
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
 
         case .zoneNotFound:
@@ -1297,7 +1315,7 @@
           else { continue }
           func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
             try await userDatabase.write { db in
-              try Self.$_isSynchronizingChanges.withValue(false) {
+              try $_isSynchronizingChanges.withValue(false) {
                 switch foreignKey.onDelete {
                 case .cascade:
                   try T
@@ -1356,7 +1374,7 @@
               let serverRecord = try await container.sharedCloudDatabase.record(
                 for: failedRecord.recordID
               )
-              upsertFromServerRecord(serverRecord, force: true)
+              await upsertFromServerRecord(serverRecord, force: true)
             } catch let error as CKError where error.code == .unknownItem {
               try await userDatabase.write { db in
                 try T
@@ -1440,13 +1458,13 @@
     private func upsertFromServerRecord(
       _ serverRecord: CKRecord,
       force: Bool = false
-    ) {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
+    ) async {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
         guard let table = tablesByName[serverRecord.recordType]
         else {
           guard let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey
           else { return }
-          try userDatabase.write { db in
+          try await userDatabase.write { db in
             try SyncMetadata.insert {
               SyncMetadata(
                 recordPrimaryKey: recordPrimaryKey,
@@ -1468,7 +1486,7 @@
           return
         }
 
-        let metadata = try metadatabase.read { db in
+        let metadata = try await metadatabase.read { db in
           try SyncMetadata
             .where { $0.recordName.eq(serverRecord.recordID.recordName) }
             .fetchOne(db)
@@ -1476,32 +1494,36 @@
         serverRecord.userModificationDate =
           metadata?.userModificationDate ?? serverRecord.userModificationDate
 
-        func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-          var columnNames = T.TableColumns.writableColumns.map(\.name)
+        func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
+          let columnNames: [String]
           if !force, let metadata, let allFields = metadata._lastKnownServerRecordAllFields {
-            let row = try userDatabase.read { db in
-              try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
-            }
-            guard let row
-            else {
-              reportIssue(
+            columnNames = try await userDatabase.read { db in
+              var columnNames = T.TableColumns.writableColumns.map(\.name)
+              let row = try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
+              guard let row
+              else {
+                reportIssue(
                 """
                 Local database record could not be found for '\(serverRecord.recordID.recordName)'.
                 """
-              )
-              return
-            }
-            serverRecord.update(
-              with: allFields,
-              row: T(queryOutput: row),
-              columnNames: &columnNames,
-              parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
+                )
+                return columnNames
+              }
+              serverRecord.update(
+                with: allFields,
+                row: T(queryOutput: row),
+                columnNames: &columnNames,
+                parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
                 ? foreignKeysByTableName[T.tableName]?.first
                 : nil
-            )
+              )
+              return columnNames
+            }
+          } else {
+            columnNames = T.TableColumns.writableColumns.map(\.name)
           }
 
-          try userDatabase.write { db in
+          try await userDatabase.write { db in
             do {
               try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
               try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
@@ -1524,7 +1546,7 @@
             }
           }
         }
-        try open(table)
+        try await open(table)
       }
     }
 
@@ -1999,4 +2021,6 @@
     }
     return query
   }
+
+  @TaskLocal package var _isSynchronizingChanges = false
 #endif
