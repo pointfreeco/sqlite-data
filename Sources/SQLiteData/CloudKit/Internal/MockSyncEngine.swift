@@ -5,18 +5,18 @@ import OrderedCollections
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 package final class MockSyncEngine: SyncEngineProtocol {
   package let database: MockCloudDatabase
-  package let delegate: any SyncEngineDelegate
+  package let parentSyncEngine: SyncEngine
   private let _state: LockIsolated<MockSyncEngineState>
   private let _fetchChangesScopes = LockIsolated<[CKSyncEngine.FetchChangesOptions.Scope]>([])
   private let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
 
   package init(
     database: MockCloudDatabase,
-    delegate: any SyncEngineDelegate,
+    parentSyncEngine: SyncEngine,
     state: MockSyncEngineState
   ) {
     self.database = database
-    self.delegate = delegate
+    self.parentSyncEngine = parentSyncEngine
     self._state = LockIsolated(state)
   }
 
@@ -50,10 +50,17 @@ package final class MockSyncEngine: SyncEngineProtocol {
         ($0[zoneID]?.values).map { Array($0) } ?? []
       }
     }
-    await delegate.handleEvent(
+    await parentSyncEngine.handleEvent(
       .fetchedRecordZoneChanges(modifications: records, deletions: []),
       syncEngine: self
     )
+  }
+
+  package func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws {
+    guard
+      !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges.isEmpty
+    else { return }
+    try await parentSyncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
   }
 
   package func recordZoneChangeBatch(
@@ -284,5 +291,133 @@ private func comparePendingDatabaseChange(
     false
   default:
     false
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension SyncEngine {
+  package func processPendingRecordZoneChanges(
+    options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(),
+    scope: CKDatabase.Scope,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+  ) async throws {
+    let syncEngine = syncEngine(for: scope)
+    guard !syncEngine.state.pendingRecordZoneChanges.isEmpty
+    else {
+      reportIssue(
+        "Processing empty set of record zone changes.",
+        fileID: fileID,
+        filePath: filePath,
+        line: line,
+        column: column
+      )
+      return
+    }
+    guard try await container.accountStatus() == .available
+    else {
+      reportIssue(
+        """
+        User must be logged in to process pending changes.
+        """,
+        fileID: fileID,
+        filePath: filePath,
+        line: line,
+        column: column
+      )
+      return
+    }
+
+    let batch = await nextRecordZoneChangeBatch(
+      reason: .scheduled,
+      options: options,
+      syncEngine: {
+        switch scope {
+        case .private:
+          self.private
+        case .shared:
+          self.shared
+        case .public:
+          fatalError("Public database not supported in tests.")
+        @unknown default:
+          fatalError("Unknown database scope not supported in tests.")
+        }
+      }()
+    )
+    guard let batch
+    else { return }
+
+    let (saveResults, deleteResults) = try syncEngine.database.modifyRecords(
+      saving: batch.recordsToSave,
+      deleting: batch.recordIDsToDelete,
+      savePolicy: .ifServerRecordUnchanged,
+      atomically: true
+    )
+
+    var savedRecords: [CKRecord] = []
+    var failedRecordSaves: [(record: CKRecord, error: CKError)] = []
+    var deletedRecordIDs: [CKRecord.ID] = []
+    var failedRecordDeletes: [CKRecord.ID: CKError] = [:]
+    for (recordID, result) in saveResults {
+      switch result {
+      case .success(let record):
+        savedRecords.append(record)
+      case .failure(let error as CKError):
+        guard let record = batch.recordsToSave.first(where: { $0.recordID == recordID })
+        else { fatalError("\(recordID.debugDescription) not found in pending changes") }
+        failedRecordSaves.append((record: record, error: error))
+      case .failure:
+        fatalError("Mocks should only raise 'CKError' values.")
+      }
+    }
+    for (recordID, result) in deleteResults {
+      switch result {
+      case .success:
+        deletedRecordIDs.append(recordID)
+      case .failure(let error as CKError):
+        failedRecordDeletes[recordID] = error
+      case .failure:
+        fatalError("Mocks should only raise 'CKError' values.")
+      }
+    }
+    syncEngine.state.remove(
+      pendingRecordZoneChanges: savedRecords.map { .saveRecord($0.recordID) }
+    )
+    syncEngine.state.remove(
+      pendingRecordZoneChanges: deletedRecordIDs.map { .deleteRecord($0) }
+    )
+
+    await syncEngine.parentSyncEngine
+      .handleEvent(
+        .sentRecordZoneChanges(
+          savedRecords: savedRecords,
+          failedRecordSaves: failedRecordSaves,
+          deletedRecordIDs: deletedRecordIDs,
+          failedRecordDeletes: failedRecordDeletes
+        ),
+        syncEngine: syncEngine
+      )
+  }
+
+  package var `private`: MockSyncEngine {
+    syncEngines.private as! MockSyncEngine
+  }
+  package var shared: MockSyncEngine {
+    syncEngines.shared as! MockSyncEngine
+  }
+
+  package func syncEngine(for scope: CKDatabase.Scope) -> MockSyncEngine {
+    switch scope {
+    case .public:
+      fatalError("Public database not supported in sync engines.")
+    case .private:
+      `private`
+    case .shared:
+      shared
+    @unknown default:
+      fatalError("Unknown database scope not supported in sync engines.")
+    }
   }
 }

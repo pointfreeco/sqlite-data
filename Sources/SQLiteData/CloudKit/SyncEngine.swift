@@ -10,6 +10,10 @@
   import StructuredQueriesCore
   import SwiftData
 
+  #if canImport(UIKit)
+    import UIKit
+  #endif
+
   /// An object that manages the synchronization of local and remote SQLite data.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Observable, Sendable {
@@ -29,6 +33,7 @@
     package let container: any CloudContainer
     let dataManager = Dependency(\.dataManager)
     private let observationRegistrar = ObservationRegistrar()
+    private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
 
     /// The error message used when a write occurs to a record for which the current user
     /// does not have permission.
@@ -111,12 +116,12 @@
             (
               private: MockSyncEngine(
                 database: privateDatabase,
-                delegate: syncEngine,
+                parentSyncEngine: syncEngine,
                 state: MockSyncEngineState()
               ),
               shared: MockSyncEngine(
                 database: sharedDatabase,
-                delegate: syncEngine,
+                parentSyncEngine: syncEngine,
                 state: MockSyncEngineState()
               )
             )
@@ -248,7 +253,35 @@
         tables: allTables,
         tablesByName: tablesByName
       )
+      #if canImport(UIKit)
+        @Dependency(\.defaultNotificationCenter) var defaultNotificationCenter
+        notificationsObserver.withValue {
+          $0 = defaultNotificationCenter.addObserver(
+            forName: UIScene.willDeactivateNotification,
+            object: nil,
+            queue: nil
+          ) { [syncEngines] _ in
+            Task { @MainActor in
+              let taskIdentifier = UIApplication.shared.beginBackgroundTask()
+              defer { UIApplication.shared.endBackgroundTask(taskIdentifier) }
+              let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
+                ($0.private, $0.shared)
+              }
+              try await privateSyncEngine?.sendChanges(CKSyncEngine.SendChangesOptions())
+              try await sharedSyncEngine?.sendChanges(CKSyncEngine.SendChangesOptions())
+            }
+          }
+        }
+      #endif
       try validateSchema()
+    }
+
+    deinit {
+      notificationsObserver.withValue {
+        guard let observer = $0
+        else { return }
+        NotificationCenter.default.removeObserver(observer)
+      }
     }
 
     nonisolated package func setUpSyncEngine() throws {
