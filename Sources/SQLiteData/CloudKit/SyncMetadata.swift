@@ -163,8 +163,17 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTableDefinition where PrimaryKey.QueryOutput: IdentifierStringConvertible {
-    public var recordName: some QueryExpression<String> {
-      _recordName
+    /// A query expression for whether or not this row has associated sync metadata.
+    ///
+    /// This helper can be useful when joining your tables to the ``SyncMetadata`` table:
+    ///
+    /// ```swift
+    /// RemindersList
+    ///   .leftJoin(SyncMetadata.all) { $0.hasMetadata.in($1) }
+    /// ```
+    public func hasMetadata(in metadata: SyncMetadata.TableColumns) -> some QueryExpression<Bool> {
+      metadata.recordType.eq(QueryValue.tableName)
+        && #sql("\(primaryKey)").eq(metadata.recordPrimaryKey)
     }
   }
 

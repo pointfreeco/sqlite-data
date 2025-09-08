@@ -488,6 +488,82 @@
           """
         }
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func hasMetadataHelper() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            RemindersList(id: 2, title: "Work")
+            Reminder(id: 1, title: "Groceries", remindersListID: 1)
+          }
+        }
+
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertQuery(
+          RemindersList.join(SyncMetadata.all) { $0.hasMetadata(in: $1) },
+          database: userDatabase.database
+        ) {
+          """
+          ┌─────────────────────┬────────────────────────────────────────────────────────────────────┐
+          │ RemindersList(      │ SyncMetadata(                                                      │
+          │   id: 1,            │   recordPrimaryKey: "1",                                           │
+          │   title: "Personal" │   recordType: "remindersLists",                                    │
+          │ )                   │   recordName: "1:remindersLists",                                  │
+          │                     │   parentRecordPrimaryKey: nil,                                     │
+          │                     │   parentRecordType: nil,                                           │
+          │                     │   parentRecordName: nil,                                           │
+          │                     │   lastKnownServerRecord: CKRecord(                                 │
+          │                     │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │                     │     recordType: "remindersLists",                                  │
+          │                     │     parent: nil,                                                   │
+          │                     │     share: nil                                                     │
+          │                     │   ),                                                               │
+          │                     │   _lastKnownServerRecordAllFields: CKRecord(                       │
+          │                     │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │                     │     recordType: "remindersLists",                                  │
+          │                     │     parent: nil,                                                   │
+          │                     │     share: nil,                                                    │
+          │                     │     id: 1,                                                         │
+          │                     │     title: "Personal"                                              │
+          │                     │   ),                                                               │
+          │                     │   share: nil,                                                      │
+          │                     │   _isDeleted: false,                                               │
+          │                     │   isShared: false,                                                 │
+          │                     │   userModificationDate: Date(1970-01-01T00:00:00.000Z)             │
+          │                     │ )                                                                  │
+          ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
+          │ RemindersList(      │ SyncMetadata(                                                      │
+          │   id: 2,            │   recordPrimaryKey: "2",                                           │
+          │   title: "Work"     │   recordType: "remindersLists",                                    │
+          │ )                   │   recordName: "2:remindersLists",                                  │
+          │                     │   parentRecordPrimaryKey: nil,                                     │
+          │                     │   parentRecordType: nil,                                           │
+          │                     │   parentRecordName: nil,                                           │
+          │                     │   lastKnownServerRecord: CKRecord(                                 │
+          │                     │     recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__), │
+          │                     │     recordType: "remindersLists",                                  │
+          │                     │     parent: nil,                                                   │
+          │                     │     share: nil                                                     │
+          │                     │   ),                                                               │
+          │                     │   _lastKnownServerRecordAllFields: CKRecord(                       │
+          │                     │     recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__), │
+          │                     │     recordType: "remindersLists",                                  │
+          │                     │     parent: nil,                                                   │
+          │                     │     share: nil,                                                    │
+          │                     │     id: 2,                                                         │
+          │                     │     title: "Work"                                                  │
+          │                     │   ),                                                               │
+          │                     │   share: nil,                                                      │
+          │                     │   _isDeleted: false,                                               │
+          │                     │   isShared: false,                                                 │
+          │                     │   userModificationDate: Date(1970-01-01T00:00:00.000Z)             │
+          │                     │ )                                                                  │
+          └─────────────────────┴────────────────────────────────────────────────────────────────────┘
+          """
+        }
+      }
     }
   }
 #endif

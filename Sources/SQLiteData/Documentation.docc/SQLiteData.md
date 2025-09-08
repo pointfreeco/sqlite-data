@@ -305,4 +305,5 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 - ``Dependencies/DependencyValues/defaultSyncEngine``
 - ``IdentifierStringConvertible``
 - ``SyncMetadata``
+- ``StructuredQueriesCore/PrimaryKeyedTableDefinition/hasMetadata(in:)``
 - ``SharedRecord``
