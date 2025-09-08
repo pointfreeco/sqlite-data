@@ -251,8 +251,6 @@
       try validateSchema()
     }
 
-    @TaskLocal package static var _isSynchronizingChanges = false
-
     nonisolated package func setUpSyncEngine() throws {
       let migrator = metadatabaseMigrator()
       #if DEBUG
@@ -464,7 +462,7 @@
           previousRecordTypeByTableName[tableName] == nil
         }
 
-        try Self.$_isSynchronizingChanges.withValue(false) {
+        try $_isSynchronizingChanges.withValue(false) {
           for tableName in newTableNames {
             try self.uploadRecordsToCloudKit(tableName: tableName, db: db)
           }
@@ -1304,7 +1302,7 @@
           else { continue }
           func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
             try await userDatabase.write { db in
-              try Self.$_isSynchronizingChanges.withValue(false) {
+              try $_isSynchronizingChanges.withValue(false) {
                 switch foreignKey.onDelete {
                 case .cascade:
                   try T
@@ -2006,4 +2004,6 @@
     }
     return query
   }
+
+  @TaskLocal package var _isSynchronizingChanges = false
 #endif

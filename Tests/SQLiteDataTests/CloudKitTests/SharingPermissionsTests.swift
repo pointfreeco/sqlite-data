@@ -346,7 +346,7 @@
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
-        try await self.userDatabase.userRead { db in
+        try await self.userDatabase.read { db in
           try #expect(Reminder.all.fetchCount(db) == 0)
         }
         assertInlineSnapshot(of: container, as: .customDump) {
@@ -432,7 +432,7 @@
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
-        try await self.userDatabase.userRead { db in
+        try await self.userDatabase.read { db in
           try #expect(RemindersList.find(1).fetchOne(db) == RemindersList(id: 1, title: "Personal"))
         }
         assertInlineSnapshot(of: container, as: .customDump) {
