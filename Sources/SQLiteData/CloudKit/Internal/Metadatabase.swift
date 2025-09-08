@@ -51,7 +51,7 @@
     migrator.registerMigration("Create Metadata Tables") { db in
       try #sql(
         """
-        CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
+        CREATE TABLE "\(raw: .sqliteDataCloudKitSchemaName)_metadata" (
           "recordPrimaryKey" TEXT NOT NULL,
           "recordType" TEXT NOT NULL,
           "recordName" TEXT NOT NULL AS ("recordPrimaryKey" || ':' || "recordType"),
@@ -74,14 +74,14 @@
       .execute(db)
       try #sql(
         """
-        CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_parentRecordName"
+        CREATE INDEX "\(raw: .sqliteDataCloudKitSchemaName)_metadata_parentRecordName"
         ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("parentRecordName")
         """
       )
       .execute(db)
       try #sql(
         """
-        CREATE INDEX IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_metadata_isShared"
+        CREATE INDEX "\(raw: .sqliteDataCloudKitSchemaName)_metadata_isShared"
         ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("isShared")
         """
       )
@@ -95,7 +95,7 @@
       .execute(db)
       try #sql(
         """
-        CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_recordTypes" (
+        CREATE TABLE "\(raw: .sqliteDataCloudKitSchemaName)_recordTypes" (
           "tableName" TEXT NOT NULL PRIMARY KEY,
           "schema" TEXT NOT NULL,
           "tableInfo" TEXT NOT NULL
@@ -105,7 +105,7 @@
       .execute(db)
       try #sql(
         """
-        CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_stateSerialization" (
+        CREATE TABLE "\(raw: .sqliteDataCloudKitSchemaName)_stateSerialization" (
           "scope" TEXT NOT NULL PRIMARY KEY,
           "data" TEXT NOT NULL
         ) STRICT
@@ -114,7 +114,7 @@
       .execute(db)
       try #sql(
         """
-        CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_unsyncedRecordIDs" (
+        CREATE TABLE "\(raw: .sqliteDataCloudKitSchemaName)_unsyncedRecordIDs" (
           "recordName" TEXT NOT NULL,
           "zoneName" TEXT NOT NULL,
           "ownerName" TEXT NOT NULL,
@@ -125,7 +125,7 @@
       .execute(db)
       try #sql(
         """
-        CREATE TABLE IF NOT EXISTS "\(raw: .sqliteDataCloudKitSchemaName)_pendingRecordZoneChanges" (
+        CREATE TABLE "\(raw: .sqliteDataCloudKitSchemaName)_pendingRecordZoneChanges" (
           "pendingRecordZoneChange" BLOB NOT NULL
         ) STRICT
         """

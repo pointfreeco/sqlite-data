@@ -937,53 +937,56 @@
       }
       let deletedRecordNames = deletedRecordIDs.map(\.recordName)
 
-      let (metadataOfDeletions, recordsWithRoot): ([SyncMetadata], [RecordWithRoot]) =
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await metadatabase.read { db in
-            let metadataOfDeletions = try SyncMetadata.where {
-              $0.recordName.in(deletedRecordNames)
-            }
-            .fetchAll(db)
+      let (sharesToDelete, recordsWithRoot):
+        ([CKShare?], [(lastKnownServerRecord: CKRecord?, rootLastKnownServerRecord: CKRecord?)]) =
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await metadatabase.read { db in
+              let sharesToDelete =
+                try SyncMetadata
+                .where { $0.isShared && $0.recordName.in(deletedRecordNames) }
+                .select(\.share)
+                .fetchAll(db)
 
-            let recordsWithRoot =
-              try With {
-                SyncMetadata
-                  .where { $0.parentRecordName.is(nil) && $0.recordName.in(deletedRecordNames) }
-                  .select {
-                    RecordWithRoot.Columns(
-                      parentRecordName: $0.parentRecordName,
-                      recordName: $0.recordName,
-                      lastKnownServerRecord: $0.lastKnownServerRecord,
-                      rootRecordName: $0.recordName,
-                      rootLastKnownServerRecord: $0.lastKnownServerRecord
+              let recordsWithRoot =
+                try With {
+                  SyncMetadata
+                    .where { $0.parentRecordName.is(nil) && $0.recordName.in(deletedRecordNames) }
+                    .select {
+                      RecordWithRoot.Columns(
+                        parentRecordName: $0.parentRecordName,
+                        recordName: $0.recordName,
+                        lastKnownServerRecord: $0.lastKnownServerRecord,
+                        rootRecordName: $0.recordName,
+                        rootLastKnownServerRecord: $0.lastKnownServerRecord
+                      )
+                    }
+                    .union(
+                      all: true,
+                      SyncMetadata
+                        .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
+                        .select { metadata, tree in
+                          RecordWithRoot.Columns(
+                            parentRecordName: metadata.parentRecordName,
+                            recordName: metadata.recordName,
+                            lastKnownServerRecord: metadata.lastKnownServerRecord,
+                            rootRecordName: tree.rootRecordName,
+                            rootLastKnownServerRecord: tree.lastKnownServerRecord
+                          )
+                        }
                     )
-                  }
-                  .union(
-                    all: true,
-                    SyncMetadata
-                      .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
-                      .select { metadata, tree in
-                        RecordWithRoot.Columns(
-                          parentRecordName: metadata.parentRecordName,
-                          recordName: metadata.recordName,
-                          lastKnownServerRecord: metadata.lastKnownServerRecord,
-                          rootRecordName: tree.rootRecordName,
-                          rootLastKnownServerRecord: tree.lastKnownServerRecord
-                        )
-                      }
-                  )
-              } query: {
-                RecordWithRoot
-                  .where { $0.recordName.in(deletedRecordNames) }
-              }
-              .fetchAll(db)
+                } query: {
+                  RecordWithRoot
+                    .where { $0.recordName.in(deletedRecordNames) }
+                    .select { ($0.lastKnownServerRecord, $0.rootLastKnownServerRecord) }
+                }
+                .fetchAll(db)
 
-            return (metadataOfDeletions, recordsWithRoot)
+              return (sharesToDelete, recordsWithRoot)
+            }
           }
-        }
-        ?? ([], [])
+          ?? ([], [])
 
-      let shareRecordIDsToDelete = metadataOfDeletions.compactMap(\.share?.recordID)
+      let shareRecordIDsToDelete = sharesToDelete.compactMap(\.?.recordID)
 
       for recordWithRoot in recordsWithRoot {
         guard
