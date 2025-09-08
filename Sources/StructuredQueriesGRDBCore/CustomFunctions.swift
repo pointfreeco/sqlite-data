@@ -100,6 +100,8 @@ extension QueryBinding {
     switch self {
     case .blob(let value):
       sqlite3_result_blob(db, Array(value), Int32(value.count), SQLITE_TRANSIENT)
+    case .bool(let value):
+      sqlite3_result_int64(db, value ? 1 : 0)
     case .double(let value):
       sqlite3_result_double(db, value)
     case .date(let value):

@@ -150,6 +150,8 @@ extension QueryBinding {
       switch self {
       case let .blob(blob):
         return Data(blob).databaseValue
+      case let .bool(bool):
+        return (bool ? 1 : 0).databaseValue
       case let .date(date):
         return date.iso8601String.databaseValue
       case let .double(double):
