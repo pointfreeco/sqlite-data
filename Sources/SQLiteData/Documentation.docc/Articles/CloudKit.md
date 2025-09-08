@@ -571,8 +571,7 @@ following:
 
 @FetchAll(
   RemindersList
-    // TODO: update this
-    .leftJoin(SyncMetadata.all) { $0.recordName.eq($1.recordName) }
+    .leftJoin(SyncMetadata.all) { $0.hasMetadata(in: $1) }
     .select {
       Row.Columns(
         remindersList: $0,
@@ -583,8 +582,8 @@ following:
 var rows
 ```
 
-Here we have used the ``StructuredQueriesCore/PrimaryKeyedTableDefinition/recordName`` helper that
-is defined on all primary key tables so that we can join ``SyncMetadata`` to `RemindersList`.
+Here we have used the ``StructuredQueriesCore/PrimaryKeyedTableDefinition/hasMetadata(in:)`` helper
+that is defined on all primary key tables so that we can join ``SyncMetadata`` to `RemindersList`.
 
 <!--
 ## How SQLiteData handles distributed schema scenarios

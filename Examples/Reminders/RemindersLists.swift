@@ -12,12 +12,8 @@ class RemindersListsModel {
     RemindersList
       .group(by: \.id)
       .order(by: \.position)
-      .leftJoin(Reminder.all) {
-        $0.id.eq($1.remindersListID) && !$1.isCompleted
-      }
-      .leftJoin(SyncMetadata.all) {
-        #sql("\($0.recordTypeAndPrimaryKey) = \($2.recordTypeAndPrimaryKey)")
-      }
+      .leftJoin(Reminder.all) { $0.id.eq($1.remindersListID) && !$1.isCompleted }
+      .leftJoin(SyncMetadata.all) { $0.hasMetadata(in: $1) }
       .select {
         ReminderListState.Columns(
           remindersCount: $1.id.count(),
