@@ -10,6 +10,7 @@ import Testing
   .snapshots(record: .failed),
 )
 struct AssertQueryTests {
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func assertQueryBasic() throws {
     assertQuery(
       Record.all.select(\.id)
@@ -23,6 +24,8 @@ struct AssertQueryTests {
       """
     }
   }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func assertQueryRecord() throws {
     assertQuery(
       Record.where { $0.id == 1 }
@@ -37,6 +40,8 @@ struct AssertQueryTests {
       """
     }
   }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func assertQueryBasicUpdate() throws {
     assertQuery(
       Record.all
@@ -52,6 +57,8 @@ struct AssertQueryTests {
       """
     }
   }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func assertQueryRecordUpdate() throws {
     assertQuery(
       Record
@@ -69,7 +76,9 @@ struct AssertQueryTests {
       """
     }
   }
+
   #if DEBUG
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func assertQueryBasicIncludeSQL() throws {
       assertQuery(
         includeSQL: true,
@@ -90,7 +99,9 @@ struct AssertQueryTests {
       }
     }
   #endif
+
   #if DEBUG
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func assertQueryRecordIncludeSQL() throws {
       assertQuery(
         includeSQL: true,
