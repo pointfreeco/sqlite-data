@@ -578,7 +578,7 @@
     }
 
     func deleteLocalData() async throws {
-      try stop()
+      stop()
       try tearDownSyncEngine()
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in

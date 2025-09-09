@@ -223,6 +223,8 @@
           switch value.queryBinding {
           case .blob(let value):
             setValue(value, forKey: column.name, at: userModificationDate)
+          case .bool(let value):
+            setValue(value, forKey: column.name, at: userModificationDate)
           case .double(let value):
             setValue(value, forKey: column.name, at: userModificationDate)
           case .date(let value):
@@ -241,6 +243,8 @@
             )
           case .invalid(let error):
             reportIssue(error)
+          case .uint(let value):
+            setValue(value, forKey: column.name, at: userModificationDate)
           }
         }
         open(column)
@@ -290,6 +294,10 @@
             case .invalid(let error):
               reportIssue(error)
               return false
+            case .bool(let value):
+              return other.encryptedValues[key] != value
+            case .uint(let value):
+              return other.encryptedValues[key] != value
             }
           }
           if didSet || isRowValueModified {
