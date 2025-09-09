@@ -121,7 +121,7 @@ way to do this is to construct the database connection using the
        }
      }
    #endif
-+  let database = try defaultDatabase(path: path, configuration: configuration)
++  let database = try defaultDatabase(configuration: configuration)
 +  logger.info("open '\(database.path)'")
 +  return database
  }
@@ -153,7 +153,7 @@ database connection:
        }
      }
    #endif
-   let database = try defaultDatabase(path: path, configuration: configuration)
+   let database = try defaultDatabase(configuration: configuration)
    logger.info("open '\(database.path)'")
 +  var migrator = DatabaseMigrator()
 +  #if DEBUG
@@ -228,7 +228,7 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     }
   #endif
-  let database = try defaultDatabase(path: path, configuration: configuration)
+  let database = try defaultDatabase(configuration: configuration)
   logger.info("open '\(database.path)'")
   var migrator = DatabaseMigrator()
   #if DEBUG
