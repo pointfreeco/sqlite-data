@@ -25,7 +25,6 @@ let package = Package(
       name: "SQLiteDataTagged",
       description: "Introduce SQLiteData conformances to the swift-tagged package."
     ),
-    .default(enabledTraits: ["SQLiteDataTagged"]),
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-collections", from: "1.0.0"),
