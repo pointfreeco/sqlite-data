@@ -235,6 +235,8 @@
             removeValue(forKey: column.name, at: userModificationDate)
           case .text(let value):
             setValue(value, forKey: column.name, at: userModificationDate)
+          case .uint(let value):
+            setValue(value, forKey: column.name, at: userModificationDate)
           case .uuid(let value):
             setValue(
               value.uuidString.lowercased(),
@@ -243,8 +245,6 @@
             )
           case .invalid(let error):
             reportIssue(error)
-          case .uint(let value):
-            setValue(value, forKey: column.name, at: userModificationDate)
           }
         }
         open(column)
@@ -279,6 +279,8 @@
             switch Value(queryOutput: row[keyPath: column.keyPath]).queryBinding {
             case .blob(let value):
               return (other[key] as? CKAsset)?.fileURL != URL(hash: value)
+            case .bool(let value):
+              return other.encryptedValues[key] != value
             case .double(let value):
               return other.encryptedValues[key] != value
             case .date(let value):
@@ -289,15 +291,13 @@
               return other.encryptedValues[key] != nil
             case .text(let value):
               return other.encryptedValues[key] != value
+            case .uint(let value):
+              return other.encryptedValues[key] != value
             case .uuid(let value):
               return other.encryptedValues[key] != value.uuidString.lowercased()
             case .invalid(let error):
               reportIssue(error)
               return false
-            case .bool(let value):
-              return other.encryptedValues[key] != value
-            case .uint(let value):
-              return other.encryptedValues[key] != value
             }
           }
           if didSet || isRowValueModified {
