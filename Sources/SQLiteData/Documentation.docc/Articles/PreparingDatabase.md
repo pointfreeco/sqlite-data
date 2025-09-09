@@ -55,7 +55,7 @@ specified a cascading action (such as delete).
 We further recommend that you enable query tracing to log queries that are executed in your
 application. This can be handy for tracking down long-running queries, or when more queries execute
 than you expect. We also recommend only doing this in debug builds to avoid leaking sensitive
-information when the app is running on a user's device, and we further recommned using OSLog
+information when the app is running on a user's device, and we further recommend using OSLog
 when running your app in the simulator/device and using `Swift.print` in previews:
 
 ```diff
