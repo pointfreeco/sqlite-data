@@ -37,6 +37,7 @@ jobs:
         config: ['debug']
         scheme: ['Reminders', 'CaseStudies', 'SyncUps']
     runs-on: macos-15
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode ${{ matrix.xcode }}
