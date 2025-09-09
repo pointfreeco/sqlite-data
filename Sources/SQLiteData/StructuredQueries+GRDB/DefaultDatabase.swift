@@ -7,7 +7,7 @@ import GRDB
 ///   * In a live app context, a database is provisioned in the app container (unless explicitly
 ///     overridden with the `path` parameter).
 ///   * In an Xcode preview context, an in-memory database is provisioned.
-///   * In a test context, a database pool is provisioned as a temporary file.
+///   * In a test context, a database pool is provisioned at a temporary file.
 ///
 /// - Parameters:
 ///   - path: A path to the database. If `nil`, a path to a file in the application support
