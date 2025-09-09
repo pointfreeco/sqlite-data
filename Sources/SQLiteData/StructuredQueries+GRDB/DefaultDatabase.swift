@@ -1,5 +1,49 @@
 import Dependencies
+import Foundation
 import GRDB
+
+/// Prepares a context-sensitive database writer.
+///
+///   * In a live app context, a database is provisioned in the app container (unless explicitly
+///     overridden with the `path` parameter).
+///   * In an Xcode preview context, an in-memory database is provisioned.
+///   * In a test context, a database pool is provisioned as a temporary file.
+///
+/// - Parameters:
+///   - path: A path to the database. If `nil`, a path to a file in the application support
+///     directory will be used.
+///   - configuration: A database configuration.
+/// - Returns: A context-sensitive database writer.
+public func defaultDatabase(
+  path: String? = nil,
+  configuration: Configuration = Configuration()
+) throws -> any DatabaseWriter {
+  let database: any DatabaseWriter
+  @Dependency(\.context) var context
+  switch context {
+  case .live:
+    var defaultPath: String {
+      get throws {
+        let applicationSupportDirectory = try FileManager.default.url(
+          for: .applicationSupportDirectory,
+          in: .userDomainMask,
+          appropriateFor: nil,
+          create: true
+        )
+        return applicationSupportDirectory.appendingPathComponent("SQLiteData.db").absoluteString
+      }
+    }
+    database = try DatabasePool(path: path ?? defaultPath, configuration: configuration)
+  case .preview:
+    database = try DatabaseQueue(configuration: configuration)
+  case .test:
+    database = try DatabasePool(
+      path: "\(NSTemporaryDirectory())\(UUID().uuidString).db",
+      configuration: configuration
+    )
+  }
+  return database
+}
 
 extension DependencyValues {
   /// The default database used by `fetchAll`, `fetchOne`, and `fetch`.
