@@ -113,7 +113,6 @@ extension DependencyValues {
 
 func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
-  let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
   configuration.prepareDatabase { db in
@@ -128,7 +127,7 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     #endif
   }
-  database = try SQLiteData.defaultDatabase(configuration: configuration)
+  let database = try SQLiteData.defaultDatabase(configuration: configuration)
   logger.debug(
     """
     App database:
