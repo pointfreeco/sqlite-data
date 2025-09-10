@@ -16,14 +16,7 @@ struct CountersListView: View {
               .buttonStyle(.borderless)
           }
           .onDelete { indexSet in
-            withErrorReporting {
-              try database.write { db in
-                for index in indexSet {
-                  try Counter.find(counters[index].id).delete()
-                    .execute(db)
-                }
-              }
-            }
+            deleteRows(at: indexSet)
           }
         }
       }
@@ -42,6 +35,17 @@ struct CountersListView: View {
       }
     }
   }
+
+  func deleteRows(at indexSet: IndexSet) {
+    withErrorReporting {
+      try database.write { db in
+        for index in indexSet {
+          try Counter.find(counters[index].id).delete()
+            .execute(db)
+        }
+      }
+    }
+  }
 }
 
 struct CounterRow: View {
@@ -55,32 +59,14 @@ struct CounterRow: View {
       HStack {
         Text("\(counter.count)")
         Button("-") {
-          withErrorReporting {
-            try database.write { db in
-              try Counter.find(counter.id).update {
-                $0.count -= 1
-              }
-              .execute(db)
-            }
-          }
+          decrementButtonTapped()
         }
         Button("+") {
-          withErrorReporting {
-            try database.write { db in
-              try Counter.find(counter.id).update {
-                $0.count += 1
-              }
-              .execute(db)
-            }
-          }
+          incrementButtonTapped()
         }
         Spacer()
         Button {
-          Task {
-            sharedRecord = try await syncEngine.share(record: counter) { share in
-              share[CKShare.SystemFieldKey.title] = "Join my counter!"
-            }
-          }
+          shareButtonTapped()
         } label: {
           Image(systemName: "square.and.arrow.up")
         }
@@ -88,6 +74,36 @@ struct CounterRow: View {
     }
     .sheet(item: $sharedRecord) { sharedRecord in
       CloudSharingView(sharedRecord: sharedRecord)
+    }
+  }
+
+  func shareButtonTapped() {
+    Task {
+      sharedRecord = try await syncEngine.share(record: counter) { share in
+        share[CKShare.SystemFieldKey.title] = "Join my counter!"
+      }
+    }
+  }
+
+  func decrementButtonTapped() {
+    withErrorReporting {
+      try database.write { db in
+        try Counter.find(counter.id).update {
+          $0.count -= 1
+        }
+        .execute(db)
+      }
+    }
+  }
+
+  func incrementButtonTapped() {
+    withErrorReporting {
+      try database.write { db in
+        try Counter.find(counter.id).update {
+          $0.count += 1
+        }
+        .execute(db)
+      }
     }
   }
 }
