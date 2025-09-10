@@ -49,7 +49,7 @@
 
 /* Begin PBXFileReference section */
 		CA2BDD9D2E71C30B000974D3 /* CloudKitDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudKitDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CA2BDE272E71C42B000974D3 /* sharing-grdb */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sharing-grdb"; path = "/Users/brandon/projects/sharing-grdb"; sourceTree = "<absolute>"; };
+		CA2BDE272E71C42B000974D3 /* sqlite-data */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sqlite-data"; path = "/Users/brandon/projects/sqlite-data"; sourceTree = "<absolute>"; };
 		CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemindersTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA5F37542D5AFBBC002E1A9E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -242,7 +242,7 @@
 		CAF837022D4735C00047AEB5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				CA2BDE272E71C42B000974D3 /* sharing-grdb */,
+				CA2BDE272E71C42B000974D3 /* sqlite-data */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -471,7 +471,7 @@
 				DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */,
 				DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */,
 				CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
-				CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sharing-grdb" */,
+				CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sqlite-data" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CAF836992D4735620047AEB5 /* Products */;
@@ -1145,9 +1145,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sharing-grdb" */ = {
+		CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sqlite-data" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../sharing-grdb";
+			relativePath = "../../sqlite-data";
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -1203,17 +1203,17 @@
 		};
 		CA2BDE2B2E71C472000974D3 /* SQLiteData */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sharing-grdb" */;
+			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sqlite-data" */;
 			productName = SQLiteData;
 		};
 		CA2BDE2D2E71C479000974D3 /* SQLiteData */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sharing-grdb" */;
+			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sqlite-data" */;
 			productName = SQLiteData;
 		};
 		CA2BDE2F2E71C480000974D3 /* SQLiteData */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sharing-grdb" */;
+			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sqlite-data" */;
 			productName = SQLiteData;
 		};
 		CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */ = {
