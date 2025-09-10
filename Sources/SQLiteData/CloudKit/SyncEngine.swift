@@ -597,57 +597,36 @@
     @DatabaseFunction(
       "sqlitedata_icloud_didUpdate",
       as: (
-        (
-          String,
-          CKRecord?.SystemFieldsRepresentation,
-          CKRecord?.SystemFieldsRepresentation,
-          [String].JSONRepresentation
-        ) -> Void
+        (String, CKRecord?.SystemFieldsRepresentation, CKRecord?.SystemFieldsRepresentation) -> Void
       ).self
     )
     func didUpdate(
       recordName: String,
       lastKnownServerRecord: CKRecord?,
       newParentLastKnownServerRecord: CKRecord?
-    ) {
-      //      ,
-      //      newParentRecord: CKRecord?,
-      //      childrenRecordNames: [String]
-//      if record.zoneID != newParentRecord.zoneID {
-//        .deleteRecord(record.recordID)
-//        .deleteRecord(/*all child records*/)
-//        .saveRecord(/*construct a record ID with recordName and new zone ?? defaultZone */)
-//        .saveRecord(/*for all child records*/)
-//      }
-
-//      let oldZoneID = lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
-//      let newZoneID = newParentLastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
-//      let oldSyncEngine = self.syncEngines.withValue {
-//        oldZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-//      }
-//      let newSyncEngine = self.syncEngines.withValue {
-//        newZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-//      }
-//      if oldZoneID != newZoneID {
-//        oldSyncEngine?.state
-//          .add(pendingRecordZoneChanges: [.deleteRecord(lastKnownServerRecord!.recordID)])
-//        oldSyncEngine?.state.add(pendingRecordZoneChanges: childrenLastKnownServerRecordNames.map {
-//          .deleteRecord(CKRecord.ID(recordName: $0, zoneID: oldZoneID))
-//        })
-//
-//        newSyncEngine?.state
-//          .add(
-//            pendingRecordZoneChanges: [.saveRecord(CKRecord.ID.init(recordName: lastKnownServerRecord!.recordID.recordName, zoneID: newZoneID))]
-//          )
-//        newSyncEngine?.state
-//          .add(
-//            pendingRecordZoneChanges: childrenLastKnownServerRecordNames.map {
-//              .saveRecord(CKRecord.ID.init(recordName: $0, zoneID: newZoneID))
-//            }
-//          )
-//        return
-//      }
-
+    ) throws {
+      let oldZoneID = lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
+      let newZoneID = newParentLastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
+      guard oldZoneID == newZoneID else {
+        struct RecordChangedZonesError: LocalizedError {
+          let recordName: String
+          let oldZoneID: CKRecordZone.ID
+          let newZoneID: CKRecordZone.ID
+          var errorDescription: String? {
+            """
+            The record '\(recordName)' was moved from zone \
+            '\(oldZoneID.zoneName)/\(oldZoneID.ownerName)' to \
+            '\(newZoneID.zoneName)/\(newZoneID.ownerName)'. This is currently not supported in \
+            SQLiteData. To work around, delete the old record and create a new record.
+            """
+          }
+        }
+        throw RecordChangedZonesError(
+          recordName: recordName,
+          oldZoneID: oldZoneID,
+          newZoneID: newZoneID
+        )
+      }
 
       let zoneID = lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
       let change = CKSyncEngine.PendingRecordZoneChange.saveRecord(
@@ -920,18 +899,6 @@
             .sqliteDataCloudKitFailure,
             catching: {
               try await metadatabase.read { db in
-
-                try SyncMetadata
-                  .upsert {
-                    SyncMetadata.init(
-                      recordPrimaryKey: <#T##String#>,
-                      recordType: <#T##String#>,
-                      parentRecordPrimaryKey: <#T##String?#>,
-                      parentRecordType: <#T##String?#>
-                    )
-                  }
-                  .returning(\.self)
-
                 try SyncMetadata
                   .where { $0.recordName.eq(recordID.recordName) }
                   .select { ($0, $0._lastKnownServerRecordAllFields) }

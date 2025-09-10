@@ -147,8 +147,7 @@
               recordName: new.recordName,
               lastKnownServerRecord: new.lastKnownServerRecord
                 ?? rootServerRecord(recordName: new.recordName),
-              newParentLastKnownServerRecord: #bind(nil),
-              childrenLastKnownServerRecordNames: #bind([])
+              newParentLastKnownServerRecord: #bind(nil)
             )
           )
         } when: { _ in
@@ -172,9 +171,6 @@
               newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
                 recordName: new.recordName,
                 parentRecordName: new.parentRecordName
-              ),
-              childrenLastKnownServerRecordNames: childrenLastKnownServerRecordNamesIfShared(
-                recordName: new.recordName
               )
             )
           )
@@ -322,33 +318,6 @@
         $0.recordName.is(parentRecordName)
           && hasSharedAncestor(recordName: recordName)
       }
-  }
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func childrenLastKnownServerRecordNamesIfShared(
-    recordName: some QueryExpression<String>
-  ) -> some QueryExpression<[String].JSONRepresentation> {
-    With {
-      SyncMetadata
-        .where { $0.recordName.eq(recordName) }
-        .select { ChildMetadata.Columns(recordName: $0.recordName, parentRecordName: #bind(nil)) }
-        .union(all: true,
-          SyncMetadata
-            .select {
-              ChildMetadata.Columns(
-                recordName: $0.recordName,
-                parentRecordName: $0.parentRecordName
-              )
-            }
-            .join(ChildMetadata.all) { $0.parentRecordName.eq($1.recordName) }
-        )
-    } query: {
-      ChildMetadata
-        .where { $0.recordName.neq(recordName) }
-        .select {
-          $0.recordName.jsonGroupArray()
-        }
-    }
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
