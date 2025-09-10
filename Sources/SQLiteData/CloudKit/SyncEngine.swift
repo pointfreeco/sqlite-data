@@ -89,9 +89,7 @@
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
       repeat (each T2).PrimaryKey.QueryOutput: IdentifierStringConvertible
     {
-      let containerIdentifier =
-        containerIdentifier
-        ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
+      let containerIdentifier = containerIdentifier ?? CKContainer.default().containerIdentifier
 
       var allTables: [any PrimaryKeyedTable.Type] = []
       var allPrivateTables: [any PrimaryKeyedTable.Type] = []
@@ -1810,7 +1808,7 @@
     public func attachMetadatabase(containerIdentifier: String? = nil) throws {
       let containerIdentifier =
         containerIdentifier
-        ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
+        ?? CKContainer.default().containerIdentifier
 
       guard let containerIdentifier else {
         throw SyncEngine.SchemaError(
