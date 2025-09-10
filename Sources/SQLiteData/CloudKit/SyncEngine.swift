@@ -257,7 +257,7 @@
         @Dependency(\.defaultNotificationCenter) var defaultNotificationCenter
         notificationsObserver.withValue {
           $0 = defaultNotificationCenter.addObserver(
-            forName: UIScene.willDeactivateNotification,
+            forName: UIApplication.willResignActiveNotification,
             object: nil,
             queue: nil
           ) { [syncEngines] _ in

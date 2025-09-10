@@ -23,8 +23,8 @@
             RemindersList(id: 1, title: "Personal")
           }
         }
-        defaultNotificationCenter.post(name: UIScene.willDeactivateNotification, object: nil)
-        try await Task.sleep(for: .seconds(0.1))
+        defaultNotificationCenter.post(name: UIApplication.willResignActiveNotification, object: nil)
+        try await Task.sleep(for: .seconds(1))
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -90,8 +90,8 @@
           }
         }
 
-        defaultNotificationCenter.post(name: UIScene.willDeactivateNotification, object: nil)
-        try await Task.sleep(for: .seconds(0.1))
+        defaultNotificationCenter.post(name: UIApplication.willResignActiveNotification, object: nil)
+        try await Task.sleep(for: .seconds(1))
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
