@@ -77,7 +77,6 @@ extension Int {
 
 func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
-  let database: any DatabaseWriter
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
   configuration.prepareDatabase { db in
@@ -91,16 +90,13 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     #endif
   }
-  if context == .preview {
-    database = try DatabaseQueue(configuration: configuration)
-  } else {
-    let path =
-      context == .live
-      ? URL.documentsDirectory.appending(component: "db.sqlite").path()
-      : URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
-    logger.info("open \(path)")
-    database = try DatabasePool(path: path, configuration: configuration)
-  }
+  let database = try SQLiteData.defaultDatabase(configuration: configuration)
+  logger.debug(
+    """
+    App database:
+    open "\(database.path)"
+    """
+  )
   var migrator = DatabaseMigrator()
   #if DEBUG
     migrator.eraseDatabaseOnSchemaChange = true

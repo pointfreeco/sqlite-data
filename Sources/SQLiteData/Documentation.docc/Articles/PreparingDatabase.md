@@ -55,7 +55,7 @@ specified a cascading action (such as delete).
 We further recommend that you enable query tracing to log queries that are executed in your
 application. This can be handy for tracking down long-running queries, or when more queries execute
 than you expect. We also recommend only doing this in debug builds to avoid leaking sensitive
-information when the app is running on a user's device, and we further recommned using OSLog
+information when the app is running on a user's device, and we further recommend using OSLog
 when running your app in the simulator/device and using `Swift.print` in previews:
 
 ```diff
@@ -101,7 +101,8 @@ matter.
 ### Step 3: Create database connection
 
 Once a `Configuration` value is set up we can construct the actual database connection. The simplest
-way to do this is to construct the database connection for a path on the file system like so:
+way to do this is to construct the database connection using the
+``defaultDatabase(path:configuration:)`` function:
 
 ```diff
 -func appDatabase() -> any DatabaseWriter {
@@ -120,55 +121,14 @@ way to do this is to construct the database connection for a path on the file sy
        }
      }
    #endif
-+  let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-+  logger.info("open \(path)")
-+  let database = try DatabasePool(path: path, configuration: configuration)
++  let database = try defaultDatabase(configuration: configuration)
++  logger.info("open '\(database.path)'")
 +  return database
  }
 ```
 
-However, this can be improved. First, this code will crash if it is executed in Xcode previews
-because SQLite is unable to form a connection to a database on disk in a preview context. And
-second, in tests we should write this databadse to the temporary directoy on disk with a unique
-name so that each test gets a fresh database and so that multiple tests can run in parallel.
-
-To fix this we can use `@Dependency(\.context)` to determine if we are in a "live" application
-context or if we're in a preview or test.
-
-```diff
- func appDatabase() -> any DatabaseWriter {
-   @Dependency(\.context) var context
-   var configuration = Configuration()
-   configuration.foreignKeysEnabled = true
-   #if DEBUG
-     configuration.prepareDatabase { db in
-       db.trace(options: .profile) {
-         if context == .preview {
-           print("\($0.expandedDescription)")
-         } else {
-           logger.debug("\($0.expandedDescription)")
-         }
-       }
-     }
-   #endif
--  let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
--  logger.info("open \(path)")
--  let database = try DatabasePool(path: path, configuration: configuration)
-+  let database: any DatabaseWriter
-+  switch context {
-+  case .live:
-+    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-+    logger.info("open \(path)")
-+    database = try DatabasePool(path: path, configuration: configuration)
-+  case .test:
-+    let path = URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
-+    database = try DatabasePool(path: path, configuration: configuration)
-+  case .preview:
-+    database = try DatabaseQueue(configuration: configuration)
-+  }
-   return database
- }
-```
+This function provisions a context-dependent database for you, _e.g._ in previews and tests it
+will provision unique, temporary databases that won't conflict with your live app's database.
 
 ### Step 4: Migrate database
 
@@ -193,18 +153,8 @@ database connection:
        }
      }
    #endif
-   let database: any DatabaseWriter
-   switch context {
-   case .live:
-     let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-     logger.info("open \(path)")
-     database = try DatabasePool(path: path, configuration: configuration)
-   case .test:
-     let path = URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
-     database = try DatabasePool(path: path, configuration: configuration)
-   case .preview:
-     database = try DatabaseQueue(configuration: configuration)
-   }
+   let database = try defaultDatabase(configuration: configuration)
+   logger.info("open '\(database.path)'")
 +  var migrator = DatabaseMigrator()
 +  #if DEBUG
 +    migrator.eraseDatabaseOnSchemaChange = true
@@ -278,18 +228,8 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     }
   #endif
-  let database: any DatabaseWriter
-  switch context {
-  case .live:
-    let path = URL.documentsDirectory.appending(component: "db.sqlite").path()
-    logger.info("open \(path)")
-    database = try DatabasePool(path: path, configuration: configuration)
-  case .test:
-    let path = URL.temporaryDirectory.appending(component: "\(UUID().uuidString)-db.sqlite").path()
-    database = try DatabasePool(path: path, configuration: configuration)
-  case .preview:
-    database = try DatabaseQueue(configuration: configuration)
-  }
+  let database = try defaultDatabase(configuration: configuration)
+  logger.info("open '\(database.path)'")
   var migrator = DatabaseMigrator()
   #if DEBUG
     migrator.eraseDatabaseOnSchemaChange = true

@@ -282,6 +282,7 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 
 ### Database configuration and access
 
+- ``defaultDatabase(path:configuration:)``
 - ``GRDB/Database``
 - ``Dependencies/DependencyValues/defaultDatabase``
 
