@@ -2,15 +2,16 @@ import CloudKit
 import SQLiteData
 import SwiftUI
 
-#if canImport
-  import UIKit
-#endif
-
 @main
 struct CloudKitDemoApp: App {
-  #if canImport(UIKit)
-    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
-  #endif
+  @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
+
+  init() {
+    try! prepareDependencies {
+      try $0.bootstrapDatabase()
+    }
+  }
+
   var body: some Scene {
     WindowGroup {
       NavigationStack {
@@ -20,62 +21,43 @@ struct CloudKitDemoApp: App {
   }
 }
 
-#if canImport(UIKit)
-  class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
-    func application(
-      _ application: UIApplication,
-      didFinishLaunchingWithOptions launchOptions: [UIApplication
-        .LaunchOptionsKey: Any]? = nil
-    ) -> Bool {
-      try! prepareDependencies {
-        $0.defaultDatabase = try appDatabase()
-        $0.defaultSyncEngine = try SyncEngine(
-          for: $0.defaultDatabase,
-          tables: Counter.self
-        )
-      }
-      return true
-    }
+class AppDelegate: UIResponder, UIApplicationDelegate, ObservableObject {
+  func application(
+    _ application: UIApplication,
+    configurationForConnecting connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    let configuration = UISceneConfiguration(
+      name: "Default Configuration",
+      sessionRole: connectingSceneSession.role
+    )
+    configuration.delegateClass = SceneDelegate.self
+    return configuration
+  }
+}
 
-    func application(
-      _ application: UIApplication,
-      configurationForConnecting connectingSceneSession: UISceneSession,
-      options: UIScene.ConnectionOptions
-    ) -> UISceneConfiguration {
-      let configuration = UISceneConfiguration(
-        name: "Default Configuration",
-        sessionRole: connectingSceneSession.role
-      )
-      configuration.delegateClass = SceneDelegate.self
-      return configuration
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+  @Dependency(\.defaultSyncEngine) var syncEngine
+  var window: UIWindow?
+
+  func windowScene(
+    _ windowScene: UIWindowScene,
+    userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
+  ) {
+    Task {
+      try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
     }
   }
 
-  class SceneDelegate: UIResponder, UIWindowSceneDelegate {
-    @Dependency(\.defaultSyncEngine) var syncEngine
-    var window: UIWindow?
-
-    func windowScene(
-      _ windowScene: UIWindowScene,
-      userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
-    ) {
-      Task {
-        try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
-      }
-    }
-
-    func scene(
-      _ scene: UIScene,
-      willConnectTo session: UISceneSession,
-      options connectionOptions: UIScene.ConnectionOptions
-    ) {
-      guard let cloudKitShareMetadata = connectionOptions.cloudKitShareMetadata
-      else {
-        return
-      }
-      Task {
-        try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
-      }
+  func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions
+  ) {
+    guard let cloudKitShareMetadata = connectionOptions.cloudKitShareMetadata
+    else { return }
+    Task {
+      try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
     }
   }
-#endif
+}
