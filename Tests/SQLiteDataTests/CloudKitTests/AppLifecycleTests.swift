@@ -23,7 +23,7 @@
             RemindersList(id: 1, title: "Personal")
           }
         }
-        defaultNotificationCenter.post(name: UIScene.willDeactivateNotification, object: nil)
+        defaultNotificationCenter.post(name: UIScene.willResignActiveNotification, object: nil)
         try await Task.sleep(for: .seconds(0.1))
         assertInlineSnapshot(of: container, as: .customDump) {
           """
@@ -90,7 +90,7 @@
           }
         }
 
-        defaultNotificationCenter.post(name: UIScene.willDeactivateNotification, object: nil)
+        defaultNotificationCenter.post(name: UIScene.willResignActiveNotification, object: nil)
         try await Task.sleep(for: .seconds(0.1))
         assertInlineSnapshot(of: container, as: .customDump) {
           """
