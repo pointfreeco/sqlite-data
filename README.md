@@ -346,16 +346,28 @@ for data and keep your views up-to-date when data in the database changes, and y
 This repo comes with _lots_ of examples to demonstrate how to solve common and complex problems with
 SQLiteData. Check out [this](./Examples) directory to see them all, including:
 
-  * [Case Studies](./Examples/CaseStudies): A number of case studies demonstrating the built-in
-    features of the library.
+* [**Case Studies**](./Examples/CaseStudies)
+  <br> Demonstrates how to solve some common application problems in an isolated environment, in
+  both SwiftUI and UIKit. Things like animations, dynamic queries, database transactions, and more.
 
-  * [SyncUps](./Examples/SyncUps): We also rebuilt Apple's [Scrumdinger][] demo application using
-    modern, best practices for SwiftUI development, including using this library to query and
-    persist state using SQLite.
+* [**CloudKitDemo**](./Examples/CloudKitDemo)
+  <br> A simplified demo that shows how to synchronize a SQLite database to CloudKit and how to
+  share records with other iCloud users. See our dedicated articles on [CloudKit Synchronization]
+  and [CloudKit Sharing] for more information. 
+  
+  [CloudKit Synchronization]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/cloudkit
+  [CloudKit Sharing]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/cloudkitsharing
 
-  * [Reminders](./Examples/Reminders): A rebuild of Apple's [Reminders][reminders-app-store] app
-    that uses a SQLite database to model the reminders, lists and tags. It features many advanced
-    queries, such as searching, and stats aggregation.
+* [**Reminders**](./Examples/Reminders)
+  <br> A rebuild of Apple's [Reminders][reminders-app-store] app that uses a SQLite database to
+  model the reminders, lists and tags. It features many advanced queries, such as searching, stats
+  aggregation, and multi-table joins. It also features CloudKit synchronization and sharing.
+
+* [**SyncUps**](./Examples/SyncUps)
+  <br> This application is a faithful reconstruction of one of Apple's more interesting sample
+  projects, called [Scrumdinger][scrumdinger], and uses SQLite to persist the data for meetings.
+  We have also added CloudKit synchronization so that all changes are automatically made available
+  on all of the user's devices.
 
 [Scrumdinger]: https://developer.apple.com/tutorials/app-dev-training/getting-started-with-scrumdinger
 [reminders-app-store]: https://apps.apple.com/us/app/reminders/id1108187841
