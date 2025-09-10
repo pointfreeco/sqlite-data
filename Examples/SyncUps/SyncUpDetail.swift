@@ -272,7 +272,7 @@ struct MeetingView: View {
 
 #Preview {
   let syncUp = try! prepareDependencies {
-    $0.defaultDatabase = try SyncUps.appDatabase()
+    try $0.bootstrapDatabase()
     return try $0.defaultDatabase.read { db in
       try SyncUp.limit(1).fetchOne(db)!
     }
