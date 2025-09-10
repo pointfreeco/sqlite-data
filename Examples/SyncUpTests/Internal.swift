@@ -4,7 +4,7 @@ import SQLiteData
 @testable import SyncUps
 
 extension Database {
-  func seedSyncUpFormTests() throws {
+  func seed() throws {
     try seed {
       SyncUp(id: UUID(1), seconds: 60, theme: .appOrange, title: "Design")
       SyncUp(id: UUID(2), seconds: 60 * 10, theme: .periwinkle, title: "Engineering")
