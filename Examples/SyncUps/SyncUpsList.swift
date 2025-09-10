@@ -153,7 +153,7 @@ private struct SeedDatabaseTip: Tip {
 
 #Preview {
   let _ = try! prepareDependencies {
-    $0.defaultDatabase = try SyncUps.appDatabase()
+    try $0.bootstrapDatabase()
   }
   NavigationStack {
     SyncUpsList(model: SyncUpsListModel())

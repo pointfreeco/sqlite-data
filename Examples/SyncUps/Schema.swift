@@ -75,73 +75,76 @@ extension Int {
   }
 }
 
-func appDatabase() throws -> any DatabaseWriter {
-  @Dependency(\.context) var context
-  var configuration = Configuration()
-  configuration.foreignKeysEnabled = true
-  configuration.prepareDatabase { db in
-    #if DEBUG
-      db.trace(options: .profile) {
-        if context == .preview {
-          print("\($0.expandedDescription)")
-        } else {
-          logger.debug("\($0.expandedDescription)")
+extension DependencyValues {
+  mutating func bootstrapDatabase() throws {
+    @Dependency(\.context) var context
+    var configuration = Configuration()
+    configuration.foreignKeysEnabled = true
+    configuration.prepareDatabase { db in
+      #if DEBUG
+        db.trace(options: .profile) {
+          if context == .preview {
+            print("\($0.expandedDescription)")
+          } else {
+            logger.debug("\($0.expandedDescription)")
+          }
         }
-      }
+      #endif
+    }
+    let database = try SQLiteData.defaultDatabase(configuration: configuration)
+    logger.debug(
+      """
+      App database:
+      open "\(database.path)"
+      """
+    )
+    var migrator = DatabaseMigrator()
+    #if DEBUG
+      migrator.eraseDatabaseOnSchemaChange = true
     #endif
+    migrator.registerMigration("Create initial tables") { db in
+      try #sql(
+        """
+        CREATE TABLE "syncUps" (
+          "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+          "seconds" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 300,
+          "theme" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT \(raw: Theme.bubblegum.rawValue),
+          "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
+        ) STRICT
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE TABLE "attendees" (
+          "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+          "name" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
+          "syncUpID" TEXT NOT NULL REFERENCES "syncUps"("id") ON DELETE CASCADE
+        ) STRICT
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE TABLE "meetings" (
+          "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+          "date" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT CURRENT_TIMESTAMP,
+          "syncUpID" TEXT NOT NULL REFERENCES "syncUps"("id") ON DELETE CASCADE,
+          "transcript" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
+        ) STRICT
+        """
+      )
+      .execute(db)
+    }
+    try migrator.migrate(database)
+    defaultDatabase = database
+    defaultSyncEngine = try SyncEngine(
+      for: database,
+      tables: SyncUp.self,
+      Attendee.self,
+      Meeting.self
+    )
   }
-  let database = try SQLiteData.defaultDatabase(configuration: configuration)
-  logger.debug(
-    """
-    App database:
-    open "\(database.path)"
-    """
-  )
-  var migrator = DatabaseMigrator()
-  #if DEBUG
-    migrator.eraseDatabaseOnSchemaChange = true
-  #endif
-  migrator.registerMigration("Create initial tables") { db in
-    try #sql(
-      """
-      CREATE TABLE "syncUps" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "seconds" INTEGER NOT NULL DEFAULT 300,
-        "theme" TEXT NOT NULL DEFAULT \(raw: Theme.bubblegum.rawValue),
-        "title" TEXT NOT NULL
-      )
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TABLE "attendees" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "name" TEXT NOT NULL,
-        "syncUpID" INTEGER NOT NULL,
-        
-        FOREIGN KEY("syncUpID") REFERENCES "syncUps"("id") ON DELETE CASCADE
-      )
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
-      CREATE TABLE "meetings" (
-        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-        "date" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP UNIQUE,
-        "syncUpID" INTEGER NOT NULL,
-        "transcript" TEXT NOT NULL,
-
-        FOREIGN KEY("syncUpID") REFERENCES "syncUps"("id") ON DELETE CASCADE
-      )
-      """
-    )
-    .execute(db)
-  }
-
-  try migrator.migrate(database)
-  return database
 }
 
 private let logger = Logger(subsystem: "SyncUps", category: "Database")
