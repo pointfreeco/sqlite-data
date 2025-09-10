@@ -471,7 +471,7 @@
 				DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */,
 				DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */,
 				CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
-				CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sqlite-data" */,
+				CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CAF836992D4735620047AEB5 /* Products */;
@@ -1145,9 +1145,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sqlite-data" */ = {
+		CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../sqlite-data";
+			relativePath = ..;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -1203,17 +1203,17 @@
 		};
 		CA2BDE2B2E71C472000974D3 /* SQLiteData */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sqlite-data" */;
+			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */;
 			productName = SQLiteData;
 		};
 		CA2BDE2D2E71C479000974D3 /* SQLiteData */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sqlite-data" */;
+			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */;
 			productName = SQLiteData;
 		};
 		CA2BDE2F2E71C480000974D3 /* SQLiteData */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference "../../sqlite-data" */;
+			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */;
 			productName = SQLiteData;
 		};
 		CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */ = {
