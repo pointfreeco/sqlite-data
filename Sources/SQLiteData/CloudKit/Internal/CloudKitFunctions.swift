@@ -10,7 +10,8 @@
 
   @DatabaseFunction(
     "sqlitedata_icloud_hasPermission",
-    as: ((CKShare?.SystemFieldsRepresentation) -> Bool).self
+    as: ((CKShare?.SystemFieldsRepresentation) -> Bool).self,
+    isDeterministic: true
   )
   func hasPermission(_ share: CKShare?) -> Bool {
     guard let share else { return true }

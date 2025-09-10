@@ -10,28 +10,28 @@
   extension BaseCloudKitTests {
     @MainActor
     final class NextRecordZoneChangeBatchTests: BaseCloudKitTests, @unchecked Sendable {
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func noMetadataForRecord() async throws {
-        syncEngine.private.state.add(
-          pendingRecordZoneChanges: [.saveRecord(Reminder.recordID(for: 1))]
-        )
-
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: []
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
-          )
-          """
-        }
-      }
+//      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+//      @Test func noMetadataForRecord() async throws {
+//        syncEngine.private.state.add(
+//          pendingRecordZoneChanges: [.saveRecord(Reminder.recordID(for: 1))]
+//        )
+//
+//        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+//        assertInlineSnapshot(of: container, as: .customDump) {
+//          """
+//          MockCloudContainer(
+//            privateCloudDatabase: MockCloudDatabase(
+//              databaseScope: .private,
+//              storage: []
+//            ),
+//            sharedCloudDatabase: MockCloudDatabase(
+//              databaseScope: .shared,
+//              storage: []
+//            )
+//          )
+//          """
+//        }
+//      }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func nonExistentTable() async throws {

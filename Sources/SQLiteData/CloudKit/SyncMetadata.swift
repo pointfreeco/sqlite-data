@@ -66,7 +66,7 @@
 
     @Column(generated: .virtual)
     public let hasLastKnownServerRecord: Bool
-    
+
     /// Determines if the record associated with this metadata is currently shared in CloudKit.
     ///
     /// This can only return `true` for root records. For example, the metadata associated with a
@@ -82,10 +82,18 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Table @Selection
   struct AncestorMetadata {
+    let isShared: Bool
     let recordName: String
     let parentRecordName: String?
     @Column(as: CKRecord?.SystemFieldsRepresentation.self)
     let lastKnownServerRecord: CKRecord?
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Table @Selection
+  struct ChildMetadata {
+    let recordName: String
+    let parentRecordName: String?
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

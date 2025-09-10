@@ -145,8 +145,10 @@
           Values(
             syncEngine.$didUpdate(
               recordName: new.recordName,
-              record: new.lastKnownServerRecord
-                ?? rootServerRecord(recordName: new.recordName)
+              lastKnownServerRecord: new.lastKnownServerRecord
+                ?? rootServerRecord(recordName: new.recordName),
+              newParentLastKnownServerRecord: #bind(nil),
+              childrenLastKnownServerRecordNames: #bind([])
             )
           )
         } when: { _ in
@@ -165,8 +167,15 @@
           Values(
             syncEngine.$didUpdate(
               recordName: new.recordName,
-              record: new.lastKnownServerRecord
-                ?? rootServerRecord(recordName: new.recordName)
+              lastKnownServerRecord: new.lastKnownServerRecord
+                ?? rootServerRecord(recordName: new.recordName),
+              newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
+                recordName: new.recordName,
+                parentRecordName: new.parentRecordName
+              ),
+              childrenLastKnownServerRecordNames: childrenLastKnownServerRecordNamesIfShared(
+                recordName: new.recordName
+              )
             )
           )
         } when: { old, new in
@@ -282,9 +291,71 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func hasSharedAncestor(
+    recordName: some QueryExpression<String>
+  ) -> some QueryExpression<Bool> {
+    With {
+      SyncMetadata
+        .where { $0.recordName.eq(recordName) }
+        .select { AncestorMetadata.Columns($0) }
+        .union(
+          all: true,
+          SyncMetadata
+            .select { AncestorMetadata.Columns($0) }
+            .join(AncestorMetadata.all) { $0.recordName.is($1.parentRecordName) }
+        )
+    } query: {
+      AncestorMetadata
+        .select(\.isShared)
+        .where { $0.parentRecordName.is(nil) && $0.isShared }
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func parentLastKnownServerRecordIfShared(
+    recordName: some QueryExpression<String>,
+    parentRecordName: some QueryExpression<String?>
+  ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
+    SyncMetadata
+      .select(\.lastKnownServerRecord)
+      .where {
+        $0.recordName.is(parentRecordName)
+          && hasSharedAncestor(recordName: recordName)
+      }
+  }
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func childrenLastKnownServerRecordNamesIfShared(
+    recordName: some QueryExpression<String>
+  ) -> some QueryExpression<[String].JSONRepresentation> {
+    With {
+      SyncMetadata
+        .where { $0.recordName.eq(recordName) }
+        .select { ChildMetadata.Columns(recordName: $0.recordName, parentRecordName: #bind(nil)) }
+        .union(all: true,
+          SyncMetadata
+            .select {
+              ChildMetadata.Columns(
+                recordName: $0.recordName,
+                parentRecordName: $0.parentRecordName
+              )
+            }
+            .join(ChildMetadata.all) { $0.parentRecordName.eq($1.recordName) }
+        )
+    } query: {
+      ChildMetadata
+        .where { $0.recordName.neq(recordName) }
+        .select {
+          $0.recordName.jsonGroupArray()
+        }
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension AncestorMetadata.Columns {
     init(_ metadata: SyncMetadata.TableColumns) {
       self.init(
+        isShared: metadata.isShared,
         recordName: metadata.recordName,
         parentRecordName: metadata.parentRecordName,
         lastKnownServerRecord: metadata.lastKnownServerRecord

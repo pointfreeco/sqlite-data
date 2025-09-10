@@ -596,10 +596,60 @@
 
     @DatabaseFunction(
       "sqlitedata_icloud_didUpdate",
-      as: ((String, CKRecord?.SystemFieldsRepresentation) -> Void).self
+      as: (
+        (
+          String,
+          CKRecord?.SystemFieldsRepresentation,
+          CKRecord?.SystemFieldsRepresentation,
+          [String].JSONRepresentation
+        ) -> Void
+      ).self
     )
-    func didUpdate(recordName: String, record: CKRecord?) {
-      let zoneID = record?.recordID.zoneID ?? defaultZone.zoneID
+    func didUpdate(
+      recordName: String,
+      lastKnownServerRecord: CKRecord?,
+      newParentLastKnownServerRecord: CKRecord?
+    ) {
+      //      ,
+      //      newParentRecord: CKRecord?,
+      //      childrenRecordNames: [String]
+//      if record.zoneID != newParentRecord.zoneID {
+//        .deleteRecord(record.recordID)
+//        .deleteRecord(/*all child records*/)
+//        .saveRecord(/*construct a record ID with recordName and new zone ?? defaultZone */)
+//        .saveRecord(/*for all child records*/)
+//      }
+
+//      let oldZoneID = lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
+//      let newZoneID = newParentLastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
+//      let oldSyncEngine = self.syncEngines.withValue {
+//        oldZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+//      }
+//      let newSyncEngine = self.syncEngines.withValue {
+//        newZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+//      }
+//      if oldZoneID != newZoneID {
+//        oldSyncEngine?.state
+//          .add(pendingRecordZoneChanges: [.deleteRecord(lastKnownServerRecord!.recordID)])
+//        oldSyncEngine?.state.add(pendingRecordZoneChanges: childrenLastKnownServerRecordNames.map {
+//          .deleteRecord(CKRecord.ID(recordName: $0, zoneID: oldZoneID))
+//        })
+//
+//        newSyncEngine?.state
+//          .add(
+//            pendingRecordZoneChanges: [.saveRecord(CKRecord.ID.init(recordName: lastKnownServerRecord!.recordID.recordName, zoneID: newZoneID))]
+//          )
+//        newSyncEngine?.state
+//          .add(
+//            pendingRecordZoneChanges: childrenLastKnownServerRecordNames.map {
+//              .saveRecord(CKRecord.ID.init(recordName: $0, zoneID: newZoneID))
+//            }
+//          )
+//        return
+//      }
+
+
+      let zoneID = lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
       let change = CKSyncEngine.PendingRecordZoneChange.saveRecord(
         CKRecord.ID(
           recordName: recordName,
@@ -870,6 +920,18 @@
             .sqliteDataCloudKitFailure,
             catching: {
               try await metadatabase.read { db in
+
+                try SyncMetadata
+                  .upsert {
+                    SyncMetadata.init(
+                      recordPrimaryKey: <#T##String#>,
+                      recordType: <#T##String#>,
+                      parentRecordPrimaryKey: <#T##String?#>,
+                      parentRecordType: <#T##String?#>
+                    )
+                  }
+                  .returning(\.self)
+
                 try SyncMetadata
                   .where { $0.recordName.eq(recordID.recordName) }
                   .select { ($0, $0._lastKnownServerRecordAllFields) }
@@ -1345,7 +1407,9 @@
             let table = tablesByName[failedRecord.recordType],
             foreignKeysByTableName[table.tableName]?.count == 1,
             let foreignKey = foreignKeysByTableName[table.tableName]?.first
-          else { continue }
+          else {
+            continue
+          }
           func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
             try await userDatabase.write { db in
               try $_isSynchronizingChanges.withValue(false) {
