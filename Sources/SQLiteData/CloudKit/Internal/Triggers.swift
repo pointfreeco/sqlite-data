@@ -147,7 +147,13 @@
               recordName: new.recordName,
               lastKnownServerRecord: new.lastKnownServerRecord
                 ?? rootServerRecord(recordName: new.recordName),
-              newParentLastKnownServerRecord: #bind(nil)
+              newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
+                recordName: new.recordName,
+                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+                parentRecordType: new.parentRecordType
+              ),
+              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+              parentRecordType: new.parentRecordType
             )
           )
         } when: { _ in
@@ -170,8 +176,11 @@
                 ?? rootServerRecord(recordName: new.recordName),
               newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
                 recordName: new.recordName,
-                parentRecordName: new.parentRecordName
-              )
+                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+                parentRecordType: new.parentRecordType
+              ),
+              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+              parentRecordType: new.parentRecordType
             )
           )
         } when: { old, new in
@@ -287,36 +296,16 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func hasSharedAncestor(
-    recordName: some QueryExpression<String>
-  ) -> some QueryExpression<Bool> {
-    With {
-      SyncMetadata
-        .where { $0.recordName.eq(recordName) }
-        .select { AncestorMetadata.Columns($0) }
-        .union(
-          all: true,
-          SyncMetadata
-            .select { AncestorMetadata.Columns($0) }
-            .join(AncestorMetadata.all) { $0.recordName.is($1.parentRecordName) }
-        )
-    } query: {
-      AncestorMetadata
-        .select(\.isShared)
-        .where { $0.parentRecordName.is(nil) && $0.isShared }
-    }
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func parentLastKnownServerRecordIfShared(
     recordName: some QueryExpression<String>,
-    parentRecordName: some QueryExpression<String?>
+    parentRecordPrimaryKey: some QueryExpression<String?>,
+    parentRecordType: some QueryExpression<String?>
   ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
     SyncMetadata
       .select(\.lastKnownServerRecord)
       .where {
-        $0.recordName.is(parentRecordName)
-          && hasSharedAncestor(recordName: recordName)
+        $0.recordPrimaryKey.is(parentRecordPrimaryKey)
+          && $0.recordType.is(parentRecordType)
       }
   }
 

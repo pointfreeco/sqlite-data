@@ -597,13 +597,15 @@
     @DatabaseFunction(
       "sqlitedata_icloud_didUpdate",
       as: (
-        (String, CKRecord?.SystemFieldsRepresentation, CKRecord?.SystemFieldsRepresentation) -> Void
+        (String, CKRecord?.SystemFieldsRepresentation, CKRecord?.SystemFieldsRepresentation, String?, String?) -> Void
       ).self
     )
     func didUpdate(
       recordName: String,
       lastKnownServerRecord: CKRecord?,
-      newParentLastKnownServerRecord: CKRecord?
+      newParentLastKnownServerRecord: CKRecord?,
+      parentRecordPrimaryKey: String? = nil,
+      parentRecordType: String? = nil
     ) throws {
       let oldZoneID = lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
       let newZoneID = newParentLastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID

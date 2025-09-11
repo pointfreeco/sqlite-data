@@ -918,9 +918,6 @@
           try db.seed {
             ModelA.Draft(id: 1, count: 42)
             ModelB.Draft(id: 1, isOn: true, modelAID: 1)
-            ModelC.Draft(id: 1, title: "Blob", modelBID: 1)
-            ModelC.Draft(id: 2, title: "Blob Jr", modelBID: 1)
-            ModelC.Draft(id: 3, title: "Blob Sr", modelBID: 1)
           }
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
