@@ -148,7 +148,6 @@
               lastKnownServerRecord: new.lastKnownServerRecord
                 ?? rootServerRecord(recordName: new.recordName),
               newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
-                recordName: new.recordName,
                 parentRecordPrimaryKey: new.parentRecordPrimaryKey,
                 parentRecordType: new.parentRecordType
               ),
@@ -175,7 +174,6 @@
               lastKnownServerRecord: new.lastKnownServerRecord
                 ?? rootServerRecord(recordName: new.recordName),
               newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
-                recordName: new.recordName,
                 parentRecordPrimaryKey: new.parentRecordPrimaryKey,
                 parentRecordType: new.parentRecordType
               ),
@@ -297,7 +295,6 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func parentLastKnownServerRecordIfShared(
-    recordName: some QueryExpression<String>,
     parentRecordPrimaryKey: some QueryExpression<String?>,
     parentRecordType: some QueryExpression<String?>
   ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
@@ -313,7 +310,6 @@
   extension AncestorMetadata.Columns {
     init(_ metadata: SyncMetadata.TableColumns) {
       self.init(
-        isShared: metadata.isShared,
         recordName: metadata.recordName,
         parentRecordName: metadata.parentRecordName,
         lastKnownServerRecord: metadata.lastKnownServerRecord

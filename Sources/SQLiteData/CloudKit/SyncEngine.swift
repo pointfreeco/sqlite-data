@@ -607,30 +607,18 @@
       parentRecordPrimaryKey: String? = nil,
       parentRecordType: String? = nil
     ) throws {
-      let oldZoneID = lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
-      let newZoneID = newParentLastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
-      guard oldZoneID == newZoneID else {
-        struct RecordChangedZonesError: LocalizedError {
-          let recordName: String
-          let oldZoneID: CKRecordZone.ID
-          let newZoneID: CKRecordZone.ID
-          var errorDescription: String? {
-            """
-            The record '\(recordName)' was moved from zone \
-            '\(oldZoneID.zoneName)/\(oldZoneID.ownerName)' to \
-            '\(newZoneID.zoneName)/\(newZoneID.ownerName)'. This is currently not supported in \
-            SQLiteData. To work around, delete the old record and create a new record.
-            """
-          }
-        }
-        throw RecordChangedZonesError(
-          recordName: recordName,
-          oldZoneID: oldZoneID,
-          newZoneID: newZoneID
-        )
+      let zoneID = lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
+      let newZoneID = newParentLastKnownServerRecord?.recordID.zoneID
+      if let newZoneID, zoneID != newZoneID {
+        reportIssue("""
+          The record '\(recordName)' was moved from zone \
+          '\(zoneID.zoneName)/\(zoneID.ownerName)' to \
+          '\(newZoneID.zoneName)/\(newZoneID.ownerName)'. This is currently not supported in \
+          SQLiteData. To work around, delete the record and then create a new record with its \
+          new parent association.
+          """)
       }
 
-      let zoneID = lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
       let change = CKSyncEngine.PendingRecordZoneChange.saveRecord(
         CKRecord.ID(
           recordName: recordName,

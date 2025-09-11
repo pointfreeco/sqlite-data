@@ -82,18 +82,10 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Table @Selection
   struct AncestorMetadata {
-    let isShared: Bool
     let recordName: String
     let parentRecordName: String?
     @Column(as: CKRecord?.SystemFieldsRepresentation.self)
     let lastKnownServerRecord: CKRecord?
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
-  struct ChildMetadata {
-    let recordName: String
-    let parentRecordName: String?
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
