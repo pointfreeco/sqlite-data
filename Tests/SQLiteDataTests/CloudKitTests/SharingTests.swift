@@ -527,13 +527,18 @@
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        try await withKnownIssue {
-          try await syncEngine.unshare(record: remindersList)
-        } matching: { issue in
-          issue.description == """
-            Issue recorded: No share found associated with record.
-            """
-        }
+        // NB: Swift 6.2 cannot currently compile this:
+        //     Pattern that the region based isolation checker does not understand how to check.
+        //     Please file a bug.
+        #if swift(<6.2)
+          try await withKnownIssue {
+            try await syncEngine.unshare(record: remindersList)
+          } matching: { issue in
+            issue.description == """
+              Issue recorded: No share found associated with record.
+              """
+          }
+        #endif
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -629,7 +634,9 @@
         )
         _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, remindersListRecord])
         let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
-        let freshRemindersListRecord = try syncEngine.shared.database.record(for: remindersListRecord.recordID)
+        let freshRemindersListRecord = try syncEngine.shared.database.record(
+          for: remindersListRecord.recordID
+        )
 
         try await syncEngine
           .acceptShare(

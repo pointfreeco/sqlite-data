@@ -1745,6 +1745,7 @@
     package var isInMemory: Bool {
       path.isEmpty
         || path.hasPrefix(":memory:")
+        || absoluteString.hasPrefix(":memory:")
         || URLComponents(url: self, resolvingAgainstBaseURL: false)?
           .queryItems?
           .contains(where: { $0.name == "mode" && $0.value == "memory" })
