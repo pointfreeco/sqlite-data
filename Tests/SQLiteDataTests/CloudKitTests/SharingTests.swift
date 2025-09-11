@@ -534,9 +534,9 @@
           try await withKnownIssue {
             try await syncEngine.unshare(record: remindersList)
           } matching: { issue in
-            issue.description == """
+            issue.description.hasSuffix("""
               Issue recorded: No share found associated with record.
-              """
+              """)
           }
         #endif
       }
