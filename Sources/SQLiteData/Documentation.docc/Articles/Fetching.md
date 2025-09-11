@@ -1,6 +1,7 @@
 # Fetching model data
 
-Learn about the various tools for fetching data from a SQLite database.
+Learn how to use the `@FetchAll`, `@FetchOne` and `@Fetch` property wrappers for performing
+SQL queries to load data from your database.
 
 ## Overview
 

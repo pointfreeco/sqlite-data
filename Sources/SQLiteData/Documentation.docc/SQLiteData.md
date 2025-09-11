@@ -178,8 +178,13 @@ a model context, via a property wrapper:
   }
 }
 
-> Note: For more information on how SQLiteData compares to SwiftData, see
-> <doc:ComparisonWithSwiftData>.
+> Important: SQLiteData uses [GRDB] under the hood for interacting with SQLite, and you will use
+> its tools for creating transactions for writing to the database, such as the `database.write`
+> method above.
+
+[GRDB]: https://github.com/groue/GRDB.swift
+
+For more information on how SQLiteData compares to SwiftData, see <doc:ComparisonWithSwiftData>.
 
 Further, if you want to synchronize the local database to CloudKit so that it is available on
 all your user's devices, simply configure a `SyncEngine` in the entry point of the app:

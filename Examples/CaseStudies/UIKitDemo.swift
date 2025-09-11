@@ -126,7 +126,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
         CREATE TABLE "facts" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "body" TEXT NOT NULL
-        )
+        ) STRICT
         """
       )
       .execute(db)

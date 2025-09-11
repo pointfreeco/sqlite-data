@@ -71,7 +71,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
         CREATE TABLE "items" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "timestamp" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
+        ) STRICT
         """
       )
       .execute(db)

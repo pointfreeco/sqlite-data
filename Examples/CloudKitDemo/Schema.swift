@@ -11,20 +11,7 @@ struct Counter: Identifiable {
 extension DependencyValues {
   mutating func bootstrapDatabase() throws {
     @Dependency(\.context) var context
-    var configuration = Configuration()
-    configuration.prepareDatabase { db in
-      try db.attachMetadatabase()
-      #if DEBUG
-        db.trace(options: .profile) {
-          if context == .live {
-            logger.debug("\($0.expandedDescription)")
-          } else {
-            print("\($0.expandedDescription)")
-          }
-        }
-      #endif
-    }
-    let database = try SQLiteData.defaultDatabase(configuration: configuration)
+    let database = try SQLiteData.defaultDatabase()
     logger.debug(
       """
       App database
@@ -42,7 +29,7 @@ extension DependencyValues {
         CREATE TABLE "counters" (
           "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
           "count" INT NOT NULL ON CONFLICT REPLACE DEFAULT 0
-        )
+        ) STRICT
         """
       )
       .execute(db)

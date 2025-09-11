@@ -78,20 +78,7 @@ extension Int {
 extension DependencyValues {
   mutating func bootstrapDatabase() throws {
     @Dependency(\.context) var context
-    var configuration = Configuration()
-    configuration.foreignKeysEnabled = true
-    configuration.prepareDatabase { db in
-      #if DEBUG
-        db.trace(options: .profile) {
-          if context == .preview {
-            print("\($0.expandedDescription)")
-          } else {
-            logger.debug("\($0.expandedDescription)")
-          }
-        }
-      #endif
-    }
-    let database = try SQLiteData.defaultDatabase(configuration: configuration)
+    let database = try SQLiteData.defaultDatabase()
     logger.debug(
       """
       App database:

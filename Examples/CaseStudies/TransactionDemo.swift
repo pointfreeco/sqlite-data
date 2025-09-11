@@ -3,7 +3,7 @@ import SwiftUI
 
 struct TransactionDemo: SwiftUICaseStudy {
   let readMe = """
-    This demonstrates how to use the `fetch` tool to perform multiple SQLite queries in a single \
+    This demonstrates how to use the `@Fetch` tool to perform multiple SQLite queries in a single \
     database transaction. If you need to fetch multiple pieces of data from the database that \
     all tend to change together, then performing those queries in a single transaction can be \
     more performant.
@@ -85,7 +85,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
         CREATE TABLE "facts" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "body" TEXT NOT NULL
-        )
+        ) STRICT
         """
       )
       .execute(db)

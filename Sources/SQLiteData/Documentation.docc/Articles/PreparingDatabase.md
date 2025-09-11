@@ -1,6 +1,7 @@
 # Preparing a SQLite database
 
-Learn how to create and configure the SQLite database that holds your application's data.
+Learn how to create, configure and migrate the SQLite database that holds your application’s 
+data.
 
 ## Overview
 
@@ -36,27 +37,20 @@ func appDatabase() -> any DatabaseWriter {
 ### Step 2: Create configuration
 
 Inside this static variable we can create a [`Configuration`][config-docs] value that is used to
-configure the database. We recommend turning on
-[foreign key](https://www.sqlite.org/foreignkeys.html) constraints to protect the integrity of your
-data:
+configure the database if there is any custom configuration you want to perform. This is an
+optional step:
 
 ```diff
  func appDatabase() -> any DatabaseWriter {
 +  var configuration = Configuration()
-+  configuration.foreignKeysEnabled = true
  }
 ```
 
-This will prevent you from deleting rows that leave other rows with invalid associations. For
-example, if a "reminders" table had an association to a "remindersLists" table, you would not be
-allowed to delete a list row unless there were no reminders associated with it, or if you had
-specified a cascading action (such as delete).
-
-We further recommend that you enable query tracing to log queries that are executed in your
-application. This can be handy for tracking down long-running queries, or when more queries execute
-than you expect. We also recommend only doing this in debug builds to avoid leaking sensitive
-information when the app is running on a user's device, and we further recommend using OSLog
-when running your app in the simulator/device and using `Swift.print` in previews:
+One configuration you may want to enable is query tracing in order to log queries that are executed 
+in your application. This can be handy for tracking down long-running queries, or when more queries 
+execute than you expect. We also recommend only doing this in debug builds to avoid leaking 
+sensitive information when the app is running on a user's device, and we further recommend using 
+OSLog when running your app in the simulator/device and using `Swift.print` in previews:
 
 ```diff
  import OSLog
@@ -65,7 +59,6 @@ when running your app in the simulator/device and using `Swift.print` in preview
  func appDatabase() -> any DatabaseWriter {
 +  @Dependency(\.context) var context
    var configuration = Configuration()
-   configuration.foreignKeysEnabled = true
 +  #if DEBUG
 +    configuration.prepareDatabase { db in
 +      db.trace(options: .profile) {
@@ -92,8 +85,8 @@ when running your app in the simulator/device and using `Swift.print` in preview
 
 [swift-dependencies-gh]: https://github.com/pointfreeco/swift-dependencies
 
-For more information on configuring tracing, see [GRDB's documentation][trace-docs] on the
-matter.
+For more information on configuring the database connection, see [GRDB's documentation][config-docs] 
+on the matter.
 
 [config-docs]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/configuration
 [trace-docs]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/database/trace(options:_:)
@@ -102,14 +95,13 @@ matter.
 
 Once a `Configuration` value is set up we can construct the actual database connection. The simplest
 way to do this is to construct the database connection using the
-``defaultDatabase(path:configuration:)`` function:
+n``defaultDatabase(path:configuration:)`` function:
 
 ```diff
 -func appDatabase() -> any DatabaseWriter {
 +func appDatabase() throws -> any DatabaseWriter {
    @Dependency(\.context) var context
    var configuration = Configuration()
-   configuration.foreignKeysEnabled = true
    #if DEBUG
      configuration.prepareDatabase { db in
        db.trace(options: .profile) {
@@ -141,7 +133,6 @@ database connection:
  func appDatabase() throws -> any DatabaseWriter {
    @Dependency(\.context) var context
    var configuration = Configuration()
-   configuration.foreignKeysEnabled = true
    #if DEBUG
      configuration.prepareDatabase { db in
        db.trace(options: .profile) {
@@ -216,7 +207,6 @@ import SQLiteData
 func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
   var configuration = Configuration()
-  configuration.foreignKeysEnabled = true
   #if DEBUG
     configuration.prepareDatabase { db in
       db.trace(options: .profile) {

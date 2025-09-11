@@ -3,7 +3,7 @@ import SwiftUI
 
 struct ObservableModelDemo: SwiftUICaseStudy {
   let readMe = """
-    This demonstrates how to use the `fetchAll` and `fetchOne` tools in an @Observable model. \
+    This demonstrates how to use the `@FetchAll` and `@FetchOne` tools in an @Observable model. \
     In SwiftUI, the `@Query` macro only works when installed directly in a SwiftUI view, and \
     cannot be used outside of views.
 
@@ -100,7 +100,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
         CREATE TABLE "facts" (
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "body" TEXT NOT NULL
-        )
+        ) STRICT
         """
       )
       .execute(db)
