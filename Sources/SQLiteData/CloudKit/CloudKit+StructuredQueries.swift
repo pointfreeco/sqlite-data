@@ -358,10 +358,7 @@
 
   // NB: We add a small amount of leeway when comparing dates due to floating point inaccuracies.
   private func date(_ date: Date, comesBefore otherDate: Date) -> Bool {
-    date
-      .addingTimeInterval(-0.001)
-    < otherDate
-      .addingTimeInterval(0.001)
+    date.addingTimeInterval(-0.001) < otherDate.addingTimeInterval(0.001)
   }
 
 #endif

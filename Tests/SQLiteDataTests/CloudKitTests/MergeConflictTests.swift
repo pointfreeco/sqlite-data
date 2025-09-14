@@ -714,10 +714,6 @@
           )
         }
       }
-
-      @Test func doubleResolution() {
-
-      }
     }
   }
 #endif
