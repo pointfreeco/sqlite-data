@@ -5,6 +5,7 @@
   import InlineSnapshotTesting
   import OrderedCollections
   import SQLiteData
+  import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
 
@@ -402,30 +403,40 @@
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
-        let userModificationDate = now.addingTimeInterval(60)
-        record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-        let modificationCallback = try {
-          try syncEngine.modifyRecords(scope: .private, saving: [record])
-        }()
-
         try await withDependencies {
           $0.datetime.now = now.addingTimeInterval(30)
         } operation: {
           try await userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
           }
-        }
-        await modificationCallback.notify()
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+          try await withDependencies {
+            $0.datetime.now = now.addingTimeInterval(30)
+          } operation: {
+            let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
+            record.setValue("Buy milk", forKey: "title", at: now)
+            let modificationCallback = try {
+              try syncEngine.modifyRecords(scope: .private, saving: [record])
+            }()
 
-        try await userDatabase.userWrite { db in
-          try #expect(
-            Reminder.find(1).fetchOne(db)
-              == Reminder(id: 1, title: "Get milk", remindersListID: 1)
-          )
+            await modificationCallback.notify()
+            try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+          }
         }
 
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          ┌───────────────────────┐
+          │ Reminder(             │
+          │   id: 1,              │
+          │   dueDate: nil,       │
+          │   isCompleted: false, │
+          │   priority: nil,      │
+          │   title: "Get milk",  │
+          │   remindersListID: 1  │
+          │ )                     │
+          └───────────────────────┘
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -443,7 +454,7 @@
                   isCompleted🗓️: 0,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
-                  title: "Buy milk",
+                  title: "Get milk",
                   title🗓️: 60,
                   🗓️: 60
                 ),
@@ -702,6 +713,10 @@
               )
           )
         }
+      }
+
+      @Test func doubleResolution() {
+
       }
     }
   }

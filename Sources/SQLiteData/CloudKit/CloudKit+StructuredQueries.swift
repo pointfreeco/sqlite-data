@@ -163,9 +163,11 @@
       at userModificationDate: Date
     ) -> Bool {
       guard
-        encryptedValues[at: key] < userModificationDate,
+        date(encryptedValues[at: key], comesBefore: userModificationDate),
         encryptedValues[key] != newValue
-      else { return false }
+      else {
+        return false
+      }
       encryptedValues[key] = newValue
       encryptedValues[at: key] = userModificationDate
       self.userModificationDate = userModificationDate
@@ -180,7 +182,10 @@
     ) -> Bool {
       @Dependency(\.dataManager) var dataManager
 
-      guard encryptedValues[at: key] < userModificationDate else { return false }
+      guard date(encryptedValues[at: key], comesBefore: userModificationDate)
+      else {
+        return false
+      }
 
       let asset = CKAsset(fileURL: URL(hash: newValue))
       guard let fileURL = asset.fileURL, (self[key] as? CKAsset)?.fileURL != fileURL
@@ -199,8 +204,10 @@
       forKey key: CKRecord.FieldKey,
       at userModificationDate: Date
     ) -> Bool {
-      guard encryptedValues[at: key] < userModificationDate
-      else { return false }
+      guard date(encryptedValues[at: key], comesBefore: userModificationDate)
+      else {
+        return false
+      }
       if encryptedValues[key] != nil {
         encryptedValues[key] = nil
         encryptedValues[at: key] = userModificationDate
@@ -348,4 +355,13 @@
       set { self[#function] = newValue }
     }
   }
+
+  // NB: We add a small amount of leeway when comparing dates due to floating point inaccuracies.
+  private func date(_ date: Date, comesBefore otherDate: Date) -> Bool {
+    date
+      .addingTimeInterval(-0.001)
+    < otherDate
+      .addingTimeInterval(0.001)
+  }
+
 #endif

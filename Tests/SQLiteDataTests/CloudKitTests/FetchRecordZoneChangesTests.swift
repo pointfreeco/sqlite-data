@@ -124,7 +124,7 @@
         } operation: {
           let reminderRecord = try syncEngine.private.database
             .record(for: Reminder.recordID(for: 1))
-          reminderRecord.setValue("2", forKey: "remindersListID", at: now)
+          reminderRecord.setValue(2, forKey: "remindersListID", at: now)
           reminderRecord.parent = CKRecord.Reference(
             recordID: RemindersList.recordID(for: 2),
             action: .none
@@ -133,8 +133,12 @@
           try await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord]).notify()
         }
 
-        try await userDatabase.userWrite { db in
-          try Reminder.find(1).update { $0.isCompleted.toggle() }.execute(db)
+        try await withDependencies {
+          $0.datetime.now.addTimeInterval(2)
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Reminder.find(1).update { $0.isCompleted.toggle() }.execute(db)
+          }
         }
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
@@ -177,8 +181,8 @@
                   parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)),
                   share: nil,
                   id: 1,
-                  isCompleted: 0,
-                  remindersListID: "2",
+                  isCompleted: 1,
+                  remindersListID: 2,
                   title: "Get milk"
                 ),
                 [1]: CKRecord(
