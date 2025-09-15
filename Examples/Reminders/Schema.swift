@@ -358,7 +358,8 @@ func handleReminderStatusUpdate() {
     $0?.cancel()
     $0 = Task {
       @Dependency(\.defaultDatabase) var database
-      try await Task.sleep(for: .seconds(5))
+      @Dependency(\.continuousClock) var clock
+      try await clock.sleep(for: .seconds(5))
       try await database.write { db in
         try Reminder
           .where { $0.status.eq(Reminder.Status.completing) }
