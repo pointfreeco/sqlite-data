@@ -517,29 +517,31 @@
         }
       }
 
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func unshareNonSharedRecord() async throws {
-        let remindersList = RemindersList(id: 1, title: "Personal")
-        try await userDatabase.userWrite { db in
-          try db.seed {
-            remindersList
+      // NB: Swift 6.2 cannot currently compile this:
+      //     Pattern that the region based isolation checker does not understand how to check.
+      //     Please file a bug.
+      #if swift(<6.2)
+        @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+        @Test func unshareNonSharedRecord() async throws {
+          let remindersList = RemindersList(id: 1, title: "Personal")
+          try await userDatabase.userWrite { db in
+            try db.seed {
+              remindersList
+            }
           }
-        }
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        // NB: Swift 6.2 cannot currently compile this:
-        //     Pattern that the region based isolation checker does not understand how to check.
-        //     Please file a bug.
-        #if swift(<6.2)
           try await withKnownIssue {
             try await syncEngine.unshare(record: remindersList)
           } matching: { issue in
-            issue.description.hasSuffix("""
+            issue.description.hasSuffix(
+              """
               Issue recorded: No share found associated with record.
-              """)
+              """
+            )
           }
-        #endif
-      }
+        }
+      #endif
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func shareUnshareShareAgain() async throws {

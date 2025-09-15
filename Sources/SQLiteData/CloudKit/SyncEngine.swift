@@ -22,9 +22,9 @@
     package let userDatabase: UserDatabase
     package let logger: Logger
     package let metadatabase: any DatabaseWriter
-    package let tables: [any PrimaryKeyedTable.Type]
-    package let privateTables: [any PrimaryKeyedTable.Type]
-    let tablesByName: [String: any PrimaryKeyedTable.Type]
+    package let tables: [any (PrimaryKeyedTable & _SendableMetatype).Type]
+    package let privateTables: [any (PrimaryKeyedTable & _SendableMetatype).Type]
+    let tablesByName: [String: any (PrimaryKeyedTable & _SendableMetatype).Type]
     private let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
     package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
@@ -75,7 +75,7 @@
     ///   explicit call to ``stop()``. By default this argument is `true`.
     ///   - logger: The logger used to log events in the sync engine. By default a `.disabled`
     ///   logger is used, which means logs are not printed.
-    public convenience init<each T1: PrimaryKeyedTable, each T2: PrimaryKeyedTable>(
+    public convenience init<each T1: PrimaryKeyedTable & _SendableMetatype, each T2: PrimaryKeyedTable & _SendableMetatype>(
       for database: any DatabaseWriter,
       tables: repeat (each T1).Type,
       privateTables: repeat (each T2).Type,
@@ -93,8 +93,8 @@
         containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
 
-      var allTables: [any PrimaryKeyedTable.Type] = []
-      var allPrivateTables: [any PrimaryKeyedTable.Type] = []
+      var allTables: [any (PrimaryKeyedTable & _SendableMetatype).Type] = []
+      var allPrivateTables: [any (PrimaryKeyedTable & _SendableMetatype).Type] = []
       for table in repeat each tables {
         allTables.append(table)
       }
@@ -203,8 +203,8 @@
         ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
       userDatabase: UserDatabase,
       logger: Logger,
-      tables: [any PrimaryKeyedTable.Type],
-      privateTables: [any PrimaryKeyedTable.Type] = []
+      tables: [any (PrimaryKeyedTable & _SendableMetatype).Type],
+      privateTables: [any (PrimaryKeyedTable & _SendableMetatype).Type] = []
     ) throws {
       let allTables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
         .map(\.type)
@@ -1404,7 +1404,7 @@
             let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
             let table = tablesByName[failedRecord.recordType]
           else { continue }
-          func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
+          func open<T: PrimaryKeyedTable & _SendableMetatype>(_: T.Type) async throws {
             do {
               let serverRecord = try await container.sharedCloudDatabase.record(
                 for: failedRecord.recordID
@@ -1529,7 +1529,7 @@
         serverRecord.userModificationDate =
           metadata?.userModificationDate ?? serverRecord.userModificationDate
 
-        func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
+        func open<T: PrimaryKeyedTable & _SendableMetatype>(_: T.Type) async throws {
           let columnNames: [String]
           if !force, let metadata, let allFields = metadata._lastKnownServerRecordAllFields {
             columnNames = try await userDatabase.read { db in
@@ -1938,8 +1938,8 @@
   }
 
   private struct HashablePrimaryKeyedTableType: Hashable {
-    let type: any PrimaryKeyedTable.Type
-    init(_ type: any PrimaryKeyedTable.Type) {
+    let type: any (PrimaryKeyedTable & _SendableMetatype).Type
+    init(_ type: any (PrimaryKeyedTable & _SendableMetatype).Type) {
       self.type = type
     }
     func hash(into hasher: inout Hasher) {
@@ -1953,11 +1953,11 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func tablesByOrder(
     userDatabase: UserDatabase,
-    tables: [any PrimaryKeyedTable.Type],
-    tablesByName: [String: any PrimaryKeyedTable.Type]
+    tables: [any (PrimaryKeyedTable & _SendableMetatype).Type],
+    tablesByName: [String: any (PrimaryKeyedTable & _SendableMetatype).Type]
   ) throws -> [String: Int] {
     let tableDependencies = try userDatabase.read { db in
-      var dependencies: [HashablePrimaryKeyedTableType: [any PrimaryKeyedTable.Type]] = [:]
+      var dependencies: [HashablePrimaryKeyedTableType: [any (PrimaryKeyedTable & _SendableMetatype).Type]] = [:]
       for table in tables {
         func open<T: StructuredQueriesCore.Table>(_: T.Type) throws -> [String] {
           try PragmaForeignKeyList<T>.select(\.table)

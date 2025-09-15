@@ -81,7 +81,6 @@
             )
           }
         )
-        try await Task.sleep(for: .seconds(1))
         assertInlineSnapshot(of: error.localizedDescription, as: .customDump) {
           """
           "Could not synchronize data with iCloud."
