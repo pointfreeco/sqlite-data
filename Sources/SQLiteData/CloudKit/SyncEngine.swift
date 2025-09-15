@@ -854,7 +854,6 @@
         }
       #endif
 
-      print("⚠️⚠️⚠️", "changes.count", changes.count)
       let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
         var missingTable: CKRecord.ID?
         var missingRecord: CKRecord.ID?
