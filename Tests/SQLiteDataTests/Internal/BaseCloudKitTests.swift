@@ -155,8 +155,8 @@ extension SyncEngine {
   convenience init(
     container: any CloudContainer,
     userDatabase: UserDatabase,
-    tables: [any PrimaryKeyedTable.Type],
-    privateTables: [any PrimaryKeyedTable.Type] = [],
+    tables: [any (PrimaryKeyedTable & _SendableMetatype).Type],
+    privateTables: [any (PrimaryKeyedTable & _SendableMetatype).Type] = [],
     startImmediately: Bool = true
   ) async throws {
     try self.init(
