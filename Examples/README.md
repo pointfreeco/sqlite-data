@@ -1,7 +1,7 @@
 # Examples
 
 This directory holds many case studies and applications to demonstrate solving various problems 
-with [SharingGRDB](http://github.com/pointfreeco/sharing-grdb). Open the 
+with [SharingGRDB](https://github.com/pointfreeco/sharing-grdb). Open the 
 `Examples.xcodeproj` to see all example projects in a single 
 project. To work on each example app individually, select its scheme in Xcode.
 
