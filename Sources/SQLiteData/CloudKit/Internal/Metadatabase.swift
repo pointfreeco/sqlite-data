@@ -73,7 +73,8 @@
           "userModificationTime" INTEGER NOT NULL DEFAULT (\($currentTime())),
           "_isDeleted" INTEGER NOT NULL DEFAULT 0,
 
-          PRIMARY KEY ("recordPrimaryKey", "recordType") 
+          PRIMARY KEY ("recordPrimaryKey", "recordType"),
+          UNIQUE("recordName")
         ) STRICT
         """
       )
