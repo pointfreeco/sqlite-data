@@ -55,9 +55,6 @@ struct Reminder: Hashable, Identifiable {
 }
 extension Updates<Reminder> {
   mutating func toggleStatus() {
-//    self.status = Case(self.status)
-//      .when(Reminder.Status.incomplete, then: Reminder.Status.completed)
-//      .else(Reminder.Status.incomplete)
     self.status = Case(self.status)
       .when(Reminder.Status.incomplete, then: Reminder.Status.completing)
       .else(Reminder.Status.incomplete)
@@ -336,16 +333,16 @@ func appDatabase() throws -> any DatabaseWriter {
     )
     .execute(db)
 
-//    try Reminder.createTemporaryTrigger(
-//      after: .update {
-//        $0.status
-//      } forEachRow: { old, new in
-//        Values($handleReminderStatusUpdate())
-//      } when: { old, new in
-//        new.status.eq(Reminder.Status.completing)
-//      }
-//    )
-//    .execute(db)
+    try Reminder.createTemporaryTrigger(
+      after: .update {
+        $0.status
+      } forEachRow: { old, new in
+        Values($handleReminderStatusUpdate())
+      } when: { old, new in
+        new.status.eq(Reminder.Status.completing)
+      }
+    )
+    .execute(db)
 
     if context != .live {
       try db.seedSampleData()

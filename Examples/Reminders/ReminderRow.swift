@@ -36,7 +36,6 @@ struct ReminderRow: View {
   }
 
   var body: some View {
-    let _ = print("!!!!!", "reminder row", reminder)
     HStack {
       HStack(alignment: .firstTextBaseline) {
         Button(action: completeButtonTapped) {
