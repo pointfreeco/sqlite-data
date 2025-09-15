@@ -629,8 +629,8 @@
         let reminderRecord = try syncEngine.private.database.record(
           for: Reminder.recordID(for: 1)
         )
-        reminderRecord.setValue(Date(
-          timeIntervalSince1970: Double(now + 30)),
+        reminderRecord.setValue(
+          Date(timeIntervalSince1970: Double(now + 30)),
           forKey: "dueDate",
           at: now + 1
         )

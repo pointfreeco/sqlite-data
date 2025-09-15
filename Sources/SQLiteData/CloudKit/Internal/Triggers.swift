@@ -164,8 +164,12 @@
       } onConflict: {
         ($0.recordPrimaryKey, $0.recordType)
       } doUpdate: {
-        $0.zoneName = $1.zoneName
-        $0.ownerName = $1.ownerName
+        $0.zoneName = Case($1.zoneName)
+          .when(defaultZone.zoneID.zoneName, then: $0.zoneName)
+          .else($1.zoneName)
+        $0.ownerName = Case($1.ownerName)
+          .when(defaultZone.zoneID.ownerName, then: $0.ownerName)
+          .else($1.ownerName)
         $0.parentRecordPrimaryKey = $1.parentRecordPrimaryKey
         $0.parentRecordType = $1.parentRecordType
         $0.userModificationTime = $1.userModificationTime
@@ -199,14 +203,14 @@
               ownerName: new.ownerName,
               oldZoneName: new.zoneName,
               oldOwnerName: new.ownerName
-//              lastKnownServerRecord: new.lastKnownServerRecord
-//                ?? rootServerRecord(recordName: new.recordName),
-//              newParentLastKnownServerRecord: parentLastKnownServerRecord(
-//                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-//                parentRecordType: new.parentRecordType
-//              ),
-//              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-//              parentRecordType: new.parentRecordType
+                //              lastKnownServerRecord: new.lastKnownServerRecord
+                //                ?? rootServerRecord(recordName: new.recordName),
+                //              newParentLastKnownServerRecord: parentLastKnownServerRecord(
+                //                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+                //                parentRecordType: new.parentRecordType
+                //              ),
+                //              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+                //              parentRecordType: new.parentRecordType
             )
           )
         } when: { _ in
@@ -227,8 +231,8 @@
           SyncMetadata
             .where {
               $0.recordName.eq(new.recordName)
-              && $0.recordType.eq(new.recordType)
-              && (new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName))
+                && $0.recordType.eq(new.recordType)
+                && (new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName))
             }
             .update {
               $0.lastKnownServerRecord = nil
@@ -307,16 +311,22 @@
         return (
           parentRecordPrimaryKey,
           parentRecordType,
-          #sql("coalesce(\($defaultZoneName()), (\(parentMetadata.select(\.zoneName))), \(zoneName))"),
-          #sql("coalesce(\($defaultOwnerName()), (\(parentMetadata.select(\.ownerName))), \(ownerName))")
+          #sql(
+            "coalesce(\($defaultZoneName()), (\(parentMetadata.select(\.zoneName))), \(zoneName))"
+          ),
+          #sql(
+            "coalesce(\($defaultOwnerName()), (\(parentMetadata.select(\.ownerName))), \(ownerName))"
+          )
         )
       }
-    ?? (
-      nil,
-      nil,
-      #sql("coalesce(\($defaultZoneName()), \(zoneName))"),
-      #sql("coalesce(\($defaultOwnerName()), \(ownerName))")
-    )
+      ?? (
+        nil,
+        nil,
+        #sql("coalesce(\($defaultZoneName()), \(zoneName))"),
+        #sql("coalesce(\($defaultOwnerName()), \(ownerName))")
+        //      #sql("coalesce(\($defaultZoneName()), \(zoneName))"),
+        //      #sql("coalesce(\($defaultOwnerName()), \(ownerName))")
+      )
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
