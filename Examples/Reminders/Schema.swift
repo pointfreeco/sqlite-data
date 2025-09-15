@@ -185,7 +185,6 @@ func appDatabase() throws -> any DatabaseWriter {
       CREATE TABLE "reminders" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "dueDate" TEXT,
-        "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "isFlagged" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "notes" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
         "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
