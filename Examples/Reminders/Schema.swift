@@ -335,9 +335,9 @@ func appDatabase() throws -> any DatabaseWriter {
     try Reminder.createTemporaryTrigger(
       after: .update {
         $0.status
-      } forEachRow: { old, new in
+      } forEachRow: { _, _ in
         Values($handleReminderStatusUpdate())
-      } when: { old, new in
+      } when: { _, new in
         new.status.eq(Reminder.Status.completing)
       }
     )
