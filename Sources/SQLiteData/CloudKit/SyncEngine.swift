@@ -322,7 +322,7 @@
         )
         .execute(db)
       }
-      db.add(function: $datetime)
+      db.add(function: $currentTime)
       db.add(function: $syncEngineIsSynchronizingChanges)
       db.add(function: $didUpdate)
       db.add(function: $didDelete)
@@ -571,7 +571,7 @@
         db.remove(function: $didDelete)
         db.remove(function: $didUpdate)
         db.remove(function: $syncEngineIsSynchronizingChanges)
-        db.remove(function: $datetime)
+        db.remove(function: $currentTime)
       }
       try metadatabase.erase()
       try migrate(metadatabase: metadatabase)
@@ -959,7 +959,7 @@
 
           record.update(
             with: T(queryOutput: row),
-            userModificationDate: metadata.userModificationDate
+            userModificationTime: metadata.userModificationTime
           )
           await refreshLastKnownServerRecord(record)
           sentRecord = recordID
@@ -1538,7 +1538,7 @@
                 lastKnownServerRecord: serverRecord,
                 _lastKnownServerRecordAllFields: serverRecord,
                 share: nil,
-                userModificationDate: serverRecord.userModificationDate
+                userModificationTime: serverRecord.userModificationTime
               )
             } onConflict: {
               ($0.recordPrimaryKey, $0.recordType)
@@ -1555,8 +1555,8 @@
             .where { $0.recordName.eq(serverRecord.recordID.recordName) }
             .fetchOne(db)
         }
-        serverRecord.userModificationDate =
-          metadata?.userModificationDate ?? serverRecord.userModificationDate
+        serverRecord.userModificationTime =
+          metadata?.userModificationTime ?? serverRecord.userModificationTime
 
         func open<T: PrimaryKeyedTable & _SendableMetatype>(_: T.Type) async throws {
           let columnNames: [String]
@@ -2039,7 +2039,7 @@
       self.lastKnownServerRecord = lastKnownServerRecord
       self._lastKnownServerRecordAllFields = lastKnownServerRecord
       if let lastKnownServerRecord {
-        self.userModificationDate = lastKnownServerRecord.userModificationDate
+        self.userModificationTime = lastKnownServerRecord.userModificationTime
       }
     }
   }

@@ -28,22 +28,22 @@
       let keys = encryptedValues.allKeys()
         .filter { key in
           CKRecord.printTimestamps
-            || !key.hasPrefix(CKRecord.userModificationDateKey)
+            || !key.hasPrefix(CKRecord.userModificationTimeKey)
         }
         .sorted { lhs, rhs in
-          guard lhs != CKRecord.userModificationDateKey
+          guard lhs != CKRecord.userModificationTimeKey
           else { return false }
-          guard rhs != CKRecord.userModificationDateKey
+          guard rhs != CKRecord.userModificationTimeKey
           else { return true }
-          let lhsHasPrefix = lhs.hasPrefix(CKRecord.userModificationDateKey)
+          let lhsHasPrefix = lhs.hasPrefix(CKRecord.userModificationTimeKey)
           let baseLHS =
             lhsHasPrefix
-            ? String(lhs.dropFirst(CKRecord.userModificationDateKey.count + 1))
+            ? String(lhs.dropFirst(CKRecord.userModificationTimeKey.count + 1))
             : lhs
-          let rhsHasPrefix = rhs.hasPrefix(CKRecord.userModificationDateKey)
+          let rhsHasPrefix = rhs.hasPrefix(CKRecord.userModificationTimeKey)
           let baseRHS =
             rhsHasPrefix
-            ? String(rhs.dropFirst(CKRecord.userModificationDateKey.count + 1))
+            ? String(rhs.dropFirst(CKRecord.userModificationTimeKey.count + 1))
             : rhs
           return (baseLHS, lhsHasPrefix ? 1 : 0) < (baseRHS, rhsHasPrefix ? 1 : 0)
         }
@@ -60,11 +60,10 @@
         ]
           + keys
           .map {
-            $0.hasPrefix(CKRecord.userModificationDateKey)
+            $0.hasPrefix(CKRecord.userModificationTimeKey)
               ? (
-                String($0.dropFirst(CKRecord.userModificationDateKey.count + 1)) + "🗓️",
-                (self.encryptedValues[$0] as? Date).map(\.timeIntervalSince1970).map(Int.init)
-                  as Any
+                String($0.dropFirst(CKRecord.userModificationTimeKey.count + 1)) + "🗓️",
+                (self.encryptedValues[$0] as? Int64) as Any
               )
               : (
                 $0,

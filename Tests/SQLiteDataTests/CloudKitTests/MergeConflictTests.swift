@@ -5,6 +5,7 @@
   import InlineSnapshotTesting
   import OrderedCollections
   import SQLiteData
+  import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
 
@@ -64,14 +65,13 @@
         }
 
         let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
-        let userModificationDate = now.addingTimeInterval(60)
-        record.setValue("Buy milk", forKey: "title", at: userModificationDate)
+        record.setValue("Buy milk", forKey: "title", at: 60)
         let modificationCallback = try {
           try syncEngine.modifyRecords(scope: .private, saving: [record])
         }()
 
         try await withDependencies {
-          $0.datetime.now = now.addingTimeInterval(30)
+          $0.currentTime.now += 30
         } operation: {
           try await userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
@@ -219,14 +219,13 @@
         }
 
         let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
-        let userModificationDate = now.addingTimeInterval(30)
-        record.setValue("Buy milk", forKey: "title", at: userModificationDate)
+        record.setValue("Buy milk", forKey: "title", at: 30)
         let modificationCallback = try {
           try syncEngine.modifyRecords(scope: .private, saving: [record])
         }()
 
         try await withDependencies {
-          $0.datetime.now = now.addingTimeInterval(60)
+          $0.currentTime.now += 60
         } operation: {
           try await userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
@@ -333,14 +332,13 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
-        let userModificationDate = now.addingTimeInterval(30)
-        record.setValue("Buy milk", forKey: "title", at: userModificationDate)
+        record.setValue("Buy milk", forKey: "title", at: 30)
         let modificationCallback = try {
           try syncEngine.modifyRecords(scope: .private, saving: [record])
         }()
 
         try await withDependencies {
-          $0.datetime.now = now.addingTimeInterval(60)
+          $0.currentTime.now += 60
         } operation: {
           try await userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
@@ -402,30 +400,40 @@
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
-        let userModificationDate = now.addingTimeInterval(60)
-        record.setValue("Buy milk", forKey: "title", at: userModificationDate)
-        let modificationCallback = try {
-          try syncEngine.modifyRecords(scope: .private, saving: [record])
-        }()
-
         try await withDependencies {
-          $0.datetime.now = now.addingTimeInterval(30)
+          $0.currentTime.now += 30
         } operation: {
           try await userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
           }
-        }
-        await modificationCallback.notify()
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+          try await withDependencies {
+            $0.currentTime.now += 30
+          } operation: {
+            let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
+            record.setValue("Buy milk", forKey: "title", at: now)
+            let modificationCallback = try {
+              try syncEngine.modifyRecords(scope: .private, saving: [record])
+            }()
 
-        try await userDatabase.userWrite { db in
-          try #expect(
-            Reminder.find(1).fetchOne(db)
-              == Reminder(id: 1, title: "Get milk", remindersListID: 1)
-          )
+            await modificationCallback.notify()
+            try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+          }
         }
 
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          ┌───────────────────────┐
+          │ Reminder(             │
+          │   id: 1,              │
+          │   dueDate: nil,       │
+          │   isCompleted: false, │
+          │   priority: nil,      │
+          │   title: "Get milk",  │
+          │   remindersListID: 1  │
+          │ )                     │
+          └───────────────────────┘
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -443,7 +451,7 @@
                   isCompleted🗓️: 0,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
-                  title: "Buy milk",
+                  title: "Get milk",
                   title🗓️: 60,
                   🗓️: 60
                 ),
@@ -480,14 +488,13 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
-        let userModificationDate = now.addingTimeInterval(30)
-        record.setValue("Buy milk", forKey: "title", at: userModificationDate)
+        record.setValue("Buy milk", forKey: "title", at: 30)
         let modificationCallback = try {
           try syncEngine.modifyRecords(scope: .private, saving: [record])
         }()
 
         try await withDependencies {
-          $0.datetime.now = now.addingTimeInterval(60)
+          $0.currentTime.now += 60
         } operation: {
           try await userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
@@ -550,14 +557,13 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
-        let userModificationDate = now.addingTimeInterval(30)
-        record.setValue("Buy milk", forKey: "title", at: userModificationDate)
+        record.setValue("Buy milk", forKey: "title", at: 30)
         let modificationCallback = try {
           try syncEngine.modifyRecords(scope: .private, saving: [record])
         }()
 
         try await withDependencies {
-          $0.datetime.now = now.addingTimeInterval(60)
+          $0.currentTime.now += 60
         } operation: {
           try await userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
@@ -623,10 +629,10 @@
         let reminderRecord = try syncEngine.private.database.record(
           for: Reminder.recordID(for: 1)
         )
-        reminderRecord.setValue(
-          now.addingTimeInterval(30),
+        reminderRecord.setValue(Date(
+          timeIntervalSince1970: Double(now + 30)),
           forKey: "dueDate",
-          at: now.addingTimeInterval(1)
+          at: now + 1
         )
         let modificationsFinished = try syncEngine.modifyRecords(
           scope: .private,
@@ -634,7 +640,7 @@
         )
 
         try withDependencies {
-          $0.datetime.now.addTimeInterval(2)
+          $0.currentTime.now += 2
         } operation: {
           try userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.priority = 3 }.execute(db)

@@ -64,7 +64,7 @@
         }
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += 1
         } operation: {
           try await userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.isCompleted.toggle() }.execute(db)
@@ -120,11 +120,11 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += 1
         } operation: {
           let reminderRecord = try syncEngine.private.database
             .record(for: Reminder.recordID(for: 1))
-          reminderRecord.setValue("2", forKey: "remindersListID", at: now)
+          reminderRecord.setValue(2, forKey: "remindersListID", at: now)
           reminderRecord.parent = CKRecord.Reference(
             recordID: RemindersList.recordID(for: 2),
             action: .none
@@ -133,8 +133,12 @@
           try await syncEngine.modifyRecords(scope: .private, saving: [reminderRecord]).notify()
         }
 
-        try await userDatabase.userWrite { db in
-          try Reminder.find(1).update { $0.isCompleted.toggle() }.execute(db)
+        try await withDependencies {
+          $0.currentTime.now += 2
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Reminder.find(1).update { $0.isCompleted.toggle() }.execute(db)
+          }
         }
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
@@ -177,8 +181,8 @@
                   parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)),
                   share: nil,
                   id: 1,
-                  isCompleted: 0,
-                  remindersListID: "2",
+                  isCompleted: 1,
+                  remindersListID: 2,
                   title: "Get milk"
                 ),
                 [1]: CKRecord(
@@ -220,7 +224,7 @@
         try await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]).notify()
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += 1
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)
@@ -302,7 +306,7 @@
         await remindersListModification.notify()
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += 1
         } operation: {
           try await userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.title = "Buy milk" }.execute(db)
@@ -422,7 +426,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += 1
         } operation: {
           try await userDatabase.userWrite { db in
             try Tag.find("weekend").update { $0.title = "optional" }.execute(db)
@@ -541,7 +545,7 @@
           │   _isDeleted: false,                                       │
           │   hasLastKnownServerRecord: true,                          │
           │   isShared: false,                                         │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)     │
+          │   userModificationTime: 0                                  │
           │ )                                                          │
           └────────────────────────────────────────────────────────────┘
           """
@@ -621,7 +625,7 @@
           │   _isDeleted: false,                                       │
           │   hasLastKnownServerRecord: true,                          │
           │   isShared: false,                                         │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)     │
+          │   userModificationTime: 0                                  │
           │ )                                                          │
           └────────────────────────────────────────────────────────────┘
           """
@@ -688,7 +692,7 @@
           │   _isDeleted: false,                                           │
           │   hasLastKnownServerRecord: true,                              │
           │   isShared: false,                                             │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)         │
+          │   userModificationTime: 0                                      │
           │ )                                                              │
           └────────────────────────────────────────────────────────────────┘
           """

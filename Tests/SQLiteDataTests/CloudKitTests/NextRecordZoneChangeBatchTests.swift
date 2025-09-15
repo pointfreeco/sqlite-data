@@ -40,7 +40,7 @@
             SyncMetadata(
               recordPrimaryKey: "1",
               recordType: UnrecognizedTable.tableName,
-              userModificationDate: .distantPast
+              userModificationTime: 0
             )
           }
           .execute(db)
@@ -70,7 +70,7 @@
             SyncMetadata(
               recordPrimaryKey: "1",
               recordType: RemindersList.tableName,
-              userModificationDate: .distantPast
+              userModificationTime: 0
             )
           }
           .execute(db)
