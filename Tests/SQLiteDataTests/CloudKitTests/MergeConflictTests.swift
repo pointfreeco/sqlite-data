@@ -451,7 +451,7 @@
                   isCompleted🗓️: 0,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
-                  title: "Buy milk",
+                  title: "Get milk",
                   title🗓️: 60,
                   🗓️: 60
                 ),
