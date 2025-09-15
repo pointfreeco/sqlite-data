@@ -1203,9 +1203,9 @@
       for (recordType, recordIDs) in deletedRecordIDsByRecordType {
         let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
         if let table = tablesByName[recordType] {
-          func open<T: PrimaryKeyedTable>(_: T.Type) {
-            withErrorReporting(.sqliteDataCloudKitFailure) {
-              try userDatabase.write { db in
+          func open<T: PrimaryKeyedTable & _SendableMetatype>(_: T.Type) async {
+            await withErrorReporting(.sqliteDataCloudKitFailure) {
+              try await userDatabase.write { db in
                 try T
                   .where {
                     $0.primaryKey.in(
@@ -1222,7 +1222,7 @@
               }
             }
           }
-          open(table)
+          await open(table)
         } else if recordType == CKRecord.SystemType.share {
           for recordID in recordIDs {
             await withErrorReporting(.sqliteDataCloudKitFailure) {
