@@ -1259,24 +1259,20 @@
         case share(CKShare)
         case reference(CKShare.Reference)
       }
-      let shares = LockIsolated<[ShareOrReference]>([])
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await userDatabase.write { db in
-          for record in modifications {
-            if let share = record as? CKShare {
-              shares.withValue { $0.append(.share(share)) }
-            } else {
-              upsertFromServerRecord(record, db: db)
-              if let shareReference = record.share {
-                shares.withValue { $0.append(.reference(shareReference)) }
-              }
-            }
+      var shares: [ShareOrReference] = []
+      for record in modifications {
+        if let share = record as? CKShare {
+          shares.append(.share(share))
+        } else {
+          await upsertFromServerRecord(record)
+          if let shareReference = record.share {
+            shares.append(.reference(shareReference))
           }
         }
       }
 
       await withTaskGroup(of: Void.self) { group in
-        for share in shares.withValue(\.self) {
+        for share in shares {
           group.addTask {
             switch share {
             case .share(let share):
@@ -1499,96 +1495,93 @@
       force: Bool = false
     ) async {
       await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await userDatabase.write { db in
-          upsertFromServerRecord(serverRecord, force: force, db: db)
-        }
-      }
-    }
-
-    private func upsertFromServerRecord(
-      _ serverRecord: CKRecord,
-      force: Bool = false,
-      db: Database
-    ) {
-      withErrorReporting(.sqliteDataCloudKitFailure) {
         guard let table = tablesByName[serverRecord.recordType]
         else {
           guard let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey
           else { return }
-          try SyncMetadata.insert {
-            SyncMetadata(
-              recordPrimaryKey: recordPrimaryKey,
-              recordType: serverRecord.recordType,
-              parentRecordPrimaryKey: serverRecord.parent?.recordID.recordPrimaryKey,
-              parentRecordType: serverRecord.parent?.recordID.tableName,
-              lastKnownServerRecord: serverRecord,
-              _lastKnownServerRecordAllFields: serverRecord,
-              share: nil,
-              userModificationDate: serverRecord.userModificationDate
-            )
-          } onConflict: {
-            ($0.recordPrimaryKey, $0.recordType)
-          } doUpdate: {
-            $0.setLastKnownServerRecord(serverRecord)
+          try await userDatabase.write { db in
+            try SyncMetadata.insert {
+              SyncMetadata(
+                recordPrimaryKey: recordPrimaryKey,
+                recordType: serverRecord.recordType,
+                parentRecordPrimaryKey: serverRecord.parent?.recordID.recordPrimaryKey,
+                parentRecordType: serverRecord.parent?.recordID.tableName,
+                lastKnownServerRecord: serverRecord,
+                _lastKnownServerRecordAllFields: serverRecord,
+                share: nil,
+                userModificationDate: serverRecord.userModificationDate
+              )
+            } onConflict: {
+              ($0.recordPrimaryKey, $0.recordType)
+            } doUpdate: {
+              $0.setLastKnownServerRecord(serverRecord)
+            }
+            .execute(db)
           }
-          .execute(db)
           return
         }
 
-        let metadata = try SyncMetadata
-          .where { $0.recordName.eq(serverRecord.recordID.recordName) }
-          .fetchOne(db)
+        let metadata = try await metadatabase.read { db in
+          try SyncMetadata
+            .where { $0.recordName.eq(serverRecord.recordID.recordName) }
+            .fetchOne(db)
+        }
         serverRecord.userModificationDate =
-        metadata?.userModificationDate ?? serverRecord.userModificationDate
+          metadata?.userModificationDate ?? serverRecord.userModificationDate
 
-        func open<T: PrimaryKeyedTable>(_: T.Type) throws {
+        func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
           let columnNames: [String]
           if !force, let metadata, let allFields = metadata._lastKnownServerRecordAllFields {
-            var _columnNames = T.TableColumns.writableColumns.map(\.name)
-            let row = try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
-            if let row {
-              serverRecord.update(
-                with: allFields,
-                row: T(queryOutput: row),
-                columnNames: &_columnNames,
-                parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
-                ? foreignKeysByTableName[T.tableName]?.first
-                : nil
-              )
-            } else {
-              reportIssue(
+            columnNames = try await userDatabase.read { db in
+              var columnNames = T.TableColumns.writableColumns.map(\.name)
+              let row = try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
+              guard let row
+              else {
+                reportIssue(
                   """
                   Local database record could not be found for '\(serverRecord.recordID.recordName)'.
                   """
+                )
+                return columnNames
+              }
+              serverRecord.update(
+                with: allFields,
+                row: T(queryOutput: row),
+                columnNames: &columnNames,
+                parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
+                  ? foreignKeysByTableName[T.tableName]?.first
+                  : nil
               )
+              return columnNames
             }
-            columnNames = _columnNames
           } else {
             columnNames = T.TableColumns.writableColumns.map(\.name)
           }
 
-          do {
-            try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
-            try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
-            try SyncMetadata
-              .where { $0.recordName.eq(serverRecord.recordID.recordName) }
-              .update { $0.setLastKnownServerRecord(serverRecord) }
+          try await userDatabase.write { db in
+            do {
+              try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
+              try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
+              try SyncMetadata
+                .where { $0.recordName.eq(serverRecord.recordID.recordName) }
+                .update { $0.setLastKnownServerRecord(serverRecord) }
+                .execute(db)
+            } catch {
+              guard
+                let error = error as? DatabaseError,
+                error.resultCode == .SQLITE_CONSTRAINT,
+                error.extendedResultCode == .SQLITE_CONSTRAINT_FOREIGNKEY
+              else {
+                throw error
+              }
+              try UnsyncedRecordID.insert(or: .ignore) {
+                UnsyncedRecordID(recordID: serverRecord.recordID)
+              }
               .execute(db)
-          } catch {
-            guard
-              let error = error as? DatabaseError,
-              error.resultCode == .SQLITE_CONSTRAINT,
-              error.extendedResultCode == .SQLITE_CONSTRAINT_FOREIGNKEY
-            else {
-              throw error
             }
-            try UnsyncedRecordID.insert(or: .ignore) {
-              UnsyncedRecordID(recordID: serverRecord.recordID)
-            }
-            .execute(db)
           }
         }
-        try open(table)
+        try await open(table)
       }
     }
 
