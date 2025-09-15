@@ -82,9 +82,9 @@ func database(
     if attachMetadatabase {
       try db.attachMetadatabase(containerIdentifier: containerIdentifier)
     }
-    db.trace {
-      print($0.expandedDescription)
-    }
+//    db.trace {
+//      print($0.expandedDescription)
+//    }
   }
   let url = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite")
   let database = try DatabasePool(path: url.path(), configuration: configuration)

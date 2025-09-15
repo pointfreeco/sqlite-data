@@ -273,43 +273,56 @@
           try await Task.sleep(for: .seconds(1))
           assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
             """
-            ┌─────────────────────────────────────────┐
-            │ SyncMetadata(                           │
-            │   recordPrimaryKey: "1",                │
-            │   recordType: "remindersLists",         │
-            │   zoneName: "zone",                     │
-            │   ownerName: "__defaultOwner__",        │
-            │   recordName: "1:remindersLists",       │
-            │   parentRecordPrimaryKey: nil,          │
-            │   parentRecordType: nil,                │
-            │   parentRecordName: nil,                │
-            │   lastKnownServerRecord: nil,           │
-            │   _lastKnownServerRecordAllFields: nil, │
-            │   share: nil,                           │
-            │   _isDeleted: false,                    │
-            │   hasLastKnownServerRecord: false,      │
-            │   isShared: false,                      │
-            │   userModificationTime: 0               │
-            │ )                                       │
-            ├─────────────────────────────────────────┤
-            │ SyncMetadata(                           │
-            │   recordPrimaryKey: "1",                │
-            │   recordType: "reminders",              │
-            │   zoneName: "zone",                     │
-            │   ownerName: "__defaultOwner__",        │
-            │   recordName: "1:reminders",            │
-            │   parentRecordPrimaryKey: "1",          │
-            │   parentRecordType: "remindersLists",   │
-            │   parentRecordName: "1:remindersLists", │
-            │   lastKnownServerRecord: nil,           │
-            │   _lastKnownServerRecordAllFields: nil, │
-            │   share: nil,                           │
-            │   _isDeleted: false,                    │
-            │   hasLastKnownServerRecord: false,      │
-            │   isShared: false,                      │
-            │   userModificationTime: 60              │
-            │ )                                       │
-            └─────────────────────────────────────────┘
+            ┌───────────────────────────────────────────────────────────────────────────┐
+            │ SyncMetadata(                                                             │
+            │   recordPrimaryKey: "1",                                                  │
+            │   recordType: "remindersLists",                                           │
+            │   zoneName: "external.zone",                                              │
+            │   ownerName: "external.owner",                                            │
+            │   recordName: "1:remindersLists",                                         │
+            │   parentRecordPrimaryKey: nil,                                            │
+            │   parentRecordType: nil,                                                  │
+            │   parentRecordName: nil,                                                  │
+            │   lastKnownServerRecord: CKRecord(                                        │
+            │     recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner), │
+            │     recordType: "remindersLists",                                         │
+            │     parent: nil,                                                          │
+            │     share: nil                                                            │
+            │   ),                                                                      │
+            │   _lastKnownServerRecordAllFields: CKRecord(                              │
+            │     recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner), │
+            │     recordType: "remindersLists",                                         │
+            │     parent: nil,                                                          │
+            │     share: nil,                                                           │
+            │     id: 1,                                                                │
+            │     isCompleted: 0,                                                       │
+            │     title: "Personal"                                                     │
+            │   ),                                                                      │
+            │   share: nil,                                                             │
+            │   _isDeleted: false,                                                      │
+            │   hasLastKnownServerRecord: true,                                         │
+            │   isShared: false,                                                        │
+            │   userModificationTime: 0                                                 │
+            │ )                                                                         │
+            ├───────────────────────────────────────────────────────────────────────────┤
+            │ SyncMetadata(                                                             │
+            │   recordPrimaryKey: "1",                                                  │
+            │   recordType: "reminders",                                                │
+            │   zoneName: "external.zone",                                              │
+            │   ownerName: "external.owner",                                            │
+            │   recordName: "1:reminders",                                              │
+            │   parentRecordPrimaryKey: "1",                                            │
+            │   parentRecordType: "remindersLists",                                     │
+            │   parentRecordName: "1:remindersLists",                                   │
+            │   lastKnownServerRecord: nil,                                             │
+            │   _lastKnownServerRecordAllFields: nil,                                   │
+            │   share: nil,                                                             │
+            │   _isDeleted: false,                                                      │
+            │   hasLastKnownServerRecord: false,                                        │
+            │   isShared: false,                                                        │
+            │   userModificationTime: 60                                                │
+            │ )                                                                         │
+            └───────────────────────────────────────────────────────────────────────────┘
             """
           }
 
@@ -328,6 +341,16 @@
                 databaseScope: .shared,
                 storage: [
                   [0]: CKRecord(
+                    recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
+                    recordType: "reminders",
+                    parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                    share: nil,
+                    id: 1,
+                    isCompleted: 0,
+                    remindersListID: 1,
+                    title: "Get milk"
+                  ),
+                  [1]: CKRecord(
                     recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                     recordType: "remindersLists",
                     parent: nil,
@@ -383,17 +406,7 @@
               ),
               sharedCloudDatabase: MockCloudDatabase(
                 databaseScope: .shared,
-                storage: [
-                  [0]: CKRecord(
-                    recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-                    recordType: "remindersLists",
-                    parent: nil,
-                    share: nil,
-                    id: 1,
-                    isCompleted: 0,
-                    title: "Personal"
-                  )
-                ]
+                storage: []
               )
             )
             """

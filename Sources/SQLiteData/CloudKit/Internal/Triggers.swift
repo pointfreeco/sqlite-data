@@ -220,8 +220,20 @@
       createTemporaryTrigger(
         "after_update_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
-        after: .update { old, new in
+        after: .update {
+          old,
+          new in
           validate(recordName: new.recordName)
+          SyncMetadata
+            .where {
+              $0.recordName.eq(new.recordName)
+              && $0.recordType.eq(new.recordType)
+              && (new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName))
+            }
+            .update {
+              $0.lastKnownServerRecord = nil
+              $0._lastKnownServerRecordAllFields = nil
+            }
           Values(
             syncEngine.$didUpdate(
               recordName: new.recordName,
@@ -229,14 +241,6 @@
               ownerName: new.ownerName,
               oldZoneName: old.zoneName,
               oldOwnerName: old.ownerName
-//              lastKnownServerRecord: new.lastKnownServerRecord
-//                ?? rootServerRecord(recordName: new.recordName),
-//              newParentLastKnownServerRecord: parentLastKnownServerRecord(
-//                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-//                parentRecordType: new.parentRecordType
-//              ),
-//              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-//              parentRecordType: new.parentRecordType
             )
           )
         } when: { old, new in
@@ -268,7 +272,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private func parentFields<Base, Name>(
+  private func parentFields<Base, Name>(
     alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
     defaultZone: CKRecordZone
@@ -278,7 +282,15 @@ private func parentFields<Base, Name>(
     zoneName: SQLQueryExpression<String>,
     ownerName: SQLQueryExpression<String>
   ) {
-
+    let zoneName = #sql(
+      "\(quote: defaultZone.zoneID.zoneName, delimiter: .text)",
+      as: String.self
+    )
+    let ownerName = #sql(
+      "\(quote: defaultZone.zoneID.ownerName, delimiter: .text)",
+      as: String.self
+    )
+    return
       parentForeignKey
       .map { foreignKey in
         let parentRecordPrimaryKey = #sql(
@@ -287,25 +299,24 @@ private func parentFields<Base, Name>(
         )
         let parentRecordType = #sql("\(bind: foreignKey.table)", as: String.self)
         let parentMetadata =
-        SyncMetadata
+          SyncMetadata
           .where {
             $0.recordPrimaryKey.eq(parentRecordPrimaryKey)
-            && $0.recordType.eq(parentRecordType)
-          }
-        let metadata =
-        SyncMetadata
-          .where {
-            $0.recordPrimaryKey.eq(#sql("\(alias.primaryKey)"))
-            && $0.recordType.eq(#sql("\(type(of: alias).QueryValue.self)"))
+              && $0.recordType.eq(parentRecordType)
           }
         return (
           parentRecordPrimaryKey,
           parentRecordType,
-          #sql("coalesce((\(parentMetadata.select(\.zoneName))), '')"),
-          #sql("coalesce((\(parentMetadata.select(\.ownerName))), '')")
+          #sql("coalesce(\($defaultZoneName()), (\(parentMetadata.select(\.zoneName))), \(zoneName))"),
+          #sql("coalesce(\($defaultOwnerName()), (\(parentMetadata.select(\.ownerName))), \(ownerName))")
         )
       }
-      ?? (nil, nil, "", "")
+    ?? (
+      nil,
+      nil,
+      #sql("coalesce(\($defaultZoneName()), \(zoneName))"),
+      #sql("coalesce(\($defaultOwnerName()), \(ownerName))")
+    )
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -322,7 +333,7 @@ private func parentFields<Base, Name>(
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private func checkWritePermissions<Base: PrimaryKeyedTable, Name>(
+  private func checkWritePermissions<Base, Name>(
     alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
     defaultZone: CKRecordZone

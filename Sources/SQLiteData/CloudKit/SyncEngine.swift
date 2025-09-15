@@ -330,6 +330,8 @@
       db.add(function: $didUpdate)
       db.add(function: $didDelete)
       db.add(function: $hasPermission)
+      db.add(function: $defaultZoneName)
+      db.add(function: $defaultOwnerName)
 
       for trigger in SyncMetadata.callbackTriggers(for: self) {
         try trigger.execute(db)
@@ -987,7 +989,7 @@
             record.parent = CKRecord.Reference(
               recordID: CKRecord.ID(
                 recordName: parentRecordName,
-                zoneID: record.recordID.zoneID
+                zoneID: recordID.zoneID
               ),
               action: .none
             )
@@ -1098,6 +1100,8 @@
       }
 
       await withErrorReporting(.sqliteDataCloudKitFailure) {
+        guard !deletedRecordIDs.isEmpty
+        else { return }
         try await userDatabase.write { db in
           try SyncMetadata
             .findAll(deletedRecordIDs)
@@ -1650,7 +1654,9 @@
           }
 
           do {
-            try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
+            try $_defaultZoneID.withValue(serverRecord.recordID.zoneID) {
+              try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
+            }
             try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
             try SyncMetadata
               .find(serverRecord.recordID)
@@ -2141,4 +2147,13 @@
   }
 
   @TaskLocal package var _isSynchronizingChanges = false
+@TaskLocal package var _defaultZoneID: CKRecordZone.ID?
+@DatabaseFunction
+func defaultZoneName() -> String? {
+  _defaultZoneID?.zoneName
+}
+@DatabaseFunction
+func defaultOwnerName() -> String? {
+  _defaultZoneID?.ownerName
+}
 #endif

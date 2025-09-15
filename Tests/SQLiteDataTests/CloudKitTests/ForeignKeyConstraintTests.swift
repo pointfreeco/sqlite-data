@@ -509,7 +509,7 @@
         ) {
           """
           ┌────────────────────┬────────────────────┐
-          │ "1:reminders"      │ "2:remindersLists" │
+          │ "1:reminders"      │ "1:remindersLists" │
           │ "1:remindersLists" │ nil                │
           │ "2:remindersLists" │ nil                │
           └────────────────────┴────────────────────┘
@@ -524,7 +524,7 @@
           │   isCompleted: false, │
           │   priority: nil,      │
           │   title: "Get milk",  │
-          │   remindersListID: 2  │
+          │   remindersListID: 1  │
           │ )                     │
           └───────────────────────┘
           """

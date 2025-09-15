@@ -450,14 +450,6 @@
                   recordType: "cloudkit.share",
                   parent: nil,
                   share: nil
-                ),
-                [1]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
-                  id: 1,
-                  title: "Personal"
                 )
               ]
             )

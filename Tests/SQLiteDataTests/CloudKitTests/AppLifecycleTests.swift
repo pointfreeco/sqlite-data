@@ -109,6 +109,16 @@
                   share: nil
                 ),
                 [1]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                  share: nil,
+                  id: 1,
+                  isCompleted: 0,
+                  remindersListID: 1,
+                  title: "Get milk"
+                ),
+                [2]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                   recordType: "remindersLists",
                   parent: nil,
