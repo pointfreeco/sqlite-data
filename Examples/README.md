@@ -1,7 +1,9 @@
 # Examples
 
-This directory holds many case studies and applications to demonstrate solving various problems
-with [SQLiteData](http://github.com/pointfreeco/sqlite-data).
+This directory holds many case studies and applications to demonstrate solving various problems 
+with [SQLiteData](https://github.com/pointfreeco/sqlite-data). Open the 
+`Examples.xcodeproj` to see all example projects in a single 
+project. To work on each example app individually, select its scheme in Xcode.
 
 * **Case Studies**
   <br> Demonstrates how to solve some common application problems in an isolated environment, in

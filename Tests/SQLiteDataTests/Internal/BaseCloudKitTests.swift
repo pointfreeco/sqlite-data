@@ -9,7 +9,7 @@ import os
 @Suite(
   .snapshots(record: .missing),
   .dependencies {
-    $0.datetime.now = Date(timeIntervalSince1970: 0)
+    $0.currentTime.now = 0
     $0.dataManager = InMemoryDataManager()
   }
 )
@@ -18,7 +18,7 @@ class BaseCloudKitTests: @unchecked Sendable {
   private let _syncEngine: any Sendable
   private let _container: any Sendable
 
-  @Dependency(\.datetime.now) var now
+  @Dependency(\.currentTime.now) var now
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   var container: MockCloudContainer {

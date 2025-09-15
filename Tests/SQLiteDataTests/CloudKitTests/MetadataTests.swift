@@ -25,7 +25,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try withDependencies {
-          $0.datetime.now.addTimeInterval(60)
+          $0.currentTime.now += 60
         } operation: {
           try userDatabase.userWrite { db in
             try Reminder.find(1)
@@ -234,7 +234,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
@@ -264,7 +264,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
@@ -292,7 +292,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
@@ -321,7 +321,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
@@ -351,7 +351,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
@@ -379,7 +379,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
@@ -408,7 +408,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
@@ -438,7 +438,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
@@ -465,7 +465,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
@@ -492,7 +492,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           └─────────────────────────────────────────────────────────────────────────────────────────┘
           """
@@ -542,7 +542,7 @@
           │                     │   _isDeleted: false,                                               │
           │                     │   hasLastKnownServerRecord: true,                                  │
           │                     │   isShared: false,                                                 │
-          │                     │   userModificationDate: Date(1970-01-01T00:00:00.000Z)             │
+          │                     │   userModificationTime: 0                                          │
           │                     │ )                                                                  │
           ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
           │ RemindersList(      │ SyncMetadata(                                                      │
@@ -570,7 +570,7 @@
           │                     │   _isDeleted: false,                                               │
           │                     │   hasLastKnownServerRecord: true,                                  │
           │                     │   isShared: false,                                                 │
-          │                     │   userModificationDate: Date(1970-01-01T00:00:00.000Z)             │
+          │                     │   userModificationTime: 0                                          │
           │                     │ )                                                                  │
           └─────────────────────┴────────────────────────────────────────────────────────────────────┘
           """

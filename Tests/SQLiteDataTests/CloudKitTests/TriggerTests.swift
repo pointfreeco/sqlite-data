@@ -458,7 +458,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'childWithOnDeleteSetDefaults', "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [28]: """
@@ -481,7 +481,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'childWithOnDeleteSetNulls', "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [29]: """
@@ -504,7 +504,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'modelAs', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [30]: """
@@ -527,7 +527,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'modelBs', "new"."modelAID", 'modelAs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [31]: """
@@ -550,7 +550,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'modelCs', "new"."modelBID", 'modelBs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [32]: """
@@ -573,7 +573,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'parents', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [33]: """
@@ -596,7 +596,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'reminderTags', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [34]: """
@@ -619,7 +619,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'reminders', "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [35]: """
@@ -642,7 +642,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'remindersListAssets', "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [36]: """
@@ -665,7 +665,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'remindersListPrivates', "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [37]: """
@@ -688,7 +688,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'remindersLists', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [38]: """
@@ -711,7 +711,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."title", 'tags', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [39]: """
@@ -986,7 +986,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'childWithOnDeleteSetDefaults', "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [52]: """
@@ -1009,7 +1009,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'childWithOnDeleteSetNulls', "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [53]: """
@@ -1032,7 +1032,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'modelAs', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [54]: """
@@ -1055,7 +1055,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'modelBs', "new"."modelAID", 'modelAs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [55]: """
@@ -1078,7 +1078,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'modelCs', "new"."modelBID", 'modelBs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [56]: """
@@ -1101,7 +1101,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'parents', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [57]: """
@@ -1124,7 +1124,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'reminderTags', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [58]: """
@@ -1147,7 +1147,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'reminders', "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [59]: """
@@ -1170,7 +1170,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'remindersListAssets', "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [60]: """
@@ -1193,7 +1193,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'remindersListPrivates', "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [61]: """
@@ -1216,7 +1216,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'remindersLists', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [62]: """
@@ -1239,7 +1239,7 @@
                 ("recordPrimaryKey", "recordType", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."title", 'tags', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationDate" = "excluded"."userModificationDate";
+                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """
             ]

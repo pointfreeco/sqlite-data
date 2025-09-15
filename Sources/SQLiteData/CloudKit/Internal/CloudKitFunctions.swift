@@ -2,9 +2,9 @@
   import CloudKit
   import Foundation
 
-  @DatabaseFunction("sqlitedata_icloud_datetime")
-  func datetime() -> Date {
-    @Dependency(\.datetime.now) var now
+  @DatabaseFunction("sqlitedata_icloud_currentTime")
+  func currentTime() -> Int64 {
+    @Dependency(\.currentTime.now) var now
     return now
   }
 
