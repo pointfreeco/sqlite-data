@@ -33,39 +33,39 @@
 
           assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
             """
-            ┌────────────────────────────────────────────────────────┐
-            │ SyncMetadata(                                          │
-            │   recordPrimaryKey: "1",                               │
-            │   recordType: "remindersLists",                        │
-            │   recordName: "1:remindersLists",                      │
-            │   parentRecordPrimaryKey: nil,                         │
-            │   parentRecordType: nil,                               │
-            │   parentRecordName: nil,                               │
-            │   lastKnownServerRecord: nil,                          │
-            │   _lastKnownServerRecordAllFields: nil,                │
-            │   share: nil,                                          │
-            │   _isDeleted: false,                                   │
-            │   hasLastKnownServerRecord: false,                     │
-            │   isShared: false,                                     │
-            │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
-            │ )                                                      │
-            ├────────────────────────────────────────────────────────┤
-            │ SyncMetadata(                                          │
-            │   recordPrimaryKey: "1",                               │
-            │   recordType: "reminders",                             │
-            │   recordName: "1:reminders",                           │
-            │   parentRecordPrimaryKey: "1",                         │
-            │   parentRecordType: "remindersLists",                  │
-            │   parentRecordName: "1:remindersLists",                │
-            │   lastKnownServerRecord: nil,                          │
-            │   _lastKnownServerRecordAllFields: nil,                │
-            │   share: nil,                                          │
-            │   _isDeleted: false,                                   │
-            │   hasLastKnownServerRecord: false,                     │
-            │   isShared: false,                                     │
-            │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
-            │ )                                                      │
-            └────────────────────────────────────────────────────────┘
+            ┌─────────────────────────────────────────┐
+            │ SyncMetadata(                           │
+            │   recordPrimaryKey: "1",                │
+            │   recordType: "remindersLists",         │
+            │   recordName: "1:remindersLists",       │
+            │   parentRecordPrimaryKey: nil,          │
+            │   parentRecordType: nil,                │
+            │   parentRecordName: nil,                │
+            │   lastKnownServerRecord: nil,           │
+            │   _lastKnownServerRecordAllFields: nil, │
+            │   share: nil,                           │
+            │   _isDeleted: false,                    │
+            │   hasLastKnownServerRecord: false,      │
+            │   isShared: false,                      │
+            │   userModificationTime: 0               │
+            │ )                                       │
+            ├─────────────────────────────────────────┤
+            │ SyncMetadata(                           │
+            │   recordPrimaryKey: "1",                │
+            │   recordType: "reminders",              │
+            │   recordName: "1:reminders",            │
+            │   parentRecordPrimaryKey: "1",          │
+            │   parentRecordType: "remindersLists",   │
+            │   parentRecordName: "1:remindersLists", │
+            │   lastKnownServerRecord: nil,           │
+            │   _lastKnownServerRecordAllFields: nil, │
+            │   share: nil,                           │
+            │   _isDeleted: false,                    │
+            │   hasLastKnownServerRecord: false,      │
+            │   isShared: false,                      │
+            │   userModificationTime: 0               │
+            │ )                                       │
+            └─────────────────────────────────────────┘
             """
           }
           assertInlineSnapshot(of: container, as: .customDump) {
@@ -178,7 +178,7 @@
           syncEngine.stop()
 
           try await withDependencies {
-            $0.datetime.now.addTimeInterval(1)
+            $0.currentTime.now += 1
           } operation: {
             try await userDatabase.userWrite { db in
               try RemindersList.find(1).update { $0.title += "!" }.execute(db)
@@ -257,13 +257,65 @@
           syncEngine.stop()
 
           try await withDependencies {
-            $0.datetime.now.addTimeInterval(60)
+            $0.currentTime.now += 60
           } operation: {
             try await userDatabase.userWrite { db in
               try db.seed {
                 Reminder(id: 1, title: "Get milk", remindersListID: 1)
               }
             }
+          }
+
+          try await Task.sleep(for: .seconds(1))
+          assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+            """
+            ┌───────────────────────────────────────────────────────────────────────────┐
+            │ SyncMetadata(                                                             │
+            │   recordPrimaryKey: "1",                                                  │
+            │   recordType: "remindersLists",                                           │
+            │   recordName: "1:remindersLists",                                         │
+            │   parentRecordPrimaryKey: nil,                                            │
+            │   parentRecordType: nil,                                                  │
+            │   parentRecordName: nil,                                                  │
+            │   lastKnownServerRecord: CKRecord(                                        │
+            │     recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner), │
+            │     recordType: "remindersLists",                                         │
+            │     parent: nil,                                                          │
+            │     share: nil                                                            │
+            │   ),                                                                      │
+            │   _lastKnownServerRecordAllFields: CKRecord(                              │
+            │     recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner), │
+            │     recordType: "remindersLists",                                         │
+            │     parent: nil,                                                          │
+            │     share: nil,                                                           │
+            │     id: 1,                                                                │
+            │     isCompleted: 0,                                                       │
+            │     title: "Personal"                                                     │
+            │   ),                                                                      │
+            │   share: nil,                                                             │
+            │   _isDeleted: false,                                                      │
+            │   hasLastKnownServerRecord: true,                                         │
+            │   isShared: false,                                                        │
+            │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                    │
+            │ )                                                                         │
+            ├───────────────────────────────────────────────────────────────────────────┤
+            │ SyncMetadata(                                                             │
+            │   recordPrimaryKey: "1",                                                  │
+            │   recordType: "reminders",                                                │
+            │   recordName: "1:reminders",                                              │
+            │   parentRecordPrimaryKey: "1",                                            │
+            │   parentRecordType: "remindersLists",                                     │
+            │   parentRecordName: "1:remindersLists",                                   │
+            │   lastKnownServerRecord: nil,                                             │
+            │   _lastKnownServerRecordAllFields: nil,                                   │
+            │   share: nil,                                                             │
+            │   _isDeleted: false,                                                      │
+            │   hasLastKnownServerRecord: false,                                        │
+            │   isShared: false,                                                        │
+            │   userModificationDate: Date(1970-01-01T00:01:00.000Z)                    │
+            │ )                                                                         │
+            └───────────────────────────────────────────────────────────────────────────┘
+            """
           }
 
           try await Task.sleep(for: .seconds(0.5))
@@ -434,39 +486,39 @@
 
           assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
             """
-            ┌────────────────────────────────────────────────────────┐
-            │ SyncMetadata(                                          │
-            │   recordPrimaryKey: "1",                               │
-            │   recordType: "remindersLists",                        │
-            │   recordName: "1:remindersLists",                      │
-            │   parentRecordPrimaryKey: nil,                         │
-            │   parentRecordType: nil,                               │
-            │   parentRecordName: nil,                               │
-            │   lastKnownServerRecord: nil,                          │
-            │   _lastKnownServerRecordAllFields: nil,                │
-            │   share: nil,                                          │
-            │   _isDeleted: false,                                   │
-            │   hasLastKnownServerRecord: false,                     │
-            │   isShared: false,                                     │
-            │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
-            │ )                                                      │
-            ├────────────────────────────────────────────────────────┤
-            │ SyncMetadata(                                          │
-            │   recordPrimaryKey: "1",                               │
-            │   recordType: "reminders",                             │
-            │   recordName: "1:reminders",                           │
-            │   parentRecordPrimaryKey: "1",                         │
-            │   parentRecordType: "remindersLists",                  │
-            │   parentRecordName: "1:remindersLists",                │
-            │   lastKnownServerRecord: nil,                          │
-            │   _lastKnownServerRecordAllFields: nil,                │
-            │   share: nil,                                          │
-            │   _isDeleted: false,                                   │
-            │   hasLastKnownServerRecord: false,                     │
-            │   isShared: false,                                     │
-            │   userModificationDate: Date(1970-01-01T00:00:00.000Z) │
-            │ )                                                      │
-            └────────────────────────────────────────────────────────┘
+            ┌─────────────────────────────────────────┐
+            │ SyncMetadata(                           │
+            │   recordPrimaryKey: "1",                │
+            │   recordType: "remindersLists",         │
+            │   recordName: "1:remindersLists",       │
+            │   parentRecordPrimaryKey: nil,          │
+            │   parentRecordType: nil,                │
+            │   parentRecordName: nil,                │
+            │   lastKnownServerRecord: nil,           │
+            │   _lastKnownServerRecordAllFields: nil, │
+            │   share: nil,                           │
+            │   _isDeleted: false,                    │
+            │   hasLastKnownServerRecord: false,      │
+            │   isShared: false,                      │
+            │   userModificationTime: 0               │
+            │ )                                       │
+            ├─────────────────────────────────────────┤
+            │ SyncMetadata(                           │
+            │   recordPrimaryKey: "1",                │
+            │   recordType: "reminders",              │
+            │   recordName: "1:reminders",            │
+            │   parentRecordPrimaryKey: "1",          │
+            │   parentRecordType: "remindersLists",   │
+            │   parentRecordName: "1:remindersLists", │
+            │   lastKnownServerRecord: nil,           │
+            │   _lastKnownServerRecordAllFields: nil, │
+            │   share: nil,                           │
+            │   _isDeleted: false,                    │
+            │   hasLastKnownServerRecord: false,      │
+            │   isShared: false,                      │
+            │   userModificationTime: 0               │
+            │ )                                       │
+            └─────────────────────────────────────────┘
             """
           }
           assertInlineSnapshot(of: container, as: .customDump) {
@@ -517,7 +569,7 @@
             │   _isDeleted: false,                                                                    │
             │   hasLastKnownServerRecord: true,                                                       │
             │   isShared: false,                                                                      │
-            │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+            │   userModificationTime: 0                                                               │
             │ )                                                                                       │
             ├─────────────────────────────────────────────────────────────────────────────────────────┤
             │ SyncMetadata(                                                                           │
@@ -547,7 +599,7 @@
             │   _isDeleted: false,                                                                    │
             │   hasLastKnownServerRecord: true,                                                       │
             │   isShared: false,                                                                      │
-            │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+            │   userModificationTime: 0                                                               │
             │ )                                                                                       │
             └─────────────────────────────────────────────────────────────────────────────────────────┘
             """

@@ -336,7 +336,7 @@
         freshShare.currentUserParticipant?.permission = .readOnly
         let _ = try syncEngine.modifyRecords(scope: .shared, saving: [freshShare])
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += 1
         } operation: {
           try await self.userDatabase.userWrite { db in
             try db.seed {
@@ -424,7 +424,7 @@
         let _ = try syncEngine.modifyRecords(scope: .shared, saving: [freshShare])
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += 1
         } operation: {
           try await self.userDatabase.userWrite { db in
             try RemindersList.find(1).update { $0.title = "Business" }.execute(db)

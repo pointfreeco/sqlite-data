@@ -21,7 +21,7 @@
       try await withDependencies {
         $0.defaultDatabase = database
         $0.defaultSyncEngine = syncEngine
-        $0.datetime.now = Date.init(timeIntervalSince1970: 1)
+        $0.currentTime.now = 1
       } operation: {
         @FetchAll var modelAs: [ModelA] = []
         try await database.write { db in

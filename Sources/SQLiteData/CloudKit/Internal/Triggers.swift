@@ -118,7 +118,7 @@
       } doUpdate: {
         $0.parentRecordPrimaryKey = $1.parentRecordPrimaryKey
         $0.parentRecordType = $1.parentRecordType
-        $0.userModificationDate = $1.userModificationDate
+        $0.userModificationTime = $1.userModificationTime
       }
     }
   }
@@ -145,8 +145,14 @@
           Values(
             syncEngine.$didUpdate(
               recordName: new.recordName,
-              record: new.lastKnownServerRecord
-                ?? rootServerRecord(recordName: new.recordName)
+              lastKnownServerRecord: new.lastKnownServerRecord
+                ?? rootServerRecord(recordName: new.recordName),
+              newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
+                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+                parentRecordType: new.parentRecordType
+              ),
+              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+              parentRecordType: new.parentRecordType
             )
           )
         } when: { _ in
@@ -165,8 +171,14 @@
           Values(
             syncEngine.$didUpdate(
               recordName: new.recordName,
-              record: new.lastKnownServerRecord
-                ?? rootServerRecord(recordName: new.recordName)
+              lastKnownServerRecord: new.lastKnownServerRecord
+                ?? rootServerRecord(recordName: new.recordName),
+              newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
+                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+                parentRecordType: new.parentRecordType
+              ),
+              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+              parentRecordType: new.parentRecordType
             )
           )
         } when: { old, new in
@@ -279,6 +291,19 @@
         .select(\.lastKnownServerRecord)
         .where { $0.parentRecordName.is(nil) }
     }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func parentLastKnownServerRecordIfShared(
+    parentRecordPrimaryKey: some QueryExpression<String?>,
+    parentRecordType: some QueryExpression<String?>
+  ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
+    SyncMetadata
+      .select(\.lastKnownServerRecord)
+      .where {
+        $0.recordPrimaryKey.is(parentRecordPrimaryKey)
+          && $0.recordType.is(parentRecordType)
+      }
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

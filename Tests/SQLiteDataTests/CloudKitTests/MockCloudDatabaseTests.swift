@@ -392,10 +392,10 @@
         try withKnownIssue {
           _ = try syncEngine.modifyRecords(scope: .private, saving: [share])
         } matching: { issue in
-          issue.description == """
-            Issue recorded: An added share is being saved without its rootRecord being saved in the \
+          issue.description.hasSuffix("""
+            An added share is being saved without its rootRecord being saved in the \
             same operation.
-            """
+            """)
         }
       }
 

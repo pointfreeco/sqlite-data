@@ -66,7 +66,7 @@
 
     @Column(generated: .virtual)
     public let hasLastKnownServerRecord: Bool
-    
+
     /// Determines if the record associated with this metadata is currently shared in CloudKit.
     ///
     /// This can only return `true` for root records. For example, the metadata associated with a
@@ -75,8 +75,8 @@
     @Column(generated: .virtual)
     public let isShared: Bool
 
-    /// The date the user last modified the record.
-    public var userModificationDate: Date
+    /// The time the user last modified the record.
+    public var userModificationTime: Int64
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -118,7 +118,7 @@
       lastKnownServerRecord: CKRecord? = nil,
       _lastKnownServerRecordAllFields: CKRecord? = nil,
       share: CKShare? = nil,
-      userModificationDate: Date
+      userModificationTime: Int64
     ) {
       self.recordPrimaryKey = recordPrimaryKey
       self.recordType = recordType
@@ -135,7 +135,7 @@
       self.share = share
       self.hasLastKnownServerRecord = lastKnownServerRecord != nil
       self.isShared = share != nil
-      self.userModificationDate = userModificationDate
+      self.userModificationTime = userModificationTime
     }
   }
 
