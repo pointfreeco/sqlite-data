@@ -601,7 +601,6 @@
       as: ((String, CKRecord?.SystemFieldsRepresentation) -> Void).self
     )
     func didUpdate(recordName: String, record: CKRecord?) {
-      print("didUpdate", recordName)
       let zoneID = record?.recordID.zoneID ?? defaultZone.zoneID
       let change = CKSyncEngine.PendingRecordZoneChange.saveRecord(
         CKRecord.ID(
