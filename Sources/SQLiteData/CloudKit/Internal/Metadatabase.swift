@@ -49,10 +49,6 @@
 
   func migrate(metadatabase: some DatabaseWriter) throws {
     var migrator = DatabaseMigrator()
-
-    // (B, C)
-
-    // A <- [B <- C (bID: B.ID)]
     migrator.registerMigration("Create Metadata Tables") { db in
       try #sql(
         """
