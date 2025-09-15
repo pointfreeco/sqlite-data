@@ -383,7 +383,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
@@ -412,7 +412,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:01:00.000Z)                                  │
+          │   userModificationTime: 60                                                              │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
@@ -441,7 +441,7 @@
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
           │   isShared: false,                                                                      │
-          │   userModificationDate: Date(1970-01-01T00:01:00.000Z)                                  │
+          │   userModificationTime: 60                                                              │
           │ )                                                                                       │
           └─────────────────────────────────────────────────────────────────────────────────────────┘
           """
@@ -1105,7 +1105,7 @@
           │   _isDeleted: false,                                                                         │
           │   hasLastKnownServerRecord: true,                                                            │
           │   isShared: false,                                                                           │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                       │
+          │   userModificationTime: 0                                                                    │
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
@@ -1134,7 +1134,7 @@
           │   _isDeleted: false,                                                                         │
           │   hasLastKnownServerRecord: true,                                                            │
           │   isShared: false,                                                                           │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                       │
+          │   userModificationTime: 0                                                                    │
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
@@ -1167,7 +1167,7 @@
           │   _isDeleted: false,                                                                         │
           │   hasLastKnownServerRecord: true,                                                            │
           │   isShared: true,                                                                            │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                       │
+          │   userModificationTime: 0                                                                    │
           │ )                                                                                            │
           └──────────────────────────────────────────────────────────────────────────────────────────────┘
           """
