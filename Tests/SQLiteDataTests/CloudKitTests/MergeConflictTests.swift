@@ -640,7 +640,7 @@
         )
 
         try withDependencies {
-          $0.currentTime.now += (2)
+          $0.currentTime.now += 2
         } operation: {
           try userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.priority = 3 }.execute(db)

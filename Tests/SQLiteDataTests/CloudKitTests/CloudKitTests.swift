@@ -502,7 +502,7 @@
         }
 
         try await withDependencies {
-          $0.currentTime.now += (60)
+          $0.currentTime.now += 60
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersList
@@ -569,7 +569,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.currentTime.now += (60)
+          $0.currentTime.now += 60
         } operation: {
           let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
           record.setValue("Work", forKey: "title", at: now)
@@ -631,7 +631,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.currentTime.now += (1)
+          $0.currentTime.now += 1
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)

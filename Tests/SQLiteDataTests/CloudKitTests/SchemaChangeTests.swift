@@ -31,7 +31,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.currentTime.now += (60)
+          $0.currentTime.now += 60
         } operation: {
           let personalListRecord = try syncEngine.private.database.record(
             for: RemindersList.recordID(for: 1)
@@ -121,7 +121,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.currentTime.now += (60)
+          $0.currentTime.now += 60
         } operation: {
           let personalListRecord = try syncEngine.private.database.record(
             for: RemindersList.recordID(for: 1)
@@ -180,7 +180,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.currentTime.now += (60)
+          $0.currentTime.now += 60
         } operation: {
           let personalListRecord = try syncEngine.private.database.record(
             for: RemindersList.recordID(for: 1)
@@ -241,7 +241,7 @@
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func newTable() async throws {
         try await withDependencies {
-          $0.currentTime.now += (60)
+          $0.currentTime.now += 60
         } operation: {
           let imageRecord = CKRecord(
             recordType: "images",

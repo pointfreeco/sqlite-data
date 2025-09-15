@@ -178,7 +178,7 @@
           syncEngine.stop()
 
           try await withDependencies {
-            $0.currentTime.now += (1)
+            $0.currentTime.now += 1
           } operation: {
             try await userDatabase.userWrite { db in
               try RemindersList.find(1).update { $0.title += "!" }.execute(db)
@@ -257,7 +257,7 @@
           syncEngine.stop()
 
           try await withDependencies {
-            $0.currentTime.now += (60)
+            $0.currentTime.now += 60
           } operation: {
             try await userDatabase.userWrite { db in
               try db.seed {

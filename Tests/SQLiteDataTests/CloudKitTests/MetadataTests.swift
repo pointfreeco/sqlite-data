@@ -25,7 +25,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try withDependencies {
-          $0.currentTime.now += (60)
+          $0.currentTime.now += 60
         } operation: {
           try userDatabase.userWrite { db in
             try Reminder.find(1)
