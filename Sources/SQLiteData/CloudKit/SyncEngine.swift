@@ -940,8 +940,6 @@
             ?? nil
           guard let row
           else {
-            // TODO: write a test that we clean up records when there is a FK constraint failure
-
             syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
             missingRecord = recordID
             return nil
