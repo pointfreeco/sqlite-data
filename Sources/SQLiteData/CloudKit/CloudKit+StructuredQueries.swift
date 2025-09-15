@@ -154,8 +154,13 @@
     }
   }
 
+import os
+
   @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   extension CKRecord {
+    @TaskLocal static var fooo = false
+
+
     @discardableResult
     package func setValue(
       _ newValue: some CKRecordValueProtocol & Equatable,
@@ -163,9 +168,20 @@
       at userModificationTime: Int64
     ) -> Bool {
       guard
-        encryptedValues[at: key] < userModificationTime,
+        encryptedValues[at: key] <= userModificationTime,
         encryptedValues[key] != newValue
       else {
+        if Self.fooo, encryptedValues[key] != newValue {
+          Logger().info("""
+            ⚠️⚠️⚠️ A write to '\(key)' is being ignored
+            key                       \(key)
+            encryptedValues[at: key]: \(self.encryptedValues[at: key])
+            userModificationDate:     \(userModificationTime)
+            encryptedValues[key]:     \(String(describing: self.encryptedValues[key]))
+            newValue:                 \(String(describing: newValue))
+            """)
+          print("!!!")
+        }
         return false
       }
       encryptedValues[key] = newValue
@@ -182,7 +198,7 @@
     ) -> Bool {
       @Dependency(\.dataManager) var dataManager
 
-      guard encryptedValues[at: key] < userModificationTime
+      guard encryptedValues[at: key] <= userModificationTime
       else {
         return false
       }
@@ -204,7 +220,7 @@
       forKey key: CKRecord.FieldKey,
       at userModificationTime: Int64
     ) -> Bool {
-      guard encryptedValues[at: key] < userModificationTime
+      guard encryptedValues[at: key] <= userModificationTime
       else {
         return false
       }
@@ -223,38 +239,41 @@
     }
 
     func update<T: PrimaryKeyedTable>(with row: T, userModificationTime: Int64) {
-      for column in T.TableColumns.writableColumns {
-        func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
-          let column = column as! any WritableTableColumnExpression<T, Value>
-          let value = Value(queryOutput: row[keyPath: column.keyPath])
-          switch value.queryBinding {
-          case .blob(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
-          case .bool(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
-          case .double(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
-          case .date(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
-          case .int(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
-          case .null:
-            removeValue(forKey: column.name, at: userModificationTime)
-          case .text(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
-          case .uint(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
-          case .uuid(let value):
-            setValue(
-              value.uuidString.lowercased(),
-              forKey: column.name,
-              at: userModificationTime
-            )
-          case .invalid(let error):
-            reportIssue(error)
+      Self.$fooo.withValue(true) {
+
+        for column in T.TableColumns.writableColumns {
+          func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
+            let column = column as! any WritableTableColumnExpression<T, Value>
+            let value = Value(queryOutput: row[keyPath: column.keyPath])
+            switch value.queryBinding {
+            case .blob(let value):
+              setValue(value, forKey: column.name, at: userModificationTime)
+            case .bool(let value):
+              setValue(value, forKey: column.name, at: userModificationTime)
+            case .double(let value):
+              setValue(value, forKey: column.name, at: userModificationTime)
+            case .date(let value):
+              setValue(value, forKey: column.name, at: userModificationTime)
+            case .int(let value):
+              setValue(value, forKey: column.name, at: userModificationTime)
+            case .null:
+              removeValue(forKey: column.name, at: userModificationTime)
+            case .text(let value):
+              setValue(value, forKey: column.name, at: userModificationTime)
+            case .uint(let value):
+              setValue(value, forKey: column.name, at: userModificationTime)
+            case .uuid(let value):
+              setValue(
+                value.uuidString.lowercased(),
+                forKey: column.name,
+                at: userModificationTime
+              )
+            case .invalid(let error):
+              reportIssue(error)
+            }
           }
+          open(column)
         }
-        open(column)
       }
     }
 
