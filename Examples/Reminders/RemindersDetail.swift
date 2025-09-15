@@ -180,7 +180,6 @@ struct RemindersDetailView: View {
   @State var navigationTitleHeight: CGFloat = 36
 
   var body: some View {
-    let _ = Self._printChanges()
     List {
       header
       ForEach(model.reminderRows) { row in
