@@ -1571,7 +1571,6 @@
           try SyncMetadata
           .where { $0.recordName.eq(serverRecord.recordID.recordName) }
           .fetchOne(db)
-        serverRecord.userModificationDate =
         serverRecord.userModificationTime =
           metadata?.userModificationTime ?? serverRecord.userModificationTime
 
