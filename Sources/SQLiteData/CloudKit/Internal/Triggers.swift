@@ -164,6 +164,8 @@
       } onConflict: {
         ($0.recordPrimaryKey, $0.recordType)
       } doUpdate: {
+        $0.zoneName = $1.zoneName
+        $0.ownerName = $1.ownerName
         $0.parentRecordPrimaryKey = $1.parentRecordPrimaryKey
         $0.parentRecordType = $1.parentRecordType
         $0.userModificationTime = $1.userModificationTime
@@ -193,14 +195,18 @@
           Values(
             syncEngine.$didUpdate(
               recordName: new.recordName,
-              lastKnownServerRecord: new.lastKnownServerRecord
-                ?? rootServerRecord(recordName: new.recordName),
-              newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
-                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-                parentRecordType: new.parentRecordType
-              ),
-              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-              parentRecordType: new.parentRecordType
+              zoneName: new.zoneName,
+              ownerName: new.ownerName,
+              oldZoneName: new.zoneName,
+              oldOwnerName: new.ownerName
+//              lastKnownServerRecord: new.lastKnownServerRecord
+//                ?? rootServerRecord(recordName: new.recordName),
+//              newParentLastKnownServerRecord: parentLastKnownServerRecord(
+//                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+//                parentRecordType: new.parentRecordType
+//              ),
+//              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+//              parentRecordType: new.parentRecordType
             )
           )
         } when: { _ in
@@ -214,19 +220,23 @@
       createTemporaryTrigger(
         "after_update_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
-        after: .update { _, new in
+        after: .update { old, new in
           validate(recordName: new.recordName)
           Values(
             syncEngine.$didUpdate(
               recordName: new.recordName,
-              lastKnownServerRecord: new.lastKnownServerRecord
-                ?? rootServerRecord(recordName: new.recordName),
-              newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
-                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-                parentRecordType: new.parentRecordType
-              ),
-              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-              parentRecordType: new.parentRecordType
+              zoneName: new.zoneName,
+              ownerName: new.ownerName,
+              oldZoneName: old.zoneName,
+              oldOwnerName: old.ownerName
+//              lastKnownServerRecord: new.lastKnownServerRecord
+//                ?? rootServerRecord(recordName: new.recordName),
+//              newParentLastKnownServerRecord: parentLastKnownServerRecord(
+//                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+//                parentRecordType: new.parentRecordType
+//              ),
+//              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
+//              parentRecordType: new.parentRecordType
             )
           )
         } when: { old, new in
@@ -258,7 +268,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func parentFields<Base, Name>(
+private func parentFields<Base, Name>(
     alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
     defaultZone: CKRecordZone
@@ -268,15 +278,7 @@
     zoneName: SQLQueryExpression<String>,
     ownerName: SQLQueryExpression<String>
   ) {
-    let zoneName = #sql(
-      "\(quote: defaultZone.zoneID.zoneName, delimiter: .text)",
-      as: String.self
-    )
-    let ownerName = #sql(
-      "\(quote: defaultZone.zoneID.ownerName, delimiter: .text)",
-      as: String.self
-    )
-    return
+
       parentForeignKey
       .map { foreignKey in
         let parentRecordPrimaryKey = #sql(
@@ -285,19 +287,25 @@
         )
         let parentRecordType = #sql("\(bind: foreignKey.table)", as: String.self)
         let parentMetadata =
-          SyncMetadata
+        SyncMetadata
           .where {
             $0.recordPrimaryKey.eq(parentRecordPrimaryKey)
-              && $0.recordType.eq(parentRecordType)
+            && $0.recordType.eq(parentRecordType)
+          }
+        let metadata =
+        SyncMetadata
+          .where {
+            $0.recordPrimaryKey.eq(#sql("\(alias.primaryKey)"))
+            && $0.recordType.eq(#sql("\(type(of: alias).QueryValue.self)"))
           }
         return (
           parentRecordPrimaryKey,
           parentRecordType,
-          #sql("coalesce((\(parentMetadata.select(\.zoneName))), \(zoneName))"),
-          #sql("coalesce((\(parentMetadata.select(\.ownerName))), \(ownerName))")
+          #sql("coalesce((\(parentMetadata.select(\.zoneName))), '')"),
+          #sql("coalesce((\(parentMetadata.select(\.ownerName))), '')")
         )
       }
-      ?? (nil, nil, zoneName, ownerName)
+      ?? (nil, nil, "", "")
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -314,7 +322,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func checkWritePermissions<Base, Name>(
+private func checkWritePermissions<Base: PrimaryKeyedTable, Name>(
     alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
     defaultZone: CKRecordZone
@@ -378,7 +386,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func parentLastKnownServerRecordIfShared(
+  private func parentLastKnownServerRecord(
     parentRecordPrimaryKey: some QueryExpression<String?>,
     parentRecordType: some QueryExpression<String?>
   ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {

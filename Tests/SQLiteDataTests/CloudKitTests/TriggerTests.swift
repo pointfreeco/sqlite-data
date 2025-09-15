@@ -462,7 +462,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), '__defaultOwner__'), "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [28]: """
@@ -489,7 +489,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), '__defaultOwner__'), "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [29]: """
@@ -512,7 +512,7 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'modelAs', 'zone', '__defaultOwner__', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [30]: """
@@ -539,7 +539,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelAID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'))), '__defaultOwner__'), "new"."modelAID", 'modelAs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [31]: """
@@ -566,7 +566,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelBID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'))), '__defaultOwner__'), "new"."modelBID", 'modelBs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [32]: """
@@ -589,7 +589,7 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'parents', 'zone', '__defaultOwner__', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [33]: """
@@ -612,7 +612,7 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'reminderTags', 'zone', '__defaultOwner__', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [34]: """
@@ -639,7 +639,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [35]: """
@@ -666,7 +666,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [36]: """
@@ -693,7 +693,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [37]: """
@@ -716,7 +716,7 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'remindersLists', 'zone', '__defaultOwner__', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [38]: """
@@ -739,7 +739,7 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."title", 'tags', 'zone', '__defaultOwner__', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [39]: """
@@ -1018,7 +1018,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), '__defaultOwner__'), "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [52]: """
@@ -1045,7 +1045,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), '__defaultOwner__'), "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [53]: """
@@ -1068,7 +1068,7 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'modelAs', 'zone', '__defaultOwner__', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [54]: """
@@ -1095,7 +1095,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelAID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'))), '__defaultOwner__'), "new"."modelAID", 'modelAs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [55]: """
@@ -1122,7 +1122,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelBID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'))), '__defaultOwner__'), "new"."modelBID", 'modelBs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [56]: """
@@ -1145,7 +1145,7 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'parents', 'zone', '__defaultOwner__', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [57]: """
@@ -1168,7 +1168,7 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'reminderTags', 'zone', '__defaultOwner__', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [58]: """
@@ -1195,7 +1195,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [59]: """
@@ -1222,7 +1222,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [60]: """
@@ -1249,7 +1249,7 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [61]: """
@@ -1272,7 +1272,7 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'remindersLists', 'zone', '__defaultOwner__', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """,
               [62]: """
@@ -1295,7 +1295,7 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."title", 'tags', 'zone', '__defaultOwner__', NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
-                DO UPDATE SET "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
+                DO UPDATE SET "zoneName" = "excluded"."zoneName", "ownerName" = "excluded"."ownerName", "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
               """
             ]

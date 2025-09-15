@@ -7,7 +7,7 @@ import Testing
 import os
 
 @Suite(
-  .snapshots(record: .missing),
+  .snapshots(record: .failed),
   .dependencies {
     $0.currentTime.now = 0
     $0.dataManager = InMemoryDataManager()

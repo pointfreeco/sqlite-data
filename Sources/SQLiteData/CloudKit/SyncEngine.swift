@@ -604,37 +604,65 @@
       "sqlitedata_icloud_didUpdate",
       as: ((
         String,
-        CKRecord?.SystemFieldsRepresentation,
-        CKRecord?.SystemFieldsRepresentation,
-        String?,
-        String?
+        String,
+        String,
+        String,
+        String
+//        CKRecord?.SystemFieldsRepresentation,
+//        CKRecord?.SystemFieldsRepresentation,
+//        String?,
+//        String?
       ) -> Void).self
     )
     func didUpdate(
       recordName: String,
-      lastKnownServerRecord: CKRecord?,
-      newParentLastKnownServerRecord: CKRecord?,
-      parentRecordPrimaryKey: String? = nil,
-      parentRecordType: String? = nil
+      zoneName: String,
+      ownerName: String,
+      oldZoneName: String,
+      oldOwnerName: String
+//      lastKnownServerRecord: CKRecord?,
+//      newParentLastKnownServerRecord: CKRecord?,
+//      parentRecordPrimaryKey: String? = nil,
+//      parentRecordType: String? = nil
     ) throws {
-      let zoneID = lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
-      let newZoneID = newParentLastKnownServerRecord?.recordID.zoneID
-      if let newZoneID, zoneID != newZoneID {
-        struct ZoneChangingError: Error, LocalizedError {
-          let recordName: String
-          let zoneID: CKRecordZone.ID
-          let newZoneID: CKRecordZone.ID
-          var errorDescription: String? {
-            """
-            The record '\(recordName)' was moved from zone \
-            '\(zoneID.zoneName)/\(zoneID.ownerName)' to \
-            '\(newZoneID.zoneName)/\(newZoneID.ownerName)'. This is currently not supported in \
-            SQLiteData. To work around, delete the record and then create a new record with its \
-            new parent association.
-            """
-          }
+      let zoneID = CKRecordZone.ID.init(
+        zoneName: oldZoneName,
+        ownerName: oldOwnerName
+      ) // lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
+      let newZoneID = CKRecordZone.ID.init(zoneName: zoneName, ownerName: ownerName)
+      //newParentLastKnownServerRecord?.recordID.zoneID
+      if zoneID != newZoneID {
+        //        struct ZoneChangingError: Error, LocalizedError {
+        //          let recordName: String
+        //          let zoneID: CKRecordZone.ID
+        //          let newZoneID: CKRecordZone.ID
+        //          var errorDescription: String? {
+        //            """
+        //            The record '\(recordName)' was moved from zone \
+        //            '\(zoneID.zoneName)/\(zoneID.ownerName)' to \
+        //            '\(newZoneID.zoneName)/\(newZoneID.ownerName)'. This is currently not supported in \
+        //            SQLiteData. To work around, delete the record and then create a new record with its \
+        //            new parent association.
+        //            """
+        //          }
+        //        }
+        //        throw ZoneChangingError(recordName: recordName, zoneID: zoneID, newZoneID: newZoneID)
+        let syncEngine = self.syncEngines.withValue {
+          zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
         }
-        throw ZoneChangingError(recordName: recordName, zoneID: zoneID, newZoneID: newZoneID)
+        syncEngine?.state
+          .add(pendingRecordZoneChanges: [
+            .deleteRecord(CKRecord.ID.init(recordName: recordName, zoneID: zoneID))
+          ])
+
+        let newSyncEngine = self.syncEngines.withValue {
+          newZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+        }
+        newSyncEngine?.state
+          .add(pendingRecordZoneChanges: [
+            .saveRecord(CKRecord.ID.init(recordName: recordName, zoneID: newZoneID))
+          ])
+        return
       }
 
       let change = CKSyncEngine.PendingRecordZoneChange.saveRecord(
@@ -910,7 +938,7 @@
             catching: {
               try await metadatabase.read { db in
                 try SyncMetadata
-                  .where { $0.recordName.eq(recordID.recordName) }
+                  .find(recordID)
                   .select { ($0, $0._lastKnownServerRecordAllFields) }
                   .fetchOne(db)
               }
@@ -998,7 +1026,7 @@
           return nil
         }
       }
-      let deletedRecordNames = deletedRecordIDs.map(\.recordName)
+      //let deletedRecordNames = deletedRecordIDs.map(\.recordName)
 
       let (sharesToDelete, recordsWithRoot):
         ([CKShare?], [(lastKnownServerRecord: CKRecord?, rootLastKnownServerRecord: CKRecord?)]) =
@@ -1006,14 +1034,16 @@
             try await metadatabase.read { db in
               let sharesToDelete =
                 try SyncMetadata
-                .where { $0.isShared && $0.recordName.in(deletedRecordNames) }
+                .findAll(deletedRecordIDs)
+                .where(\.isShared)
                 .select(\.share)
                 .fetchAll(db)
 
               let recordsWithRoot =
                 try With {
                   SyncMetadata
-                    .where { $0.parentRecordName.is(nil) && $0.recordName.in(deletedRecordNames) }
+                    .findAll(deletedRecordIDs)
+                    .where { $0.parentRecordName.is(nil) }
                     .select {
                       RecordWithRoot.Columns(
                         parentRecordName: $0.parentRecordName,
@@ -1039,7 +1069,8 @@
                     )
                 } query: {
                   RecordWithRoot
-                    .where { $0.recordName.in(deletedRecordNames) }
+                    // TODO: look into this
+                    .where { $0.recordName.in(deletedRecordIDs.map(\.recordName)) }
                     .select { ($0.lastKnownServerRecord, $0.rootLastKnownServerRecord) }
                 }
                 .fetchAll(db)
@@ -1069,7 +1100,7 @@
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in
           try SyncMetadata
-            .where { $0.recordName.in(deletedRecordNames) }
+            .findAll(deletedRecordIDs)
             .delete()
             .execute(db)
         }
@@ -1359,7 +1390,7 @@
           await withErrorReporting(.sqliteDataCloudKitFailure) {
             try await userDatabase.write { db in
               try SyncMetadata
-                .where { $0.recordName.eq(failedRecord.recordID.recordName) }
+                .find(failedRecord.recordID)
                 .update { $0.setLastKnownServerRecord(nil) }
                 .execute(db)
             }
@@ -1513,7 +1544,7 @@
       else { return }
       try await userDatabase.write { db in
         try SyncMetadata
-          .where { $0.recordName.eq(rootRecordID.recordName) }
+          .find(rootRecordID)
           .update { $0.share = share }
           .execute(db)
       }
@@ -1521,16 +1552,18 @@
 
     func deleteShare(recordID: CKRecord.ID) async throws {
       try await userDatabase.write { db in
-        let shareAndRecordName =
+        let shareAndLastKnownServerRecord =
           try SyncMetadata
           .where(\.isShared)
-          .select { ($0.share, $0.recordName) }
+          .select { ($0.share, $0.lastKnownServerRecord) }
           .fetchAll(db)
           .first(where: { share, _ in share?.recordID == recordID }) ?? nil
-        guard let (_, recordName) = shareAndRecordName
+        guard
+          let (_, lastKnownServerRecord) = shareAndLastKnownServerRecord,
+          let lastKnownServerRecord
         else { return }
         try SyncMetadata
-          .where { $0.recordName.eq(recordName) }
+          .find(lastKnownServerRecord.recordID)
           .update { $0.share = nil }
           .execute(db)
       }
@@ -1553,36 +1586,40 @@
       db: Database
     ) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
+        guard let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey
+        else { return }
+
+        let metadata = try SyncMetadata.insert {
+          SyncMetadata(
+            recordPrimaryKey: recordPrimaryKey,
+            recordType: serverRecord.recordType,
+            zoneName: serverRecord.recordID.zoneID.zoneName,
+            ownerName: serverRecord.recordID.zoneID.ownerName,
+            parentRecordPrimaryKey: serverRecord.parent?.recordID.recordPrimaryKey,
+            parentRecordType: serverRecord.parent?.recordID.tableName,
+            lastKnownServerRecord: serverRecord,
+            _lastKnownServerRecordAllFields: serverRecord,
+            share: nil,
+            userModificationTime: serverRecord.userModificationTime
+          )
+        } onConflict: {
+          ($0.recordPrimaryKey, $0.recordType)
+        } doUpdate: {
+          // TODO: set parent fields?
+          $0.setLastKnownServerRecord(serverRecord)
+        }
+          .returning(\.self)
+        .fetchOne(db)
+
         guard let table = tablesByName[serverRecord.recordType]
         else {
-          guard let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey
-          else { return }
-          try SyncMetadata.insert {
-            SyncMetadata(
-              recordPrimaryKey: recordPrimaryKey,
-              recordType: serverRecord.recordType,
-              zoneName: serverRecord.recordID.zoneID.zoneName,
-              ownerName: serverRecord.recordID.zoneID.ownerName,
-              parentRecordPrimaryKey: serverRecord.parent?.recordID.recordPrimaryKey,
-              parentRecordType: serverRecord.parent?.recordID.tableName,
-              lastKnownServerRecord: serverRecord,
-              _lastKnownServerRecordAllFields: serverRecord,
-              share: nil,
-              userModificationTime: serverRecord.userModificationTime
-            )
-          } onConflict: {
-            ($0.recordPrimaryKey, $0.recordType)
-          } doUpdate: {
-            $0.setLastKnownServerRecord(serverRecord)
-          }
-          .execute(db)
           return
         }
 
-        let metadata =
-          try SyncMetadata
-          .where { $0.recordName.eq(serverRecord.recordID.recordName) }
-          .fetchOne(db)
+//        let metadata =
+//          try SyncMetadata
+//          .find(serverRecord.recordID)
+//          .fetchOne(db)
         serverRecord.userModificationTime =
           metadata?.userModificationTime ?? serverRecord.userModificationTime
 
@@ -1601,11 +1638,11 @@
                   : nil
               )
             } else {
-              reportIssue(
-                """
-                Local database record could not be found for '\(serverRecord.recordID.recordName)'.
-                """
-              )
+//              reportIssue(
+//                """
+//                Local database record could not be found for '\(serverRecord.recordID.recordName)'.
+//                """
+//              )
             }
             columnNames = _columnNames
           } else {
@@ -1616,7 +1653,7 @@
             try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
             try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
             try SyncMetadata
-              .where { $0.recordName.eq(serverRecord.recordID.recordName) }
+              .find(serverRecord.recordID)
               .update { $0.setLastKnownServerRecord(serverRecord) }
               .execute(db)
           } catch {
@@ -1638,35 +1675,25 @@
     }
 
     private func refreshLastKnownServerRecord(_ record: CKRecord) async {
-      let metadata = await metadataFor(recordName: record.recordID.recordName)
-
-      func updateLastKnownServerRecord() async {
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await userDatabase.write { db in
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await metadatabase.write { db in
+          let metadata = try SyncMetadata.find(record.recordID).fetchOne(db)
+          func updateLastKnownServerRecord() throws {
             try SyncMetadata
-              .where { $0.recordName.eq(record.recordID.recordName) }
+              .find(record.recordID)
               .update { $0.setLastKnownServerRecord(record) }
               .execute(db)
           }
-        }
-      }
 
-      if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
-        if let recordDate = record.modificationDate, lastKnownDate < recordDate {
-          await updateLastKnownServerRecord()
-        }
-      } else {
-        await updateLastKnownServerRecord()
-      }
-    }
-
-    private func metadataFor(recordName: String) async -> SyncMetadata? {
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await metadatabase.read { db in
-          try SyncMetadata.where { $0.recordName.eq(recordName) }.fetchOne(db)
+          if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
+            if let recordDate = record.modificationDate, lastKnownDate < recordDate {
+              try updateLastKnownServerRecord()
+            }
+          } else {
+            try updateLastKnownServerRecord()
+          }
         }
       }
-        ?? nil
     }
 
     private func updateQuery<T: PrimaryKeyedTable>(
