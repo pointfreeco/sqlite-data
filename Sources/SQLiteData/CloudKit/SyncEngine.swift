@@ -1259,24 +1259,27 @@
         case share(CKShare)
         case reference(CKShare.Reference)
       }
-      let shares = LockIsolated<[ShareOrReference]>([])
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await userDatabase.write { db in
-          for record in modifications {
-            if let share = record as? CKShare {
-              shares.withValue { $0.append(.share(share)) }
-            } else {
-              upsertFromServerRecord(record, db: db)
-              if let shareReference = record.share {
-                shares.withValue { $0.append(.reference(shareReference)) }
+      let shares: [ShareOrReference] =
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await userDatabase.write { db in
+            var shares: [ShareOrReference] = []
+            for record in modifications {
+              if let share = record as? CKShare {
+                shares.append(.share(share))
+              } else {
+                upsertFromServerRecord(record, db: db)
+                if let shareReference = record.share {
+                  shares.append(.reference(shareReference))
+                }
               }
             }
+            return shares
           }
         }
-      }
+        ?? []
 
       await withTaskGroup(of: Void.self) { group in
-        for share in shares.withValue(\.self) {
+        for share in shares {
           group.addTask {
             switch share {
             case .share(let share):
@@ -1535,11 +1538,12 @@
           return
         }
 
-        let metadata = try SyncMetadata
+        let metadata =
+          try SyncMetadata
           .where { $0.recordName.eq(serverRecord.recordID.recordName) }
           .fetchOne(db)
         serverRecord.userModificationDate =
-        metadata?.userModificationDate ?? serverRecord.userModificationDate
+          metadata?.userModificationDate ?? serverRecord.userModificationDate
 
         func open<T: PrimaryKeyedTable>(_: T.Type) throws {
           let columnNames: [String]
@@ -1552,14 +1556,14 @@
                 row: T(queryOutput: row),
                 columnNames: &_columnNames,
                 parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
-                ? foreignKeysByTableName[T.tableName]?.first
-                : nil
+                  ? foreignKeysByTableName[T.tableName]?.first
+                  : nil
               )
             } else {
               reportIssue(
-                  """
-                  Local database record could not be found for '\(serverRecord.recordID.recordName)'.
-                  """
+                """
+                Local database record could not be found for '\(serverRecord.recordID.recordName)'.
+                """
               )
             }
             columnNames = _columnNames
