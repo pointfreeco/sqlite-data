@@ -66,7 +66,7 @@
 
     @Column(generated: .virtual)
     public let hasLastKnownServerRecord: Bool
-    
+
     /// Determines if the record associated with this metadata is currently shared in CloudKit.
     ///
     /// This can only return `true` for root records. For example, the metadata associated with a

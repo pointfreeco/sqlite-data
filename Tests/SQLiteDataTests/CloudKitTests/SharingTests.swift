@@ -355,6 +355,97 @@
         }
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          ┌─────────────────────────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "1",                                                                │
+          │   recordType: "modelAs",                                                                │
+          │   recordName: "1:modelAs",                                                              │
+          │   parentRecordPrimaryKey: nil,                                                          │
+          │   parentRecordType: nil,                                                                │
+          │   parentRecordName: nil,                                                                │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(1:modelAs/external.zone/external.owner),                      │
+          │     recordType: "modelAs",                                                              │
+          │     parent: nil,                                                                        │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(1:modelAs/external.zone/external.owner),                      │
+          │     recordType: "modelAs",                                                              │
+          │     parent: nil,                                                                        │
+          │     share: nil,                                                                         │
+          │     count: 0,                                                                           │
+          │     id: 1                                                                               │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   hasLastKnownServerRecord: true,                                                       │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                  │
+          │ )                                                                                       │
+          ├─────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "1",                                                                │
+          │   recordType: "modelBs",                                                                │
+          │   recordName: "1:modelBs",                                                              │
+          │   parentRecordPrimaryKey: "1",                                                          │
+          │   parentRecordType: "modelAs",                                                          │
+          │   parentRecordName: "1:modelAs",                                                        │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(1:modelBs/external.zone/external.owner),                      │
+          │     recordType: "modelBs",                                                              │
+          │     parent: CKReference(recordID: CKRecord.ID(1:modelAs/external.zone/external.owner)), │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(1:modelBs/external.zone/external.owner),                      │
+          │     recordType: "modelBs",                                                              │
+          │     parent: CKReference(recordID: CKRecord.ID(1:modelAs/external.zone/external.owner)), │
+          │     share: nil,                                                                         │
+          │     id: 1,                                                                              │
+          │     isOn: 0,                                                                            │
+          │     modelAID: 1                                                                         │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   hasLastKnownServerRecord: true,                                                       │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:01:00.000Z)                                  │
+          │ )                                                                                       │
+          ├─────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                           │
+          │   recordPrimaryKey: "1",                                                                │
+          │   recordType: "modelCs",                                                                │
+          │   recordName: "1:modelCs",                                                              │
+          │   parentRecordPrimaryKey: "1",                                                          │
+          │   parentRecordType: "modelBs",                                                          │
+          │   parentRecordName: "1:modelBs",                                                        │
+          │   lastKnownServerRecord: CKRecord(                                                      │
+          │     recordID: CKRecord.ID(1:modelCs/external.zone/external.owner),                      │
+          │     recordType: "modelCs",                                                              │
+          │     parent: CKReference(recordID: CKRecord.ID(1:modelBs/external.zone/external.owner)), │
+          │     share: nil                                                                          │
+          │   ),                                                                                    │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                            │
+          │     recordID: CKRecord.ID(1:modelCs/external.zone/external.owner),                      │
+          │     recordType: "modelCs",                                                              │
+          │     parent: CKReference(recordID: CKRecord.ID(1:modelBs/external.zone/external.owner)), │
+          │     share: nil,                                                                         │
+          │     id: 1,                                                                              │
+          │     modelBID: 1,                                                                        │
+          │     title: ""                                                                           │
+          │   ),                                                                                    │
+          │   share: nil,                                                                           │
+          │   _isDeleted: false,                                                                    │
+          │   hasLastKnownServerRecord: true,                                                       │
+          │   isShared: false,                                                                      │
+          │   userModificationDate: Date(1970-01-01T00:01:00.000Z)                                  │
+          │ )                                                                                       │
+          └─────────────────────────────────────────────────────────────────────────────────────────┘
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -517,24 +608,31 @@
         }
       }
 
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func unshareNonSharedRecord() async throws {
-        let remindersList = RemindersList(id: 1, title: "Personal")
-        try await userDatabase.userWrite { db in
-          try db.seed {
-            remindersList
+      // NB: Swift 6.2 cannot currently compile this:
+      //     Pattern that the region based isolation checker does not understand how to check.
+      //     Please file a bug.
+      #if swift(<6.2)
+        @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+        @Test func unshareNonSharedRecord() async throws {
+          let remindersList = RemindersList(id: 1, title: "Personal")
+          try await userDatabase.userWrite { db in
+            try db.seed {
+              remindersList
+            }
+          }
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+          try await withKnownIssue {
+            try await syncEngine.unshare(record: remindersList)
+          } matching: { issue in
+            issue.description.hasSuffix(
+              """
+              Issue recorded: No share found associated with record.
+              """
+            )
           }
         }
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-
-        try await withKnownIssue {
-          try await syncEngine.unshare(record: remindersList)
-        } matching: { issue in
-          issue.description == """
-            Issue recorded: No share found associated with record.
-            """
-        }
-      }
+      #endif
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func shareUnshareShareAgain() async throws {
@@ -629,7 +727,9 @@
         )
         _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, remindersListRecord])
         let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
-        let freshRemindersListRecord = try syncEngine.shared.database.record(for: remindersListRecord.recordID)
+        let freshRemindersListRecord = try syncEngine.shared.database.record(
+          for: remindersListRecord.recordID
+        )
 
         try await syncEngine
           .acceptShare(
@@ -902,6 +1002,217 @@
                   share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
                   id: 1,
                   title: "Personal"
+                )
+              ]
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func movesChildRecordFromPrivateParentToSharedParent() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            ModelA.Draft(id: 1, count: 42)
+            ModelB.Draft(id: 1, isOn: true, modelAID: 1)
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let externalZone = CKRecordZone(
+          zoneID: CKRecordZone.ID(
+            zoneName: "external.zone",
+            ownerName: "external.owner"
+          )
+        )
+        try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+
+        let modelARecord = CKRecord(
+          recordType: ModelA.tableName,
+          recordID: ModelA.recordID(for: 2, zoneID: externalZone.zoneID)
+        )
+        modelARecord.setValue(2, forKey: "id", at: now)
+        modelARecord.setValue(1729, forKey: "count", at: now)
+        let share = CKShare(
+          rootRecord: modelARecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(modelARecord.recordID.recordName)",
+            zoneID: modelARecord.recordID.zoneID
+          )
+        )
+        _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, modelARecord])
+        let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+        let freshModelARecord = try syncEngine.shared.database.record(for: modelARecord.recordID)
+
+        try await syncEngine
+          .acceptShare(
+            metadata: ShareMetadata(
+              containerIdentifier: container.containerIdentifier!,
+              hierarchicalRootRecordID: freshModelARecord.recordID,
+              rootRecord: freshModelARecord,
+              share: freshShare
+            )
+          )
+
+        let error = await #expect(throws: DatabaseError.self) {
+          try await self.userDatabase.userWrite { db in
+            try ModelB.find(1).update { $0.modelAID = 2 }.execute(db)
+          }
+        }
+        #expect(error?.message == """
+          The record '1:modelBs' was moved from zone 'zone/__defaultOwner__' to \
+          'external.zone/external.owner'. This is currently not supported in SQLiteData. To work \
+          around, delete the record and then create a new record with its new parent association.
+          """)
+
+        assertQuery(ModelB.all, database: userDatabase.database) {
+          """
+          ┌───────────────┐
+          │ ModelB(       │
+          │   id: 1,      │
+          │   isOn: true, │
+          │   modelAID: 1 │
+          │ )             │
+          └───────────────┘
+          """
+        }
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                                                │
+          │   recordPrimaryKey: "1",                                                                     │
+          │   recordType: "modelAs",                                                                     │
+          │   recordName: "1:modelAs",                                                                   │
+          │   parentRecordPrimaryKey: nil,                                                               │
+          │   parentRecordType: nil,                                                                     │
+          │   parentRecordName: nil,                                                                     │
+          │   lastKnownServerRecord: CKRecord(                                                           │
+          │     recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__),                                  │
+          │     recordType: "modelAs",                                                                   │
+          │     parent: nil,                                                                             │
+          │     share: nil                                                                               │
+          │   ),                                                                                         │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                                 │
+          │     recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__),                                  │
+          │     recordType: "modelAs",                                                                   │
+          │     parent: nil,                                                                             │
+          │     share: nil,                                                                              │
+          │     count: 42,                                                                               │
+          │     id: 1                                                                                    │
+          │   ),                                                                                         │
+          │   share: nil,                                                                                │
+          │   _isDeleted: false,                                                                         │
+          │   hasLastKnownServerRecord: true,                                                            │
+          │   isShared: false,                                                                           │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                       │
+          │ )                                                                                            │
+          ├──────────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                                │
+          │   recordPrimaryKey: "1",                                                                     │
+          │   recordType: "modelBs",                                                                     │
+          │   recordName: "1:modelBs",                                                                   │
+          │   parentRecordPrimaryKey: "1",                                                               │
+          │   parentRecordType: "modelAs",                                                               │
+          │   parentRecordName: "1:modelAs",                                                             │
+          │   lastKnownServerRecord: CKRecord(                                                           │
+          │     recordID: CKRecord.ID(1:modelBs/zone/__defaultOwner__),                                  │
+          │     recordType: "modelBs",                                                                   │
+          │     parent: CKReference(recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__)),             │
+          │     share: nil                                                                               │
+          │   ),                                                                                         │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                                 │
+          │     recordID: CKRecord.ID(1:modelBs/zone/__defaultOwner__),                                  │
+          │     recordType: "modelBs",                                                                   │
+          │     parent: CKReference(recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__)),             │
+          │     share: nil,                                                                              │
+          │     id: 1,                                                                                   │
+          │     isOn: 1,                                                                                 │
+          │     modelAID: 1                                                                              │
+          │   ),                                                                                         │
+          │   share: nil,                                                                                │
+          │   _isDeleted: false,                                                                         │
+          │   hasLastKnownServerRecord: true,                                                            │
+          │   isShared: false,                                                                           │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                       │
+          │ )                                                                                            │
+          ├──────────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                                │
+          │   recordPrimaryKey: "2",                                                                     │
+          │   recordType: "modelAs",                                                                     │
+          │   recordName: "2:modelAs",                                                                   │
+          │   parentRecordPrimaryKey: nil,                                                               │
+          │   parentRecordType: nil,                                                                     │
+          │   parentRecordName: nil,                                                                     │
+          │   lastKnownServerRecord: CKRecord(                                                           │
+          │     recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),                           │
+          │     recordType: "modelAs",                                                                   │
+          │     parent: nil,                                                                             │
+          │     share: CKReference(recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner))  │
+          │   ),                                                                                         │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                                 │
+          │     recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),                           │
+          │     recordType: "modelAs",                                                                   │
+          │     parent: nil,                                                                             │
+          │     share: CKReference(recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner)), │
+          │     count: 1729,                                                                             │
+          │     id: 2                                                                                    │
+          │   ),                                                                                         │
+          │   share: CKRecord(                                                                           │
+          │     recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),                     │
+          │     recordType: "cloudkit.share",                                                            │
+          │     parent: nil,                                                                             │
+          │     share: nil                                                                               │
+          │   ),                                                                                         │
+          │   _isDeleted: false,                                                                         │
+          │   hasLastKnownServerRecord: true,                                                            │
+          │   isShared: true,                                                                            │
+          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                       │
+          │ )                                                                                            │
+          └──────────────────────────────────────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__),
+                  recordType: "modelAs",
+                  parent: nil,
+                  share: nil,
+                  count: 42,
+                  id: 1
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:modelBs/zone/__defaultOwner__),
+                  recordType: "modelBs",
+                  parent: CKReference(recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__)),
+                  share: nil,
+                  id: 1,
+                  isOn: 1,
+                  modelAID: 1
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),
+                  recordType: "modelAs",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner)),
+                  count: 1729,
+                  id: 2
                 )
               ]
             )

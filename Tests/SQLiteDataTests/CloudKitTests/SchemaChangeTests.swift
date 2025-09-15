@@ -8,7 +8,6 @@
   import Testing
 
   extension BaseCloudKitTests {
-    @MainActor
     final class SchemaChangeTests: BaseCloudKitTests, @unchecked Sendable {
       @Dependency(\.dataManager) var dataManager
       var inMemoryDataManager: InMemoryDataManager {

@@ -57,7 +57,11 @@
                   SELECT "ancestorMetadatas"."lastKnownServerRecord"
                   FROM "ancestorMetadatas"
                   WHERE ("ancestorMetadatas"."parentRecordName" IS NULL)
-                )));
+                )), (
+                  SELECT "sqlitedata_icloud_metadata"."lastKnownServerRecord"
+                  FROM "sqlitedata_icloud_metadata"
+                  WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS "new"."parentRecordPrimaryKey") AND ("sqlitedata_icloud_metadata"."recordType" IS "new"."parentRecordType"))
+                ), "new"."parentRecordPrimaryKey", "new"."parentRecordType");
               END
               """,
               [2]: """
@@ -79,7 +83,11 @@
                   SELECT "ancestorMetadatas"."lastKnownServerRecord"
                   FROM "ancestorMetadatas"
                   WHERE ("ancestorMetadatas"."parentRecordName" IS NULL)
-                )));
+                )), (
+                  SELECT "sqlitedata_icloud_metadata"."lastKnownServerRecord"
+                  FROM "sqlitedata_icloud_metadata"
+                  WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" IS "new"."parentRecordPrimaryKey") AND ("sqlitedata_icloud_metadata"."recordType" IS "new"."parentRecordType"))
+                ), "new"."parentRecordPrimaryKey", "new"."parentRecordType");
               END
               """,
               [3]: """
