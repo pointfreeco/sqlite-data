@@ -218,7 +218,7 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func shareDelieveredBeforeRecord() async throws {
+      @Test func shareDeliveredBeforeRecord() async throws {
         let externalZone = CKRecordZone(
           zoneID: CKRecordZone.ID(
             zoneName: "external.zone",
@@ -290,8 +290,8 @@
           │ SyncMetadata(                                                                                       │
           │   recordPrimaryKey: "1",                                                                            │
           │   recordType: "remindersLists",                                                                     │
-          │   zoneName: "zone",                                                                                 │
-          │   ownerName: "__defaultOwner__",                                                                    │
+          │   zoneName: "external.zone",                                                                        │
+          │   ownerName: "external.owner",                                                                      │
           │   recordName: "1:remindersLists",                                                                   │
           │   parentRecordPrimaryKey: nil,                                                                      │
           │   parentRecordType: nil,                                                                            │
@@ -363,8 +363,8 @@
           │ SyncMetadata(                                                                           │
           │   recordPrimaryKey: "1",                                                                │
           │   recordType: "modelAs",                                                                │
-          │   zoneName: "zone",                                                                     │
-          │   ownerName: "__defaultOwner__",                                                        │
+          │   zoneName: "external.zone",                                                            │
+          │   ownerName: "external.owner",                                                          │
           │   recordName: "1:modelAs",                                                              │
           │   parentRecordPrimaryKey: nil,                                                          │
           │   parentRecordType: nil,                                                                │
@@ -393,8 +393,8 @@
           │ SyncMetadata(                                                                           │
           │   recordPrimaryKey: "1",                                                                │
           │   recordType: "modelBs",                                                                │
-          │   zoneName: "zone",                                                                     │
-          │   ownerName: "__defaultOwner__",                                                        │
+          │   zoneName: "external.zone",                                                            │
+          │   ownerName: "external.owner",                                                          │
           │   recordName: "1:modelBs",                                                              │
           │   parentRecordPrimaryKey: "1",                                                          │
           │   parentRecordType: "modelAs",                                                          │
@@ -424,8 +424,8 @@
           │ SyncMetadata(                                                                           │
           │   recordPrimaryKey: "1",                                                                │
           │   recordType: "modelCs",                                                                │
-          │   zoneName: "zone",                                                                     │
-          │   ownerName: "__defaultOwner__",                                                        │
+          │   zoneName: "external.zone",                                                            │
+          │   ownerName: "external.owner",                                                          │
           │   recordName: "1:modelCs",                                                              │
           │   parentRecordPrimaryKey: "1",                                                          │
           │   parentRecordType: "modelBs",                                                          │
@@ -1152,8 +1152,8 @@
           │ SyncMetadata(                                                                                │
           │   recordPrimaryKey: "2",                                                                     │
           │   recordType: "modelAs",                                                                     │
-          │   zoneName: "zone",                                                                          │
-          │   ownerName: "__defaultOwner__",                                                             │
+          │   zoneName: "external.zone",                                                                 │
+          │   ownerName: "external.owner",                                                               │
           │   recordName: "2:modelAs",                                                                   │
           │   parentRecordPrimaryKey: nil,                                                               │
           │   parentRecordType: nil,                                                                     │

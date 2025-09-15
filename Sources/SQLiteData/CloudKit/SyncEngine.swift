@@ -2062,6 +2062,8 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension Updates<SyncMetadata> {
     mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
+      self.zoneName = lastKnownServerRecord?.recordID.zoneID.zoneName ?? self.zoneName
+      self.ownerName = lastKnownServerRecord?.recordID.zoneID.ownerName ?? self.ownerName
       self.lastKnownServerRecord = lastKnownServerRecord
       self._lastKnownServerRecordAllFields = lastKnownServerRecord
       if let lastKnownServerRecord {
