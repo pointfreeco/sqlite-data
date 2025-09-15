@@ -57,7 +57,7 @@
           "recordType" TEXT NOT NULL,
           "recordName" TEXT NOT NULL AS ("recordPrimaryKey" || ':' || "recordType"),
           "zoneName" TEXT NOT NULL,
-          "ownerName" TEXT  NOT NULL,
+          "ownerName" TEXT NOT NULL,
           "parentRecordPrimaryKey" TEXT,
           "parentRecordType" TEXT,
           "parentRecordName" TEXT AS ("parentRecordPrimaryKey" || ':' || "parentRecordType"),
@@ -70,7 +70,7 @@
           "_isDeleted" INTEGER NOT NULL DEFAULT 0,
 
           PRIMARY KEY ("recordPrimaryKey", "recordType"),
-          UNIQUE("recordName")
+          UNIQUE ("recordName")
         ) STRICT
         """
       )

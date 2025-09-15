@@ -59,8 +59,6 @@
       "co.pointfree.SQLiteData.CloudKit.write-permission-error"
     public static let invalidRecordNameError =
       "co.pointfree.SQLiteData.CloudKit.invalid-record-name-error"
-    public static let nullZoneError =
-      "co.pointfree.SQLiteData.CloudKit.null-zone"
 
     /// Initialize a sync engine.
     ///
@@ -605,7 +603,10 @@
     @DatabaseFunction(
       "sqlitedata_icloud_didUpdate",
       as: ((
-        String, CKRecord?.SystemFieldsRepresentation, CKRecord?.SystemFieldsRepresentation, String?,
+        String,
+        CKRecord?.SystemFieldsRepresentation,
+        CKRecord?.SystemFieldsRepresentation,
+        String?,
         String?
       ) -> Void).self
     )
@@ -1621,9 +1622,8 @@
           } catch {
             guard
               let error = error as? DatabaseError,
-              (error.resultCode == .SQLITE_CONSTRAINT
-                && error.extendedResultCode == .SQLITE_CONSTRAINT_FOREIGNKEY)
-                || (error.message ?? "").contains(Self.nullZoneError)
+              error.resultCode == .SQLITE_CONSTRAINT,
+              error.extendedResultCode == .SQLITE_CONSTRAINT_FOREIGNKEY
             else {
               throw error
             }

@@ -18,7 +18,10 @@
     /// The type of the record synchronized, _i.e._ its table name.
     public var recordType: String
 
+    /// The record zone name.
     public var zoneName: String
+
+    /// The record owner name.
     public var ownerName: String
 
     /// The name of the record synchronized.

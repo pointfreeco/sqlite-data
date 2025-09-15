@@ -138,18 +138,11 @@
       parentForeignKey: ForeignKey?,
       defaultZone: CKRecordZone
     ) -> some StructuredQueriesCore.Statement {
-
-      // TODO: document not allowing primary keys that are not globally uniquely generated IDs
-
       let (parentRecordPrimaryKey, parentRecordType, zoneName, ownerName) = parentFields(
         alias: new,
         parentForeignKey: parentForeignKey,
         defaultZone: defaultZone
       )
-//      let raise = #sql(
-//        "RAISE(ABORT, \(quote: SyncEngine.nullZoneError, delimiter: .text))",
-//        as: Never.self
-//      )
       return insert {
         (
           $0.recordPrimaryKey,
@@ -163,8 +156,8 @@
         Values(
           #sql("\(new.primaryKey)"),
           T.tableName,
-          #sql("coalesce((\(zoneName)), \(bind: defaultZone.zoneID.zoneName))"),
-          #sql("coalesce((\(ownerName)), \(bind: defaultZone.zoneID.ownerName))"),
+          zoneName,
+          ownerName,
           parentRecordPrimaryKey,
           parentRecordType
         )
@@ -275,7 +268,16 @@
     zoneName: SQLQueryExpression<String>,
     ownerName: SQLQueryExpression<String>
   ) {
-    parentForeignKey
+    let zoneName = #sql(
+      "\(quote: defaultZone.zoneID.zoneName, delimiter: .text)",
+      as: String.self
+    )
+    let ownerName = #sql(
+      "\(quote: defaultZone.zoneID.ownerName, delimiter: .text)",
+      as: String.self
+    )
+    return
+      parentForeignKey
       .map { foreignKey in
         let parentRecordPrimaryKey = #sql(
           #"\#(type(of: alias).QueryValue.self).\#(quote: foreignKey.from)"#,
@@ -291,16 +293,11 @@
         return (
           parentRecordPrimaryKey,
           parentRecordType,
-          SQLQueryExpression(parentMetadata.select(\.zoneName)),
-          SQLQueryExpression(parentMetadata.select(\.ownerName))
+          #sql("coalesce((\(parentMetadata.select(\.zoneName))), \(zoneName))"),
+          #sql("coalesce((\(parentMetadata.select(\.ownerName))), \(ownerName))")
         )
       }
-      ?? (
-        nil,
-        nil,
-        #sql("\(bind: defaultZone.zoneID.zoneName)"),
-        #sql("\(bind: defaultZone.zoneID.ownerName)")
-      )
+      ?? (nil, nil, zoneName, ownerName)
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
