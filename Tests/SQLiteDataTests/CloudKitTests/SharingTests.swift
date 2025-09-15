@@ -171,7 +171,7 @@
         try await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord]).notify()
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(60)
+          $0.currentTime.now += (60)
         } operation: {
           try await userDatabase.userWrite { db in
             try db.seed {
@@ -318,7 +318,7 @@
           │   _isDeleted: false,                                                                                │
           │   hasLastKnownServerRecord: true,                                                                   │
           │   isShared: true,                                                                                   │
-          │   userModificationDate: Date(1970-01-01T00:00:00.000Z)                                              │
+          │   userModificationTime: 0                                                                           │
           │ )                                                                                                   │
           └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
           """
@@ -344,7 +344,7 @@
         try await syncEngine.modifyRecords(scope: .shared, saving: [modelARecord]).notify()
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(60)
+          $0.currentTime.now += (60)
         } operation: {
           try await userDatabase.userWrite { db in
             try db.seed {
@@ -430,7 +430,7 @@
         ).notify()
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(60)
+          $0.currentTime.now += (60)
         } operation: {
           try await userDatabase.userWrite { db in
             try Reminder.find(1).delete().execute(db)

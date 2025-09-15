@@ -64,7 +64,7 @@
           "share" BLOB,
           "hasLastKnownServerRecord" INTEGER NOT NULL AS ("lastKnownServerRecord" IS NOT NULL),
           "isShared" INTEGER NOT NULL AS ("share" IS NOT NULL),
-          "userModificationDate" TEXT NOT NULL DEFAULT (\($datetime())),
+          "userModificationTime" INTEGER NOT NULL DEFAULT (\($currentTime())),
           "_isDeleted" INTEGER NOT NULL DEFAULT 0,
 
           PRIMARY KEY ("recordPrimaryKey", "recordType"),

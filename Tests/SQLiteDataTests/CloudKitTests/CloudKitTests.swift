@@ -447,7 +447,7 @@
         ) {
           """
           [
-            [0]: "sqlitedata_icloud_datetime",
+            [0]: "sqlitedata_icloud_currenttime",
             [1]: "sqlitedata_icloud_diddelete",
             [2]: "sqlitedata_icloud_didupdate",
             [3]: "sqlitedata_icloud_haspermission",
@@ -502,7 +502,7 @@
         }
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(60)
+          $0.currentTime.now += (60)
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersList
@@ -569,7 +569,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(60)
+          $0.currentTime.now += (60)
         } operation: {
           let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
           record.setValue("Work", forKey: "title", at: now)
@@ -587,13 +587,13 @@
           """
         }
         assertQuery(
-          SyncMetadata.select(\.userModificationDate),
+          SyncMetadata.select(\.userModificationTime),
           database: syncEngine.metadatabase
         ) {
           """
-          ┌────────────────────────────────┐
-          │ Date(1970-01-01T00:01:00.000Z) │
-          └────────────────────────────────┘
+          ┌────┐
+          │ 60 │
+          └────┘
           """
         }
         assertInlineSnapshot(of: container, as: .customDump) {
@@ -631,7 +631,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += (1)
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).update { $0.title = "My stuff" }.execute(db)
@@ -683,13 +683,13 @@
 
         assertQuery(Reminder.all, database: userDatabase.database)
         assertQuery(
-          SyncMetadata.select(\.userModificationDate),
+          SyncMetadata.select(\.userModificationTime),
           database: syncEngine.metadatabase
         ) {
           """
-          ┌────────────────────────────────┐
-          │ Date(1970-01-01T00:00:00.000Z) │
-          └────────────────────────────────┘
+          ┌───┐
+          │ 0 │
+          └───┘
           """
         }
         assertInlineSnapshot(of: container, as: .customDump) {

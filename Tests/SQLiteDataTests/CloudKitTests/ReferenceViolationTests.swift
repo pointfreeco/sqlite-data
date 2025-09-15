@@ -29,7 +29,7 @@
           deleting: [RemindersList.recordID(for: 2)]
         )
         try withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += (1)
         } operation: {
           try userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.remindersListID = 2 }.execute(db)
@@ -92,14 +92,14 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += (1)
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).delete().execute(db)
           }
         }
         let modifications = try withDependencies {
-          $0.datetime.now.addTimeInterval(2)
+          $0.currentTime.now += (2)
         } operation: {
           let reminderRecord = CKRecord(
             recordType: Reminder.tableName,
@@ -174,14 +174,14 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += (1)
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).delete().execute(db)
           }
         }
         let modifications = try withDependencies {
-          $0.datetime.now.addTimeInterval(2)
+          $0.currentTime.now += (2)
         } operation: {
           let reminderRecord = CKRecord(
             recordType: Reminder.tableName,
@@ -262,14 +262,14 @@
           deleting: [Parent.recordID(for: 2)]
         )
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += (1)
         } operation: {
           try await userDatabase.userWrite { db in
             try ChildWithOnDeleteSetNull.find(1).update { $0.parentID = 2 }.execute(db)
           }
         }
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(2)
+          $0.currentTime.now += (2)
         } operation: {
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
           await modifications.notify()
@@ -340,14 +340,14 @@
           deleting: [Parent.recordID(for: 2)]
         )
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += (1)
         } operation: {
           try await userDatabase.userWrite { db in
             try ChildWithOnDeleteSetDefault.find(1).update { $0.parentID = 2 }.execute(db)
           }
         }
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(2)
+          $0.currentTime.now += (2)
         } operation: {
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
           await modifications.notify()

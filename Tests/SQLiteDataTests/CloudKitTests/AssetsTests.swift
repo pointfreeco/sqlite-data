@@ -71,7 +71,7 @@
         }
 
         try await withDependencies {
-          $0.datetime.now.addTimeInterval(1)
+          $0.currentTime.now += (1)
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersListAsset

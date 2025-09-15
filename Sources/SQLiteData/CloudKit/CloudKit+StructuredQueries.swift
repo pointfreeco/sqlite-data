@@ -135,12 +135,12 @@
 
   @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   extension CKRecordKeyValueSetting {
-    subscript(at key: String) -> Date {
+    subscript(at key: String) -> Int64 {
       get {
-        self["\(CKRecord.userModificationDateKey)_\(key)"] as? Date ?? .distantPast
+        self["\(CKRecord.userModificationTimeKey)_\(key)"] as? Int64 ?? -1
       }
       set {
-        self["\(CKRecord.userModificationDateKey)_\(key)"] = max(self[at: key], newValue)
+        self["\(CKRecord.userModificationTimeKey)_\(key)"] = max(self[at: key], newValue)
       }
     }
   }
@@ -160,17 +160,17 @@
     package func setValue(
       _ newValue: some CKRecordValueProtocol & Equatable,
       forKey key: CKRecord.FieldKey,
-      at userModificationDate: Date
+      at userModificationTime: Int64
     ) -> Bool {
       guard
-        date(encryptedValues[at: key], comesBefore: userModificationDate),
+        encryptedValues[at: key] < userModificationTime,
         encryptedValues[key] != newValue
       else {
         return false
       }
       encryptedValues[key] = newValue
-      encryptedValues[at: key] = userModificationDate
-      self.userModificationDate = userModificationDate
+      encryptedValues[at: key] = userModificationTime
+      self.userModificationTime = userModificationTime
       return true
     }
 
@@ -178,11 +178,11 @@
     package func setValue(
       _ newValue: [UInt8],
       forKey key: CKRecord.FieldKey,
-      at userModificationDate: Date
+      at userModificationTime: Int64
     ) -> Bool {
       @Dependency(\.dataManager) var dataManager
 
-      guard date(encryptedValues[at: key], comesBefore: userModificationDate)
+      guard encryptedValues[at: key] < userModificationTime
       else {
         return false
       }
@@ -194,61 +194,61 @@
         try dataManager.save(Data(newValue), to: fileURL)
       }
       self[key] = asset
-      encryptedValues[at: key] = userModificationDate
-      self.userModificationDate = userModificationDate
+      encryptedValues[at: key] = userModificationTime
+      self.userModificationTime = userModificationTime
       return true
     }
 
     @discardableResult
     package func removeValue(
       forKey key: CKRecord.FieldKey,
-      at userModificationDate: Date
+      at userModificationTime: Int64
     ) -> Bool {
-      guard date(encryptedValues[at: key], comesBefore: userModificationDate)
+      guard encryptedValues[at: key] < userModificationTime
       else {
         return false
       }
       if encryptedValues[key] != nil {
         encryptedValues[key] = nil
-        encryptedValues[at: key] = userModificationDate
-        self.userModificationDate = userModificationDate
+        encryptedValues[at: key] = userModificationTime
+        self.userModificationTime = userModificationTime
         return true
       } else if self[key] != nil {
         self[key] = nil
-        encryptedValues[at: key] = userModificationDate
-        self.userModificationDate = userModificationDate
+        encryptedValues[at: key] = userModificationTime
+        self.userModificationTime = userModificationTime
         return true
       }
       return false
     }
 
-    func update<T: PrimaryKeyedTable>(with row: T, userModificationDate: Date) {
+    func update<T: PrimaryKeyedTable>(with row: T, userModificationTime: Int64) {
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
           let column = column as! any WritableTableColumnExpression<T, Value>
           let value = Value(queryOutput: row[keyPath: column.keyPath])
           switch value.queryBinding {
           case .blob(let value):
-            setValue(value, forKey: column.name, at: userModificationDate)
+            setValue(value, forKey: column.name, at: userModificationTime)
           case .bool(let value):
-            setValue(value, forKey: column.name, at: userModificationDate)
+            setValue(value, forKey: column.name, at: userModificationTime)
           case .double(let value):
-            setValue(value, forKey: column.name, at: userModificationDate)
+            setValue(value, forKey: column.name, at: userModificationTime)
           case .date(let value):
-            setValue(value, forKey: column.name, at: userModificationDate)
+            setValue(value, forKey: column.name, at: userModificationTime)
           case .int(let value):
-            setValue(value, forKey: column.name, at: userModificationDate)
+            setValue(value, forKey: column.name, at: userModificationTime)
           case .null:
-            removeValue(forKey: column.name, at: userModificationDate)
+            removeValue(forKey: column.name, at: userModificationTime)
           case .text(let value):
-            setValue(value, forKey: column.name, at: userModificationDate)
+            setValue(value, forKey: column.name, at: userModificationTime)
           case .uint(let value):
-            setValue(value, forKey: column.name, at: userModificationDate)
+            setValue(value, forKey: column.name, at: userModificationTime)
           case .uuid(let value):
             setValue(
               value.uuidString.lowercased(),
               forKey: column.name,
-              at: userModificationDate
+              at: userModificationTime
             )
           case .invalid(let error):
             reportIssue(error)
@@ -266,7 +266,7 @@
     ) {
       typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
 
-      self.userModificationDate = other.userModificationDate
+      self.userModificationTime = other.userModificationTime
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
           let key = column.name
@@ -318,15 +318,15 @@
       }
     }
 
-    package var userModificationDate: Date {
-      get { encryptedValues[Self.userModificationDateKey] as? Date ?? .distantPast }
+    package var userModificationTime: Int64 {
+      get { encryptedValues[Self.userModificationTimeKey] as? Int64 ?? -1 }
       set {
-        encryptedValues[Self.userModificationDateKey] = Swift.max(userModificationDate, newValue)
+        encryptedValues[Self.userModificationTimeKey] = Swift.max(userModificationTime, newValue)
       }
     }
 
-    package static let userModificationDateKey =
-      "\(String.sqliteDataCloudKitSchemaName)_userModificationDate"
+    package static let userModificationTimeKey =
+      "\(String.sqliteDataCloudKitSchemaName)_userModificationTime"
   }
 
   extension __CKRecordObjCValue {

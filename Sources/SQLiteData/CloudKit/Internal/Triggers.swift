@@ -118,7 +118,7 @@
       } doUpdate: {
         $0.parentRecordPrimaryKey = $1.parentRecordPrimaryKey
         $0.parentRecordType = $1.parentRecordType
-        $0.userModificationDate = $1.userModificationDate
+        $0.userModificationTime = $1.userModificationTime
       }
     }
   }
