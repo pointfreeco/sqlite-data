@@ -290,6 +290,8 @@
           │ SyncMetadata(                                                                                       │
           │   recordPrimaryKey: "1",                                                                            │
           │   recordType: "remindersLists",                                                                     │
+          │   zoneName: "zone",                                                                                 │
+          │   ownerName: "__defaultOwner__",                                                                    │
           │   recordName: "1:remindersLists",                                                                   │
           │   parentRecordPrimaryKey: nil,                                                                      │
           │   parentRecordType: nil,                                                                            │
@@ -361,6 +363,8 @@
           │ SyncMetadata(                                                                           │
           │   recordPrimaryKey: "1",                                                                │
           │   recordType: "modelAs",                                                                │
+          │   zoneName: "zone",                                                                     │
+          │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "1:modelAs",                                                              │
           │   parentRecordPrimaryKey: nil,                                                          │
           │   parentRecordType: nil,                                                                │
@@ -389,6 +393,8 @@
           │ SyncMetadata(                                                                           │
           │   recordPrimaryKey: "1",                                                                │
           │   recordType: "modelBs",                                                                │
+          │   zoneName: "zone",                                                                     │
+          │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "1:modelBs",                                                              │
           │   parentRecordPrimaryKey: "1",                                                          │
           │   parentRecordType: "modelAs",                                                          │
@@ -418,6 +424,8 @@
           │ SyncMetadata(                                                                           │
           │   recordPrimaryKey: "1",                                                                │
           │   recordType: "modelCs",                                                                │
+          │   zoneName: "zone",                                                                     │
+          │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "1:modelCs",                                                              │
           │   parentRecordPrimaryKey: "1",                                                          │
           │   parentRecordType: "modelBs",                                                          │
@@ -1083,6 +1091,8 @@
           │ SyncMetadata(                                                                                │
           │   recordPrimaryKey: "1",                                                                     │
           │   recordType: "modelAs",                                                                     │
+          │   zoneName: "zone",                                                                          │
+          │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelAs",                                                                   │
           │   parentRecordPrimaryKey: nil,                                                               │
           │   parentRecordType: nil,                                                                     │
@@ -1111,6 +1121,8 @@
           │ SyncMetadata(                                                                                │
           │   recordPrimaryKey: "1",                                                                     │
           │   recordType: "modelBs",                                                                     │
+          │   zoneName: "zone",                                                                          │
+          │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelBs",                                                                   │
           │   parentRecordPrimaryKey: "1",                                                               │
           │   parentRecordType: "modelAs",                                                               │
@@ -1140,6 +1152,8 @@
           │ SyncMetadata(                                                                                │
           │   recordPrimaryKey: "2",                                                                     │
           │   recordType: "modelAs",                                                                     │
+          │   zoneName: "zone",                                                                          │
+          │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "2:modelAs",                                                                   │
           │   parentRecordPrimaryKey: nil,                                                               │
           │   parentRecordType: nil,                                                                     │

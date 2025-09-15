@@ -4,24 +4,32 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTable {
-    static func metadataTriggers(parentForeignKey: ForeignKey?) -> [TemporaryTrigger<Self>] {
+    static func metadataTriggers(
+      parentForeignKey: ForeignKey?,
+      defaultZone: CKRecordZone
+    ) -> [TemporaryTrigger<Self>] {
       [
-        afterInsert(parentForeignKey: parentForeignKey),
-        afterUpdate(parentForeignKey: parentForeignKey),
-        afterDeleteFromUser(parentForeignKey: parentForeignKey),
+        afterInsert(parentForeignKey: parentForeignKey, defaultZone: defaultZone),
+        afterUpdate(parentForeignKey: parentForeignKey, defaultZone: defaultZone),
+        afterDeleteFromUser(parentForeignKey: parentForeignKey, defaultZone: defaultZone),
         afterDeleteFromSyncEngine,
-        afterPrimaryKeyChange(parentForeignKey: parentForeignKey),
+        afterPrimaryKeyChange(parentForeignKey: parentForeignKey, defaultZone: defaultZone),
       ]
     }
 
-    fileprivate static func afterPrimaryKeyChange(parentForeignKey: ForeignKey?)
-      -> TemporaryTrigger<Self>
-    {
+    fileprivate static func afterPrimaryKeyChange(
+      parentForeignKey: ForeignKey?,
+      defaultZone: CKRecordZone
+    ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_primary_key_change_on_\(tableName)",
         ifNotExists: true,
         after: .update(of: \.primaryKey) { old, new in
-          checkWritePermissions(alias: new, parentForeignKey: parentForeignKey)
+          checkWritePermissions(
+            alias: new,
+            parentForeignKey: parentForeignKey,
+            defaultZone: defaultZone
+          )
           SyncMetadata
             .where {
               $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
@@ -34,36 +42,65 @@
       )
     }
 
-    fileprivate static func afterInsert(parentForeignKey: ForeignKey?) -> TemporaryTrigger<Self> {
+    fileprivate static func afterInsert(
+      parentForeignKey: ForeignKey?,
+      defaultZone: CKRecordZone
+    ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_\(tableName)",
         ifNotExists: true,
         after: .insert { new in
-          checkWritePermissions(alias: new, parentForeignKey: parentForeignKey)
-          SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey)
+          checkWritePermissions(
+            alias: new,
+            parentForeignKey: parentForeignKey,
+            defaultZone: defaultZone
+          )
+          SyncMetadata.upsert(
+            new: new,
+            parentForeignKey: parentForeignKey,
+            defaultZone: defaultZone
+          )
         }
       )
     }
 
-    fileprivate static func afterUpdate(parentForeignKey: ForeignKey?) -> TemporaryTrigger<Self> {
+    fileprivate static func afterUpdate(
+      parentForeignKey: ForeignKey?,
+      defaultZone: CKRecordZone
+    ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_update_on_\(tableName)",
         ifNotExists: true,
         after: .update { _, new in
-          checkWritePermissions(alias: new, parentForeignKey: parentForeignKey)
-          SyncMetadata.upsert(new: new, parentForeignKey: parentForeignKey)
+          checkWritePermissions(
+            alias: new,
+            parentForeignKey: parentForeignKey,
+            defaultZone: defaultZone
+          )
+          SyncMetadata.upsert(
+            new: new,
+            parentForeignKey: parentForeignKey,
+            defaultZone: defaultZone
+          )
         }
       )
     }
 
-    fileprivate static func afterDeleteFromUser(parentForeignKey: ForeignKey?) -> TemporaryTrigger<
+    fileprivate static func afterDeleteFromUser(
+      parentForeignKey: ForeignKey?,
+      defaultZone: CKRecordZone
+    ) -> TemporaryTrigger<
       Self
     > {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_\(tableName)_from_user",
         ifNotExists: true,
         after: .delete { old in
-          checkWritePermissions(alias: old, parentForeignKey: parentForeignKey)
+          checkWritePermissions(
+            alias: old,
+            parentForeignKey: parentForeignKey,
+            defaultZone: defaultZone
+          )
           SyncMetadata
             .where {
               $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
@@ -99,19 +136,37 @@
     fileprivate static func upsert<T: PrimaryKeyedTable, Name>(
       new: StructuredQueriesCore.TableAlias<T, Name>.TableColumns,
       parentForeignKey: ForeignKey?,
+      defaultZone: CKRecordZone
     ) -> some StructuredQueriesCore.Statement {
-      let (parentRecordPrimaryKey, parentRecordType) = parentFields(
+
+      // TODO: document not allowing primary keys that are not globally uniquely generated IDs
+
+      let (parentRecordPrimaryKey, parentRecordType, zoneName, ownerName) = parentFields(
         alias: new,
-        parentForeignKey: parentForeignKey
+        parentForeignKey: parentForeignKey,
+        defaultZone: defaultZone
       )
+//      let raise = #sql(
+//        "RAISE(ABORT, \(quote: SyncEngine.nullZoneError, delimiter: .text))",
+//        as: Never.self
+//      )
       return insert {
-        ($0.recordPrimaryKey, $0.recordType, $0.parentRecordPrimaryKey, $0.parentRecordType)
+        (
+          $0.recordPrimaryKey,
+          $0.recordType,
+          $0.zoneName,
+          $0.ownerName,
+          $0.parentRecordPrimaryKey,
+          $0.parentRecordType
+        )
       } select: {
         Values(
           #sql("\(new.primaryKey)"),
           T.tableName,
-          #sql(parentRecordPrimaryKey),
-          #sql(parentRecordType)
+          #sql("coalesce((\(zoneName)), \(bind: defaultZone.zoneID.zoneName))"),
+          #sql("coalesce((\(ownerName)), \(bind: defaultZone.zoneID.ownerName))"),
+          parentRecordPrimaryKey,
+          parentRecordType
         )
       } onConflict: {
         ($0.recordPrimaryKey, $0.recordType)
@@ -209,13 +264,43 @@
     }
   }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func parentFields<Base, Name>(
     alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
-    parentForeignKey: ForeignKey?
-  ) -> (parentRecordPrimaryKey: QueryFragment, parentRecordType: QueryFragment) {
+    parentForeignKey: ForeignKey?,
+    defaultZone: CKRecordZone
+  ) -> (
+    parentRecordPrimaryKey: SQLQueryExpression<String>?,
+    parentRecordType: SQLQueryExpression<String>?,
+    zoneName: SQLQueryExpression<String>,
+    ownerName: SQLQueryExpression<String>
+  ) {
     parentForeignKey
-      .map { (#"\#(type(of: alias).QueryValue.self).\#(quote: $0.from)"#, "\(bind: $0.table)") }
-      ?? ("NULL", "NULL")
+      .map { foreignKey in
+        let parentRecordPrimaryKey = #sql(
+          #"\#(type(of: alias).QueryValue.self).\#(quote: foreignKey.from)"#,
+          as: String.self
+        )
+        let parentRecordType = #sql("\(bind: foreignKey.table)", as: String.self)
+        let parentMetadata =
+          SyncMetadata
+          .where {
+            $0.recordPrimaryKey.eq(parentRecordPrimaryKey)
+              && $0.recordType.eq(parentRecordType)
+          }
+        return (
+          parentRecordPrimaryKey,
+          parentRecordType,
+          SQLQueryExpression(parentMetadata.select(\.zoneName)),
+          SQLQueryExpression(parentMetadata.select(\.ownerName))
+        )
+      }
+      ?? (
+        nil,
+        nil,
+        #sql("\(bind: defaultZone.zoneID.zoneName)"),
+        #sql("\(bind: defaultZone.zoneID.ownerName)")
+      )
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -234,18 +319,20 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func checkWritePermissions<Base, Name>(
     alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
-    parentForeignKey: ForeignKey?
+    parentForeignKey: ForeignKey?,
+    defaultZone: CKRecordZone
   ) -> some StructuredQueriesCore.Statement<Never> {
-    let (parentRecordPrimaryKey, parentRecordType) = parentFields(
+    let (parentRecordPrimaryKey, parentRecordType, _, _) = parentFields(
       alias: alias,
-      parentForeignKey: parentForeignKey
+      parentForeignKey: parentForeignKey,
+      defaultZone: defaultZone
     )
 
     return With {
       SyncMetadata
         .where {
-          $0.recordPrimaryKey.is(#sql(parentRecordPrimaryKey))
-            && $0.recordType.is(#sql(parentRecordType))
+          $0.recordPrimaryKey.is(parentRecordPrimaryKey)
+            && $0.recordType.is(parentRecordType)
         }
         .select { RootShare.Columns(parentRecordName: $0.parentRecordName, share: $0.share) }
         .union(

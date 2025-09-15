@@ -40,6 +40,8 @@
             SyncMetadata(
               recordPrimaryKey: "1",
               recordType: UnrecognizedTable.tableName,
+              zoneName: "zone-name",
+              ownerName: "owner-name",
               userModificationTime: 0
             )
           }
@@ -70,6 +72,8 @@
             SyncMetadata(
               recordPrimaryKey: "1",
               recordType: RemindersList.tableName,
+              zoneName: syncEngine.defaultZone.zoneID.zoneName,
+              ownerName: syncEngine.defaultZone.zoneID.ownerName,
               userModificationTime: 0
             )
           }

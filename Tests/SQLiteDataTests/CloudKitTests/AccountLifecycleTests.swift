@@ -149,6 +149,8 @@
         │ SyncMetadata(                                                      │
         │   recordPrimaryKey: "1",                                           │
         │   recordType: "remindersLists",                                    │
+        │   zoneName: "zone",                                                │
+        │   ownerName: "__defaultOwner__",                                   │
         │   recordName: "1:remindersLists",                                  │
         │   parentRecordPrimaryKey: nil,                                     │
         │   parentRecordType: nil,                                           │
@@ -177,6 +179,8 @@
         │ SyncMetadata(                                                      │
         │   recordPrimaryKey: "1",                                           │
         │   recordType: "reminders",                                         │
+        │   zoneName: "zone",                                                │
+        │   ownerName: "__defaultOwner__",                                   │
         │   recordName: "1:reminders",                                       │
         │   parentRecordPrimaryKey: "1",                                     │
         │   parentRecordType: "remindersLists",                              │
@@ -226,6 +230,8 @@
         │ SyncMetadata(                                                                           │
         │   recordPrimaryKey: "1",                                                                │
         │   recordType: "remindersLists",                                                         │
+        │   zoneName: "zone",                                                                     │
+        │   ownerName: "__defaultOwner__",                                                        │
         │   recordName: "1:remindersLists",                                                       │
         │   parentRecordPrimaryKey: nil,                                                          │
         │   parentRecordType: nil,                                                                │
@@ -254,6 +260,8 @@
         │ SyncMetadata(                                                                           │
         │   recordPrimaryKey: "1",                                                                │
         │   recordType: "reminders",                                                              │
+        │   zoneName: "zone",                                                                     │
+        │   ownerName: "__defaultOwner__",                                                        │
         │   recordName: "1:reminders",                                                            │
         │   parentRecordPrimaryKey: "1",                                                          │
         │   parentRecordType: "remindersLists",                                                   │
@@ -375,6 +383,8 @@
         │ SyncMetadata(                                                                                       │
         │   recordPrimaryKey: "1",                                                                            │
         │   recordType: "remindersLists",                                                                     │
+        │   zoneName: "zone",                                                                                 │
+        │   ownerName: "__defaultOwner__",                                                                    │
         │   recordName: "1:remindersLists",                                                                   │
         │   parentRecordPrimaryKey: nil,                                                                      │
         │   parentRecordType: nil,                                                                            │
@@ -408,6 +418,8 @@
         │ SyncMetadata(                                                                                       │
         │   recordPrimaryKey: "1",                                                                            │
         │   recordType: "reminders",                                                                          │
+        │   zoneName: "zone",                                                                                 │
+        │   ownerName: "__defaultOwner__",                                                                    │
         │   recordName: "1:reminders",                                                                        │
         │   parentRecordPrimaryKey: "1",                                                                      │
         │   parentRecordType: "remindersLists",                                                               │
@@ -463,6 +475,8 @@
         │ SyncMetadata(                                                                                       │
         │   recordPrimaryKey: "1",                                                                            │
         │   recordType: "remindersLists",                                                                     │
+        │   zoneName: "zone",                                                                                 │
+        │   ownerName: "__defaultOwner__",                                                                    │
         │   recordName: "1:remindersLists",                                                                   │
         │   parentRecordPrimaryKey: nil,                                                                      │
         │   parentRecordType: nil,                                                                            │
@@ -496,6 +510,8 @@
         │ SyncMetadata(                                                                                       │
         │   recordPrimaryKey: "1",                                                                            │
         │   recordType: "reminders",                                                                          │
+        │   zoneName: "zone",                                                                                 │
+        │   ownerName: "__defaultOwner__",                                                                    │
         │   recordName: "1:reminders",                                                                        │
         │   parentRecordPrimaryKey: "1",                                                                      │
         │   parentRecordType: "remindersLists",                                                               │

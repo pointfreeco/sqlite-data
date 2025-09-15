@@ -4,6 +4,7 @@
   import CustomDump
   import InlineSnapshotTesting
   import SQLiteData
+  import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
 
@@ -304,17 +305,22 @@
             )
             """
           }
-          try await userDatabase.read { db in
-            try #expect(
-              ChildWithOnDeleteSetNull.all.fetchAll(db) == [
-                ChildWithOnDeleteSetNull(id: 1, parentID: nil)
-              ]
-            )
-            try #expect(
-              Parent.all.fetchAll(db) == [
-                Parent(id: 1)
-              ]
-            )
+          assertQuery(ChildWithOnDeleteSetNull.all, database: userDatabase.database) {
+            """
+            ┌───────────────────────────┐
+            │ ChildWithOnDeleteSetNull( │
+            │   id: 1,                  │
+            │   parentID: nil           │
+            │ )                         │
+            └───────────────────────────┘
+            """
+          }
+          assertQuery(Parent.all, database: userDatabase.database) {
+            """
+            ┌───────────────┐
+            │ Parent(id: 1) │
+            └───────────────┘
+            """
           }
         }
       }

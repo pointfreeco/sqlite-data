@@ -59,6 +59,8 @@
       "co.pointfree.SQLiteData.CloudKit.write-permission-error"
     public static let invalidRecordNameError =
       "co.pointfree.SQLiteData.CloudKit.invalid-record-name-error"
+    public static let nullZoneError =
+      "co.pointfree.SQLiteData.CloudKit.null-zone"
 
     /// Initialize a sync engine.
     ///
@@ -75,7 +77,10 @@
     ///   explicit call to ``stop()``. By default this argument is `true`.
     ///   - logger: The logger used to log events in the sync engine. By default a `.disabled`
     ///   logger is used, which means logs are not printed.
-    public convenience init<each T1: PrimaryKeyedTable & _SendableMetatype, each T2: PrimaryKeyedTable & _SendableMetatype>(
+    public convenience init<
+      each T1: PrimaryKeyedTable & _SendableMetatype,
+      each T2: PrimaryKeyedTable & _SendableMetatype
+    >(
       for database: any DatabaseWriter,
       tables: repeat (each T1).Type,
       privateTables: repeat (each T2).Type,
@@ -336,6 +341,7 @@
         try table.createTriggers(
           foreignKeysByTableName: foreignKeysByTableName,
           tablesByName: tablesByName,
+          defaultZone: defaultZone,
           db: db
         )
       }
@@ -562,7 +568,7 @@
     package func tearDownSyncEngine() throws {
       try userDatabase.write { db in
         for table in tables.reversed() {
-          try table.dropTriggers(db: db)
+          try table.dropTriggers(defaultZone: defaultZone, db: db)
         }
         for trigger in SyncMetadata.callbackTriggers(for: self).reversed() {
           try trigger.drop().execute(db)
@@ -598,9 +604,10 @@
 
     @DatabaseFunction(
       "sqlitedata_icloud_didUpdate",
-      as: (
-        (String, CKRecord?.SystemFieldsRepresentation, CKRecord?.SystemFieldsRepresentation, String?, String?) -> Void
-      ).self
+      as: ((
+        String, CKRecord?.SystemFieldsRepresentation, CKRecord?.SystemFieldsRepresentation, String?,
+        String?
+      ) -> Void).self
     )
     func didUpdate(
       recordName: String,
@@ -721,6 +728,7 @@
     fileprivate static func createTriggers(
       foreignKeysByTableName: [String: [ForeignKey]],
       tablesByName: [String: any PrimaryKeyedTable.Type],
+      defaultZone: CKRecordZone,
       db: Database
     ) throws {
       let parentForeignKey =
@@ -728,14 +736,15 @@
         ? foreignKeysByTableName[tableName]?.first
         : nil
 
-      for trigger in metadataTriggers(parentForeignKey: parentForeignKey) {
+      for trigger in metadataTriggers(parentForeignKey: parentForeignKey, defaultZone: defaultZone)
+      {
         try trigger.execute(db)
       }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    fileprivate static func dropTriggers(db: Database) throws {
-      for trigger in metadataTriggers(parentForeignKey: nil).reversed() {
+    fileprivate static func dropTriggers(defaultZone: CKRecordZone, db: Database) throws {
+      for trigger in metadataTriggers(parentForeignKey: nil, defaultZone: defaultZone).reversed() {
         try trigger.drop().execute(db)
       }
     }
@@ -931,6 +940,8 @@
             ?? nil
           guard let row
           else {
+            // TODO: write a test that we clean up records when there is a FK constraint failure
+
             syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
             missingRecord = recordID
             return nil
@@ -1551,12 +1562,14 @@
             SyncMetadata(
               recordPrimaryKey: recordPrimaryKey,
               recordType: serverRecord.recordType,
+              zoneName: serverRecord.recordID.zoneID.zoneName,
+              ownerName: serverRecord.recordID.zoneID.ownerName,
               parentRecordPrimaryKey: serverRecord.parent?.recordID.recordPrimaryKey,
               parentRecordType: serverRecord.parent?.recordID.tableName,
               lastKnownServerRecord: serverRecord,
               _lastKnownServerRecordAllFields: serverRecord,
               share: nil,
-                userModificationTime: serverRecord.userModificationTime
+              userModificationTime: serverRecord.userModificationTime
             )
           } onConflict: {
             ($0.recordPrimaryKey, $0.recordType)
@@ -1610,8 +1623,9 @@
           } catch {
             guard
               let error = error as? DatabaseError,
-              error.resultCode == .SQLITE_CONSTRAINT,
-              error.extendedResultCode == .SQLITE_CONSTRAINT_FOREIGNKEY
+              (error.resultCode == .SQLITE_CONSTRAINT
+                && error.extendedResultCode == .SQLITE_CONSTRAINT_FOREIGNKEY)
+                || (error.message ?? "").contains(Self.nullZoneError)
             else {
               throw error
             }
@@ -1997,7 +2011,8 @@
     tablesByName: [String: any (PrimaryKeyedTable & _SendableMetatype).Type]
   ) throws -> [String: Int] {
     let tableDependencies = try userDatabase.read { db in
-      var dependencies: [HashablePrimaryKeyedTableType: [any (PrimaryKeyedTable & _SendableMetatype).Type]] = [:]
+      var dependencies:
+        [HashablePrimaryKeyedTableType: [any (PrimaryKeyedTable & _SendableMetatype).Type]] = [:]
       for table in tables {
         func open<T: StructuredQueriesCore.Table>(_: T.Type) throws -> [String] {
           try PragmaForeignKeyList<T>.select(\.table)

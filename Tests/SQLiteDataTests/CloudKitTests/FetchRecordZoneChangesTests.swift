@@ -524,6 +524,8 @@
           │ SyncMetadata(                                              │
           │   recordPrimaryKey: "tag",                                 │
           │   recordType: "tags",                                      │
+          │   zoneName: "zone",                                        │
+          │   ownerName: "__defaultOwner__",                           │
           │   recordName: "tag:tags",                                  │
           │   parentRecordPrimaryKey: nil,                             │
           │   parentRecordType: nil,                                   │
@@ -604,6 +606,8 @@
           │ SyncMetadata(                                              │
           │   recordPrimaryKey: "tag",                                 │
           │   recordType: "tags",                                      │
+          │   zoneName: "zone",                                        │
+          │   ownerName: "__defaultOwner__",                           │
           │   recordName: "tag:tags",                                  │
           │   parentRecordPrimaryKey: nil,                             │
           │   parentRecordType: nil,                                   │
@@ -671,6 +675,8 @@
           │ SyncMetadata(                                                  │
           │   recordPrimaryKey: "weekend",                                 │
           │   recordType: "tags",                                          │
+          │   zoneName: "zone",                                            │
+          │   ownerName: "__defaultOwner__",                               │
           │   recordName: "weekend:tags",                                  │
           │   parentRecordPrimaryKey: nil,                                 │
           │   parentRecordType: nil,                                       │

@@ -49,6 +49,10 @@
 
   func migrate(metadatabase: some DatabaseWriter) throws {
     var migrator = DatabaseMigrator()
+
+    // (B, C)
+
+    // A <- [B <- C (bID: B.ID)]
     migrator.registerMigration("Create Metadata Tables") { db in
       try #sql(
         """
@@ -56,6 +60,8 @@
           "recordPrimaryKey" TEXT NOT NULL,
           "recordType" TEXT NOT NULL,
           "recordName" TEXT NOT NULL AS ("recordPrimaryKey" || ':' || "recordType"),
+          "zoneName" TEXT NOT NULL,
+          "ownerName" TEXT  NOT NULL,
           "parentRecordPrimaryKey" TEXT,
           "parentRecordType" TEXT,
           "parentRecordName" TEXT AS ("parentRecordPrimaryKey" || ':' || "parentRecordType"),
@@ -67,8 +73,7 @@
           "userModificationTime" INTEGER NOT NULL DEFAULT (\($currentTime())),
           "_isDeleted" INTEGER NOT NULL DEFAULT 0,
 
-          PRIMARY KEY ("recordPrimaryKey", "recordType"),
-          UNIQUE ("recordName")
+          PRIMARY KEY ("recordPrimaryKey", "recordType") 
         ) STRICT
         """
       )

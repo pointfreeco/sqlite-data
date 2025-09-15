@@ -18,6 +18,9 @@
     /// The type of the record synchronized, _i.e._ its table name.
     public var recordType: String
 
+    public var zoneName: String
+    public var ownerName: String
+
     /// The name of the record synchronized.
     ///
     /// This field encodes both the table name and primary key of the record synchronized in
@@ -113,6 +116,8 @@
     package init(
       recordPrimaryKey: String,
       recordType: String,
+      zoneName: String,
+      ownerName: String,
       parentRecordPrimaryKey: String? = nil,
       parentRecordType: String? = nil,
       lastKnownServerRecord: CKRecord? = nil,
@@ -123,6 +128,8 @@
       self.recordPrimaryKey = recordPrimaryKey
       self.recordType = recordType
       self.recordName = "\(recordPrimaryKey):\(recordType)"
+      self.zoneName = zoneName
+      self.ownerName = ownerName
       self.parentRecordPrimaryKey = parentRecordPrimaryKey
       self.parentRecordType = parentRecordType
       if let parentRecordPrimaryKey, let parentRecordType {
