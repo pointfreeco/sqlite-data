@@ -20,9 +20,9 @@
   }
 
   extension Trait where Self == _PrintTimestampsScope {
-    static var printTimestamps: Self { .init() }
+    static var printTimestamps: Self { Self() }
     static func printTimestamps(_ printTimestamps: Bool) -> Self {
-      .init(printTimestamps)
+      Self(printTimestamps)
     }
   }
 #endif

@@ -1,6 +1,6 @@
 # Preparing a SQLite database
 
-Learn how to create, configure and migrate the SQLite database that holds your application’s 
+Learn how to create, configure and migrate the SQLite database that holds your application’s
 data.
 
 ## Overview
@@ -46,10 +46,10 @@ optional step:
  }
 ```
 
-One configuration you may want to enable is query tracing in order to log queries that are executed 
-in your application. This can be handy for tracking down long-running queries, or when more queries 
-execute than you expect. We also recommend only doing this in debug builds to avoid leaking 
-sensitive information when the app is running on a user's device, and we further recommend using 
+One configuration you may want to enable is query tracing in order to log queries that are executed
+in your application. This can be handy for tracking down long-running queries, or when more queries
+execute than you expect. We also recommend only doing this in debug builds to avoid leaking
+sensitive information when the app is running on a user's device, and we further recommend using
 OSLog when running your app in the simulator/device and using `Swift.print` in previews:
 
 ```diff
@@ -85,7 +85,7 @@ OSLog when running your app in the simulator/device and using `Swift.print` in p
 
 [swift-dependencies-gh]: https://github.com/pointfreeco/swift-dependencies
 
-For more information on configuring the database connection, see [GRDB's documentation][config-docs] 
+For more information on configuring the database connection, see [GRDB's documentation][config-docs]
 on the matter.
 
 [config-docs]: https://swiftpackageindex.com/groue/grdb.swift/master/documentation/grdb/configuration

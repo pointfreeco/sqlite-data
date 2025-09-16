@@ -58,7 +58,8 @@ package final class MockSyncEngine: SyncEngineProtocol {
 
   package func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws {
     guard
-      !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges.isEmpty
+      !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges
+        .isEmpty
     else { return }
     try await parentSyncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
   }

@@ -126,7 +126,7 @@
       }
 
       let rootRecord =
-      lastKnownServerRecord
+        lastKnownServerRecord
         ?? CKRecord(
           recordType: recordType,
           recordID: CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)
@@ -292,7 +292,7 @@
       public func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
         Task {
           await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await syncEngine.deleteShare(recordID: share.recordID)
+            try await syncEngine.deleteShare(shareRecordID: share.recordID)
           }
         }
         didStopSharing()

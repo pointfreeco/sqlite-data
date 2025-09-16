@@ -151,7 +151,7 @@ private struct TagView: View {
     } label: {
       HStack {
         if isSelected {
-          Image.init(systemName: "checkmark")
+          Image(systemName: "checkmark")
         }
         Text(tag.title)
       }

@@ -1,7 +1,7 @@
 # Observing changes to model data
 
-Learn how to observe changes to your database in SwiftUI views, UIKit view controllers, and 
-more. 
+Learn how to observe changes to your database in SwiftUI views, UIKit view controllers, and
+more.
 
 ## Overview
 

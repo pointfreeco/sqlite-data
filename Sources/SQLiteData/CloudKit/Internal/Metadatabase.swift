@@ -56,6 +56,8 @@
           "recordPrimaryKey" TEXT NOT NULL,
           "recordType" TEXT NOT NULL,
           "recordName" TEXT NOT NULL AS ("recordPrimaryKey" || ':' || "recordType"),
+          "zoneName" TEXT NOT NULL,
+          "ownerName" TEXT NOT NULL,
           "parentRecordPrimaryKey" TEXT,
           "parentRecordType" TEXT,
           "parentRecordName" TEXT AS ("parentRecordPrimaryKey" || ':' || "parentRecordType"),
@@ -139,7 +141,7 @@
         assert(
           !hasSchemaChanges,
           """
-          A previously run migration has been removed or edited.
+          A previously run migration has been removed or edited. \
           Metadatabase migrations must not be modified after release.
           """
         )

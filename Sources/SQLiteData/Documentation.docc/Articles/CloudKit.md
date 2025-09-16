@@ -287,7 +287,7 @@ has been added to the schema, it will populate the table with the cached records
 #### Adding columns
 
 > TL;DR: When adding columns to a table that has already been deployed to users' devices, you will
-either need to make the column nullable, or a default value must be provided with an 
+either need to make the column nullable, or a default value must be provided with an
 `ON CONFLICT REPLACE` clause.
 
 As an example, suppose the 1.0 of your app shipped a table for a reminders list:

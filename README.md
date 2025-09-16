@@ -1,6 +1,6 @@
 # SQLiteData
 
-A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL and supporting 
+A [fast](#Performance), lightweight replacement for SwiftData, powered by SQL and supporting
 CloudKit synchronization.
 
 [![CI](https://github.com/pointfreeco/sqlite-data/actions/workflows/ci.yml/badge.svg)](https://github.com/pointfreeco/sqlite-data/actions/workflows/ci.yml)
@@ -353,8 +353,8 @@ SQLiteData. Check out [this](./Examples) directory to see them all, including:
 * [**CloudKitDemo**](./Examples/CloudKitDemo)
   <br> A simplified demo that shows how to synchronize a SQLite database to CloudKit and how to
   share records with other iCloud users. See our dedicated articles on [CloudKit Synchronization]
-  and [CloudKit Sharing] for more information. 
-  
+  and [CloudKit Sharing] for more information.
+
   [CloudKit Synchronization]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/cloudkit
   [CloudKit Sharing]: https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/cloudkitsharing
 

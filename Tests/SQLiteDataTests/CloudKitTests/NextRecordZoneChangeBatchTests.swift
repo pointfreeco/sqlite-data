@@ -40,13 +40,15 @@
             SyncMetadata(
               recordPrimaryKey: "1",
               recordType: UnrecognizedTable.tableName,
+              zoneName: "zone-name",
+              ownerName: "owner-name",
               userModificationTime: 0
             )
           }
           .execute(db)
         }
 
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -70,6 +72,8 @@
             SyncMetadata(
               recordPrimaryKey: "1",
               recordType: RemindersList.tableName,
+              zoneName: syncEngine.defaultZone.zoneID.zoneName,
+              ownerName: syncEngine.defaultZone.zoneID.ownerName,
               userModificationTime: 0
             )
           }

@@ -832,6 +832,33 @@
           """
         }
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func insertForeignKeyConstraintFailure() async throws {
+        await #expect(throws: (any Error).self) {
+          try await userDatabase.userWrite { db in
+            try db.seed {
+              Reminder(id: 1, title: "Get milk", remindersListID: 1)
+            }
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase)
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
     }
   }
 #endif

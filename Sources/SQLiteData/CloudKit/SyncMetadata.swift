@@ -18,6 +18,12 @@
     /// The type of the record synchronized, _i.e._ its table name.
     public var recordType: String
 
+    /// The record zone name.
+    public var zoneName: String
+
+    /// The record owner name.
+    public var ownerName: String
+
     /// The name of the record synchronized.
     ///
     /// This field encodes both the table name and primary key of the record synchronized in
@@ -80,39 +86,12 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
-  struct AncestorMetadata {
-    let recordName: String
-    let parentRecordName: String?
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-    let lastKnownServerRecord: CKRecord?
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
-  struct RecordWithRoot {
-    let parentRecordName: String?
-    let recordName: String
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-    let lastKnownServerRecord: CKRecord?
-    let rootRecordName: String
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-    let rootLastKnownServerRecord: CKRecord?
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
-  struct RootShare {
-    let parentRecordName: String?
-    @Column(as: CKShare?.SystemFieldsRepresentation.self)
-    let share: CKShare?
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
     package init(
       recordPrimaryKey: String,
       recordType: String,
+      zoneName: String,
+      ownerName: String,
       parentRecordPrimaryKey: String? = nil,
       parentRecordType: String? = nil,
       lastKnownServerRecord: CKRecord? = nil,
@@ -123,6 +102,8 @@
       self.recordPrimaryKey = recordPrimaryKey
       self.recordType = recordType
       self.recordName = "\(recordPrimaryKey):\(recordType)"
+      self.zoneName = zoneName
+      self.ownerName = ownerName
       self.parentRecordPrimaryKey = parentRecordPrimaryKey
       self.parentRecordType = parentRecordType
       if let parentRecordPrimaryKey, let parentRecordType {
@@ -136,6 +117,24 @@
       self.hasLastKnownServerRecord = lastKnownServerRecord != nil
       self.isShared = share != nil
       self.userModificationTime = userModificationTime
+    }
+
+    package static func find(_ recordID: CKRecord.ID) -> Where<Self> {
+      Self.where {
+        $0.recordName.eq(recordID.recordName)
+          && $0.zoneName.eq(recordID.zoneID.zoneName)
+          && $0.ownerName.eq(recordID.zoneID.ownerName)
+      }
+    }
+
+    package static func findAll(_ recordIDs: some Collection<CKRecord.ID>) -> Where<Self> {
+      let condition: QueryFragment = recordIDs.map {
+        "(\(bind: $0.recordName), \(bind: $0.zoneID.zoneName), \(bind: $0.zoneID.ownerName))"
+      }
+      .joined(separator: ", ")
+      return Self.where {
+        #sql("(\($0.recordName), \($0.zoneName), \($0.ownerName)) IN (\(condition))")
+      }
     }
   }
 
