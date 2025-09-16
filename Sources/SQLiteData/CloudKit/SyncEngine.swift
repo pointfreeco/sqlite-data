@@ -255,7 +255,7 @@
         tables: allTables,
         tablesByName: tablesByName
       )
-      #if canImport(UIKit)
+      #if os(iOS)
         @Dependency(\.defaultNotificationCenter) var defaultNotificationCenter
         notificationsObserver.withValue {
           $0 = defaultNotificationCenter.addObserver(
