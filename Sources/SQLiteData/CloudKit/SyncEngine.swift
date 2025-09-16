@@ -620,82 +620,59 @@
       oldZoneName: String,
       oldOwnerName: String,
       childRecordNames: [String]?
-    ) throws {
-      let zoneID = CKRecordZone.ID.init(
-        zoneName: oldZoneName,
-        ownerName: oldOwnerName
-      )  // lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
-      let newZoneID = CKRecordZone.ID.init(zoneName: zoneName, ownerName: ownerName)
-      //newParentLastKnownServerRecord?.recordID.zoneID
-      if zoneID != newZoneID {
-        //        struct ZoneChangingError: Error, LocalizedError {
-        //          let recordName: String
-        //          let zoneID: CKRecordZone.ID
-        //          let newZoneID: CKRecordZone.ID
-        //          var errorDescription: String? {
-        //            """
-        //            The record '\(recordName)' was moved from zone \
-        //            '\(zoneID.zoneName)/\(zoneID.ownerName)' to \
-        //            '\(newZoneID.zoneName)/\(newZoneID.ownerName)'. This is currently not supported in \
-        //            SQLiteData. To work around, delete the record and then create a new record with its \
-        //            new parent association.
-        //            """
-        //          }
-        //        }
-        //        throw ZoneChangingError(recordName: recordName, zoneID: zoneID, newZoneID: newZoneID)
-        let syncEngine = self.syncEngines.withValue {
-          zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-        }
-        syncEngine?.state
-          .add(pendingRecordZoneChanges: [
-            .deleteRecord(CKRecord.ID(recordName: recordName, zoneID: zoneID))
-          ])
-        for childRecordName in childRecordNames ?? [] {
-          syncEngine?.state
-            .add(pendingRecordZoneChanges: [
-              .deleteRecord(CKRecord.ID(recordName: childRecordName, zoneID: zoneID))
-            ])
-        }
+    ) {
+      var oldChanges: [CKSyncEngine.PendingRecordZoneChange] = []
+      var newChanges: [CKSyncEngine.PendingRecordZoneChange] = []
 
-        let newSyncEngine = self.syncEngines.withValue {
-          newZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-        }
-        newSyncEngine?.state
-          .add(pendingRecordZoneChanges: [
-            .saveRecord(CKRecord.ID.init(recordName: recordName, zoneID: newZoneID))
-          ])
-        for childRecordName in childRecordNames ?? [] {
-          newSyncEngine?.state
-            .add(pendingRecordZoneChanges: [
-              .saveRecord(CKRecord.ID(recordName: childRecordName, zoneID: newZoneID))
-            ])
-        }
-        return
-      }
+      let oldZoneID = CKRecordZone.ID(zoneName: oldZoneName, ownerName: oldOwnerName)
+      let zoneID = CKRecordZone.ID.init(zoneName: zoneName, ownerName: ownerName)
 
-      let change = CKSyncEngine.PendingRecordZoneChange.saveRecord(
-        CKRecord.ID(
-          recordName: recordName,
-          zoneID: zoneID
+      if oldZoneID != zoneID {
+        oldChanges.append(.deleteRecord(CKRecord.ID(recordName: recordName, zoneID: oldZoneID)))
+        for childRecordName in childRecordNames ?? [] {
+          oldChanges.append(
+            .deleteRecord(CKRecord.ID(recordName: childRecordName, zoneID: oldZoneID))
+          )
+        }
+        newChanges.append(.saveRecord(CKRecord.ID(recordName: recordName, zoneID: zoneID)))
+        for childRecordName in childRecordNames ?? [] {
+          newChanges.append(.saveRecord(CKRecord.ID(recordName: childRecordName, zoneID: zoneID)))
+        }
+      } else {
+        newChanges.append(
+          .saveRecord(
+            CKRecord.ID(
+              recordName: recordName,
+              zoneID: zoneID
+            )
+          )
         )
-      )
+      }
       guard isRunning else {
-        Task {
+        // TODO: can this be done in the trigger??
+        Task { [changes = oldChanges + newChanges] in
           await withErrorReporting(.sqliteDataCloudKitFailure) {
             try await userDatabase.write { db in
               try PendingRecordZoneChange
-                .insert { PendingRecordZoneChange(change) }
+                .insert {
+                  for change in changes {
+                    PendingRecordZoneChange(change)
+                  }
+                }
                 .execute(db)
             }
           }
         }
         return
       }
-
+      let oldSyncEngine = self.syncEngines.withValue {
+        oldZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+      }
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
-      syncEngine?.state.add(pendingRecordZoneChanges: [change])
+      oldSyncEngine?.state.add(pendingRecordZoneChanges: oldChanges)
+      syncEngine?.state.add(pendingRecordZoneChanges: newChanges)
     }
 
     @DatabaseFunction(
@@ -1617,10 +1594,10 @@
           ($0.recordPrimaryKey, $0.recordType)
         } doUpdate: {
           if tablesByName[serverRecord.recordType] == nil {
-            // TODO: set parent fields?
             $0.setLastKnownServerRecord(serverRecord)
           } else {
-            $0.recordType = $0.recordType
+            // NB: Keep this to allow for "RETURNING *" to work below:
+            $0.recordPrimaryKey = $0.recordPrimaryKey
           }
         }
         .returning(\.self)
@@ -1631,37 +1608,24 @@
           return
         }
 
-        //        let metadata =
-        //          try SyncMetadata
-        //          .find(serverRecord.recordID)
-        //          .fetchOne(db)
         serverRecord.userModificationTime =
           metadata?.userModificationTime ?? serverRecord.userModificationTime
 
         func open<T: PrimaryKeyedTable & _SendableMetatype>(_: T.Type) throws {
-          let columnNames: [String]
-          if !force, let metadata, let allFields = metadata._lastKnownServerRecordAllFields {
-            var _columnNames = T.TableColumns.writableColumns.map(\.name)
+          var columnNames: [String] = T.TableColumns.writableColumns.map(\.name)
+          if !force,
+            let metadata,
+            let allFields = metadata._lastKnownServerRecordAllFields,
             let row = try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
-            if let row {
-              serverRecord.update(
-                with: allFields,
-                row: T(queryOutput: row),
-                columnNames: &_columnNames,
-                parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
-                  ? foreignKeysByTableName[T.tableName]?.first
-                  : nil
-              )
-            } else {
-              //              reportIssue(
-              //                """
-              //                Local database record could not be found for '\(serverRecord.recordID.recordName)'.
-              //                """
-              //              )
-            }
-            columnNames = _columnNames
-          } else {
-            columnNames = T.TableColumns.writableColumns.map(\.name)
+          {
+            serverRecord.update(
+              with: allFields,
+              row: T(queryOutput: row),
+              columnNames: &columnNames,
+              parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
+                ? foreignKeysByTableName[T.tableName]?.first
+                : nil
+            )
           }
 
           do {

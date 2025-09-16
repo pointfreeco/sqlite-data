@@ -219,7 +219,6 @@
         ifNotExists: true,
         after: .update { old, new in
           let zoneChanged = new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName)
-
           validate(recordName: new.recordName)
           SyncMetadata
             .where {
