@@ -86,35 +86,6 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
-  struct AncestorMetadata {
-    let recordName: String
-    let parentRecordName: String?
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-    let lastKnownServerRecord: CKRecord?
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
-  struct RecordWithRoot {
-    let parentRecordName: String?
-    let recordName: String
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-    let lastKnownServerRecord: CKRecord?
-    let rootRecordName: String
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-    let rootLastKnownServerRecord: CKRecord?
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
-  struct RootShare {
-    let parentRecordName: String?
-    @Column(as: CKShare?.SystemFieldsRepresentation.self)
-    let share: CKShare?
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
     package init(
       recordPrimaryKey: String,
@@ -146,6 +117,24 @@
       self.hasLastKnownServerRecord = lastKnownServerRecord != nil
       self.isShared = share != nil
       self.userModificationTime = userModificationTime
+    }
+
+    package static func find(_ recordID: CKRecord.ID) -> Where<Self> {
+      Self.where {
+        $0.recordName.eq(recordID.recordName)
+          && $0.zoneName.eq(recordID.zoneID.zoneName)
+          && $0.ownerName.eq(recordID.zoneID.ownerName)
+      }
+    }
+
+    package static func findAll(_ recordIDs: some Collection<CKRecord.ID>) -> Where<Self> {
+      let condition: QueryFragment = recordIDs.map {
+        "(\(bind: $0.recordName), \(bind: $0.zoneID.zoneName), \(bind: $0.zoneID.ownerName))"
+      }
+      .joined(separator: ", ")
+      return Self.where {
+        #sql("(\($0.recordName), \($0.zoneName), \($0.ownerName)) IN (\(condition))")
+      }
     }
   }
 

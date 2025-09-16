@@ -394,7 +394,7 @@
           try #expect(RecordType.all.fetchCount(db) > 0)
           try #expect(StateSerialization.all.fetchCount(db) == 0)
         }
-        
+
         try syncEngine.tearDownSyncEngine()
         try await syncEngine.metadatabase.read { db in
           try #expect(SyncMetadata.all.fetchCount(db) == 0)

@@ -105,7 +105,7 @@ package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
   }
 
   package var customDumpMirror: Mirror {
-    Mirror.init(
+    Mirror(
       self,
       children: [
         ("privateCloudDatabase", privateCloudDatabase),

@@ -55,7 +55,7 @@
             parentForeignKey: parentForeignKey,
             defaultZone: defaultZone
           )
-          SyncMetadata.upsert(
+          SyncMetadata.insert(
             new: new,
             parentForeignKey: parentForeignKey,
             defaultZone: defaultZone
@@ -77,7 +77,12 @@
             parentForeignKey: parentForeignKey,
             defaultZone: defaultZone
           )
-          SyncMetadata.upsert(
+          SyncMetadata.insert(
+            new: new,
+            parentForeignKey: parentForeignKey,
+            defaultZone: defaultZone
+          )
+          SyncMetadata.update(
             new: new,
             parentForeignKey: parentForeignKey,
             defaultZone: defaultZone
@@ -133,7 +138,7 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
-    fileprivate static func upsert<T: PrimaryKeyedTable, Name>(
+    fileprivate static func insert<T: PrimaryKeyedTable, Name>(
       new: StructuredQueriesCore.TableAlias<T, Name>.TableColumns,
       parentForeignKey: ForeignKey?,
       defaultZone: CKRecordZone
@@ -142,6 +147,14 @@
         alias: new,
         parentForeignKey: parentForeignKey,
         defaultZone: defaultZone
+      )
+      let defaultZoneName = #sql(
+        "\(quote: defaultZone.zoneID.zoneName, delimiter: .text)",
+        as: String.self
+      )
+      let defaultOwnerName = #sql(
+        "\(quote: defaultZone.zoneID.ownerName, delimiter: .text)",
+        as: String.self
       )
       return insert {
         (
@@ -156,17 +169,35 @@
         Values(
           #sql("\(new.primaryKey)"),
           T.tableName,
-          zoneName,
-          ownerName,
+          zoneName ?? defaultZoneName,
+          ownerName ?? defaultOwnerName,
           parentRecordPrimaryKey,
           parentRecordType
         )
-      } onConflict: {
-        ($0.recordPrimaryKey, $0.recordType)
-      } doUpdate: {
-        $0.parentRecordPrimaryKey = $1.parentRecordPrimaryKey
-        $0.parentRecordType = $1.parentRecordType
-        $0.userModificationTime = $1.userModificationTime
+      } onConflictDoUpdate: { _ in
+      }
+    }
+
+    fileprivate static func update<T: PrimaryKeyedTable, Name>(
+      new: StructuredQueriesCore.TableAlias<T, Name>.TableColumns,
+      parentForeignKey: ForeignKey?,
+      defaultZone: CKRecordZone
+    ) -> some StructuredQueriesCore.Statement {
+      let (parentRecordPrimaryKey, parentRecordType, zoneName, ownerName) = parentFields(
+        alias: new,
+        parentForeignKey: parentForeignKey,
+        defaultZone: defaultZone
+      )
+      return Self.where {
+        $0.recordPrimaryKey.eq(#sql("\(new.primaryKey)"))
+          && $0.recordType.eq(T.tableName)
+      }
+      .update {
+        $0.zoneName = zoneName ?? $0.zoneName
+        $0.ownerName = ownerName ?? $0.ownerName
+        $0.parentRecordPrimaryKey = parentRecordPrimaryKey
+        $0.parentRecordType = parentRecordType
+        $0.userModificationTime = $currentTime()
       }
     }
   }
@@ -176,31 +207,27 @@
     static func callbackTriggers(for syncEngine: SyncEngine) -> [TemporaryTrigger<Self>] {
       [
         afterInsertTrigger(for: syncEngine),
+        afterZoneUpdateTrigger(),
         afterUpdateTrigger(for: syncEngine),
         afterSoftDeleteTrigger(for: syncEngine),
       ]
     }
 
-    private enum ParentSyncMetadata: AliasName {}
-
     fileprivate static func afterInsertTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self>
     {
       createTemporaryTrigger(
-        "after_insert_on_sqlitedata_icloud_metadata",
+        "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
         after: .insert { new in
           validate(recordName: new.recordName)
           Values(
             syncEngine.$didUpdate(
               recordName: new.recordName,
-              lastKnownServerRecord: new.lastKnownServerRecord
-                ?? rootServerRecord(recordName: new.recordName),
-              newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
-                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-                parentRecordType: new.parentRecordType
-              ),
-              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-              parentRecordType: new.parentRecordType
+              zoneName: new.zoneName,
+              ownerName: new.ownerName,
+              oldZoneName: new.zoneName,
+              oldOwnerName: new.ownerName,
+              descendantRecordNames: #bind(nil)
             )
           )
         } when: { _ in
@@ -209,24 +236,58 @@
       )
     }
 
+    fileprivate static func afterZoneUpdateTrigger() -> TemporaryTrigger<Self> {
+      createTemporaryTrigger(
+        "\(String.sqliteDataCloudKitSchemaName)_after_zone_update_on_sqlitedata_icloud_metadata",
+        ifNotExists: true,
+        after: .update {
+          ($0.zoneName, $0.ownerName)
+        } forEachRow: { old, new in
+          let selfAndDescendantRecordNames = descendantRecordNames(
+            recordName: new.recordName,
+            includeSelf: true
+          ) {
+            $0.select(\.recordName)
+          }
+          SyncMetadata
+            .where {
+              $0.recordName.in(selfAndDescendantRecordNames)
+            }
+            .update {
+              $0.zoneName = new.zoneName
+              $0.ownerName = new.ownerName
+              $0.lastKnownServerRecord = nil
+              $0._lastKnownServerRecordAllFields = nil
+            }
+        } when: { old, new in
+          new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName)
+        }
+      )
+    }
+
     fileprivate static func afterUpdateTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self>
     {
       createTemporaryTrigger(
-        "after_update_on_sqlitedata_icloud_metadata",
+        "\(String.sqliteDataCloudKitSchemaName)_after_update_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
-        after: .update { _, new in
+        after: .update { old, new in
+          let zoneChanged = new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName)
+          let descendantRecordNamesJSON = descendantRecordNames(
+            recordName: new.recordName,
+            includeSelf: false
+          ) {
+            $0.select { $0.recordName.jsonGroupArray() }
+          }
+
           validate(recordName: new.recordName)
           Values(
             syncEngine.$didUpdate(
               recordName: new.recordName,
-              lastKnownServerRecord: new.lastKnownServerRecord
-                ?? rootServerRecord(recordName: new.recordName),
-              newParentLastKnownServerRecord: parentLastKnownServerRecordIfShared(
-                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-                parentRecordType: new.parentRecordType
-              ),
-              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-              parentRecordType: new.parentRecordType
+              zoneName: new.zoneName,
+              ownerName: new.ownerName,
+              oldZoneName: old.zoneName,
+              oldOwnerName: old.ownerName,
+              descendantRecordNames: Case().when(zoneChanged, then: descendantRecordNamesJSON)
             )
           )
         } when: { old, new in
@@ -235,11 +296,11 @@
       )
     }
 
-    fileprivate static func afterSoftDeleteTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<
-      Self
-    > {
+    fileprivate static func afterSoftDeleteTrigger(
+      for syncEngine: SyncEngine
+    ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
-        "after_delete_on_sqlitedata_icloud_metadata",
+        "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
         after: .update(of: \._isDeleted) { _, new in
           Values(
@@ -265,17 +326,9 @@
   ) -> (
     parentRecordPrimaryKey: SQLQueryExpression<String>?,
     parentRecordType: SQLQueryExpression<String>?,
-    zoneName: SQLQueryExpression<String>,
-    ownerName: SQLQueryExpression<String>
+    zoneName: SQLQueryExpression<String?>,
+    ownerName: SQLQueryExpression<String?>
   ) {
-    let zoneName = #sql(
-      "\(quote: defaultZone.zoneID.zoneName, delimiter: .text)",
-      as: String.self
-    )
-    let ownerName = #sql(
-      "\(quote: defaultZone.zoneID.ownerName, delimiter: .text)",
-      as: String.self
-    )
     return
       parentForeignKey
       .map { foreignKey in
@@ -284,20 +337,23 @@
           as: String.self
         )
         let parentRecordType = #sql("\(bind: foreignKey.table)", as: String.self)
-        let parentMetadata =
-          SyncMetadata
-          .where {
-            $0.recordPrimaryKey.eq(parentRecordPrimaryKey)
-              && $0.recordType.eq(parentRecordType)
-          }
+        let parentMetadata = SyncMetadata.where {
+          $0.recordPrimaryKey.eq(parentRecordPrimaryKey)
+            && $0.recordType.eq(parentRecordType)
+        }
         return (
           parentRecordPrimaryKey,
           parentRecordType,
-          #sql("coalesce((\(parentMetadata.select(\.zoneName))), \(zoneName))"),
-          #sql("coalesce((\(parentMetadata.select(\.ownerName))), \(ownerName))")
+          #sql("coalesce(\($currentZoneName()), (\(parentMetadata.select(\.zoneName))))"),
+          #sql("coalesce(\($currentOwnerName()), (\(parentMetadata.select(\.ownerName))))")
         )
       }
-      ?? (nil, nil, zoneName, ownerName)
+      ?? (
+        nil,
+        nil,
+        SQLQueryExpression($currentZoneName()),
+        SQLQueryExpression($currentOwnerName())
+      )
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -357,6 +413,40 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func descendantRecordNames<T>(
+    recordName: some QueryExpression<String>,
+    includeSelf: Bool,
+    select: (Where<DescendantMetadata>) -> Select<T, DescendantMetadata, ()>
+  ) -> some Statement<T> {
+    With {
+      SyncMetadata
+        .where { $0.recordName.eq(recordName) }
+        .select {
+          DescendantMetadata.Columns(recordName: $0.recordName, parentRecordName: #bind(nil))
+        }
+        .union(
+          all: true,
+          SyncMetadata
+            .select {
+              DescendantMetadata.Columns(
+                recordName: $0.recordName,
+                parentRecordName: $0.parentRecordName
+              )
+            }
+            .join(DescendantMetadata.all) { $0.parentRecordName.eq($1.recordName) }
+        )
+    } query: {
+      select(
+        DescendantMetadata.where {
+          if !includeSelf {
+            $0.recordName.neq(recordName)
+          }
+        }
+      )
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func rootServerRecord(
     recordName: some QueryExpression<String>
   ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
@@ -378,7 +468,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func parentLastKnownServerRecordIfShared(
+  private func parentLastKnownServerRecord(
     parentRecordPrimaryKey: some QueryExpression<String?>,
     parentRecordType: some QueryExpression<String?>
   ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
@@ -405,5 +495,40 @@
     fileprivate var isValidCloudKitRecordName: some QueryExpression<Bool> {
       substr(1, 1).neq("_") && octetLength().lte(255) && octetLength().eq(length())
     }
+  }
+
+  @Table @Selection
+  private struct DescendantMetadata {
+    let recordName: String
+    let parentRecordName: String?
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Table @Selection
+  private struct AncestorMetadata {
+    let recordName: String
+    let parentRecordName: String?
+    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let lastKnownServerRecord: CKRecord?
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Table @Selection
+  struct RecordWithRoot {
+    let parentRecordName: String?
+    let recordName: String
+    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let lastKnownServerRecord: CKRecord?
+    let rootRecordName: String
+    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let rootLastKnownServerRecord: CKRecord?
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Table @Selection
+  private struct RootShare {
+    let parentRecordName: String?
+    @Column(as: CKShare?.SystemFieldsRepresentation.self)
+    let share: CKShare?
   }
 #endif

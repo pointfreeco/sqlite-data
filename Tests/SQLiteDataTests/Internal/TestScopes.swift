@@ -25,7 +25,7 @@
     static func prepareDatabase(
       _ prepareDatabase: @escaping @Sendable (UserDatabase) async throws -> Void
     ) -> Self {
-      .init(prepareDatabase: prepareDatabase)
+      Self(prepareDatabase: prepareDatabase)
     }
   }
 
@@ -48,7 +48,7 @@
 
   extension Trait where Self == _StartImmediatelyTrait {
     static func startImmediately(_ startImmediately: Bool) -> Self {
-      .init(startImmediately: startImmediately)
+      Self(startImmediately: startImmediately)
     }
   }
 
@@ -70,9 +70,9 @@
   }
 
   extension Trait where Self == _AttachMetadatabaseTrait {
-    static var attachMetadatabase: Self { .init(attachMetadatabase: true) }
+    static var attachMetadatabase: Self { Self(attachMetadatabase: true) }
     static func attachMetadatabase(_ attachMetadatabase: Bool) -> Self {
-      .init(attachMetadatabase: attachMetadatabase)
+      Self(attachMetadatabase: attachMetadatabase)
     }
   }
 
@@ -96,9 +96,9 @@
   }
 
   extension Trait where Self == _AccountStatusScope {
-    static var accountStatus: Self { .init() }
+    static var accountStatus: Self { Self() }
     static func accountStatus(_ accountStatus: CKAccountStatus) -> Self {
-      .init(accountStatus)
+      Self(accountStatus)
     }
   }
 #endif
