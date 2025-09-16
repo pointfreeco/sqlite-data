@@ -1322,7 +1322,7 @@
               AFTER UPDATE OF "zoneName", "ownerName" ON "sqlitedata_icloud_metadata"
               FOR EACH ROW WHEN (("new"."zoneName" <> "old"."zoneName") OR ("new"."ownerName" <> "old"."ownerName")) BEGIN
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "zoneName" = "new"."zoneName", "ownerName" = SQLDump("new"."ownerName"), "lastKnownServerRecord" = NULL, "_lastKnownServerRecordAllFields" = NULL
+                SET "zoneName" = "new"."zoneName", "ownerName" = "new"."ownerName", "lastKnownServerRecord" = NULL, "_lastKnownServerRecordAllFields" = NULL
                 WHERE ("sqlitedata_icloud_metadata"."recordName" IN (WITH "descendantMetadatas" AS (
                   SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", NULL AS "parentRecordName"
                   FROM "sqlitedata_icloud_metadata"

@@ -1085,6 +1085,7 @@
         }
       }
 
+      // NB: Come back to this when we have time to investigate.
       //      /// Deleting a root shared record that is not owned by current user should only delete
       //      /// the CKShare, not delete the actual CloudKit records, but delete all the local records.
       //      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
