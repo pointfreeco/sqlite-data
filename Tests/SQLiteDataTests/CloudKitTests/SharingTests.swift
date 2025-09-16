@@ -1035,17 +1035,9 @@
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
-        assertQuery(
-          SyncMetadata.select { ($0.recordName, $0.share) },
-          database: syncEngine.metadatabase
-        ) {
-          """
-          ┌────────────────────┬─────┐
-          │ "1:remindersLists" │ nil │
-          │ "1:reminders"      │ nil │
-          └────────────────────┴─────┘
-          """
-        }
+        assertQuery(Reminder.all, database: userDatabase.database)
+        assertQuery(RemindersList.all, database: userDatabase.database)
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase)
 
         assertInlineSnapshot(of: container, as: .customDump) {
           """
