@@ -44,7 +44,7 @@
               FOR EACH ROW WHEN NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) BEGIN
                 SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.invalid-record-name-error')
                 WHERE NOT (((substr("new"."recordName", 1, 1) <> '_') AND (octet_length("new"."recordName") <= 255)) AND (octet_length("new"."recordName") = length("new"."recordName")));
-                SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", "new"."zoneName", "new"."ownerName", "new"."zoneName", "new"."ownerName");
+                SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", "new"."zoneName", "new"."ownerName", "new"."zoneName", "new"."ownerName", NULL);
               END
               """,
               [2]: """
@@ -54,9 +54,36 @@
                 SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.invalid-record-name-error')
                 WHERE NOT (((substr("new"."recordName", 1, 1) <> '_') AND (octet_length("new"."recordName") <= 255)) AND (octet_length("new"."recordName") = length("new"."recordName")));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "lastKnownServerRecord" = NULL, "_lastKnownServerRecordAllFields" = NULL
-                WHERE ((("sqlitedata_icloud_metadata"."recordName" = "new"."recordName") AND ("sqlitedata_icloud_metadata"."recordType" = "new"."recordType")) AND (("new"."zoneName" <> "old"."zoneName") OR ("new"."ownerName" <> "old"."ownerName")));
-                SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", "new"."zoneName", "new"."ownerName", "old"."zoneName", "old"."ownerName");
+                SET "zoneName" = "new"."zoneName", "ownerName" = "new"."ownerName", "lastKnownServerRecord" = NULL, "_lastKnownServerRecordAllFields" = NULL
+                WHERE ((("new"."zoneName" <> "old"."zoneName") OR ("new"."ownerName" <> "old"."ownerName")) AND ("sqlitedata_icloud_metadata"."recordName" IN (WITH "childMetadatas" AS (
+                  SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", NULL AS "parentRecordName"
+                  FROM "sqlitedata_icloud_metadata"
+                  WHERE ("sqlitedata_icloud_metadata"."recordName" = "new"."recordName")
+                    UNION ALL
+                  SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName"
+                  FROM "sqlitedata_icloud_metadata"
+                  JOIN "childMetadatas" ON ("sqlitedata_icloud_metadata"."parentRecordName" = "childMetadatas"."recordName")
+                )
+                SELECT "childMetadatas"."recordName"
+                FROM "childMetadatas")));
+                SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", "new"."zoneName", "new"."ownerName", "old"."zoneName", "old"."ownerName", iif(
+                  (("new"."zoneName" <> "old"."zoneName") OR ("new"."ownerName" <> "old"."ownerName")),
+                  (
+                  WITH "childMetadatas" AS (
+                    SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", NULL AS "parentRecordName"
+                    FROM "sqlitedata_icloud_metadata"
+                    WHERE ("sqlitedata_icloud_metadata"."recordName" = "new"."recordName")
+                      UNION ALL
+                    SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName"
+                    FROM "sqlitedata_icloud_metadata"
+                    JOIN "childMetadatas" ON ("sqlitedata_icloud_metadata"."parentRecordName" = "childMetadatas"."recordName")
+                  )
+                  SELECT json_group_array("childMetadatas"."recordName")
+                  FROM "childMetadatas"
+                  WHERE ("childMetadatas"."recordName" <> "new"."recordName")
+                ),
+                  NULL
+                ));
               END
               """,
               [3]: """

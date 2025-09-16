@@ -609,11 +609,8 @@
         String,
         String,
         String,
-        String
-//        CKRecord?.SystemFieldsRepresentation,
-//        CKRecord?.SystemFieldsRepresentation,
-//        String?,
-//        String?
+        String,
+        [String]?.JSONRepresentation
       ) -> Void).self
     )
     func didUpdate(
@@ -621,16 +618,13 @@
       zoneName: String,
       ownerName: String,
       oldZoneName: String,
-      oldOwnerName: String
-//      lastKnownServerRecord: CKRecord?,
-//      newParentLastKnownServerRecord: CKRecord?,
-//      parentRecordPrimaryKey: String? = nil,
-//      parentRecordType: String? = nil
+      oldOwnerName: String,
+      childRecordNames: [String]?
     ) throws {
       let zoneID = CKRecordZone.ID.init(
         zoneName: oldZoneName,
         ownerName: oldOwnerName
-      ) // lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
+      )  // lastKnownServerRecord?.recordID.zoneID ?? defaultZone.zoneID
       let newZoneID = CKRecordZone.ID.init(zoneName: zoneName, ownerName: ownerName)
       //newParentLastKnownServerRecord?.recordID.zoneID
       if zoneID != newZoneID {
@@ -654,8 +648,14 @@
         }
         syncEngine?.state
           .add(pendingRecordZoneChanges: [
-            .deleteRecord(CKRecord.ID.init(recordName: recordName, zoneID: zoneID))
+            .deleteRecord(CKRecord.ID(recordName: recordName, zoneID: zoneID))
           ])
+        for childRecordName in childRecordNames ?? [] {
+          syncEngine?.state
+            .add(pendingRecordZoneChanges: [
+              .deleteRecord(CKRecord.ID(recordName: childRecordName, zoneID: zoneID))
+            ])
+        }
 
         let newSyncEngine = self.syncEngines.withValue {
           newZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
@@ -664,6 +664,12 @@
           .add(pendingRecordZoneChanges: [
             .saveRecord(CKRecord.ID.init(recordName: recordName, zoneID: newZoneID))
           ])
+        for childRecordName in childRecordNames ?? [] {
+          newSyncEngine?.state
+            .add(pendingRecordZoneChanges: [
+              .saveRecord(CKRecord.ID(recordName: childRecordName, zoneID: newZoneID))
+            ])
+        }
         return
       }
 
@@ -920,6 +926,7 @@
         }
       #endif
 
+      print("!!!")
       let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
         var missingTable: CKRecord.ID?
         var missingRecord: CKRecord.ID?
@@ -1608,7 +1615,7 @@
           )
         } onConflict: {
           ($0.recordPrimaryKey, $0.recordType)
-        } doUpdate: {  
+        } doUpdate: {
           if tablesByName[serverRecord.recordType] == nil {
             // TODO: set parent fields?
             $0.setLastKnownServerRecord(serverRecord)
@@ -1616,7 +1623,7 @@
             $0.recordType = $0.recordType
           }
         }
-          .returning(\.self)
+        .returning(\.self)
         .fetchOne(db)
 
         guard let table = tablesByName[serverRecord.recordType]
@@ -1624,10 +1631,10 @@
           return
         }
 
-//        let metadata =
-//          try SyncMetadata
-//          .find(serverRecord.recordID)
-//          .fetchOne(db)
+        //        let metadata =
+        //          try SyncMetadata
+        //          .find(serverRecord.recordID)
+        //          .fetchOne(db)
         serverRecord.userModificationTime =
           metadata?.userModificationTime ?? serverRecord.userModificationTime
 
@@ -1646,11 +1653,11 @@
                   : nil
               )
             } else {
-//              reportIssue(
-//                """
-//                Local database record could not be found for '\(serverRecord.recordID.recordName)'.
-//                """
-//              )
+              //              reportIssue(
+              //                """
+              //                Local database record could not be found for '\(serverRecord.recordID.recordName)'.
+              //                """
+              //              )
             }
             columnNames = _columnNames
           } else {
@@ -2151,13 +2158,16 @@
   }
 
   @TaskLocal package var _isSynchronizingChanges = false
-@TaskLocal package var _defaultZoneID: CKRecordZone.ID?
-@DatabaseFunction
-func defaultZoneName() -> String? {
-  _defaultZoneID?.zoneName
-}
-@DatabaseFunction
-func defaultOwnerName() -> String? {
-  _defaultZoneID?.ownerName
-}
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @TaskLocal package var _defaultZoneID: CKRecordZone.ID?
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @DatabaseFunction
+  func defaultZoneName() -> String? {
+    _defaultZoneID?.zoneName
+  }
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @DatabaseFunction
+  func defaultOwnerName() -> String? {
+    _defaultZoneID?.ownerName
+  }
 #endif

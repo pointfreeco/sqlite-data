@@ -202,15 +202,8 @@
               zoneName: new.zoneName,
               ownerName: new.ownerName,
               oldZoneName: new.zoneName,
-              oldOwnerName: new.ownerName
-                //              lastKnownServerRecord: new.lastKnownServerRecord
-                //                ?? rootServerRecord(recordName: new.recordName),
-                //              newParentLastKnownServerRecord: parentLastKnownServerRecord(
-                //                parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-                //                parentRecordType: new.parentRecordType
-                //              ),
-                //              parentRecordPrimaryKey: new.parentRecordPrimaryKey,
-                //              parentRecordType: new.parentRecordType
+              oldOwnerName: new.ownerName,
+              childRecordNames: #bind(nil)
             )
           )
         } when: { _ in
@@ -224,17 +217,22 @@
       createTemporaryTrigger(
         "after_update_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
-        after: .update {
-          old,
-          new in
+        after: .update { old, new in
+          let zoneChanged = new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName)
+
           validate(recordName: new.recordName)
           SyncMetadata
             .where {
-              $0.recordName.eq(new.recordName)
-                && $0.recordType.eq(new.recordType)
-                && (new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName))
+              zoneChanged
+                && $0.recordName.in(
+                  childrenRecordNames(recordName: new.recordName, includeRecord: true) {
+                    $0.select(\.recordName)
+                  }
+                )
             }
             .update {
+              $0.zoneName = new.zoneName
+              $0.ownerName = new.ownerName
               $0.lastKnownServerRecord = nil
               $0._lastKnownServerRecordAllFields = nil
             }
@@ -244,7 +242,16 @@
               zoneName: new.zoneName,
               ownerName: new.ownerName,
               oldZoneName: old.zoneName,
-              oldOwnerName: old.ownerName
+              oldOwnerName: old.ownerName,
+              childRecordNames: #sql(
+                """
+                iif(
+                  \(zoneChanged),
+                  \(childrenRecordNames(recordName: new.recordName, includeRecord: false) { $0.select { $0.recordName.jsonGroupArray() } }),
+                  NULL
+                )
+                """
+              )
             )
           )
         } when: { old, new in
@@ -386,6 +393,38 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func childrenRecordNames<T>(
+    recordName: some QueryExpression<String>,
+    includeRecord: Bool,
+    select: (Where<ChildMetadata>) -> Select<T, ChildMetadata, ()>
+  ) -> some Statement<T> {
+    With {
+      SyncMetadata
+        .where { $0.recordName.eq(recordName) }
+        .select { ChildMetadata.Columns(recordName: $0.recordName, parentRecordName: #bind(nil)) }
+        .union(
+          all: true,
+          SyncMetadata
+            .select {
+              ChildMetadata.Columns(
+                recordName: $0.recordName,
+                parentRecordName: $0.parentRecordName
+              )
+            }
+            .join(ChildMetadata.all) { $0.parentRecordName.eq($1.recordName) }
+        )
+    } query: {
+      select(
+        ChildMetadata.where {
+          if !includeRecord {
+            $0.recordName.neq(recordName)
+          }
+        }
+      )
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func rootServerRecord(
     recordName: some QueryExpression<String>
   ) -> some QueryExpression<CKRecord?.SystemFieldsRepresentation> {
@@ -434,5 +473,40 @@
     fileprivate var isValidCloudKitRecordName: some QueryExpression<Bool> {
       substr(1, 1).neq("_") && octetLength().lte(255) && octetLength().eq(length())
     }
+  }
+
+  @Table @Selection
+  struct ChildMetadata {
+    let recordName: String
+    let parentRecordName: String?
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Table @Selection
+  struct AncestorMetadata {
+    let recordName: String
+    let parentRecordName: String?
+    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let lastKnownServerRecord: CKRecord?
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Table @Selection
+  struct RecordWithRoot {
+    let parentRecordName: String?
+    let recordName: String
+    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let lastKnownServerRecord: CKRecord?
+    let rootRecordName: String
+    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
+    let rootLastKnownServerRecord: CKRecord?
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Table @Selection
+  struct RootShare {
+    let parentRecordName: String?
+    @Column(as: CKShare?.SystemFieldsRepresentation.self)
+    let share: CKShare?
   }
 #endif

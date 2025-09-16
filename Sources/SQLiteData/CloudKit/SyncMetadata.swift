@@ -86,35 +86,6 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
-  struct AncestorMetadata {
-    let recordName: String
-    let parentRecordName: String?
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-    let lastKnownServerRecord: CKRecord?
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
-  struct RecordWithRoot {
-    let parentRecordName: String?
-    let recordName: String
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-    let lastKnownServerRecord: CKRecord?
-    let rootRecordName: String
-    @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-    let rootLastKnownServerRecord: CKRecord?
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
-  struct RootShare {
-    let parentRecordName: String?
-    @Column(as: CKShare?.SystemFieldsRepresentation.self)
-    let share: CKShare?
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
     package init(
       recordPrimaryKey: String,
