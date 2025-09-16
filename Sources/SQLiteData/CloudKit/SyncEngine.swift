@@ -573,11 +573,6 @@
         for trigger in SyncMetadata.callbackTriggers(for: self).reversed() {
           try trigger.drop().execute(db)
         }
-        db.remove(function: $hasPermission)
-        db.remove(function: $didDelete)
-        db.remove(function: $didUpdate)
-        db.remove(function: $syncEngineIsSynchronizingChanges)
-        db.remove(function: $currentTime)
       }
       try metadatabase.erase()
       try migrate(metadatabase: metadatabase)
@@ -903,7 +898,6 @@
         }
       #endif
 
-      print("!!!")
       let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
         var missingTable: CKRecord.ID?
         var missingRecord: CKRecord.ID?
