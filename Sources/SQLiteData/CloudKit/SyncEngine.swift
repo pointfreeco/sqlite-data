@@ -637,17 +637,12 @@
         }
       } else {
         newChanges.append(
-          .saveRecord(
-            CKRecord.ID(
-              recordName: recordName,
-              zoneID: zoneID
-            )
-          )
+          .saveRecord(CKRecord.ID(recordName: recordName, zoneID: zoneID))
         )
       }
 
       guard isRunning else {
-        // TODO: can this be done in the trigger??
+        // TODO: Perform this work in a trigger instead of a task.
         Task { [changes = oldChanges + newChanges] in
           await withErrorReporting(.sqliteDataCloudKitFailure) {
             try await userDatabase.write { db in
@@ -1596,8 +1591,6 @@
           if tablesByName[serverRecord.recordType] == nil {
             $0.setLastKnownServerRecord(serverRecord)
           } else {
-            // NB: Keep this to allow for "RETURNING *" to work below:
-            $0.recordPrimaryKey = $0.recordPrimaryKey
             $0.zoneName = serverRecord.recordID.zoneID.zoneName
             $0.ownerName = serverRecord.recordID.zoneID.ownerName
           }
