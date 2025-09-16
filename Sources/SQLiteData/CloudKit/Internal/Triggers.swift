@@ -219,15 +219,23 @@
         ifNotExists: true,
         after: .update { old, new in
           let zoneChanged = new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName)
+          let selfAndDescendantRecordNames = descendantRecordNames(
+            recordName: new.recordName,
+            includeRecord: true
+          ) {
+            $0.select(\.recordName)
+          }
+          let descendantRecordNamesJSON = descendantRecordNames(
+            recordName: new.recordName,
+            includeRecord: false
+          ) {
+            $0.select { $0.recordName.jsonGroupArray() }
+          }
+
           validate(recordName: new.recordName)
           SyncMetadata
             .where {
-              zoneChanged
-                && $0.recordName.in(
-                  childrenRecordNames(recordName: new.recordName, includeRecord: true) {
-                    $0.select(\.recordName)
-                  }
-                )
+              zoneChanged && $0.recordName.in(selfAndDescendantRecordNames)
             }
             .update {
               $0.zoneName = new.zoneName
@@ -246,7 +254,7 @@
                 """
                 iif(
                   \(zoneChanged),
-                  \(childrenRecordNames(recordName: new.recordName, includeRecord: false) { $0.select { $0.recordName.jsonGroupArray() } }),
+                  \(descendantRecordNamesJSON),
                   NULL
                 )
                 """
@@ -390,29 +398,29 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func childrenRecordNames<T>(
+  private func descendantRecordNames<T>(
     recordName: some QueryExpression<String>,
     includeRecord: Bool,
-    select: (Where<ChildMetadata>) -> Select<T, ChildMetadata, ()>
+    select: (Where<DescendantMetadata>) -> Select<T, DescendantMetadata, ()>
   ) -> some Statement<T> {
     With {
       SyncMetadata
         .where { $0.recordName.eq(recordName) }
-        .select { ChildMetadata.Columns(recordName: $0.recordName, parentRecordName: #bind(nil)) }
+        .select { DescendantMetadata.Columns(recordName: $0.recordName, parentRecordName: #bind(nil)) }
         .union(
           all: true,
           SyncMetadata
             .select {
-              ChildMetadata.Columns(
+              DescendantMetadata.Columns(
                 recordName: $0.recordName,
                 parentRecordName: $0.parentRecordName
               )
             }
-            .join(ChildMetadata.all) { $0.parentRecordName.eq($1.recordName) }
+            .join(DescendantMetadata.all) { $0.parentRecordName.eq($1.recordName) }
         )
     } query: {
       select(
-        ChildMetadata.where {
+        DescendantMetadata.where {
           if !includeRecord {
             $0.recordName.neq(recordName)
           }
@@ -473,7 +481,7 @@
   }
 
   @Table @Selection
-  struct ChildMetadata {
+  struct DescendantMetadata {
     let recordName: String
     let parentRecordName: String?
   }
