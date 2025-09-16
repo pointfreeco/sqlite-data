@@ -92,10 +92,16 @@ class RemindersDetailModel: HashableObject {
     Reminder
       .where {
         if !showCompleted {
-          !$0.isCompleted
+          $0.status.neq(Reminder.Status.completed)
         }
       }
-      .order(by: \.isCompleted)
+      .order {
+        if showCompleted {
+          $0.isCompleted
+        } else {
+          $0.status.eq(Reminder.Status.completed)
+        }
+      }
       .order {
         switch ordering {
         case .dueDate: $0.dueDate.asc(nulls: .last)
