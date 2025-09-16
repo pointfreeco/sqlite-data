@@ -1024,6 +1024,7 @@
         try await userDatabase.userWrite { db in
           try db.seed {
             Reminder(id: 1, title: "Get milk", remindersListID: 1)
+            Reminder(id: 2, title: "Take a walk", remindersListID: 1)
           }
         }
 
@@ -1060,6 +1061,16 @@
                   title: "Get milk"
                 ),
                 [1]: CKRecord(
+                  recordID: CKRecord.ID(2:reminders/external.zone/external.owner),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                  share: nil,
+                  id: 2,
+                  isCompleted: 0,
+                  remindersListID: 1,
+                  title: "Take a walk"
+                ),
+                [2]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                   recordType: "remindersLists",
                   parent: nil,
@@ -1073,6 +1084,63 @@
           """
         }
       }
+
+
+
+//      /// Deleting a root shared record that is not owned by current user should only delete
+//      /// the CKShare, not delete the actual CloudKit records, but delete all the local records.
+//      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+//      @Test func deleteRootSharedRecord_OnDeleteSetNull() async throws {
+//        let externalZone = CKRecordZone(
+//          zoneID: CKRecordZone.ID(
+//            zoneName: "external.zone",
+//            ownerName: "external.owner"
+//          )
+//        )
+//        try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+//
+//        let parentRecord = CKRecord(
+//          recordType: Parent.tableName,
+//          recordID: Parent.recordID(for: 1, zoneID: externalZone.zoneID)
+//        )
+//        parentRecord.setValue(1, forKey: "id", at: now)
+//        let share = CKShare(
+//          rootRecord: parentRecord,
+//          shareID: CKRecord.ID(
+//            recordName: "share-\(parentRecord.recordID.recordName)",
+//            zoneID: parentRecord.recordID.zoneID
+//          )
+//        )
+//
+//        try await syncEngine
+//          .acceptShare(
+//            metadata: ShareMetadata(
+//              containerIdentifier: container.containerIdentifier!,
+//              hierarchicalRootRecordID: parentRecord.recordID,
+//              rootRecord: parentRecord,
+//              share: share
+//            )
+//          )
+//
+//        try await userDatabase.userWrite { db in
+//          try db.seed {
+//            ChildWithOnDeleteSetNull(id: 1, parentID: 1)
+//          }
+//        }
+//
+//        try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+//
+//        try await userDatabase.userWrite { db in
+//          try Parent.find(1).delete().execute(db)
+//        }
+//
+//        try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+//
+//        assertQuery(Parent.all, database: userDatabase.database)
+//        assertQuery(ChildWithOnDeleteSetNull.all, database: userDatabase.database)
+//        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase)
+//        assertInlineSnapshot(of: container, as: .customDump)
+//      }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func movesChildRecordFromPrivateParentToSharedParent() async throws {

@@ -330,8 +330,8 @@
       db.add(function: $didUpdate)
       db.add(function: $didDelete)
       db.add(function: $hasPermission)
-      db.add(function: $defaultZoneName)
-      db.add(function: $defaultOwnerName)
+      db.add(function: $currentZoneName)
+      db.add(function: $currentOwnerName)
 
       for trigger in SyncMetadata.callbackTriggers(for: self) {
         try trigger.execute(db)
@@ -614,24 +614,26 @@
       ownerName: String,
       oldZoneName: String,
       oldOwnerName: String,
-      childRecordNames: [String]?
+      descendantRecordNames: [String]?
     ) {
       var oldChanges: [CKSyncEngine.PendingRecordZoneChange] = []
       var newChanges: [CKSyncEngine.PendingRecordZoneChange] = []
 
       let oldZoneID = CKRecordZone.ID(zoneName: oldZoneName, ownerName: oldOwnerName)
-      let zoneID = CKRecordZone.ID.init(zoneName: zoneName, ownerName: ownerName)
+      let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
 
       if oldZoneID != zoneID {
         oldChanges.append(.deleteRecord(CKRecord.ID(recordName: recordName, zoneID: oldZoneID)))
-        for childRecordName in childRecordNames ?? [] {
+        for descendantRecordName in descendantRecordNames ?? [] {
           oldChanges.append(
-            .deleteRecord(CKRecord.ID(recordName: childRecordName, zoneID: oldZoneID))
+            .deleteRecord(CKRecord.ID(recordName: descendantRecordName, zoneID: oldZoneID))
           )
         }
         newChanges.append(.saveRecord(CKRecord.ID(recordName: recordName, zoneID: zoneID)))
-        for childRecordName in childRecordNames ?? [] {
-          newChanges.append(.saveRecord(CKRecord.ID(recordName: childRecordName, zoneID: zoneID)))
+        for descendantRecordName in descendantRecordNames ?? [] {
+          newChanges.append(
+            .saveRecord(CKRecord.ID(recordName: descendantRecordName, zoneID: zoneID))
+          )
         }
       } else {
         newChanges.append(
@@ -643,6 +645,7 @@
           )
         )
       }
+
       guard isRunning else {
         // TODO: can this be done in the trigger??
         Task { [changes = oldChanges + newChanges] in
@@ -1006,12 +1009,14 @@
           return nil
         }
       }
-      //let deletedRecordNames = deletedRecordIDs.map(\.recordName)
 
       let (sharesToDelete, recordsWithRoot):
         ([CKShare?], [(lastKnownServerRecord: CKRecord?, rootLastKnownServerRecord: CKRecord?)]) =
           await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await metadatabase.read { db in
+            guard !deletedRecordIDs.isEmpty
+            else { return ([], []) }
+
+            return try await metadatabase.read { db in
               let sharesToDelete =
                 try SyncMetadata
                 .findAll(deletedRecordIDs)
@@ -1049,8 +1054,6 @@
                     )
                 } query: {
                   RecordWithRoot
-                    // TODO: look into this
-                    .where { $0.recordName.in(deletedRecordIDs.map(\.recordName)) }
                     .select { ($0.lastKnownServerRecord, $0.rootLastKnownServerRecord) }
                 }
                 .fetchAll(db)
@@ -1247,9 +1250,9 @@
           }
           await open(table)
         } else if recordType == CKRecord.SystemType.share {
-          for recordID in recordIDs {
+          for shareRecordID in recordIDs {
             await withErrorReporting(.sqliteDataCloudKitFailure) {
-              try await deleteShare(recordID: recordID)
+              try await deleteShare(shareRecordID: shareRecordID)
             }
           }
         } else {
@@ -1532,20 +1535,23 @@
       }
     }
 
-    func deleteShare(recordID: CKRecord.ID) async throws {
+    func deleteShare(shareRecordID: CKRecord.ID) async throws {
       try await userDatabase.write { db in
-        let shareAndLastKnownServerRecord =
+        let shareAndRecordNameAndZone =
           try SyncMetadata
           .where(\.isShared)
-          .select { ($0.share, $0.lastKnownServerRecord) }
+          .select { ($0.share, $0.recordName, $0.zoneName, $0.ownerName) }
           .fetchAll(db)
-          .first(where: { share, _ in share?.recordID == recordID }) ?? nil
-        guard
-          let (_, lastKnownServerRecord) = shareAndLastKnownServerRecord,
-          let lastKnownServerRecord
+          .first(where: { share, _, _, _ in share?.recordID == shareRecordID }) ?? nil
+        guard let (_, recordName, zoneName, ownerName) = shareAndRecordNameAndZone
         else { return }
         try SyncMetadata
-          .find(lastKnownServerRecord.recordID)
+          .find(
+            CKRecord.ID(
+              recordName: recordName,
+              zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
+            )
+          )
           .update { $0.share = nil }
           .execute(db)
       }
@@ -1623,7 +1629,7 @@
           }
 
           do {
-            try $_defaultZoneID.withValue(serverRecord.recordID.zoneID) {
+            try $_currentZoneID.withValue(serverRecord.recordID.zoneID) {
               try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
             }
             try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
@@ -2117,15 +2123,15 @@
 
   @TaskLocal package var _isSynchronizingChanges = false
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @TaskLocal package var _defaultZoneID: CKRecordZone.ID?
+  @TaskLocal package var _currentZoneID: CKRecordZone.ID?
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @DatabaseFunction
-  func defaultZoneName() -> String? {
-    _defaultZoneID?.zoneName
+  @DatabaseFunction("sqlitedata_icloud_currentZoneName")
+  func currentZoneName() -> String? {
+    _currentZoneID?.zoneName
   }
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @DatabaseFunction
-  func defaultOwnerName() -> String? {
-    _defaultZoneID?.ownerName
+  @DatabaseFunction("sqlitedata_icloud_currentOwnerName")
+  func currentOwnerName() -> String? {
+    _currentZoneID?.ownerName
   }
 #endif

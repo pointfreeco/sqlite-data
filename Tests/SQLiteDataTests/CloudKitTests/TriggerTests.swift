@@ -66,9 +66,7 @@
                 )
                 SELECT "descendantMetadatas"."recordName"
                 FROM "descendantMetadatas")));
-                SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", "new"."zoneName", "new"."ownerName", "old"."zoneName", "old"."ownerName", iif(
-                  (("new"."zoneName" <> "old"."zoneName") OR ("new"."ownerName" <> "old"."ownerName")),
-                  (
+                SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", "new"."zoneName", "new"."ownerName", "old"."zoneName", "old"."ownerName", CASE WHEN (("new"."zoneName" <> "old"."zoneName") OR ("new"."ownerName" <> "old"."ownerName")) THEN (
                   WITH "descendantMetadatas" AS (
                     SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", NULL AS "parentRecordName"
                     FROM "sqlitedata_icloud_metadata"
@@ -81,9 +79,7 @@
                   SELECT json_group_array("descendantMetadatas"."recordName")
                   FROM "descendantMetadatas"
                   WHERE ("descendantMetadatas"."recordName" <> "new"."recordName")
-                ),
-                  NULL
-                ));
+                ) END);
               END
               """,
               [3]: """
@@ -452,9 +448,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'childWithOnDeleteSetDefaults', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'childWithOnDeleteSetDefaults', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), '__defaultOwner__'), "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -479,9 +475,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'childWithOnDeleteSetNulls', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'childWithOnDeleteSetNulls', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), '__defaultOwner__'), "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -506,7 +502,7 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'modelAs', coalesce("defaultZoneName"(), 'zone'), coalesce("defaultOwnerName"(), '__defaultOwner__'), NULL, NULL
+                SELECT "new"."id", 'modelAs', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
                 DO UPDATE SET "zoneName" = CASE "excluded"."zoneName" WHEN 'zone' THEN "sqlitedata_icloud_metadata"."zoneName" ELSE "excluded"."zoneName" END, "ownerName" = CASE "excluded"."ownerName" WHEN '__defaultOwner__' THEN "sqlitedata_icloud_metadata"."ownerName" ELSE "excluded"."ownerName" END, "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
@@ -529,9 +525,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'modelBs', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'modelBs', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelAID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelAID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelAID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'))), '__defaultOwner__'), "new"."modelAID", 'modelAs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -556,9 +552,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'modelCs', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'modelCs', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelBID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelBID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelBID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'))), '__defaultOwner__'), "new"."modelBID", 'modelBs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -583,7 +579,7 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'parents', coalesce("defaultZoneName"(), 'zone'), coalesce("defaultOwnerName"(), '__defaultOwner__'), NULL, NULL
+                SELECT "new"."id", 'parents', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
                 DO UPDATE SET "zoneName" = CASE "excluded"."zoneName" WHEN 'zone' THEN "sqlitedata_icloud_metadata"."zoneName" ELSE "excluded"."zoneName" END, "ownerName" = CASE "excluded"."ownerName" WHEN '__defaultOwner__' THEN "sqlitedata_icloud_metadata"."ownerName" ELSE "excluded"."ownerName" END, "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
@@ -606,7 +602,7 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'reminderTags', coalesce("defaultZoneName"(), 'zone'), coalesce("defaultOwnerName"(), '__defaultOwner__'), NULL, NULL
+                SELECT "new"."id", 'reminderTags', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
                 DO UPDATE SET "zoneName" = CASE "excluded"."zoneName" WHEN 'zone' THEN "sqlitedata_icloud_metadata"."zoneName" ELSE "excluded"."zoneName" END, "ownerName" = CASE "excluded"."ownerName" WHEN '__defaultOwner__' THEN "sqlitedata_icloud_metadata"."ownerName" ELSE "excluded"."ownerName" END, "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
@@ -629,9 +625,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'reminders', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'reminders', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -656,9 +652,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'remindersListAssets', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'remindersListAssets', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -683,9 +679,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'remindersListPrivates', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'remindersListPrivates', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -710,7 +706,7 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'remindersLists', coalesce("defaultZoneName"(), 'zone'), coalesce("defaultOwnerName"(), '__defaultOwner__'), NULL, NULL
+                SELECT "new"."id", 'remindersLists', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
                 DO UPDATE SET "zoneName" = CASE "excluded"."zoneName" WHEN 'zone' THEN "sqlitedata_icloud_metadata"."zoneName" ELSE "excluded"."zoneName" END, "ownerName" = CASE "excluded"."ownerName" WHEN '__defaultOwner__' THEN "sqlitedata_icloud_metadata"."ownerName" ELSE "excluded"."ownerName" END, "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
@@ -733,7 +729,7 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."title", 'tags', coalesce("defaultZoneName"(), 'zone'), coalesce("defaultOwnerName"(), '__defaultOwner__'), NULL, NULL
+                SELECT "new"."title", 'tags', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
                 DO UPDATE SET "zoneName" = CASE "excluded"."zoneName" WHEN 'zone' THEN "sqlitedata_icloud_metadata"."zoneName" ELSE "excluded"."zoneName" END, "ownerName" = CASE "excluded"."ownerName" WHEN '__defaultOwner__' THEN "sqlitedata_icloud_metadata"."ownerName" ELSE "excluded"."ownerName" END, "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
@@ -1008,9 +1004,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'childWithOnDeleteSetDefaults', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'childWithOnDeleteSetDefaults', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), '__defaultOwner__'), "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -1035,9 +1031,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'childWithOnDeleteSetNulls', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'childWithOnDeleteSetNulls', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."parentID") AND ("sqlitedata_icloud_metadata"."recordType" = 'parents'))), '__defaultOwner__'), "new"."parentID", 'parents'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -1062,7 +1058,7 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'modelAs', coalesce("defaultZoneName"(), 'zone'), coalesce("defaultOwnerName"(), '__defaultOwner__'), NULL, NULL
+                SELECT "new"."id", 'modelAs', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
                 DO UPDATE SET "zoneName" = CASE "excluded"."zoneName" WHEN 'zone' THEN "sqlitedata_icloud_metadata"."zoneName" ELSE "excluded"."zoneName" END, "ownerName" = CASE "excluded"."ownerName" WHEN '__defaultOwner__' THEN "sqlitedata_icloud_metadata"."ownerName" ELSE "excluded"."ownerName" END, "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
@@ -1085,9 +1081,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'modelBs', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'modelBs', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelAID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelAID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelAID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelAs'))), '__defaultOwner__'), "new"."modelAID", 'modelAs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -1112,9 +1108,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'modelCs', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'modelCs', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelBID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelBID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."modelBID") AND ("sqlitedata_icloud_metadata"."recordType" = 'modelBs'))), '__defaultOwner__'), "new"."modelBID", 'modelBs'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -1139,7 +1135,7 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'parents', coalesce("defaultZoneName"(), 'zone'), coalesce("defaultOwnerName"(), '__defaultOwner__'), NULL, NULL
+                SELECT "new"."id", 'parents', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
                 DO UPDATE SET "zoneName" = CASE "excluded"."zoneName" WHEN 'zone' THEN "sqlitedata_icloud_metadata"."zoneName" ELSE "excluded"."zoneName" END, "ownerName" = CASE "excluded"."ownerName" WHEN '__defaultOwner__' THEN "sqlitedata_icloud_metadata"."ownerName" ELSE "excluded"."ownerName" END, "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
@@ -1162,7 +1158,7 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'reminderTags', coalesce("defaultZoneName"(), 'zone'), coalesce("defaultOwnerName"(), '__defaultOwner__'), NULL, NULL
+                SELECT "new"."id", 'reminderTags', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
                 DO UPDATE SET "zoneName" = CASE "excluded"."zoneName" WHEN 'zone' THEN "sqlitedata_icloud_metadata"."zoneName" ELSE "excluded"."zoneName" END, "ownerName" = CASE "excluded"."ownerName" WHEN '__defaultOwner__' THEN "sqlitedata_icloud_metadata"."ownerName" ELSE "excluded"."ownerName" END, "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
@@ -1185,9 +1181,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'reminders', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'reminders', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -1212,9 +1208,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'remindersListAssets', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'remindersListAssets', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -1239,9 +1235,9 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'remindersListPrivates', coalesce("defaultZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
+                SELECT "new"."id", 'remindersListPrivates', coalesce("sqlitedata_icloud_currentZoneName"(), (SELECT "sqlitedata_icloud_metadata"."zoneName"
                 FROM "sqlitedata_icloud_metadata"
-                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("defaultOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
+                WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), (SELECT "sqlitedata_icloud_metadata"."ownerName"
                 FROM "sqlitedata_icloud_metadata"
                 WHERE (("sqlitedata_icloud_metadata"."recordPrimaryKey" = "new"."remindersListID") AND ("sqlitedata_icloud_metadata"."recordType" = 'remindersLists'))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT ("recordPrimaryKey", "recordType")
@@ -1266,7 +1262,7 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."id", 'remindersLists', coalesce("defaultZoneName"(), 'zone'), coalesce("defaultOwnerName"(), '__defaultOwner__'), NULL, NULL
+                SELECT "new"."id", 'remindersLists', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
                 DO UPDATE SET "zoneName" = CASE "excluded"."zoneName" WHEN 'zone' THEN "sqlitedata_icloud_metadata"."zoneName" ELSE "excluded"."zoneName" END, "ownerName" = CASE "excluded"."ownerName" WHEN '__defaultOwner__' THEN "sqlitedata_icloud_metadata"."ownerName" ELSE "excluded"."ownerName" END, "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END
@@ -1289,7 +1285,7 @@
                 WHERE ((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) AND ("rootShares"."parentRecordName" IS NULL)) AND NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share")));
                 INSERT INTO "sqlitedata_icloud_metadata"
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
-                SELECT "new"."title", 'tags', coalesce("defaultZoneName"(), 'zone'), coalesce("defaultOwnerName"(), '__defaultOwner__'), NULL, NULL
+                SELECT "new"."title", 'tags', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT ("recordPrimaryKey", "recordType")
                 DO UPDATE SET "zoneName" = CASE "excluded"."zoneName" WHEN 'zone' THEN "sqlitedata_icloud_metadata"."zoneName" ELSE "excluded"."zoneName" END, "ownerName" = CASE "excluded"."ownerName" WHEN '__defaultOwner__' THEN "sqlitedata_icloud_metadata"."ownerName" ELSE "excluded"."ownerName" END, "parentRecordPrimaryKey" = "excluded"."parentRecordPrimaryKey", "parentRecordType" = "excluded"."parentRecordType", "userModificationTime" = "excluded"."userModificationTime";
               END

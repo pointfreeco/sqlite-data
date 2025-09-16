@@ -203,7 +203,7 @@
               ownerName: new.ownerName,
               oldZoneName: new.zoneName,
               oldOwnerName: new.ownerName,
-              childRecordNames: #bind(nil)
+              descendantRecordNames: #bind(nil)
             )
           )
         } when: { _ in
@@ -221,13 +221,13 @@
           let zoneChanged = new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName)
           let selfAndDescendantRecordNames = descendantRecordNames(
             recordName: new.recordName,
-            includeRecord: true
+            includeSelf: true
           ) {
             $0.select(\.recordName)
           }
           let descendantRecordNamesJSON = descendantRecordNames(
             recordName: new.recordName,
-            includeRecord: false
+            includeSelf: false
           ) {
             $0.select { $0.recordName.jsonGroupArray() }
           }
@@ -250,15 +250,7 @@
               ownerName: new.ownerName,
               oldZoneName: old.zoneName,
               oldOwnerName: old.ownerName,
-              childRecordNames: #sql(
-                """
-                iif(
-                  \(zoneChanged),
-                  \(descendantRecordNamesJSON),
-                  NULL
-                )
-                """
-              )
+              descendantRecordNames: Case().when(zoneChanged, then: descendantRecordNamesJSON)
             )
           )
         } when: { old, new in
@@ -300,11 +292,11 @@
     zoneName: SQLQueryExpression<String>,
     ownerName: SQLQueryExpression<String>
   ) {
-    let zoneName = #sql(
+    let defaultZoneName = #sql(
       "\(quote: defaultZone.zoneID.zoneName, delimiter: .text)",
       as: String.self
     )
-    let ownerName = #sql(
+    let defaultOwnerName = #sql(
       "\(quote: defaultZone.zoneID.ownerName, delimiter: .text)",
       as: String.self
     )
@@ -326,18 +318,18 @@
           parentRecordPrimaryKey,
           parentRecordType,
           #sql(
-            "coalesce(\($defaultZoneName()), (\(parentMetadata.select(\.zoneName))), \(zoneName))"
+            "coalesce(\($currentZoneName()), (\(parentMetadata.select(\.zoneName))), \(defaultZoneName))"
           ),
           #sql(
-            "coalesce(\($defaultOwnerName()), (\(parentMetadata.select(\.ownerName))), \(ownerName))"
+            "coalesce(\($currentOwnerName()), (\(parentMetadata.select(\.ownerName))), \(defaultOwnerName))"
           )
         )
       }
       ?? (
         nil,
         nil,
-        #sql("coalesce(\($defaultZoneName()), \(zoneName))"),
-        #sql("coalesce(\($defaultOwnerName()), \(ownerName))")
+        #sql("coalesce(\($currentZoneName()), \(defaultZoneName))"),
+        #sql("coalesce(\($currentOwnerName()), \(defaultOwnerName))")
       )
   }
 
@@ -400,13 +392,15 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func descendantRecordNames<T>(
     recordName: some QueryExpression<String>,
-    includeRecord: Bool,
+    includeSelf: Bool,
     select: (Where<DescendantMetadata>) -> Select<T, DescendantMetadata, ()>
   ) -> some Statement<T> {
     With {
       SyncMetadata
         .where { $0.recordName.eq(recordName) }
-        .select { DescendantMetadata.Columns(recordName: $0.recordName, parentRecordName: #bind(nil)) }
+        .select {
+          DescendantMetadata.Columns(recordName: $0.recordName, parentRecordName: #bind(nil))
+        }
         .union(
           all: true,
           SyncMetadata
@@ -421,7 +415,7 @@
     } query: {
       select(
         DescendantMetadata.where {
-          if !includeRecord {
+          if !includeSelf {
             $0.recordName.neq(recordName)
           }
         }
@@ -481,14 +475,14 @@
   }
 
   @Table @Selection
-  struct DescendantMetadata {
+  private struct DescendantMetadata {
     let recordName: String
     let parentRecordName: String?
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Table @Selection
-  struct AncestorMetadata {
+  private struct AncestorMetadata {
     let recordName: String
     let parentRecordName: String?
     @Column(as: CKRecord?.SystemFieldsRepresentation.self)
@@ -509,7 +503,7 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Table @Selection
-  struct RootShare {
+  private struct RootShare {
     let parentRecordName: String?
     @Column(as: CKShare?.SystemFieldsRepresentation.self)
     let share: CKShare?

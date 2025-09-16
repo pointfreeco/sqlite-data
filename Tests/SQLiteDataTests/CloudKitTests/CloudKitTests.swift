@@ -447,11 +447,13 @@
         ) {
           """
           [
-            [0]: "sqlitedata_icloud_currenttime",
-            [1]: "sqlitedata_icloud_diddelete",
-            [2]: "sqlitedata_icloud_didupdate",
-            [3]: "sqlitedata_icloud_haspermission",
-            [4]: "sqlitedata_icloud_syncengineissynchronizingchanges"
+            [0]: "sqlitedata_icloud_currentownername",
+            [1]: "sqlitedata_icloud_currenttime",
+            [2]: "sqlitedata_icloud_currentzonename",
+            [3]: "sqlitedata_icloud_diddelete",
+            [4]: "sqlitedata_icloud_didupdate",
+            [5]: "sqlitedata_icloud_haspermission",
+            [6]: "sqlitedata_icloud_syncengineissynchronizingchanges"
           ]
           """
         }
