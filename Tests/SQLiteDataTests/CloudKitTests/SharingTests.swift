@@ -1085,6 +1085,208 @@
         }
       }
 
+      /// Syncing deletion of a root shared record that is not owned by current user should delete
+      /// entire zone.
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func syncDeletedRootSharedRecord_CurrentUserNotOwner() async throws {
+        let externalZone = CKRecordZone(
+          zoneID: CKRecordZone.ID(
+            zoneName: "external.zone",
+            ownerName: "external.owner"
+          )
+        )
+        try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+        let share = CKShare(
+          rootRecord: remindersListRecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(remindersListRecord.recordID.recordName)",
+            zoneID: remindersListRecord.recordID.zoneID
+          )
+        )
+
+        try await syncEngine
+          .acceptShare(
+            metadata: ShareMetadata(
+              containerIdentifier: container.containerIdentifier!,
+              hierarchicalRootRecordID: remindersListRecord.recordID,
+              rootRecord: remindersListRecord,
+              share: share
+            )
+          )
+
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            Reminder(id: 1, title: "Get milk", remindersListID: 1)
+            Reminder(id: 2, title: "Take a walk", remindersListID: 1)
+          }
+        }
+
+        try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+
+        try await syncEngine.modifyRecordZones(scope: .shared, deleting: [externalZone.zoneID])
+          .notify()
+
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          ┌─────────────────────────┐
+          │ Reminder(               │
+          │   id: 1,                │
+          │   dueDate: nil,         │
+          │   isCompleted: false,   │
+          │   priority: nil,        │
+          │   title: "Get milk",    │
+          │   remindersListID: 1    │
+          │ )                       │
+          ├─────────────────────────┤
+          │ Reminder(               │
+          │   id: 2,                │
+          │   dueDate: nil,         │
+          │   isCompleted: false,   │
+          │   priority: nil,        │
+          │   title: "Take a walk", │
+          │   remindersListID: 1    │
+          │ )                       │
+          └─────────────────────────┘
+          """
+        }
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          ┌─────────────────────┐
+          │ RemindersList(      │
+          │   id: 1,            │
+          │   title: "Personal" │
+          │ )                   │
+          └─────────────────────┘
+          """
+        }
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                                                       │
+          │   recordPrimaryKey: "1",                                                                            │
+          │   recordType: "remindersLists",                                                                     │
+          │   zoneName: "external.zone",                                                                        │
+          │   ownerName: "external.owner",                                                                      │
+          │   recordName: "1:remindersLists",                                                                   │
+          │   parentRecordPrimaryKey: nil,                                                                      │
+          │   parentRecordType: nil,                                                                            │
+          │   parentRecordName: nil,                                                                            │
+          │   lastKnownServerRecord: CKRecord(                                                                  │
+          │     recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),                           │
+          │     recordType: "remindersLists",                                                                   │
+          │     parent: nil,                                                                                    │
+          │     share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner))  │
+          │   ),                                                                                                │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                                        │
+          │     recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),                           │
+          │     recordType: "remindersLists",                                                                   │
+          │     parent: nil,                                                                                    │
+          │     share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)), │
+          │     id: 1,                                                                                          │
+          │     title: "Personal"                                                                               │
+          │   ),                                                                                                │
+          │   share: CKRecord(                                                                                  │
+          │     recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),                     │
+          │     recordType: "cloudkit.share",                                                                   │
+          │     parent: nil,                                                                                    │
+          │     share: nil                                                                                      │
+          │   ),                                                                                                │
+          │   _isDeleted: false,                                                                                │
+          │   hasLastKnownServerRecord: true,                                                                   │
+          │   isShared: true,                                                                                   │
+          │   userModificationTime: 0                                                                           │
+          │ )                                                                                                   │
+          ├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                                       │
+          │   recordPrimaryKey: "1",                                                                            │
+          │   recordType: "reminders",                                                                          │
+          │   zoneName: "external.zone",                                                                        │
+          │   ownerName: "external.owner",                                                                      │
+          │   recordName: "1:reminders",                                                                        │
+          │   parentRecordPrimaryKey: "1",                                                                      │
+          │   parentRecordType: "remindersLists",                                                               │
+          │   parentRecordName: "1:remindersLists",                                                             │
+          │   lastKnownServerRecord: CKRecord(                                                                  │
+          │     recordID: CKRecord.ID(1:reminders/external.zone/external.owner),                                │
+          │     recordType: "reminders",                                                                        │
+          │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),      │
+          │     share: nil                                                                                      │
+          │   ),                                                                                                │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                                        │
+          │     recordID: CKRecord.ID(1:reminders/external.zone/external.owner),                                │
+          │     recordType: "reminders",                                                                        │
+          │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),      │
+          │     share: nil,                                                                                     │
+          │     id: 1,                                                                                          │
+          │     isCompleted: 0,                                                                                 │
+          │     remindersListID: 1,                                                                             │
+          │     title: "Get milk"                                                                               │
+          │   ),                                                                                                │
+          │   share: nil,                                                                                       │
+          │   _isDeleted: false,                                                                                │
+          │   hasLastKnownServerRecord: true,                                                                   │
+          │   isShared: false,                                                                                  │
+          │   userModificationTime: 0                                                                           │
+          │ )                                                                                                   │
+          ├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+          │ SyncMetadata(                                                                                       │
+          │   recordPrimaryKey: "2",                                                                            │
+          │   recordType: "reminders",                                                                          │
+          │   zoneName: "external.zone",                                                                        │
+          │   ownerName: "external.owner",                                                                      │
+          │   recordName: "2:reminders",                                                                        │
+          │   parentRecordPrimaryKey: "1",                                                                      │
+          │   parentRecordType: "remindersLists",                                                               │
+          │   parentRecordName: "1:remindersLists",                                                             │
+          │   lastKnownServerRecord: CKRecord(                                                                  │
+          │     recordID: CKRecord.ID(2:reminders/external.zone/external.owner),                                │
+          │     recordType: "reminders",                                                                        │
+          │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),      │
+          │     share: nil                                                                                      │
+          │   ),                                                                                                │
+          │   _lastKnownServerRecordAllFields: CKRecord(                                                        │
+          │     recordID: CKRecord.ID(2:reminders/external.zone/external.owner),                                │
+          │     recordType: "reminders",                                                                        │
+          │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),      │
+          │     share: nil,                                                                                     │
+          │     id: 2,                                                                                          │
+          │     isCompleted: 0,                                                                                 │
+          │     remindersListID: 1,                                                                             │
+          │     title: "Take a walk"                                                                            │
+          │   ),                                                                                                │
+          │   share: nil,                                                                                       │
+          │   _isDeleted: false,                                                                                │
+          │   hasLastKnownServerRecord: true,                                                                   │
+          │   isShared: false,                                                                                  │
+          │   userModificationTime: 0                                                                           │
+          │ )                                                                                                   │
+          └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+          """
+        }
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
       // NB: Come back to this when we have time to investigate.
       //      /// Deleting a root shared record that is not owned by current user should only delete
       //      /// the CKShare, not delete the actual CloudKit records, but delete all the local records.
