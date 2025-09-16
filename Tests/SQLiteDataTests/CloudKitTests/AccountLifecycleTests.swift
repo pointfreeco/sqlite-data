@@ -357,7 +357,8 @@
 
       _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, remindersListRecord])
       let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
-      let freshRemindersListRecord = try syncEngine.shared.database.record(for: remindersListRecord.recordID)
+      let freshRemindersListRecord = try syncEngine.shared.database.record(
+        for: remindersListRecord.recordID)
 
       try await syncEngine
         .acceptShare(

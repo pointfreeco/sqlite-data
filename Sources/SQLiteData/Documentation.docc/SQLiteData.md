@@ -1,6 +1,6 @@
 # ``SQLiteData``
 
-A fast, lightweight replacement for SwiftData, powered by SQL and supporting CloudKit 
+A fast, lightweight replacement for SwiftData, powered by SQL and supporting CloudKit
 synchronization.
 
 ## Overview

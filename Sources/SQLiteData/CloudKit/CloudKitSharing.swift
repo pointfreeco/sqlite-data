@@ -126,7 +126,7 @@
       }
 
       let rootRecord =
-      lastKnownServerRecord
+        lastKnownServerRecord
         ?? CKRecord(
           recordType: recordType,
           recordID: CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)

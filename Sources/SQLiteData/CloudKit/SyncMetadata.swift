@@ -122,8 +122,8 @@
     package static func find(_ recordID: CKRecord.ID) -> Where<Self> {
       Self.where {
         $0.recordName.eq(recordID.recordName)
-        && $0.zoneName.eq(recordID.zoneID.zoneName)
-        && $0.ownerName.eq(recordID.zoneID.ownerName)
+          && $0.zoneName.eq(recordID.zoneID.zoneName)
+          && $0.ownerName.eq(recordID.zoneID.ownerName)
       }
     }
 
@@ -131,7 +131,7 @@
       let condition: QueryFragment = recordIDs.map {
         "(\(bind: $0.recordName), \(bind: $0.zoneID.zoneName), \(bind: $0.zoneID.ownerName))"
       }
-        .joined(separator: ", ")
+      .joined(separator: ", ")
       return Self.where {
         #sql("(\($0.recordName), \($0.zoneName), \($0.ownerName)) IN (\(condition))")
       }

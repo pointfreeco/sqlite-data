@@ -23,7 +23,8 @@
             RemindersList(id: 1, title: "Personal")
           }
         }
-        defaultNotificationCenter.post(name: UIApplication.willResignActiveNotification, object: nil)
+        defaultNotificationCenter.post(
+          name: UIApplication.willResignActiveNotification, object: nil)
         try await Task.sleep(for: .seconds(1))
         assertInlineSnapshot(of: container, as: .customDump) {
           """
@@ -90,7 +91,8 @@
           }
         }
 
-        defaultNotificationCenter.post(name: UIApplication.willResignActiveNotification, object: nil)
+        defaultNotificationCenter.post(
+          name: UIApplication.willResignActiveNotification, object: nil)
         try await Task.sleep(for: .seconds(1))
         assertInlineSnapshot(of: container, as: .customDump) {
           """

@@ -1413,7 +1413,9 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func movesChildRecordFromPrivateParentToSharedParent_ReceiveDeleteBeforeSave() async throws {
+      @Test func movesChildRecordFromPrivateParentToSharedParent_ReceiveDeleteBeforeSave()
+        async throws
+      {
         try await userDatabase.userWrite { db in
           try db.seed {
             ModelA.Draft(id: 1, count: 42)
@@ -1706,7 +1708,9 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func movesChildRecordFromPrivateParentToSharedParent_ReceiveSaveBeforeDelete() async throws {
+      @Test func movesChildRecordFromPrivateParentToSharedParent_ReceiveSaveBeforeDelete()
+        async throws
+      {
         try await userDatabase.userWrite { db in
           try db.seed {
             ModelA.Draft(id: 1, count: 42)
