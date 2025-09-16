@@ -55,32 +55,32 @@
                 WHERE NOT (((substr("new"."recordName", 1, 1) <> '_') AND (octet_length("new"."recordName") <= 255)) AND (octet_length("new"."recordName") = length("new"."recordName")));
                 UPDATE "sqlitedata_icloud_metadata"
                 SET "zoneName" = "new"."zoneName", "ownerName" = "new"."ownerName", "lastKnownServerRecord" = NULL, "_lastKnownServerRecordAllFields" = NULL
-                WHERE ((("new"."zoneName" <> "old"."zoneName") OR ("new"."ownerName" <> "old"."ownerName")) AND ("sqlitedata_icloud_metadata"."recordName" IN (WITH "childMetadatas" AS (
+                WHERE ((("new"."zoneName" <> "old"."zoneName") OR ("new"."ownerName" <> "old"."ownerName")) AND ("sqlitedata_icloud_metadata"."recordName" IN (WITH "descendantMetadatas" AS (
                   SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", NULL AS "parentRecordName"
                   FROM "sqlitedata_icloud_metadata"
                   WHERE ("sqlitedata_icloud_metadata"."recordName" = "new"."recordName")
                     UNION ALL
                   SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName"
                   FROM "sqlitedata_icloud_metadata"
-                  JOIN "childMetadatas" ON ("sqlitedata_icloud_metadata"."parentRecordName" = "childMetadatas"."recordName")
+                  JOIN "descendantMetadatas" ON ("sqlitedata_icloud_metadata"."parentRecordName" = "descendantMetadatas"."recordName")
                 )
-                SELECT "childMetadatas"."recordName"
-                FROM "childMetadatas")));
+                SELECT "descendantMetadatas"."recordName"
+                FROM "descendantMetadatas")));
                 SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", "new"."zoneName", "new"."ownerName", "old"."zoneName", "old"."ownerName", iif(
                   (("new"."zoneName" <> "old"."zoneName") OR ("new"."ownerName" <> "old"."ownerName")),
                   (
-                  WITH "childMetadatas" AS (
+                  WITH "descendantMetadatas" AS (
                     SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", NULL AS "parentRecordName"
                     FROM "sqlitedata_icloud_metadata"
                     WHERE ("sqlitedata_icloud_metadata"."recordName" = "new"."recordName")
                       UNION ALL
                     SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName"
                     FROM "sqlitedata_icloud_metadata"
-                    JOIN "childMetadatas" ON ("sqlitedata_icloud_metadata"."parentRecordName" = "childMetadatas"."recordName")
+                    JOIN "descendantMetadatas" ON ("sqlitedata_icloud_metadata"."parentRecordName" = "descendantMetadatas"."recordName")
                   )
-                  SELECT json_group_array("childMetadatas"."recordName")
-                  FROM "childMetadatas"
-                  WHERE ("childMetadatas"."recordName" <> "new"."recordName")
+                  SELECT json_group_array("descendantMetadatas"."recordName")
+                  FROM "descendantMetadatas"
+                  WHERE ("descendantMetadatas"."recordName" <> "new"."recordName")
                 ),
                   NULL
                 ));
