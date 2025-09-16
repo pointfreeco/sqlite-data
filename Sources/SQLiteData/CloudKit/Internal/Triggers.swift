@@ -255,7 +255,7 @@
             }
             .update {
               $0.zoneName = new.zoneName
-              $0.ownerName = #sql("SQLDump(\(new.ownerName))")
+              $0.ownerName = new.ownerName
               $0.lastKnownServerRecord = nil
               $0._lastKnownServerRecordAllFields = nil
             }

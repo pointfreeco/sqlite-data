@@ -332,10 +332,6 @@
       db.add(function: $hasPermission)
       db.add(function: $currentZoneName)
       db.add(function: $currentOwnerName)
-      #if DEBUG
-      db.add(function: $SQLDump)
-      db.add(function: $SQLFatalError)
-      #endif
 
       for trigger in SyncMetadata.callbackTriggers(for: self) {
         try trigger.execute(db)
@@ -1607,18 +1603,10 @@
           }
         }
         .execute(db)
-        let metadata = try SyncMetadata.find(serverRecord.recordID).fetchOne(db)
 
         guard
-          let metadata
-//          metadata.zoneName == serverRecord.recordID.zoneID.zoneName,
-//          metadata.ownerName == serverRecord.recordID.zoneID.ownerName
-        else {
-          print("!!!")
-          return
-        }
-
-        guard let table = tablesByName[serverRecord.recordType]
+          let metadata = try SyncMetadata.find(serverRecord.recordID).fetchOne(db),
+          let table = tablesByName[serverRecord.recordType]
         else {
           return
         }
@@ -2147,14 +2135,4 @@
   func currentOwnerName() -> String? {
     _currentZoneID?.ownerName
   }
-
-@DatabaseFunction
-func SQLDump(_ value: String?) -> String? {
-  customDump(value, name: "SQLDump")
-  return value
-}
-@DatabaseFunction
-func SQLFatalError() {
-  fatalError()
-}
 #endif
