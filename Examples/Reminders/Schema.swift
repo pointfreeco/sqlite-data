@@ -182,10 +182,6 @@ func appDatabase() throws -> any DatabaseWriter {
   try migrator.migrate(database)
 
   try database.write { db in
-    if context == .preview {
-      try db.seedSampleData()
-    }
-
     try RemindersList.createTemporaryTrigger(after: .insert { new in
       RemindersList
         .find(new.id)
@@ -266,6 +262,10 @@ func appDatabase() throws -> any DatabaseWriter {
       updateReminderTextTags(for: old.reminderID)
     })
     .execute(db)
+
+    if context != .live {
+      try db.seedSampleData()
+    }
   }
 
   return database
