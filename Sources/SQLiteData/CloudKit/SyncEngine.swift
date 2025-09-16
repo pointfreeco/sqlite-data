@@ -332,7 +332,10 @@
       db.add(function: $hasPermission)
       db.add(function: $currentZoneName)
       db.add(function: $currentOwnerName)
+      #if DEBUG
       db.add(function: $SQLDump)
+      db.add(function: $SQLFatalError)
+      #endif
 
       for trigger in SyncMetadata.callbackTriggers(for: self) {
         try trigger.execute(db)
@@ -1228,15 +1231,15 @@
       )
       .mapValues { $0.map(\.recordID) }
       for (recordType, recordIDs) in deletedRecordIDsByRecordType {
-        let recordPrimaryKeys = recordIDs.compactMap(\.recordPrimaryKey)
         if let table = tablesByName[recordType] {
           func open<T: PrimaryKeyedTable & _SendableMetatype>(_: T.Type) async {
             await withErrorReporting(.sqliteDataCloudKitFailure) {
               try await userDatabase.write { db in
                 try T
                   .where {
-                    $0.primaryKey.in(
-                      recordPrimaryKeys.map { #sql("\(bind: $0)") }
+                    #sql("\($0.primaryKey)").in(
+                      SyncMetadata.findAll(recordIDs)
+                        .select(\.recordPrimaryKey)
                     )
                   }
                   .delete()
@@ -1578,7 +1581,7 @@
         guard let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey
         else { return }
 
-        let metadata = try SyncMetadata.insert {
+        try SyncMetadata.insert {
           SyncMetadata(
             recordPrimaryKey: recordPrimaryKey,
             recordType: serverRecord.recordType,
@@ -1599,23 +1602,32 @@
           } else {
             // NB: Keep this to allow for "RETURNING *" to work below:
             $0.recordPrimaryKey = $0.recordPrimaryKey
+            $0.zoneName = serverRecord.recordID.zoneID.zoneName
+            $0.ownerName = serverRecord.recordID.zoneID.ownerName
           }
         }
-        .returning(\.self)
-        .fetchOne(db)
+        .execute(db)
+        let metadata = try SyncMetadata.find(serverRecord.recordID).fetchOne(db)
+
+        guard
+          let metadata
+//          metadata.zoneName == serverRecord.recordID.zoneID.zoneName,
+//          metadata.ownerName == serverRecord.recordID.zoneID.ownerName
+        else {
+          print("!!!")
+          return
+        }
 
         guard let table = tablesByName[serverRecord.recordType]
         else {
           return
         }
 
-        serverRecord.userModificationTime =
-          metadata?.userModificationTime ?? serverRecord.userModificationTime
+        serverRecord.userModificationTime = metadata.userModificationTime
 
         func open<T: PrimaryKeyedTable & _SendableMetatype>(_: T.Type) throws {
           var columnNames: [String] = T.TableColumns.writableColumns.map(\.name)
           if !force,
-            let metadata,
             let allFields = metadata._lastKnownServerRecordAllFields,
             let row = try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
           {
@@ -2140,5 +2152,9 @@
 func SQLDump(_ value: String?) -> String? {
   customDump(value, name: "SQLDump")
   return value
+}
+@DatabaseFunction
+func SQLFatalError() {
+  fatalError()
 }
 #endif

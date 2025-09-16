@@ -208,17 +208,16 @@
     static func callbackTriggers(for syncEngine: SyncEngine) -> [TemporaryTrigger<Self>] {
       [
         afterInsertTrigger(for: syncEngine),
+        afterZoneUpdateTrigger(),
         afterUpdateTrigger(for: syncEngine),
         afterSoftDeleteTrigger(for: syncEngine),
       ]
     }
 
-    private enum ParentSyncMetadata: AliasName {}
-
     fileprivate static func afterInsertTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self>
     {
       createTemporaryTrigger(
-        "after_insert_on_sqlitedata_icloud_metadata",
+        "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
         after: .insert { new in
           validate(recordName: new.recordName)
@@ -238,19 +237,43 @@
       )
     }
 
-    fileprivate static func afterUpdateTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self>
+    fileprivate static func afterZoneUpdateTrigger() -> TemporaryTrigger<Self>
     {
       createTemporaryTrigger(
-        "after_update_on_sqlitedata_icloud_metadata",
+        "\(String.sqliteDataCloudKitSchemaName)_after_zone_update_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
-        after: .update { old, new in
-          let zoneChanged = new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName)
+        after: .update {
+          ($0.zoneName, $0.ownerName)
+        } forEachRow: { old, new in
           let selfAndDescendantRecordNames = descendantRecordNames(
             recordName: new.recordName,
             includeSelf: true
           ) {
             $0.select(\.recordName)
           }
+          SyncMetadata
+            .where {
+              $0.recordName.in(selfAndDescendantRecordNames)
+            }
+            .update {
+              $0.zoneName = new.zoneName
+              $0.ownerName = #sql("SQLDump(\(new.ownerName))")
+              $0.lastKnownServerRecord = nil
+              $0._lastKnownServerRecordAllFields = nil
+            }
+        } when: { old, new in
+          new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName)
+        }
+      )
+    }
+
+    fileprivate static func afterUpdateTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self>
+    {
+      createTemporaryTrigger(
+        "\(String.sqliteDataCloudKitSchemaName)_after_update_on_sqlitedata_icloud_metadata",
+        ifNotExists: true,
+        after: .update { old, new in
+          let zoneChanged = new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName)
           let descendantRecordNamesJSON = descendantRecordNames(
             recordName: new.recordName,
             includeSelf: false
@@ -269,16 +292,6 @@
               descendantRecordNames: Case().when(zoneChanged, then: descendantRecordNamesJSON)
             )
           )
-          SyncMetadata
-            .where {
-              zoneChanged && $0.recordName.in(selfAndDescendantRecordNames)
-            }
-            .update {
-              $0.zoneName = new.zoneName
-              $0.ownerName = new.ownerName
-              $0.lastKnownServerRecord = nil
-              $0._lastKnownServerRecordAllFields = nil
-            }
         } when: { old, new in
           old._isDeleted.eq(new._isDeleted) && !SyncEngine.isSynchronizingChanges()
         }
@@ -289,7 +302,7 @@
       Self
     > {
       createTemporaryTrigger(
-        "after_delete_on_sqlitedata_icloud_metadata",
+        "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
         after: .update(of: \._isDeleted) { _, new in
           Values(
