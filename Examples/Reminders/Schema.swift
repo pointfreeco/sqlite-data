@@ -263,7 +263,7 @@ func appDatabase() throws -> any DatabaseWriter {
     })
     .execute(db)
 
-    if context != .live {
+    if context == .preview {
       try db.seedSampleData()
     }
   }
