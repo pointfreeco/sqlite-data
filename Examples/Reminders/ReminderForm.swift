@@ -91,11 +91,11 @@ struct ReminderFormView: View {
           }
         }
         Picker(selection: $reminder.priority) {
-          Text("None").tag(Priority?.none)
+          Text("None").tag(Reminder.Priority?.none)
           Divider()
-          Text("High").tag(Priority.high)
-          Text("Medium").tag(Priority.medium)
-          Text("Low").tag(Priority.low)
+          Text("High").tag(Reminder.Priority.high)
+          Text("Medium").tag(Reminder.Priority.medium)
+          Text("Low").tag(Reminder.Priority.low)
         } label: {
           HStack {
             Image(systemName: "exclamationmark.circle.fill")
