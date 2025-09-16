@@ -1138,12 +1138,12 @@
           try await userDatabase.write { db in
             var defaultZoneDeleted = false
             for (zoneID, reason) in deletions {
-              guard zoneID == self.defaultZone.zoneID
-              else { continue }
               switch reason {
               case .deleted, .purged:
                 try deleteRecords(in: zoneID, db: db)
-                defaultZoneDeleted = true
+                if zoneID == self.defaultZone.zoneID {
+                  defaultZoneDeleted = true
+                }
               case .encryptedDataReset:
                 try uploadRecords(in: zoneID, db: db)
               @unknown default:
@@ -1159,19 +1159,23 @@
       }
       @Sendable
       func deleteRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
-        let recordTypes = Set(
-          try SyncMetadata
-            .where(\.hasLastKnownServerRecord)
-            .select(\.lastKnownServerRecord)
-            .fetchAll(db)
-            .compactMap { $0?.recordID.zoneID == zoneID ? $0?.recordType : nil }
+        let recordTypes = Dictionary(
+          grouping:
+            try SyncMetadata
+            .where { $0.zoneName.eq(zoneID.zoneName) && $0.ownerName.eq(zoneID.ownerName) }
+            .select { ($0.recordType, $0.recordPrimaryKey) }
+            .fetchAll(db),
+          by: \.0
         )
-        for recordType in recordTypes {
+        .mapValues {
+          $0.map(\.1)
+        }
+        for (recordType, primaryKeys) in recordTypes {
           guard let table = tablesByName[recordType]
           else { continue }
           func open<T: PrimaryKeyedTable>(_: T.Type) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
-              try T.delete().execute(db)
+              try T.where { #sql("\($0.primaryKey)").in(primaryKeys) }.delete().execute(db)
             }
           }
           open(table)

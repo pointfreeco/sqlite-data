@@ -1085,6 +1085,74 @@
         }
       }
 
+      /// Syncing deletion of a root shared record that is not owned by current user should delete
+      /// entire zone.
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func syncDeletedRootSharedRecord_CurrentUserNotOwner() async throws {
+        let externalZone = CKRecordZone(
+          zoneID: CKRecordZone.ID(
+            zoneName: "external.zone",
+            ownerName: "external.owner"
+          )
+        )
+        try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+        let share = CKShare(
+          rootRecord: remindersListRecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(remindersListRecord.recordID.recordName)",
+            zoneID: remindersListRecord.recordID.zoneID
+          )
+        )
+
+        try await syncEngine
+          .acceptShare(
+            metadata: ShareMetadata(
+              containerIdentifier: container.containerIdentifier!,
+              hierarchicalRootRecordID: remindersListRecord.recordID,
+              rootRecord: remindersListRecord,
+              share: share
+            )
+          )
+
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            Reminder(id: 1, title: "Get milk", remindersListID: 1)
+            Reminder(id: 2, title: "Take a walk", remindersListID: 1)
+          }
+        }
+
+        try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+
+        try await syncEngine.modifyRecordZones(scope: .shared, deleting: [externalZone.zoneID])
+          .notify()
+
+        assertQuery(Reminder.all, database: userDatabase.database)
+        assertQuery(RemindersList.all, database: userDatabase.database)
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase)
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
       // NB: Come back to this when we have time to investigate.
       //      /// Deleting a root shared record that is not owned by current user should only delete
       //      /// the CKShare, not delete the actual CloudKit records, but delete all the local records.
