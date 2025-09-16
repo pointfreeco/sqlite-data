@@ -340,7 +340,7 @@ func appDatabase() throws -> any DatabaseWriter {
     )
     .execute(db)
 
-    if context == .preview {
+    if context != .live {
       try db.seedSampleData()
     }
   }
