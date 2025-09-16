@@ -629,7 +629,7 @@
           │   _isDeleted: false,                                       │
           │   hasLastKnownServerRecord: true,                          │
           │   isShared: false,                                         │
-          │   userModificationTime: -1                                 │
+          │   userModificationTime: 0                                  │
           │ )                                                          │
           └────────────────────────────────────────────────────────────┘
           """

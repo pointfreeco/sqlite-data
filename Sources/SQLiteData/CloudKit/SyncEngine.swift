@@ -1608,10 +1608,12 @@
           )
         } onConflict: {
           ($0.recordPrimaryKey, $0.recordType)
-        } doUpdate: {
+        } doUpdate: {  
           if tablesByName[serverRecord.recordType] == nil {
             // TODO: set parent fields?
             $0.setLastKnownServerRecord(serverRecord)
+          } else {
+            $0.recordType = $0.recordType
           }
         }
           .returning(\.self)

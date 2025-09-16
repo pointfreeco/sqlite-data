@@ -643,7 +643,7 @@
           │ "1:remindersLists" │ nil                │
           │ "2:remindersLists" │ nil                │
           │ "3:remindersLists" │ nil                │
-          │ "1:reminders"      │ "2:remindersLists" │
+          │ "1:reminders"      │ "3:remindersLists" │
           └────────────────────┴────────────────────┘
           """
         }
@@ -655,8 +655,8 @@
           │   dueDate: nil,       │
           │   isCompleted: false, │
           │   priority: nil,      │
-          │   title: "Get milk",  │
-          │   remindersListID: 2  │
+          │   title: "Buy milk",  │
+          │   remindersListID: 3  │
           │ )                     │
           └───────────────────────┘
           """
@@ -671,12 +671,12 @@
           CKRecord(
             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
             recordType: "reminders",
-            parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)),
+            parent: CKReference(recordID: CKRecord.ID(3:remindersLists/zone/__defaultOwner__)),
             share: nil,
             id: 1,
             isCompleted: 0,
-            remindersListID: 2,
-            title: "Get milk"
+            remindersListID: 3,
+            title: "Buy milk"
           )
           """
         }
@@ -738,7 +738,7 @@
           │ "1:remindersLists" │ nil                │
           │ "2:remindersLists" │ nil                │
           │ "3:remindersLists" │ nil                │
-          │ "1:reminders"      │ "2:remindersLists" │
+          │ "1:reminders"      │ "3:remindersLists" │
           └────────────────────┴────────────────────┘
           """
         }
@@ -751,7 +751,7 @@
           │   isCompleted: false, │
           │   priority: nil,      │
           │   title: "Get milk",  │
-          │   remindersListID: 2  │
+          │   remindersListID: 3  │
           │ )                     │
           └───────────────────────┘
           """
@@ -766,11 +766,11 @@
           CKRecord(
             recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
             recordType: "reminders",
-            parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)),
+            parent: CKReference(recordID: CKRecord.ID(3:remindersLists/zone/__defaultOwner__)),
             share: nil,
             id: 1,
             isCompleted: 0,
-            remindersListID: 2,
+            remindersListID: 3,
             title: "Get milk"
           )
           """

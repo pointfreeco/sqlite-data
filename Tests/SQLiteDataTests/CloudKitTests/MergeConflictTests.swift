@@ -137,8 +137,8 @@
                   share: nil,
                   id: 1,
                   id🗓️: 0,
-                  isCompleted: 0,
-                  isCompleted🗓️: 0,
+                  isCompleted: 1,
+                  isCompleted🗓️: 30,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
                   title: "Buy milk",
@@ -291,13 +291,13 @@
                   share: nil,
                   id: 1,
                   id🗓️: 0,
-                  isCompleted: 0,
-                  isCompleted🗓️: 0,
+                  isCompleted: 1,
+                  isCompleted🗓️: 60,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
                   title: "Buy milk",
                   title🗓️: 30,
-                  🗓️: 30
+                  🗓️: 60
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
@@ -360,13 +360,13 @@
                   share: nil,
                   id: 1,
                   id🗓️: 0,
-                  isCompleted: 0,
-                  isCompleted🗓️: 0,
+                  isCompleted: 1,
+                  isCompleted🗓️: 60,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
                   title: "Buy milk",
                   title🗓️: 30,
-                  🗓️: 30
+                  🗓️: 60
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
@@ -428,7 +428,7 @@
           │   dueDate: nil,       │
           │   isCompleted: false, │
           │   priority: nil,      │
-          │   title: "Buy milk",  │
+          │   title: "Get milk",  │
           │   remindersListID: 1  │
           │ )                     │
           └───────────────────────┘
@@ -451,7 +451,7 @@
                   isCompleted🗓️: 0,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
-                  title: "Buy milk",
+                  title: "Get milk",
                   title🗓️: 60,
                   🗓️: 60
                 ),
@@ -520,9 +520,9 @@
                   isCompleted🗓️: 0,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
-                  title: "Buy milk",
-                  title🗓️: 30,
-                  🗓️: 30
+                  title: "Get milk",
+                  title🗓️: 60,
+                  🗓️: 60
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
@@ -590,9 +590,9 @@
                   isCompleted🗓️: 0,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
-                  title: "Buy milk",
-                  title🗓️: 30,
-                  🗓️: 30
+                  title: "Get milk",
+                  title🗓️: 60,
+                  🗓️: 60
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
@@ -666,11 +666,13 @@
                   id🗓️: 0,
                   isCompleted: 0,
                   isCompleted🗓️: 0,
+                  priority: 3,
+                  priority🗓️: 1,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
                   title: "",
                   title🗓️: 0,
-                  🗓️: 0
+                  🗓️: 1
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),

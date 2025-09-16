@@ -653,7 +653,7 @@
                   parent: nil,
                   share: nil,
                   id: 1,
-                  title: "Personal"
+                  title: "My stuff"
                 )
               ]
             ),
