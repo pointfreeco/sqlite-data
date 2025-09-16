@@ -330,8 +330,6 @@
         nil,
         #sql("coalesce(\($defaultZoneName()), \(zoneName))"),
         #sql("coalesce(\($defaultOwnerName()), \(ownerName))")
-        //      #sql("coalesce(\($defaultZoneName()), \(zoneName))"),
-        //      #sql("coalesce(\($defaultOwnerName()), \(ownerName))")
       )
   }
 
