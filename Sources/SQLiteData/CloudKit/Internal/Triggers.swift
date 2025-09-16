@@ -55,7 +55,7 @@
             parentForeignKey: parentForeignKey,
             defaultZone: defaultZone
           )
-          SyncMetadata.upsert(
+          SyncMetadata.insert(
             new: new,
             parentForeignKey: parentForeignKey,
             defaultZone: defaultZone
@@ -77,7 +77,12 @@
             parentForeignKey: parentForeignKey,
             defaultZone: defaultZone
           )
-          SyncMetadata.upsert(
+          SyncMetadata.insert(
+            new: new,
+            parentForeignKey: parentForeignKey,
+            defaultZone: defaultZone
+          )
+          SyncMetadata.update(
             new: new,
             parentForeignKey: parentForeignKey,
             defaultZone: defaultZone
@@ -133,7 +138,8 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
-    fileprivate static func upsert<T: PrimaryKeyedTable, Name>(
+
+    fileprivate static func insert<T: PrimaryKeyedTable, Name>(
       new: StructuredQueriesCore.TableAlias<T, Name>.TableColumns,
       parentForeignKey: ForeignKey?,
       defaultZone: CKRecordZone
@@ -142,6 +148,14 @@
         alias: new,
         parentForeignKey: parentForeignKey,
         defaultZone: defaultZone
+      )
+      let defaultZoneName = #sql(
+        "\(quote: defaultZone.zoneID.zoneName, delimiter: .text)",
+        as: String.self
+      )
+      let defaultOwnerName = #sql(
+        "\(quote: defaultZone.zoneID.ownerName, delimiter: .text)",
+        as: String.self
       )
       return insert {
         (
@@ -156,23 +170,35 @@
         Values(
           #sql("\(new.primaryKey)"),
           T.tableName,
-          zoneName,
-          ownerName,
+          zoneName ?? defaultZoneName,
+          ownerName ?? defaultOwnerName,
           parentRecordPrimaryKey,
           parentRecordType
         )
-      } onConflict: {
-        ($0.recordPrimaryKey, $0.recordType)
-      } doUpdate: {
-        $0.zoneName = Case($1.zoneName)
-          .when(defaultZone.zoneID.zoneName, then: $0.zoneName)
-          .else($1.zoneName)
-        $0.ownerName = Case($1.ownerName)
-          .when(defaultZone.zoneID.ownerName, then: $0.ownerName)
-          .else($1.ownerName)
-        $0.parentRecordPrimaryKey = $1.parentRecordPrimaryKey
-        $0.parentRecordType = $1.parentRecordType
-        $0.userModificationTime = $1.userModificationTime
+      } onConflictDoUpdate: { _ in
+      }
+    }
+
+    fileprivate static func update<T: PrimaryKeyedTable, Name>(
+      new: StructuredQueriesCore.TableAlias<T, Name>.TableColumns,
+      parentForeignKey: ForeignKey?,
+      defaultZone: CKRecordZone
+    ) -> some StructuredQueriesCore.Statement {
+      let (parentRecordPrimaryKey, parentRecordType, zoneName, ownerName) = parentFields(
+        alias: new,
+        parentForeignKey: parentForeignKey,
+        defaultZone: defaultZone
+      )
+      return Self.where {
+        $0.recordPrimaryKey.eq(#sql("\(new.primaryKey)"))
+          && $0.recordType.eq(T.tableName)
+      }
+      .update {
+        $0.zoneName = zoneName ?? $0.zoneName
+        $0.ownerName = ownerName ?? $0.ownerName
+        $0.parentRecordPrimaryKey = parentRecordPrimaryKey
+        $0.parentRecordType = parentRecordType
+        $0.userModificationTime = $currentTime()
       }
     }
   }
@@ -233,16 +259,6 @@
           }
 
           validate(recordName: new.recordName)
-          SyncMetadata
-            .where {
-              zoneChanged && $0.recordName.in(selfAndDescendantRecordNames)
-            }
-            .update {
-              $0.zoneName = new.zoneName
-              $0.ownerName = new.ownerName
-              $0.lastKnownServerRecord = nil
-              $0._lastKnownServerRecordAllFields = nil
-            }
           Values(
             syncEngine.$didUpdate(
               recordName: new.recordName,
@@ -253,6 +269,16 @@
               descendantRecordNames: Case().when(zoneChanged, then: descendantRecordNamesJSON)
             )
           )
+          SyncMetadata
+            .where {
+              zoneChanged && $0.recordName.in(selfAndDescendantRecordNames)
+            }
+            .update {
+              $0.zoneName = new.zoneName
+              $0.ownerName = new.ownerName
+              $0.lastKnownServerRecord = nil
+              $0._lastKnownServerRecordAllFields = nil
+            }
         } when: { old, new in
           old._isDeleted.eq(new._isDeleted) && !SyncEngine.isSynchronizingChanges()
         }
@@ -289,17 +315,9 @@
   ) -> (
     parentRecordPrimaryKey: SQLQueryExpression<String>?,
     parentRecordType: SQLQueryExpression<String>?,
-    zoneName: SQLQueryExpression<String>,
-    ownerName: SQLQueryExpression<String>
+    zoneName: SQLQueryExpression<String?>,
+    ownerName: SQLQueryExpression<String?>
   ) {
-    let defaultZoneName = #sql(
-      "\(quote: defaultZone.zoneID.zoneName, delimiter: .text)",
-      as: String.self
-    )
-    let defaultOwnerName = #sql(
-      "\(quote: defaultZone.zoneID.ownerName, delimiter: .text)",
-      as: String.self
-    )
     return
       parentForeignKey
       .map { foreignKey in
@@ -318,18 +336,18 @@
           parentRecordPrimaryKey,
           parentRecordType,
           #sql(
-            "coalesce(\($currentZoneName()), (\(parentMetadata.select(\.zoneName))), \(defaultZoneName))"
+            "coalesce(\($currentZoneName()), (\(parentMetadata.select(\.zoneName))))"
           ),
           #sql(
-            "coalesce(\($currentOwnerName()), (\(parentMetadata.select(\.ownerName))), \(defaultOwnerName))"
+            "coalesce(\($currentOwnerName()), (\(parentMetadata.select(\.ownerName))))"
           )
         )
       }
       ?? (
         nil,
         nil,
-        #sql("coalesce(\($currentZoneName()), \(defaultZoneName))"),
-        #sql("coalesce(\($currentOwnerName()), \(defaultOwnerName))")
+        #sql("\($currentZoneName())"),
+        #sql("\($currentOwnerName())")
       )
   }
 

@@ -332,6 +332,7 @@
       db.add(function: $hasPermission)
       db.add(function: $currentZoneName)
       db.add(function: $currentOwnerName)
+      db.add(function: $SQLDump)
 
       for trigger in SyncMetadata.callbackTriggers(for: self) {
         try trigger.execute(db)
@@ -2134,4 +2135,10 @@
   func currentOwnerName() -> String? {
     _currentZoneID?.ownerName
   }
+
+@DatabaseFunction
+func SQLDump(_ value: String?) -> String? {
+  customDump(value, name: "SQLDump")
+  return value
+}
 #endif
