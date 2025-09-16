@@ -1141,7 +1141,9 @@
               switch reason {
               case .deleted, .purged:
                 try deleteRecords(in: zoneID, db: db)
-                defaultZoneDeleted = true
+                if zoneID == self.defaultZone.zoneID {
+                  defaultZoneDeleted = true
+                }
               case .encryptedDataReset:
                 try uploadRecords(in: zoneID, db: db)
               @unknown default:
