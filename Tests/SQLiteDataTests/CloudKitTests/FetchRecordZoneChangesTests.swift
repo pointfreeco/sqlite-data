@@ -152,7 +152,7 @@
           │   isCompleted: true, │
           │   priority: nil,     │
           │   title: "Get milk", │
-          │   remindersListID: 1 │
+          │   remindersListID: 2 │
           │ )                    │
           └──────────────────────┘
           """
@@ -163,7 +163,7 @@
         ) {
           """
           ┌────────────────────┬────────────────────┐
-          │ "1:reminders"      │ "1:remindersLists" │
+          │ "1:reminders"      │ "2:remindersLists" │
           │ "1:remindersLists" │ nil                │
           │ "2:remindersLists" │ nil                │
           └────────────────────┴────────────────────┘
@@ -178,11 +178,11 @@
                 [0]: CKRecord(
                   recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
                   recordType: "reminders",
-                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                  parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)),
                   share: nil,
                   id: 1,
                   isCompleted: 1,
-                  remindersListID: 1,
+                  remindersListID: 2,
                   title: "Get milk"
                 ),
                 [1]: CKRecord(

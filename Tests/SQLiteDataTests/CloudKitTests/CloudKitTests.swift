@@ -578,12 +578,12 @@
 
         assertQuery(RemindersList.all, database: userDatabase.database) {
           """
-          ┌─────────────────────┐
-          │ RemindersList(      │
-          │   id: 1,            │
-          │   title: "Personal" │
-          │ )                   │
-          └─────────────────────┘
+          ┌─────────────────┐
+          │ RemindersList(  │
+          │   id: 1,        │
+          │   title: "Work" │
+          │ )               │
+          └─────────────────┘
           """
         }
         assertQuery(
@@ -653,7 +653,7 @@
                   parent: nil,
                   share: nil,
                   id: 1,
-                  title: "My stuff"
+                  title: "Personal"
                 )
               ]
             ),
