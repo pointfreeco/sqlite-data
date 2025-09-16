@@ -236,8 +236,7 @@
       )
     }
 
-    fileprivate static func afterZoneUpdateTrigger() -> TemporaryTrigger<Self>
-    {
+    fileprivate static func afterZoneUpdateTrigger() -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_zone_update_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
@@ -297,9 +296,9 @@
       )
     }
 
-    fileprivate static func afterSoftDeleteTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<
-      Self
-    > {
+    fileprivate static func afterSoftDeleteTrigger(
+      for syncEngine: SyncEngine
+    ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
@@ -338,28 +337,22 @@
           as: String.self
         )
         let parentRecordType = #sql("\(bind: foreignKey.table)", as: String.self)
-        let parentMetadata =
-          SyncMetadata
-          .where {
-            $0.recordPrimaryKey.eq(parentRecordPrimaryKey)
-              && $0.recordType.eq(parentRecordType)
-          }
+        let parentMetadata = SyncMetadata.where {
+          $0.recordPrimaryKey.eq(parentRecordPrimaryKey)
+            && $0.recordType.eq(parentRecordType)
+        }
         return (
           parentRecordPrimaryKey,
           parentRecordType,
-          #sql(
-            "coalesce(\($currentZoneName()), (\(parentMetadata.select(\.zoneName))))"
-          ),
-          #sql(
-            "coalesce(\($currentOwnerName()), (\(parentMetadata.select(\.ownerName))))"
-          )
+          #sql("coalesce(\($currentZoneName()), (\(parentMetadata.select(\.zoneName))))"),
+          #sql("coalesce(\($currentOwnerName()), (\(parentMetadata.select(\.ownerName))))")
         )
       }
       ?? (
         nil,
         nil,
-        #sql("\($currentZoneName())"),
-        #sql("\($currentOwnerName())")
+        SQLQueryExpression($currentZoneName()),
+        SQLQueryExpression($currentOwnerName())
       )
   }
 

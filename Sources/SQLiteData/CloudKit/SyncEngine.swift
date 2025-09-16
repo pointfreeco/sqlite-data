@@ -1768,7 +1768,7 @@
   extension CKRecord.ID {
     var tableName: String? {
       guard
-        let i = recordName.utf8.lastIndex(of: .init(ascii: ":")),
+        let i = recordName.utf8.lastIndex(of: UTF8.CodeUnit(ascii: ":")),
         let j = recordName.utf8.index(i, offsetBy: 1, limitedBy: recordName.utf8.endIndex)
       else { return nil }
       let recordTypeBytes = recordName.utf8[j...]
@@ -1778,7 +1778,7 @@
 
     var recordPrimaryKey: String? {
       guard
-        let i = recordName.utf8.lastIndex(of: .init(ascii: ":"))
+        let i = recordName.utf8.lastIndex(of: UTF8.CodeUnit(ascii: ":"))
       else { return nil }
       let recordPrimaryKeyBytes = recordName.utf8[..<i]
       guard

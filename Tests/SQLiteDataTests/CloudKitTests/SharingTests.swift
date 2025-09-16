@@ -1458,7 +1458,7 @@
             )
           )
 
-        let movedModelBRecord = CKRecord.init(
+        let movedModelBRecord = CKRecord(
           recordType: ModelB.tableName,
           recordID: ModelB.recordID(for: 1, zoneID: externalZone.zoneID)
         )
@@ -1469,7 +1469,7 @@
           recordID: ModelA.recordID(for: 2, zoneID: externalZone.zoneID),
           action: .none
         )
-        let movedModelCRecord = CKRecord.init(
+        let movedModelCRecord = CKRecord(
           recordType: ModelC.tableName,
           recordID: ModelC.recordID(for: 1, zoneID: externalZone.zoneID)
         )
@@ -1751,7 +1751,7 @@
             )
           )
 
-        let movedModelBRecord = CKRecord.init(
+        let movedModelBRecord = CKRecord(
           recordType: ModelB.tableName,
           recordID: ModelB.recordID(for: 1, zoneID: externalZone.zoneID)
         )
@@ -1762,7 +1762,7 @@
           recordID: ModelA.recordID(for: 2, zoneID: externalZone.zoneID),
           action: .none
         )
-        let movedModelCRecord = CKRecord.init(
+        let movedModelCRecord = CKRecord(
           recordType: ModelC.tableName,
           recordID: ModelC.recordID(for: 1, zoneID: externalZone.zoneID)
         )
