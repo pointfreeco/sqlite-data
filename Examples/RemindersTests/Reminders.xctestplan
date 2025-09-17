@@ -1,0 +1,29 @@
+{
+  "configurations" : [
+    {
+      "id" : "DD3C4DC0-99BB-4D11-A533-FA3986877845",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Examples.xcodeproj",
+      "identifier" : "CAF836D72D4735AB0047AEB5",
+      "name" : "Reminders"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Examples.xcodeproj",
+        "identifier" : "CA5E46952DEBFE410069E0F8",
+        "name" : "RemindersTests"
+      }
+    }
+  ],
+  "version" : 1
+}

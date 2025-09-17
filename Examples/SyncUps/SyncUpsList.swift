@@ -1,4 +1,4 @@
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 import SwiftUINavigation
 import TipKit
@@ -32,13 +32,13 @@ final class SyncUpsListModel {
   }
 
   #if DEBUG
-  func seedDatabase() {
-    withErrorReporting {
-      try database.write { db in
-        try db.seedSampleData()
+    func seedDatabase() {
+      withErrorReporting {
+        try database.write { db in
+          try db.seedSampleData()
+        }
       }
     }
-  }
   #endif
 
   @Selection
@@ -69,30 +69,30 @@ struct SyncUpsList: View {
           Image(systemName: "plus")
         }
       }
-#if DEBUG
-      ToolbarItem(placement: .automatic) {
-        Menu {
-          Button {
-            model.seedDatabase()
+      #if DEBUG
+        ToolbarItem(placement: .automatic) {
+          Menu {
+            Button {
+              model.seedDatabase()
+            } label: {
+              Text("Seed data")
+              Image(systemName: "leaf")
+            }
           } label: {
-            Text("Seed data")
-            Image(systemName: "leaf")
+            Image(systemName: "ellipsis.circle")
           }
-        } label: {
-          Image(systemName: "ellipsis.circle")
-        }
-        .popoverTip(seedDatabaseTip)
-        .task {
-          await withErrorReporting {
-            try Tips.configure()
-            try await model.$syncUps.load()
-            if model.syncUps.isEmpty {
-              seedDatabaseTip = SeedDatabaseTip()
+          .popoverTip(seedDatabaseTip)
+          .task {
+            await withErrorReporting {
+              try Tips.configure()
+              try await model.$syncUps.load()
+              if model.syncUps.isEmpty {
+                seedDatabaseTip = SeedDatabaseTip()
+              }
             }
           }
         }
-      }
-#endif
+      #endif
     }
     .navigationTitle("Daily Sync-ups")
     .sheet(item: $model.addSyncUp) { syncUpFormModel in
@@ -153,7 +153,7 @@ private struct SeedDatabaseTip: Tip {
 
 #Preview {
   let _ = try! prepareDependencies {
-    $0.defaultDatabase = try SyncUps.appDatabase()
+    try $0.bootstrapDatabase()
   }
   NavigationStack {
     SyncUpsList(model: SyncUpsListModel())

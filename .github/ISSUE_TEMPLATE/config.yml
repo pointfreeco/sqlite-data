@@ -2,14 +2,14 @@ blank_issues_enabled: false
 
 contact_links:
   - name: Project Discussion
-    url: https://github.com/pointfreeco/sharing-grdb/discussions
-    about: SharingGRDB Q&A, ideas, and more
+    url: https://github.com/pointfreeco/sqlite-data/discussions
+    about: SQLiteData Q&A, ideas, and more
   - name: Documentation
-    url: https://pointfreeco.github.io/sharing-grdb/main/documentation/sharinggrdb/
-    about: Read Sharing's documentation
+    url: https://swiftpackageindex.com/pointfreeco/sqlite-data/~/documentation/sqlitedata
+    about: Read SQLiteData's documentation
   - name: Videos
     url: https://www.pointfree.co/
-    about: Watch videos to get a behind-the-scenes look at how SharingGRDB was motivated and built
+    about: Watch videos to get a behind-the-scenes look at how SQLiteData was motivated and built
   - name: Slack
     url: https://www.pointfree.co/slack-invite
     about: Community chat

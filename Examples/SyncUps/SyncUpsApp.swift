@@ -1,4 +1,4 @@
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 
 @main
@@ -8,7 +8,7 @@ struct SyncUpsApp: App {
   init() {
     if !isTesting {
       try! prepareDependencies {
-        $0.defaultDatabase = try SyncUps.appDatabase()
+        try $0.bootstrapDatabase()
       }
     }
   }

@@ -1,4 +1,4 @@
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 
 struct ReminderRow: View {
@@ -12,7 +12,6 @@ struct ReminderRow: View {
   let title: String?
 
   @State var editReminder: Reminder.Draft?
-  @State var isCompleted: Bool
 
   @Dependency(\.defaultDatabase) private var database
 
@@ -34,14 +33,13 @@ struct ReminderRow: View {
     self.showCompleted = showCompleted
     self.tags = tags
     self.title = title
-    self.isCompleted = reminder.isCompleted
   }
 
   var body: some View {
     HStack {
       HStack(alignment: .firstTextBaseline) {
         Button(action: completeButtonTapped) {
-          Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
+          Image(systemName: reminder.isCompleted ? "circle.inset.filled" : "circle")
             .foregroundStyle(.gray)
             .font(.title2)
             .padding([.trailing], 5)
@@ -59,7 +57,7 @@ struct ReminderRow: View {
         }
       }
       Spacer()
-      if !isCompleted {
+      if !reminder.isCompleted {
         HStack {
           if reminder.isFlagged {
             Image(systemName: "flag.fill")
@@ -104,36 +102,15 @@ struct ReminderRow: View {
           .navigationTitle("Details")
       }
     }
-    .task(id: isCompleted) {
-      guard !showCompleted else { return }
-      guard
-        isCompleted,
-        isCompleted != reminder.isCompleted
-      else { return }
-      do {
-        try await Task.sleep(for: .seconds(2))
-        toggleCompletion()
-      } catch {}
-    }
   }
 
   private func completeButtonTapped() {
-    if showCompleted {
-      toggleCompletion()
-    } else {
-      isCompleted.toggle()
-    }
-  }
-
-  private func toggleCompletion() {
     withErrorReporting {
       try database.write { db in
-        isCompleted =
-          try Reminder
+        try Reminder
           .find(reminder.id)
-          .update { $0.isCompleted.toggle() }
-          .returning(\.isCompleted)
-          .fetchOne(db) ?? isCompleted
+          .update { $0.toggleStatus() }
+          .execute(db)
       }
     }
   }
@@ -161,10 +138,10 @@ struct ReminderRow: View {
     HStack(alignment: .firstTextBaseline) {
       if let priority = reminder.priority {
         Text(String(repeating: "!", count: priority.rawValue))
-          .foregroundStyle(isCompleted ? .gray : remindersList.color)
+          .foregroundStyle(reminder.isCompleted ? .gray : remindersList.color)
       }
       highlight(title ?? reminder.title)
-        .foregroundStyle(isCompleted ? .gray : .primary)
+        .foregroundStyle(reminder.isCompleted ? .gray : .primary)
     }
     .font(.title3)
   }

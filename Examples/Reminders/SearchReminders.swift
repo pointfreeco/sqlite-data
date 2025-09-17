@@ -1,5 +1,5 @@
 import IssueReporting
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 
 @MainActor
@@ -7,14 +7,17 @@ import SwiftUI
 class SearchRemindersModel {
   var showCompletedInSearchResults = false {
     didSet {
-      searchTask = Task { try await updateQuery(debounce: false) }
+      if oldValue != showCompletedInSearchResults {
+        searchTask = Task { try await updateQuery(debounce: false) }
+      }
     }
   }
 
   var searchText = "" {
     didSet {
       if oldValue != searchText {
-        if searchText.hasSuffix("\t") {
+        guard !searchText.hasSuffix("\t")
+        else {
           searchTokens.append(Token(kind: .near, rawValue: String(searchText.dropLast())))
           searchText = ""
           return
@@ -44,16 +47,13 @@ class SearchRemindersModel {
   }
 
   @ObservationIgnored @Dependency(\.continuousClock) private var clock
-
   @ObservationIgnored @Dependency(\.defaultDatabase) private var database
 
   @ObservationIgnored @Fetch var searchResults = SearchRequest.Value()
-
   @ObservationIgnored @FetchAll(Tag.none) var tags
 
   func showCompletedButtonTapped() async throws {
     showCompletedInSearchResults.toggle()
-    try await updateQuery()
   }
 
   func tagButtonTapped(_ tag: Tag) {

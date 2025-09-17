@@ -1,6 +1,6 @@
 import CustomDump
 import Foundation
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 import Testing
 
@@ -8,12 +8,9 @@ import Testing
 
 @Suite(
   .dependency(\.continuousClock, ImmediateClock()),
-  .dependency(\.date.now, Date(timeIntervalSince1970: 1234567890)),
+  .dependency(\.date.now, Date(timeIntervalSince1970: 1_234_567_890)),
   .dependency(\.uuid, .incrementing),
-  .dependencies {
-    $0.defaultDatabase = try Reminders.appDatabase()
-    try $0.defaultDatabase.write { try $0.seedSampleData() }
-  },
+  .dependencies { try $0.bootstrapDatabase() },
   .snapshots(record: .failed)
 )
 struct BaseTestSuite {}
@@ -27,7 +24,7 @@ extension RemindersList: @retroactive CustomDumpReflectable {
         "id": id,
         "color": Color.HexRepresentation(queryOutput: color).hexValue ?? 0,
         "position": position,
-        "title": title
+        "title": title,
       ],
       displayStyle: .struct
     )

@@ -27,7 +27,7 @@ body:
       required: false
     - label: If possible, I've reproduced the issue using the `main` branch of this package.
       required: false
-    - label: This issue hasn't been addressed in an [existing GitHub issue](https://github.com/pointfreeco/sharing-grdb/issues) or [discussion](https://github.com/pointfreeco/sharing-grdb/discussions).
+    - label: This issue hasn't been addressed in an [existing GitHub issue](https://github.com/pointfreeco/sqlite-data/issues) or [discussion](https://github.com/pointfreeco/sqlite-data/discussions).
       required: true
 - type: textarea
   attributes:

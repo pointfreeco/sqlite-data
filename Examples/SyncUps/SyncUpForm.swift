@@ -1,4 +1,4 @@
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 import SwiftUINavigation
 
@@ -76,11 +76,14 @@ final class SyncUpFormModel: Identifiable {
     }
     withErrorReporting {
       try database.write { db in
-        let syncUpID = try SyncUp.upsert(syncUp).returning(\.id).fetchOne(db)!
+        let syncUpID = try SyncUp.upsert { syncUp }.returning(\.id).fetchOne(db)!
         try Attendee.where { $0.syncUpID == syncUpID }.delete().execute(db)
-        try Attendee
-          .insert(attendees.map { Attendee.Draft(name: $0.name, syncUpID: syncUpID) })
-          .execute(db)
+        try Attendee.insert {
+          for attendee in attendees {
+            Attendee.Draft(name: attendee.name, syncUpID: syncUpID)
+          }
+        }
+        .execute(db)
       }
     }
     isDismissed = true
