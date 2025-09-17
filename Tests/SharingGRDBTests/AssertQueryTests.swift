@@ -14,6 +14,15 @@ import Testing
   .snapshots(record: .failed),
 )
 struct AssertQueryTests {
+  @Test func assertQueryEmpty() throws {
+    assertQuery(
+      Record.all.where { $0.id == -1 }.select(\.id)
+    ) {
+      """
+      (No results)
+      """
+    }
+  }
   @Test func assertQueryBasic() throws {
     assertQuery(
       Record.all.select(\.id)

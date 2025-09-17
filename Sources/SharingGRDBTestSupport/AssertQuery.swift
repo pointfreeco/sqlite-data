@@ -81,7 +81,11 @@ public func assertQuery<each V: QueryRepresentable, S: StructuredQueriesCore.Sta
     @Dependency(\.defaultDatabase) var defaultDatabase
     let rows = try (database ?? defaultDatabase).write { try query.fetchAll($0) }
     var table = ""
-    printTable(rows, to: &table)
+    if rows.isEmpty {
+      table = "(No results)"
+    } else {
+      printTable(rows, to: &table)
+    }
     if !table.isEmpty {
       assertInlineSnapshot(
         of: table,
