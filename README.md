@@ -35,8 +35,8 @@ library, [subscribe today](https://www.pointfree.co/pricing).
 ## Overview
 
 SQLiteData is a [fast](#performance), lightweight replacement for SwiftData, including CloudKit
-synchronization (and even CloudKit sharing) that deploys all the way back to the iOS 13 generation
-of targets. To populate data from the database you can use `@Table` and `@FetchAll`, which are
+synchronization (and even CloudKit sharing), built on top of the popular [GRDB] library. 
+To populate data from the database you can use `@Table` and `@FetchAll`, which are
 similar to SwiftData's `@Model` and `@Query`:
 
 <table>
@@ -335,6 +335,9 @@ With some basic knowledge you can apply this library to your database schema in 
 for data and keep your views up-to-date when data in the database changes, and you can use
 [StructuredQueries][] to build queries, either using its type-safe, discoverable
 [query building APIs][], or using its `#sql` macro for writing [safe SQL strings][].
+
+Further, this library is built on the popular and battle-tested [GRDB] library for
+interacting with SQLite, such as executing queries and observing the database for changes.
 
 [StructuredQueries]: https://github.com/pointfreeco/swift-structured-queries
 [GRDB]: https://github.com/groue/GRDB.swift
