@@ -6,8 +6,7 @@ synchronization.
 ## Overview
 
 SQLiteData is a [fast](#Performance), lightweight replacement for SwiftData, supporting CloudKit
-synchronization (and even CloudKit sharing), that deploys all the way back to the iOS 13 generation
-of targets.
+synchronization (and even CloudKit sharing), built on top of the popular [GRDB] library.
 
 @Row {
   @Column {
@@ -249,6 +248,11 @@ for data and keep your views up-to-date when data in the database changes, and y
 [StructuredQueries](https://github.com/pointfreeco/swift-structured-queries) to build queries,
 either using its type-safe, discoverable query building APIs, or using its `#sql` macro for writing
 safe SQL strings.
+
+Further, this library is built on the popular and battle-tested [GRDB] library for
+interacting with SQLite, such as executing queries and observing the database for changes.
+
+[GRDB]: https://github.com/groue/GRDB.swift
 
 ## What is StructuredQueries?
 
