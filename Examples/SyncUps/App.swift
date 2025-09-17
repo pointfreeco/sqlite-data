@@ -1,5 +1,5 @@
 import CasePaths
-import SharingGRDB
+import SQLiteData
 import SwiftUI
 
 @MainActor
@@ -77,8 +77,6 @@ struct AppView: View {
 }
 
 #Preview("Happy path") {
-  let _ = try! prepareDependencies {
-    $0.defaultDatabase = try SyncUps.appDatabase()
-  }
+  let _ = try! prepareDependencies { try $0.bootstrapDatabase() }
   AppView(model: AppModel())
 }

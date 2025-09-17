@@ -22,12 +22,12 @@ extension BaseTestSuite {
             reminder: Reminder(
               id: UUID(00000000-0000-0000-0000-000000000004),
               dueDate: Date(2009-02-11T23:31:30.000Z),
-              isCompleted: false,
               isFlagged: true,
               notes: "",
               position: 2,
               priority: nil,
               remindersListID: UUID(00000000-0000-0000-0000-000000000000),
+              status: .incomplete,
               title: "Haircut"
             ),
             remindersList: RemindersList(
@@ -44,12 +44,12 @@ extension BaseTestSuite {
             reminder: Reminder(
               id: UUID(00000000-0000-0000-0000-000000000005),
               dueDate: Date(2009-02-13T23:31:30.000Z),
-              isCompleted: false,
               isFlagged: false,
               notes: "Ask about diet",
               position: 3,
               priority: .high,
               remindersListID: UUID(00000000-0000-0000-0000-000000000000),
+              status: .incomplete,
               title: "Doctor appointment"
             ),
             remindersList: RemindersList(
@@ -66,12 +66,12 @@ extension BaseTestSuite {
             reminder: Reminder(
               id: UUID(00000000-0000-0000-0000-000000000007),
               dueDate: Date(2009-02-13T23:31:30.000Z),
-              isCompleted: false,
               isFlagged: false,
               notes: "",
               position: 5,
               priority: nil,
               remindersListID: UUID(00000000-0000-0000-0000-000000000000),
+              status: .incomplete,
               title: "Buy concert tickets"
             ),
             remindersList: RemindersList(
@@ -88,7 +88,6 @@ extension BaseTestSuite {
             reminder: Reminder(
               id: UUID(00000000-0000-0000-0000-000000000003),
               dueDate: nil,
-              isCompleted: false,
               isFlagged: false,
               notes: """
                 Milk
@@ -100,6 +99,7 @@ extension BaseTestSuite {
               position: 1,
               priority: nil,
               remindersListID: UUID(00000000-0000-0000-0000-000000000000),
+              status: .incomplete,
               title: "Groceries"
             ),
             remindersList: RemindersList(

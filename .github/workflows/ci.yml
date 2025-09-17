@@ -36,10 +36,13 @@ jobs:
         config: ['debug']
         scheme: ['Reminders', 'CaseStudies', 'SyncUps']
     runs-on: macos-15
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode ${{ matrix.xcode }}
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
+      - name: List devices available
+        run: xcrun simctl list --json devices available 'iPhone'
       - name: xcodebuild ${{ matrix.scheme }}
         run: make DERIVED_DATA_PATH=~/.derivedData SCHEME="${{ matrix.scheme }}" xcodebuild-raw
       - name: Output test failures

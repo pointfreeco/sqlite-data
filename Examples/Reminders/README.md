@@ -10,4 +10,4 @@ comma-separated list of all of its tags. SQLite is an incredibly powerful langua
 not embrace abstractions that keep you from querying SQLite directly as SwiftData does.
 
 [reminders-app-store]: https://apps.apple.com/us/app/reminders/id1108187841
-[tags-concat]: https://github.com/pointfreeco/sharing-grdb/blob/0391201992241f62e7bd10c8d1ece63b078c16ad/Examples/Reminders/RemindersListDetail.swift#L146-L147
+[tags-concat]: https://github.com/pointfreeco/sqlite-data/blob/0391201992241f62e7bd10c8d1ece63b078c16ad/Examples/Reminders/RemindersListDetail.swift#L146-L147

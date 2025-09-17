@@ -2,8 +2,6 @@ version: 1
 builder:
   configs:
   - documentation_targets:
-    - SharingGRDBCore
-    - SharingGRDB
-    - StructuredQueriesGRDB
-    - StructuredQueriesGRDBCore
+    - SQLiteData
     custom_documentation_parameters: [--enable-experimental-overloaded-symbol-presentation]
+    platform: ios

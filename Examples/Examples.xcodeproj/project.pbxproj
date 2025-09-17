@@ -9,6 +9,10 @@
 /* Begin PBXBuildFile section */
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
+		CA2BDE2A2E71C469000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE292E71C469000974D3 /* SQLiteData */; };
+		CA2BDE2C2E71C472000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE2B2E71C472000974D3 /* SQLiteData */; };
+		CA2BDE2E2E71C479000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE2D2E71C479000974D3 /* SQLiteData */; };
+		CA2BDE302E71C480000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE2F2E71C480000974D3 /* SQLiteData */; };
 		CA5E46912DEBB8570069E0F8 /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */; };
 		CA5E47072DECEF0F0069E0F8 /* InlineSnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E47062DECEF0F0069E0F8 /* InlineSnapshotTesting */; };
 		CA5E47092DECEFC80069E0F8 /* SnapshotTestingCustomDump in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E47082DECEFC80069E0F8 /* SnapshotTestingCustomDump */; };
@@ -16,9 +20,6 @@
 		CAD001872D874F1F00FA977A /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CAD001862D874F1F00FA977A /* DependenciesTestSupport */; };
 		DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = DC5FA7472D4C63D60082743E /* DependenciesMacros */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
-		DCD9AC8B2E02176700FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8A2E02176700FB20F8 /* SharingGRDB */; };
-		DCD9AC8D2E02177200FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8C2E02177200FB20F8 /* SharingGRDB */; };
-		DCD9AC8F2E02177900FB20F8 /* SharingGRDB in Frameworks */ = {isa = PBXBuildFile; productRef = DCD9AC8E2E02177900FB20F8 /* SharingGRDB */; };
 		DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = DCF267382D48437300B680BE /* SwiftUINavigation */; };
 /* End PBXBuildFile section */
 
@@ -47,6 +48,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CA2BDD9D2E71C30B000974D3 /* CloudKitDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudKitDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA2BDE272E71C42B000974D3 /* sqlite-data */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sqlite-data"; path = "/Users/brandon/projects/sqlite-data"; sourceTree = "<absolute>"; };
 		CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemindersTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA5F37542D5AFBBC002E1A9E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -57,6 +60,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CA2BDE332E71C578000974D3 /* Exceptions for "CloudKitDemo" folder in "CloudKitDemo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CA2BDD9C2E71C30B000974D3 /* CloudKitDemo */;
+		};
 		CAD4819A2D584B510004799A /* Exceptions for "CaseStudies" folder in "CaseStudies" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -68,6 +78,7 @@
 		DCA44CFA2D5D9D1E008D4E76 /* Exceptions for "Reminders" folder in "Reminders" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Info.plist,
 				README.md,
 			);
 			target = CAF836D72D4735AB0047AEB5 /* Reminders */;
@@ -75,6 +86,7 @@
 		DCA44CFB2D5D9D21008D4E76 /* Exceptions for "SyncUps" folder in "SyncUps" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Info.plist,
 				README.md,
 			);
 			target = DCBE89CB2D483FB90071F499 /* SyncUps */;
@@ -82,6 +94,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		CA2BDD9E2E71C30B000974D3 /* CloudKitDemo */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CA2BDE332E71C578000974D3 /* Exceptions for "CloudKitDemo" folder in "CloudKitDemo" target */,
+			);
+			path = CloudKitDemo;
+			sourceTree = "<group>";
+		};
 		CA5E46972DEBFE410069E0F8 /* RemindersTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = RemindersTests;
@@ -124,6 +144,14 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CA2BDD9A2E71C30B000974D3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA2BDE2A2E71C469000974D3 /* SQLiteData in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CA5E46932DEBFE410069E0F8 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -146,7 +174,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DCD9AC8B2E02176700FB20F8 /* SharingGRDB in Frameworks */,
+				CA2BDE302E71C480000974D3 /* SQLiteData in Frameworks */,
 				CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -162,8 +190,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CA2BDE2E2E71C479000974D3 /* SQLiteData in Frameworks */,
 				CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */,
-				DCD9AC8D2E02177200FB20F8 /* SharingGRDB in Frameworks */,
 				CA5E46912DEBB8570069E0F8 /* SwiftUINavigation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -174,7 +202,7 @@
 			files = (
 				DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */,
 				DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */,
-				DCD9AC8F2E02177900FB20F8 /* SharingGRDB in Frameworks */,
+				CA2BDE2C2E71C472000974D3 /* SQLiteData in Frameworks */,
 				DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -192,6 +220,7 @@
 				CA5E46972DEBFE410069E0F8 /* RemindersTests */,
 				DCBE89CD2D483FB90071F499 /* SyncUps */,
 				CAD0017E2D874E6F00FA977A /* SyncUpTests */,
+				CA2BDD9E2E71C30B000974D3 /* CloudKitDemo */,
 				CAF837022D4735C00047AEB5 /* Frameworks */,
 				CAF836992D4735620047AEB5 /* Products */,
 			);
@@ -206,6 +235,7 @@
 				DCBE89CC2D483FB90071F499 /* SyncUps.app */,
 				CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */,
 				CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */,
+				CA2BDD9D2E71C30B000974D3 /* CloudKitDemo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -213,6 +243,7 @@
 		CAF837022D4735C00047AEB5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				CA2BDE272E71C42B000974D3 /* sqlite-data */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -220,6 +251,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		CA2BDD9C2E71C30B000974D3 /* CloudKitDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA2BDDA72E71C30D000974D3 /* Build configuration list for PBXNativeTarget "CloudKitDemo" */;
+			buildPhases = (
+				CA2BDD992E71C30B000974D3 /* Sources */,
+				CA2BDD9A2E71C30B000974D3 /* Frameworks */,
+				CA2BDD9B2E71C30B000974D3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CA2BDD9E2E71C30B000974D3 /* CloudKitDemo */,
+			);
+			name = CloudKitDemo;
+			packageProductDependencies = (
+				CA2BDE292E71C469000974D3 /* SQLiteData */,
+			);
+			productName = CloudKitDemo;
+			productReference = CA2BDD9D2E71C30B000974D3 /* CloudKitDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
 		CA5E46952DEBFE410069E0F8 /* RemindersTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CA5E469C2DEBFE420069E0F8 /* Build configuration list for PBXNativeTarget "RemindersTests" */;
@@ -288,7 +342,7 @@
 			name = CaseStudies;
 			packageProductDependencies = (
 				CA2908C82D4AF70E003F165F /* UIKitNavigation */,
-				DCD9AC8A2E02176700FB20F8 /* SharingGRDB */,
+				CA2BDE2F2E71C480000974D3 /* SQLiteData */,
 			);
 			productName = Examples;
 			productReference = CAF836982D4735620047AEB5 /* CaseStudies.app */;
@@ -336,7 +390,7 @@
 			packageProductDependencies = (
 				CA14DBC82DA884C400E36852 /* CasePaths */,
 				CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */,
-				DCD9AC8C2E02177200FB20F8 /* SharingGRDB */,
+				CA2BDE2D2E71C479000974D3 /* SQLiteData */,
 			);
 			productName = Reminders;
 			productReference = CAF836D82D4735AB0047AEB5 /* Reminders.app */;
@@ -362,7 +416,7 @@
 				DCBE8A132D4842BF0071F499 /* CasePaths */,
 				DCF267382D48437300B680BE /* SwiftUINavigation */,
 				DC5FA7472D4C63D60082743E /* DependenciesMacros */,
-				DCD9AC8E2E02177900FB20F8 /* SharingGRDB */,
+				CA2BDE2B2E71C472000974D3 /* SQLiteData */,
 			);
 			productName = SyncUps;
 			productReference = DCBE89CC2D483FB90071F499 /* SyncUps.app */;
@@ -378,6 +432,9 @@
 				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					CA2BDD9C2E71C30B000974D3 = {
+						CreatedOnToolsVersion = 16.4;
+					};
 					CA5E46952DEBFE410069E0F8 = {
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = CAF836D72D4735AB0047AEB5;
@@ -415,7 +472,7 @@
 				DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */,
 				DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */,
 				CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
-				DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */,
+				CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CAF836992D4735620047AEB5 /* Products */;
@@ -428,11 +485,19 @@
 				CA5E46952DEBFE410069E0F8 /* RemindersTests */,
 				DCBE89CB2D483FB90071F499 /* SyncUps */,
 				CAD0017C2D874E6F00FA977A /* SyncUpTests */,
+				CA2BDD9C2E71C30B000974D3 /* CloudKitDemo */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		CA2BDD9B2E71C30B000974D3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CA5E46942DEBFE410069E0F8 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -478,6 +543,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		CA2BDD992E71C30B000974D3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CA5E46922DEBFE410069E0F8 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -541,6 +613,68 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		CA2BDDA52E71C30D000974D3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CloudKitDemo/CloudKitDemo.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CloudKitDemo/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SQLiteData.CloudKitDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CA2BDDA62E71C30D000974D3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CloudKitDemo/CloudKitDemo.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CloudKitDemo/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SQLiteData.CloudKitDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		CA5E469D2DEBFE420069E0F8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -823,11 +957,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Reminders/Reminders.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Reminders/Preview Content\"";
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Reminders/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -838,7 +975,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.Reminders;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SQLiteData.RemindersDemo.Beta;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -850,11 +987,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Reminders/Reminders.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Reminders/Preview Content\"";
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Reminders/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -865,7 +1005,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.Reminders;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SQLiteData.RemindersDemo.Beta;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -877,11 +1017,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SyncUps/SyncUps.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"SyncUps/Preview Content\"";
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SyncUps/Info.plist;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "To transcribe meeting notes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -893,7 +1036,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SyncUps;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SQLiteData.SyncUps;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -905,11 +1048,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SyncUps/SyncUps.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"SyncUps/Preview Content\"";
+				DEVELOPMENT_TEAM = VFRXY8HC3H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SyncUps/Info.plist;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "To transcribe meeting notes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -921,7 +1067,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SyncUps;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.SQLiteData.SyncUps;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -931,6 +1077,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CA2BDDA72E71C30D000974D3 /* Build configuration list for PBXNativeTarget "CloudKitDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA2BDDA52E71C30D000974D3 /* Debug */,
+				CA2BDDA62E71C30D000974D3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CA5E469C2DEBFE420069E0F8 /* Build configuration list for PBXNativeTarget "RemindersTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -997,9 +1152,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */ = {
+		CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../sharing-grdb";
+			relativePath = ..;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -1049,6 +1204,25 @@
 			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
 			productName = UIKitNavigation;
 		};
+		CA2BDE292E71C469000974D3 /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SQLiteData;
+		};
+		CA2BDE2B2E71C472000974D3 /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */;
+			productName = SQLiteData;
+		};
+		CA2BDE2D2E71C479000974D3 /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */;
+			productName = SQLiteData;
+		};
+		CA2BDE2F2E71C480000974D3 /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */;
+			productName = SQLiteData;
+		};
 		CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
@@ -1083,20 +1257,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
 			productName = CasePaths;
-		};
-		DCD9AC8A2E02176700FB20F8 /* SharingGRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = SharingGRDB;
-		};
-		DCD9AC8C2E02177200FB20F8 /* SharingGRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */;
-			productName = SharingGRDB;
-		};
-		DCD9AC8E2E02177900FB20F8 /* SharingGRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DCD9AC892E02176700FB20F8 /* XCLocalSwiftPackageReference "../../sharing-grdb" */;
-			productName = SharingGRDB;
 		};
 		DCF267382D48437300B680BE /* SwiftUINavigation */ = {
 			isa = XCSwiftPackageProductDependency;
