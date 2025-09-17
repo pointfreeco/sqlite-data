@@ -1036,9 +1036,21 @@
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
-        assertQuery(Reminder.all, database: userDatabase.database)
-        assertQuery(RemindersList.all, database: userDatabase.database)
-        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase)
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          (No results)
+          """
+        }
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          (No results)
+          """
+        }
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          (No results)
+          """
+        }
 
         assertInlineSnapshot(of: container, as: .customDump) {
           """
@@ -1133,9 +1145,21 @@
         try await syncEngine.modifyRecordZones(scope: .shared, deleting: [externalZone.zoneID])
           .notify()
 
-        assertQuery(Reminder.all, database: userDatabase.database)
-        assertQuery(RemindersList.all, database: userDatabase.database)
-        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase)
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          (No results)
+          """
+        }
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          (No results)
+          """
+        }
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          (No results)
+          """
+        }
 
         assertInlineSnapshot(of: container, as: .customDump) {
           """
@@ -2148,7 +2172,11 @@
           └────────────────┘
           """
         }
-        assertQuery(ModelC.all, database: userDatabase.database)
+        assertQuery(ModelC.all, database: userDatabase.database) {
+          """
+          (No results)
+          """
+        }
         assertQuery(
           SyncMetadata.order { ($0.recordType, $0.recordName) },
           database: syncEngine.metadatabase

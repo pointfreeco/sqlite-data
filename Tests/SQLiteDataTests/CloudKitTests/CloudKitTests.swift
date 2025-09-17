@@ -683,7 +683,11 @@
         record._recordChangeTag = UUID().uuidString
         try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
 
-        assertQuery(Reminder.all, database: userDatabase.database)
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          (No results)
+          """
+        }
         assertQuery(
           SyncMetadata.select(\.userModificationTime),
           database: syncEngine.metadatabase
@@ -736,10 +740,12 @@
 
         assertQuery(RemindersList.all, database: userDatabase.database) {
           """
+          (No results)
           """
         }
         assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
           """
+          (No results)
           """
         }
         assertInlineSnapshot(of: container, as: .customDump) {

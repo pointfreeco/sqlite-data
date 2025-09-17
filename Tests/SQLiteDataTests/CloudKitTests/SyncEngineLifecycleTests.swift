@@ -236,7 +236,11 @@
             )
             """
           }
-          assertQuery(PendingRecordZoneChange.all, database: syncEngine.metadatabase)
+          assertQuery(PendingRecordZoneChange.all, database: syncEngine.metadatabase) {
+            """
+            (No results)
+            """
+          }
         }
 
         @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

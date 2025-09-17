@@ -11,26 +11,6 @@ import Testing
 )
 struct AssertQueryTests {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Test func assertQueryEmpty() throws {
-    assertQuery(
-      Record.all.where { $0.id == -1 }.select(\.id)
-    ) {
-      """
-      (No results)
-      """
-    }
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Test func assertQueryBasic() throws {
-    assertQuery(
-      Record.all.where { $0.id == -1 }.select(\.id)
-    ) {
-      """
-      (No results)
-      """
-    }
-  }
   @Test func assertQueryBasic() throws {
     assertQuery(
       Record.all.select(\.id)
@@ -94,6 +74,30 @@ struct AssertQueryTests {
       │ )                                      │
       └────────────────────────────────────────┘
       """
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func assertQueryEmpty() throws {
+    assertQuery(
+      Record.all.where { $0.id == -1 }.select(\.id)
+    ) {
+      """
+      (No results)
+      """
+    }
+  }
+
+  @Test(.snapshots(record: .never))
+  func assertQueryFailsNoResultsNonEmptySnapshot() {
+    withKnownIssue {
+      assertQuery(
+        Record.all.where { _ in false }
+      ) {
+        """
+        XYZ
+        """
+      }
     }
   }
 
