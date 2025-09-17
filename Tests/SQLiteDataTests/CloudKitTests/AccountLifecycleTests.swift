@@ -598,7 +598,11 @@
       }
     )
     func doNotUploadExistingDataToCloudKitWhenSignedOut() {
-      assertQuery(SyncMetadata.all, database: userDatabase.database)
+      assertQuery(SyncMetadata.all, database: userDatabase.database) {
+        """
+        (No results)
+        """
+      }
       assertInlineSnapshot(of: container, as: .customDump) {
         """
         MockCloudContainer(

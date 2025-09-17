@@ -143,10 +143,12 @@
         }
         assertQuery(ModelB.all, database: userDatabase.database) {
           """
+          (No results)
           """
         }
         assertQuery(ModelC.all, database: userDatabase.database) {
           """
+          (No results)
           """
         }
         assertQuery(UnsyncedRecordID.all, database: syncEngine.metadatabase) {
@@ -180,14 +182,17 @@
         }
         assertQuery(ModelB.all, database: userDatabase.database) {
           """
+          (No results)
           """
         }
         assertQuery(ModelC.all, database: userDatabase.database) {
           """
+          (No results)
           """
         }
         assertQuery(UnsyncedRecordID.all, database: syncEngine.metadatabase) {
           """
+          (No results)
           """
         }
         assertInlineSnapshot(of: container, as: .customDump) {
@@ -335,6 +340,7 @@
 
         assertQuery(Reminder.all, database: userDatabase.database) {
           """
+          (No results)
           """
         }
 
@@ -843,7 +849,11 @@
           }
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase)
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          (No results)
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(

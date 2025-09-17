@@ -78,11 +78,16 @@ public func assertQuery<
       column: column
     )
   }
+  let results = includeSQL ? results : sql
   do {
     @Dependency(\.defaultDatabase) var defaultDatabase
     let rows = try (database ?? defaultDatabase).write { try query.fetchAll($0) }
     var table = ""
-    printTable(rows, to: &table)
+    if rows.isEmpty {
+      table = "(No results)"
+    } else {
+      printTable(rows, to: &table)
+    }
     if !table.isEmpty {
       assertInlineSnapshot(
         of: table,
@@ -92,7 +97,7 @@ public func assertQuery<
           trailingClosureLabel: "results",
           trailingClosureOffset: includeSQL ? 1 : 0
         ),
-        matches: includeSQL ? results : sql,
+        matches: results,
         fileID: fileID,
         file: filePath,
         function: function,
@@ -108,7 +113,7 @@ public func assertQuery<
           trailingClosureLabel: "results",
           trailingClosureOffset: includeSQL ? 1 : 0
         ),
-        matches: includeSQL ? results : sql,
+        matches: results,
         fileID: fileID,
         file: filePath,
         function: function,
@@ -125,7 +130,7 @@ public func assertQuery<
         trailingClosureLabel: "results",
         trailingClosureOffset: includeSQL ? 1 : 0
       ),
-      matches: includeSQL ? results : sql,
+      matches: results,
       fileID: fileID,
       file: filePath,
       function: function,
