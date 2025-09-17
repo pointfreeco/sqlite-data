@@ -81,6 +81,7 @@
         ON "\(raw: .sqliteDataCloudKitSchemaName)_metadata"("ownerName", "zoneName")
         """
       )
+      .execute(db)
       try #sql(
         """
         CREATE INDEX "\(raw: .sqliteDataCloudKitSchemaName)_metadata_parentRecordName"
