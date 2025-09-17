@@ -36,7 +36,7 @@ library, [subscribe today](https://www.pointfree.co/pricing).
 
 SQLiteData is a [fast](#performance), lightweight replacement for SwiftData, including CloudKit
 synchronization (and even CloudKit sharing) that deploys all the way back to the iOS 13 generation
-of targets. To populate data from the database you can use `@Table` and @FetchAll`, which are
+of targets. To populate data from the database you can use `@Table` and `@FetchAll`, which are
 similar to SwiftData's `@Model` and `@Query`:
 
 <table>
