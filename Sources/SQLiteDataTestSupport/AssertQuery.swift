@@ -53,8 +53,8 @@ public func assertQuery<
   includeSQL: Bool = false,
   _ query: S,
   database: (any DatabaseWriter)? = nil,
-  sql sqlSnapshot: (() -> String)? = nil,
-  results resultsSnapshot: (() -> String)? = nil,
+  sql: (() -> String)? = nil,
+  results: (() -> String)? = nil,
   fileID: StaticString = #fileID,
   filePath: StaticString = #filePath,
   function: StaticString = #function,
@@ -70,7 +70,7 @@ public func assertQuery<
         trailingClosureLabel: "sql",
         trailingClosureOffset: 0
       ),
-      matches: sqlSnapshot,
+      matches: sql,
       fileID: fileID,
       file: filePath,
       function: function,
@@ -78,7 +78,7 @@ public func assertQuery<
       column: column
     )
   }
-  let results = includeSQL ? resultsSnapshot : sqlSnapshot
+  let results = includeSQL ? results : sql
   do {
     @Dependency(\.defaultDatabase) var defaultDatabase
     let rows = try (database ?? defaultDatabase).write { try query.fetchAll($0) }
