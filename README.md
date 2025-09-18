@@ -380,7 +380,7 @@ SQLiteData. Check out [this](./Examples) directory to see them all, including:
 The documentation for releases and `main` are available here:
 
   * [`main`](https://swiftpackageindex.com/pointfreeco/sqlite-data/main/documentation/sqlitedata/)
-  * [0.x.x](https://swiftpackageindex.com/pointfreeco/sqlite-data/~/documentation/sqlitedata/)
+  * [1.x.x](https://swiftpackageindex.com/pointfreeco/sqlite-data/~/documentation/sqlitedata/)
 
 ## Installation
 
