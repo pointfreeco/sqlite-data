@@ -4,4 +4,3 @@ builder:
   - documentation_targets:
     - SQLiteData
     custom_documentation_parameters: [--enable-experimental-overloaded-symbol-presentation]
-    platform: ios
