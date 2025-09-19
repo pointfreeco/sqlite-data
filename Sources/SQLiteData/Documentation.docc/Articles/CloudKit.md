@@ -231,8 +231,8 @@ uses that information to correctly implement synchronization behavior, such as k
 to syncrhonize records (parent first, then children), and knowing what associated records to 
 share when sharing a root record.
 
-To express a foreign key relationship between tables you use the "REFERENCES" clause in the table's
-schema, along with optional "ON DELETE" and "ON UPDATE" qualifiers: 
+To express a foreign key relationship between tables you use the `REFERENCES` clause in the table's
+schema, along with optional `ON DELETE` and `ON UPDATE` qualifiers: 
 
 ```sql
 CREATE TABLE "reminders"(
