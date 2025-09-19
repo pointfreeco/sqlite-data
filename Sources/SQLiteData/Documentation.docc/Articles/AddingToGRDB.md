@@ -132,7 +132,7 @@ try Reminder.insert {
 .execute(db)
 ```
 
-You can even use a "RETURNING" clause to grab the ID of the freshly inserted record:
+You can even use a `RETURNING` clause to grab the ID of the freshly inserted record:
 
 ```swift
 try Reminder.insert { 
