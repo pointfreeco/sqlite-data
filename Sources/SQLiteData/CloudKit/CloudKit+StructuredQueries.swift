@@ -225,8 +225,9 @@
     func update<T: PrimaryKeyedTable>(with row: T, userModificationTime: Int64) {
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
+          let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
           let column = column as! any WritableTableColumnExpression<T, Value>
-          let value = Value(queryOutput: row[keyPath: column.keyPath])
+          let value = Value(queryOutput: row[keyPath: keyPath])
           switch value.queryBinding {
           case .blob(let value):
             setValue(value, forKey: column.name, at: userModificationTime)
@@ -270,7 +271,7 @@
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
           let key = column.name
-          let column = column as! any WritableTableColumnExpression<T, Value>
+          let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
           let didSet: Bool
           if let value = other[key] as? CKAsset {
             didSet = setValue(value, forKey: key, at: other[at: key])
@@ -283,7 +284,7 @@
           }
           /// The row value has been modified more recently than the last known record.
           var isRowValueModified: Bool {
-            switch Value(queryOutput: row[keyPath: column.keyPath]).queryBinding {
+            switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
             case .blob(let value):
               return (other[key] as? CKAsset)?.fileURL != URL(hash: value)
             case .bool(let value):
