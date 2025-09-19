@@ -15,7 +15,7 @@ associations, and more.
   * [Fetching data for a view](#Fetching-data-for-a-view)
   * [Fetching data for an @Observable model](#Fetching-data-for-an-Observable-model)
   * [Dynamic queries](#Dynamic-queries)
-  * [Creating, update and delete data](#Creating-update-and-delete-data)
+  * [Creating, updating and deleting data](#Creating-updating-and-deleting-data)
   * [Associations](#Associations)
   * [Booleans and enums](#Booleans-and-enums)
   * [Migrations](#Migrations)
@@ -337,7 +337,7 @@ UI, and update the `@FetchAll` query when the `searchText` state changes.
 
 See <doc:DynamicQueries> for more information on how to execute dynamic queries in the library.
 
-### Creating, update and delete data
+### Creating, updating and deleting data
 
 To create, update and delete data from the database you must use the `defaultDatabase` dependency.
 This is similar to what one does with SwiftData too, where all changes to the database go through
@@ -523,7 +523,7 @@ class Reminder {
 }
 ```
 
-This model compiles just fine, but it very limited in what you can do with it. First, you cannot
+This model compiles just fine, but it is very limited in what you can do with it. First, you cannot
 sort by the `isCompleted` column when constructing a `@Query` because `Bool` is not `Comparable`:
 
 ```swift
