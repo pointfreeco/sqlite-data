@@ -187,6 +187,18 @@ CREATE TABLE "reminders" (
 Registering custom database functions for ID generation also makes it possible to generate
 deterministic IDs for tests, making it easier to test your queries.
 
+> Important: The primary key of a row is encoded into the `recordName` of a `CKRecord`, along with
+> the table name. There are [restrictions][CKRecord.ID] on the value of `recordName`:
+>
+> * It may only contain ASCII characters
+> * It must be less than 255 characters
+> * It must not begin with an underscore
+>
+> If your primary key violates any of these rules, a `DatabaseError` will be thrown with a message
+> of ``SyncEngine/invalidRecordNameError``.
+
+[CKRecord.ID]: https://developer.apple.com/documentation/cloudkit/ckrecord/id
+
 #### Primary keys on every table
 
 > TL;DR: Each synchronized table must have a single, non-compound primary key to aid in
@@ -212,6 +224,25 @@ facilitate synchronizing to CloudKit.
 
 > TL;DR: Foreign key constraints can be enabled and you can use `ON DELETE` actions to
 > cascade deletions.
+
+Foreign keys are a SQL feature that allow one to express relationships between tables. This library
+uses that information to correctly implement synchronization behavior, such as knowing what order
+to syncrhonize records (parent first, then children), and knowing what associated records to 
+share when sharing a root record.
+
+To express a foreign key relationship between tables you use the "REFERENCES" clause in the table's
+schema, along with optional "ON DELETE" and "ON UPDATE" qualifiers: 
+
+```sql
+CREATE TABLE "reminders"(
+  "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+  "title" TEXT NOT NULL DEFAULT '',
+  "remindersListID" TEXT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+) STRICT
+```
+
+> Tip: See SQLite's documentation on [foreign keys] for more information.
+[foreign keys]: https://sqlite.org/foreignkeys.html
 
 SQLiteData can synchronize many-to-one and many-to-many relationships to CloudKit,
 and you can enforce foreign key constraints in your database connection. While it is possible for
@@ -241,7 +272,22 @@ when a ``SyncEngine`` is first created. If a uniqueness constraint is detected a
 thrown.
 
 Sometimes it is possible to make the column that you want to be unique into the primary key of
-your table. For example, tags with a unique title could be modeled like so:
+your table. For example, if you wanted to associate a `RemindersListAsset` type to a 
+`RemindersList` type, you can make the primary key of the former also act as the foreign key:
+
+```swift
+@Table
+struct RemindersListAsset {
+  @Column(primaryKey: true)
+  let remindersListID: RemindersList.ID
+  let image: Data
+}
+```
+
+This will make it so that at least one asset can be associated with a reminders list.
+
+
+For example, tags with a unique title could be modeled like so:
 
 ```swift
 @Table struct Tag {
@@ -251,21 +297,6 @@ your table. For example, tags with a unique title could be modeled like so:
 //   "title" TEXT NOT NULL PRIMARY KEY
 // ) STRICT
 ```
-
-This will make it so that there can be at most one tag with a specific title. However, there are
-important caveats to be aware of:
-
-> Important: The primary key of a row is encoded into the `recordName` of a `CKRecord`, along with
-> the table name. There are [restrictions][CKRecord.ID] on the value of `recordName`:
->
-> * It may only contain ASCII characters
-> * It must be less than 255 characters
-> * It must not begin with an underscore
->
-> If your primary key violates any of these rules, a `DatabaseError` will be thrown with a message
-> of ``SyncEngine/invalidRecordNameError``.
-
-[CKRecord.ID]: https://developer.apple.com/documentation/cloudkit/ckrecord/id
 
 ## Backwards compatible migrations
 
