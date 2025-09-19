@@ -204,7 +204,7 @@
     }
   }
 
-  #if canImport(UIKit) && !os(watchOS)
+  #if canImport(UIKit) && !os(tvOS) && !os(watchOS)
     /// A view that presents standard screens for adding and removing people from a CloudKit share \
     /// record.
     ///
