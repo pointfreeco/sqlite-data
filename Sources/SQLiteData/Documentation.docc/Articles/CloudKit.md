@@ -136,7 +136,7 @@ version.
 #### Globally unique primary keys
 
 > TL;DR: Primary keys must be globally unique identifiers, such as UUID, and cannot be an
-> autoincrementing integer. Further, a `NOT NULL` constraint should be specified with an
+> autoincrementing integer. Further, a `NOT NULL` constraint must be specified with an
 > `ON CONFLICT REPLACE` action.
 
 Primary keys are an important concept in SQL schema design, and SQLite makes it easy to add a
