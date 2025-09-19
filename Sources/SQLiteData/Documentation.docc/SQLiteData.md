@@ -287,6 +287,7 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 - <doc:Observing>
 - <doc:PreparingDatabase>
 - <doc:DynamicQueries>
+- <doc:AddingToGRDB>
 - <doc:ComparisonWithSwiftData>
 
 ### Database configuration and access

@@ -3,7 +3,6 @@
   import CustomDump
   import SQLiteDataTestSupport
   import Foundation
-  import GRDB
   import InlineSnapshotTesting
   import OrderedCollections
   import SQLiteData
