@@ -90,30 +90,30 @@ There are 3 main things to be aware of when applying `@Table` to an existing sch
     }
     ```
 
-* If your tables use UUID then you will need to add an extra decoration to your Swift data type
-to make it compatible with SQLiteData. This is due to the fact that by default GRDB encodes UUIDs
-as bytes whereas SQLiteData encodes UUIDs as text. To keep this compatibility you will need to use
-`@Column(as:)` on any fields holding UUIDs:
+  * If your tables use UUID then you will need to add an extra decoration to your Swift data type
+    to make it compatible with SQLiteData. This is due to the fact that by default GRDB encodes UUIDs
+    as bytes whereas SQLiteData encodes UUIDs as text. To keep this compatibility you will need to use
+    `@Column(as:)` on any fields holding UUIDs:
 
-  ```swift
-  @Table 
-  struct Reminder {
-    @Column(as: UUID.BytesRepresentation.self)
-    let id: UUID
-    …
-  }
-  ```
+    ```swift
+    @Table 
+    struct Reminder {
+      @Column(as: UUID.BytesRepresentation.self)
+      let id: UUID
+      // ...
+    }
+    ```
 
-  And if your table has an optional UUID, then you will handle that similarly:
+    And if your table has an optional UUID, then you will handle that similarly:
 
-  ```swift
-  @Table 
-  struct ChildReminder {
-    @Column(as: UUID?.BytesRepresentation.self)
-    let parentID: UUID?
-    …
-  }
-  ```
+    ```swift
+    @Table 
+    struct ChildReminder {
+      @Column(as: UUID?.BytesRepresentation.self)
+      let parentID: UUID?
+      // ...
+    }
+    ```
 
 ## Non-optional primary keys
 
