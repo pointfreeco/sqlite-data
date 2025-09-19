@@ -287,18 +287,6 @@ struct RemindersListAsset {
 
 This will make it so that at least one asset can be associated with a reminders list.
 
-
-For example, tags with a unique title could be modeled like so:
-
-```swift
-@Table struct Tag {
-  let title: String
-}
-// CREATE TABLE "tags" (
-//   "title" TEXT NOT NULL PRIMARY KEY
-// ) STRICT
-```
-
 ## Backwards compatible migrations
 
 > TL;DR: Database migrations should be done carefully and with full backwards compatibility
