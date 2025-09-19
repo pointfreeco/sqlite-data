@@ -42,6 +42,7 @@ so like this:
 struct RemindersListView: View {
   let remindersList: RemindersList
   @State var sharedRecord: SharedRecord?
+  @Dependency(\.defaultSyncEngine) syncEngine
 
   var body: some View {
     Form {

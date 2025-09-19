@@ -1,5 +1,4 @@
 import Dependencies
-import GRDB
 
 package struct UserDatabase {
   package let database: any DatabaseWriter

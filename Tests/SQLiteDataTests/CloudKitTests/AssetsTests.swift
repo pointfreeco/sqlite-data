@@ -5,6 +5,7 @@
   import InlineSnapshotTesting
   import OrderedCollections
   import SQLiteData
+  import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
 
@@ -127,6 +128,8 @@
         }
       }
 
+      // * Receive record with CKAsset from CloudKit
+      // => Stored in database as bytes
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func receiveAsset() async throws {
         let remindersListRecord = CKRecord(
@@ -168,6 +171,70 @@
           )
           #expect(remindersListAsset.coverImage == Data("image".utf8))
         }
+      }
+
+      // * Client receives RemindersListAsset with image data
+      // * A moment later client receives the parent RemindersList
+      // => Both records (and the image data) should be synchronized
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func assetReceivedBeforeParentRecord() async throws {
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue("1", forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+        let remindersListAssetRecord = CKRecord(
+          recordType: RemindersListAsset.tableName,
+          recordID: RemindersListAsset.recordID(for: 1)
+        )
+        remindersListAssetRecord.setValue("1", forKey: "id", at: now)
+        remindersListAssetRecord.setValue(
+          Array("image".utf8),
+          forKey: "coverImage",
+          at: now
+        )
+        remindersListAssetRecord.setValue(
+          "1",
+          forKey: "remindersListID",
+          at: now
+        )
+        remindersListAssetRecord.parent = CKRecord.Reference(
+          record: remindersListRecord,
+          action: .none
+        )
+
+        let remindersListModification = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [remindersListRecord]
+        )
+        try await syncEngine.modifyRecords(scope: .private, saving: [remindersListAssetRecord])
+          .notify()
+        await remindersListModification.notify()
+
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          ┌─────────────────────┐
+          │ RemindersList(      │
+          │   id: 1,            │
+          │   title: "Personal" │
+          │ )                   │
+          └─────────────────────┘
+          """
+        }
+        assertQuery(RemindersListAsset.all, database: userDatabase.database) {
+          """
+          ┌──────────────────────────────┐
+          │ RemindersListAsset(          │
+          │   id: 1,                     │
+          │   coverImage: Data(5 bytes), │
+          │   remindersListID: 1         │
+          │ )                            │
+          └──────────────────────────────┘
+          """
+        }
+
       }
     }
   }

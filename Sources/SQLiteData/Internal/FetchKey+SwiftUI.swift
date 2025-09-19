@@ -1,5 +1,4 @@
 #if canImport(SwiftUI)
-  import GRDB
   import Sharing
   import SwiftUI
 
