@@ -24,12 +24,12 @@ for this functionality.
  }
 ```
 
-> Tip: For an incremental migration you can use all 3 of `PersistableRecord`, `FetchableRecord`
-_and_ `@Table`. That will allow you to use the query building tools from both GRDB and SQLiteData
-as you transition.
+> Note: The `"reminder"` argument is provided to `@Table` due to a naming convention difference
+> between SQLiteData and GRDB. More details below.
 
-> Note: The "reminder" argument is provided to `@Table` do to a naming convention difference between
-> SQLiteData and GRDB. More details below.
+> Tip: For an incremental migration you can use all 3 of `PersistableRecord`, `FetchableRecord`
+> _and_ `@Table`. That will allow you to use the query building tools from both GRDB and SQLiteData
+> as you transition.
 
 Once that is done you will be able to make use of the type-safe and schema-safe query building
 tools of this library:
@@ -61,34 +61,34 @@ class RemindersModel {
 
 There are 2 main things to be aware of when applying `@Table` to an existing schema:
 
-* The `@Table` macro infers the name of the SQL table from the name of the type by lowercasing the
-first letter and attempting to pluralize the type. This differs from GRDB's naming conventions,
-which only lowercases the first letter of the type name. So, you will need to override `@Table`'s
-default behavior by providing a string argument to the macro:
+  * The `@Table` macro infers the name of the SQL table from the name of the type by lowercasing the
+    first letter and attempting to pluralize the type. This differs from GRDB's naming conventions,
+    which only lowercases the first letter of the type name. So, you will need to override `@Table`'s
+    default behavior by providing a string argument to the macro:
 
-  ```swift
-  @Table("reminder")
-  struct Reminder {
-    …
-  }
-  @Table("remindersList")
-  struct RemindersList {
-    …
-  }
-  ```
+    ```swift
+    @Table("reminder")
+    struct Reminder {
+      // ...
+    }
+    @Table("remindersList")
+    struct RemindersList {
+      // ...
+    }
+    ```
 
-* If the column names of your SQLite table do not match the name of the fields in your Swift type,
-then you can provide custom names via the `@Column` macro:
+  * If the column names of your SQLite table do not match the name of the fields in your Swift type,
+    then you can provide custom names _via_ the `@Column` macro:
 
-  ```swift
-  @Table 
-  struct Reminder {
-    let id: UUID
-    var title = ""
-    @Column("is_completed")
-    var isCompleted = false
-  }
-  ```
+    ```swift
+    @Table 
+    struct Reminder {
+      let id: UUID
+      var title = ""
+      @Column("is_completed")
+      var isCompleted = false
+    }
+    ```
 
 ## Non-optional primary keys
 
