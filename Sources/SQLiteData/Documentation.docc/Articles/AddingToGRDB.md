@@ -59,7 +59,7 @@ class RemindersModel {
 > to use `@ObservationIgnored`. However, [`@FetchAll`](<doc:FetchAll>) handles all of its own
 > observation internally and so this does not affect observation.
 
-There are 2 main things to be aware of when applying `@Table` to an existing schema:
+There are 3 main things to be aware of when applying `@Table` to an existing schema:
 
   * The `@Table` macro infers the name of the SQL table from the name of the type by lowercasing the
     first letter and attempting to pluralize the type. This differs from GRDB's naming conventions,
