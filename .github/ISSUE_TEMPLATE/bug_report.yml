@@ -5,7 +5,7 @@ body:
 - type: markdown
   attributes:
     value: |
-      Thank you for contributing to the SharingGRDB!
+      Thank you for contributing to the SQLiteData!
 
       Before you submit your issue, please complete each text area below with the relevant details for your bug, and complete the steps in the checklist
 - type: textarea
@@ -54,24 +54,24 @@ body:
     required: false
 - type: input
   attributes:
-    label: SharingGRDB version information
-    description: The version of SharingGRDB used to reproduce this issue.
-    placeholder: "'0.1.0' for example, or a commit hash"
+    label: SQLiteData version information
+    description: The version of SQLiteData used to reproduce this issue.
+    placeholder: "'1.0.0' for example, or a commit hash"
 - type: input
   attributes:
     label: Sharing version information
     description: The version of Sharing used to reproduce this issue.
-    placeholder: "'2.3.0' for example, or a commit hash"
+    placeholder: "'2.7.0' for example, or a commit hash"
 - type: input
   attributes:
     label: GRDB version information
     description: The version of GRDB used to reproduce this issue.
-    placeholder: "'7.1.0' for example, or a commit hash"
+    placeholder: "'7.6.0' for example, or a commit hash"
 - type: input
   attributes:
     label: Destination operating system
     description: The OS running your application.
-    placeholder: "'iOS 18' for example"
+    placeholder: "'iOS 26' for example"
 - type: input
   attributes:
     label: Xcode version information
