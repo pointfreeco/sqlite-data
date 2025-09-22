@@ -170,9 +170,9 @@ The `@FetchAll` property wrapper takes a variety of options and allows you to wr
 type-safe and schema-safe builder syntax, or you can write safe SQL strings that are schema-safe and
 protect you from SQL injection.
 
-The library also ships a few other property wrappres that have no equivalent in SwiftData. For
+The library also ships a few other property wrappers that have no equivalent in SwiftData. For
 example, the [`@FetchOne`](<doc:FetchOne>) property wrapper allows you to query for just a single
-value, which can be useful for computing aggegrate data:
+value, which can be useful for computing aggregate data:
 
 ```swift
 @FetchOne(Item.where(\.isInStock).count())
@@ -180,7 +180,7 @@ var inStockItemsCount = 0
 ```
 
 And the [`@Fetch`](<doc:Fetch>) property wrapper allows you to execute multiple queries in a single
-database transaction to gather you data into a single data type. SwiftData has no equivalent for
+database transaction to gather your data into a single data type. SwiftData has no equivalent for
 either of these operations. See <doc:Fetching> for more detailed information on how to fetch
 data from your database using the tools of this library.
 
