@@ -19,34 +19,9 @@ extension IdentifierStringConvertible where Self: LosslessStringConvertible {
   }
 }
 
-extension Bool: IdentifierStringConvertible {}
-extension Character: IdentifierStringConvertible {}
-extension Double: IdentifierStringConvertible {}
-extension Float: IdentifierStringConvertible {}
-#if !(arch(i386) || arch(x86_64))
-  @available(iOS 14, macOS 11, tvOS 14, watchOS 7, *)
-  extension Float16: IdentifierStringConvertible {}
-#endif
-#if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
-  extension Float80: IdentifierStringConvertible {}
-#endif
-extension Int: IdentifierStringConvertible {}
-@available(iOS 18, macOS 15, tvOS 18, watchOS 11, *)
-extension Int128: IdentifierStringConvertible {}
-extension Int16: IdentifierStringConvertible {}
-extension Int32: IdentifierStringConvertible {}
-extension Int64: IdentifierStringConvertible {}
-extension Int8: IdentifierStringConvertible {}
 extension String: IdentifierStringConvertible {}
+
 extension Substring: IdentifierStringConvertible {}
-extension UInt: IdentifierStringConvertible {}
-@available(iOS 18, macOS 15, tvOS 18, watchOS 11, *)
-extension UInt128: IdentifierStringConvertible {}
-extension UInt16: IdentifierStringConvertible {}
-extension UInt32: IdentifierStringConvertible {}
-extension UInt64: IdentifierStringConvertible {}
-extension UInt8: IdentifierStringConvertible {}
-extension Unicode.Scalar: IdentifierStringConvertible {}
 
 extension UUID: IdentifierStringConvertible {
   public init?(rawIdentifier: String) {
@@ -56,3 +31,48 @@ extension UUID: IdentifierStringConvertible {
     description.lowercased()
   }
 }
+
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension Bool: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension Character: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension Double: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension Float: IdentifierStringConvertible {}
+#if !(arch(i386) || arch(x86_64))
+  @available(iOS 14, macOS 11, tvOS 14, watchOS 7, *)
+  @available(*, deprecated, message: "Prefer globally unique identifiers.")
+  extension Float16: IdentifierStringConvertible {}
+#endif
+#if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
+  extension Float80: IdentifierStringConvertible {}
+#endif
+extension Int: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+@available(iOS 18, macOS 15, tvOS 18, watchOS 11, *)
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension Int128: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension Int16: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension Int32: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension Int64: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension Int8: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension UInt: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+@available(iOS 18, macOS 15, tvOS 18, watchOS 11, *)
+extension UInt128: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension UInt16: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension UInt32: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension UInt64: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension UInt8: IdentifierStringConvertible {}
+@available(*, deprecated, message: "Prefer globally unique identifiers.")
+extension Unicode.Scalar: IdentifierStringConvertible {}
