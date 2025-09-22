@@ -25,7 +25,6 @@ Info.plist with a value of `true`. This is subtly documented in [Apple's documen
         - [One-to-"at most one" relationships](#One-to-at-most-one-relationships)
   - [Sharing permissions](#Sharing-permissions)
   - [Controlling what data is shared](#Controlling-what-data-is-shared)
-  - [Querying share metadata](#Querying-share-metadata)
 
 ## Creating CKShare records
 
