@@ -33,7 +33,7 @@ queried data to update.
 
 ### @Observable models
 
-SharedGRDB's property wrappers also works in `@Observable` models (and `ObservableObject`s for
+SQLiteData's property wrappers also works in `@Observable` models (and `ObservableObject`s for
 pre-iOS 17 apps). You can add a property to an `@Observable` class, and its data will automatically
 update when the database changes and cause any SwiftUI view using it to re-render:
 
