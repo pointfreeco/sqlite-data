@@ -94,8 +94,7 @@ on the matter.
 ### Step 3: Create database connection
 
 Once a `Configuration` value is set up we can construct the actual database connection. The simplest
-way to do this is to construct the database connection using the
-n``defaultDatabase(path:configuration:)`` function:
+way to do this is to construct the database connection using the ``defaultDatabase(path:configuration:)`` function:
 
 ```diff
 -func appDatabase() -> any DatabaseWriter {
