@@ -32,47 +32,47 @@ extension UUID: IdentifierStringConvertible {
   }
 }
 
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension Bool: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension Character: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension Double: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension Float: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension Bool: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension Character: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension Double: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension Float: IdentifierStringConvertible {}
 #if !(arch(i386) || arch(x86_64))
-  @available(iOS 14, macOS 11, tvOS 14, watchOS 7, *)
-  @available(*, unavailable, message: "Prefer globally unique identifiers.")
-  extension Float16: IdentifierStringConvertible {}
+  //@available(iOS 14, macOS 11, tvOS 14, watchOS 7, *)
+  //@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//  extension Float16: IdentifierStringConvertible {}
 #endif
 #if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
-  extension Float80: IdentifierStringConvertible {}
+  //extension Float80: IdentifierStringConvertible {}
 #endif
-extension Int: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-@available(iOS 18, macOS 15, tvOS 18, watchOS 11, *)
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension Int128: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension Int16: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension Int32: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension Int64: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension Int8: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension UInt: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-@available(iOS 18, macOS 15, tvOS 18, watchOS 11, *)
-extension UInt128: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension UInt16: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension UInt32: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension UInt64: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension UInt8: IdentifierStringConvertible {}
-@available(*, unavailable, message: "Prefer globally unique identifiers.")
-extension Unicode.Scalar: IdentifierStringConvertible {}
+//extension Int: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//@available(iOS 18, macOS 15, tvOS 18, watchOS 11, *)
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension Int128: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension Int16: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension Int32: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension Int64: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension Int8: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension UInt: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//@available(iOS 18, macOS 15, tvOS 18, watchOS 11, *)
+//extension UInt128: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension UInt16: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension UInt32: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension UInt64: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension UInt8: IdentifierStringConvertible {}
+//@available(*, unavailable, message: "Prefer globally unique identifiers.")
+//extension Unicode.Scalar: IdentifierStringConvertible {}
