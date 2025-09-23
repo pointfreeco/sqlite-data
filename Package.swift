@@ -35,7 +35,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.19.1",
+      branch: "table-expression",
       traits: [
         .trait(name: "StructuredQueriesTagged", condition: .when(traits: ["SQLiteDataTagged"]))
       ]

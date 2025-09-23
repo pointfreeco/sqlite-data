@@ -513,7 +513,13 @@
     }
 
     private func uploadRecordsToCloudKit<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
-      try T.update { $0.primaryKey = $0.primaryKey }.execute(db)
+      try #sql(
+        """
+        UPDATE \(T.self) SET \
+        \(T.primaryKey._names.map { "\(quote: $0) = \(quote: $0)" }.joined(separator: ", "))
+        """
+      )
+      .execute(db)
     }
 
     private func uploadRecordsToCloudKit(tableName: String, db: Database) throws {
@@ -1433,7 +1439,7 @@
                     """
                     UPDATE \(T.self)
                     SET \(quote: foreignKey.from, delimiter: .identifier) = (\(raw: defaultValue))
-                    WHERE \(T.primaryKey) = \(bind: recordPrimaryKey)
+                    WHERE (\(T.primaryKey)) = (\(bind: recordPrimaryKey))
                     """
                   )
                   .execute(db)
@@ -1443,7 +1449,7 @@
                     """
                     UPDATE \(T.self)
                     SET \(quote: foreignKey.from, delimiter: .identifier) = NULL
-                    WHERE \(T.primaryKey) = \(bind: recordPrimaryKey)
+                    WHERE (\(T.primaryKey)) = (\(bind: recordPrimaryKey))
                     """
                   )
                   .execute(db)
@@ -1682,7 +1688,7 @@
     ) async throws -> QueryFragment {
       let nonPrimaryKeyChangedColumns =
         changedColumnNames
-        .filter { $0 != T.columns.primaryKey.name }
+        .filter { !T.primaryKey._names.contains($0) }
       guard
         !nonPrimaryKeyChangedColumns.isEmpty
       else {
@@ -1714,7 +1720,13 @@
           }
           .joined(separator: ", ")
       )
-      query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO UPDATE SET ")
+      query.append(
+        """
+        ) ON CONFLICT(\(T.primaryKey._names.map { "\(quote: $0)" }.joined(separator: ", "))) \
+        DO UPDATE SET 
+        """
+      )
+      query.append(" ")
       query.append(
         nonPrimaryKeyChangedColumns
           .map { columnName in
@@ -2082,7 +2094,7 @@
     columnNames: some Collection<String>
   ) -> QueryFragment {
     let allColumnNames = T.TableColumns.writableColumns.map(\.name)
-    let hasNonPrimaryKeyColumns = columnNames.contains(where: { $0 != T.columns.primaryKey.name })
+    let hasNonPrimaryKeyColumns = columnNames.contains(where: { !T.primaryKey._names.contains($0) })
     var query: QueryFragment = "INSERT INTO \(T.self) ("
     query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
     query.append(") VALUES (")
@@ -2099,12 +2111,16 @@
         }
         .joined(separator: ", ")
     )
-    query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO ")
+    query.append(
+      """
+      ) ON CONFLICT(\(T.primaryKey._names.map { "\(quote: $0)" }.joined(separator: ", "))) DO
+      """
+    )
     if hasNonPrimaryKeyColumns {
-      query.append("UPDATE SET ")
+      query.append(" UPDATE SET ")
       query.append(
         columnNames
-          .filter { columnName in columnName != T.columns.primaryKey.name }
+          .filter { !T.primaryKey._names.contains($0) }
           .map {
             """
             \(quote: $0) = "excluded".\(quote: $0)
@@ -2113,7 +2129,7 @@
           .joined(separator: ", ")
       )
     } else {
-      query.append("NOTHING")
+      query.append(" NOTHING")
     }
     return query
   }
