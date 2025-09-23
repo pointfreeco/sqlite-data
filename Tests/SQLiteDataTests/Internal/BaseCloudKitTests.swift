@@ -194,3 +194,7 @@ private let previousUserRecordID = CKRecord.ID(
 private let currentUserRecordID = CKRecord.ID(
   recordName: "currentUser"
 )
+
+// NB: This conformance is only used for ease of testing. In general it is not appropriate to
+// conform integer types to this protocol.
+extension Int: IdentifierStringConvertible {}
