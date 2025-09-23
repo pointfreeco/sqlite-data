@@ -6,8 +6,8 @@ package final class MockSyncEngine: SyncEngineProtocol {
   package let database: MockCloudDatabase
   package let parentSyncEngine: SyncEngine
   private let _state: LockIsolated<MockSyncEngineState>
-  private let _fetchChangesScopes = LockIsolated<[CKSyncEngine.FetchChangesOptions.Scope]>([])
-  private let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
+  package let _fetchChangesScopes = LockIsolated<[CKSyncEngine.FetchChangesOptions.Scope]>([])
+  package let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
 
   package init(
     database: MockCloudDatabase,
@@ -100,11 +100,11 @@ package final class MockSyncEngine: SyncEngineProtocol {
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 package final class MockSyncEngineState: CKSyncEngineStateProtocol {
-  private let _pendingRecordZoneChanges = LockIsolated<
+  package let _pendingRecordZoneChanges = LockIsolated<
     OrderedSet<CKSyncEngine.PendingRecordZoneChange>
   >([]
   )
-  private let _pendingDatabaseChanges = LockIsolated<
+  package let _pendingDatabaseChanges = LockIsolated<
     OrderedSet<CKSyncEngine.PendingDatabaseChange>
   >([])
   private let fileID: StaticString
@@ -159,43 +159,6 @@ package final class MockSyncEngineState: CKSyncEngineStateProtocol {
     self._pendingDatabaseChanges.withValue {
       $0.subtract(pendingDatabaseChanges)
     }
-  }
-}
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private func comparePendingRecordZoneChange(
-  _ lhs: CKSyncEngine.PendingRecordZoneChange,
-  _ rhs: CKSyncEngine.PendingRecordZoneChange
-) -> Bool {
-  switch (lhs, rhs) {
-  case (.saveRecord(let lhs), .saveRecord(let rhs)),
-    (.deleteRecord(let lhs), .deleteRecord(let rhs)):
-    lhs.recordName < rhs.recordName
-  case (.deleteRecord, .saveRecord):
-    true
-  case (.saveRecord, .deleteRecord):
-    false
-  default:
-    false
-  }
-}
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-private func comparePendingDatabaseChange(
-  _ lhs: CKSyncEngine.PendingDatabaseChange,
-  _ rhs: CKSyncEngine.PendingDatabaseChange
-) -> Bool {
-  switch (lhs, rhs) {
-  case (.saveZone(let lhs), .saveZone(let rhs)):
-    lhs.zoneID.zoneName < rhs.zoneID.zoneName
-  case (.deleteZone(let lhs), .deleteZone(let rhs)):
-    lhs.zoneName < rhs.zoneName
-  case (.deleteZone, .saveZone):
-    true
-  case (.saveZone, .deleteZone):
-    false
-  default:
-    false
   }
 }
 

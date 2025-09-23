@@ -156,40 +156,78 @@
     }
   }
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension MockSyncEngineState: CustomDumpReflectable {
-  package var customDumpMirror: Mirror {
-    return Mirror(
-      self,
-      children: [
-        (
-          "pendingRecordZoneChanges",
-          _pendingRecordZoneChanges.withValue(\.self)
-            .sorted(by: comparePendingRecordZoneChange)
-          as Any
-        ),
-        (
-          "pendingDatabaseChanges",
-          _pendingDatabaseChanges.withValue(\.self)
-            .sorted(by: comparePendingDatabaseChange) as Any
-        ),
-      ],
-      displayStyle: .struct
-    )
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension MockSyncEngineState: CustomDumpReflectable {
+    package var customDumpMirror: Mirror {
+      return Mirror(
+        self,
+        children: [
+          (
+            "pendingRecordZoneChanges",
+            _pendingRecordZoneChanges.withValue(\.self)
+              .sorted(by: comparePendingRecordZoneChange)
+              as Any
+          ),
+          (
+            "pendingDatabaseChanges",
+            _pendingDatabaseChanges.withValue(\.self)
+              .sorted(by: comparePendingDatabaseChange) as Any
+          ),
+        ],
+        displayStyle: .struct
+      )
+    }
   }
-}
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension MockCloudContainer: CustomDumpReflectable {
-  package var customDumpMirror: Mirror {
-    Mirror(
-      self,
-      children: [
-        ("privateCloudDatabase", privateCloudDatabase),
-        ("sharedCloudDatabase", sharedCloudDatabase),
-      ],
-      displayStyle: .struct
-    )
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func comparePendingRecordZoneChange(
+    _ lhs: CKSyncEngine.PendingRecordZoneChange,
+    _ rhs: CKSyncEngine.PendingRecordZoneChange
+  ) -> Bool {
+    switch (lhs, rhs) {
+    case (.saveRecord(let lhs), .saveRecord(let rhs)),
+      (.deleteRecord(let lhs), .deleteRecord(let rhs)):
+      lhs.recordName < rhs.recordName
+    case (.deleteRecord, .saveRecord):
+      true
+    case (.saveRecord, .deleteRecord):
+      false
+    default:
+      false
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func comparePendingDatabaseChange(
+    _ lhs: CKSyncEngine.PendingDatabaseChange,
+    _ rhs: CKSyncEngine.PendingDatabaseChange
+  ) -> Bool {
+    switch (lhs, rhs) {
+    case (.saveZone(let lhs), .saveZone(let rhs)):
+      lhs.zoneID.zoneName < rhs.zoneID.zoneName
+    case (.deleteZone(let lhs), .deleteZone(let rhs)):
+      lhs.zoneName < rhs.zoneName
+    case (.deleteZone, .saveZone):
+      true
+    case (.saveZone, .deleteZone):
+      false
+    default:
+      false
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension MockCloudContainer: CustomDumpReflectable {
+    package var customDumpMirror: Mirror {
+      Mirror(
+        self,
+        children: [
+          ("privateCloudDatabase", privateCloudDatabase),
+          ("sharedCloudDatabase", sharedCloudDatabase),
+        ],
+        displayStyle: .struct
+      )
+    }
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
