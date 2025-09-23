@@ -3,7 +3,8 @@ import Foundation
 /// A type that can be represented by a string identifier.
 ///
 /// A requirement of tables synchronized to CloudKit using a ``SyncEngine``. You should generally
-/// identify tables using Foundation's `UUID` type.
+/// identify tables using Foundation's `UUID` type or another globally unique identifier. It is
+/// not appropriate to confirm simple integer types to this protocol.
 public protocol IdentifierStringConvertible {
   init?(rawIdentifier: String)
   var rawIdentifier: String { get }
