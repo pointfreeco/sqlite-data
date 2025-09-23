@@ -13,12 +13,17 @@ extension Database {
       function.textEncoding,
       Unmanaged.passRetained(ScalarDatabaseFunctionBox(function)).toOpaque(),
       { context, argumentCount, arguments in
-        Unmanaged<ScalarDatabaseFunctionBox>
-          .fromOpaque(sqlite3_user_data(context))
-          .takeUnretainedValue()
-          .function
-          .invoke([QueryBinding](argumentCount: argumentCount, arguments: arguments))
-          .result(db: context)
+        do {
+          var decoder = SQLiteFunctionDecoder(argumentCount: argumentCount, arguments: arguments)
+          try Unmanaged<ScalarDatabaseFunctionBox>
+            .fromOpaque(sqlite3_user_data(context))
+            .takeUnretainedValue()
+            .function
+            .invoke(&decoder)
+            .result(db: context)
+        } catch {
+          QueryBinding.invalid(error).result(db: context)
+        }
       },
       nil,
       nil,
