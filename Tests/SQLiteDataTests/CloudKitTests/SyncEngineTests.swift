@@ -99,4 +99,9 @@
   private func databaseWithForeignKeys() throws -> any DatabaseWriter {
     try DatabaseQueue()
   }
+
+  @Test(.dependency(\.context, .preview)) func previewSyncEngine() throws {
+    @Dependency(\.defaultSyncEngine) var syncEngine
+    _ = syncEngine
+  }
 #endif

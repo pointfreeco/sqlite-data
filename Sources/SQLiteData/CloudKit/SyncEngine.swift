@@ -105,7 +105,8 @@
       }
       let userDatabase = UserDatabase(database: database)
 
-      guard !isTesting
+      @Dependency(\.context) var context
+      guard context == .live
       else {
         let privateDatabase = MockCloudDatabase(databaseScope: .private)
         let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
