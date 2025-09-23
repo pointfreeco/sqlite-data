@@ -4,7 +4,7 @@ import Foundation
 ///
 /// A requirement of tables synchronized to CloudKit using a ``SyncEngine``. You should generally
 /// identify tables using Foundation's `UUID` type or another globally unique identifier. It is
-/// not appropriate to confirm simple integer types to this protocol.
+/// not appropriate to conform simple integer types to this protocol.
 public protocol IdentifierStringConvertible {
   init?(rawIdentifier: String)
   var rawIdentifier: String { get }
