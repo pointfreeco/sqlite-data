@@ -194,3 +194,5 @@ private let previousUserRecordID = CKRecord.ID(
 private let currentUserRecordID = CKRecord.ID(
   recordName: "currentUser"
 )
+
+extension Int: IdentifierStringConvertible {}
