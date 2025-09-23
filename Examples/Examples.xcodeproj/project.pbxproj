@@ -17,6 +17,8 @@
 		CA5E47072DECEF0F0069E0F8 /* InlineSnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E47062DECEF0F0069E0F8 /* InlineSnapshotTesting */; };
 		CA5E47092DECEFC80069E0F8 /* SnapshotTestingCustomDump in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E47082DECEFC80069E0F8 /* SnapshotTestingCustomDump */; };
 		CA5E470B2DECF0280069E0F8 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E470A2DECF0280069E0F8 /* DependenciesTestSupport */; };
+		CAC608AE2E82FBC500AA619D /* Dependencies in Frameworks */ = {isa = PBXBuildFile; productRef = CAC608AD2E82FBC500AA619D /* Dependencies */; };
+		CAC608B02E82FC9C00AA619D /* SQLiteDataTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CAC608AF2E82FC9C00AA619D /* SQLiteDataTestSupport */; };
 		CAD001872D874F1F00FA977A /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CAD001862D874F1F00FA977A /* DependenciesTestSupport */; };
 		DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = DC5FA7472D4C63D60082743E /* DependenciesMacros */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
@@ -158,6 +160,7 @@
 			files = (
 				CA5E47092DECEFC80069E0F8 /* SnapshotTestingCustomDump in Frameworks */,
 				CA5E47072DECEF0F0069E0F8 /* InlineSnapshotTesting in Frameworks */,
+				CAC608B02E82FC9C00AA619D /* SQLiteDataTestSupport in Frameworks */,
 				CA5E470B2DECF0280069E0F8 /* DependenciesTestSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -193,6 +196,7 @@
 				CA2BDE2E2E71C479000974D3 /* SQLiteData in Frameworks */,
 				CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */,
 				CA5E46912DEBB8570069E0F8 /* SwiftUINavigation in Frameworks */,
+				CAC608AE2E82FBC500AA619D /* Dependencies in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -295,6 +299,7 @@
 				CA5E47062DECEF0F0069E0F8 /* InlineSnapshotTesting */,
 				CA5E47082DECEFC80069E0F8 /* SnapshotTestingCustomDump */,
 				CA5E470A2DECF0280069E0F8 /* DependenciesTestSupport */,
+				CAC608AF2E82FC9C00AA619D /* SQLiteDataTestSupport */,
 			);
 			productName = RemindersTests;
 			productReference = CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */;
@@ -391,6 +396,7 @@
 				CA14DBC82DA884C400E36852 /* CasePaths */,
 				CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */,
 				CA2BDE2D2E71C479000974D3 /* SQLiteData */,
+				CAC608AD2E82FBC500AA619D /* Dependencies */,
 			);
 			productName = Reminders;
 			productReference = CAF836D82D4735AB0047AEB5 /* Reminders.app */;
@@ -686,6 +692,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.RemindersTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reminders.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Reminders";
@@ -703,6 +710,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.RemindersTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Reminders.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Reminders";
@@ -1242,6 +1250,15 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */;
 			productName = DependenciesTestSupport;
+		};
+		CAC608AD2E82FBC500AA619D /* Dependencies */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */;
+			productName = Dependencies;
+		};
+		CAC608AF2E82FC9C00AA619D /* SQLiteDataTestSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SQLiteDataTestSupport;
 		};
 		CAD001862D874F1F00FA977A /* DependenciesTestSupport */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -1,5 +1,4 @@
 import CloudKit
-import CustomDump
 import OrderedCollections
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -95,52 +94,12 @@ package final class MockSyncEngine: SyncEngineProtocol {
     )
   }
 
-  package func assertFetchChangesScopes(
-    _ scopes: [CKSyncEngine.FetchChangesOptions.Scope],
-    fileID: StaticString = #fileID,
-    filePath: StaticString = #filePath,
-    line: UInt = #line,
-    column: UInt = #column
-  ) {
-    _fetchChangesScopes.withValue {
-      expectNoDifference(
-        scopes,
-        $0,
-        fileID: fileID,
-        filePath: filePath,
-        line: line,
-        column: column
-      )
-      $0.removeAll()
-    }
-  }
-
-  package func assertAcceptedShareMetadata(
-    _ sharedMetadata: Set<ShareMetadata>,
-    fileID: StaticString = #fileID,
-    filePath: StaticString = #filePath,
-    line: UInt = #line,
-    column: UInt = #column
-  ) {
-    _acceptedShareMetadata.withValue {
-      expectNoDifference(
-        sharedMetadata,
-        $0,
-        fileID: fileID,
-        filePath: filePath,
-        line: line,
-        column: column
-      )
-      $0.removeAll()
-    }
-  }
-
   package func cancelOperations() async {
   }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-package final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpReflectable {
+package final class MockSyncEngineState: CKSyncEngineStateProtocol {
   private let _pendingRecordZoneChanges = LockIsolated<
     OrderedSet<CKSyncEngine.PendingRecordZoneChange>
   >([]
@@ -163,46 +122,6 @@ package final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpRe
     self.filePath = filePath
     self.line = line
     self.column = column
-  }
-
-  package func assertPendingRecordZoneChanges(
-    _ changes: OrderedSet<CKSyncEngine.PendingRecordZoneChange>,
-    fileID: StaticString = #fileID,
-    filePath: StaticString = #filePath,
-    line: UInt = #line,
-    column: UInt = #column
-  ) {
-    _pendingRecordZoneChanges.withValue {
-      expectNoDifference(
-        Set(changes),
-        Set($0),
-        fileID: fileID,
-        filePath: filePath,
-        line: line,
-        column: column
-      )
-      $0.removeAll()
-    }
-  }
-
-  package func assertPendingDatabaseChanges(
-    _ changes: OrderedSet<CKSyncEngine.PendingDatabaseChange>,
-    fileID: StaticString = #fileID,
-    filePath: StaticString = #filePath,
-    line: UInt = #line,
-    column: UInt = #column
-  ) {
-    _pendingDatabaseChanges.withValue {
-      expectNoDifference(
-        Set(changes),
-        Set($0),
-        fileID: fileID,
-        filePath: filePath,
-        line: line,
-        column: column
-      )
-      $0.removeAll()
-    }
   }
 
   package var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] {
@@ -240,26 +159,6 @@ package final class MockSyncEngineState: CKSyncEngineStateProtocol, CustomDumpRe
     self._pendingDatabaseChanges.withValue {
       $0.subtract(pendingDatabaseChanges)
     }
-  }
-
-  package var customDumpMirror: Mirror {
-    return Mirror(
-      self,
-      children: [
-        (
-          "pendingRecordZoneChanges",
-          _pendingRecordZoneChanges.withValue(\.self)
-            .sorted(by: comparePendingRecordZoneChange)
-            as Any
-        ),
-        (
-          "pendingDatabaseChanges",
-          _pendingDatabaseChanges.withValue(\.self)
-            .sorted(by: comparePendingDatabaseChange) as Any
-        ),
-      ],
-      displayStyle: .struct
-    )
   }
 }
 

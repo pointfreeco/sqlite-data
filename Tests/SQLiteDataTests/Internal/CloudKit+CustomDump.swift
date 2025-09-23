@@ -155,4 +155,74 @@
       "CKRecordZone.ID(\(zoneName)/\(ownerName))"
     }
   }
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension MockSyncEngineState: CustomDumpReflectable {
+  package var customDumpMirror: Mirror {
+    return Mirror(
+      self,
+      children: [
+        (
+          "pendingRecordZoneChanges",
+          _pendingRecordZoneChanges.withValue(\.self)
+            .sorted(by: comparePendingRecordZoneChange)
+          as Any
+        ),
+        (
+          "pendingDatabaseChanges",
+          _pendingDatabaseChanges.withValue(\.self)
+            .sorted(by: comparePendingDatabaseChange) as Any
+        ),
+      ],
+      displayStyle: .struct
+    )
+  }
+}
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension MockCloudContainer: CustomDumpReflectable {
+  package var customDumpMirror: Mirror {
+    Mirror(
+      self,
+      children: [
+        ("privateCloudDatabase", privateCloudDatabase),
+        ("sharedCloudDatabase", sharedCloudDatabase),
+      ],
+      displayStyle: .struct
+    )
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension MockCloudDatabase: CustomDumpReflectable {
+    package var customDumpMirror: Mirror {
+      Mirror(
+        self,
+        children: [
+          "databaseScope": databaseScope,
+          "storage": storage
+            .value
+            .flatMap { _, value in value.values }
+            .sorted {
+              ($0.recordType, $0.recordID.recordName) < ($1.recordType, $1.recordID.recordName)
+            },
+        ],
+        displayStyle: .struct
+      )
+    }
+  }
+
+  extension RecordType: CustomDumpReflectable {
+    package var customDumpMirror: Mirror {
+      Mirror(
+        self,
+        children: [
+          ("tableName", tableName as Any),
+          ("schema", schema),
+          ("tableInfo", tableInfo.sorted(by: { $0.name < $1.name })),
+        ],
+        displayStyle: .struct
+      )
+    }
+  }
+
 #endif

@@ -212,6 +212,10 @@
           case .serverResponseLost: "serverResponseLost"
           case .assetNotAvailable: "assetNotAvailable"
           case .accountTemporarilyUnavailable: "accountTemporarilyUnavailable"
+          #if canImport(FoundationModels)
+            case .participantAlreadyInvited:
+              "participantAlreadyInvited"
+          #endif
           @unknown default: "unknown"
           }
         }

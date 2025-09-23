@@ -1,8 +1,7 @@
 import CloudKit
-import CustomDump
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
+package final class MockCloudContainer: CloudContainer {
   package let _accountStatus: LockIsolated<CKAccountStatus>
   package let containerIdentifier: String?
   package let privateCloudDatabase: MockCloudDatabase
@@ -102,17 +101,6 @@ package final class MockCloudContainer: CloudContainer, CustomDumpReflectable {
 
   package func hash(into hasher: inout Hasher) {
     hasher.combine(ObjectIdentifier(self))
-  }
-
-  package var customDumpMirror: Mirror {
-    Mirror(
-      self,
-      children: [
-        ("privateCloudDatabase", privateCloudDatabase),
-        ("sharedCloudDatabase", sharedCloudDatabase),
-      ],
-      displayStyle: .struct
-    )
   }
 }
 
