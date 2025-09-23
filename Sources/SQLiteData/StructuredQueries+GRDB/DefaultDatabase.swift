@@ -82,13 +82,44 @@ extension DependencyValues {
   ///
   /// See <doc:PreparingDatabase> for more info.
   public var defaultDatabase: any DatabaseWriter {
+    get { self.getDefaultDatabase() }
+    set { self.getDefaultDatabase = { newValue } }
+  }
+
+  /// A function that returns the default database used by `fetchAll`, `fetchOne`, and `fetch`.
+  ///
+  /// You can use this instead of ``defaultDatabase`` to defer creating the database until
+  /// it is first needed, and/or to perform side effects when the database is accessed.
+  /// For example:
+  ///
+  /// ```swift
+  /// import SQLiteData
+  /// import SwiftUI
+  ///
+  /// @main
+  /// struct MyApp: App {
+  ///   // Lazily create database connection and run migrations...
+  ///   private static let database = try! DatabaseQueue(/* ... */)
+  ///
+  ///   init() {
+  ///     prepareDependencies {
+  ///       $0.getDefaultDatabase = { Self.database }
+  ///     }
+  ///   }
+  ///   // ...
+  /// }
+  /// ```
+  ///
+  /// > Note: This function is invoked each time the default database is accessed. You are
+  /// > responsible for caching the database yourself.
+  public var getDefaultDatabase: @Sendable () -> any DatabaseWriter {
     get { self[DefaultDatabaseKey.self] }
     set { self[DefaultDatabaseKey.self] = newValue }
   }
 
   private enum DefaultDatabaseKey: DependencyKey {
-    static var liveValue: any DatabaseWriter { testValue }
-    static var testValue: any DatabaseWriter {
+    static var liveValue: @Sendable () -> any DatabaseWriter { testValue }
+    static var testValue: @Sendable () -> any DatabaseWriter {
       var message: String {
         @Dependency(\.context) var context
         switch context {
@@ -145,7 +176,8 @@ extension DependencyValues {
       #if DEBUG
         configuration.label = .defaultDatabaseLabel
       #endif
-      return try! DatabaseQueue(configuration: configuration)
+      let database = try! DatabaseQueue(configuration: configuration)
+      return { database }
     }
   }
 }
