@@ -197,4 +197,4 @@ private let currentUserRecordID = CKRecord.ID(
 
 // NB: This conformance is only used for ease of testing. In general it is not appropriate to
 // conform integer types to this protocol.
-extension Int: @retroactive IdentifierStringConvertible {}
+extension Int: IdentifierStringConvertible {}
