@@ -1,5 +1,4 @@
 import CloudKit
-import CustomDump
 import IssueReporting
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -285,25 +284,6 @@ package final class MockCloudDatabase: CloudDatabase {
 
   package nonisolated func hash(into hasher: inout Hasher) {
     hasher.combine(ObjectIdentifier(self))
-  }
-}
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension MockCloudDatabase: CustomDumpReflectable {
-  package var customDumpMirror: Mirror {
-    Mirror(
-      self,
-      children: [
-        "databaseScope": databaseScope,
-        "storage": storage
-          .value
-          .flatMap { _, value in value.values }
-          .sorted {
-            ($0.recordType, $0.recordID.recordName) < ($1.recordType, $1.recordID.recordName)
-          },
-      ],
-      displayStyle: .struct
-    )
   }
 }
 
