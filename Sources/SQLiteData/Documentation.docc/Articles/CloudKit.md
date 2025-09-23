@@ -18,6 +18,7 @@ to make sure you understand how to best prepare your app for cloud synchronizati
     - [Primary keys on every table](#Primary-keys-on-every-table)
     - [Foreign key relationships](#Foreign-key-relationships)
     - [Uniqueness constraints](#Uniqueness-constraints)
+    - [Avoid reserved CloudKit keywords](#Avoid-reserved-CloudKit-keywords)
   - [Backwards compatible migrations](#Backwards-compatible-migrations)
     - [Adding tables](#Adding-tables)
     - [Adding columns](#Adding-columns)
@@ -282,6 +283,23 @@ struct RemindersListAsset {
 ```
 
 This will make it so that at least one asset can be associated with a reminders list.
+
+#### Avoid reserved CloudKit keywords
+
+In the process of sending data from your database to CloudKit, the library turns rows into 
+`CKRecord`s, which is loosely a `[String: Any]` dictionary. However, certain key names are used
+internally by CloudKit and are reserved for their use only. This means those keys cannot be used
+as field names in your Swift data types or SQLite tables.
+
+Here is an exhaustive list of those reserved fields:
+
+* `recordID`
+* `recordType`
+* `creationDate`
+* `creatorUserRecordID`
+* `modificationDate`
+* `lastModifiedUserRecordID`
+* `recordChangeTag`
 
 ## Backwards compatible migrations
 
