@@ -1,7 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
   import ConcurrencyExtras
-  import CustomDump
   import Dependencies
   import OrderedCollections
   import OSLog
@@ -1492,6 +1491,10 @@
           .alreadyShared, .managedAccountRestricted, .participantMayNeedVerification,
           .serverResponseLost, .assetNotAvailable, .accountTemporarilyUnavailable:
           continue
+        #if canImport(FoundationModels)
+          case .participantAlreadyInvited:
+            continue
+        #endif
         @unknown default:
           continue
         }
