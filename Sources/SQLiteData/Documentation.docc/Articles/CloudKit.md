@@ -225,11 +225,11 @@ facilitate synchronizing to CloudKit.
 
 Foreign keys are a SQL feature that allow one to express relationships between tables. This library
 uses that information to correctly implement synchronization behavior, such as knowing what order
-to syncrhonize records (parent first, then children), and knowing what associated records to 
+to syncrhonize records (parent first, then children), and knowing what associated records to
 share when sharing a root record.
 
 To express a foreign key relationship between tables you use the `REFERENCES` clause in the table's
-schema, along with optional `ON DELETE` and `ON UPDATE` qualifiers: 
+schema, along with optional `ON DELETE` and `ON UPDATE` qualifiers:
 
 ```sql
 CREATE TABLE "reminders"(
@@ -270,7 +270,7 @@ when a ``SyncEngine`` is first created. If a uniqueness constraint is detected a
 thrown.
 
 Sometimes it is possible to make the column that you want to be unique into the primary key of
-your table. For example, if you wanted to associate a `RemindersListAsset` type to a 
+your table. For example, if you wanted to associate a `RemindersListAsset` type to a
 `RemindersList` type, you can make the primary key of the former also act as the foreign key:
 
 ```swift
@@ -286,7 +286,7 @@ This will make it so that at least one asset can be associated with a reminders 
 
 #### Avoid reserved CloudKit keywords
 
-In the process of sending data from your database to CloudKit, the library turns rows into 
+In the process of sending data from your database to CloudKit, the library turns rows into
 `CKRecord`s, which is loosely a `[String: Any]` dictionary. However, certain key names are used
 internally by CloudKit and are reserved for their use only. This means those keys cannot be used
 as field names in your Swift data types or SQLite tables.

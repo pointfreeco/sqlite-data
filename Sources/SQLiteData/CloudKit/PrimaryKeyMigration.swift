@@ -1,12 +1,29 @@
+import Foundation
+
+@available(iOS 16, macOS 13, tvOS 13, watchOS 9, *)
+extension Database {
+  public func migrateToSyncEnginePrimaryKeys<each T: PrimaryKeyedTable>(
+    _ tables: repeat (each T).Type,
+    uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
+  ) throws where repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible {
+    for table in repeat each tables {
+      try table.migratePrimaryKeyToUUID(db: self, uuidFunction: uuidFunction)
+    }
+  }
+}
+
 @available(iOS 16, macOS 13, tvOS 13, watchOS 9, *)
 extension PrimaryKeyedTable {
-  public static func migratePrimaryKeyToUUID(db: Database) throws {
+  fileprivate static func migratePrimaryKeyToUUID(
+    db: Database,
+    uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
+  ) throws {
     let schema =
-    try SQLiteSchema
+      try SQLiteSchema
       .select(\.sql)
-      .where { $0.tableName.eq(Self.tableName) }
+      .where { $0.tableName.eq(tableName) }
       .fetchOne(db)
-    ?? nil
+      ?? nil
     guard let schema
     else {
       // TODO: throw error
@@ -14,7 +31,7 @@ extension PrimaryKeyedTable {
     }
 
     let tableInfo = try PragmaTableInfo<Self>.all.fetchAll(db)
-    guard let primaryKey = tableInfo.first(where: { $0.isPrimaryKey })
+    guard let primaryKey = tableInfo.first(where: \.isPrimaryKey)
     else {
       // TODO: validate exactly one primary key
       // TODO: if no primary key, need to add one
@@ -28,43 +45,76 @@ extension PrimaryKeyedTable {
     }
 
     var parts: [TablePart] = []
-    var parensStack = 0
+    var parenDepth = 0
+    var currentScope: Scope?
     var startIndex = schema.startIndex
-    for (character, index) in zip(schema, schema.indices) {
-      let previousParensStack = parensStack
-      parensStack += character == "(" ? 1 : character == ")" ? -1 : 0
-      // First paren: capture preamble
-      if previousParensStack == 0 && parensStack == 1 {
-        parts.append(.preamble(String(schema[startIndex...index])))
-        startIndex = schema.index(after: index)
+    var index = startIndex
+    while index < schema.endIndex {
+      func advance() {
+        index = schema.index(after: index)
+      }
+      var peek: Character? {
+        schema.index(index, offsetBy: 1, limitedBy: schema.endIndex).map { schema[$0] }
+      }
+      defer { advance() }
+
+      let character = schema[index]
+      switch (currentScope, character) {
+      case (nil, "-") where peek == "-":
+        currentScope = .comment
+      case (.comment, "\n"):
+        currentScope = nil
+        startIndex = index
+      case (nil, "'"),
+        (nil, #"""#),
+        (nil, "`"),
+        (nil, "["):
+        currentScope = .quote(character)
+      case (.quote("'"), "'") where peek == "'",
+        (.quote(#"""#), #"""#) where peek == #"""#,
+        (.quote("`"), "`") where peek == "`":
+        advance()
         continue
-      }
-      // Last paren: capture last column/constraint and table options
-      if previousParensStack > 0 && parensStack == 0 {
-        // TODO: also handle if its a constraint
-        parts.append(.columnDefinition(String(schema[startIndex..<index])))
-        parts.append(.tableOptions(String(schema[index...])))
-        break
-      }
-      // End of column/constraint: capture
-      if character == "," && parensStack == 1 {
+      case (.quote("'"), "'"),
+        (.quote(#"""#), #"""#),
+        (.quote("`"), "`"),
+        (.quote("["), "]"):
+        currentScope = nil
+      case (.some, _):
+        continue
+      case (nil, "("):
+        defer { parenDepth += 1 }
+        if parenDepth == 0 {
+          parts.append(.preamble(String(schema[startIndex...index])))
+          startIndex = schema.index(after: index)
+        }
+      case (nil, ")"):
+        defer { parenDepth -= 1 }
+        if parenDepth == 1 {
+          // TODO: also handle if its a constraint
+          parts.append(.columnDefinition(String(schema[startIndex..<index])))
+          parts.append(.tableOptions(String(schema[index...])))
+        }
+      case (nil, ","):
         // TODO: also handle if its a constraint
         parts.append(.columnDefinition(String(schema[startIndex...index])))
         startIndex = schema.index(after: index)
         continue
+      default:
+        continue
       }
     }
 
+    let newTableName = "new_\(tableName)"
+    let uuidFunction = uuidFunction?.name.quoted() ?? "uuid"
     let newParts = parts.map { part in
       switch part {
-      case .preamble(let text):
-        var text = text
-        text.replace(" \(Self.tableName) ", with: " new_\(Self.tableName) ")
-        text.replace("\"\(Self.tableName)\"", with: "\"new_\(Self.tableName)\"")
+      case .preamble(var text):
+        text.replace(" \(tableName) ", with: " \(newTableName) ")
+        text.replace("\"\(tableName)\"", with: "\"\(newTableName)\"")
         return TablePart.preamble(text)
       case .columnDefinition(let text):
         let columnName = columnName(definition: text)
-        // TODO: support custom UUID function
         let leadingTrivia = text.prefix(while: \.isWhitespace)
         let trailingTrivia = String(
           text
@@ -77,11 +127,16 @@ extension PrimaryKeyedTable {
         else {
           // TODO: Support when primary key is defined as a constraint instead of in a column definition
           return .columnDefinition(
-          """
-          \(leadingTrivia)\
-          "\(primaryKey.name)" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid())\
-          \(trailingTrivia)
-          """
+            """
+            \(leadingTrivia)\
+            "\(primaryKey.name)" \
+            TEXT \
+            PRIMARY KEY \
+            NOT NULL \
+            ON CONFLICT REPLACE \
+            DEFAULT (\(uuidFunction)())\
+            \(trailingTrivia)
+            """
           )
         }
         // TODO: case insensitive compare?
@@ -122,22 +177,21 @@ extension PrimaryKeyedTable {
     try SQLQueryExpression(QueryFragment(stringLiteral: newSchema)).execute(db)
     try #sql(
       """
-      INSERT INTO \(quote: "new_" + Self.tableName)
-      SELECT
-      \(convertedColumns.joined(separator: ", "))
-      FROM \(quote: Self.tableName) 
+      INSERT INTO \(quote: newTableName) \
+      SELECT \(convertedColumns.joined(separator: ", ")) \
+      FROM \(Self.self) 
       """
     )
     .execute(db)
     try #sql(
       """
-      DROP TABLE \(quote: Self.tableName)
+      DROP TABLE \(Self.self)
       """
     )
     .execute(db)
     try #sql(
       """
-      ALTER TABLE \(quote: "new_" + Self.tableName) RENAME TO \(quote: Self.tableName)
+      ALTER TABLE \(quote: newTableName) RENAME TO \(Self.self)
       """
     )
     .execute(db)
@@ -168,5 +222,21 @@ private enum TablePart: CustomStringConvertible {
     case .tableOptions(let s):
       return s
     }
+  }
+}
+
+private enum Scope {
+  case comment
+  case quote(Character)
+}
+
+extension StringProtocol {
+  fileprivate func quoted() -> String {
+    #"""# + replacingOccurrences(of: #"""#, with: #""""#) + #"""#
+  }
+
+  fileprivate func unquoted() -> String? {
+    guard hasPrefix(#"""#), hasSuffix(#"""#) else { return nil }
+    return dropFirst().dropLast().replacingOccurrences(of: #""""#, with: #"""#)
   }
 }
