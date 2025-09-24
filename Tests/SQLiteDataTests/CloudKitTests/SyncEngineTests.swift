@@ -100,6 +100,11 @@
     try DatabaseQueue()
   }
 
+  @Test func testSyncEngine() throws {
+    @Dependency(\.defaultSyncEngine) var syncEngine
+    _ = syncEngine
+  }
+
   @Test(.dependency(\.context, .preview)) func previewSyncEngine() throws {
     @Dependency(\.defaultSyncEngine) var syncEngine
     _ = syncEngine
