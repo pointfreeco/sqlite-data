@@ -170,6 +170,10 @@ extension PrimaryKeyedTable {
     }
 
     let foreignKeys = try PragmaForeignKeyList<Self>.all.fetchAll(db)
+    // TODO: capture indices, triggers and views
+    defer {
+      // TODO: restore indices, triggers and views
+    }
 
     var parts: [TablePart] = []
     var parensStack = 0
