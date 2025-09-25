@@ -42,7 +42,7 @@ struct PrimaryKeyMigrationTests {
         """
         CREATE TABLE "parents" (  -- This comment's to exercise the parser a bit more
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-          "title" TEXT NOT NULL DEFAULT 'Blob''s world'
+          "title" TEXT NOT NULL UNIQUE DEFAULT 'Blob''s world'
         ) STRICT
         """
       )
@@ -54,6 +54,30 @@ struct PrimaryKeyMigrationTests {
           "title" TEXT NOT NULL,
           "parentID" INTEGER NOT NULL REFERENCES "parents"("id") ON DELETE CASCADE
         ) STRICT
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE UNIQUE INDEX "children_title_index" ON "children"("title")
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE TRIGGER "parents_trigger"
+        AFTER INSERT ON "parents" BEGIN
+        SELECT 1;
+        END
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE TEMPORARY TRIGGER "children_temp_trigger"
+        AFTER INSERT ON "children" BEGIN
+        SELECT 1;
+        END
         """
       )
       .execute(db)
@@ -105,8 +129,27 @@ struct PrimaryKeyMigrationTests {
       │   sql: """                                                                      │
       │   CREATE TABLE "parents" (  -- This comment's to exercise the parser a bit more │
       │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()),      │
-      │     "title" TEXT NOT NULL DEFAULT 'Blob''s world'                               │
+      │     "title" TEXT NOT NULL UNIQUE DEFAULT 'Blob''s world'                        │
       │   ) STRICT                                                                      │
+      │   """                                                                           │
+      │ )                                                                               │
+      ├─────────────────────────────────────────────────────────────────────────────────┤
+      │ SQLiteSchema(                                                                   │
+      │   type: .index,                                                                 │
+      │   name: "children_title_index",                                                 │
+      │   tableName: "children",                                                        │
+      │   sql: #"CREATE UNIQUE INDEX "children_title_index" ON "children"("title")"#    │
+      │ )                                                                               │
+      ├─────────────────────────────────────────────────────────────────────────────────┤
+      │ SQLiteSchema(                                                                   │
+      │   type: .trigger,                                                               │
+      │   name: "parents_trigger",                                                      │
+      │   tableName: "parents",                                                         │
+      │   sql: """                                                                      │
+      │   CREATE TRIGGER "parents_trigger"                                              │
+      │   AFTER INSERT ON "parents" BEGIN                                               │
+      │   SELECT 1;                                                                     │
+      │   END                                                                           │
       │   """                                                                           │
       │ )                                                                               │
       └─────────────────────────────────────────────────────────────────────────────────┘
