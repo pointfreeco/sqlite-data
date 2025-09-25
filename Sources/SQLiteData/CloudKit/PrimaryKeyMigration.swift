@@ -80,7 +80,8 @@ extension PrimaryKeyedTable {
     let newTableName = "new_\(tableName)"
     let uuidFunction = uuidFunction?.name ?? "uuid"
     let newSchema = try schema.rewriteSchema(
-      primaryKey: primaryKeys.first?.name,
+      oldPrimaryKey: primaryKeys.first?.name,
+      newPrimaryKey: columns.primaryKey.name,
       foreignKeys: foreignKeys.map(\.from),
       uuidFunction: uuidFunction
     )
@@ -135,13 +136,15 @@ extension StringProtocol {
 
 extension String {
   func rewriteSchema(
-    primaryKey: String?,
+    oldPrimaryKey: String?,
+    newPrimaryKey: String,
     foreignKeys: [String],
     uuidFunction: String
   ) throws -> String {
     var substring = self[...]
     return try substring.rewriteSchema(
-      primaryKey: primaryKey,
+      oldPrimaryKey: oldPrimaryKey,
+      newPrimaryKey: newPrimaryKey,
       foreignKeys: foreignKeys,
       uuidFunction: uuidFunction
     )
@@ -150,7 +153,8 @@ extension String {
 
 extension Substring {
   mutating func rewriteSchema(
-    primaryKey: String?,
+    oldPrimaryKey: String?,
+    newPrimaryKey: String,
     foreignKeys: [String],
     uuidFunction: String
   ) throws -> String {
@@ -173,17 +177,35 @@ extension Substring {
     guard parseOpen() else { throw SyntaxError() }
     let trivia = parseTrivia()
     flush()
-    if primaryKey == nil {
+    if oldPrimaryKey == nil {
       newSchema.append(
         """
-        "id" TEXT PRIMARY KEY NOT NULL \
+        \(newPrimaryKey.quoted()) TEXT PRIMARY KEY NOT NULL \
         ON CONFLICT REPLACE DEFAULT (\(uuidFunction.quoted())()),\(trivia)
         """
       )
     }
-    while try !parseTableConstraint(), let columnName = try parseIdentifier() {
+    func parseToNextColumnDefinitionOrTableConstraint(
+      skipIf shouldSkip: Bool
+    ) throws -> Bool {
+      if (try? parseBalanced(upTo: ",")) != nil {
+        if shouldSkip {
+          index = startIndex
+        }
+        flush()
+        removeFirst()
+        return false
+      } else {
+        try parseBalanced(upTo: ")")
+        if shouldSkip {
+          index = startIndex
+        }
+        return true
+      }
+    }
+    while try peek({ try !$0.parseTableConstraint() }), let columnName = try parseIdentifier() {
       parseTrivia()
-      if columnName == primaryKey {
+      if columnName == oldPrimaryKey {
         newSchema.append(
           """
           \(columnName.quoted()) TEXT PRIMARY KEY NOT NULL \
@@ -198,16 +220,16 @@ extension Substring {
           newSchema.append("TEXT")
         }
       }
-      if (try? parseBalanced(upTo: ",")) != nil {
-        if columnName == primaryKey {
-          index = startIndex
-        }
-        removeFirst()
-      } else {
-        try parseBalanced(upTo: ")")
-        if columnName == primaryKey {
-          index = startIndex
-        }
+      if try parseToNextColumnDefinitionOrTableConstraint(
+        skipIf: columnName == oldPrimaryKey
+      ) {
+        break
+      }
+    }
+    while peek({ $0.parseColumnConstraint() }) {
+      if try parseToNextColumnDefinitionOrTableConstraint(
+        skipIf: parseKeywords(["PRIMARY", "KEY"])
+      ) {
         break
       }
     }
@@ -289,6 +311,7 @@ extension Substring {
   }
 
   mutating func parseIdentifier() throws -> String? {
+    parseTrivia()
     guard let firstCharacter = first else { return nil }
     switch firstCharacter {
     case #"""#, "`", "[":
