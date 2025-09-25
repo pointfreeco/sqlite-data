@@ -1,9 +1,10 @@
 import Foundation
 
-@available(iOS 16, macOS 13, tvOS 13, watchOS 9, *)
-extension Database {
-  public func migrateToSyncEnginePrimaryKeys<each T: PrimaryKeyedTable>(
-    _ tables: repeat (each T).Type,
+@available(iOS 17, macOS 14, tvOS 14, watchOS 10, *)
+extension SyncEngine {
+  public static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
+    _ db: Database,
+    tables: repeat (each T).Type,
     uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
   ) throws where repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible {
     var migratedTableNames: [String] = []
@@ -18,17 +19,17 @@ extension Database {
           && $0.type.in([#bind(.index), #bind(.trigger)])
           && $0.sql.isNot(nil)
       }
-      .fetchAll(self)
+      .fetchAll(db)
       .compactMap(\.self)
     for table in repeat each tables {
       try table.migratePrimaryKeyToUUID(
-        db: self,
+        db: db,
         uuidFunction: uuidFunction,
         migratedTableNames: migratedTableNames
       )
     }
     for sql in indicesAndTriggersSQL {
-      try #sql(QueryFragment(stringLiteral: sql)).execute(self)
+      try #sql(QueryFragment(stringLiteral: sql)).execute(db)
     }
   }
 }

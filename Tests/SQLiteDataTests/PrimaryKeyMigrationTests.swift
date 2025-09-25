@@ -96,8 +96,9 @@ struct PrimaryKeyMigrationTests {
       defer { try? #sql("PRAGMA foreign_keys = ON").execute(db) }
       do {
         try db.inTransaction {
-          try db.migrateToSyncEnginePrimaryKeys(
-            Child.self,
+          try SyncEngine.migratePrimaryKeys(
+            db,
+            tables: Child.self,
             Parent.self,
             uuidFunction: $uuid
           )
