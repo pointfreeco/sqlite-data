@@ -10,7 +10,8 @@ extension Database {
     for table in repeat each tables {
       migratedTableNames.append(table.tableName)
     }
-    let indicesAndTriggersSQL = try SQLiteSchema
+    let indicesAndTriggersSQL =
+      try SQLiteSchema
       .select(\.sql)
       .where {
         $0.tableName.in(migratedTableNames)
@@ -75,17 +76,23 @@ extension PrimaryKeyedTable {
       uuidFunction: uuidFunction
     )
 
-    let convertedColumns = tableInfo.map { tableInfo -> QueryFragment in
-      guard tableInfo.name != primaryKey.name
-      else {
-        return "'00000000-0000-0000-0000-' || printf('%012x', \(quote: tableInfo.name))"
-      }
-      guard !foreignKeys.contains(where: { $0.from == tableInfo.name })
-      else {
-        return "'00000000-0000-0000-0000-' || printf('%012x', \(quote: tableInfo.name))"
-      }
-      return QueryFragment(quote: tableInfo.name)
+    var convertedColumns: [QueryFragment] = []
+    if primaryKeys.first == nil {
+      convertedColumns.append("NULL")
     }
+    convertedColumns.append(
+      contentsOf: tableInfo.map { tableInfo -> QueryFragment in
+        guard tableInfo.name != primaryKey.name
+        else {
+          return "'00000000-0000-0000-0000-' || printf('%012x', \(quote: tableInfo.name))"
+        }
+        guard !foreignKeys.contains(where: { $0.from == tableInfo.name })
+        else {
+          return "'00000000-0000-0000-0000-' || printf('%012x', \(quote: tableInfo.name))"
+        }
+        return QueryFragment(quote: tableInfo.name)
+      }
+    )
 
     try #sql(QueryFragment(stringLiteral: newSchema)).execute(db)
     try #sql(
