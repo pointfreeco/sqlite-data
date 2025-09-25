@@ -372,7 +372,10 @@ private struct SyntaxError: Error {}
 
 extension PragmaTableInfo {
   var isInt: Bool {
-    let type = type.lowercased()
-    return type == "int" || type == "integer"
+    intTypes.contains(type.lowercased())
   }
 }
+
+private let intTypes: Set<String> = [
+  "int", "integer", "bigint"
+]

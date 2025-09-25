@@ -25,6 +25,11 @@ import Testing
     @Column(primaryKey: true)
     let number: String
   }
+  @Table struct User {
+    @Column(primaryKey: true)
+    let identifier: UUID
+    var name = ""
+  }
   let database = try! DatabaseQueue(
     configuration: {
       var configuration = Configuration()
@@ -659,9 +664,193 @@ import Testing
     let error = #expect(throws: (any Error).self) {
       try migrate(tables: Parent.self)
     }
-    assertInlineSnapshot(of: error, as: .customDump)
+    assertInlineSnapshot(of: error, as: .customDump) {
+      """
+      MigrationError()
+      """
+    }
   }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func addPrimaryKeyWithCustomName() throws {
+    try database.write { db in
+      try #sql(
+        """
+        CREATE TABLE "users" (
+          "name" TEXT NOT NULL
+        )
+        """
+      )
+      .execute(db)
+      try #sql("""
+        INSERT INTO "users"
+        VALUES
+        ('blob'), ('blob jr'), ('blob sr')
+        """)
+      .execute(db)
+    }
+
+    try migrate(tables: User.self)
+
+    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+      #"""
+      ┌────────────────────────────────────────────────────────────────────────────┐
+      │ SQLiteSchema(                                                              │
+      │   type: .table,                                                            │
+      │   name: "users",                                                           │
+      │   tableName: "users",                                                      │
+      │   sql: """                                                                 │
+      │   CREATE TABLE "users" (                                                   │
+      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
+      │     "name" TEXT NOT NULL                                                   │
+      │   )                                                                        │
+      │   """                                                                      │
+      │ )                                                                          │
+      └────────────────────────────────────────────────────────────────────────────┘
+      """#
+    }
+    assertQuery(User.select(\.name), database: database) {
+      """
+      ┌───────────┐
+      │ "blob"    │
+      │ "blob jr" │
+      │ "blob sr" │
+      └───────────┘
+      """
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func lowercaseNoQuotes() throws {
+    try database.write { db in
+      try #sql(
+        """
+        create table parents (
+          id integer primary key autoincrement,
+          title text not null
+        ) strict
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        create table children (
+          id integer primary key autoincrement,
+          title text not null,
+          parentID integer not null references parents(id) on delete cascade
+        ) strict
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        create table tags (
+          title text not null
+        ) strict
+        """
+      )
+      .execute(db)
+      try seed(db)
+    }
+
+    try migrate()
+
+    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+      #"""
+      ┌────────────────────────────────────────────────────────────────────────────┐
+      │ SQLiteSchema(                                                              │
+      │   type: .table,                                                            │
+      │   name: "parents",                                                         │
+      │   tableName: "parents",                                                    │
+      │   sql: """                                                                 │
+      │   CREATE TABLE "parents" (                                                 │
+      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
+      │     title text not null                                                    │
+      │   ) strict                                                                 │
+      │   """                                                                      │
+      │ )                                                                          │
+      ├────────────────────────────────────────────────────────────────────────────┤
+      │ SQLiteSchema(                                                              │
+      │   type: .table,                                                            │
+      │   name: "children",                                                        │
+      │   tableName: "children",                                                   │
+      │   sql: """                                                                 │
+      │   CREATE TABLE "children" (                                                │
+      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
+      │     title text not null,                                                   │
+      │     parentID TEXT not null references parents(id) on delete cascade        │
+      │   ) strict                                                                 │
+      │   """                                                                      │
+      │ )                                                                          │
+      ├────────────────────────────────────────────────────────────────────────────┤
+      │ SQLiteSchema(                                                              │
+      │   type: .table,                                                            │
+      │   name: "tags",                                                            │
+      │   tableName: "tags",                                                       │
+      │   sql: """                                                                 │
+      │   CREATE TABLE "tags" (                                                    │
+      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
+      │     title text not null                                                    │
+      │   ) strict                                                                 │
+      │   """                                                                      │
+      │ )                                                                          │
+      └────────────────────────────────────────────────────────────────────────────┘
+      """#
+    }
+    assertQuery(Parent.all, database: database) {
+      """
+      ┌───────────────────────────────────────────────────┐
+      │ PrimaryKeyMigrationTests.Parent(                  │
+      │   id: UUID(00000000-0000-0000-0000-000000000001), │
+      │   title: "foo"                                    │
+      │ )                                                 │
+      ├───────────────────────────────────────────────────┤
+      │ PrimaryKeyMigrationTests.Parent(                  │
+      │   id: UUID(00000000-0000-0000-0000-000000000002), │
+      │   title: "bar"                                    │
+      │ )                                                 │
+      ├───────────────────────────────────────────────────┤
+      │ PrimaryKeyMigrationTests.Parent(                  │
+      │   id: UUID(00000000-0000-0000-0000-000000000003), │
+      │   title: "baz"                                    │
+      │ )                                                 │
+      └───────────────────────────────────────────────────┘
+      """
+    }
+    assertQuery(Child.all, database: database) {
+      """
+      ┌────────────────────────────────────────────────────────┐
+      │ PrimaryKeyMigrationTests.Child(                        │
+      │   id: UUID(00000000-0000-0000-0000-000000000001),      │
+      │   title: "foo",                                        │
+      │   parentID: UUID(00000000-0000-0000-0000-000000000001) │
+      │ )                                                      │
+      ├────────────────────────────────────────────────────────┤
+      │ PrimaryKeyMigrationTests.Child(                        │
+      │   id: UUID(00000000-0000-0000-0000-000000000002),      │
+      │   title: "bar",                                        │
+      │   parentID: UUID(00000000-0000-0000-0000-000000000002) │
+      │ )                                                      │
+      ├────────────────────────────────────────────────────────┤
+      │ PrimaryKeyMigrationTests.Child(                        │
+      │   id: UUID(00000000-0000-0000-0000-000000000003),      │
+      │   title: "baz",                                        │
+      │   parentID: UUID(00000000-0000-0000-0000-000000000003) │
+      │ )                                                      │
+      └────────────────────────────────────────────────────────┘
+      """
+    }
+
+    // NB: Cannot select 'id' since it will be random UUID.
+    assertQuery(Tag.select(\.title), database: database) {
+      """
+      ┌────────────┐
+      │ "personal" │
+      │ "business" │
+      └────────────┘
+      """
+    }
+  }
   private func seed(_ db: Database) throws {
     try #sql(
       """
