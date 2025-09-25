@@ -1,12 +1,13 @@
 import Foundation
+import InlineSnapshotTesting
 import SQLite3
 import SQLiteData
 import SQLiteDataTestSupport
 import SnapshotTesting
+import SnapshotTestingCustomDump
 import Testing
 
-@Suite(.snapshots(record: .failed))
-struct PrimaryKeyMigrationTests {
+@Suite(.snapshots(record: .failed)) struct PrimaryKeyMigrationTests {
   @Table struct Parent: Identifiable {
     let id: UUID
     var title = ""
@@ -19,6 +20,10 @@ struct PrimaryKeyMigrationTests {
   @Table struct Tag {
     let id: UUID
     var title = ""
+  }
+  @Table struct PhoneNumber {
+    @Column(primaryKey: true)
+    let number: String
   }
   let database = try! DatabaseQueue(
     configuration: {
@@ -303,7 +308,7 @@ struct PrimaryKeyMigrationTests {
         CREATE TABLE "parents" (
           "id" INTEGER,
           "title" TEXT NOT NULL,
-        
+
           PRIMARY KEY("id"),
           UNIQUE("title")
         ) STRICT
@@ -316,7 +321,7 @@ struct PrimaryKeyMigrationTests {
           "id" INTEGER PRIMARY KEY AUTOINCREMENT,
           "title" TEXT NOT NULL,
           "parentID" INTEGER NOT NULL,
-        
+
           CHECK("id" > 0 AND length("title") > 0),
           FOREIGN KEY ("parentID") REFERENCES "parents"("id") ON DELETE CASCADE
         ) STRICT
@@ -583,6 +588,80 @@ struct PrimaryKeyMigrationTests {
     }
   }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func nonIntPrimaryKey() throws {
+    try database.write { db in
+      try #sql(
+        """
+        CREATE TABLE "phoneNumbers" (
+          "number" TEXT NOT NULL PRIMARY KEY
+        )
+        """
+      )
+      .execute(db)
+      try #sql("""
+        INSERT INTO "phoneNumbers"
+        VALUES
+        ('212-555-1234')
+        """)
+      .execute(db)
+    }
+
+    let error = #expect(throws: (any Error).self) {
+      try migrate(tables: PhoneNumber.self)
+    }
+    assertInlineSnapshot(of: error, as: .customDump) {
+      """
+      MigrationError()
+      """
+    }
+    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+      #"""
+      ┌────────────────────────────────────────┐
+      │ SQLiteSchema(                          │
+      │   type: .table,                        │
+      │   name: "phoneNumbers",                │
+      │   tableName: "phoneNumbers",           │
+      │   sql: """                             │
+      │   CREATE TABLE "phoneNumbers" (        │
+      │     "number" TEXT NOT NULL PRIMARY KEY │
+      │   )                                    │
+      │   """                                  │
+      │ )                                      │
+      └────────────────────────────────────────┘
+      """#
+    }
+    assertQuery(PhoneNumber.all, database: database) {
+      """
+      ┌──────────────────────────────────────────────────────────────┐
+      │ PrimaryKeyMigrationTests.PhoneNumber(number: "212-555-1234") │
+      └──────────────────────────────────────────────────────────────┘
+      """
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func compoundPrimaryKey() throws {
+    try database.write { db in
+      try #sql(
+        """
+        CREATE TABLE "parents" (
+          "id" INTEGER,
+          "title" TEXT NOT NULL,
+        
+          PRIMARY KEY("id", "title")
+        ) STRICT
+        """
+      )
+      .execute(db)
+    }
+
+    let error = #expect(throws: (any Error).self) {
+      try migrate(tables: Parent.self)
+    }
+    assertInlineSnapshot(of: error, as: .customDump)
+  }
+
   private func seed(_ db: Database) throws {
     try #sql(
       """
@@ -615,6 +694,13 @@ struct PrimaryKeyMigrationTests {
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func migrate() throws {
+    try migrate(tables: Parent.self, Child.self, Tag.self)
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func migrate<each T: PrimaryKeyedTable>(
+    tables: repeat (each T).Type
+  ) throws where repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible {
     try database.writeWithoutTransaction { db in
       try #sql("PRAGMA foreign_keys = OFF").execute(db)
       defer { try? #sql("PRAGMA foreign_keys = ON").execute(db) }
@@ -622,9 +708,7 @@ struct PrimaryKeyMigrationTests {
         try db.inTransaction {
           try SyncEngine.migratePrimaryKeys(
             db,
-            tables: Child.self,
-            Parent.self,
-            Tag.self,
+            tables: repeat each tables,
             uuid: $uuid
           )
           return .commit

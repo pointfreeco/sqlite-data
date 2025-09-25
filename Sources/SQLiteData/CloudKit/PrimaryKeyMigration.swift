@@ -65,7 +65,8 @@ extension PrimaryKeyedTable {
 
     let tableInfo = try PragmaTableInfo<Self>.all.fetchAll(db)
     let primaryKeys = tableInfo.filter(\.isPrimaryKey)
-    guard primaryKeys.count <= 1
+    guard
+      (primaryKeys.count == 1 && primaryKeys[0].isInt) || primaryKeys.isEmpty
     else {
       throw MigrationError()
     }
@@ -368,3 +369,10 @@ extension Substring {
 }
 
 private struct SyntaxError: Error {}
+
+extension PragmaTableInfo {
+  var isInt: Bool {
+    let type = type.lowercased()
+    return type == "int" || type == "integer"
+  }
+}
