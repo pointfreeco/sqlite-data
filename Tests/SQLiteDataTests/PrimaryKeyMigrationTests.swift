@@ -98,9 +98,8 @@ struct PrimaryKeyMigrationTests {
         try db.inTransaction {
           try SyncEngine.migratePrimaryKeys(
             db,
-            tables: Child.self,
-            Parent.self,
-            uuidFunction: $uuid
+            tables: Child.self, Parent.self,
+            uuid: $uuid
           )
           return .commit
         }

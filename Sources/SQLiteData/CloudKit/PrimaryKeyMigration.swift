@@ -2,10 +2,17 @@ import Foundation
 
 @available(iOS 17, macOS 14, tvOS 14, watchOS 10, *)
 extension SyncEngine {
+  /// Migrates integer primary-keyed tables and join tables to CloudKit-compatible, UUID primary
+  /// keys.
+  ///
+  /// - Parameters:
+  ///   - db: A database connection.
+  ///   - tables: Tables to migrate.
+  ///   - uuidFunction: A UUID function. If `nil`, SQLite's `uuid` function will be used.
   public static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
     _ db: Database,
     tables: repeat (each T).Type,
-    uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
+    uuid uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
   ) throws where repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible {
     var migratedTableNames: [String] = []
     for table in repeat each tables {
