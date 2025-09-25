@@ -722,6 +722,69 @@ import Testing
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func recreatesIndicesAndTriggers() throws {
+    try database.write { db in
+      try #sql(
+        """
+        CREATE TABLE "parents" (
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "title" TEXT NOT NULL
+        ) STRICT
+        """
+      )
+      .execute(db)
+      try #sql("""
+        CREATE INDEX "parents_name" ON "parents"("title")
+        """)
+      .execute(db)
+      try #sql("""
+        CREATE TRIGGER "parents_trigger" AFTER UPDATE ON "parents" BEGIN
+          SELECT 1;
+        END
+        """)
+      .execute(db)
+    }
+
+    try migrate(tables: Parent.self)
+
+    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+      #"""
+      ┌────────────────────────────────────────────────────────────────────────────┐
+      │ SQLiteSchema(                                                              │
+      │   type: .table,                                                            │
+      │   name: "parents",                                                         │
+      │   tableName: "parents",                                                    │
+      │   sql: """                                                                 │
+      │   CREATE TABLE "parents" (                                                 │
+      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
+      │     "title" TEXT NOT NULL                                                  │
+      │   ) STRICT                                                                 │
+      │   """                                                                      │
+      │ )                                                                          │
+      ├────────────────────────────────────────────────────────────────────────────┤
+      │ SQLiteSchema(                                                              │
+      │   type: .index,                                                            │
+      │   name: "parents_name",                                                    │
+      │   tableName: "parents",                                                    │
+      │   sql: #"CREATE INDEX "parents_name" ON "parents"("title")"#               │
+      │ )                                                                          │
+      ├────────────────────────────────────────────────────────────────────────────┤
+      │ SQLiteSchema(                                                              │
+      │   type: .trigger,                                                          │
+      │   name: "parents_trigger",                                                 │
+      │   tableName: "parents",                                                    │
+      │   sql: """                                                                 │
+      │   CREATE TRIGGER "parents_trigger" AFTER UPDATE ON "parents" BEGIN         │
+      │     SELECT 1;                                                              │
+      │   END                                                                      │
+      │   """                                                                      │
+      │ )                                                                          │
+      └────────────────────────────────────────────────────────────────────────────┘
+      """#
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func lowercaseNoQuotes() throws {
     try database.write { db in
       try #sql(
