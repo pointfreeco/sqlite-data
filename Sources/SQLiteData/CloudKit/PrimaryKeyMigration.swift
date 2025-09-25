@@ -10,12 +10,24 @@ extension Database {
     for table in repeat each tables {
       migratedTableNames.append(table.tableName)
     }
+    let indicesAndTriggersSQL = try SQLiteSchema
+      .select(\.sql)
+      .where {
+        $0.tableName.in(migratedTableNames)
+          && $0.type.in([#bind(.index), #bind(.trigger)])
+          && $0.sql.isNot(nil)
+      }
+      .fetchAll(self)
+      .compactMap(\.self)
     for table in repeat each tables {
       try table.migratePrimaryKeyToUUID(
         db: self,
         uuidFunction: uuidFunction,
         migratedTableNames: migratedTableNames
       )
+    }
+    for sql in indicesAndTriggersSQL {
+      try #sql(QueryFragment(stringLiteral: sql)).execute(self)
     }
   }
 }
@@ -33,7 +45,7 @@ extension PrimaryKeyedTable {
     let schema =
       try SQLiteSchema
       .select(\.sql)
-      .where { $0.tableName.eq(tableName) }
+      .where { $0.type.eq(#bind(.table)) && $0.tableName.eq(tableName) }
       .fetchOne(db)
       ?? nil
 
@@ -50,10 +62,6 @@ extension PrimaryKeyedTable {
     }
 
     let foreignKeys = try PragmaForeignKeyList<Self>.all.fetchAll(db)
-    // TODO: capture indices, triggers and views
-    defer {
-      // TODO: restore indices, triggers and views
-    }
     guard foreignKeys.allSatisfy({ migratedTableNames.contains($0.table) })
     else {
       throw MigrationError()
