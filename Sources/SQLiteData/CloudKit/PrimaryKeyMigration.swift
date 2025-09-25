@@ -12,6 +12,9 @@ extension Database {
   }
 }
 
+private struct MigrationError: Error {
+}
+
 @available(iOS 16, macOS 13, tvOS 13, watchOS 9, *)
 extension PrimaryKeyedTable {
   fileprivate static func migratePrimaryKeyToUUID(
@@ -24,18 +27,17 @@ extension PrimaryKeyedTable {
       .where { $0.tableName.eq(tableName) }
       .fetchOne(db)
       ?? nil
+
     guard let schema
     else {
-      // TODO: throw error
-      return
+      throw MigrationError()
     }
 
     let tableInfo = try PragmaTableInfo<Self>.all.fetchAll(db)
-    guard let primaryKey = tableInfo.first(where: \.isPrimaryKey)
+    let primaryKeys = tableInfo.filter(\.isPrimaryKey)
+    guard primaryKeys.count <= 1
     else {
-      // TODO: validate exactly one primary key
-      // TODO: if no primary key, need to add one
-      return
+      throw MigrationError()
     }
 
     let foreignKeys = try PragmaForeignKeyList<Self>.all.fetchAll(db)
@@ -44,118 +46,14 @@ extension PrimaryKeyedTable {
       // TODO: restore indices, triggers and views
     }
 
-    var tableDefinition: [TableDefinitionFragment] = []
-    var parenDepth = 0
-    var currentScope: Scope?
-    var startIndex = schema.startIndex
-    var index = startIndex
-    while index < schema.endIndex {
-      func advance() {
-        index = schema.index(after: index)
-      }
-      var peek: Character? {
-        schema.index(index, offsetBy: 1, limitedBy: schema.endIndex).map { schema[$0] }
-      }
-      defer { advance() }
-
-      let character = schema[index]
-      switch (currentScope, character) {
-      case (nil, "-") where peek == "-":
-        currentScope = .comment
-      case (.comment, "\n"):
-        currentScope = nil
-        startIndex = index
-      case (nil, "'"),
-        (nil, #"""#),
-        (nil, "`"),
-        (nil, "["):
-        currentScope = .quote(character)
-      case (.quote("'"), "'") where peek == "'",
-        (.quote(#"""#), #"""#) where peek == #"""#,
-        (.quote("`"), "`") where peek == "`":
-        advance()
-        continue
-      case (.quote("'"), "'"),
-        (.quote(#"""#), #"""#),
-        (.quote("`"), "`"),
-        (.quote("["), "]"):
-        currentScope = nil
-      case (.some, _):
-        continue
-      case (nil, "("):
-        defer { parenDepth += 1 }
-        if parenDepth == 0 {
-          tableDefinition.append(.preamble(String(schema[startIndex...index])))
-          startIndex = schema.index(after: index)
-        }
-      case (nil, ")"):
-        defer { parenDepth -= 1 }
-        if parenDepth == 1 {
-          // TODO: also handle if its a constraint
-          tableDefinition.append(.columnDefinition(String(schema[startIndex..<index])))
-          tableDefinition.append(.tableOptions(String(schema[index...])))
-        }
-      case (nil, ","):
-        // TODO: also handle if its a constraint
-        tableDefinition.append(.columnDefinition(String(schema[startIndex...index])))
-        startIndex = schema.index(after: index)
-        continue
-      default:
-        continue
-      }
-    }
-
     let newTableName = "new_\(tableName)"
-    let uuidFunction = uuidFunction?.name.quoted() ?? "uuid"
-    let newTableDefinition = tableDefinition.map { part in
-      switch part {
-      case .preamble(var text):
-        text.replace(" \(tableName) ", with: " \(newTableName) ")
-        text.replace("\"\(tableName)\"", with: "\"\(newTableName)\"")
-        return TableDefinitionFragment.preamble(text)
-      case .columnDefinition(let text):
-        let columnName = columnName(definition: text)
-        let leadingTrivia = text.prefix(while: \.isWhitespace)
-        let trailingTrivia = String(
-          text
-            .reversed()
-            .prefix(while: { $0.isWhitespace || $0 == "," })
-            .reversed()
-        )
-        // TODO: case insensitive compare?
-        guard columnName != primaryKey.name
-        else {
-          // TODO: Support when primary key is defined as a constraint instead of in a column definition
-          return .columnDefinition(
-            """
-            \(leadingTrivia)\
-            "\(primaryKey.name)" \
-            TEXT \
-            PRIMARY KEY \
-            NOT NULL \
-            ON CONFLICT REPLACE \
-            DEFAULT (\(uuidFunction)())\
-            \(trailingTrivia)
-            """
-          )
-        }
-        // TODO: case insensitive compare?
-        guard !foreignKeys.contains(where: { $0.from == columnName })
-        else {
-          var text = text
-          guard let range = text.lowercased().firstRange(of: " integer ")
-          else { return part }
-          text.replaceSubrange(range, with: " TEXT ")
-          return .columnDefinition(text)
-        }
-        return part
-
-      case .tableConstraint:
-        return part
-      case .tableOptions:
-        return part
-      }
-    }
+    let uuidFunction = uuidFunction?.name ?? "uuid"
+    // TODO: Validate foreign key tables are accounted for in migration
+    let newSchema = try schema.rewriteSchema(
+      primaryKey: primaryKeys.first?.name,
+      foreignKeys: foreignKeys.map(\.from),
+      uuidFunction: uuidFunction
+    )
     // TODO: throw error if no primary key rewritten
     // TODO: throw error if not all FK's handled
 
@@ -173,8 +71,7 @@ extension PrimaryKeyedTable {
       return QueryFragment(quote: tableInfo.name)
     }
 
-    let newSchema = newTableDefinition.map(\.description).joined()
-    try SQLQueryExpression(QueryFragment(stringLiteral: newSchema)).execute(db)
+    try #sql(QueryFragment(stringLiteral: newSchema)).execute(db)
     try #sql(
       """
       INSERT INTO \(quote: newTableName) \
@@ -198,42 +95,245 @@ extension PrimaryKeyedTable {
   }
 }
 
-private func columnName(definition: String) -> String {
-  var substring = definition[...].drop(while: \.isWhitespace)
-  if substring.first == "\"" {
-    substring.removeFirst()
-  }
-  return String(substring.prefix(while: { $0 != " " && $0 != "\"" }))
-}
-
-private enum TableDefinitionFragment: CustomStringConvertible {
-  case preamble(String)
-  case columnDefinition(String)
-  case tableConstraint(String)
-  case tableOptions(String)
-  var description: String {
-    switch self {
-    case .preamble(let description),
-      .columnDefinition(let description),
-      .tableConstraint(let description),
-      .tableOptions(let description):
-      return description
-    }
-  }
-}
-
-private enum Scope {
-  case comment
-  case quote(Character)
-}
-
 extension StringProtocol {
   fileprivate func quoted() -> String {
     #"""# + replacingOccurrences(of: #"""#, with: #""""#) + #"""#
   }
+}
 
-  fileprivate func unquoted() -> String? {
-    guard hasPrefix(#"""#), hasSuffix(#"""#) else { return nil }
-    return dropFirst().dropLast().replacingOccurrences(of: #""""#, with: #"""#)
+extension String {
+  func rewriteSchema(
+    primaryKey: String?,
+    foreignKeys: [String],
+    uuidFunction: String
+  ) throws -> String {
+    var substring = self[...]
+    return try substring.rewriteSchema(
+      primaryKey: primaryKey,
+      foreignKeys: foreignKeys,
+      uuidFunction: uuidFunction
+    )
   }
 }
+
+extension Substring {
+  mutating func rewriteSchema(
+    primaryKey: String?,
+    foreignKeys: [String],
+    uuidFunction: String
+  ) throws -> String {
+    var index = startIndex
+    var newSchema = ""
+
+    func flush() {
+      newSchema.append(String(base[index..<startIndex]))
+      index = startIndex
+    }
+
+    guard parseKeywords(["CREATE", "TABLE"]) else { throw SyntaxError() }
+    parseKeywords(["IF", "NOT", "EXISTS"])
+    parseTrivia()
+    flush()
+    guard let tableName = try parseIdentifier() else { throw SyntaxError() }
+    newSchema.append("new_\(tableName)".quoted())
+    index = startIndex
+    parseTrivia()
+    guard parseOpen() else { throw SyntaxError() }
+    let trivia = parseTrivia()
+    flush()
+    if primaryKey == nil {
+      newSchema.append(
+        """
+        "id" TEXT PRIMARY KEY NOT NULL \
+        ON CONFLICT REPLACE DEFAULT (\(uuidFunction.quoted())()),\(trivia)
+        """
+      )
+    }
+    while try !parseTableConstraint(), let columnName = try parseIdentifier() {
+      parseTrivia()
+      if columnName == primaryKey {
+        newSchema.append(
+          """
+          \(columnName.quoted()) TEXT PRIMARY KEY NOT NULL \
+          ON CONFLICT REPLACE DEFAULT (\(uuidFunction.quoted())())
+          """
+        )
+      } else if foreignKeys.contains(columnName) {
+        flush()
+        if peek({ !$0.parseColumnConstraint() }), (try? parseIdentifier()) != nil {
+          index = startIndex
+          flush()
+          newSchema.append("TEXT")
+        }
+      }
+      if (try? parseBalanced(upTo: ",")) != nil {
+        if columnName == primaryKey {
+          index = startIndex
+        }
+        removeFirst()
+      } else {
+        try parseBalanced(upTo: ")")
+        if columnName == primaryKey {
+          index = startIndex
+        }
+        break
+      }
+    }
+    removeFirst(count)
+    flush()
+    return newSchema
+  }
+
+  func peek<R>(_ body: (inout Self) throws -> R) rethrows -> R {
+    var substring = self
+    return try body(&substring)
+  }
+
+  mutating func parseBalanced(upTo endCharacter: Character = ",") throws {
+    let substring = self
+    parseTrivia()
+    var parenDepth = 0
+    while let character = first {
+      defer { parseTrivia() }
+      switch character {
+      case endCharacter where parenDepth == 0:
+        return
+      case "(":
+        parenDepth += 1
+        removeFirst()
+      case ")":
+        parenDepth -= 1
+        removeFirst()
+      case #"""#, "`", "[":
+        _ = try parseIdentifier()
+      case "'":
+        _ = try parseText()
+      default:
+        removeFirst()
+        continue
+      }
+    }
+    self = substring
+    throw SyntaxError()
+  }
+
+  mutating func parseTableConstraint() throws -> Bool {
+    if parseKeyword("CONSTRAINT")
+      || parseKeywords(["PRIMARY", "KEY"])
+      || parseKeyword("UNIQUE")
+      || parseKeyword("CHECK")
+      || parseKeywords(["FOREIGN", "KEY"])
+    {
+      try parseBalanced(upTo: ",")
+      return true
+    } else {
+      return false
+    }
+  }
+
+  mutating func parseColumnConstraint() -> Bool {
+    parseKeyword("CONSTRAINT")
+      || parseKeywords(["PRIMARY", "KEY"])
+      || parseKeywords(["NOT", "NULL"])
+      || parseKeyword("UNIQUE")
+      || parseKeyword("CHECK")
+      || parseKeyword("DEFAULT")
+      || parseKeyword("COLLATE")
+      || parseKeywords(["REFERENCES"])
+      || parseKeywords(["GENERATED", "ALWAYS"])
+      || parseKeyword("AS")
+  }
+
+  mutating func parseOpen() -> Bool {
+    guard first == "(" else { return false }
+    removeFirst()
+    return true
+  }
+
+  mutating func parseText() throws -> String? {
+    guard first == "'" else { return nil }
+    let quote = removeFirst()
+    return try parseQuoted(quote)
+  }
+
+  mutating func parseIdentifier() throws -> String? {
+    guard let firstCharacter = first else { return nil }
+    switch firstCharacter {
+    case #"""#, "`", "[":
+      removeFirst()
+      return try parseQuoted(firstCharacter)
+
+    default:
+      let identifier = prefix { !$0.isWhitespace }
+      removeFirst(identifier.count)
+      return String(identifier)
+    }
+  }
+
+  mutating func parseQuoted(_ startDelimiter: Character) throws -> String? {
+    let endDelimiter: Character = startDelimiter == "[" ? "]" : startDelimiter
+    var identifier = ""
+    while !isEmpty {
+      let character = removeFirst()
+      if character == startDelimiter {
+        if startDelimiter == endDelimiter, first == startDelimiter {
+          identifier.append(character)
+          removeFirst()
+        } else {
+          return identifier
+        }
+      } else {
+        identifier.append(character)
+      }
+    }
+    throw SyntaxError()
+  }
+
+  @discardableResult
+  mutating func parseKeywords(_ keywords: [String]) -> Bool {
+    let substring = self
+    guard keywords.allSatisfy({ parseKeyword($0) })
+    else {
+      self = substring
+      return false
+    }
+    return true
+  }
+
+  @discardableResult
+  mutating func parseKeyword(_ keyword: String) -> Bool {
+    parseTrivia()
+    let count = keyword.count
+    guard prefix(count).uppercased() == keyword
+    else {
+      return false
+    }
+    removeFirst(count)
+    return true
+  }
+
+  @discardableResult
+  mutating func parseTrivia() -> String {
+    var trivia = ""
+    while !isEmpty {
+      if hasPrefix("--") {
+        guard let endIndex = firstIndex(of: "\n")
+        else {
+          removeAll()
+          continue
+        }
+        removeFirst(distance(from: startIndex, to: endIndex))
+        continue
+      } else if let endIndex = firstIndex(where: { !$0.isWhitespace }), endIndex != startIndex {
+        trivia.append(contentsOf: self[..<endIndex])
+        removeFirst(distance(from: startIndex, to: endIndex))
+        continue
+      } else {
+        break
+      }
+    }
+    return trivia
+  }
+}
+
+private struct SyntaxError: Error {}

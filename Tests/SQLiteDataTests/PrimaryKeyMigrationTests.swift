@@ -84,32 +84,32 @@ struct PrimaryKeyMigrationTests {
 
     assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
       #"""
-      ┌────────────────────────────────────────────────────────────────────────────┐
-      │ SQLiteSchema(                                                              │
-      │   type: .table,                                                            │
-      │   name: "children",                                                        │
-      │   tableName: "children",                                                   │
-      │   sql: """                                                                 │
-      │   CREATE TABLE "children" (                                                │
-      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-      │     "title" TEXT NOT NULL,                                                 │
-      │     "parentID" TEXT NOT NULL REFERENCES "parents"("id") ON DELETE CASCADE  │
-      │   ) STRICT                                                                 │
-      │   """                                                                      │
-      │ )                                                                          │
-      ├────────────────────────────────────────────────────────────────────────────┤
-      │ SQLiteSchema(                                                              │
-      │   type: .table,                                                            │
-      │   name: "parents",                                                         │
-      │   tableName: "parents",                                                    │
-      │   sql: """                                                                 │
-      │   CREATE TABLE "parents" (                                                 │
-      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-      │     "title" TEXT NOT NULL DEFAULT 'Blob''s world'                          │
-      │   ) STRICT                                                                 │
-      │   """                                                                      │
-      │ )                                                                          │
-      └────────────────────────────────────────────────────────────────────────────┘
+      ┌─────────────────────────────────────────────────────────────────────────────────┐
+      │ SQLiteSchema(                                                                   │
+      │   type: .table,                                                                 │
+      │   name: "children",                                                             │
+      │   tableName: "children",                                                        │
+      │   sql: """                                                                      │
+      │   CREATE TABLE "children" (                                                     │
+      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()),      │
+      │     "title" TEXT NOT NULL,                                                      │
+      │     "parentID" TEXT NOT NULL REFERENCES "parents"("id") ON DELETE CASCADE       │
+      │   ) STRICT                                                                      │
+      │   """                                                                           │
+      │ )                                                                               │
+      ├─────────────────────────────────────────────────────────────────────────────────┤
+      │ SQLiteSchema(                                                                   │
+      │   type: .table,                                                                 │
+      │   name: "parents",                                                              │
+      │   tableName: "parents",                                                         │
+      │   sql: """                                                                      │
+      │   CREATE TABLE "parents" (  -- This comment's to exercise the parser a bit more │
+      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()),      │
+      │     "title" TEXT NOT NULL DEFAULT 'Blob''s world'                               │
+      │   ) STRICT                                                                      │
+      │   """                                                                           │
+      │ )                                                                               │
+      └─────────────────────────────────────────────────────────────────────────────────┘
       """#
     }
     assertQuery(NewParent.all, database: database) {
