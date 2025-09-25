@@ -6,8 +6,16 @@ extension Database {
     _ tables: repeat (each T).Type,
     uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
   ) throws where repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible {
+    var migratedTableNames: [String] = []
     for table in repeat each tables {
-      try table.migratePrimaryKeyToUUID(db: self, uuidFunction: uuidFunction)
+      migratedTableNames.append(table.tableName)
+    }
+    for table in repeat each tables {
+      try table.migratePrimaryKeyToUUID(
+        db: self,
+        uuidFunction: uuidFunction,
+        migratedTableNames: migratedTableNames
+      )
     }
   }
 }
@@ -19,7 +27,8 @@ private struct MigrationError: Error {
 extension PrimaryKeyedTable {
   fileprivate static func migratePrimaryKeyToUUID(
     db: Database,
-    uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
+    uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil,
+    migratedTableNames: [String]
   ) throws {
     let schema =
       try SQLiteSchema
@@ -45,25 +54,24 @@ extension PrimaryKeyedTable {
     defer {
       // TODO: restore indices, triggers and views
     }
+    guard foreignKeys.allSatisfy({ migratedTableNames.contains($0.table) })
+    else {
+      throw MigrationError()
+    }
 
     let newTableName = "new_\(tableName)"
     let uuidFunction = uuidFunction?.name ?? "uuid"
-    // TODO: Validate foreign key tables are accounted for in migration
     let newSchema = try schema.rewriteSchema(
       primaryKey: primaryKeys.first?.name,
       foreignKeys: foreignKeys.map(\.from),
       uuidFunction: uuidFunction
     )
-    // TODO: throw error if no primary key rewritten
-    // TODO: throw error if not all FK's handled
 
     let convertedColumns = tableInfo.map { tableInfo -> QueryFragment in
-      // TODO: case insensitive compare?
       guard tableInfo.name != primaryKey.name
       else {
         return "'00000000-0000-0000-0000-' || printf('%012x', \(quote: tableInfo.name))"
       }
-      // TODO: case insensitive compare?
       guard !foreignKeys.contains(where: { $0.from == tableInfo.name })
       else {
         return "'00000000-0000-0000-0000-' || printf('%012x', \(quote: tableInfo.name))"
