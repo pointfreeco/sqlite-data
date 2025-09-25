@@ -692,6 +692,7 @@ import Testing
 
     try migrate(tables: User.self)
 
+    // TODO: the column should be "identifier" not "id"
     assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
       #"""
       ┌────────────────────────────────────────────────────────────────────────────┐
