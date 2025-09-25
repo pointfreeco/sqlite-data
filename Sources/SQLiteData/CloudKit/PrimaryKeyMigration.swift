@@ -44,7 +44,7 @@ extension PrimaryKeyedTable {
       // TODO: restore indices, triggers and views
     }
 
-    var parts: [TablePart] = []
+    var tableDefinition: [TableDefinitionFragment] = []
     var parenDepth = 0
     var currentScope: Scope?
     var startIndex = schema.startIndex
@@ -85,19 +85,19 @@ extension PrimaryKeyedTable {
       case (nil, "("):
         defer { parenDepth += 1 }
         if parenDepth == 0 {
-          parts.append(.preamble(String(schema[startIndex...index])))
+          tableDefinition.append(.preamble(String(schema[startIndex...index])))
           startIndex = schema.index(after: index)
         }
       case (nil, ")"):
         defer { parenDepth -= 1 }
         if parenDepth == 1 {
           // TODO: also handle if its a constraint
-          parts.append(.columnDefinition(String(schema[startIndex..<index])))
-          parts.append(.tableOptions(String(schema[index...])))
+          tableDefinition.append(.columnDefinition(String(schema[startIndex..<index])))
+          tableDefinition.append(.tableOptions(String(schema[index...])))
         }
       case (nil, ","):
         // TODO: also handle if its a constraint
-        parts.append(.columnDefinition(String(schema[startIndex...index])))
+        tableDefinition.append(.columnDefinition(String(schema[startIndex...index])))
         startIndex = schema.index(after: index)
         continue
       default:
@@ -107,12 +107,12 @@ extension PrimaryKeyedTable {
 
     let newTableName = "new_\(tableName)"
     let uuidFunction = uuidFunction?.name.quoted() ?? "uuid"
-    let newParts = parts.map { part in
+    let newTableDefinition = tableDefinition.map { part in
       switch part {
       case .preamble(var text):
         text.replace(" \(tableName) ", with: " \(newTableName) ")
         text.replace("\"\(tableName)\"", with: "\"\(newTableName)\"")
-        return TablePart.preamble(text)
+        return TableDefinitionFragment.preamble(text)
       case .columnDefinition(let text):
         let columnName = columnName(definition: text)
         let leadingTrivia = text.prefix(while: \.isWhitespace)
@@ -173,7 +173,7 @@ extension PrimaryKeyedTable {
       return QueryFragment(quote: tableInfo.name)
     }
 
-    let newSchema = newParts.map(\.description).joined()
+    let newSchema = newTableDefinition.map(\.description).joined()
     try SQLQueryExpression(QueryFragment(stringLiteral: newSchema)).execute(db)
     try #sql(
       """
@@ -206,21 +206,18 @@ private func columnName(definition: String) -> String {
   return String(substring.prefix(while: { $0 != " " && $0 != "\"" }))
 }
 
-private enum TablePart: CustomStringConvertible {
+private enum TableDefinitionFragment: CustomStringConvertible {
   case preamble(String)
   case columnDefinition(String)
   case tableConstraint(String)
   case tableOptions(String)
   var description: String {
     switch self {
-    case .preamble(let s):
-      return s
-    case .columnDefinition(let s):
-      return s
-    case .tableConstraint(let s):
-      return s
-    case .tableOptions(let s):
-      return s
+    case .preamble(let description),
+      .columnDefinition(let description),
+      .tableConstraint(let description),
+      .tableOptions(let description):
+      return description
     }
   }
 }
