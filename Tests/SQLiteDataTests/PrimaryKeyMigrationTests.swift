@@ -7,7 +7,7 @@ import SnapshotTesting
 import SnapshotTestingCustomDump
 import Testing
 
-@Suite(.snapshots(record: .failed)) struct PrimaryKeyMigrationTests {
+@MainActor @Suite(.snapshots(record: .failed)) struct PrimaryKeyMigrationTests {
   @Table struct Parent: Identifiable {
     let id: UUID
     var title = ""
@@ -77,7 +77,7 @@ import Testing
 
     try migrate()
 
-    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+    assertQuery(SQLiteSchema.default, database: database) {
       #"""
       ┌────────────────────────────────────────────────────────────────────────────┐
       │ SQLiteSchema(                                                              │
@@ -209,7 +209,7 @@ import Testing
 
     try migrate()
 
-    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+    assertQuery(SQLiteSchema.default, database: database) {
       #"""
       ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
       │ SQLiteSchema(                                                                                  │
@@ -346,7 +346,7 @@ import Testing
 
     try migrate()
 
-    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+    assertQuery(SQLiteSchema.default, database: database) {
       #"""
       ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
       │ SQLiteSchema(                                                                                  │
@@ -490,7 +490,7 @@ import Testing
 
     try migrate()
 
-    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+    assertQuery(SQLiteSchema.default, database: database) {
       #"""
       ┌───────────────────────────────────────────────────────────────────────────────────────┐
       │ SQLiteSchema(                                                                         │
@@ -620,7 +620,7 @@ import Testing
       MigrationError()
       """
     }
-    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+    assertQuery(SQLiteSchema.default, database: database) {
       #"""
       ┌────────────────────────────────────────┐
       │ SQLiteSchema(                          │
@@ -693,7 +693,7 @@ import Testing
     try migrate(tables: User.self)
 
     // TODO: the column should be "identifier" not "id"
-    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+    assertQuery(SQLiteSchema.default, database: database) {
       #"""
       ┌────────────────────────────────────────────────────────────────────────────┐
       │ SQLiteSchema(                                                              │
@@ -747,7 +747,7 @@ import Testing
 
     try migrate(tables: Parent.self)
 
-    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+    assertQuery(SQLiteSchema.default, database: database) {
       #"""
       ┌────────────────────────────────────────────────────────────────────────────┐
       │ SQLiteSchema(                                                              │
@@ -819,21 +819,9 @@ import Testing
 
     try migrate()
 
-    assertQuery(SQLiteSchema.where { !$0.name.hasPrefix("sqlite_") }, database: database) {
+    assertQuery(SQLiteSchema.default, database: database) {
       #"""
       ┌────────────────────────────────────────────────────────────────────────────┐
-      │ SQLiteSchema(                                                              │
-      │   type: .table,                                                            │
-      │   name: "parents",                                                         │
-      │   tableName: "parents",                                                    │
-      │   sql: """                                                                 │
-      │   CREATE TABLE "parents" (                                                 │
-      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-      │     title text not null                                                    │
-      │   ) strict                                                                 │
-      │   """                                                                      │
-      │ )                                                                          │
-      ├────────────────────────────────────────────────────────────────────────────┤
       │ SQLiteSchema(                                                              │
       │   type: .table,                                                            │
       │   name: "children",                                                        │
@@ -843,6 +831,18 @@ import Testing
       │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
       │     title text not null,                                                   │
       │     parentID TEXT not null references parents(id) on delete cascade        │
+      │   ) strict                                                                 │
+      │   """                                                                      │
+      │ )                                                                          │
+      ├────────────────────────────────────────────────────────────────────────────┤
+      │ SQLiteSchema(                                                              │
+      │   type: .table,                                                            │
+      │   name: "parents",                                                         │
+      │   tableName: "parents",                                                    │
+      │   sql: """                                                                 │
+      │   CREATE TABLE "parents" (                                                 │
+      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
+      │     title text not null                                                    │
       │   ) strict                                                                 │
       │   """                                                                      │
       │ )                                                                          │
@@ -973,3 +973,9 @@ import Testing
 
 @DatabaseFunction private func uuid() -> UUID { UUID() }
 @DatabaseFunction private func customUUID() -> UUID { UUID() }
+
+extension SQLiteSchema {
+  static let `default` = Self
+    .where { !$0.name.hasPrefix("sqlite_") }
+    .order(by: \.name)
+}
