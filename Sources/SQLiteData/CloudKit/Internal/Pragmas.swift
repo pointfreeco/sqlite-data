@@ -7,21 +7,27 @@
     @Column("seq") let sequence: Int
     let name: String
     let file: String
-}
+  }
 
-@Table
-struct PragmaForeignKeyCheck {
-  static var tableAlias: String? { "foreignKeyChecks" }
-  static var tableFragment: QueryFragment { "pragma_foreign_key_check()" }
+  @Table
+  struct PragmaForeignKeyCheck {
+    static var tableAlias: String? { "foreignKeyChecks" }
+    static var tableFragment: QueryFragment { "pragma_foreign_key_check()" }
 
-  let table: String
-  let rowid: Int
-  let parent: String
-  @Column("fkid")
-  let index: Int
-}
+    let table: String
+    let rowid: Int
+    let parent: String
+    @Column("fkid")
+    let index: Int
+  }
 
-@Table
+  @Table
+  package struct PragmaForeignKeyList<Base: Table> {
+    package static var tableAlias: String? { "\(Base.tableName)ForeignKeys" }
+    package static var tableFragment: QueryFragment {
+      "pragma_foreign_key_list(\(quote: Base.tableName, delimiter: .text))"
+    }
+
     package let id: Int
     @Column("seq") package let sequence: Int
     package let table: String
