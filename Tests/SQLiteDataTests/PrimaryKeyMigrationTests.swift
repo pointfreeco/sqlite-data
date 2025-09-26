@@ -168,13 +168,19 @@ struct PrimaryKeyMigrationTests {
       └────────────────────────────────────────────────────────┘
       """
     }
-    // NB: Cannot select 'id' since it will be random UUID.
-    assertQuery(Tag.select(\.title), database: database) {
+    assertQuery(Tag.all, database: database) {
       """
-      ┌────────────┐
-      │ "personal" │
-      │ "business" │
-      └────────────┘
+      ┌───────────────────────────────────────────────────┐
+      │ PrimaryKeyMigrationTests.Tag(                     │
+      │   id: UUID(00000000-0000-0000-0000-000000000001), │
+      │   title: "personal"                               │
+      │ )                                                 │
+      ├───────────────────────────────────────────────────┤
+      │ PrimaryKeyMigrationTests.Tag(                     │
+      │   id: UUID(00000000-0000-0000-0000-000000000002), │
+      │   title: "business"                               │
+      │ )                                                 │
+      └───────────────────────────────────────────────────┘
       """
     }
   }
@@ -949,14 +955,19 @@ struct PrimaryKeyMigrationTests {
       └────────────────────────────────────────────────────────┘
       """
     }
-
-    // NB: Cannot select 'id' since it will be random UUID.
-    assertQuery(Tag.select(\.title), database: database) {
+    assertQuery(Tag.all, database: database) {
       """
-      ┌────────────┐
-      │ "personal" │
-      │ "business" │
-      └────────────┘
+      ┌───────────────────────────────────────────────────┐
+      │ PrimaryKeyMigrationTests.Tag(                     │
+      │   id: UUID(00000000-0000-0000-0000-000000000001), │
+      │   title: "personal"                               │
+      │ )                                                 │
+      ├───────────────────────────────────────────────────┤
+      │ PrimaryKeyMigrationTests.Tag(                     │
+      │   id: UUID(00000000-0000-0000-0000-000000000002), │
+      │   title: "business"                               │
+      │ )                                                 │
+      └───────────────────────────────────────────────────┘
       """
     }
   }
