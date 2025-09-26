@@ -8,11 +8,6 @@
     url: URL
   ) throws -> any DatabaseWriter {
     var configuration = Configuration()
-    configuration.prepareDatabase { [logger] db in
-      db.trace {
-        logger.trace("\($0.expandedDescription)")
-      }
-    }
     logger.debug(
       """
       Metadatabase connection:

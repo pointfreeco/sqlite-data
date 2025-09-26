@@ -42,7 +42,7 @@ The steps to set up your SQLiteData project for CloudKit synchronization are the
 
   * Follow the [Configuring iCloud services] guide for enabling iCloud entitlements in your project.
   * Follow the [Configuring background execution modes] guide for adding the Background Modes
-    capability to your project.
+    capability to your project and turning on "Remote notifications".
   * If you want to enable sharing of records with other iCloud users, be sure to add a
     `CKSharingSupported` key to your Info.plist with a value of `true`. This is subtly documented
     in [Apple's documentation for sharing].
@@ -716,10 +716,6 @@ migrator.registerMigration("Convert 'remindersLists' table primary key to UUID")
   // IDs to UUIDs
   try #sql("""
     INSERT INTO "new_remindersLists"
-    (
-      "id",
-      -- all other columns from 'remindersLists' table
-    )
     SELECT
       -- This converts integers to UUIDs, e.g. 1 -> 00000000-0000-0000-0000-000000000001
       '00000000-0000-0000-0000-' || printf('%012x', "id"),
@@ -763,11 +759,6 @@ migrator.registerMigration("Convert 'reminders' table primary key to UUID") { db
   // IDs to UUIDs
   try #sql("""
     INSERT INTO "new_reminders"
-    (
-      "id",
-      "remindersListID",
-      -- all other columns from 'reminders' table
-    )
     SELECT
       -- This converts integers to UUIDs, e.g. 1 -> 00000000-0000-0000-0000-000000000001
       '00000000-0000-0000-0000-' || printf('%012x', "id"),
