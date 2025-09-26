@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 @available(iOS 17, macOS 14, tvOS 14, watchOS 10, *)
@@ -14,6 +15,9 @@ extension SyncEngine {
     tables: repeat (each T).Type,
     uuid uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
   ) throws where repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible {
+    db.add(function: $uuid)
+    defer { db.remove(function: $uuid) }
+    
     var migratedTableNames: [String] = []
     for table in repeat each tables {
       migratedTableNames.append(table.tableName)
@@ -92,13 +96,16 @@ extension PrimaryKeyedTable {
     }
     convertedColumns.append(
       contentsOf: tableInfo.map { tableInfo -> QueryFragment in
-        guard tableInfo.name != primaryKey.name
+        guard
+          tableInfo.name != primaryKey.name,
+          !foreignKeys.contains(where: { $0.from == tableInfo.name })
         else {
-          return "'00000000-0000-0000-0000-' || printf('%012x', \(quote: tableInfo.name))"
-        }
-        guard !foreignKeys.contains(where: { $0.from == tableInfo.name })
-        else {
-          return "'00000000-0000-0000-0000-' || printf('%012x', \(quote: tableInfo.name))"
+          return """
+          sqlitedata_icloud_uuidFromIDAndTable(\
+          \(quote: tableInfo.name), \
+          \(quote: tableName, delimiter: .text)\
+          )
+          """
         }
         return QueryFragment(quote: tableInfo.name)
       }
@@ -400,5 +407,17 @@ extension PragmaTableInfo {
 }
 
 private let intTypes: Set<String> = [
-  "int", "integer", "bigint"
+  "int", "integer", "bigint",
 ]
+
+@DatabaseFunction("sqlitedata_icloud_uuidFromIDAndTable")
+private func uuid(id: Int, table: String) -> UUID {
+  Insecure.MD5.hash(data: Data("\(table):\(id)".utf8)).withUnsafeBytes { ptr in
+    UUID(
+      uuid: (
+        ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7], ptr[8],
+        ptr[9], ptr[10], ptr[11], ptr[12], ptr[13], ptr[14], ptr[15]
+      )
+    )
+  }
+}
