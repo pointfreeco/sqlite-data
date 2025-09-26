@@ -192,7 +192,6 @@ extension SyncEngine {
 }
 
 extension MockSyncEngine {
-
   package func assertFetchChangesScopes(
     _ scopes: [CKSyncEngine.FetchChangesOptions.Scope],
     fileID: StaticString = #fileID,
