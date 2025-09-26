@@ -41,7 +41,7 @@ The steps to set up your SQLiteData project for CloudKit synchronization are the
 [same for setting up][setup-cloudkit-apple] any other kind of project for CloudKit:
 
   * Follow the [Configuring iCloud services] guide for enabling iCloud entitlements in your project.
-  * Follow the [Configuring background execution modes] guide for adding the Background Modes
+  * Follow the [Configuring background execution modes] guide for adding the "Background Modes"
     capability to your project and turning on "Remote notifications".
   * If you want to enable sharing of records with other iCloud users, be sure to add a
     `CKSharingSupported` key to your Info.plist with a value of `true`. This is subtly documented
