@@ -7,12 +7,6 @@
     logger: Logger,
     url: URL
   ) throws -> any DatabaseWriter {
-    var configuration = Configuration()
-    configuration.prepareDatabase { [logger] db in
-      db.trace {
-        logger.trace("\($0.expandedDescription)")
-      }
-    }
     logger.debug(
       """
       Metadatabase connection:
@@ -33,15 +27,9 @@
 
     let metadatabase: any DatabaseWriter =
       if url.isInMemory {
-        try DatabaseQueue(
-          path: url.absoluteString,
-          configuration: configuration
-        )
+        try DatabaseQueue(path: url.absoluteString)
       } else {
-        try DatabasePool(
-          path: url.path(percentEncoded: false),
-          configuration: configuration
-        )
+        try DatabasePool(path: url.path(percentEncoded: false))
       }
     try migrate(metadatabase: metadatabase)
     return metadatabase
