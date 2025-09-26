@@ -4,18 +4,56 @@
 
   @available(iOS 17, macOS 14, tvOS 14, watchOS 10, *)
   extension SyncEngine {
-    /// Migrates integer primary-keyed tables and join tables to CloudKit-compatible, UUID primary
-    /// keys.
+    /// Migrates integer primary-keyed tables and tables without primary keys to
+    /// CloudKit-compatible, UUID primary keys.
+    ///
+    /// To synchronize a table to CloudKit it must have a primary key, and that primary key must
+    /// be a globally unique identifier, such as a UUID. This method is a general purpose tools
+    /// that analyzes a set of tables to try to automatically perform that migration for you.
+    ///
+    /// It performs the following steps:
+    ///
+    ///   * Computes a random salt to use for backfilling existing integer primary keys with UUIDs.
+    ///   * For each table passed to this method:
+    ///     * Creates a new table with essentially the same schema, but the following changes:
+    ///       * A new temporary name is given to the table.
+    ///       * If an integer primary key exists, it is changed to a "TEXT" column with a
+    ///         "NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT" constraint, and a default of
+    ///         "uuid()" if no `uuid` argument is given, otherwise the argument is used.
+    ///       * If no primary key exists, one is added with the same constraints as above.
+    ///       * All integer foreign keys are changed to "TEXT" columns with no other changes.
+    ///     * All data from the existing table is copied over into the new table, but all integer
+    ///       IDs (both primary and foreign keys) are transformed into UUIDs by MD5 hashing the
+    ///       integer, the table name, and the salt mentioned above, and turning that hash into a
+    ///       UUID.
+    ///     * The existing table is dropped.
+    ///     * Thew new table is renamed to have the same name as the table just dropped.
+    ///   * Any indexes and stored triggers that were removed from dropping tables in the steps
+    ///     above are recreated.
+    ///   * Executes a "PRAGMA foreign_key_check;" query to make sure that the integerity of the
+    ///     data is preserved.
+    ///
+    /// If all of those steps are performed without throwing an error, then your schema and data
+    /// should have been succesfully migrated to UUIDs. If an error is thrown for any reason,
+    /// then it means the tool was not able to safely migrate your data and so you will need to
+    /// perform the migration [manually](<doc:ManuallyMigratingPrimaryKeys>).
     ///
     /// - Parameters:
     ///   - db: A database connection.
     ///   - tables: Tables to migrate.
-    ///   - uuidFunction: A UUID function. If `nil`, SQLite's `uuid` function will be used.
+    ///   - uuidFunction: A UUID function to use for the default value of primary keys in your
+    ///                   tables' schemas. If `nil`, SQLite's `uuid` function will be used.
     public static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
       _ db: Database,
       tables: repeat (each T).Type,
       uuid uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
     ) throws where repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible {
+      let salt =
+        (try uuidFunction.flatMap { uuid -> UUID? in
+          try #sql("SELECT \(quote: uuid.name)()", as: UUID.self).fetchOne(db)
+        }
+        ?? UUID()).uuidString
+
       db.add(function: $backfillUUID)
       defer { db.remove(function: $backfillUUID) }
 
@@ -37,11 +75,17 @@
         try table.migratePrimaryKeyToUUID(
           db: db,
           uuidFunction: uuidFunction,
-          migratedTableNames: migratedTableNames
+          migratedTableNames: migratedTableNames,
+          salt: salt
         )
       }
       for sql in indicesAndTriggersSQL {
         try #sql(QueryFragment(stringLiteral: sql)).execute(db)
+      }
+
+      let foreignKeyChecks = try PragmaForeignKeyCheck.all.fetchAll(db)
+      if !foreignKeyChecks.isEmpty {
+        throw ForeignKeyCheckError(checks: foreignKeyChecks)
       }
     }
   }
@@ -54,7 +98,8 @@
     fileprivate static func migratePrimaryKeyToUUID(
       db: Database,
       uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil,
-      migratedTableNames: [String]
+      migratedTableNames: [String],
+      salt: String
     ) throws {
       let schema =
         try SQLiteSchema
@@ -101,13 +146,22 @@
       convertedColumns.append(
         contentsOf: tableInfo.map { tableInfo -> QueryFragment in
           guard
-            tableInfo.name != primaryKey.name,
-            !foreignKeys.contains(where: { $0.from == tableInfo.name })
+            tableInfo.name != primaryKey.name
           else {
-            return $backfillUUID(id: #sql("\(quote: tableInfo.name)"), table: tableName)
+            return $backfillUUID(id: #sql("\(quote: tableInfo.name)"), table: tableName, salt: salt)
               .queryFragment
           }
-          return QueryFragment(quote: tableInfo.name)
+          guard
+            let foreignKey = foreignKeys.first(where: { $0.from == tableInfo.name })
+          else {
+            return QueryFragment(quote: tableInfo.name)
+          }
+          return $backfillUUID(
+            id: #sql("\(quote: foreignKey.from)"),
+            table: foreignKey.table,
+            salt: salt
+          )
+          .queryFragment
         }
       )
 
@@ -413,14 +467,26 @@
   ]
 
   @DatabaseFunction("sqlitedata_icloud_backfillUUID")
-  private func backfillUUID(id: Int, table: String) -> UUID {
-    Insecure.MD5.hash(data: Data("\(table):\(id)".utf8)).withUnsafeBytes { ptr in
+  private func backfillUUID(id: Int, table: String, salt: String) -> UUID {
+    return Insecure.MD5.hash(data: Data("\(table):\(id):\(salt)".utf8)).withUnsafeBytes { ptr in
       UUID(
         uuid: (
           ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7], ptr[8],
           ptr[9], ptr[10], ptr[11], ptr[12], ptr[13], ptr[14], ptr[15]
         )
       )
+    }
+  }
+
+  struct ForeignKeyCheckError: LocalizedError {
+    let checks: [PragmaForeignKeyCheck]
+    var errorDescription: String? {
+      checks.map {
+        """
+        \($0.table)'s reference to \($0.parent) has a violation.
+        """
+      }
+      .joined(separator: "\n")
     }
   }
 #endif

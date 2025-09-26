@@ -1,3 +1,4 @@
+import DependenciesTestSupport
 import Foundation
 import InlineSnapshotTesting
 import SQLite3
@@ -7,7 +8,12 @@ import SnapshotTesting
 import SnapshotTestingCustomDump
 import Testing
 
-@MainActor @Suite(.snapshots(record: .failed)) struct PrimaryKeyMigrationTests {
+@MainActor
+@Suite(
+  .dependency(\.uuid, .incrementing),
+  .snapshots(record: .failed)
+)
+struct PrimaryKeyMigrationTests {
   @Table struct Parent: Identifiable {
     let id: UUID
     var title = ""
@@ -123,17 +129,17 @@ import Testing
       """
       ┌───────────────────────────────────────────────────┐
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(944A2F77-625D-EF9C-CBEB-62EEAF647790), │
+      │   id: UUID(8C0D1699-3F8B-F58B-F1C1-CAA2C0EFD5C7), │
       │   title: "foo"                                    │
       │ )                                                 │
       ├───────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(1DD960ED-1F2D-BAC3-D743-ADF40B8BEC23), │
+      │   id: UUID(C9E96BBB-4AF3-0821-78DA-A7DFB992D9E6), │
       │   title: "bar"                                    │
       │ )                                                 │
       ├───────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(098102CD-849C-B3F2-91D8-4F68CC6133E5), │
+      │   id: UUID(B0A18942-23C0-1C82-0C94-71836ACD1BB6), │
       │   title: "baz"                                    │
       │ )                                                 │
       └───────────────────────────────────────────────────┘
@@ -143,21 +149,21 @@ import Testing
       """
       ┌────────────────────────────────────────────────────────┐
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(9E8A0A7A-F37F-6DDE-DECE-6278ED91AC0D),      │
+      │   id: UUID(D66C67A9-39CD-8786-75A9-1C47F5C0E47F),      │
       │   title: "foo",                                        │
-      │   parentID: UUID(9E8A0A7A-F37F-6DDE-DECE-6278ED91AC0D) │
+      │   parentID: UUID(8C0D1699-3F8B-F58B-F1C1-CAA2C0EFD5C7) │
       │ )                                                      │
       ├────────────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(CC4576C8-63DA-0AA0-CB9C-D4BAFDDCFD36),      │
+      │   id: UUID(98219B0B-627E-B12B-8E8F-08ED4A7959BF),      │
       │   title: "bar",                                        │
-      │   parentID: UUID(CC4576C8-63DA-0AA0-CB9C-D4BAFDDCFD36) │
+      │   parentID: UUID(C9E96BBB-4AF3-0821-78DA-A7DFB992D9E6) │
       │ )                                                      │
       ├────────────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(43520FD6-1F83-AE53-5F41-FE142931ED61),      │
+      │   id: UUID(7EAE27FE-B38D-3806-6AA4-6F953C251BEA),      │
       │   title: "baz",                                        │
-      │   parentID: UUID(43520FD6-1F83-AE53-5F41-FE142931ED61) │
+      │   parentID: UUID(B0A18942-23C0-1C82-0C94-71836ACD1BB6) │
       │ )                                                      │
       └────────────────────────────────────────────────────────┘
       """
@@ -197,12 +203,12 @@ import Testing
       """
       ┌──────┬───────────────────────────────────────────────────┐
       │ 1    │ PrimaryKeyMigrationTests.Parent(                  │
-      │      │   id: UUID(944A2F77-625D-EF9C-CBEB-62EEAF647790), │
+      │      │   id: UUID(8C0D1699-3F8B-F58B-F1C1-CAA2C0EFD5C7), │
       │      │   title: "blob"                                   │
       │      │ )                                                 │
       ├──────┼───────────────────────────────────────────────────┤
       │ 1000 │ PrimaryKeyMigrationTests.Parent(                  │
-      │      │   id: UUID(C30C2092-3E57-D662-B0E9-1E567AB6AE4B), │
+      │      │   id: UUID(EC5F9355-C981-E3C7-3246-09A01E0C4897), │
       │      │   title: "blob jr"                                │
       │      │ )                                                 │
       └──────┴───────────────────────────────────────────────────┘
@@ -293,17 +299,17 @@ import Testing
       """
       ┌───────────────────────────────────────────────────┐
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(944A2F77-625D-EF9C-CBEB-62EEAF647790), │
+      │   id: UUID(8C0D1699-3F8B-F58B-F1C1-CAA2C0EFD5C7), │
       │   title: "foo"                                    │
       │ )                                                 │
       ├───────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(1DD960ED-1F2D-BAC3-D743-ADF40B8BEC23), │
+      │   id: UUID(C9E96BBB-4AF3-0821-78DA-A7DFB992D9E6), │
       │   title: "bar"                                    │
       │ )                                                 │
       ├───────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(098102CD-849C-B3F2-91D8-4F68CC6133E5), │
+      │   id: UUID(B0A18942-23C0-1C82-0C94-71836ACD1BB6), │
       │   title: "baz"                                    │
       │ )                                                 │
       └───────────────────────────────────────────────────┘
@@ -313,21 +319,21 @@ import Testing
       """
       ┌────────────────────────────────────────────────────────┐
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(9E8A0A7A-F37F-6DDE-DECE-6278ED91AC0D),      │
+      │   id: UUID(D66C67A9-39CD-8786-75A9-1C47F5C0E47F),      │
       │   title: "foo",                                        │
-      │   parentID: UUID(9E8A0A7A-F37F-6DDE-DECE-6278ED91AC0D) │
+      │   parentID: UUID(8C0D1699-3F8B-F58B-F1C1-CAA2C0EFD5C7) │
       │ )                                                      │
       ├────────────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(CC4576C8-63DA-0AA0-CB9C-D4BAFDDCFD36),      │
+      │   id: UUID(98219B0B-627E-B12B-8E8F-08ED4A7959BF),      │
       │   title: "bar",                                        │
-      │   parentID: UUID(CC4576C8-63DA-0AA0-CB9C-D4BAFDDCFD36) │
+      │   parentID: UUID(C9E96BBB-4AF3-0821-78DA-A7DFB992D9E6) │
       │ )                                                      │
       ├────────────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(43520FD6-1F83-AE53-5F41-FE142931ED61),      │
+      │   id: UUID(7EAE27FE-B38D-3806-6AA4-6F953C251BEA),      │
       │   title: "baz",                                        │
-      │   parentID: UUID(43520FD6-1F83-AE53-5F41-FE142931ED61) │
+      │   parentID: UUID(B0A18942-23C0-1C82-0C94-71836ACD1BB6) │
       │ )                                                      │
       └────────────────────────────────────────────────────────┘
       """
@@ -433,17 +439,17 @@ import Testing
       """
       ┌───────────────────────────────────────────────────┐
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(944A2F77-625D-EF9C-CBEB-62EEAF647790), │
+      │   id: UUID(8C0D1699-3F8B-F58B-F1C1-CAA2C0EFD5C7), │
       │   title: "foo"                                    │
       │ )                                                 │
       ├───────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(1DD960ED-1F2D-BAC3-D743-ADF40B8BEC23), │
+      │   id: UUID(C9E96BBB-4AF3-0821-78DA-A7DFB992D9E6), │
       │   title: "bar"                                    │
       │ )                                                 │
       ├───────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(098102CD-849C-B3F2-91D8-4F68CC6133E5), │
+      │   id: UUID(B0A18942-23C0-1C82-0C94-71836ACD1BB6), │
       │   title: "baz"                                    │
       │ )                                                 │
       └───────────────────────────────────────────────────┘
@@ -453,21 +459,21 @@ import Testing
       """
       ┌────────────────────────────────────────────────────────┐
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(9E8A0A7A-F37F-6DDE-DECE-6278ED91AC0D),      │
+      │   id: UUID(D66C67A9-39CD-8786-75A9-1C47F5C0E47F),      │
       │   title: "foo",                                        │
-      │   parentID: UUID(9E8A0A7A-F37F-6DDE-DECE-6278ED91AC0D) │
+      │   parentID: UUID(8C0D1699-3F8B-F58B-F1C1-CAA2C0EFD5C7) │
       │ )                                                      │
       ├────────────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(CC4576C8-63DA-0AA0-CB9C-D4BAFDDCFD36),      │
+      │   id: UUID(98219B0B-627E-B12B-8E8F-08ED4A7959BF),      │
       │   title: "bar",                                        │
-      │   parentID: UUID(CC4576C8-63DA-0AA0-CB9C-D4BAFDDCFD36) │
+      │   parentID: UUID(C9E96BBB-4AF3-0821-78DA-A7DFB992D9E6) │
       │ )                                                      │
       ├────────────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(43520FD6-1F83-AE53-5F41-FE142931ED61),      │
+      │   id: UUID(7EAE27FE-B38D-3806-6AA4-6F953C251BEA),      │
       │   title: "baz",                                        │
-      │   parentID: UUID(43520FD6-1F83-AE53-5F41-FE142931ED61) │
+      │   parentID: UUID(B0A18942-23C0-1C82-0C94-71836ACD1BB6) │
       │ )                                                      │
       └────────────────────────────────────────────────────────┘
       """
@@ -584,17 +590,17 @@ import Testing
       """
       ┌───────────────────────────────────────────────────┐
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(944A2F77-625D-EF9C-CBEB-62EEAF647790), │
+      │   id: UUID(8C0D1699-3F8B-F58B-F1C1-CAA2C0EFD5C7), │
       │   title: "foo"                                    │
       │ )                                                 │
       ├───────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(1DD960ED-1F2D-BAC3-D743-ADF40B8BEC23), │
+      │   id: UUID(C9E96BBB-4AF3-0821-78DA-A7DFB992D9E6), │
       │   title: "bar"                                    │
       │ )                                                 │
       ├───────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(098102CD-849C-B3F2-91D8-4F68CC6133E5), │
+      │   id: UUID(B0A18942-23C0-1C82-0C94-71836ACD1BB6), │
       │   title: "baz"                                    │
       │ )                                                 │
       └───────────────────────────────────────────────────┘
@@ -604,21 +610,21 @@ import Testing
       """
       ┌────────────────────────────────────────────────────────┐
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(9E8A0A7A-F37F-6DDE-DECE-6278ED91AC0D),      │
+      │   id: UUID(D66C67A9-39CD-8786-75A9-1C47F5C0E47F),      │
       │   title: "foo",                                        │
-      │   parentID: UUID(9E8A0A7A-F37F-6DDE-DECE-6278ED91AC0D) │
+      │   parentID: UUID(8C0D1699-3F8B-F58B-F1C1-CAA2C0EFD5C7) │
       │ )                                                      │
       ├────────────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(CC4576C8-63DA-0AA0-CB9C-D4BAFDDCFD36),      │
+      │   id: UUID(98219B0B-627E-B12B-8E8F-08ED4A7959BF),      │
       │   title: "bar",                                        │
-      │   parentID: UUID(CC4576C8-63DA-0AA0-CB9C-D4BAFDDCFD36) │
+      │   parentID: UUID(C9E96BBB-4AF3-0821-78DA-A7DFB992D9E6) │
       │ )                                                      │
       ├────────────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(43520FD6-1F83-AE53-5F41-FE142931ED61),      │
+      │   id: UUID(7EAE27FE-B38D-3806-6AA4-6F953C251BEA),      │
       │   title: "baz",                                        │
-      │   parentID: UUID(43520FD6-1F83-AE53-5F41-FE142931ED61) │
+      │   parentID: UUID(B0A18942-23C0-1C82-0C94-71836ACD1BB6) │
       │ )                                                      │
       └────────────────────────────────────────────────────────┘
       """
@@ -904,17 +910,17 @@ import Testing
       """
       ┌───────────────────────────────────────────────────┐
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(944A2F77-625D-EF9C-CBEB-62EEAF647790), │
+      │   id: UUID(8C0D1699-3F8B-F58B-F1C1-CAA2C0EFD5C7), │
       │   title: "foo"                                    │
       │ )                                                 │
       ├───────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(1DD960ED-1F2D-BAC3-D743-ADF40B8BEC23), │
+      │   id: UUID(C9E96BBB-4AF3-0821-78DA-A7DFB992D9E6), │
       │   title: "bar"                                    │
       │ )                                                 │
       ├───────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Parent(                  │
-      │   id: UUID(098102CD-849C-B3F2-91D8-4F68CC6133E5), │
+      │   id: UUID(B0A18942-23C0-1C82-0C94-71836ACD1BB6), │
       │   title: "baz"                                    │
       │ )                                                 │
       └───────────────────────────────────────────────────┘
@@ -924,21 +930,21 @@ import Testing
       """
       ┌────────────────────────────────────────────────────────┐
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(9E8A0A7A-F37F-6DDE-DECE-6278ED91AC0D),      │
+      │   id: UUID(D66C67A9-39CD-8786-75A9-1C47F5C0E47F),      │
       │   title: "foo",                                        │
-      │   parentID: UUID(9E8A0A7A-F37F-6DDE-DECE-6278ED91AC0D) │
+      │   parentID: UUID(8C0D1699-3F8B-F58B-F1C1-CAA2C0EFD5C7) │
       │ )                                                      │
       ├────────────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(CC4576C8-63DA-0AA0-CB9C-D4BAFDDCFD36),      │
+      │   id: UUID(98219B0B-627E-B12B-8E8F-08ED4A7959BF),      │
       │   title: "bar",                                        │
-      │   parentID: UUID(CC4576C8-63DA-0AA0-CB9C-D4BAFDDCFD36) │
+      │   parentID: UUID(C9E96BBB-4AF3-0821-78DA-A7DFB992D9E6) │
       │ )                                                      │
       ├────────────────────────────────────────────────────────┤
       │ PrimaryKeyMigrationTests.Child(                        │
-      │   id: UUID(43520FD6-1F83-AE53-5F41-FE142931ED61),      │
+      │   id: UUID(7EAE27FE-B38D-3806-6AA4-6F953C251BEA),      │
       │   title: "baz",                                        │
-      │   parentID: UUID(43520FD6-1F83-AE53-5F41-FE142931ED61) │
+      │   parentID: UUID(B0A18942-23C0-1C82-0C94-71836ACD1BB6) │
       │ )                                                      │
       └────────────────────────────────────────────────────────┘
       """
@@ -995,7 +1001,6 @@ import Testing
   ) throws where repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible {
     try database.writeWithoutTransaction { db in
       try #sql("PRAGMA foreign_keys = OFF").execute(db)
-      defer { try? #sql("PRAGMA foreign_keys = ON").execute(db) }
       do {
         try db.inTransaction {
           try SyncEngine.migratePrimaryKeys(
@@ -1006,12 +1011,14 @@ import Testing
           return .commit
         }
       }
+      try #sql("PRAGMA foreign_keys = ON").execute(db)
+
     }
   }
 }
 
-@DatabaseFunction private func uuid() -> UUID { UUID() }
-@DatabaseFunction private func customUUID() -> UUID { UUID() }
+@DatabaseFunction private func uuid() -> UUID { DependencyValues._current.uuid() }
+@DatabaseFunction private func customUUID() -> UUID { DependencyValues._current.uuid() }
 
 extension SQLiteSchema {
   static let `default` = Self
