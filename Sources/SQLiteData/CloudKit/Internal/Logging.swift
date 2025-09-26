@@ -6,7 +6,7 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension Logger {
     func log(_ event: SyncEngine.Event, syncEngine: any SyncEngineProtocol) {
-      let prefix = "[\(syncEngine.database.databaseScope.label)] handleEvent:"
+      let prefix = "SQLiteData (\(syncEngine.database.databaseScope.label).db)"
       var actions: [String] = []
       var recordTypes: [String] = []
       var recordNames: [String] = []
@@ -240,10 +240,10 @@
         )
       case .didFetchChanges:
         debug("\(prefix) didFetchChanges")
-      case .willSendChanges(let context):
-        debug("\(prefix) willSendChanges: \(context.reason.description)")
-      case .didSendChanges(let context):
-        debug("\(prefix) didSendChanges: \(context.reason.description)")
+      case .willSendChanges:
+        debug("\(prefix) willSendChanges")
+      case .didSendChanges:
+        debug("\(prefix) didSendChanges")
       @unknown default:
         warning("\(prefix) ⚠️ unknown event: \(event.description)")
       }
@@ -253,7 +253,7 @@
   extension CKDatabase.Scope {
     var label: String {
       switch self {
-      case .public: "public"
+      case .public: "global"
       case .private: "private"
       case .shared: "shared"
       @unknown default: "unknown"

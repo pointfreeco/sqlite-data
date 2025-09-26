@@ -864,12 +864,14 @@
         let state = LockIsolated(NextRecordZoneChangeBatchLoggingState())
         defer {
           let state = state.withValue(\.self)
-          logger.debug(
-            """
-            [\(syncEngine.database.databaseScope.label)] nextRecordZoneChangeBatch: \(reason)
-              \(state.tabularDescription)
-            """
-          )
+          if let tabularDescription = state.tabularDescription {
+            logger.debug(
+              """
+              [\(syncEngine.database.databaseScope.label)] nextRecordZoneChangeBatch: \(reason)
+                \(tabularDescription)
+              """
+            )
+          }
         }
       #endif
 
@@ -2133,7 +2135,9 @@
       var events: [String] = []
       var recordTypes: [String] = []
       var recordNames: [String] = []
-      var tabularDescription: String {
+      var tabularDescription: String? {
+        guard !events.isEmpty
+        else { return nil }
         var dataFrame: DataFrame = [
           "event": events,
           "recordType": recordTypes,
