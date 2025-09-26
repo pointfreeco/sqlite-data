@@ -768,7 +768,9 @@
     }
 
     package func handleEvent(_ event: Event, syncEngine: any SyncEngineProtocol) async {
-      logger.log(event, syncEngine: syncEngine)
+      #if DEBUG
+        logger.log(event, syncEngine: syncEngine)
+      #endif
 
       switch event {
       case .accountChange(let changeType):
