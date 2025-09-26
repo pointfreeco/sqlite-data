@@ -16,8 +16,8 @@
       tables: repeat (each T).Type,
       uuid uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
     ) throws where repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible {
-      db.add(function: $uuid)
-      defer { db.remove(function: $uuid) }
+      db.add(function: $backfillUUID)
+      defer { db.remove(function: $backfillUUID) }
 
       var migratedTableNames: [String] = []
       for table in repeat each tables {
@@ -104,12 +104,8 @@
             tableInfo.name != primaryKey.name,
             !foreignKeys.contains(where: { $0.from == tableInfo.name })
           else {
-            return """
-              sqlitedata_icloud_uuidFromIDAndTable(\
-              \(quote: tableInfo.name), \
-              \(quote: tableName, delimiter: .text)\
-              )
-              """
+            return $backfillUUID(id: #sql("\(quote: tableInfo.name)"), table: tableName)
+              .queryFragment
           }
           return QueryFragment(quote: tableInfo.name)
         }
@@ -416,8 +412,8 @@
     "int", "integer", "bigint",
   ]
 
-  @DatabaseFunction("sqlitedata_icloud_uuidFromIDAndTable")
-  private func uuid(id: Int, table: String) -> UUID {
+  @DatabaseFunction("sqlitedata_icloud_backfillUUID")
+  private func backfillUUID(id: Int, table: String) -> UUID {
     Insecure.MD5.hash(data: Data("\(table):\(id)".utf8)).withUnsafeBytes { ptr in
       UUID(
         uuid: (
