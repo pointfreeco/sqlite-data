@@ -174,6 +174,43 @@ import Testing
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func rowid() throws {
+    try database.write { db in
+      try #sql(
+        """
+        CREATE TABLE "parents" (
+          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+          "title" TEXT NOT NULL
+        ) STRICT
+        """
+      )
+      .execute(db)
+      try #sql("""
+        INSERT INTO "parents" ("id", "title") VALUES (1, 'blob'), (1000, 'blob jr')
+        """)
+      .execute(db)
+    }
+
+    try migrate(tables: Parent.self)
+
+    assertQuery(Parent.select { ($0.rowid, $0) }, database: database) {
+      """
+      ┌──────┬───────────────────────────────────────────────────┐
+      │ 1    │ PrimaryKeyMigrationTests.Parent(                  │
+      │      │   id: UUID(944A2F77-625D-EF9C-CBEB-62EEAF647790), │
+      │      │   title: "blob"                                   │
+      │      │ )                                                 │
+      ├──────┼───────────────────────────────────────────────────┤
+      │ 1000 │ PrimaryKeyMigrationTests.Parent(                  │
+      │      │   id: UUID(C30C2092-3E57-D662-B0E9-1E567AB6AE4B), │
+      │      │   title: "blob jr"                                │
+      │      │ )                                                 │
+      └──────┴───────────────────────────────────────────────────┘
+      """
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func columnConstraints() throws {
     try database.write { db in
       try #sql(
