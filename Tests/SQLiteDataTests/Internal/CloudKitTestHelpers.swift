@@ -191,6 +191,7 @@ extension SyncEngine {
   }
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension MockSyncEngine {
   package func assertFetchChangesScopes(
     _ scopes: [CKSyncEngine.FetchChangesOptions.Scope],
@@ -231,9 +232,9 @@ extension MockSyncEngine {
       $0.removeAll()
     }
   }
-
 }
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension MockSyncEngineState {
   package func assertPendingRecordZoneChanges(
     _ changes: OrderedSet<CKSyncEngine.PendingRecordZoneChange>,
