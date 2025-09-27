@@ -90,7 +90,28 @@
     }
   }
 
-  private struct MigrationError: Error {
+  private struct MigrationError: LocalizedError {
+    let reason: Reason
+    enum Reason {
+      case tableNotFound(String)
+      case invalidPrimaryKey
+      case invalidForeignKey
+    }
+    var errorDescription: String? {
+      switch reason {
+      case .tableNotFound(let tableName):
+        return "Table not found. The table '\(tableName)' does not exist in the database."
+      case .invalidPrimaryKey:
+        return """
+          Invalid primary key. The table must have either no primary key or a single integer \ 
+          primary key to migrate.
+          """
+      case .invalidForeignKey:
+        return """
+          Invalid foreign key. All foreign keys must reference tables included in this migration.
+          """
+      }
+    }
   }
 
   @available(iOS 16, macOS 13, tvOS 13, watchOS 9, *)
@@ -110,21 +131,26 @@
 
       guard let schema
       else {
-        throw MigrationError()
+        throw MigrationError(reason: .tableNotFound(tableName))
       }
 
       let tableInfo = try PragmaTableInfo<Self>.all.fetchAll(db)
       let primaryKeys = tableInfo.filter(\.isPrimaryKey)
       guard
-        (primaryKeys.count == 1 && primaryKeys[0].isInt) || primaryKeys.isEmpty
+        (primaryKeys.count == 1 && primaryKeys[0].isInt)
+          || primaryKeys.isEmpty
       else {
-        throw MigrationError()
+        throw MigrationError(reason: .invalidPrimaryKey)
+      }
+      guard primaryKeys.count <= 1
+      else {
+        throw MigrationError(reason: .invalidPrimaryKey)
       }
 
       let foreignKeys = try PragmaForeignKeyList<Self>.all.fetchAll(db)
       guard foreignKeys.allSatisfy({ migratedTableNames.contains($0.table) })
       else {
-        throw MigrationError()
+        throw MigrationError(reason: .invalidForeignKey)
       }
 
       let newTableName = "new_\(tableName)"
@@ -145,23 +171,21 @@
       newColumns.append(contentsOf: tableInfo.map(\.name))
       convertedColumns.append(
         contentsOf: tableInfo.map { tableInfo -> QueryFragment in
-          guard
-            tableInfo.name != primaryKey.name
-          else {
+          if tableInfo.name == primaryKey.name, tableInfo.isInt {
             return $backfillUUID(id: #sql("\(quote: tableInfo.name)"), table: tableName, salt: salt)
               .queryFragment
-          }
-          guard
+          } else if tableInfo.isInt,
             let foreignKey = foreignKeys.first(where: { $0.from == tableInfo.name })
-          else {
+          {
+            return $backfillUUID(
+              id: #sql("\(quote: foreignKey.from)"),
+              table: foreignKey.table,
+              salt: salt
+            )
+            .queryFragment
+          } else {
             return QueryFragment(quote: tableInfo.name)
           }
-          return $backfillUUID(
-            id: #sql("\(quote: foreignKey.from)"),
-            table: foreignKey.table,
-            salt: salt
-          )
-          .queryFragment
         }
       )
 
@@ -334,6 +358,15 @@
       throw SyntaxError()
     }
 
+    mutating func parseIntegerAffinity() throws -> Bool {
+      for type in intTypes {
+        guard parseKeyword(type)
+        else { continue }
+        return true
+      }
+      return false
+    }
+
     mutating func parseTableConstraint() throws -> Bool {
       if parseKeyword("CONSTRAINT")
         || parseKeywords(["PRIMARY", "KEY"])
@@ -458,12 +491,19 @@
 
   extension PragmaTableInfo {
     var isInt: Bool {
-      intTypes.contains(type.lowercased())
+      intTypes.contains(type.uppercased())
+    }
+    var isText: Bool {
+      textTypes.contains(type.uppercased())
     }
   }
 
   private let intTypes: Set<String> = [
-    "int", "integer", "bigint",
+    "INT", "INTEGER", "BIGINT",
+  ]
+
+  private let textTypes: Set<String> = [
+    "TEXT", "VARCHAR",
   ]
 
   @DatabaseFunction("sqlitedata_icloud_backfillUUID")

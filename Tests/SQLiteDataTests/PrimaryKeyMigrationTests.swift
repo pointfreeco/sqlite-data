@@ -223,6 +223,48 @@ struct PrimaryKeyMigrationTests {
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func primaryKeyIsAlreadyUUID() throws {
+    try database.write { db in
+      try #sql(
+        """
+        CREATE TABLE "parents" (
+          "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+          "title" TEXT NOT NULL
+        ) STRICT
+        """
+      )
+      .execute(db)
+    }
+
+    let error = #expect(throws: (any Error).self) {
+      try migrate(tables: Parent.self)
+    }
+    assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
+      """
+      "Invalid primary key. The table must have either no primary key or a single integer primary key to migrate."
+      """
+    }
+
+    assertQuery(SQLiteSchema.default, database: database) {
+      #"""
+      ┌──────────────────────────────────────────────────────────────────────────┐
+      │ SQLiteSchema(                                                            │
+      │   type: .table,                                                          │
+      │   name: "parents",                                                       │
+      │   tableName: "parents",                                                  │
+      │   sql: """                                                               │
+      │   CREATE TABLE "parents" (                                               │
+      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()), │
+      │     "title" TEXT NOT NULL                                                │
+      │   ) STRICT                                                               │
+      │   """                                                                    │
+      │ )                                                                        │
+      └──────────────────────────────────────────────────────────────────────────┘
+      """#
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func columnConstraints() throws {
     try database.write { db in
       try #sql(
@@ -667,9 +709,9 @@ struct PrimaryKeyMigrationTests {
     let error = #expect(throws: (any Error).self) {
       try migrate(tables: PhoneNumber.self)
     }
-    assertInlineSnapshot(of: error, as: .customDump) {
+    assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
       """
-      MigrationError()
+      "Invalid primary key. The table must have either no primary key or a single integer primary key to migrate."
       """
     }
     assertQuery(SQLiteSchema.default, database: database) {
@@ -716,9 +758,9 @@ struct PrimaryKeyMigrationTests {
     let error = #expect(throws: (any Error).self) {
       try migrate(tables: Parent.self)
     }
-    assertInlineSnapshot(of: error, as: .customDump) {
+    assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
       """
-      MigrationError()
+      "Invalid primary key. The table must have either no primary key or a single integer primary key to migrate."
       """
     }
   }
