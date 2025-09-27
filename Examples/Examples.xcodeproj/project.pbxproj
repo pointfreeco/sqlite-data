@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C404E30F2E88A5F5000D23D2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = C404E30E2E88A5F5000D23D2 /* SQLiteData */; };
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
 		CA2BDE2A2E71C469000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE292E71C469000974D3 /* SQLiteData */; };
@@ -49,6 +50,7 @@
 
 /* Begin PBXFileReference section */
 		C4CD9A252E88A20900172F37 /* AppKitDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AppKitDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C4CD9BE72E88A57D00172F37 /* sqlite-data */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sqlite-data"; path = "/Users/rcarver/Code/OpenSource/sqlite-data"; sourceTree = "<absolute>"; };
 		CA2BDD9D2E71C30B000974D3 /* CloudKitDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudKitDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA2BDE272E71C42B000974D3 /* sqlite-data */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sqlite-data"; path = "/Users/brandon/projects/sqlite-data"; sourceTree = "<absolute>"; };
 		CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemindersTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -154,6 +156,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C404E30F2E88A5F5000D23D2 /* SQLiteData in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,6 +261,7 @@
 		CAF837022D4735C00047AEB5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				C4CD9BE72E88A57D00172F37 /* sqlite-data */,
 				CA2BDE272E71C42B000974D3 /* sqlite-data */,
 			);
 			name = Frameworks;
@@ -283,6 +287,7 @@
 			);
 			name = AppKitDemo;
 			packageProductDependencies = (
+				C404E30E2E88A5F5000D23D2 /* SQLiteData */,
 			);
 			productName = AppKitDemo;
 			productReference = C4CD9A252E88A20900172F37 /* AppKitDemo.app */;
@@ -1322,6 +1327,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		C404E30E2E88A5F5000D23D2 /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SQLiteData;
+		};
 		CA14DBC82DA884C400E36852 /* CasePaths */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;

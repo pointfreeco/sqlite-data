@@ -66,7 +66,7 @@ final class DemoWindowController: NSWindowController {
 
     super.init(window: window)
 
-    window.contentView = NSHostingView(rootView: Color.red)
+    window.contentViewController = RootViewController()
   }
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
