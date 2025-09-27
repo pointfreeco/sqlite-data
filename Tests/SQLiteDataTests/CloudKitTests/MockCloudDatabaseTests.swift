@@ -125,7 +125,9 @@
         let record = CKRecord(
           recordType: "Record",
           recordID: CKRecord.ID(
-            recordName: "Record", zoneID: CKRecordZone.ID(zoneName: "unknownZone"))
+            recordName: "Record",
+            zoneID: CKRecordZone.ID(zoneName: "unknownZone")
+          )
         )
 
         let (saveRecordResults, _) = try syncEngine.private.database.modifyRecords(
@@ -389,25 +391,35 @@
       @Test func saveShareWithoutRootRecord() async throws {
         let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
         let share = CKShare(rootRecord: record, shareID: CKRecord.ID(recordName: "share"))
-        try withKnownIssue {
-          _ = try syncEngine.modifyRecords(scope: .private, saving: [share])
-        } matching: { issue in
-          issue.description.hasSuffix(
-            """
-            An added share is being saved without its rootRecord being saved in the \
-            same operation.
-            """)
+        let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [share])
+        let error = #expect(throws: CKError.self) {
+          try saveResults.values.first?.get()
         }
+        #expect(error?.code == .invalidArguments)
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func saveShareAndRootThenSaveShareAlone() async throws {
         let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
         let share = CKShare(rootRecord: record, shareID: CKRecord.ID(recordName: "share"))
-        _ = try syncEngine.modifyRecords(scope: .private, saving: [share, record])
+        _ = try syncEngine.private.database.modifyRecords(saving: [share, record])
 
         let newShare = try syncEngine.private.database.record(for: CKRecord.ID(recordName: "share"))
-        _ = try syncEngine.modifyRecords(scope: .private, saving: [newShare])
+        let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [newShare])
+        _ = try saveResults.values.first?.get()
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func saveRecordThatWasPreviouslyDeleted() async throws {
+        let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
+        _ = try syncEngine.private.database.modifyRecords(saving: [record])
+        let freshRecord = try syncEngine.private.database.record(for: record.recordID)
+        _ = try syncEngine.private.database.modifyRecords(deleting: [record.recordID])
+        let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [freshRecord])
+        let error = #expect(throws: CKError.self) {
+          try saveResults.values.first?.get()
+        }
+        #expect(error?.code == .unknownItem)
       }
     }
   }
