@@ -144,13 +144,7 @@
       }
 
       guard let containerIdentifier else {
-        throw SchemaError(
-          reason: .noCloudKitContainer,
-          debugDescription: """
-            No default CloudKit container found. Please add a container identifier to your app's \
-            entitlements.
-            """
-        )
+        throw SchemaError.noCloudKitContainer
       }
 
       let container = CKContainer(identifier: containerIdentifier)
@@ -1868,13 +1862,7 @@
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
 
       guard let containerIdentifier else {
-        throw SyncEngine.SchemaError(
-          reason: .noCloudKitContainer,
-          debugDescription: """
-            No default CloudKit container found. Please add a container identifier to your app's \
-            entitlements.
-            """
-        )
+        throw SyncEngine.SchemaError.noCloudKitContainer
       }
 
       let databasePath = try PragmaDatabaseList.select(\.file).fetchOne(self)
@@ -1929,6 +1917,14 @@
       package var errorDescription: String? {
         "Could not synchronize data with iCloud."
       }
+
+      static let noCloudKitContainer = Self(
+        reason: .noCloudKitContainer,
+        debugDescription: """
+          No default CloudKit container found. Make sure to enable iCloud entitlements in your \
+          app's "Signing & Capabilities" and add a container identifier.
+          """
+      )
     }
 
     fileprivate func validateSchema() throws {
