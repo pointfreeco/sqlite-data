@@ -124,9 +124,9 @@ final class RecordMeetingModel: HashableObject {
     try? await clock.sleep(for: .seconds(0.4))
     await withErrorReporting {
       try await database.write { [now, syncUp, transcript] db in
-        try Meeting.insert(
+        try Meeting.insert {
           Meeting.Draft(date: now, syncUpID: syncUp.id, transcript: transcript)
-        )
+        }
         .execute(db)
       }
     }
