@@ -1613,6 +1613,9 @@
               parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
                 ? foreignKeysByTableName[T.tableName]?.first
                 : nil
+//              1759094585935125000
+//              1759094585935125000
+//              1759094585935125000
             )
           }
 
@@ -2001,6 +2004,7 @@
           .map { columnName in
             if let asset = record[columnName] as? CKAsset {
               let data = (try? asset.fileURL.map { try dataManager.wrappedValue.load($0) })
+              print(data)
               return data?.queryFragment ?? "NULL"
             } else {
               return record.encryptedValues[columnName]?.queryFragment ?? "NULL"

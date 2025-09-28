@@ -2,6 +2,7 @@
   import CloudKit
   import Foundation
 
+// TODO: Move this to SyncEngine so that we don't have to use `@Dependency`
   @DatabaseFunction("sqlitedata_icloud_currentTime")
   func currentTime() -> Int64 {
     @Dependency(\.currentTime.now) var now

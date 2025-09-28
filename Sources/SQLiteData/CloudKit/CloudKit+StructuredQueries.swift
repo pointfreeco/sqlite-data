@@ -147,6 +147,7 @@
   @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   extension URL {
     init(hash data: some DataProtocol) {
+      // TODO: pass this in explicitly?
       @Dependency(\.dataManager) var dataManager
       let hash = SHA256.hash(data: data).compactMap { String(format: "%02hhx", $0) }.joined()
       self = dataManager.temporaryDirectory.appendingPathComponent(hash)
@@ -185,6 +186,15 @@
       else {
         return false
       }
+
+//      @Dependency(\.dataManager) var dataManager
+//      print("existing asset", try? ((self[key] as! CKAsset).fileURL).map {
+//        try dataManager.load($0)
+//      })
+//      print("new asset", try? newValue.fileURL.map {
+//        try dataManager.load($0)
+//      })
+
       self[key] = newValue
       encryptedValues[at: key] = userModificationTime
       self.userModificationTime = userModificationTime
@@ -197,6 +207,7 @@
       forKey key: CKRecord.FieldKey,
       at userModificationTime: Int64
     ) -> Bool {
+      // TODO: pass this in explicitly?
       @Dependency(\.dataManager) var dataManager
 
       guard encryptedValues[at: key] <= userModificationTime
@@ -306,7 +317,10 @@
           var isRowValueModified: Bool {
             switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
             case .blob(let value):
-              return (other[key] as? CKAsset)?.fileURL != URL(hash: value)
+              let lhs = (other[key] as? CKAsset)?.fileURL
+              let rhs = URL(hash: value)
+              print(lhs, "!=", rhs)
+              return lhs != rhs
             case .bool(let value):
               return other.encryptedValues[key] != value
             case .double(let value):

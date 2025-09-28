@@ -139,21 +139,17 @@
         remindersListRecord.setValue("1", forKey: "id", at: now)
         remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
+        let fileURL = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        inMemoryDataManager.storage.withValue { storage in
+          storage[fileURL] == Data("image".utf8)
+        }
         let remindersListAssetRecord = CKRecord(
           recordType: RemindersListAsset.tableName,
           recordID: RemindersListAsset.recordID(for: 1)
         )
         remindersListAssetRecord.setValue("1", forKey: "id", at: now)
-        remindersListAssetRecord.setValue(
-          Array("image".utf8),
-          forKey: "coverImage",
-          at: now
-        )
-        remindersListAssetRecord.setValue(
-          "1",
-          forKey: "remindersListID",
-          at: now
-        )
+        remindersListAssetRecord.setAsset(CKAsset(fileURL: fileURL), forKey: "coverImage", at: now)
+        remindersListAssetRecord.setValue("1", forKey: "remindersListID", at: now)
         remindersListAssetRecord.parent = CKRecord.Reference(
           record: remindersListRecord,
           action: .none
