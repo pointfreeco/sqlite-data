@@ -2,7 +2,7 @@
   import Foundation
   import StructuredQueriesCore
 
-  @Selection
+  @Table
   package struct ForeignKey {
     let table: String
     let from: String

@@ -162,7 +162,7 @@ class RemindersDetailModel: HashableObject {
     case today
   }
 
-  @Selection
+  @Table
   struct Row: Identifiable {
     var id: Reminder.ID { reminder.id }
     let reminder: Reminder

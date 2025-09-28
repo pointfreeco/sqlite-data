@@ -129,7 +129,7 @@ class SearchRemindersModel {
     }
   }
 
-  @Selection
+  @Table
   struct Row: Identifiable {
     var id: Reminder.ID { reminder.id }
     let isPastDue: Bool

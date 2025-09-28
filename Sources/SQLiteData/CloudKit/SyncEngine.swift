@@ -1737,8 +1737,10 @@
               }
               return "\(quote: columnName) = \(data?.queryFragment ?? "NULL")"
             } else {
-              return
-                "\(quote: columnName) = \(record.encryptedValues[columnName]?.queryFragment ?? "NULL")"
+              return """
+                \(quote: columnName) = \
+                \(record.encryptedValues[columnName]?.queryFragment ?? "NULL")
+                """
             }
           }
           .joined(separator: ",")
@@ -1963,7 +1965,8 @@
             throw SyncEngine.SchemaError(
               reason: .invalidForeignKey(invalidForeignKey),
               debugDescription: """
-                Foreign key \(tableName.debugDescription).\(invalidForeignKey.from.debugDescription) \
+                Foreign key \
+                \(tableName.debugDescription).\(invalidForeignKey.from.debugDescription) \
                 references table \(invalidForeignKey.table.debugDescription) that is not \
                 synchronized. Update 'SyncEngine.init' to synchronize \
                 \(invalidForeignKey.table.debugDescription). 
@@ -1978,8 +1981,8 @@
             throw SyncEngine.SchemaError(
               reason: .invalidForeignKeyAction(foreignKey),
               debugDescription: """
-                Foreign key \(tableName.debugDescription).\(foreignKey.from.debugDescription) action \
-                not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'.
+                Foreign key \(tableName.debugDescription).\(foreignKey.from.debugDescription) \
+                action not supported. Must be 'CASCADE', 'SET DEFAULT' or 'SET NULL'.
                 """
             )
           }
