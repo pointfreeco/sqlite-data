@@ -49,8 +49,16 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine: TestDependencyKey {
-    public static var testValue: SyncEngine {
+    public static var previewValue: SyncEngine {
       try! SyncEngine(for: DatabaseQueue())
+    }
+
+    public static var testValue: SyncEngine {
+      try! SyncEngine(
+        for: DatabasePool(
+          path: URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite").path()
+        )
+      )
     }
   }
 #endif

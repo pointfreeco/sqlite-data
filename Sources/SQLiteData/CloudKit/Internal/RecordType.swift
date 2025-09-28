@@ -1,4 +1,3 @@
-import CustomDump
 
 @Table("sqlitedata_icloud_recordTypes")
 package struct RecordType: Hashable {
@@ -19,19 +18,5 @@ package struct RecordType: Hashable {
     hasher.combine(tableName)
     hasher.combine(schema)
     hasher.combine(tableInfo)
-  }
-}
-
-extension RecordType: CustomDumpReflectable {
-  package var customDumpMirror: Mirror {
-    Mirror(
-      self,
-      children: [
-        ("tableName", tableName as Any),
-        ("schema", schema),
-        ("tableInfo", tableInfo.sorted(by: { $0.name < $1.name })),
-      ],
-      displayStyle: .struct
-    )
   }
 }

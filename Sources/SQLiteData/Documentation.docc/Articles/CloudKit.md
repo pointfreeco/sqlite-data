@@ -18,6 +18,7 @@ to make sure you understand how to best prepare your app for cloud synchronizati
     - [Primary keys on every table](#Primary-keys-on-every-table)
     - [Foreign key relationships](#Foreign-key-relationships)
     - [Uniqueness constraints](#Uniqueness-constraints)
+    - [Avoid reserved CloudKit keywords](#Avoid-reserved-CloudKit-keywords)
   - [Backwards compatible migrations](#Backwards-compatible-migrations)
     - [Adding tables](#Adding-tables)
     - [Adding columns](#Adding-columns)
@@ -40,8 +41,8 @@ The steps to set up your SQLiteData project for CloudKit synchronization are the
 [same for setting up][setup-cloudkit-apple] any other kind of project for CloudKit:
 
   * Follow the [Configuring iCloud services] guide for enabling iCloud entitlements in your project.
-  * Follow the [Configuring background execution modes] guide for adding the Background Modes
-    capability to your project.
+  * Follow the [Configuring background execution modes] guide for adding the "Background Modes"
+    capability to your project and turning on "Remote notifications".
   * If you want to enable sharing of records with other iCloud users, be sure to add a
     `CKSharingSupported` key to your Info.plist with a value of `true`. This is subtly documented
     in [Apple's documentation for sharing].
@@ -282,6 +283,23 @@ struct RemindersListAsset {
 ```
 
 This will make it so that at least one asset can be associated with a reminders list.
+
+#### Avoid reserved CloudKit keywords
+
+In the process of sending data from your database to CloudKit, the library turns rows into 
+`CKRecord`s, which is loosely a `[String: Any]` dictionary. However, certain key names are used
+internally by CloudKit and are reserved for their use only. This means those keys cannot be used
+as field names in your Swift data types or SQLite tables.
+
+Here is an exhaustive list of those reserved fields:
+
+* `recordID`
+* `recordType`
+* `creationDate`
+* `creatorUserRecordID`
+* `modificationDate`
+* `lastModifiedUserRecordID`
+* `recordChangeTag`
 
 ## Backwards compatible migrations
 
@@ -698,10 +716,6 @@ migrator.registerMigration("Convert 'remindersLists' table primary key to UUID")
   // IDs to UUIDs
   try #sql("""
     INSERT INTO "new_remindersLists"
-    (
-      "id",
-      -- all other columns from 'remindersLists' table
-    )
     SELECT
       -- This converts integers to UUIDs, e.g. 1 -> 00000000-0000-0000-0000-000000000001
       '00000000-0000-0000-0000-' || printf('%012x', "id"),
@@ -745,11 +759,6 @@ migrator.registerMigration("Convert 'reminders' table primary key to UUID") { db
   // IDs to UUIDs
   try #sql("""
     INSERT INTO "new_reminders"
-    (
-      "id",
-      "remindersListID",
-      -- all other columns from 'reminders' table
-    )
     SELECT
       -- This converts integers to UUIDs, e.g. 1 -> 00000000-0000-0000-0000-000000000001
       '00000000-0000-0000-0000-' || printf('%012x', "id"),

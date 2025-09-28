@@ -1,13 +1,13 @@
 #if canImport(CloudKit)
   import CloudKit
   import ConcurrencyExtras
-  import CustomDump
   import Dependencies
   import OrderedCollections
   import OSLog
   import Observation
   import StructuredQueriesCore
   import SwiftData
+  import TabularData
 
   #if canImport(UIKit)
     import UIKit
@@ -105,7 +105,8 @@
       }
       let userDatabase = UserDatabase(database: database)
 
-      guard !isTesting
+      @Dependency(\.context) var context
+      guard context == .live
       else {
         let privateDatabase = MockCloudDatabase(databaseScope: .private)
         let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
@@ -143,13 +144,7 @@
       }
 
       guard let containerIdentifier else {
-        throw SchemaError(
-          reason: .noCloudKitContainer,
-          debugDescription: """
-            No default CloudKit container found. Please add a container identifier to your app's \
-            entitlements.
-            """
-        )
+        throw SchemaError.noCloudKitContainer
       }
 
       let container = CKContainer(identifier: containerIdentifier)
@@ -774,7 +769,9 @@
     }
 
     package func handleEvent(_ event: Event, syncEngine: any SyncEngineProtocol) async {
-      logger.log(event, syncEngine: syncEngine)
+      #if DEBUG
+        logger.log(event, syncEngine: syncEngine)
+      #endif
 
       switch event {
       case .accountChange(let changeType):
@@ -864,57 +861,21 @@
       }
 
       #if DEBUG
-        struct State {
-          var missingTables: [CKRecord.ID] = []
-          var missingRecords: [CKRecord.ID] = []
-          var sentRecords: [CKRecord.ID] = []
-        }
-        let state = LockIsolated(State())
+        let state = LockIsolated(NextRecordZoneChangeBatchLoggingState())
         defer {
           let state = state.withValue(\.self)
-          let missingTables = Dictionary(grouping: state.missingTables, by: \.zoneID.zoneName)
-            .reduce(into: [String]()) {
-              strings,
-              keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-            }
-            .joined(separator: ", ")
-          let missingRecords = Dictionary(grouping: state.missingRecords, by: \.zoneID.zoneName)
-            .reduce(into: [String]()) {
-              strings,
-              keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-            }
-            .joined(separator: ", ")
-          let sentRecords = Dictionary(grouping: state.sentRecords, by: \.zoneID.zoneName)
-            .reduce(into: [String]()) {
-              strings,
-              keyValue in strings += ["\(keyValue.key) (\(keyValue.value.count))"]
-            }
-            .joined(separator: ", ")
-          logger.debug(
-            """
-            [\(syncEngine.database.databaseScope.label)] nextRecordZoneChangeBatch: \(reason)
-              \(state.missingTables.isEmpty ? "⚪️ No missing tables" : "⚠️ Missing tables: \(missingTables)")
-              \(state.missingRecords.isEmpty ? "⚪️ No missing records" : "⚠️ Missing records: \(missingRecords)")
-              \(state.sentRecords.isEmpty ? "⚪️ No sent records" : "✅ Sent records: \(sentRecords)")
-            """
-          )
+          if let tabularDescription = state.tabularDescription {
+            logger.debug(
+              """
+              [\(syncEngine.database.databaseScope.label)] nextRecordZoneChangeBatch: \(reason)
+                \(tabularDescription)
+              """
+            )
+          }
         }
       #endif
 
       let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
-        var missingTable: CKRecord.ID?
-        var missingRecord: CKRecord.ID?
-        var sentRecord: CKRecord.ID?
-        #if DEBUG
-          defer {
-            state.withValue { [missingTable, missingRecord, sentRecord] in
-              if let missingTable { $0.missingTables.append(missingTable) }
-              if let missingRecord { $0.missingRecords.append(missingRecord) }
-              if let sentRecord { $0.sentRecords.append(sentRecord) }
-            }
-          }
-        #endif
-
         guard
           let (metadata, allFields) = await withErrorReporting(
             .sqliteDataCloudKitFailure,
@@ -932,6 +893,32 @@
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           return nil
         }
+
+        var missingTable: CKRecord.ID?
+        var missingRecord: CKRecord.ID?
+        var sentRecord: CKRecord.ID?
+        #if DEBUG
+          defer {
+            state.withValue { [missingTable, missingRecord, sentRecord] in
+              if let missingTable {
+                $0.events.append("⚠️ Missing table")
+                $0.recordTypes.append(metadata.recordType)
+                $0.recordNames.append(missingTable.recordName)
+              }
+              if let missingRecord {
+                $0.events.append("⚠️ Missing record")
+                $0.recordTypes.append(metadata.recordType)
+                $0.recordNames.append(missingRecord.recordName)
+              }
+              if let sentRecord {
+                $0.events.append("✅ Sent record")
+                $0.recordTypes.append(metadata.recordType)
+                $0.recordNames.append(sentRecord.recordName)
+              }
+            }
+          }
+        #endif
+
         guard let table = tablesByName[metadata.recordType]
         else {
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
@@ -1498,6 +1485,10 @@
           .alreadyShared, .managedAccountRestricted, .participantMayNeedVerification,
           .serverResponseLost, .assetNotAvailable, .accountTemporarilyUnavailable:
           continue
+        #if canImport(FoundationModels)
+          case .participantAlreadyInvited:
+            continue
+        #endif
         @unknown default:
           continue
         }
@@ -1885,13 +1876,7 @@
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
 
       guard let containerIdentifier else {
-        throw SyncEngine.SchemaError(
-          reason: .noCloudKitContainer,
-          debugDescription: """
-            No default CloudKit container found. Please add a container identifier to your app's \
-            entitlements.
-            """
-        )
+        throw SyncEngine.SchemaError.noCloudKitContainer
       }
 
       let databasePath = try PragmaDatabaseList.select(\.file).fetchOne(self)
@@ -1946,6 +1931,14 @@
       package var errorDescription: String? {
         "Could not synchronize data with iCloud."
       }
+
+      static let noCloudKitContainer = Self(
+        reason: .noCloudKitContainer,
+        debugDescription: """
+          No default CloudKit container found. Make sure to enable iCloud entitlements in your \
+          app's "Signing & Capabilities" and add a container identifier.
+          """
+      )
     }
 
     fileprivate func validateSchema() throws {
@@ -2150,4 +2143,39 @@
   func currentOwnerName() -> String? {
     _currentZoneID?.ownerName
   }
+
+  #if DEBUG
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    private struct NextRecordZoneChangeBatchLoggingState {
+      var events: [String] = []
+      var recordTypes: [String] = []
+      var recordNames: [String] = []
+      var tabularDescription: String? {
+        guard !events.isEmpty
+        else { return nil }
+        var dataFrame: DataFrame = [
+          "event": events,
+          "recordType": recordTypes,
+          "recordName": recordNames,
+        ]
+        dataFrame.sort(
+          on: ColumnID("event", String.self),
+          ColumnID("recordType", String.self),
+          ColumnID("recordName", String.self)
+        )
+        var formattingOptions = FormattingOptions(
+          maximumLineWidth: 120,
+          maximumCellWidth: 80,
+          maximumRowCount: 50,
+          includesColumnTypes: false
+        )
+        formattingOptions.includesRowAndColumnCounts = false
+        formattingOptions.includesRowIndices = false
+        return
+          dataFrame
+          .description(options: formattingOptions)
+          .replacing("\n", with: "\n  ")
+      }
+    }
+  #endif
 #endif
