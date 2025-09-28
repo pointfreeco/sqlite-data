@@ -1618,7 +1618,8 @@
 
           do {
             try $_currentZoneID.withValue(serverRecord.recordID.zoneID) {
-              try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
+              let q = upsert(T.self, record: serverRecord, columnNames: columnNames)
+              try #sql(q).execute(db)
             }
             try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
             try SyncMetadata

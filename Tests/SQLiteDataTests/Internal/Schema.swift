@@ -17,9 +17,10 @@ import SQLiteData
   var title = ""
 }
 @Table struct RemindersListAsset: Equatable, Identifiable {
-  let id: Int
-  var coverImage: Data?
+  @Column(primaryKey: true)
   var remindersListID: RemindersList.ID
+  var coverImage: Data?
+  var id: RemindersList.ID { remindersListID }
 }
 @Table struct RemindersListPrivate: Equatable, Identifiable {
   let id: Int
@@ -101,9 +102,9 @@ func database(
     try #sql(
       """
       CREATE TABLE "remindersListAssets" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "coverImage" BLOB NOT NULL,
-        "remindersListID" INTEGER NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+        "remindersListID" INTEGER NOT NULL PRIMARY KEY
+          REFERENCES "remindersLists"("id") ON DELETE CASCADE,
+        "coverImage" BLOB NOT NULL
       ) STRICT
       """
     )

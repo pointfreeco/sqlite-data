@@ -186,7 +186,9 @@
 
       let asset = CKAsset(fileURL: URL(hash: newValue))
       guard let fileURL = asset.fileURL, (self[key] as? CKAsset)?.fileURL != fileURL
-      else { return false }
+      else {
+        return false
+      }
       withErrorReporting(.sqliteDataCloudKitFailure) {
         try dataManager.save(Data(newValue), to: fileURL)
       }

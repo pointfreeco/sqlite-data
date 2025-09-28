@@ -22,7 +22,7 @@
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")
-            RemindersListAsset(id: 1, coverImage: Data("image".utf8), remindersListID: 1)
+            RemindersListAsset(remindersListID: 1, coverImage: Data("image".utf8))
           }
         }
 
@@ -170,6 +170,43 @@
             try RemindersListAsset.find(1).fetchOne(db)
           )
           #expect(remindersListAsset.coverImage == Data("image".utf8))
+        }
+      }
+
+      // * Receive record with CKAsset from CloudKit when local asset exists
+      // => Stored in database as bytes
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func receiveUpdatedAsset() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            RemindersListAsset(remindersListID: 1, coverImage: Data("image".utf8))
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          let remindersListAssetRecord = try syncEngine.private.database
+            .record(for: RemindersListAsset.recordID(for: 1))
+          remindersListAssetRecord.setValue(
+            Array("new-image".utf8),
+            forKey: "coverImage",
+            at: now
+          )
+          try await syncEngine.modifyRecords(
+            scope: .private,
+            saving: [remindersListAssetRecord]
+          )
+          .notify()
+        }
+
+        try await userDatabase.read { db in
+          let remindersListAsset = try #require(
+            try RemindersListAsset.find(1).fetchOne(db)
+          )
+          #expect(remindersListAsset.coverImage == Data("new-image".utf8))
         }
       }
 
