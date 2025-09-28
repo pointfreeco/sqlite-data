@@ -1,12 +1,13 @@
 import AppKit
-import SQLiteData
 
 final class RootViewController: NSSplitViewController {
-  init() {
+  let model: AppModel
+  init(model: AppModel) {
+    self.model = model
     super.init(nibName: nil, bundle: nil)
 
-    let sidebarViewController = SidebarViewController()
-    let detailViewController = DetailViewController()
+    let sidebarViewController = SidebarViewController(model: model)
+    let detailViewController = DetailViewController(model: model)
 
     let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarViewController)
     let detailItem = NSSplitViewItem(viewController: detailViewController)

@@ -1,8 +1,12 @@
 import AppKit
+import CasePaths
+import SQLiteData
 import SwiftUI
 
 final class DetailViewController: NSViewController {
-  init() {
+  let model: AppModel
+  init(model: AppModel) {
+    self.model = model
     super.init(nibName: nil, bundle: nil)
   }
   required init?(coder: NSCoder) {
@@ -10,7 +14,7 @@ final class DetailViewController: NSViewController {
   }
   override func loadView() {
     let hostingView = FullSizeHostingView(
-      rootView: DetailView()
+      rootView: DetailView(model: model)
         .frame(
           minWidth: 600,
           maxWidth: .infinity,
@@ -27,12 +31,67 @@ final class DetailViewController: NSViewController {
   }
 }
 
-struct DetailView: View {
+private struct DetailView: View {
+  let model: AppModel
   var body: some View {
-    Color.blue
+    switch model.destination {
+    case .remindersList(let model):
+      RemindersListDetailView(model: model)
+    case .reminder(let model):
+      ReminderDetailView(model: model)
+    case .none:
+      ContentUnavailableView(
+        "Choose a reminder or list",
+        systemImage: "list.bullet"
+      )
+    }
   }
 }
 
-#Preview {
-  DetailViewController()
+#Preview("Empty") {
+  let remindersList = try! prepareDependencies {
+    try $0.bootstrapDatabase()
+    return try $0.defaultDatabase.read { db in
+      try RemindersList.all.fetchOne(db)!
+    }
+  }
+  DetailViewController(
+    model: AppModel()
+  )
+}
+
+#Preview("RemindersList") {
+  let remindersList = try! prepareDependencies {
+    try $0.bootstrapDatabase()
+    return try $0.defaultDatabase.read { db in
+      try RemindersList.all.fetchOne(db)!
+    }
+  }
+  DetailViewController(
+    model: AppModel(
+      destination: .remindersList(
+        RemindersListDetailModel(
+          remindersList: remindersList
+        )
+      )
+    )
+  )
+}
+
+#Preview("Reminder") {
+  let reminder = try! prepareDependencies {
+    try $0.bootstrapDatabase()
+    return try $0.defaultDatabase.read { db in
+      try Reminder.all.fetchOne(db)!
+    }
+  }
+  DetailViewController(
+    model: AppModel(
+      destination: .reminder(
+        ReminderDetailModel(
+          reminder: reminder
+        )
+      )
+    )
+  )
 }

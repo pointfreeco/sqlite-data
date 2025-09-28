@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		C404E30F2E88A5F5000D23D2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = C404E30E2E88A5F5000D23D2 /* SQLiteData */; };
 		C43A01E72E88FDB800E5168E /* AppKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = C43A01E62E88FDB800E5168E /* AppKitNavigation */; };
+		C43A02052E8999C100E5168E /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = C43A02042E8999C100E5168E /* CasePaths */; };
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
 		CA2BDE2A2E71C469000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE292E71C469000974D3 /* SQLiteData */; };
@@ -159,6 +160,7 @@
 			files = (
 				C404E30F2E88A5F5000D23D2 /* SQLiteData in Frameworks */,
 				C43A01E72E88FDB800E5168E /* AppKitNavigation in Frameworks */,
+				C43A02052E8999C100E5168E /* CasePaths in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -291,6 +293,7 @@
 			packageProductDependencies = (
 				C404E30E2E88A5F5000D23D2 /* SQLiteData */,
 				C43A01E62E88FDB800E5168E /* AppKitNavigation */,
+				C43A02042E8999C100E5168E /* CasePaths */,
 			);
 			productName = AppKitDemo;
 			productReference = C4CD9A252E88A20900172F37 /* AppKitDemo.app */;
@@ -1338,6 +1341,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
 			productName = AppKitNavigation;
+		};
+		C43A02042E8999C100E5168E /* CasePaths */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
+			productName = CasePaths;
 		};
 		CA14DBC82DA884C400E36852 /* CasePaths */ = {
 			isa = XCSwiftPackageProductDependency;

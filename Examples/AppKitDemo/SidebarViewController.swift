@@ -3,6 +3,7 @@ import AppKitNavigation
 import SQLiteData
 
 final class SidebarViewController: NSViewController {
+  private let model: AppModel
   private var outlineView: NSOutlineView!
   private var scrollView: NSScrollView!
   private var outlineItems: [OutlineItem] = []
@@ -15,7 +16,8 @@ final class SidebarViewController: NSViewController {
     let reminderTitles: [String]
   }
 
-  init() {
+  init(model: AppModel) {
+    self.model = model
     super.init(nibName: nil, bundle: nil)
 
     $rows = FetchAll(
