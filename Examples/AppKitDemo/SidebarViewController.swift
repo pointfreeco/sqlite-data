@@ -63,8 +63,8 @@ final class SidebarViewController: NSViewController {
     outlineView.dataSource = self
     outlineView.delegate = self
 
-    let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("OutlineColumn"))
-    column.title = "Schema"
+    let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("RemindersColumn"))
+    column.title = "Reminders"
     outlineView.addTableColumn(column)
     outlineView.outlineTableColumn = column
 

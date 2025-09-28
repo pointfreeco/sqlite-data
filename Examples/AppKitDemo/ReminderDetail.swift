@@ -16,7 +16,6 @@ final class ReminderDetailModel {
 struct ReminderDetailView: View {
   let model: ReminderDetailModel
   var body: some View {
-    Text("REMIN")
     Text(model.reminder.title)
   }
 }
