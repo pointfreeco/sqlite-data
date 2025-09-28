@@ -33,6 +33,10 @@ final class SidebarViewController: NSViewController {
   }
 }
 
+final class OutlineView: NSTreeController {
+  
+}
+
 final class ContentViewController: NSViewController {
   init() {
     super.init(nibName: nil, bundle: nil)

@@ -1,4 +1,5 @@
 import AppKit
+import Dependencies
 import SwiftUI
 
 @MainActor
@@ -30,6 +31,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     NSApplication.shared.mainMenu = mainMenu
   }
   public func applicationDidFinishLaunching(_ notification: Notification) {
+    try! prepareDependencies {
+      try $0.bootstrapDatabase()
+    }
     newDemoWindow()
   }
 }
