@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		C404E30F2E88A5F5000D23D2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = C404E30E2E88A5F5000D23D2 /* SQLiteData */; };
+		C43A01E72E88FDB800E5168E /* AppKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = C43A01E62E88FDB800E5168E /* AppKitNavigation */; };
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
 		CA2BDE2A2E71C469000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE292E71C469000974D3 /* SQLiteData */; };
@@ -157,6 +158,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C404E30F2E88A5F5000D23D2 /* SQLiteData in Frameworks */,
+				C43A01E72E88FDB800E5168E /* AppKitNavigation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,6 +290,7 @@
 			name = AppKitDemo;
 			packageProductDependencies = (
 				C404E30E2E88A5F5000D23D2 /* SQLiteData */,
+				C43A01E62E88FDB800E5168E /* AppKitNavigation */,
 			);
 			productName = AppKitDemo;
 			productReference = C4CD9A252E88A20900172F37 /* AppKitDemo.app */;
@@ -1330,6 +1333,11 @@
 		C404E30E2E88A5F5000D23D2 /* SQLiteData */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SQLiteData;
+		};
+		C43A01E62E88FDB800E5168E /* AppKitNavigation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
+			productName = AppKitNavigation;
 		};
 		CA14DBC82DA884C400E36852 /* CasePaths */ = {
 			isa = XCSwiftPackageProductDependency;

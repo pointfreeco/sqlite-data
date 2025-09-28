@@ -1,6 +1,6 @@
 import AppKit
 import Dependencies
-import SwiftUI
+import SQLiteData
 
 @MainActor
 public final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -33,6 +33,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
   public func applicationDidFinishLaunching(_ notification: Notification) {
     try! prepareDependencies {
       try $0.bootstrapDatabase()
+    }
+    @Dependency(\.defaultDatabase) var database
+    try! database.write { db in
+      try db.seedSampleData()
     }
     newDemoWindow()
   }

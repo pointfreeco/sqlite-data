@@ -1,12 +1,46 @@
 import AppKit
+import AppKitNavigation
+import SQLiteData
 
 final class SidebarViewController: NSViewController {
   private var outlineView: NSOutlineView!
   private var scrollView: NSScrollView!
-  private let dataSource = OutlineDataSource()
+  private var outlineItems: [OutlineItem] = []
+  @FetchAll private var rows: [Row]
+
+  @Selection
+  struct Row {
+    let remindersListTitle: String
+    @Column(as: [String].JSONRepresentation.self)
+    let reminderTitles: [String]
+  }
 
   init() {
     super.init(nibName: nil, bundle: nil)
+
+    $rows = FetchAll(
+      RemindersList.all
+        .group(by: \.id)
+        .join(Reminder.all) { $0.id.eq($1.remindersListID) }
+        .select {
+          Row.Columns(
+            remindersListTitle: $0.title,
+            reminderTitles: $1.title.jsonGroupArray()
+          )
+        }
+    )
+
+    observe { [weak self] in
+      guard let self else { return }
+      self.outlineItems = rows.map { record in
+        OutlineItem(
+          title: record.remindersListTitle,
+          children: record.reminderTitles.map {
+            OutlineItem(title: $0, children: [])
+          }
+        )
+      }
+    }
   }
 
   required init?(coder: NSCoder) {
@@ -24,7 +58,7 @@ final class SidebarViewController: NSViewController {
     outlineView = NSOutlineView()
     outlineView.autoresizingMask = [.width, .height]
 
-    outlineView.dataSource = dataSource
+    outlineView.dataSource = self
     outlineView.delegate = self
 
     let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("OutlineColumn"))
@@ -32,21 +66,21 @@ final class SidebarViewController: NSViewController {
     outlineView.addTableColumn(column)
     outlineView.outlineTableColumn = column
 
-    //outlineView.headerView = nil
+    outlineView.headerView = nil
 
     scrollView.documentView = outlineView
     self.view.addSubview(scrollView)
   }
+}
 
-  override func viewDidLoad() {
-    super.viewDidLoad()
-    outlineView.reloadData()
-  }
+fileprivate struct OutlineItem {
+  let title: String
+  let children: [OutlineItem]?
 }
 
 extension SidebarViewController: NSOutlineViewDelegate {
   func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
-    guard let item = item as? OutlineDataSource.OutlineItem else { return nil }
+    guard let item = item as? OutlineItem else { return nil }
 
     let cellView = NSTableCellView()
 
@@ -66,45 +100,20 @@ extension SidebarViewController: NSOutlineViewDelegate {
   }
 }
 
-final class OutlineDataSource: NSObject, NSOutlineViewDataSource {
-
-  struct OutlineItem {
-    let title: String
-    let children: [OutlineItem]?
-  }
-
-  // Sample data
-  private let outlineData: [OutlineItem] = [
-    OutlineItem(
-      title: "Tables",
-      children: [
-        OutlineItem(title: "Users", children: nil),
-        OutlineItem(title: "Posts", children: nil),
-        OutlineItem(title: "Comments", children: nil),
-      ]
-    ),
-    OutlineItem(
-      title: "Views",
-      children: [
-        OutlineItem(title: "User Posts", children: nil),
-        OutlineItem(title: "Popular Posts", children: nil),
-      ]
-    ),
-    OutlineItem(title: "Indexes", children: nil),
-  ]
+extension SidebarViewController: NSOutlineViewDataSource {
 
   func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
     if let item = item as? OutlineItem {
       return item.children?.count ?? 0
     }
-    return outlineData.count
+    return outlineItems.count
   }
 
   func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
     if let item = item as? OutlineItem {
       return item.children![index]
     }
-    return outlineData[index]
+    return outlineItems[index]
   }
 
   func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
