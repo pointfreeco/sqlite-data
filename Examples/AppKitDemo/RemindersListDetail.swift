@@ -5,10 +5,19 @@ import SwiftUI
 @Observable
 final class RemindersListDetailModel {
   @ObservationIgnored @FetchOne var remindersList: RemindersList
+  @ObservationIgnored @FetchAll var reminders: [Reminder]
+  var editableRemindersList: RemindersList.Draft?
   init(remindersList: RemindersList) {
     _remindersList = FetchOne(
       wrappedValue: remindersList,
       RemindersList.find(remindersList.id)
+    )
+    _reminders = FetchAll(
+      Reminder.all
+        .where { $0.remindersListID.eq(remindersList.id) }
+        .order {
+          ($0.isCompleted, $0.title)
+        }
     )
   }
 }
@@ -16,8 +25,15 @@ final class RemindersListDetailModel {
 struct RemindersListDetailView: View {
   let model: RemindersListDetailModel
   var body: some View {
-    Text("LIST")
-    Text(model.remindersList.title)
+    List {
+      ForEach(model.reminders) { reminder in
+        Text(reminder.title)
+      }
+    }
+    .safeAreaInset(edge: .top) {
+      Text(model.remindersList.title)
+        .font(.headline)
+    }
   }
 }
 
