@@ -18,7 +18,7 @@ struct RemindersList: Hashable, Identifiable {
 extension RemindersList.Draft: Identifiable {}
 
 @Table
-struct Reminder: Hashable, Identifiable {
+struct Reminder: Hashable, Identifiable, Codable {
   let id: UUID
   var remindersListID: RemindersList.ID
   var title = ""

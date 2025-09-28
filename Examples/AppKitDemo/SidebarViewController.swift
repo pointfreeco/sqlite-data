@@ -11,9 +11,9 @@ final class SidebarViewController: NSViewController {
 
   @Selection
   struct Row {
-    let remindersListTitle: String
-    @Column(as: [String].JSONRepresentation.self)
-    let reminderTitles: [String]
+    let remindersList: RemindersList
+    @Column(as: [Reminder].JSONRepresentation.self)
+    let reminders: [Reminder]
   }
 
   init(model: AppModel) {
@@ -26,22 +26,21 @@ final class SidebarViewController: NSViewController {
         .join(Reminder.all) { $0.id.eq($1.remindersListID) }
         .select {
           Row.Columns(
-            remindersListTitle: $0.title,
-            reminderTitles: $1.title.jsonGroupArray()
+            remindersList: $0,
+            reminders: $1.jsonGroupArray()
           )
         }
     )
 
     observe { [weak self] in
       guard let self else { return }
-      self.outlineItems = rows.map { record in
-        OutlineItem(
-          title: record.remindersListTitle,
-          children: record.reminderTitles.map {
-            OutlineItem(title: $0, children: [])
-          }
+      self.outlineItems = rows.map { row in
+        OutlineItem.remindersList(
+          row.remindersList,
+          row.reminders
         )
       }
+      self.outlineView?.reloadData()
     }
   }
 
@@ -75,13 +74,24 @@ final class SidebarViewController: NSViewController {
   }
 }
 
-fileprivate struct OutlineItem {
-  let title: String
-  let children: [OutlineItem]?
+private enum OutlineItem {
+  case reminder(Reminder)
+  case remindersList(RemindersList, [Reminder])
+
+  var title: String {
+    switch self {
+    case .reminder(let reminder): reminder.title
+    case .remindersList(let remindersList, _): remindersList.title
+    }
+  }
 }
 
 extension SidebarViewController: NSOutlineViewDelegate {
-  func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
+  func outlineView(
+    _ outlineView: NSOutlineView,
+    viewFor tableColumn: NSTableColumn?,
+    item: Any
+  ) -> NSView? {
     guard let item = item as? OutlineItem else { return nil }
 
     let cellView = NSTableCellView()
@@ -100,28 +110,52 @@ extension SidebarViewController: NSOutlineViewDelegate {
 
     return cellView
   }
+  func outlineViewSelectionDidChange(_ notification: Notification) {
+    let row = outlineView.selectedRow
+    guard
+      row >= 0,
+      let item = outlineView.item(atRow: row) as? OutlineItem
+    else {
+      return
+    }
+    switch item {
+    case .reminder(let reminder):
+      model.reminderSelectedInOutline(reminder)
+    case .remindersList(let remindersList, _):
+      model.remindersListSelectedInOutline(remindersList)
+    }
+  }
 }
 
 extension SidebarViewController: NSOutlineViewDataSource {
-
-  func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
-    if let item = item as? OutlineItem {
-      return item.children?.count ?? 0
-    }
-    return outlineItems.count
-  }
-
   func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
-    if let item = item as? OutlineItem {
-      return item.children![index]
+    switch item as? OutlineItem {
+    case .reminder: outlineItems[index]
+    case .remindersList(_, let reminders): OutlineItem.reminder(reminders[index])
+    case .none: outlineItems[index]
     }
-    return outlineItems[index]
   }
-
+  func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
+    switch item as? OutlineItem {
+    case .reminder: 0
+    case .remindersList(_, let reminders): reminders.count
+    case .none: outlineItems.count
+    }
+  }
   func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
-    if let item = item as? OutlineItem {
-      return item.children != nil && !item.children!.isEmpty
+    switch item as? OutlineItem {
+    case .reminder: false
+    case .remindersList(_, let reminders): !reminders.isEmpty
+    case .none: false
     }
-    return false
   }
+}
+
+#Preview {
+  let _ = try! prepareDependencies {
+    try $0.bootstrapDatabase()
+  }
+  SidebarViewController(
+    model: AppModel()
+  )
 }
