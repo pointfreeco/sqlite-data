@@ -161,14 +161,31 @@
       forKey key: CKRecord.FieldKey,
       at userModificationTime: Int64
     ) -> Bool {
-      if newValue is CKAsset {
-        fatalError()
-      }
       guard
         encryptedValues[at: key] <= userModificationTime,
         encryptedValues[key] != newValue
-      else { return false }
+      else {
+        return false
+      }
       encryptedValues[key] = newValue
+      encryptedValues[at: key] = userModificationTime
+      self.userModificationTime = userModificationTime
+      return true
+    }
+
+    @discardableResult
+    package func setAsset(
+      _ newValue: CKAsset,
+      forKey key: CKRecord.FieldKey,
+      at userModificationTime: Int64
+    ) -> Bool {
+      guard
+        encryptedValues[at: key] <= userModificationTime,
+        self[key] != newValue
+      else {
+        return false
+      }
+      self[key] = newValue
       encryptedValues[at: key] = userModificationTime
       self.userModificationTime = userModificationTime
       return true
@@ -277,7 +294,7 @@
           let didSet: Bool
           if let value = other[key] as? CKAsset {
             // TODO: write test to show this fix
-            didSet = setValue(value, forKey: key, at: other/*.encryptedValues*/[at: key])
+            didSet = setAsset(value, forKey: key, at: other.encryptedValues[at: key])
           } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
             didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
           } else if other.encryptedValues[key] == nil {

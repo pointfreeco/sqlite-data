@@ -1618,8 +1618,7 @@
 
           do {
             try $_currentZoneID.withValue(serverRecord.recordID.zoneID) {
-              let q = upsert(T.self, record: serverRecord, columnNames: columnNames)
-              try #sql(q).execute(db)
+              try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
             }
             try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
             try SyncMetadata
@@ -1986,6 +1985,47 @@
         }
       }
     }
+
+    private func upsert<T: PrimaryKeyedTable>(
+      _: T.Type,
+      record: CKRecord,
+      columnNames: some Collection<String>
+    ) -> QueryFragment {
+      let allColumnNames = T.TableColumns.writableColumns.map(\.name)
+      let hasNonPrimaryKeyColumns = columnNames.contains(where: { $0 != T.columns.primaryKey.name })
+      var query: QueryFragment = "INSERT INTO \(T.self) ("
+      query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+      query.append(") VALUES (")
+      query.append(
+        allColumnNames
+          .map { columnName in
+            if let asset = record[columnName] as? CKAsset {
+              let data = (try? asset.fileURL.map { try dataManager.wrappedValue.load($0) })
+              return data?.queryFragment ?? "NULL"
+            } else {
+              return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
+            }
+          }
+          .joined(separator: ", ")
+      )
+      query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO ")
+      if hasNonPrimaryKeyColumns {
+        query.append("UPDATE SET ")
+        query.append(
+          columnNames
+            .filter { columnName in columnName != T.columns.primaryKey.name }
+            .map {
+            """
+            \(quote: $0) = "excluded".\(quote: $0)
+            """
+            }
+            .joined(separator: ", ")
+        )
+      } else {
+        query.append("NOTHING")
+      }
+      return query
+    }
   }
 
   private struct HashablePrimaryKeyedTableType: Hashable {
@@ -2062,54 +2102,17 @@
       self.zoneName = lastKnownServerRecord?.recordID.zoneID.zoneName ?? self.zoneName
       self.ownerName = lastKnownServerRecord?.recordID.zoneID.ownerName ?? self.ownerName
       self.lastKnownServerRecord = lastKnownServerRecord
+      let r = lastKnownServerRecord?.copy() as? CKRecord
+      for key in (r?.allKeys() ?? []) {
+        if r?[key] is CKAsset {
+          r?[key] = nil
+        }
+      }
       self._lastKnownServerRecordAllFields = lastKnownServerRecord
       if let lastKnownServerRecord {
         self.userModificationTime = lastKnownServerRecord.userModificationTime
       }
     }
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func upsert<T: PrimaryKeyedTable>(
-    _: T.Type,
-    record: CKRecord,
-    columnNames: some Collection<String>
-  ) -> QueryFragment {
-    let allColumnNames = T.TableColumns.writableColumns.map(\.name)
-    let hasNonPrimaryKeyColumns = columnNames.contains(where: { $0 != T.columns.primaryKey.name })
-    var query: QueryFragment = "INSERT INTO \(T.self) ("
-    query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
-    query.append(") VALUES (")
-    query.append(
-      allColumnNames
-        .map { columnName in
-          if let asset = record[columnName] as? CKAsset {
-            @Dependency(\.dataManager) var dataManager
-            return (try? asset.fileURL.map { try dataManager.load($0) })?
-              .queryFragment ?? "NULL"
-          } else {
-            return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
-          }
-        }
-        .joined(separator: ", ")
-    )
-    query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO ")
-    if hasNonPrimaryKeyColumns {
-      query.append("UPDATE SET ")
-      query.append(
-        columnNames
-          .filter { columnName in columnName != T.columns.primaryKey.name }
-          .map {
-            """
-            \(quote: $0) = "excluded".\(quote: $0)
-            """
-          }
-          .joined(separator: ", ")
-      )
-    } else {
-      query.append("NOTHING")
-    }
-    return query
   }
 
   @TaskLocal package var _isSynchronizingChanges = false

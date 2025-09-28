@@ -195,6 +195,7 @@
             forKey: "coverImage",
             at: now
           )
+          print("!!!")
           try await syncEngine.modifyRecords(
             scope: .private,
             saving: [remindersListAssetRecord]
