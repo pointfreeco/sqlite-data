@@ -102,32 +102,9 @@ extension Tag {
 
 @Table("remindersTags")
 struct ReminderTag: Identifiable {
-  // @Columns
-  // let id: ReminderTagID
   let id: UUID
   let reminderID: Reminder.ID
   let tagID: Tag.ID
-}
-
-@Table
-struct ReminderTagID: Hashable {
-  let reminderID: Reminder.ID
-  let tagID: Tag.ID
-}
-
-extension ReminderTagID: IdentifierStringConvertible {
-  init?(rawIdentifier: String) {
-    let segments = rawIdentifier.split(separator: "/", maxSplits: 1)
-    guard
-      segments.count == 2,
-      let reminderID = Reminder.ID(uuidString: String(segments[0]))
-    else { return nil }
-    self.init(reminderID: reminderID, tagID: Tag.ID(segments[1]))
-  }
-
-  var rawIdentifier: String {
-    "\(reminderID)/\(tagID)"
-  }
 }
 
 @Table
