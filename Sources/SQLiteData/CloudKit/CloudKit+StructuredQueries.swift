@@ -273,7 +273,8 @@
           let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
           let didSet: Bool
           if let value = other[key] as? CKAsset {
-            didSet = setValue(value, forKey: key, at: other[at: key])
+            // TODO: write test to show this fix
+            didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
           } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
             didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
           } else if other.encryptedValues[key] == nil {
