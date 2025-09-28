@@ -23,11 +23,12 @@ final class SidebarViewController: NSViewController {
     $rows = FetchAll(
       RemindersList.all
         .group(by: \.id)
+        .order(by: \.title)
         .join(Reminder.all) { $0.id.eq($1.remindersListID) }
         .select {
           Row.Columns(
             remindersList: $0,
-            reminders: $1.jsonGroupArray()
+            reminders: $1.jsonGroupArray() // FIXME: order reminders
           )
         }
     )
@@ -77,13 +78,6 @@ final class SidebarViewController: NSViewController {
 private enum OutlineItem {
   case reminder(Reminder)
   case remindersList(RemindersList, [Reminder])
-
-  var title: String {
-    switch self {
-    case .reminder(let reminder): reminder.title
-    case .remindersList(let remindersList, _): remindersList.title
-    }
-  }
 }
 
 extension SidebarViewController: NSOutlineViewDelegate {
@@ -96,17 +90,52 @@ extension SidebarViewController: NSOutlineViewDelegate {
 
     let cellView = NSTableCellView()
 
-    let textField = NSTextField(labelWithString: item.title)
-    textField.translatesAutoresizingMaskIntoConstraints = false
+    switch item {
+    case .reminder(let reminder):
+      let textField = NSTextField(labelWithString: reminder.title)
+      textField.translatesAutoresizingMaskIntoConstraints = false
+      cellView.textField = textField
 
-    cellView.addSubview(textField)
-    cellView.textField = textField
+      if reminder.isCompleted {
+        let checkmark = NSImageView(
+          image: NSImage(
+            systemSymbolName: "checkmark",
+            accessibilityDescription: "Completed"
+          )!
+        )
 
-    NSLayoutConstraint.activate([
-      textField.leadingAnchor.constraint(equalTo: cellView.leadingAnchor, constant: 5),
-      textField.trailingAnchor.constraint(equalTo: cellView.trailingAnchor),
-      textField.centerYAnchor.constraint(equalTo: cellView.centerYAnchor),
-    ])
+        let stack = NSStackView(views: [checkmark, textField])
+        cellView.addSubview(stack)
+
+        NSLayoutConstraint.activate([
+          stack.leadingAnchor.constraint(equalTo: cellView.leadingAnchor),
+          stack.trailingAnchor.constraint(equalTo: cellView.trailingAnchor),
+          stack.centerYAnchor.constraint(equalTo: cellView.centerYAnchor),
+        ])
+      } else {
+        cellView.addSubview(textField)
+
+        NSLayoutConstraint.activate([
+          textField.leadingAnchor.constraint(equalTo: cellView.leadingAnchor),
+          textField.trailingAnchor.constraint(equalTo: cellView.trailingAnchor),
+          textField.centerYAnchor.constraint(equalTo: cellView.centerYAnchor),
+        ])
+      }
+
+    case .remindersList(let remindersList, _):
+
+      let textField = NSTextField(labelWithString: remindersList.title)
+      textField.translatesAutoresizingMaskIntoConstraints = false
+      cellView.textField = textField
+
+      cellView.addSubview(textField)
+
+      NSLayoutConstraint.activate([
+        textField.leadingAnchor.constraint(equalTo: cellView.leadingAnchor, constant: 3),
+        textField.trailingAnchor.constraint(equalTo: cellView.trailingAnchor),
+        textField.centerYAnchor.constraint(equalTo: cellView.centerYAnchor),
+      ])
+    }
 
     return cellView
   }
