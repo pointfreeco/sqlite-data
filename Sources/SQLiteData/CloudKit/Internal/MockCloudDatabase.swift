@@ -94,12 +94,6 @@
               let shareWasPreviouslySaved = storage[share.recordID.zoneID]?[share.recordID] != nil
               guard shareWasPreviouslySaved || isSavingRootRecord
               else {
-                reportIssue(
-                  """
-                  An added share is being saved without its rootRecord being saved in the same \
-                  operation.
-                  """
-                )
                 saveResults[recordToSave.recordID] = .failure(CKError(.invalidArguments))
                 continue
               }
