@@ -393,7 +393,7 @@
           try SQLiteSchema
           .where {
             $0.type.eq(#bind(.table))
-              && $0.tableName.in(tables.map { $0.tableName })
+            && $0.tableName.in(tablesByName.keys)
           }
           .fetchAll(db)
         return try namesAndSchemas.compactMap { schema -> RecordType? in
