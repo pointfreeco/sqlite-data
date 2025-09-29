@@ -2001,7 +2001,6 @@
           .map { columnName in
             if let asset = record[columnName] as? CKAsset {
               let data = (try? asset.fileURL.map { try dataManager.wrappedValue.load($0) })
-              print(data)
               return data?.queryFragment ?? "NULL"
             } else {
               return record.encryptedValues[columnName]?.queryFragment ?? "NULL"

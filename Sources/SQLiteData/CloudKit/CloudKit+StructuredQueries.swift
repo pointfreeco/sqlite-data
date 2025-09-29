@@ -142,15 +142,13 @@
         self["\(CKRecord.userModificationTimeKey)_\(key)"] = max(self[at: key], newValue)
       }
     }
-  }
-
-  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
-  extension URL {
-    init(hash data: some DataProtocol) {
-      // TODO: pass this in explicitly?
-      @Dependency(\.dataManager) var dataManager
-      let hash = SHA256.hash(data: data).compactMap { String(format: "%02hhx", $0) }.joined()
-      self = dataManager.temporaryDirectory.appendingPathComponent(hash)
+    subscript(hash key: String) -> Data? {
+      get {
+        self["\(key)_hash"] as? Data
+      }
+      set {
+        self["\(key)_hash"] = newValue
+      }
     }
   }
 
@@ -180,13 +178,21 @@
       forKey key: CKRecord.FieldKey,
       at userModificationTime: Int64
     ) -> Bool {
+      @Dependency(\.dataManager) var dataManager
+      guard
+        let fileURL = newValue.fileURL,
+        let data = try? dataManager.load(fileURL)
+      else { return false }
+      let hash = data.sha256
       guard
         encryptedValues[at: key] <= userModificationTime,
-        self[key] != newValue
+        encryptedValues[hash: key] != hash
       else {
         return false
       }
+
       self[key] = newValue
+      encryptedValues[hash: key] = hash
       encryptedValues[at: key] = userModificationTime
       self.userModificationTime = userModificationTime
       return true
@@ -198,26 +204,26 @@
       forKey key: CKRecord.FieldKey,
       at userModificationTime: Int64
     ) -> Bool {
-      // TODO: pass this in explicitly?
-      @Dependency(\.dataManager) var dataManager
-
       guard encryptedValues[at: key] <= userModificationTime
-      else {
-        return false
-      }
-
-      let asset = CKAsset(fileURL: URL(hash: newValue))
-      guard let fileURL = asset.fileURL, (self[key] as? CKAsset)?.fileURL != fileURL
-      else {
-        return false
-      }
-      withErrorReporting(.sqliteDataCloudKitFailure) {
+      else { return false }
+      
+      @Dependency(\.dataManager) var dataManager
+      let hash = newValue.sha256
+      let fileURL = dataManager.temporaryDirectory.appending(
+        component: hash
+          .compactMap { String(format: "%02hhx", $0) }
+          .joined()
+      )
+      let asset = CKAsset(fileURL: fileURL)
+      return withErrorReporting(.sqliteDataCloudKitFailure) {
         try dataManager.save(Data(newValue), to: fileURL)
+        self[key] = asset
+        encryptedValues[at: key] = userModificationTime
+        encryptedValues[hash: key] = hash
+        self.userModificationTime = userModificationTime
+        return true
       }
-      self[key] = asset
-      encryptedValues[at: key] = userModificationTime
-      self.userModificationTime = userModificationTime
-      return true
+        ?? false
     }
 
     @discardableResult
@@ -293,6 +299,7 @@
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
           let key = column.name
           let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
+          // didSet = true if
           let didSet: Bool
           if let value = other[key] as? CKAsset {
             didSet = setAsset(value, forKey: key, at: other.encryptedValues[at: key])
@@ -307,11 +314,7 @@
           var isRowValueModified: Bool {
             switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
             case .blob(let value):
-              let lhs = (other[key] as? CKAsset)?.fileURL
-              let rhs = URL(hash: value)
-              let ohs = (self[key] as? CKAsset)?.fileURL
-              print(lhs, "!=", rhs)
-              return  lhs != rhs
+              return other.encryptedValues[hash: key] != value.sha256
             case .bool(let value):
               return other.encryptedValues[key] != value
             case .double(let value):
@@ -380,6 +383,12 @@
     package var _recordChangeTag: String? {
       get { self[#function] }
       set { self[#function] = newValue }
+    }
+  }
+
+  extension DataProtocol {
+    fileprivate var sha256: Data {
+      Data(SHA256.hash(data: self))
     }
   }
 #endif
