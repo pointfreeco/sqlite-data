@@ -11,7 +11,7 @@ import Testing
 @MainActor
 @Suite(
   .dependency(\.uuid, .incrementing),
-  .snapshots(record: .failed)
+  .snapshots(record: .missing)
 )
 struct PrimaryKeyMigrationTests {
   @Table struct Parent: Identifiable {

@@ -107,7 +107,7 @@
         return "Table not found. The table '\(tableName)' does not exist in the database."
       case .invalidPrimaryKey:
         return """
-          Invalid primary key. The table must have either no primary key or a single integer \ 
+          Invalid primary key. The table must have either no primary key or a single integer \
           primary key to migrate.
           """
       case .invalidForeignKey:
