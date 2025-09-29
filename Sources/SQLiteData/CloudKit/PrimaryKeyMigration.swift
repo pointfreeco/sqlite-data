@@ -8,10 +8,14 @@
     /// CloudKit-compatible, UUID primary keys.
     ///
     /// To synchronize a table to CloudKit it must have a primary key, and that primary key must
-    /// be a globally unique identifier, such as a UUID. This method is a general purpose tools
-    /// that analyzes a set of tables to try to automatically perform that migration for you.
+    /// be a globally unique identifier, such as a UUID. However, changing the type of a column
+    /// in SQLite is a [multi-step process] that must be followed very carefully, otherwise you run
+    /// the risk of corrupting your users' data.
     ///
-    /// It performs the following steps:
+    /// [multi-step process]: https://sqlite.org/lang_altertable.html#making_other_kinds_of_table_schema_changes
+    ///
+    /// This method is a general purpose tool that analyzes a set of tables to try to automatically
+    /// perform that migration for you. It performs the following steps:
     ///
     ///   * Computes a random salt to use for backfilling existing integer primary keys with UUIDs.
     ///   * For each table passed to this method:
