@@ -158,7 +158,7 @@ class RemindersListsModel {
     case remindersListForm(RemindersList.Draft)
   }
 
-  @Table
+  @Selection
   struct ReminderListState: Identifiable {
     var id: RemindersList.ID { remindersList.id }
     var remindersCount: Int
@@ -167,7 +167,7 @@ class RemindersListsModel {
     var share: CKShare?
   }
 
-  @Table
+  @Selection
   struct Stats {
     var allCount = 0
     var flaggedCount = 0

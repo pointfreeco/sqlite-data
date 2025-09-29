@@ -87,8 +87,8 @@ public struct FetchAll<Element: Sendable>: Sendable {
   }
 
   /// Initializes this property with a default value.
-  @_disfavoredOverload
-  public init(wrappedValue: [Element] = []) {
+  public init(wrappedValue: [Element] = [])
+  where Element: StructuredQueriesCore._Selection, Element.QueryOutput == Element {
     sharedReader = SharedReader(value: wrappedValue)
   }
 

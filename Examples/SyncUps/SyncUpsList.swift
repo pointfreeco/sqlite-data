@@ -41,7 +41,7 @@ final class SyncUpsListModel {
     }
   #endif
 
-  @Table
+  @Selection
   struct Row: Identifiable {
     let attendeeCount: Int
     let syncUp: SyncUp
