@@ -327,8 +327,7 @@
               return false
             }
           }
-          let _isRowValueModified = isRowValueModified
-          if didSet || _isRowValueModified {
+          if didSet || isRowValueModified {
             columnNames.removeAll(where: { $0 == key })
             if didSet, let parentForeignKey, key == parentForeignKey.from {
               self.parent = other.parent

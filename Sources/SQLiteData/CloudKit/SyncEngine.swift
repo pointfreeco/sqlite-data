@@ -1985,47 +1985,6 @@
         }
       }
     }
-
-    private func upsert<T: PrimaryKeyedTable>(
-      _: T.Type,
-      record: CKRecord,
-      columnNames: some Collection<String>
-    ) -> QueryFragment {
-      let allColumnNames = T.TableColumns.writableColumns.map(\.name)
-      let hasNonPrimaryKeyColumns = columnNames.contains(where: { $0 != T.columns.primaryKey.name })
-      var query: QueryFragment = "INSERT INTO \(T.self) ("
-      query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
-      query.append(") VALUES (")
-      query.append(
-        allColumnNames
-          .map { columnName in
-            if let asset = record[columnName] as? CKAsset {
-              let data = (try? asset.fileURL.map { try dataManager.wrappedValue.load($0) })
-              return data?.queryFragment ?? "NULL"
-            } else {
-              return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
-            }
-          }
-          .joined(separator: ", ")
-      )
-      query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO ")
-      if hasNonPrimaryKeyColumns {
-        query.append("UPDATE SET ")
-        query.append(
-          columnNames
-            .filter { columnName in columnName != T.columns.primaryKey.name }
-            .map {
-            """
-            \(quote: $0) = "excluded".\(quote: $0)
-            """
-            }
-            .joined(separator: ", ")
-        )
-      } else {
-        query.append("NOTHING")
-      }
-      return query
-    }
   }
 
   private struct HashablePrimaryKeyedTableType: Hashable {
@@ -2107,6 +2066,49 @@
         self.userModificationTime = lastKnownServerRecord.userModificationTime
       }
     }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func upsert<T: PrimaryKeyedTable>(
+    _: T.Type,
+    record: CKRecord,
+    columnNames: some Collection<String>
+  ) -> QueryFragment {
+    let allColumnNames = T.TableColumns.writableColumns.map(\.name)
+    let hasNonPrimaryKeyColumns = columnNames.contains(where: { $0 != T.columns.primaryKey.name })
+    var query: QueryFragment = "INSERT INTO \(T.self) ("
+    query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+    query.append(") VALUES (")
+    query.append(
+      allColumnNames
+        .map { columnName in
+          if let asset = record[columnName] as? CKAsset {
+            @Dependency(\.dataManager) var dataManager
+            return (try? asset.fileURL.map { try dataManager.load($0) })?
+              .queryFragment ?? "NULL"
+          } else {
+            return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
+          }
+        }
+        .joined(separator: ", ")
+    )
+    query.append(") ON CONFLICT(\(quote: T.columns.primaryKey.name)) DO ")
+    if hasNonPrimaryKeyColumns {
+      query.append("UPDATE SET ")
+      query.append(
+        columnNames
+          .filter { columnName in columnName != T.columns.primaryKey.name }
+          .map {
+            """
+            \(quote: $0) = "excluded".\(quote: $0)
+            """
+          }
+          .joined(separator: ", ")
+      )
+    } else {
+      query.append("NOTHING")
+    }
+    return query
   }
 
   @TaskLocal package var _isSynchronizingChanges = false
