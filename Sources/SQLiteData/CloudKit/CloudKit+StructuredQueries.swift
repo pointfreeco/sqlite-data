@@ -134,7 +134,7 @@
 
   @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   extension CKRecordKeyValueSetting {
-    subscript(at key: String) -> Int64 {
+    fileprivate subscript(at key: String) -> Int64 {
       get {
         self["\(CKRecord.userModificationTimeKey)_\(key)"] as? Int64 ?? -1
       }
@@ -142,13 +142,9 @@
         self["\(CKRecord.userModificationTimeKey)_\(key)"] = max(self[at: key], newValue)
       }
     }
-    subscript(hash key: String) -> Data? {
-      get {
-        self["\(key)_hash"] as? Data
-      }
-      set {
-        self["\(key)_hash"] = newValue
-      }
+    fileprivate subscript(hash key: String) -> Data? {
+      get { self["\(key)_hash"] as? Data }
+      set { self["\(key)_hash"] = newValue }
     }
   }
 
@@ -163,9 +159,7 @@
       guard
         encryptedValues[at: key] <= userModificationTime,
         encryptedValues[key] != newValue
-      else {
-        return false
-      }
+      else { return false }
       encryptedValues[key] = newValue
       encryptedValues[at: key] = userModificationTime
       self.userModificationTime = userModificationTime
@@ -181,15 +175,12 @@
       @Dependency(\.dataManager) var dataManager
       guard
         let fileURL = newValue.fileURL,
-        let data = try? dataManager.load(fileURL)
+        let hash = dataManager.sha256(of: fileURL)
       else { return false }
-      let hash = data.sha256
       guard
         encryptedValues[at: key] <= userModificationTime,
         encryptedValues[hash: key] != hash
-      else {
-        return false
-      }
+      else { return false }
 
       self[key] = newValue
       encryptedValues[hash: key] = hash
@@ -206,11 +197,12 @@
     ) -> Bool {
       guard encryptedValues[at: key] <= userModificationTime
       else { return false }
-      
+
       @Dependency(\.dataManager) var dataManager
       let hash = newValue.sha256
       let fileURL = dataManager.temporaryDirectory.appending(
-        component: hash
+        component:
+          hash
           .compactMap { String(format: "%02hhx", $0) }
           .joined()
       )
@@ -299,7 +291,6 @@
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
           let key = column.name
           let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
-          // didSet = true if
           let didSet: Bool
           if let value = other[key] as? CKAsset {
             didSet = setAsset(value, forKey: key, at: other.encryptedValues[at: key])
