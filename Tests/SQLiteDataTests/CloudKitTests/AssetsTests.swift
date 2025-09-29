@@ -39,7 +39,6 @@
                   recordType: "remindersListAssets",
                   parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
                   share: nil,
-                  id: 1,
                   remindersListID: 1,
                   coverImage: CKAsset(
                     fileURL: URL(file:///6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d),
@@ -95,7 +94,6 @@
                   recordType: "remindersListAssets",
                   parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
                   share: nil,
-                  id: 1,
                   remindersListID: 1,
                   coverImage: CKAsset(
                     fileURL: URL(file:///97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf),
@@ -139,10 +137,8 @@
         remindersListRecord.setValue("1", forKey: "id", at: now)
         remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
-        let fileURL = URL.temporaryDirectory.appending(path: UUID().uuidString)
-        inMemoryDataManager.storage.withValue { storage in
-          storage[fileURL] == Data("image".utf8)
-        }
+        let fileURL = URL(fileURLWithPath: UUID().uuidString)
+        try inMemoryDataManager.save(Data("image".utf8), to: fileURL)
         let remindersListAssetRecord = CKRecord(
           recordType: RemindersListAsset.tableName,
           recordID: RemindersListAsset.recordID(for: 1)
@@ -184,14 +180,82 @@
         try await withDependencies {
           $0.currentTime.now += 1
         } operation: {
-          let remindersListAssetRecord = try syncEngine.private.database
-            .record(for: RemindersListAsset.recordID(for: 1))
-          remindersListAssetRecord.setValue(
-            Array("new-image".utf8),
+          let fileURL = URL(fileURLWithPath: UUID().uuidString)
+          try inMemoryDataManager.save(Data("new-image".utf8), to: fileURL)
+          let remindersListAssetRecord = try syncEngine.private.database.record(
+            for: RemindersListAsset.recordID(for: 1)
+          )
+          remindersListAssetRecord.setAsset(
+            CKAsset(fileURL: fileURL),
             forKey: "coverImage",
             at: now
           )
-          print("!!!")
+          try await syncEngine.modifyRecords(
+            scope: .private,
+            saving: [remindersListAssetRecord]
+          )
+          .notify()
+        }
+
+        try await userDatabase.read { db in
+          let remindersListAsset = try #require(
+            try RemindersListAsset.find(1).fetchOne(db)
+          )
+          #expect(remindersListAsset.coverImage == Data("new-image".utf8))
+        }
+      }
+
+      // * Receive record with CKAsset from CloudKit when local asset does not exist
+      // * Receive updated asset from CloudKit
+      // => Local database has freshest asset
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func receiveAssetThenReceiveUpdate() async throws {
+        do {
+          let remindersListRecord = CKRecord(
+            recordType: RemindersList.tableName,
+            recordID: RemindersList.recordID(for: 1)
+          )
+          remindersListRecord.setValue("1", forKey: "id", at: now)
+          remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+          let fileURL = URL(fileURLWithPath: UUID().uuidString)
+          try inMemoryDataManager.save(Data("image".utf8), to: fileURL)
+          let remindersListAssetRecord = CKRecord(
+            recordType: RemindersListAsset.tableName,
+            recordID: RemindersListAsset.recordID(for: 1)
+          )
+          remindersListAssetRecord.setValue("1", forKey: "id", at: now)
+          remindersListAssetRecord.setAsset(
+            CKAsset(fileURL: fileURL),
+            forKey: "coverImage",
+            at: now
+          )
+          remindersListAssetRecord.setValue("1", forKey: "remindersListID", at: now)
+          remindersListAssetRecord.parent = CKRecord.Reference(
+            record: remindersListRecord,
+            action: .none
+          )
+
+          try await syncEngine.modifyRecords(
+            scope: .private,
+            saving: [remindersListAssetRecord, remindersListRecord]
+          )
+          .notify()
+        }
+
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          let fileURL = URL(fileURLWithPath: UUID().uuidString)
+          try inMemoryDataManager.save(Data("new-image".utf8), to: fileURL)
+          let remindersListAssetRecord = try syncEngine.private.database.record(
+            for: RemindersListAsset.recordID(for: 1)
+          )
+          remindersListAssetRecord.setAsset(
+            CKAsset(fileURL: fileURL),
+            forKey: "coverImage",
+            at: now
+          )
           try await syncEngine.modifyRecords(
             scope: .private,
             saving: [remindersListAssetRecord]
@@ -259,13 +323,12 @@
         }
         assertQuery(RemindersListAsset.all, database: userDatabase.database) {
           """
-          ┌──────────────────────────────┐
-          │ RemindersListAsset(          │
-          │   id: 1,                     │
-          │   coverImage: Data(5 bytes), │
-          │   remindersListID: 1         │
-          │ )                            │
-          └──────────────────────────────┘
+          ┌─────────────────────────────┐
+          │ RemindersListAsset(         │
+          │   remindersListID: 1,       │
+          │   coverImage: Data(5 bytes) │
+          │ )                           │
+          └─────────────────────────────┘
           """
         }
 

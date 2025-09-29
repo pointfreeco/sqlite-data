@@ -49,9 +49,9 @@
               tableName: "remindersListAssets",
               schema: """
                 CREATE TABLE "remindersListAssets" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                  "coverImage" BLOB NOT NULL,
-                  "remindersListID" INTEGER NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+                  "remindersListID" INTEGER NOT NULL PRIMARY KEY
+                    REFERENCES "remindersLists"("id") ON DELETE CASCADE,
+                  "coverImage" BLOB NOT NULL
                 ) STRICT
                 """,
               tableInfo: [
@@ -65,13 +65,6 @@
                 [1]: TableInfo(
                   defaultValue: nil,
                   isPrimaryKey: true,
-                  name: "id",
-                  isNotNull: true,
-                  type: "INTEGER"
-                ),
-                [2]: TableInfo(
-                  defaultValue: nil,
-                  isPrimaryKey: false,
                   name: "remindersListID",
                   isNotNull: true,
                   type: "INTEGER"

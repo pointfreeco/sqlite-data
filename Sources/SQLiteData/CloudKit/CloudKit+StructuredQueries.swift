@@ -186,15 +186,6 @@
       else {
         return false
       }
-
-//      @Dependency(\.dataManager) var dataManager
-//      print("existing asset", try? ((self[key] as! CKAsset).fileURL).map {
-//        try dataManager.load($0)
-//      })
-//      print("new asset", try? newValue.fileURL.map {
-//        try dataManager.load($0)
-//      })
-
       self[key] = newValue
       encryptedValues[at: key] = userModificationTime
       self.userModificationTime = userModificationTime
@@ -304,7 +295,6 @@
           let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
           let didSet: Bool
           if let value = other[key] as? CKAsset {
-            // TODO: write test to show this fix
             didSet = setAsset(value, forKey: key, at: other.encryptedValues[at: key])
           } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
             didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
@@ -319,8 +309,9 @@
             case .blob(let value):
               let lhs = (other[key] as? CKAsset)?.fileURL
               let rhs = URL(hash: value)
+              let ohs = (self[key] as? CKAsset)?.fileURL
               print(lhs, "!=", rhs)
-              return lhs != rhs
+              return  lhs != rhs
             case .bool(let value):
               return other.encryptedValues[key] != value
             case .double(let value):
@@ -342,7 +333,8 @@
               return false
             }
           }
-          if didSet || isRowValueModified {
+          let _isRowValueModified = isRowValueModified
+          if didSet || _isRowValueModified {
             columnNames.removeAll(where: { $0 == key })
             if didSet, let parentForeignKey, key == parentForeignKey.from {
               self.parent = other.parent

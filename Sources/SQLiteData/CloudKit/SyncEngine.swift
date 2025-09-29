@@ -1613,9 +1613,6 @@
               parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
                 ? foreignKeysByTableName[T.tableName]?.first
                 : nil
-//              1759094585935125000
-//              1759094585935125000
-//              1759094585935125000
             )
           }
 
@@ -2106,12 +2103,6 @@
       self.zoneName = lastKnownServerRecord?.recordID.zoneID.zoneName ?? self.zoneName
       self.ownerName = lastKnownServerRecord?.recordID.zoneID.ownerName ?? self.ownerName
       self.lastKnownServerRecord = lastKnownServerRecord
-      let r = lastKnownServerRecord?.copy() as? CKRecord
-      for key in (r?.allKeys() ?? []) {
-        if r?[key] is CKAsset {
-          r?[key] = nil
-        }
-      }
       self._lastKnownServerRecordAllFields = lastKnownServerRecord
       if let lastKnownServerRecord {
         self.userModificationTime = lastKnownServerRecord.userModificationTime
