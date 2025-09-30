@@ -25,15 +25,15 @@
         defer { try? fileHandle.close() }
         var hasher = SHA256()
         while true {
-          let shouldBreak = try autoreleasepool {
+          let finished = try autoreleasepool {
             guard
               let data = try fileHandle.read(upToCount: 1024 * 1024),
               !data.isEmpty
-            else { return false }
+            else { return true }
             hasher.update(data: data)
-            return true
+            return false
           }
-          guard !shouldBreak
+          guard !finished
           else { break }
         }
         let digest = hasher.finalize()
