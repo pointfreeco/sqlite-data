@@ -46,7 +46,7 @@
     ///   - db: A database connection.
     ///   - tables: Tables to migrate.
     ///   - uuidFunction: A UUID function to use for the default value of primary keys in your
-    ///                   tables' schemas. If `nil`, SQLite's `uuid` function will be used.
+    ///     tables' schemas. If `nil`, SQLite's `uuid` function will be used.
     public static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
       _ db: Database,
       tables: repeat (each T).Type,
