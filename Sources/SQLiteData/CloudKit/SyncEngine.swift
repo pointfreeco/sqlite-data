@@ -905,7 +905,7 @@
                 $0.recordNames.append(missingRecord.recordName)
               }
               if let sentRecord {
-                $0.events.append("✅ Sent record")
+                $0.events.append("➡️ Sending")
                 $0.recordTypes.append(metadata.recordType)
                 $0.recordNames.append(sentRecord.recordName)
               }
