@@ -7,14 +7,14 @@ Learn how to add SQLiteData to an existing app that uses GRDB.
 [GRDB] is a powerful SQLite library for Swift applications, and it is what is used by SQLiteData
 to interact with SQLite under the hood, such as performing queries and observing changes to the
 database. If you have an existing application using GRDB, and would like to use the tools of this
-library, such as [`@FetchAll`](<doc:FetchAll>), the SQL query builder, and 
+library, such as [`@FetchAll`](<doc:FetchAll>), the SQL query builder, and
 [CloudKit synchronization](<doc:CloudKit>), then there are a few steps you must take.
 
 ## Replace PersistableRecord and FetchableRecord with @Table
 
 The `PersistableRecord` and `FetchableRecord` protocols in GRDB facilitate saving data to the
 database and querying for data in the database. In SQLiteData, the `@Table` macro is responsible
-for this functionality. 
+for this functionality.
 
 ```diff
 -struct Reminder: MutablePersistableRecord, Encodable {
@@ -81,7 +81,7 @@ There are 3 main things to be aware of when applying `@Table` to an existing sch
     then you can provide custom names _via_ the `@Column` macro:
 
     ```swift
-    @Table 
+    @Table
     struct Reminder {
       let id: UUID
       var title = ""
@@ -96,7 +96,7 @@ There are 3 main things to be aware of when applying `@Table` to an existing sch
     `@Column(as:)` on any fields holding UUIDs:
 
     ```swift
-    @Table 
+    @Table
     struct Reminder {
       @Column(as: UUID.BytesRepresentation.self)
       let id: UUID
@@ -107,7 +107,7 @@ There are 3 main things to be aware of when applying `@Table` to an existing sch
     And if your table has an optional UUID, then you will handle that similarly:
 
     ```swift
-    @Table 
+    @Table
     struct ChildReminder {
       @Column(as: UUID?.BytesRepresentation.self)
       let parentID: UUID?
@@ -117,7 +117,7 @@ There are 3 main things to be aware of when applying `@Table` to an existing sch
 
 ## Non-optional primary keys
 
-Some of your data types may have an optional primary key and a `didInsert` callback for setting the 
+Some of your data types may have an optional primary key and a `didInsert` callback for setting the
 ID after insert:
 
 ```swift
@@ -130,7 +130,7 @@ struct Reminder: MutablePersistableRecord, Encodable {
 }
 ```
 
-These can be updated to use non-optional types for the primary key, and the field can be bound as 
+These can be updated to use non-optional types for the primary key, and the field can be bound as
 an immutable `let`:
 
 ```swift
@@ -141,7 +141,7 @@ struct Reminder {
 }
 ```
 
-The `@Table` macro automatically generates a `Draft` type that can be used when you want to be 
+The `@Table` macro automatically generates a `Draft` type that can be used when you want to be
 able to construct a value without the ID specified:
 
 ```swift
@@ -151,7 +151,7 @@ let draft = Reminder.Draft(title: "Get milk")
 Then when this draft value is inserted its ID will be determined by the database:
 
 ```swift
-try Reminder.insert { 
+try Reminder.insert {
   Reminder.Draft(title: "Get milk")
 }
 .execute(db)
@@ -160,7 +160,7 @@ try Reminder.insert {
 You can even use a `RETURNING` clause to grab the ID of the freshly inserted record:
 
 ```swift
-try Reminder.insert { 
+try Reminder.insert {
   Reminder.Draft(title: "Get milk")
 }
 .returning(\.id)
@@ -169,7 +169,7 @@ try Reminder.insert {
 
 ## CloudKit synchronization
 
-The library's [CloudKit](<doc:CloudKit>) synchronization tools require that the tables being 
+The library's [CloudKit](<doc:CloudKit>) synchronization tools require that the tables being
 synchronized have a primary key, and this is enforced through the `PrimaryKeyedTable` protocol.
 The `@Table` macro automatically applies this protocol for you when your type has an `id` field,
 but if you use a different name for your primary key you will need to use the `@Column` macro

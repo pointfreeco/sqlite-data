@@ -35,7 +35,7 @@ library, [subscribe today](https://www.pointfree.co/pricing).
 ## Overview
 
 SQLiteData is a [fast](#performance), lightweight replacement for SwiftData, including CloudKit
-synchronization (and even CloudKit sharing), built on top of the popular [GRDB] library. 
+synchronization (and even CloudKit sharing), built on top of the popular [GRDB] library.
 To populate data from the database you can use `@Table` and `@FetchAll`, which are
 similar to SwiftData's `@Model` and `@Query`:
 
