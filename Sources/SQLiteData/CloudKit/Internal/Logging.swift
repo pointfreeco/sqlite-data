@@ -117,20 +117,10 @@
           recordTypes.append(modification.recordType)
           recordNames.append(modification.recordID.recordName)
         }
-        if modifications.isEmpty {
-          actions.append("⚪️ Modified")
-          recordTypes.append("(none)")
-          recordNames.append("(none)")
-        }
         for (deletedRecordID, deletedRecordType) in deletions {
           actions.append("🗑️ Deleted")
           recordTypes.append(deletedRecordType)
           recordNames.append(deletedRecordID.recordName)
-        }
-        if deletions.isEmpty {
-          actions.append("⚪️ Deleted")
-          recordTypes.append("(none)")
-          recordNames.append("(none)")
         }
         debug(
           """
@@ -188,14 +178,6 @@
           actions.append("✅ Saved")
           recordTypes.append(savedRecord.recordType)
           recordNames.append(savedRecord.recordID.recordName)
-          if !failedRecordSaves.isEmpty || !failedRecordDeletes.isEmpty {
-            errors.append("")
-          }
-        }
-        if savedRecords.isEmpty {
-          actions.append("⚪️ Saved")
-          recordTypes.append("(none)")
-          recordNames.append("(none)")
           if !failedRecordSaves.isEmpty || !failedRecordDeletes.isEmpty {
             errors.append("")
           }
