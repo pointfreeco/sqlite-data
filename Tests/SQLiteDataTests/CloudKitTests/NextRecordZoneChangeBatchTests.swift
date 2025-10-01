@@ -66,54 +66,29 @@
         }
       }
 
+      // * CloudKit sends record for table we do not recognize.
+      // * CloudKit deletes that record
+      // => Local sync metadata should be deleted for that record.
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func cloudKitSendsNonExistentTable() async throws {
-
-        let record = CKRecord.init(
+        let record = CKRecord(
           recordType: UnrecognizedTable.tableName,
           recordID: UnrecognizedTable.recordID(for: 1)
         )
         record.setValue(1, forKey: "id", at: now)
         try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
 
-        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+        assertQuery(SyncMetadata.select(\.recordName), database: syncEngine.metadatabase) {
           """
-          ┌────────────────────────────────────────────────────────────────────────┐
-          │ SyncMetadata(                                                          │
-          │   recordPrimaryKey: "1",                                               │
-          │   recordType: "unrecognizedTables",                                    │
-          │   zoneName: "zone",                                                    │
-          │   ownerName: "__defaultOwner__",                                       │
-          │   recordName: "1:unrecognizedTables",                                  │
-          │   parentRecordPrimaryKey: nil,                                         │
-          │   parentRecordType: nil,                                               │
-          │   parentRecordName: nil,                                               │
-          │   lastKnownServerRecord: CKRecord(                                     │
-          │     recordID: CKRecord.ID(1:unrecognizedTables/zone/__defaultOwner__), │
-          │     recordType: "unrecognizedTables",                                  │
-          │     parent: nil,                                                       │
-          │     share: nil                                                         │
-          │   ),                                                                   │
-          │   _lastKnownServerRecordAllFields: CKRecord(                           │
-          │     recordID: CKRecord.ID(1:unrecognizedTables/zone/__defaultOwner__), │
-          │     recordType: "unrecognizedTables",                                  │
-          │     parent: nil,                                                       │
-          │     share: nil,                                                        │
-          │     id: 1                                                              │
-          │   ),                                                                   │
-          │   share: nil,                                                          │
-          │   _isDeleted: false,                                                   │
-          │   hasLastKnownServerRecord: true,                                      │
-          │   isShared: false,                                                     │
-          │   userModificationTime: 0                                              │
-          │ )                                                                      │
-          └────────────────────────────────────────────────────────────────────────┘
+          ┌────────────────────────┐
+          │ "1:unrecognizedTables" │
+          └────────────────────────┘
           """
         }
 
         try await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID]).notify()
 
-        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+        assertQuery(SyncMetadata.select(\.recordName), database: syncEngine.metadatabase) {
           """
           (No results)
           """
