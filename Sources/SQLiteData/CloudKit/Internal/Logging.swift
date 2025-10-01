@@ -43,7 +43,7 @@
             ColumnID("recordType", String.self),
             ColumnID("recordName", String.self)
           )
-        } else {
+        } else if !actions.isEmpty {
           dataFrame.sort(on: ColumnID("action", String.self))
         }
         var formattingOptions = FormattingOptions(
