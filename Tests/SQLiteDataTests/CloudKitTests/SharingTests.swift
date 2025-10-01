@@ -72,7 +72,16 @@
           "The record could not be shared."
           """
         }
-        assertInlineSnapshot(of: error, as: .customDump)
+        assertInlineSnapshot(of: error, as: .customDump) {
+          #"""
+          SyncEngine.SharingError(
+            recordTableName: nil,
+            recordPrimaryKey: nil,
+            reason: .syncEngineNotRunning,
+            debugDescription: "Sync engine is not running. Make sure engine is running by invoking the \'start()\' method, or using the \'startImmediately\' argument when initializing the engine."
+          )
+          """#
+        }
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
