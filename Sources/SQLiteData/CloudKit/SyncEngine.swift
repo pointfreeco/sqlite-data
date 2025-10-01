@@ -89,7 +89,9 @@
     ) throws
     where
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
-      repeat (each T2).PrimaryKey.QueryOutput: IdentifierStringConvertible
+      repeat (each T1).TableColumns.PrimaryColumn: TableColumnExpression,
+      repeat (each T2).PrimaryKey.QueryOutput: IdentifierStringConvertible,
+      repeat (each T2).TableColumns.PrimaryColumn: TableColumnExpression
     {
       let containerIdentifier =
         containerIdentifier
@@ -867,7 +869,8 @@
           if let tabularDescription = state.tabularDescription {
             logger.debug(
               """
-              [\(syncEngine.database.databaseScope.label)] nextRecordZoneChangeBatch: \(reason)
+              SQLiteData (\(syncEngine.database.databaseScope.label).db) \
+              nextRecordZoneChangeBatch: \(reason)
                 \(tabularDescription)
               """
             )
@@ -911,7 +914,7 @@
                 $0.recordNames.append(missingRecord.recordName)
               }
               if let sentRecord {
-                $0.events.append("✅ Sent record")
+                $0.events.append("➡️ Sending")
                 $0.recordTypes.append(metadata.recordType)
                 $0.recordNames.append(sentRecord.recordName)
               }

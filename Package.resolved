@@ -124,7 +124,7 @@
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
         "branch" : "table-expression",
-        "revision" : "cb6e29dd9a5049a0f654a214f0641dfa609ea664"
+        "revision" : "c820b2bebb4401922bbc298fbc451be8f0ecdb30"
       }
     },
     {
