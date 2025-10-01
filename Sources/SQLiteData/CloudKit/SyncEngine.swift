@@ -861,7 +861,8 @@
           if let tabularDescription = state.tabularDescription {
             logger.debug(
               """
-              [\(syncEngine.database.databaseScope.label)] nextRecordZoneChangeBatch: \(reason)
+              SQLiteData (\(syncEngine.database.databaseScope.label).db) \
+              nextRecordZoneChangeBatch: \(reason)
                 \(tabularDescription)
               """
             )
