@@ -4,6 +4,7 @@
   import Foundation
   import InlineSnapshotTesting
   import SQLiteData
+  import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
 
@@ -49,6 +50,74 @@
         }
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func cloudKitSendsNonExistentTable() async throws {
+
+        let record = CKRecord.init(
+          recordType: UnrecognizedTable.tableName,
+          recordID: UnrecognizedTable.recordID(for: 1)
+        )
+        record.setValue(1, forKey: "id", at: now)
+        try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
+
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                          │
+          │   recordPrimaryKey: "1",                                               │
+          │   recordType: "unrecognizedTables",                                    │
+          │   zoneName: "zone",                                                    │
+          │   ownerName: "__defaultOwner__",                                       │
+          │   recordName: "1:unrecognizedTables",                                  │
+          │   parentRecordPrimaryKey: nil,                                         │
+          │   parentRecordType: nil,                                               │
+          │   parentRecordName: nil,                                               │
+          │   lastKnownServerRecord: CKRecord(                                     │
+          │     recordID: CKRecord.ID(1:unrecognizedTables/zone/__defaultOwner__), │
+          │     recordType: "unrecognizedTables",                                  │
+          │     parent: nil,                                                       │
+          │     share: nil                                                         │
+          │   ),                                                                   │
+          │   _lastKnownServerRecordAllFields: CKRecord(                           │
+          │     recordID: CKRecord.ID(1:unrecognizedTables/zone/__defaultOwner__), │
+          │     recordType: "unrecognizedTables",                                  │
+          │     parent: nil,                                                       │
+          │     share: nil,                                                        │
+          │     id: 1                                                              │
+          │   ),                                                                   │
+          │   share: nil,                                                          │
+          │   _isDeleted: false,                                                   │
+          │   hasLastKnownServerRecord: true,                                      │
+          │   isShared: false,                                                     │
+          │   userModificationTime: 0                                              │
+          │ )                                                                      │
+          └────────────────────────────────────────────────────────────────────────┘
+          """
+        }
+
+        try await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID]).notify()
+
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          (No results)
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -223,6 +292,6 @@
   }
 
   @Table struct UnrecognizedTable {
-    let id: UUID
+    let id: Int
   }
 #endif
