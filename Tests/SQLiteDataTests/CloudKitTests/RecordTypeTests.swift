@@ -441,7 +441,8 @@
         )
         #expect(
           recordTypes[(remindersTableIndex + 1)...]
-            == recordTypesAfterMigration[(remindersTableIndex + 1)...])
+            == recordTypesAfterMigration[(remindersTableIndex + 1)...]
+        )
 
         assertInlineSnapshot(of: recordTypesAfterMigration[remindersTableIndex], as: .customDump) {
           #"""
@@ -515,6 +516,11 @@
         }
       }
 
+      // * Stop sync engine
+      // * Migrate to add new table
+      // * Create new sync engine but forget to add table
+      // * Create new sync engine but this time add the table
+      // * Confirm that new table records are uploaded to CloudKit
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func migrationAddTableForgetToAddToSyncEngine() async throws {
         let recordTypes = try await syncEngine.metadatabase.read { db in
@@ -537,48 +543,58 @@
             .execute(db)
         }
 
-        try syncEngine.setUpSyncEngine()
-        try await syncEngine.start()
-        let recordTypesAfterMigration = try await syncEngine.metadatabase.read { db in
-          try RecordType.order(by: \.tableName).fetchAll(db)
-        }
-        expectNoDifference(recordTypesAfterMigration, recordTypes)
-
-        let relaunchedSyncEngine = try await SyncEngine(
-          container: syncEngine.container,
-          userDatabase: syncEngine.userDatabase,
-          tables: syncEngine.tables + [Foo.self],
-          privateTables: syncEngine.privateTables
-        )
-        try await relaunchedSyncEngine.processPendingRecordZoneChanges(scope: .private)
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:foos/zone/__defaultOwner__),
-                  recordType: "foos",
-                  parent: nil,
-                  share: nil,
-                  id: 1
-                )
-              ]
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
+        do {
+          let relaunchedSyncEngine = try await SyncEngine(
+            container: syncEngine.container,
+            userDatabase: syncEngine.userDatabase,
+            tables: syncEngine.tables + [Foo.self],
+            privateTables: syncEngine.privateTables
           )
-          """
+          let recordTypesAfterMigration = try await syncEngine.metadatabase.read { db in
+            try RecordType.order(by: \.tableName).fetchAll(db)
+          }
+          expectNoDifference(recordTypesAfterMigration, recordTypes)
+          relaunchedSyncEngine.stop()
+          try relaunchedSyncEngine.tearDownSyncEngine()
+        }
+
+        do {
+          let relaunchedSyncEngine = try await SyncEngine(
+            container: syncEngine.container,
+            userDatabase: syncEngine.userDatabase,
+            tables: syncEngine.tables + [Foo.self],
+            privateTables: syncEngine.privateTables
+          )
+          try await relaunchedSyncEngine.processPendingRecordZoneChanges(scope: .private)
+          assertInlineSnapshot(of: container, as: .customDump) {
+            """
+            MockCloudContainer(
+              privateCloudDatabase: MockCloudDatabase(
+                databaseScope: .private,
+                storage: [
+                  [0]: CKRecord(
+                    recordID: CKRecord.ID(1:foos/zone/__defaultOwner__),
+                    recordType: "foos",
+                    parent: nil,
+                    share: nil,
+                    id: 1
+                  )
+                ]
+              ),
+              sharedCloudDatabase: MockCloudDatabase(
+                databaseScope: .shared,
+                storage: []
+              )
+            )
+            """
+          }
         }
       }
     }
   }
 
-@Table
-private struct Foo {
-  let id: Int
-}
+  @Table
+  private struct Foo {
+    let id: Int
+  }
 #endif
