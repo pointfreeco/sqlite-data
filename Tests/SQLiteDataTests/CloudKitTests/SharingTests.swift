@@ -56,6 +56,35 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func syncEngineStopped() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed { remindersList }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        syncEngine.stop()
+
+        let error = await #expect(throws: (any Error).self) {
+          _ = try await self.syncEngine.share(record: remindersList, configure: { _ in })
+        }
+        assertInlineSnapshot(of: error?.localizedDescription, as: .customDump) {
+          """
+          "The record could not be shared."
+          """
+        }
+        assertInlineSnapshot(of: error, as: .customDump) {
+          #"""
+          SyncEngine.SharingError(
+            recordTableName: nil,
+            recordPrimaryKey: nil,
+            reason: .syncEngineNotRunning,
+            debugDescription: "Sync engine is not running. Make sure engine is running by invoking the \'start()\' method, or using the \'startImmediately\' argument when initializing the engine."
+          )
+          """#
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func shareUnrecognizedTable() async throws {
         let error = await #expect(throws: (any Error).self) {
           _ = try await self.syncEngine.share(

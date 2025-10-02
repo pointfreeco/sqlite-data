@@ -1251,6 +1251,14 @@
           }
         } else {
           // NB: Deleting a record from a table we do not currently recognize.
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await userDatabase.write { db in
+              try SyncMetadata
+                .findAll(recordIDs)
+                .delete()
+                .execute(db)
+            }
+          }
         }
       }
 
