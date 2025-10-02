@@ -30,3 +30,7 @@ project. To work on each example app individually, select its scheme in Xcode.
 
 [scrumdinger]: https://developer.apple.com/tutorials/app-dev-training/getting-started-with-scrumdinger
 [reminders-app-store]: https://apps.apple.com/us/app/reminders/id1108187841
+
+* **AppKitDemo**
+  <br> This application is a simplified Reminders app built with AppKit + SwiftUI. It shows basic patterns
+  for fetching, observing, and modifying data.

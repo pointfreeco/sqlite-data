@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C404E30F2E88A5F5000D23D2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = C404E30E2E88A5F5000D23D2 /* SQLiteData */; };
+		C43A01E72E88FDB800E5168E /* AppKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = C43A01E62E88FDB800E5168E /* AppKitNavigation */; };
+		C43A02052E8999C100E5168E /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = C43A02042E8999C100E5168E /* CasePaths */; };
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
 		CA2BDE2A2E71C469000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE292E71C469000974D3 /* SQLiteData */; };
@@ -48,6 +51,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		C4CD9A252E88A20900172F37 /* AppKitDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AppKitDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C4CD9BE72E88A57D00172F37 /* sqlite-data */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sqlite-data"; path = "/Users/rcarver/Code/OpenSource/sqlite-data"; sourceTree = "<absolute>"; };
 		CA2BDD9D2E71C30B000974D3 /* CloudKitDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudKitDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA2BDE272E71C42B000974D3 /* sqlite-data */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sqlite-data"; path = "/Users/brandon/projects/sqlite-data"; sourceTree = "<absolute>"; };
 		CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemindersTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -94,6 +99,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		C4CD9A262E88A20900172F37 /* AppKitDemo */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AppKitDemo;
+			sourceTree = "<group>";
+		};
 		CA2BDD9E2E71C30B000974D3 /* CloudKitDemo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -144,6 +154,16 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		C4CD9A222E88A20900172F37 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C404E30F2E88A5F5000D23D2 /* SQLiteData in Frameworks */,
+				C43A01E72E88FDB800E5168E /* AppKitNavigation in Frameworks */,
+				C43A02052E8999C100E5168E /* CasePaths in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CA2BDD9A2E71C30B000974D3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -221,6 +241,7 @@
 				DCBE89CD2D483FB90071F499 /* SyncUps */,
 				CAD0017E2D874E6F00FA977A /* SyncUpTests */,
 				CA2BDD9E2E71C30B000974D3 /* CloudKitDemo */,
+				C4CD9A262E88A20900172F37 /* AppKitDemo */,
 				CAF837022D4735C00047AEB5 /* Frameworks */,
 				CAF836992D4735620047AEB5 /* Products */,
 			);
@@ -236,6 +257,7 @@
 				CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */,
 				CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */,
 				CA2BDD9D2E71C30B000974D3 /* CloudKitDemo.app */,
+				C4CD9A252E88A20900172F37 /* AppKitDemo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -243,6 +265,7 @@
 		CAF837022D4735C00047AEB5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				C4CD9BE72E88A57D00172F37 /* sqlite-data */,
 				CA2BDE272E71C42B000974D3 /* sqlite-data */,
 			);
 			name = Frameworks;
@@ -251,6 +274,31 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		C4CD9A242E88A20900172F37 /* AppKitDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C4CD9A2F2E88A20A00172F37 /* Build configuration list for PBXNativeTarget "AppKitDemo" */;
+			buildPhases = (
+				C4CD9A212E88A20900172F37 /* Sources */,
+				C4CD9A222E88A20900172F37 /* Frameworks */,
+				C4CD9A232E88A20900172F37 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C4CD9A262E88A20900172F37 /* AppKitDemo */,
+			);
+			name = AppKitDemo;
+			packageProductDependencies = (
+				C404E30E2E88A5F5000D23D2 /* SQLiteData */,
+				C43A01E62E88FDB800E5168E /* AppKitNavigation */,
+				C43A02042E8999C100E5168E /* CasePaths */,
+			);
+			productName = AppKitDemo;
+			productReference = C4CD9A252E88A20900172F37 /* AppKitDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
 		CA2BDD9C2E71C30B000974D3 /* CloudKitDemo */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CA2BDDA72E71C30D000974D3 /* Build configuration list for PBXNativeTarget "CloudKitDemo" */;
@@ -429,9 +477,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1640;
+				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					C4CD9A242E88A20900172F37 = {
+						CreatedOnToolsVersion = 26.0;
+					};
 					CA2BDD9C2E71C30B000974D3 = {
 						CreatedOnToolsVersion = 16.4;
 					};
@@ -486,11 +537,19 @@
 				DCBE89CB2D483FB90071F499 /* SyncUps */,
 				CAD0017C2D874E6F00FA977A /* SyncUpTests */,
 				CA2BDD9C2E71C30B000974D3 /* CloudKitDemo */,
+				C4CD9A242E88A20900172F37 /* AppKitDemo */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		C4CD9A232E88A20900172F37 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CA2BDD9B2E71C30B000974D3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -543,6 +602,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		C4CD9A212E88A20900172F37 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CA2BDD992E71C30B000974D3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -613,6 +679,70 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		C4CD9A2D2E88A20A00172F37 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.AppKitDemo.AppKitDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C4CD9A2E2E88A20A00172F37 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = co.pointfree.AppKitDemo.AppKitDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		CA2BDDA52E71C30D000974D3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1077,6 +1207,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		C4CD9A2F2E88A20A00172F37 /* Build configuration list for PBXNativeTarget "AppKitDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C4CD9A2D2E88A20A00172F37 /* Debug */,
+				C4CD9A2E2E88A20A00172F37 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CA2BDDA72E71C30D000974D3 /* Build configuration list for PBXNativeTarget "CloudKitDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -1194,6 +1333,20 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		C404E30E2E88A5F5000D23D2 /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SQLiteData;
+		};
+		C43A01E62E88FDB800E5168E /* AppKitNavigation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
+			productName = AppKitNavigation;
+		};
+		C43A02042E8999C100E5168E /* CasePaths */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
+			productName = CasePaths;
+		};
 		CA14DBC82DA884C400E36852 /* CasePaths */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
