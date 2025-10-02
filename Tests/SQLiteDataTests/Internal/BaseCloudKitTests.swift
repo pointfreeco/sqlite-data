@@ -124,6 +124,9 @@ class BaseCloudKitTests: @unchecked Sendable {
 
   deinit {
     if #available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) {
+      guard syncEngine.isRunning
+      else { return }
+
       syncEngine.shared.assertFetchChangesScopes([])
       syncEngine.shared.state.assertPendingDatabaseChanges([])
       syncEngine.shared.state.assertPendingRecordZoneChanges([])
@@ -132,6 +135,7 @@ class BaseCloudKitTests: @unchecked Sendable {
       syncEngine.private.state.assertPendingDatabaseChanges([])
       syncEngine.private.state.assertPendingRecordZoneChanges([])
       syncEngine.private.assertAcceptedShareMetadata([])
+
       try! syncEngine.metadatabase.read { db in
         try #expect(UnsyncedRecordID.count().fetchOne(db) == 0)
       }
