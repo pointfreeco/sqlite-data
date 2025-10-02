@@ -1,8 +1,8 @@
 #if canImport(CloudKit)
   import StructuredQueriesCore
 
-  @Selection
-  package struct TableInfo: Codable, Hashable, QueryDecodable, QueryRepresentable {
+  @Table
+  package struct TableInfo: Codable, Hashable {
     let defaultValue: String?
     let isPrimaryKey: Bool
     package let name: String

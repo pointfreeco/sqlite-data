@@ -56,8 +56,8 @@ struct Reminder: Hashable, Identifiable {
 extension Updates<Reminder> {
   mutating func toggleStatus() {
     self.status = Case(self.status)
-      .when(Reminder.Status.incomplete, then: Reminder.Status.completing)
-      .else(Reminder.Status.incomplete)
+      .when(#bind(.incomplete), then: #bind(.completing))
+      .else(#bind(.incomplete))
   }
 }
 
@@ -101,13 +101,13 @@ extension Tag {
 }
 
 @Table("remindersTags")
-struct ReminderTag: Hashable, Identifiable {
+struct ReminderTag: Identifiable {
   let id: UUID
-  var reminderID: Reminder.ID
-  var tagID: Tag.ID
+  let reminderID: Reminder.ID
+  let tagID: Tag.ID
 }
 
-@Table @Selection
+@Table
 struct ReminderText: FTS5 {
   let rowid: Int
   let title: String
@@ -335,7 +335,7 @@ func appDatabase() throws -> any DatabaseWriter {
       } forEachRow: { _, _ in
         Values($handleReminderStatusUpdate())
       } when: { _, new in
-        new.status.eq(Reminder.Status.completing)
+        new.status.eq(#bind(.completing))
       }
     )
     .execute(db)
@@ -359,7 +359,7 @@ func handleReminderStatusUpdate() {
       try await clock.sleep(for: .seconds(5))
       try await database.write { db in
         try Reminder
-          .where { $0.status.eq(Reminder.Status.completing) }
+          .where { $0.status.eq(#bind(.completing)) }
           .update { $0.status = .completed }
           .execute(db)
       }

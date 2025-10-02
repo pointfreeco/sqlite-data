@@ -34,11 +34,11 @@
     ///     * Thew new table is renamed to have the same name as the table just dropped.
     ///   * Any indexes and stored triggers that were removed from dropping tables in the steps
     ///     above are recreated.
-    ///   * Executes a "PRAGMA foreign_key_check;" query to make sure that the integerity of the
-    ///     data is preserved.
+    ///   * Executes a "PRAGMA foreign_key_check;" query to make sure that the integrity of the data
+    ///     is preserved.
     ///
     /// If all of those steps are performed without throwing an error, then your schema and data
-    /// should have been succesfully migrated to UUIDs. If an error is thrown for any reason,
+    /// should have been successfully migrated to UUIDs. If an error is thrown for any reason,
     /// then it means the tool was not able to safely migrate your data and so you will need to
     /// perform the migration [manually](<doc:ManuallyMigratingPrimaryKeys>).
     ///
@@ -51,7 +51,11 @@
       _ db: Database,
       tables: repeat (each T).Type,
       uuid uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
-    ) throws where repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible {
+    ) throws
+    where
+      repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible,
+      repeat (each T).TableColumns.PrimaryColumn: TableColumnExpression
+    {
       let salt =
         (try uuidFunction.flatMap { uuid -> UUID? in
           try #sql("SELECT \(quote: uuid.name)()", as: UUID.self).fetchOne(db)
@@ -119,7 +123,7 @@
   }
 
   @available(iOS 16, macOS 13, tvOS 13, watchOS 9, *)
-  extension PrimaryKeyedTable {
+  extension PrimaryKeyedTable where TableColumns.PrimaryColumn: TableColumnExpression {
     fileprivate static func migratePrimaryKeyToUUID(
       db: Database,
       uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil,

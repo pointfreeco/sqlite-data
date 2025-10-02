@@ -42,9 +42,11 @@ final class SyncUpsListModel {
   #endif
 
   @Selection
-  struct Row {
+  struct Row: Identifiable {
     let attendeeCount: Int
     let syncUp: SyncUp
+
+    var id: SyncUp.ID { syncUp.id }
   }
 }
 
@@ -54,7 +56,7 @@ struct SyncUpsList: View {
 
   var body: some View {
     List {
-      ForEach(model.syncUps, id: \.syncUp.id) { state in
+      ForEach(model.syncUps) { state in
         NavigationLink(value: AppModel.Path.detail(SyncUpDetailModel(syncUp: state.syncUp))) {
           CardView(syncUp: state.syncUp, attendeeCount: state.attendeeCount)
         }
