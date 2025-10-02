@@ -1051,7 +1051,11 @@ struct PrimaryKeyMigrationTests {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func migrate<each T: PrimaryKeyedTable>(
     tables: repeat (each T).Type
-  ) throws where repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible {
+  ) throws
+  where
+    repeat (each T).PrimaryKey.QueryOutput: IdentifierStringConvertible,
+    repeat (each T).TableColumns.PrimaryColumn: TableColumnExpression
+  {
     try database.writeWithoutTransaction { db in
       try #sql("PRAGMA foreign_keys = OFF").execute(db)
       do {
