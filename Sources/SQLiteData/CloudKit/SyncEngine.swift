@@ -71,7 +71,7 @@
     ///   the container will be determined from the entitlements of your app.
     ///   - defaultZone: The zone for all records to be stored in.
     ///   - startImmediately: Determines if the sync engine starts right away or requires an
-    ///   explicit call to ``stop()``. By default this argument is `true`.
+    ///   explicit call to ``start()``. By default this argument is `true`.
     ///   - logger: The logger used to log events in the sync engine. By default a `.disabled`
     ///   logger is used, which means logs are not printed.
     public convenience init<
