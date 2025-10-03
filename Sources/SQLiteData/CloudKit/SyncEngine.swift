@@ -21,9 +21,9 @@
     package let userDatabase: UserDatabase
     package let logger: Logger
     package let metadatabase: any DatabaseWriter
-    package let tables: [any (PrimaryKeyedTable & _SendableMetatype).Type]
-    package let privateTables: [any (PrimaryKeyedTable & _SendableMetatype).Type]
-    let tablesByName: [String: any (PrimaryKeyedTable & _SendableMetatype).Type]
+    package let tables: [any SynchronizableTable]
+    package let privateTables: [any SynchronizableTable]
+    let tablesByName: [String: any SynchronizableTable]
     private let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
     package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
@@ -89,21 +89,21 @@
     ) throws
     where
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
-      repeat (each T1).TableColumns.PrimaryColumn: TableColumnExpression,
+      repeat (each T1).TableColumns.PrimaryColumn: WritableTableColumnExpression,
       repeat (each T2).PrimaryKey.QueryOutput: IdentifierStringConvertible,
-      repeat (each T2).TableColumns.PrimaryColumn: TableColumnExpression
+      repeat (each T2).TableColumns.PrimaryColumn: WritableTableColumnExpression
     {
       let containerIdentifier =
         containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
 
-      var allTables: [any (PrimaryKeyedTable & _SendableMetatype).Type] = []
-      var allPrivateTables: [any (PrimaryKeyedTable & _SendableMetatype).Type] = []
+      var allTables: [any SynchronizableTable] = []
+      var allPrivateTables: [any SynchronizableTable] = []
       for table in repeat each tables {
-        allTables.append(table)
+        allTables.append(SynchronizedTable(for: table))
       }
       for privateTable in repeat each privateTables {
-        allPrivateTables.append(privateTable)
+        allPrivateTables.append(SynchronizedTable(for: privateTable))
       }
       let userDatabase = UserDatabase(database: database)
 
@@ -202,10 +202,10 @@
         ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
       userDatabase: UserDatabase,
       logger: Logger,
-      tables: [any (PrimaryKeyedTable & _SendableMetatype).Type],
-      privateTables: [any (PrimaryKeyedTable & _SendableMetatype).Type] = []
+      tables: [any SynchronizableTable],
+      privateTables: [any SynchronizableTable] = []
     ) throws {
-      let allTables = Set((tables + privateTables).map(HashablePrimaryKeyedTableType.init))
+      let allTables = Set((tables + privateTables).map(HashableSynchronizedTable.init))
         .map(\.type)
       self.tables = allTables
       self.privateTables = privateTables
@@ -213,9 +213,11 @@
       let foreignKeysByTableName = Dictionary(
         uniqueKeysWithValues: try userDatabase.read { db in
           try allTables.map { table -> (String, [ForeignKey]) in
-            func open<T: StructuredQueriesCore.Table>(_: T.Type) throws -> (String, [ForeignKey]) {
+            func open<T>(
+              _: some SynchronizableTable<T>
+            ) throws -> (String, [ForeignKey]) {
               (
-                table.tableName,
+                T.tableName,
                 try PragmaForeignKeyList<T>
                   .join(PragmaTableInfo<T>.all) { $0.from.eq($1.name) }
                   .select {
@@ -247,7 +249,9 @@
           containerIdentifier: container.containerIdentifier
         )
       )
-      self.tablesByName = Dictionary(uniqueKeysWithValues: self.tables.map { ($0.tableName, $0) })
+      self.tablesByName = Dictionary(
+        uniqueKeysWithValues: self.tables.map { ($0.base.tableName, $0) }
+      )
       self.foreignKeysByTableName = foreignKeysByTableName
       tablesByOrder = try SQLiteData.tablesByOrder(
         userDatabase: userDatabase,
@@ -334,7 +338,7 @@
       }
 
       for table in tables {
-        try table.createTriggers(
+        try table.base.createTriggers(
           foreignKeysByTableName: foreignKeysByTableName,
           tablesByName: tablesByName,
           defaultZone: defaultZone,
@@ -395,13 +399,13 @@
           try SQLiteSchema
           .where {
             $0.type.eq(#bind(.table))
-              && $0.tableName.in(tables.map { $0.tableName })
+            && $0.tableName.in(tables.map { $0.base.tableName })
           }
           .fetchAll(db)
         return try namesAndSchemas.compactMap { schema -> RecordType? in
           guard let sql = schema.sql, let table = tablesByName[schema.name]
           else { return nil }
-          func open<T: StructuredQueriesCore.Table>(_: T.Type) throws -> RecordType {
+          func open<T>(_: some SynchronizableTable<T>) throws -> RecordType {
             try RecordType(
               tableName: schema.name,
               schema: sql,
@@ -509,11 +513,14 @@
       }
     }
 
-    private func uploadRecordsToCloudKit<T: PrimaryKeyedTable>(table: T.Type, db: Database) throws {
+    private func uploadRecordsToCloudKit<T>(
+      table: some SynchronizableTable<T>,
+      db: Database
+    ) throws {
+      // try T.update { $0.primaryKey = $0.primaryKey }.execute(db)
       try #sql(
         """
-        UPDATE \(T.self) SET \
-        \(T.primaryKey._names.map { "\(quote: $0) = \(quote: $0)" }.joined(separator: ", "))
+        UPDATE \(T.self) SET \(quote: T.primaryKey.name) = \(quote: T.primaryKey.name)
         """
       )
       .execute(db)
@@ -522,8 +529,8 @@
     private func uploadRecordsToCloudKit(tableName: String, db: Database) throws {
       guard let table = self.tablesByName[tableName]
       else { return }
-      func open<T: PrimaryKeyedTable>(_: T.Type) throws {
-        try uploadRecordsToCloudKit(table: T.self, db: db)
+      func open<T>(_ table: some SynchronizableTable<T>) throws {
+        try uploadRecordsToCloudKit(table: table, db: db)
       }
       try open(table)
     }
@@ -539,7 +546,7 @@
       for (tableName, currentRecordType) in tablesWithChangedSchemas {
         guard let table = tablesByName[tableName]
         else { continue }
-        func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
+        func open<T>(_ table: some SynchronizableTable<T>) async throws {
           let previousRecordType = previousRecordTypeByTableName[tableName]
           let changedColumns = currentRecordType.tableInfo.subtracting(
             previousRecordType?.tableInfo ?? []
@@ -553,7 +560,7 @@
           }
           for case .some(let lastKnownServerRecord) in lastKnownServerRecords {
             let query = try await updateQuery(
-              for: T.self,
+              for: table,
               record: lastKnownServerRecord,
               columnNames: T.TableColumns.writableColumns.map(\.name),
               changedColumnNames: changedColumns
@@ -570,7 +577,7 @@
     package func tearDownSyncEngine() throws {
       try userDatabase.write { db in
         for table in tables.reversed() {
-          try table.dropTriggers(defaultZone: defaultZone, db: db)
+          try table.base.dropTriggers(defaultZone: defaultZone, db: db)
         }
         for trigger in SyncMetadata.callbackTriggers(for: self).reversed() {
           try trigger.drop().execute(db)
@@ -586,7 +593,7 @@
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in
           for table in tables {
-            func open<T: PrimaryKeyedTable>(_: T.Type) {
+            func open<T>(_: some SynchronizableTable<T>) {
               withErrorReporting(.sqliteDataCloudKitFailure) {
                 try T.delete().execute(db)
               }
@@ -736,7 +743,7 @@
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     fileprivate static func createTriggers(
       foreignKeysByTableName: [String: [ForeignKey]],
-      tablesByName: [String: any PrimaryKeyedTable.Type],
+      tablesByName: [String: any SynchronizableTable],
       defaultZone: CKRecordZone,
       db: Database
     ) throws {
@@ -928,7 +935,7 @@
           missingTable = recordID
           return nil
         }
-        func open<T: PrimaryKeyedTable>(_: T.Type) async -> CKRecord? {
+        func open<T>(_: some SynchronizableTable<T>) async -> CKRecord? {
           let row =
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try userDatabase.read { db in
@@ -955,7 +962,7 @@
             )
           if let parentRecordName = metadata.parentRecordName,
             let parentRecordType = metadata.parentRecordType,
-            !privateTables.contains(where: { $0.tableName == parentRecordType })
+            !privateTables.contains(where: { $0.base.tableName == parentRecordType })
           {
             record.parent = CKRecord.Reference(
               recordID: CKRecord.ID(
@@ -1168,7 +1175,7 @@
         for (recordType, primaryKeys) in recordTypes {
           guard let table = tablesByName[recordType]
           else { continue }
-          func open<T: PrimaryKeyedTable>(_: T.Type) {
+          func open<T: PrimaryKeyedTable>(_: some SynchronizableTable<T>) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try T.where { #sql("\($0.primaryKey)").in(primaryKeys) }.delete().execute(db)
             }
@@ -1189,7 +1196,7 @@
         for recordType in recordTypes {
           guard let table = tablesByName[recordType]
           else { continue }
-          func open<T: PrimaryKeyedTable>(_: T.Type) {
+          func open<T>(_: some SynchronizableTable<T>) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               pendingRecordZoneChanges.append(
                 contentsOf: try T.select(\._recordName).fetchAll(db).map {
@@ -1222,7 +1229,7 @@
       .mapValues { $0.map(\.recordID) }
       for (recordType, recordIDs) in deletedRecordIDsByRecordType {
         if let table = tablesByName[recordType] {
-          func open<T: PrimaryKeyedTable & _SendableMetatype>(_: T.Type) async {
+          func open<T>(_: some SynchronizableTable<T>) async {
             await withErrorReporting(.sqliteDataCloudKitFailure) {
               try await userDatabase.write { db in
                 try T
@@ -1407,12 +1414,12 @@
           guard
             let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
             let table = tablesByName[failedRecord.recordType],
-            foreignKeysByTableName[table.tableName]?.count == 1,
-            let foreignKey = foreignKeysByTableName[table.tableName]?.first
+            foreignKeysByTableName[table.base.tableName]?.count == 1,
+            let foreignKey = foreignKeysByTableName[table.base.tableName]?.first
           else {
             continue
           }
-          func open<T: PrimaryKeyedTable>(_: T.Type) async throws {
+          func open<T>(_: some SynchronizableTable<T>) async throws {
             try await userDatabase.write { db in
               try $_isSynchronizingChanges.withValue(false) {
                 switch foreignKey.onDelete {
@@ -1427,7 +1434,7 @@
                   )
                 case .setDefault:
                   guard
-                    let recordType = try RecordType.find(table.tableName).fetchOne(db),
+                    let recordType = try RecordType.find(T.tableName).fetchOne(db),
                     let columnInfo = recordType.tableInfo.first(where: {
                       $0.name == foreignKey.from
                     })
@@ -1468,7 +1475,7 @@
             let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
             let table = tablesByName[failedRecord.recordType]
           else { continue }
-          func open<T: PrimaryKeyedTable & _SendableMetatype>(_: T.Type) async throws {
+          func open<T>(_: some SynchronizableTable<T>) async throws {
             do {
               let serverRecord = try await container.sharedCloudDatabase.record(
                 for: failedRecord.recordID
@@ -1617,7 +1624,7 @@
 
         serverRecord.userModificationTime = metadata.userModificationTime
 
-        func open<T: PrimaryKeyedTable & _SendableMetatype>(_: T.Type) throws {
+        func open<T>(_ table: some SynchronizableTable<T>) throws {
           var columnNames: [String] = T.TableColumns.writableColumns.map(\.name)
           if !force,
             let allFields = metadata._lastKnownServerRecordAllFields,
@@ -1635,7 +1642,7 @@
 
           do {
             try $_currentZoneID.withValue(serverRecord.recordID.zoneID) {
-              try #sql(upsert(T.self, record: serverRecord, columnNames: columnNames)).execute(db)
+              try #sql(upsert(table, record: serverRecord, columnNames: columnNames)).execute(db)
             }
             try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
             try SyncMetadata
@@ -1682,15 +1689,15 @@
       }
     }
 
-    private func updateQuery<T: PrimaryKeyedTable>(
-      for _: T.Type,
+    private func updateQuery<T>(
+      for _: some SynchronizableTable<T>,
       record: CKRecord,
       columnNames: some Collection<String>,
       changedColumnNames: some Collection<String>
     ) async throws -> QueryFragment {
       let nonPrimaryKeyChangedColumns =
         changedColumnNames
-        .filter { !T.primaryKey._names.contains($0) }
+        .filter { $0 != T.primaryKey.name }
       guard
         !nonPrimaryKeyChangedColumns.isEmpty
       else {
@@ -1722,12 +1729,7 @@
           }
           .joined(separator: ", ")
       )
-      query.append(
-        """
-        ) ON CONFLICT(\(T.primaryKey._names.map { "\(quote: $0)" }.joined(separator: ", "))) \
-        DO UPDATE SET 
-        """
-      )
+      query.append(") ON CONFLICT(\(quote: T.primaryKey.name)) DO UPDATE SET ")
       query.append(" ")
       query.append(
         nonPrimaryKeyChangedColumns
@@ -1953,7 +1955,7 @@
     }
 
     fileprivate func validateSchema() throws {
-      let tableNames = Set(tables.map { $0.tableName })
+      let tableNames = Set(tables.map { $0.base.tableName })
       for tableName in tableNames {
         if tableName.contains(":") {
           throw SyncEngine.SchemaError(
@@ -1993,7 +1995,7 @@
         }
 
         for table in tables {
-          func open<T: StructuredQueriesCore.Table>(_: T.Type) throws {
+          func open<T>(_: some SynchronizableTable<T>) throws {
             let columnsWithUniqueConstraints = try PragmaIndexList<T>
               .where { $0.isUnique && $0.origin != "pk" }
               .select(\.name)
@@ -2013,30 +2015,49 @@
     }
   }
 
-  private struct HashablePrimaryKeyedTableType: Hashable {
-    let type: any (PrimaryKeyedTable & _SendableMetatype).Type
-    init(_ type: any (PrimaryKeyedTable & _SendableMetatype).Type) {
+  package protocol SynchronizableTable<Base>: Hashable, Sendable {
+    associatedtype Base: PrimaryKeyedTable & _SendableMetatype
+    where
+      Base.PrimaryKey.QueryOutput: IdentifierStringConvertible,
+      Base.TableColumns.PrimaryColumn: WritableTableColumnExpression
+    var base: Base.Type { get }
+  }
+
+  package struct SynchronizedTable<
+    Base: PrimaryKeyedTable & _SendableMetatype
+  >: SynchronizableTable
+  where
+    Base.PrimaryKey.QueryOutput: IdentifierStringConvertible,
+    Base.TableColumns.PrimaryColumn: WritableTableColumnExpression
+  {
+    package init(for table: Base.Type = Base.self) {}
+    package var base: Base.Type { Base.self }
+  }
+
+  private struct HashableSynchronizedTable: Hashable {
+    let type: any SynchronizableTable
+    init(_ type: any SynchronizableTable) {
       self.type = type
     }
     func hash(into hasher: inout Hasher) {
-      hasher.combine(ObjectIdentifier(type))
+      hasher.combine(ObjectIdentifier(type.base))
     }
     static func == (lhs: Self, rhs: Self) -> Bool {
-      lhs.type == rhs.type
+      lhs.type.base == rhs.type.base
     }
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func tablesByOrder(
     userDatabase: UserDatabase,
-    tables: [any (PrimaryKeyedTable & _SendableMetatype).Type],
-    tablesByName: [String: any (PrimaryKeyedTable & _SendableMetatype).Type]
+    tables: [any SynchronizableTable],
+    tablesByName: [String: any SynchronizableTable]
   ) throws -> [String: Int] {
     let tableDependencies = try userDatabase.read { db in
       var dependencies:
-        [HashablePrimaryKeyedTableType: [any (PrimaryKeyedTable & _SendableMetatype).Type]] = [:]
+        [HashableSynchronizedTable: [any SynchronizableTable]] = [:]
       for table in tables {
-        func open<T: StructuredQueriesCore.Table>(_: T.Type) throws -> [String] {
+        func open<T>(_: some SynchronizableTable<T>) throws -> [String] {
           try PragmaForeignKeyList<T>.select(\.table)
             .fetchAll(db)
         }
@@ -2044,21 +2065,21 @@
         for toTable in toTables {
           guard let toTableType = tablesByName[toTable]
           else { continue }
-          dependencies[HashablePrimaryKeyedTableType(table), default: []].append(toTableType)
+          dependencies[HashableSynchronizedTable(table), default: []].append(toTableType)
         }
       }
       return dependencies
     }
 
-    var visited = Set<HashablePrimaryKeyedTableType>()
-    var marked = Set<HashablePrimaryKeyedTableType>()
+    var visited = Set<HashableSynchronizedTable>()
+    var marked = Set<HashableSynchronizedTable>()
     var result: [String: Int] = [:]
     for table in tableDependencies.keys {
       try visit(table: table)
     }
     return result
 
-    func visit(table: HashablePrimaryKeyedTableType) throws {
+    func visit(table: HashableSynchronizedTable) throws {
       guard !visited.contains(table)
       else { return }
       guard !marked.contains(table)
@@ -2073,11 +2094,11 @@
 
       marked.insert(table)
       for dependency in tableDependencies[table] ?? [] {
-        try visit(table: HashablePrimaryKeyedTableType(dependency))
+        try visit(table: HashableSynchronizedTable(dependency))
       }
       marked.remove(table)
       visited.insert(table)
-      result[table.type.tableName] = result.count
+      result[table.type.base.tableName] = result.count
     }
   }
 
@@ -2095,13 +2116,13 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func upsert<T: PrimaryKeyedTable>(
-    _: T.Type,
+  private func upsert<T>(
+    _: some SynchronizableTable<T>,
     record: CKRecord,
     columnNames: some Collection<String>
   ) -> QueryFragment {
     let allColumnNames = T.TableColumns.writableColumns.map(\.name)
-    let hasNonPrimaryKeyColumns = columnNames.contains(where: { !T.primaryKey._names.contains($0) })
+    let hasNonPrimaryKeyColumns = columnNames.contains { $0 != T.primaryKey.name }
     var query: QueryFragment = "INSERT INTO \(T.self) ("
     query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
     query.append(") VALUES (")
@@ -2118,16 +2139,12 @@
         }
         .joined(separator: ", ")
     )
-    query.append(
-      """
-      ) ON CONFLICT(\(T.primaryKey._names.map { "\(quote: $0)" }.joined(separator: ", "))) DO
-      """
-    )
+    query.append(") ON CONFLICT(\(quote: T.primaryKey.name)) DO")
     if hasNonPrimaryKeyColumns {
       query.append(" UPDATE SET ")
       query.append(
         columnNames
-          .filter { !T.primaryKey._names.contains($0) }
+          .filter { $0 != T.primaryKey.name }
           .map {
             """
             \(quote: $0) = "excluded".\(quote: $0)
