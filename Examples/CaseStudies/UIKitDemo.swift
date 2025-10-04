@@ -7,7 +7,7 @@ import UIKitNavigation
 final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseStudy {
   let caseStudyTitle = "UIKit"
   let readMe = """
-    This case study demonstrates how to use the 'fetchAll' tool in a UIKit app. The view \
+    This case study demonstrates how to use the `@FetchAll` tool in a UIKit app. The view \
     controller observes changes to the database and updates a collection view when data is added \
     or removed.
     """
@@ -96,8 +96,10 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
         if let fact {
           await withErrorReporting {
             try await database.write { db in
-              try Fact.insert(Fact.Draft(body: fact))
-                .execute(db)
+              try Fact.insert {
+                Fact.Draft(body: fact)
+              }
+              .execute(db)
             }
           }
         }

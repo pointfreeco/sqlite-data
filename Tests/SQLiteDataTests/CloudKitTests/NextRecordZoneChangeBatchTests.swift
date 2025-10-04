@@ -4,6 +4,7 @@
   import Foundation
   import InlineSnapshotTesting
   import SQLiteData
+  import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
 
@@ -49,6 +50,49 @@
         }
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      // * CloudKit sends record for table we do not recognize.
+      // * CloudKit deletes that record
+      // => Local sync metadata should be deleted for that record.
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func cloudKitSendsNonExistentTable() async throws {
+        let record = CKRecord(
+          recordType: UnrecognizedTable.tableName,
+          recordID: UnrecognizedTable.recordID(for: 1)
+        )
+        record.setValue(1, forKey: "id", at: now)
+        try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
+
+        assertQuery(SyncMetadata.select(\.recordName), database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────┐
+          │ "1:unrecognizedTables" │
+          └────────────────────────┘
+          """
+        }
+
+        try await syncEngine.modifyRecords(scope: .private, deleting: [record.recordID]).notify()
+
+        assertQuery(SyncMetadata.select(\.recordName), database: syncEngine.metadatabase) {
+          """
+          (No results)
+          """
+        }
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
@@ -223,6 +267,6 @@
   }
 
   @Table struct UnrecognizedTable {
-    let id: UUID
+    let id: Int
   }
 #endif

@@ -74,8 +74,11 @@
             container: syncEngine.container,
             userDatabase: syncEngine.userDatabase,
             tables: syncEngine.tables
-              .filter { $0 != Reminder.self && $0 != RemindersList.self }
-              + [ReminderWithPosition.self, RemindersListWithPosition.self],
+              .filter { $0.base != Reminder.self && $0.base != RemindersList.self }
+              + [
+                SynchronizedTable(for: ReminderWithPosition.self),
+                SynchronizedTable(for: RemindersListWithPosition.self),
+              ],
             privateTables: syncEngine.privateTables
           )
           defer { _ = relaunchedSyncEngine }
@@ -147,8 +150,8 @@
             container: syncEngine.container,
             userDatabase: syncEngine.userDatabase,
             tables: syncEngine.tables
-              .filter { $0 != RemindersList.self }
-              + [RemindersListWithData.self],
+              .filter { $0.base != RemindersList.self }
+              + [SynchronizedTable(for: RemindersListWithData.self)],
             privateTables: syncEngine.privateTables
           )
           defer { _ = relaunchedSyncEngine }
@@ -216,8 +219,8 @@
             container: syncEngine.container,
             userDatabase: syncEngine.userDatabase,
             tables: syncEngine.tables
-              .filter { $0 != RemindersList.self }
-              + [RemindersListWithData.self],
+              .filter { $0.base != RemindersList.self }
+              + [SynchronizedTable(for: RemindersListWithData.self)],
             privateTables: syncEngine.privateTables
           )
           defer { _ = relaunchedSyncEngine }
@@ -274,7 +277,7 @@
           let relaunchedSyncEngine = try await SyncEngine(
             container: syncEngine.container,
             userDatabase: syncEngine.userDatabase,
-            tables: syncEngine.tables + [Image.self],
+            tables: syncEngine.tables + [SynchronizedTable(for: Image.self)],
             privateTables: syncEngine.privateTables
           )
           defer { _ = relaunchedSyncEngine }

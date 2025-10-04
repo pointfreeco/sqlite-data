@@ -1,5 +1,5 @@
 {
-  "originHash" : "1a549785266ada7e3202edc79fe44d94e238bd6e6494c714e09a66c2d74bc59f",
+  "originHash" : "c133bf7d10c8ce1e5d6506c3d2f080eac8b4c8c2827044d53a9b925e903564fd",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -74,24 +74,6 @@
       }
     },
     {
-      "identity" : "swift-docc-plugin",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-docc-plugin",
-      "state" : {
-        "revision" : "3e4f133a77e644a5812911a0513aeb7288b07d06",
-        "version" : "1.4.5"
-      }
-    },
-    {
-      "identity" : "swift-docc-symbolkit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/swiftlang/swift-docc-symbolkit",
-      "state" : {
-        "revision" : "b45d1f2ed151d057b54504d653e0da5552844e34",
-        "version" : "1.0.0"
-      }
-    },
-    {
       "identity" : "swift-identified-collections",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-identified-collections",
@@ -141,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
-        "revision" : "f576582c138311e442c564bd7a893e950765e46a",
-        "version" : "0.19.1"
+        "branch" : "table-expression",
+        "revision" : "366138aecbd1ff7cb5b900b10d9cb3aea725b07c"
       }
     },
     {

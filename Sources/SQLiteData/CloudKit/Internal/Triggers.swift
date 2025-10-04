@@ -481,7 +481,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension AncestorMetadata.Columns {
+  extension AncestorMetadata.Selection {
     init(_ metadata: SyncMetadata.TableColumns) {
       self.init(
         recordName: metadata.recordName,
@@ -497,14 +497,14 @@
     }
   }
 
-  @Table @Selection
+  @Selection
   private struct DescendantMetadata {
     let recordName: String
     let parentRecordName: String?
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
+  @Selection
   private struct AncestorMetadata {
     let recordName: String
     let parentRecordName: String?
@@ -513,7 +513,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
+  @Selection
   struct RecordWithRoot {
     let parentRecordName: String?
     let recordName: String
@@ -525,7 +525,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table @Selection
+  @Selection
   private struct RootShare {
     let parentRecordName: String?
     @Column(as: CKShare?.SystemFieldsRepresentation.self)

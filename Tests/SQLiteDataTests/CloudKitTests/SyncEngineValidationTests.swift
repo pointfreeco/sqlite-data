@@ -27,7 +27,7 @@
                 sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
               ),
               userDatabase: UserDatabase(database: database),
-              tables: [InvalidTable.self]
+              tables: InvalidTable.self
             )
           }
         )
@@ -77,7 +77,7 @@
                 sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
               ),
               userDatabase: UserDatabase(database: database),
-              tables: [Child.self, Parent.self]
+              tables: Child.self, Parent.self
             )
           }
         )
@@ -136,7 +136,7 @@
                 sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
               ),
               userDatabase: UserDatabase(database: database),
-              tables: [Parent.self, Child.self]
+              tables: Parent.self, Child.self
             )
           }
         )
@@ -202,7 +202,7 @@
                 sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
               ),
               userDatabase: UserDatabase(database: database),
-              tables: [Child.self]
+              tables: Child.self
             )
           }
         )
@@ -305,7 +305,7 @@
                 sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
               ),
               userDatabase: UserDatabase(database: database),
-              tables: [ModelWithUniqueColumn.self]
+              tables: ModelWithUniqueColumn.self
             )
           }
         )
@@ -347,7 +347,7 @@
                 sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
               ),
               userDatabase: UserDatabase(database: database),
-              tables: [RecursiveTable.self]
+              tables: RecursiveTable.self
             )
           }
         )
