@@ -543,11 +543,12 @@
             .execute(db)
         }
 
+        // Relaunch sync engine but forget to add new table to sync engine.
         do {
           let relaunchedSyncEngine = try await SyncEngine(
             container: syncEngine.container,
             userDatabase: syncEngine.userDatabase,
-            tables: syncEngine.tables + [Foo.self],
+            tables: syncEngine.tables,
             privateTables: syncEngine.privateTables
           )
           let recordTypesAfterMigration = try await syncEngine.metadatabase.read { db in
@@ -556,13 +557,28 @@
           expectNoDifference(recordTypesAfterMigration, recordTypes)
           relaunchedSyncEngine.stop()
           try relaunchedSyncEngine.tearDownSyncEngine()
+          assertInlineSnapshot(of: container, as: .customDump) {
+            """
+            MockCloudContainer(
+              privateCloudDatabase: MockCloudDatabase(
+                databaseScope: .private,
+                storage: []
+              ),
+              sharedCloudDatabase: MockCloudDatabase(
+                databaseScope: .shared,
+                storage: []
+              )
+            )
+            """
+          }
         }
 
+        // Relaunch sync engine and remember this time to add new table to sync engine.
         do {
           let relaunchedSyncEngine = try await SyncEngine(
             container: syncEngine.container,
             userDatabase: syncEngine.userDatabase,
-            tables: syncEngine.tables + [Foo.self],
+            tables: syncEngine.tables + [SynchronizedTable(for: Foo.self)],
             privateTables: syncEngine.privateTables
           )
           try await relaunchedSyncEngine.processPendingRecordZoneChanges(scope: .private)
