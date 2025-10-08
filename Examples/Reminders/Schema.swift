@@ -95,7 +95,7 @@ extension Reminder.TableColumns {
 }
 
 extension Tag {
-  static let withReminders = group(by: \.primaryKey)
+  nonisolated static let withReminders = group(by: \.primaryKey)
     .leftJoin(ReminderTag.all) { $0.primaryKey.eq($1.tagID) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
 }
