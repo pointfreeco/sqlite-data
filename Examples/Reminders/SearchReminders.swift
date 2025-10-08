@@ -166,7 +166,7 @@ class SearchRemindersModel {
           }
           .join(RemindersList.all) { $1.remindersListID.eq($2.id) }
           .select {
-            SearchRemindersModel.Row.Columns(
+            Row.Columns(
               isPastDue: $1.isPastDue,
               notes: $0.notes.snippet("**", "**", "...", 64).replace("\n", " "),
               reminder: $1,

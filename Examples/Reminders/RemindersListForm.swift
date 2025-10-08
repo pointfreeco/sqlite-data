@@ -75,9 +75,9 @@ struct RemindersListForm: View {
     .toolbar {
       ToolbarItem {
         Button("Save") {
-          Task {
+          Task { [remindersList, coverImageData] in
             await withErrorReporting {
-              try await database.write { [remindersList, coverImageData] db in
+              try await database.write { db in
                 let remindersListID =
                 try RemindersList
                   .upsert { remindersList }

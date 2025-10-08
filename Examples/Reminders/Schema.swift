@@ -77,25 +77,25 @@ extension Reminder {
     .leftJoin(Tag.all) { $1.tagID.eq($2.primaryKey) }
 }
 
-extension Reminder.TableColumns {
-  nonisolated var isCompleted: some QueryExpression<Bool> {
+nonisolated extension Reminder.TableColumns {
+  var isCompleted: some QueryExpression<Bool> {
     status.neq(Reminder.Status.incomplete)
   }
-  nonisolated var isPastDue: some QueryExpression<Bool> {
+  var isPastDue: some QueryExpression<Bool> {
     @Dependency(\.date.now) var now
     return !isCompleted && #sql("coalesce(date(\(dueDate)) < date(\(now)), 0)")
   }
-  nonisolated var isToday: some QueryExpression<Bool> {
+  var isToday: some QueryExpression<Bool> {
     @Dependency(\.date.now) var now
     return !isCompleted && #sql("coalesce(date(\(dueDate)) = date(\(now)), 0)")
   }
-  nonisolated var isScheduled: some QueryExpression<Bool> {
+  var isScheduled: some QueryExpression<Bool> {
     !isCompleted && dueDate.isNot(nil)
   }
 }
 
-extension Tag {
-  nonisolated static let withReminders = group(by: \.primaryKey)
+nonisolated extension Tag {
+  static let withReminders = group(by: \.primaryKey)
     .leftJoin(ReminderTag.all) { $0.primaryKey.eq($1.tagID) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
 }
@@ -135,8 +135,7 @@ func appDatabase() throws -> any DatabaseWriter {
   configuration.foreignKeysEnabled = true
   configuration.prepareDatabase { db in
     try db.attachMetadatabase()
-    // TODO: fix this
-    //db.add(function: $handleReminderStatusUpdate)
+    db.add(function: $handleReminderStatusUpdate)
     #if DEBUG
       db.trace(options: .profile) {
         if context == .live {
