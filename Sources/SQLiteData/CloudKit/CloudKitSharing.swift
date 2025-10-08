@@ -104,7 +104,7 @@
             """
         )
       }
-      guard !privateTables.contains(where: { T.self == $0 })
+      guard !privateTables.contains(where: { T.self == $0.base })
       else {
         throw SharingError(
           recordTableName: T.tableName,

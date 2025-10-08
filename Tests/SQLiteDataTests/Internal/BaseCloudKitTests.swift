@@ -55,22 +55,18 @@ class BaseCloudKitTests: @unchecked Sendable {
     _syncEngine = try await SyncEngine(
       container: container,
       userDatabase: self.userDatabase,
-      tables: [
-        Reminder.self,
-        RemindersList.self,
-        RemindersListAsset.self,
-        Tag.self,
-        ReminderTag.self,
-        Parent.self,
-        ChildWithOnDeleteSetNull.self,
-        ChildWithOnDeleteSetDefault.self,
-        ModelA.self,
-        ModelB.self,
-        ModelC.self,
-      ],
-      privateTables: [
-        RemindersListPrivate.self
-      ],
+      tables: Reminder.self,
+      RemindersList.self,
+      RemindersListAsset.self,
+      Tag.self,
+      ReminderTag.self,
+      Parent.self,
+      ChildWithOnDeleteSetNull.self,
+      ChildWithOnDeleteSetDefault.self,
+      ModelA.self,
+      ModelB.self,
+      ModelC.self,
+      privateTables: RemindersListPrivate.self,
       startImmediately: _StartImmediatelyTrait.startImmediately
     )
     if _StartImmediatelyTrait.startImmediately,
@@ -156,11 +152,43 @@ extension SyncEngine {
   static nonisolated let defaultTestZone = CKRecordZone(
     zoneName: "zone"
   )
+  convenience init<
+    each T1: PrimaryKeyedTable & _SendableMetatype,
+    each T2: PrimaryKeyedTable & _SendableMetatype
+  >(
+    container: any CloudContainer,
+    userDatabase: UserDatabase,
+    tables: repeat (each T1).Type,
+    privateTables: repeat (each T2).Type,
+    startImmediately: Bool = true
+  ) async throws
+  where
+    repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
+    repeat (each T1).TableColumns.PrimaryColumn: WritableTableColumnExpression,
+    repeat (each T2).PrimaryKey.QueryOutput: IdentifierStringConvertible,
+    repeat (each T2).TableColumns.PrimaryColumn: WritableTableColumnExpression
+  {
+    var allTables: [any SynchronizableTable] = []
+    var allPrivateTables: [any SynchronizableTable] = []
+    for table in repeat each tables {
+      allTables.append(SynchronizedTable(for: table))
+    }
+    for privateTable in repeat each privateTables {
+      allPrivateTables.append(SynchronizedTable(for: privateTable))
+    }
+    try await self.init(
+      container: container,
+      userDatabase: userDatabase,
+      tables: allTables,
+      privateTables: allPrivateTables,
+      startImmediately: startImmediately
+    )
+  }
   convenience init(
     container: any CloudContainer,
     userDatabase: UserDatabase,
-    tables: [any (PrimaryKeyedTable & _SendableMetatype).Type],
-    privateTables: [any (PrimaryKeyedTable & _SendableMetatype).Type] = [],
+    tables: [any SynchronizableTable],
+    privateTables: [any SynchronizableTable] = [],
     startImmediately: Bool = true
   ) async throws {
     try self.init(

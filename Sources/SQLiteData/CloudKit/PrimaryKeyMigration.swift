@@ -2,7 +2,7 @@
   import CryptoKit
   import Foundation
 
-  @available(iOS 17, macOS 14, tvOS 14, watchOS 10, *)
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
     /// Migrates integer primary-keyed tables and tables without primary keys to
     /// CloudKit-compatible, UUID primary keys.
