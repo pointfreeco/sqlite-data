@@ -7,21 +7,21 @@ import SwiftUI
 import Synchronization
 
 @Table
-struct RemindersList: Hashable, Identifiable {
+nonisolated struct RemindersList: Hashable, Identifiable {
   let id: UUID
   @Column(as: Color.HexRepresentation.self)
   var color: Color = Self.defaultColor
   var position = 0
   var title = ""
 
-  static var defaultColor: Color { Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255) }
-  static var defaultTitle: String { "Personal" }
+  nonisolated static var defaultColor: Color { Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255) }
+  nonisolated static var defaultTitle: String { "Personal" }
 }
 
 extension RemindersList.Draft: Identifiable {}
 
 @Table
-struct RemindersListAsset: Hashable, Identifiable {
+nonisolated struct RemindersListAsset: Hashable, Identifiable {
   @Column(primaryKey: true)
   let remindersListID: RemindersList.ID
   var coverImage: Data?
@@ -29,7 +29,7 @@ struct RemindersListAsset: Hashable, Identifiable {
 }
 
 @Table
-struct Reminder: Hashable, Identifiable {
+nonisolated struct Reminder: Hashable, Identifiable {
   let id: UUID
   var dueDate: Date?
   var isFlagged = false
@@ -54,7 +54,7 @@ struct Reminder: Hashable, Identifiable {
   }
 }
 extension Updates<Reminder> {
-  mutating func toggleStatus() {
+  mutating nonisolated func toggleStatus() {
     self.status = Case(self.status)
       .when(#bind(.incomplete), then: #bind(.completing))
       .else(#bind(.incomplete))
@@ -64,7 +64,7 @@ extension Updates<Reminder> {
 extension Reminder.Draft: Identifiable {}
 
 @Table
-struct Tag: Hashable, Identifiable {
+nonisolated struct Tag: Hashable, Identifiable {
   @Column(primaryKey: true)
   var title: String
   var id: String { title }
@@ -78,30 +78,30 @@ extension Reminder {
 }
 
 extension Reminder.TableColumns {
-  var isCompleted: some QueryExpression<Bool> {
+  nonisolated var isCompleted: some QueryExpression<Bool> {
     status.neq(Reminder.Status.incomplete)
   }
-  var isPastDue: some QueryExpression<Bool> {
+  nonisolated var isPastDue: some QueryExpression<Bool> {
     @Dependency(\.date.now) var now
     return !isCompleted && #sql("coalesce(date(\(dueDate)) < date(\(now)), 0)")
   }
-  var isToday: some QueryExpression<Bool> {
+  nonisolated var isToday: some QueryExpression<Bool> {
     @Dependency(\.date.now) var now
     return !isCompleted && #sql("coalesce(date(\(dueDate)) = date(\(now)), 0)")
   }
-  var isScheduled: some QueryExpression<Bool> {
+  nonisolated var isScheduled: some QueryExpression<Bool> {
     !isCompleted && dueDate.isNot(nil)
   }
 }
 
 extension Tag {
-  static let withReminders = group(by: \.primaryKey)
+  nonisolated static let withReminders = group(by: \.primaryKey)
     .leftJoin(ReminderTag.all) { $0.primaryKey.eq($1.tagID) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
 }
 
 @Table("remindersTags")
-struct ReminderTag: Identifiable {
+nonisolated struct ReminderTag: Identifiable {
   let id: UUID
   let reminderID: Reminder.ID
   let tagID: Tag.ID
@@ -135,7 +135,8 @@ func appDatabase() throws -> any DatabaseWriter {
   configuration.foreignKeysEnabled = true
   configuration.prepareDatabase { db in
     try db.attachMetadatabase()
-    db.add(function: $handleReminderStatusUpdate)
+    // TODO: fix this
+    //db.add(function: $handleReminderStatusUpdate)
     #if DEBUG
       db.trace(options: .profile) {
         if context == .live {
@@ -348,9 +349,9 @@ func appDatabase() throws -> any DatabaseWriter {
   return database
 }
 
-let reminderStatusMutex = Mutex<Task<Void, any Error>?>(nil)
+nonisolated let reminderStatusMutex = Mutex<Task<Void, any Error>?>(nil)
 @DatabaseFunction
-func handleReminderStatusUpdate() {
+nonisolated func handleReminderStatusUpdate() {
   reminderStatusMutex.withLock {
     $0?.cancel()
     $0 = Task {
@@ -367,7 +368,7 @@ func handleReminderStatusUpdate() {
   }
 }
 
-private let logger = Logger(subsystem: "Reminders", category: "Database")
+nonisolated private let logger = Logger(subsystem: "Reminders", category: "Database")
 
 #if DEBUG
   extension Database {

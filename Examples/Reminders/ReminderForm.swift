@@ -128,11 +128,11 @@ struct ReminderFormView: View {
       }
     }
     .padding(.top, -28)
-    .task {
+    .onAppear {
       guard let reminderID = reminder.id
       else { return }
       do {
-        selectedTags = try await database.read { db in
+        selectedTags = try database.read { db in
           try Tag
             .order(by: \.title)
             .join(ReminderTag.all) { $0.primaryKey.eq($1.tagID) }

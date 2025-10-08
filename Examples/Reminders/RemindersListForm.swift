@@ -75,9 +75,8 @@ struct RemindersListForm: View {
     .toolbar {
       ToolbarItem {
         Button("Save") {
-          Task { [remindersList, coverImageData] in
-            await withErrorReporting {
-              try await database.write { db in
+            withErrorReporting {
+              try database.write { db in
                 let remindersListID =
                   try RemindersList
                   .upsert { remindersList }
@@ -96,7 +95,6 @@ struct RemindersListForm: View {
                 }
                 .execute(db)
               }
-            }
           }
           dismiss()
         }
@@ -119,11 +117,11 @@ struct RemindersListForm: View {
         }
       }
     }
-    .task {
+    .onAppear {
       guard let remindersListID = remindersList.id
       else { return }
       do {
-        coverImageData = try await database.read { db in
+        coverImageData = try database.read { db in
           try RemindersListAsset
             .where { $0.remindersListID.eq(remindersListID) }
             .select(\.coverImage)

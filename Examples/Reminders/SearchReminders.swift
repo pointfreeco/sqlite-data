@@ -140,6 +140,18 @@ class SearchRemindersModel {
     let title: String
   }
 
+  struct Token: Hashable, Identifiable {
+    enum Kind {
+      case near
+      case tag
+    }
+
+    var kind: Kind
+    var rawValue = ""
+
+    var id: Self { self }
+  }
+
   struct SearchRequest: FetchKeyRequest {
     struct Value {
       var completedCount = 0
@@ -166,7 +178,7 @@ class SearchRemindersModel {
           }
           .join(RemindersList.all) { $1.remindersListID.eq($2.id) }
           .select {
-            Row.Columns(
+            SearchRemindersModel.Row.Columns(
               isPastDue: $1.isPastDue,
               notes: $0.notes.snippet("**", "**", "...", 64).replace("\n", " "),
               reminder: $1,
@@ -178,18 +190,6 @@ class SearchRemindersModel {
           .fetchAll(db)
       )
     }
-  }
-
-  struct Token: Hashable, Identifiable {
-    enum Kind {
-      case near
-      case tag
-    }
-
-    var kind: Kind
-    var rawValue = ""
-
-    var id: Self { self }
   }
 }
 
