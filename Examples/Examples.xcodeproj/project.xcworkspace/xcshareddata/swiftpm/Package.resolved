@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
-        "branch" : "table-expression",
-        "revision" : "366138aecbd1ff7cb5b900b10d9cb3aea725b07c"
+        "revision" : "603bcbf0bd5818437ff975e37cf5a1ea6867c41e",
+        "version" : "0.22.2"
       }
     },
     {
