@@ -178,6 +178,14 @@ class SearchRemindersModel {
           .fetchAll(db)
       )
     }
+    static func == (lhs: Self, rhs: Self) -> Bool {
+      lhs.baseQuery.query == rhs.baseQuery.query
+        && lhs.showCompletedInSearchResults == rhs.showCompletedInSearchResults
+    }
+    func hash(into hasher: inout Hasher) {
+      hasher.combine(baseQuery.query)
+      hasher.combine(showCompletedInSearchResults)
+    }
   }
 
   struct Token: Hashable, Identifiable {
