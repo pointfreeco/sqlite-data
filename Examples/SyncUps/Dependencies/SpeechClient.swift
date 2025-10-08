@@ -3,18 +3,16 @@ import DependenciesMacros
 @preconcurrency import Speech
 
 @DependencyClient
-struct SpeechClient {
+nonisolated struct SpeechClient: DependencyKey {
   var authorizationStatus: @Sendable () -> SFSpeechRecognizerAuthorizationStatus = { .denied }
   var requestAuthorization: @Sendable () async -> SFSpeechRecognizerAuthorizationStatus = {
     .denied
   }
   var startTask:
-    @Sendable (_ request: SFSpeechAudioBufferRecognitionRequest) async -> AsyncThrowingStream<
+    @Sendable () async -> AsyncThrowingStream<
       SpeechRecognitionResult, Error
-    > = { _ in .finished() }
-}
+    > = { .finished() }
 
-extension SpeechClient: DependencyKey {
   static var liveValue: SpeechClient {
     let speech = Speech()
     return SpeechClient(
@@ -26,8 +24,8 @@ extension SpeechClient: DependencyKey {
           }
         }
       },
-      startTask: { request in
-        await speech.startTask(request: request)
+      startTask: {
+        await speech.startTask()
       }
     )
   }
@@ -37,7 +35,7 @@ extension SpeechClient: DependencyKey {
     return Self(
       authorizationStatus: { .authorized },
       requestAuthorization: { .authorized },
-      startTask: { _ in
+      startTask: {
         AsyncThrowingStream { continuation in
           Task { @MainActor in
             isRecording.setValue(true)
@@ -79,12 +77,12 @@ extension SpeechClient: DependencyKey {
     return Self(
       authorizationStatus: { .authorized },
       requestAuthorization: { .authorized },
-      startTask: { request in
+      startTask: {
         AsyncThrowingStream { continuation in
           Task { @MainActor in
             let start = ContinuousClock.now
             do {
-              for try await result in await Self.previewValue.startTask(request) {
+              for try await result in await Self.previewValue.startTask() {
                 if ContinuousClock.now - start > duration {
                   struct SpeechRecognitionFailed: Error {}
                   continuation.finish(throwing: SpeechRecognitionFailed())
@@ -105,29 +103,29 @@ extension SpeechClient: DependencyKey {
 }
 
 extension DependencyValues {
-  var speechClient: SpeechClient {
+  nonisolated var speechClient: SpeechClient {
     get { self[SpeechClient.self] }
     set { self[SpeechClient.self] = newValue }
   }
 }
 
-struct SpeechRecognitionResult: Equatable {
+nonisolated struct SpeechRecognitionResult: Equatable {
   var bestTranscription: Transcription
   var isFinal: Bool
 }
 
-struct Transcription: Equatable {
+nonisolated struct Transcription: Equatable {
   var formattedString: String
 }
 
-extension SpeechRecognitionResult {
+nonisolated extension SpeechRecognitionResult {
   init(_ speechRecognitionResult: SFSpeechRecognitionResult) {
     self.bestTranscription = Transcription(speechRecognitionResult.bestTranscription)
     self.isFinal = speechRecognitionResult.isFinal
   }
 }
 
-extension Transcription {
+nonisolated extension Transcription {
   init(_ transcription: SFTranscription) {
     self.formattedString = transcription.formattedString
   }
@@ -139,10 +137,9 @@ private actor Speech {
   private var recognitionContinuation:
     AsyncThrowingStream<SpeechRecognitionResult, Error>.Continuation?
 
-  func startTask(
-    request: SFSpeechAudioBufferRecognitionRequest
-  ) -> AsyncThrowingStream<SpeechRecognitionResult, Error> {
-    AsyncThrowingStream { continuation in
+  func startTask() -> AsyncThrowingStream<SpeechRecognitionResult, Error> {
+    let request = SFSpeechAudioBufferRecognitionRequest()
+    return AsyncThrowingStream { continuation in
       recognitionContinuation = continuation
       let audioSession = AVAudioSession.sharedInstance()
       do {

@@ -100,7 +100,7 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
 }
 
 @Table
-private struct Fact: Identifiable {
+nonisolated private struct Fact: Identifiable {
   let id: Int
   var body: String
 }
