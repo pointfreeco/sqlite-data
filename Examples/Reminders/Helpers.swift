@@ -2,11 +2,7 @@ import SQLiteData
 import SwiftUI
 
 extension Color {
-  nonisolated public struct HexRepresentation:
-    nonisolated QueryBindable,
-    nonisolated QueryDecodable,
-    nonisolated QueryRepresentable
-  {
+  nonisolated public struct HexRepresentation: QueryBindable, QueryDecodable, QueryRepresentable {
     public var queryOutput: Color
 
     public init(queryOutput: Color) {
