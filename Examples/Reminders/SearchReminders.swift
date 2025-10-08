@@ -66,7 +66,11 @@ class SearchRemindersModel {
     withErrorReporting {
       try database.write { db in
         try Reminder
-          .where { $0.isCompleted && $0.id.in(baseQuery.select { $1.id }) }
+          .where {
+            $0.isCompleted && $0.id.in(
+              baseQuery(searchText: searchText, searchTokens: searchTokens).select { $1.id }
+            )
+          }
           .where {
             if let monthsAgo {
               #sql("\($0.dueDate) < date('now', '-\(raw: monthsAgo) months')")
@@ -76,29 +80,6 @@ class SearchRemindersModel {
           .execute(db)
       }
     }
-  }
-
-  private var baseQuery: SelectOf<ReminderText, Reminder> {
-    let searchText = searchText.quoted()
-
-    return
-      ReminderText
-      .where {
-        if !searchText.isEmpty {
-          $0.match(searchText)
-        }
-      }
-      .where {
-        for token in searchTokens {
-          switch token.kind {
-          case .near:
-            $0.match("NEAR(\(token.rawValue.quoted()))")
-          case .tag:
-            $0.tags.match(token.rawValue)
-          }
-        }
-      }
-      .join(Reminder.all) { $0.rowid.eq($1.rowid) }
   }
 
   private func updateQuery(debounce: Bool = true) async throws {
@@ -120,7 +101,8 @@ class SearchRemindersModel {
       } else {
         try await $searchResults.load(
           SearchRequest(
-            baseQuery: baseQuery,
+            searchText: searchText,
+            searchTokens: searchTokens,
             showCompletedInSearchResults: showCompletedInSearchResults
           ),
           animation: .default
@@ -145,10 +127,12 @@ class SearchRemindersModel {
       var completedCount = 0
       var rows: [Row] = []
     }
-    let baseQuery: SelectOf<ReminderText, Reminder>
+    let searchText: String
+    let searchTokens: [Token]
     let showCompletedInSearchResults: Bool
     func fetch(_ db: Database) throws -> Value {
-      try Value(
+      let baseQuery = baseQuery(searchText: searchText, searchTokens: searchTokens)
+      return try Value(
         completedCount:
           baseQuery
           .where { $1.isCompleted }
@@ -177,14 +161,6 @@ class SearchRemindersModel {
           }
           .fetchAll(db)
       )
-    }
-    static func == (lhs: Self, rhs: Self) -> Bool {
-      lhs.baseQuery.query == rhs.baseQuery.query
-        && lhs.showCompletedInSearchResults == rhs.showCompletedInSearchResults
-    }
-    func hash(into hasher: inout Hasher) {
-      hasher.combine(baseQuery.query)
-      hasher.combine(showCompletedInSearchResults)
     }
   }
 
@@ -286,6 +262,32 @@ struct SearchRemindersView: View {
     }
     .searchable(text: $searchText)
   }
+}
+
+fileprivate func baseQuery(
+  searchText: String,
+  searchTokens: [SearchRemindersModel.Token]
+) -> SelectOf<ReminderText, Reminder> {
+  let searchText = searchText.quoted()
+
+  return
+    ReminderText
+    .where {
+      if !searchText.isEmpty {
+        $0.match(searchText)
+      }
+    }
+    .where {
+      for token in searchTokens {
+        switch token.kind {
+        case .near:
+          $0.match("NEAR(\(token.rawValue.quoted()))")
+        case .tag:
+          $0.tags.match(token.rawValue)
+        }
+      }
+    }
+    .join(Reminder.all) { $0.rowid.eq($1.rowid) }
 }
 
 extension String {
