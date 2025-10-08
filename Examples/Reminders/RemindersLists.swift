@@ -267,7 +267,12 @@ struct RemindersListsView: View {
           }
           .onMove(perform: model.move(from:to:))
         } header: {
-          Text("My Lists")
+          HStack {
+            Text("My Lists")
+            if syncEngine.isSynchronizing {
+              ProgressView().id(UUID())
+            }
+          }
             .font(.system(.title2, design: .rounded, weight: .bold))
             .foregroundStyle(Color(.label))
             .textCase(nil)

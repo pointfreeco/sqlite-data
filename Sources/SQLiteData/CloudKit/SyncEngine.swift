@@ -358,6 +358,45 @@
       try await start().value
     }
 
+    private let activityCounts = LockIsolated(ActivityCounts())
+    fileprivate struct ActivityCounts {
+      var sendingChangesCount = 0
+      var fetchingChangesCount = 0
+    }
+
+    public var isSendingChanges: Bool {
+      sendingChangesCount > 0
+    }
+    public var isFetchingChanges: Bool {
+      fetchingChangesCount > 0
+    }
+    public var isSynchronizing: Bool {
+      isSendingChanges || isFetchingChanges
+    }
+
+    private var sendingChangesCount: Int {
+      get {
+        observationRegistrar.access(self, keyPath: \.sendingChangesCount)
+        return activityCounts.withValue(\.sendingChangesCount)
+      }
+      set {
+        observationRegistrar.withMutation(of: self, keyPath: \.sendingChangesCount) {
+          activityCounts.withValue { $0.sendingChangesCount = newValue }
+        }
+      }
+    }
+    private var fetchingChangesCount: Int {
+      get {
+        observationRegistrar.access(self, keyPath: \.fetchingChangesCount)
+        return activityCounts.withValue(\.fetchingChangesCount)
+      }
+      set {
+        observationRegistrar.withMutation(of: self, keyPath: \.fetchingChangesCount) {
+          activityCounts.withValue { $0.fetchingChangesCount = newValue }
+        }
+      }
+    }
+
     /// Stops the sync engine if it is running.
     ///
     /// All edits made after stopping the sync engine will not be synchronized to CloudKit.
@@ -814,9 +853,22 @@
           failedRecordDeletes: failedRecordDeletes,
           syncEngine: syncEngine
         )
-      case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
-        .didFetchChanges, .willSendChanges, .didSendChanges:
-        break
+
+      case .willFetchRecordZoneChanges:
+        fetchingChangesCount += 1
+      case .didFetchRecordZoneChanges:
+        fetchingChangesCount -= 1
+
+      case .willFetchChanges:
+        fetchingChangesCount += 1
+      case .didFetchChanges:
+        fetchingChangesCount -= 1
+
+      case .willSendChanges:
+        sendingChangesCount += 1
+      case .didSendChanges:
+        sendingChangesCount -= 1
+        
       @unknown default:
         break
       }
