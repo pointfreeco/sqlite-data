@@ -773,22 +773,22 @@
 
     private var sendingChangesCount: Int {
       get {
-        observationRegistrar.access(self, keyPath: \.sendingChangesCount)
+        observationRegistrar.access(self, keyPath: \.isSendingChanges)
         return activityCounts.withValue(\.sendingChangesCount)
       }
       set {
-        observationRegistrar.withMutation(of: self, keyPath: \.sendingChangesCount) {
+        observationRegistrar.withMutation(of: self, keyPath: \.isSendingChanges) {
           activityCounts.withValue { $0.sendingChangesCount = newValue }
         }
       }
     }
     private var fetchingChangesCount: Int {
       get {
-        observationRegistrar.access(self, keyPath: \.fetchingChangesCount)
+        observationRegistrar.access(self, keyPath: \.isFetchingChanges)
         return activityCounts.withValue(\.fetchingChangesCount)
       }
       set {
-        observationRegistrar.withMutation(of: self, keyPath: \.fetchingChangesCount) {
+        observationRegistrar.withMutation(of: self, keyPath: \.isFetchingChanges) {
           activityCounts.withValue { $0.fetchingChangesCount = newValue }
         }
       }
