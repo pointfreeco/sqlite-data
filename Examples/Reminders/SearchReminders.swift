@@ -140,18 +140,6 @@ class SearchRemindersModel {
     let title: String
   }
 
-  struct Token: Hashable, Identifiable {
-    enum Kind {
-      case near
-      case tag
-    }
-
-    var kind: Kind
-    var rawValue = ""
-
-    var id: Self { self }
-  }
-
   struct SearchRequest: FetchKeyRequest {
     struct Value {
       var completedCount = 0
@@ -190,6 +178,18 @@ class SearchRemindersModel {
           .fetchAll(db)
       )
     }
+  }
+
+  struct Token: Hashable, Identifiable {
+    enum Kind {
+      case near
+      case tag
+    }
+
+    var kind: Kind
+    var rawValue = ""
+
+    var id: Self { self }
   }
 }
 

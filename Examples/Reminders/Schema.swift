@@ -14,8 +14,8 @@ nonisolated struct RemindersList: Hashable, Identifiable {
   var position = 0
   var title = ""
 
-  nonisolated static var defaultColor: Color { Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255) }
-  nonisolated static var defaultTitle: String { "Personal" }
+  static var defaultColor: Color { Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255) }
+  static var defaultTitle: String { "Personal" }
 }
 
 extension RemindersList.Draft: Identifiable {}
@@ -54,7 +54,7 @@ nonisolated struct Reminder: Hashable, Identifiable {
   }
 }
 extension Updates<Reminder> {
-  mutating nonisolated func toggleStatus() {
+  mutating func toggleStatus() {
     self.status = Case(self.status)
       .when(#bind(.incomplete), then: #bind(.completing))
       .else(#bind(.incomplete))
@@ -95,7 +95,7 @@ extension Reminder.TableColumns {
 }
 
 extension Tag {
-  nonisolated static let withReminders = group(by: \.primaryKey)
+  static let withReminders = group(by: \.primaryKey)
     .leftJoin(ReminderTag.all) { $0.primaryKey.eq($1.tagID) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
 }
