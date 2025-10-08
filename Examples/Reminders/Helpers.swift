@@ -2,12 +2,18 @@ import SQLiteData
 import SwiftUI
 
 extension Color {
-  nonisolated public struct HexRepresentation: nonisolated QueryRepresentable {
-    nonisolated public var queryOutput: Color
-    nonisolated public init(queryOutput: Color) {
+  nonisolated public struct HexRepresentation:
+    nonisolated QueryBindable,
+    nonisolated QueryDecodable,
+    nonisolated QueryRepresentable
+  {
+    public var queryOutput: Color
+
+    public init(queryOutput: Color) {
       self.queryOutput = queryOutput
     }
-    nonisolated public init(hexValue: Int64) {
+
+    public init(hexValue: Int64) {
       self.init(
         queryOutput: Color(
           red: Double((hexValue >> 24) & 0xFF) / 0xFF,
@@ -17,7 +23,8 @@ extension Color {
         )
       )
     }
-    nonisolated public var hexValue: Int64? {
+
+    public var hexValue: Int64? {
       guard let components = UIColor(queryOutput).cgColor.components
       else { return nil }
       let r = Int64(components[0] * 0xFF) << 24
@@ -26,25 +33,22 @@ extension Color {
       let a = Int64((components.indices.contains(3) ? components[3] : 1) * 0xFF)
       return r | g | b | a
     }
-  }
-}
 
-extension Color.HexRepresentation: nonisolated QueryBindable {
-  nonisolated public init?(queryBinding: StructuredQueriesCore.QueryBinding) {
-    guard case .int(let hexValue) = queryBinding else { return nil }
-    self.init(hexValue: hexValue)
-  }
-  nonisolated public var queryBinding: QueryBinding {
-    guard let hexValue else {
-      struct InvalidColor: Error {}
-      return .invalid(InvalidColor())
+    public init?(queryBinding: StructuredQueriesCore.QueryBinding) {
+      guard case .int(let hexValue) = queryBinding else { return nil }
+      self.init(hexValue: hexValue)
     }
-    return .int(hexValue)
-  }
-}
 
-extension Color.HexRepresentation: nonisolated QueryDecodable {
-  nonisolated public init(decoder: inout some QueryDecoder) throws {
-    try self.init(hexValue: Int64(decoder: &decoder))
+    public var queryBinding: QueryBinding {
+      guard let hexValue else {
+        struct InvalidColor: Error {}
+        return .invalid(InvalidColor())
+      }
+      return .int(hexValue)
+    }
+
+    public init(decoder: inout some QueryDecoder) throws {
+      try self.init(hexValue: Int64(decoder: &decoder))
+    }
   }
 }
