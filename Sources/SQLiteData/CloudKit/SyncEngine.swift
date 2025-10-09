@@ -35,6 +35,7 @@
     let dataManager = Dependency(\.dataManager)
     private let observationRegistrar = ObservationRegistrar()
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
+    private let activityCounts = LockIsolated(ActivityCounts())
 
     /// The error message used when a write occurs to a record for which the current user
     /// does not have permission.
@@ -357,6 +358,38 @@
     public func start() async throws {
       try await start().value
     }
+    
+    /// Determines if the sync engine is currently sending local changes to the CloudKit server.
+    ///
+    /// It is an observable value, which means if it is accessed in a SwiftUI view, or some other
+    /// observable context, then the view will automatically re-render when the value changes. As
+    /// such, it can be useful for displaying a progress view to indicate that work is currently
+    /// being done to synchronize changes.
+    public var isSendingChanges: Bool {
+      sendingChangesCount > 0
+    }
+
+    /// Determines if the sync engine is currently processing changes being sent to the device
+    /// from CloudKit.
+    ///
+    /// It is an observable value, which means if it is accessed in a SwiftUI view, or some other
+    /// observable context, then the view will automatically re-render when the value changes. As
+    /// such, it can be useful for displaying a progress view to indicate that work is currently
+    /// being done to synchronize changes.
+    public var isFetchingChanges: Bool {
+      fetchingChangesCount > 0
+    }
+
+    /// Determines if the sync engine is currently sending or receiving changes from CloudKit.
+    ///
+    /// This value is true if either of ``isSendingChanges`` or ``isFetchingChanges`` is true.
+    /// It is an observable value, which means if it is accessed in a SwiftUI view, or some other
+    /// observable context, then the view will automatically re-render when the value changes. As
+    /// such, it can be useful for displaying a progress view to indicate that work is currently
+    /// being done to synchronize changes.
+    public var isSynchronizing: Bool {
+      isSendingChanges || isFetchingChanges
+    }
 
     /// Stops the sync engine if it is running.
     ///
@@ -399,7 +432,7 @@
           try SQLiteSchema
           .where {
             $0.type.eq(#bind(.table))
-            && $0.tableName.in(tables.map { $0.base.tableName })
+              && $0.tableName.in(tables.map { $0.base.tableName })
           }
           .fetchAll(db)
         return try namesAndSchemas.compactMap { schema -> RecordType? in
@@ -737,6 +770,29 @@
     public static func isSynchronizingChanges() -> some QueryExpression<Bool> {
       $syncEngineIsSynchronizingChanges()
     }
+
+    private var sendingChangesCount: Int {
+      get {
+        observationRegistrar.access(self, keyPath: \.isSendingChanges)
+        return activityCounts.withValue(\.sendingChangesCount)
+      }
+      set {
+        observationRegistrar.withMutation(of: self, keyPath: \.isSendingChanges) {
+          activityCounts.withValue { $0.sendingChangesCount = newValue }
+        }
+      }
+    }
+    private var fetchingChangesCount: Int {
+      get {
+        observationRegistrar.access(self, keyPath: \.isFetchingChanges)
+        return activityCounts.withValue(\.fetchingChangesCount)
+      }
+      set {
+        observationRegistrar.withMutation(of: self, keyPath: \.isFetchingChanges) {
+          activityCounts.withValue { $0.fetchingChangesCount = newValue }
+        }
+      }
+    }
   }
 
   extension PrimaryKeyedTable {
@@ -814,9 +870,22 @@
           failedRecordDeletes: failedRecordDeletes,
           syncEngine: syncEngine
         )
-      case .willFetchRecordZoneChanges, .didFetchRecordZoneChanges, .willFetchChanges,
-        .didFetchChanges, .willSendChanges, .didSendChanges:
-        break
+
+      case .willFetchRecordZoneChanges:
+        fetchingChangesCount += 1
+      case .didFetchRecordZoneChanges:
+        fetchingChangesCount -= 1
+
+      case .willFetchChanges:
+        fetchingChangesCount += 1
+      case .didFetchChanges:
+        fetchingChangesCount -= 1
+
+      case .willSendChanges:
+        sendingChangesCount += 1
+      case .didSendChanges:
+        sendingChangesCount -= 1
+
       @unknown default:
         break
       }
@@ -2054,8 +2123,7 @@
     tablesByName: [String: any SynchronizableTable]
   ) throws -> [String: Int] {
     let tableDependencies = try userDatabase.read { db in
-      var dependencies:
-        [HashableSynchronizedTable: [any SynchronizableTable]] = [:]
+      var dependencies: [HashableSynchronizedTable: [any SynchronizableTable]] = [:]
       for table in tables {
         func open<T>(_: some SynchronizableTable<T>) throws -> [String] {
           try PragmaForeignKeyList<T>.select(\.table)
@@ -2170,6 +2238,11 @@
   @DatabaseFunction("sqlitedata_icloud_currentOwnerName")
   func currentOwnerName() -> String? {
     _currentZoneID?.ownerName
+  }
+
+  private struct ActivityCounts {
+    var sendingChangesCount = 0
+    var fetchingChangesCount = 0
   }
 
   #if DEBUG

@@ -267,12 +267,17 @@ struct RemindersListsView: View {
           }
           .onMove(perform: model.move(from:to:))
         } header: {
-          Text("My Lists")
-            .font(.system(.title2, design: .rounded, weight: .bold))
-            .foregroundStyle(Color(.label))
-            .textCase(nil)
-            .padding(.top, -16)
-            .padding([.leading, .trailing], 4)
+          HStack {
+            Text("My Lists")
+            if syncEngine.isSynchronizing {
+              ProgressView().id(UUID())
+            }
+          }
+          .font(.system(.title2, design: .rounded, weight: .bold))
+          .foregroundStyle(Color(.label))
+          .textCase(nil)
+          .padding(.top, -16)
+          .padding([.leading, .trailing], 4)
         }
         .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
 
