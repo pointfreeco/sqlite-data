@@ -3,16 +3,32 @@
   import TabularData
   import os
 
-  // MARK: - Deprecated
-  // This file is deprecated. The logging functionality has been moved to
-  // the AppleLoggerAdapter in Sources/SQLiteData/CloudKit/Loggers/AppleLoggerAdapter.swift
-  // This extension is kept for backward compatibility only.
-
+  /// An adapter that implements `SyncEngineLogger` using Apple's `os.Logger`.
+  ///
+  /// This adapter preserves the existing logging behavior, including tabular
+  /// formatting of sync events for better readability in Console.app.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @available(*, deprecated, message: "Use AppleLoggerAdapter instead. This extension will be removed in a future version.")
-  extension Logger {
-    func log(_ event: SyncEngine.Event, syncEngine: any SyncEngineProtocol) {
-      let prefix = "SQLiteData (\(syncEngine.database.databaseScope.label).db)"
+  public struct AppleLoggerAdapter: SyncEngineLogger {
+    private let logger: Logger
+
+    /// Creates a new Apple logger adapter.
+    ///
+    /// - Parameters:
+    ///   - subsystem: The subsystem identifier for the logger.
+    ///   - category: The category for the logger.
+    public init(subsystem: String = "SQLiteData", category: String = "CloudKit") {
+      self.logger = Logger(subsystem: subsystem, category: category)
+    }
+
+    /// Creates a new Apple logger adapter with a pre-configured logger.
+    ///
+    /// - Parameter logger: The `os.Logger` instance to use.
+    public init(logger: Logger) {
+      self.logger = logger
+    }
+
+    public func log(_ event: SyncEngine.Event, databaseScope: String) {
+      let prefix = "SQLiteData (\(databaseScope).db)"
       var actions: [String] = []
       var recordTypes: [String] = []
       var recordNames: [String] = []
@@ -68,25 +84,25 @@
 
       switch event {
       case .stateUpdate:
-        debug("\(prefix) stateUpdate")
+        logger.debug("\(prefix) stateUpdate")
       case .accountChange(let changeType):
         switch changeType {
         case .signIn(let currentUser):
-          debug(
+          logger.debug(
             """
             \(prefix) signIn
               Current user: \(currentUser.recordName).\(currentUser.zoneID.ownerName).\(currentUser.zoneID.zoneName)
             """
           )
         case .signOut(let previousUser):
-          debug(
+          logger.debug(
             """
             \(prefix) signOut
               Previous user: \(previousUser.recordName).\(previousUser.zoneID.ownerName).\(previousUser.zoneID.zoneName)
             """
           )
         case .switchAccounts(let previousUser, let currentUser):
-          debug(
+          logger.debug(
             """
             \(prefix) switchAccounts:
               Previous user: \(previousUser.recordName).\(previousUser.zoneID.ownerName).\(previousUser.zoneID.zoneName)
@@ -94,7 +110,7 @@
             """
           )
         @unknown default:
-          debug("unknown")
+          logger.debug("unknown")
         }
       case .fetchedDatabaseChanges(let modifications, let deletions):
         for modification in modifications {
@@ -111,7 +127,7 @@
           ownerNames.append(deletedZoneID.ownerName)
           reasons.append(reason.loggingDescription)
         }
-        debug(
+        logger.debug(
           """
           \(prefix) fetchedDatabaseChanges
             \(tabularDescription)
@@ -128,7 +144,7 @@
           recordTypes.append(deletedRecordType)
           recordNames.append(deletedRecordID.recordName)
         }
-        debug(
+        logger.debug(
           """
           \(prefix) fetchedRecordZoneChanges
             \(tabularDescription)
@@ -168,7 +184,7 @@
           ownerNames.append(failedDeleteZoneID.ownerName)
           errors.append(error.code.loggingDescription)
         }
-        debug(
+        logger.debug(
           """
           \(prefix) sentDatabaseChanges
             \(tabularDescription)
@@ -208,33 +224,37 @@
           recordNames.append(failedDeleteRecordID.recordName)
           errors.append("\(error.code.loggingDescription) (\(error.errorCode))")
         }
-        debug(
+        logger.debug(
           """
           \(prefix) sentRecordZoneChanges
             \(tabularDescription)
           """
         )
       case .willFetchChanges:
-        debug("\(prefix) willFetchChanges")
+        logger.debug("\(prefix) willFetchChanges")
       case .willFetchRecordZoneChanges(let zoneID):
-        debug("\(prefix) willFetchRecordZoneChanges: \(zoneID.zoneName)")
+        logger.debug("\(prefix) willFetchRecordZoneChanges: \(zoneID.zoneName)")
       case .didFetchRecordZoneChanges(let zoneID, let error):
         let error = (error?.code.loggingDescription).map { "\n  ❌ \($0)" } ?? ""
-        debug(
+        logger.debug(
           """
           \(prefix) willFetchRecordZoneChanges
             ✅ Zone: \(zoneID.zoneName):\(zoneID.ownerName)\(error)
           """
         )
       case .didFetchChanges:
-        debug("\(prefix) didFetchChanges")
+        logger.debug("\(prefix) didFetchChanges")
       case .willSendChanges:
-        debug("\(prefix) willSendChanges")
+        logger.debug("\(prefix) willSendChanges")
       case .didSendChanges:
-        debug("\(prefix) didSendChanges")
+        logger.debug("\(prefix) didSendChanges")
       @unknown default:
-        warning("\(prefix) ⚠️ unknown event: \(event.description)")
+        logger.warning("\(prefix) ⚠️ unknown event: \(event.description)")
       }
+    }
+
+    public func debug(_ message: String) {
+      logger.debug("\(message)")
     }
   }
 

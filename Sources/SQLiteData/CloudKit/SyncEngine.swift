@@ -3,7 +3,6 @@
   import ConcurrencyExtras
   import Dependencies
   import OrderedCollections
-  import OSLog
   import Observation
   import StructuredQueriesCore
   import SwiftData
@@ -19,7 +18,7 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Observable, Sendable {
     package let userDatabase: UserDatabase
-    package let logger: Logger
+    package let logger: any SyncEngineLogger
     package let metadatabase: any DatabaseWriter
     package let tables: [any SynchronizableTable]
     package let privateTables: [any SynchronizableTable]
@@ -73,7 +72,7 @@
     ///   - defaultZone: The zone for all records to be stored in.
     ///   - startImmediately: Determines if the sync engine starts right away or requires an
     ///   explicit call to ``start()``. By default this argument is `true`.
-    ///   - logger: The logger used to log events in the sync engine. By default a `.disabled`
+    ///   - logger: The logger used to log events in the sync engine. By default a disabled
     ///   logger is used, which means logs are not printed.
     public convenience init<
       each T1: PrimaryKeyedTable & _SendableMetatype,
@@ -85,8 +84,8 @@
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
       startImmediately: Bool = DependencyValues._current.context == .live,
-      logger: Logger = isTesting
-        ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
+      logger: any SyncEngineLogger = isTesting
+        ? DisabledLogger() : AppleLoggerAdapter(subsystem: "SQLiteData", category: "CloudKit")
     ) throws
     where
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
@@ -202,7 +201,7 @@
           SyncEngine
         ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
       userDatabase: UserDatabase,
-      logger: Logger,
+      logger: any SyncEngineLogger,
       tables: [any SynchronizableTable],
       privateTables: [any SynchronizableTable] = []
     ) throws {
@@ -835,7 +834,7 @@
 
     package func handleEvent(_ event: Event, syncEngine: any SyncEngineProtocol) async {
       #if DEBUG
-        logger.log(event, syncEngine: syncEngine)
+        logger.log(event, databaseScope: syncEngine.database.databaseScope.label)
       #endif
 
       switch event {
@@ -943,13 +942,12 @@
         defer {
           let state = state.withValue(\.self)
           if let tabularDescription = state.tabularDescription {
-            logger.debug(
-              """
+            let message = """
               SQLiteData (\(syncEngine.database.databaseScope.label).db) \
               nextRecordZoneChangeBatch: \(reason)
                 \(tabularDescription)
               """
-            )
+            logger.debug(message)
           }
         }
       #endif
@@ -2246,6 +2244,17 @@
   }
 
   #if DEBUG
+    extension CKDatabase.Scope {
+      var label: String {
+        switch self {
+        case .public: "global"
+        case .private: "private"
+        case .shared: "shared"
+        @unknown default: "unknown"
+        }
+      }
+    }
+
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     private struct NextRecordZoneChangeBatchLoggingState {
       var events: [String] = []

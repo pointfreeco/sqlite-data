@@ -4,7 +4,6 @@ import OrderedCollections
 import SQLiteData
 import SnapshotTesting
 import Testing
-import os
 
 @Suite(
   .snapshots(record: .missing),
@@ -209,7 +208,7 @@ extension SyncEngine {
         )
       },
       userDatabase: userDatabase,
-      logger: Logger(.disabled),
+      logger: DisabledLogger(),
       tables: tables,
       privateTables: privateTables
     )

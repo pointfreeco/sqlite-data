@@ -1,10 +1,9 @@
 #if canImport(CloudKit)
   import Foundation
-  import os
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   func defaultMetadatabase(
-    logger: Logger,
+    logger: any SyncEngineLogger,
     url: URL
   ) throws -> any DatabaseWriter {
     logger.debug(
