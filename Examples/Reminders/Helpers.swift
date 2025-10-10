@@ -2,11 +2,13 @@ import SQLiteData
 import SwiftUI
 
 extension Color {
-  public struct HexRepresentation: QueryRepresentable {
+  nonisolated public struct HexRepresentation: QueryBindable, QueryDecodable, QueryRepresentable {
     public var queryOutput: Color
+
     public init(queryOutput: Color) {
       self.queryOutput = queryOutput
     }
+
     public init(hexValue: Int64) {
       self.init(
         queryOutput: Color(
@@ -17,6 +19,7 @@ extension Color {
         )
       )
     }
+
     public var hexValue: Int64? {
       guard let components = UIColor(queryOutput).cgColor.components
       else { return nil }
@@ -26,25 +29,22 @@ extension Color {
       let a = Int64((components.indices.contains(3) ? components[3] : 1) * 0xFF)
       return r | g | b | a
     }
-  }
-}
 
-extension Color.HexRepresentation: QueryBindable {
-  public init?(queryBinding: StructuredQueriesCore.QueryBinding) {
-    guard case .int(let hexValue) = queryBinding else { return nil }
-    self.init(hexValue: hexValue)
-  }
-  public var queryBinding: QueryBinding {
-    guard let hexValue else {
-      struct InvalidColor: Error {}
-      return .invalid(InvalidColor())
+    public init?(queryBinding: StructuredQueriesCore.QueryBinding) {
+      guard case .int(let hexValue) = queryBinding else { return nil }
+      self.init(hexValue: hexValue)
     }
-    return .int(hexValue)
-  }
-}
 
-extension Color.HexRepresentation: QueryDecodable {
-  public init(decoder: inout some QueryDecoder) throws {
-    try self.init(hexValue: Int64(decoder: &decoder))
+    public var queryBinding: QueryBinding {
+      guard let hexValue else {
+        struct InvalidColor: Error {}
+        return .invalid(InvalidColor())
+      }
+      return .int(hexValue)
+    }
+
+    public init(decoder: inout some QueryDecoder) throws {
+      try self.init(hexValue: Int64(decoder: &decoder))
+    }
   }
 }

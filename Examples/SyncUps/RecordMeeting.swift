@@ -88,9 +88,7 @@ final class RecordMeetingModel: HashableObject {
 
   private func startSpeechRecognition() async {
     do {
-      let speechTask = await speechClient.startTask(
-        request: SFSpeechAudioBufferRecognitionRequest()
-      )
+      let speechTask = await speechClient.startTask()
       for try await result in speechTask {
         transcript = result.bestTranscription.formattedString
       }

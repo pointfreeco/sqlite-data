@@ -56,7 +56,7 @@ struct SwiftDataTemplateView: SwiftUICaseStudy {
 }
 
 @Table
-private struct Item: Identifiable {
+nonisolated private struct Item: Identifiable {
   let id: Int
   var timestamp: Date
 }

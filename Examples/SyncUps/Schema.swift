@@ -3,7 +3,7 @@ import SQLiteData
 import SwiftUI
 
 @Table
-struct SyncUp: Hashable, Identifiable {
+nonisolated struct SyncUp: Hashable, Identifiable {
   let id: UUID
   var seconds: Int = 60 * 5
   var theme: Theme = .bubblegum
@@ -11,14 +11,14 @@ struct SyncUp: Hashable, Identifiable {
 }
 
 @Table
-struct Attendee: Hashable, Identifiable {
+nonisolated struct Attendee: Hashable, Identifiable {
   let id: UUID
   var name = ""
   var syncUpID: SyncUp.ID
 }
 
 @Table
-struct Meeting: Hashable, Identifiable {
+nonisolated struct Meeting: Hashable, Identifiable {
   let id: UUID
   var date: Date
   var syncUpID: SyncUp.ID

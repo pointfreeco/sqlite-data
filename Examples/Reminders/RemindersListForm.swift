@@ -79,7 +79,7 @@ struct RemindersListForm: View {
             await withErrorReporting {
               try await database.write { db in
                 let remindersListID =
-                  try RemindersList
+                try RemindersList
                   .upsert { remindersList }
                   .returning(\.id)
                   .fetchOne(db)
