@@ -1,4 +1,4 @@
-#if DEBUG && canImport(CloudKit)
+#if canImport(CloudKit)
   import CloudKit
   import TabularData
   import os
