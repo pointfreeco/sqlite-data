@@ -291,13 +291,15 @@ as field names in your Swift data types or SQLite tables.
 
 Here is an exhaustive list of those reserved fields:
 
-* `recordID`
-* `recordType`
 * `creationDate`
 * `creatorUserRecordID`
-* `modificationDate`
+* `etag`
 * `lastModifiedUserRecordID`
+* `modificationDate`
+* `modifiedByDevice`
 * `recordChangeTag`
+* `recordID`
+* `recordType`
 
 ## Backwards compatible migrations
 
