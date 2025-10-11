@@ -289,7 +289,8 @@ In the process of sending data from your database to CloudKit, the library turns
 internally by CloudKit and are reserved for their use only. This means those keys cannot be used
 as field names in your Swift data types or SQLite tables.
 
-Here is an exhaustive list of those reserved fields:
+While Apple has not published an exhaustive list of reserved keywords, the following should cover
+most known cases:
 
 * `creationDate`
 * `creatorUserRecordID`
