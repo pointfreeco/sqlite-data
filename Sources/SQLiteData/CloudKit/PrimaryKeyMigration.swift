@@ -50,6 +50,7 @@
     public static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
       _ db: Database,
       tables: repeat (each T).Type,
+      dropUniqueConstraints: Bool = false,
       uuid uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
     ) throws
     where
@@ -82,6 +83,7 @@
       for table in repeat each tables {
         try table.migratePrimaryKeyToUUID(
           db: db,
+          dropUniqueConstraints: dropUniqueConstraints,
           uuidFunction: uuidFunction,
           migratedTableNames: migratedTableNames,
           salt: salt
@@ -126,6 +128,7 @@
   extension PrimaryKeyedTable where TableColumns.PrimaryColumn: TableColumnExpression {
     fileprivate static func migratePrimaryKeyToUUID(
       db: Database,
+      dropUniqueConstraints: Bool,
       uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil,
       migratedTableNames: [String],
       salt: String
@@ -164,6 +167,7 @@
       let newTableName = "new_\(tableName)"
       let uuidFunction = uuidFunction?.name ?? "uuid"
       let newSchema = try schema.rewriteSchema(
+        dropUniqueConstraints: dropUniqueConstraints,
         oldPrimaryKey: primaryKeys.first?.name,
         newPrimaryKey: columns.primaryKey.name,
         foreignKeys: foreignKeys.map(\.from),
@@ -231,6 +235,7 @@
 
   extension String {
     func rewriteSchema(
+      dropUniqueConstraints: Bool,
       oldPrimaryKey: String?,
       newPrimaryKey: String,
       foreignKeys: [String],
@@ -238,6 +243,7 @@
     ) throws -> String {
       var substring = self[...]
       return try substring.rewriteSchema(
+        dropUniqueConstraints: dropUniqueConstraints,
         oldPrimaryKey: oldPrimaryKey,
         newPrimaryKey: newPrimaryKey,
         foreignKeys: foreignKeys,
@@ -248,6 +254,7 @@
 
   extension Substring {
     mutating func rewriteSchema(
+      dropUniqueConstraints: Bool,
       oldPrimaryKey: String?,
       newPrimaryKey: String,
       foreignKeys: [String],
@@ -315,6 +322,19 @@
             newSchema.append("TEXT")
           }
         }
+
+          // drop column unique constraint
+          if dropUniqueConstraints, columnName != oldPrimaryKey {
+              if let range = peek({
+                  $0.parseUniqueConstraintRange()
+              }) {
+                  // append string before unique range
+                  newSchema.append(String(base[index..<range.lowerBound]))
+                  // move index to skip unique string
+                  index = range.upperBound
+              }
+          }
+          
         if try parseToNextColumnDefinitionOrTableConstraint(
           skipIf: columnName == oldPrimaryKey
         ) {
@@ -322,6 +342,21 @@
         }
       }
       while peek({ $0.parseColumnConstraint() }) {
+          // drop table unique constraint
+          if dropUniqueConstraints, peek({ $0.parseKeyword("UNIQUE") }) {
+              let trivia = parseTrivia()
+              if let r = peek({
+                  $0.parseUniqueConstraintRange(isTableLevel: true)
+              }) {
+                  newSchema.append(trivia)
+                  // when table unique string at the end, trim ',' for previous column
+                  let str = String(base[index..<r.lowerBound])
+                      .trimmingCharacters(in: .init(charactersIn: ","))
+                  newSchema.append(str)
+                  index = r.upperBound
+              }
+          }
+          
         if try parseToNextColumnDefinitionOrTableConstraint(
           skipIf: parseKeywords(["PRIMARY", "KEY"])
         ) {
@@ -337,6 +372,92 @@
       var substring = self
       return try body(&substring)
     }
+      
+      mutating func parseUniqueConstraintRange(isTableLevel: Bool = false) -> Range<String.Index>? {
+          var range: Range<String.Index>?
+          var keywords: [String] = []
+          var tempKeyword = ""
+          var index = startIndex
+          var uniqueBraceScope = false
+          out: while let c = first {
+              if index != startIndex {
+                  index = base.index(after: index)
+              }
+              
+              func checkKeyword() {
+                  if isTableLevel { return }
+                  
+                  if let temp = range {
+                      range = temp.lowerBound..<index
+                  }
+                  let char = parseTrivia()
+                  if !char.isEmpty {
+                      index = base.index(index, offsetBy: char.count)
+                      
+                      switch keywords.count {
+                          case 0:
+                              if tempKeyword == "UNIQUE" {
+                                  keywords.append(tempKeyword)
+                                  let startIdx = base.index(index, offsetBy: -tempKeyword.count-char.count)
+                                  let end = base.index(index, offsetBy: -char.count)
+                                  range = startIdx..<end
+                              }
+                          case 1:
+                              if tempKeyword == "ON" {
+                                  keywords.append(tempKeyword)
+                              } else {
+                                  range = nil
+                              }
+                          case 2:
+                              if tempKeyword == "CONFLICT" {
+                                  keywords.append(tempKeyword)
+                              } else {
+                                  range = nil
+                              }
+                          case 3:
+                              if ["IGNORE", "REPLACE", "FAIL", "ABORT", "ROLLBACK"].contains(tempKeyword) {
+                                  keywords.append(tempKeyword)
+                              } else {
+                                  range = nil
+                              }
+                          default: break
+                      }
+                      tempKeyword = ""
+                  }
+              }
+              
+              defer {
+                  checkKeyword()
+              }
+              
+              removeFirst()
+              switch c {
+                  case ",":
+                      break out
+                  case "(":
+                      if isTableLevel {
+                          tempKeyword.append(c.uppercased())
+                          uniqueBraceScope = true
+                      }
+                  case ")":
+                      if isTableLevel, uniqueBraceScope {
+                          tempKeyword.append(c.uppercased())
+                          uniqueBraceScope = false
+                      } else {
+                          break out
+                      }
+                  default:
+                      tempKeyword.append(c.uppercased())
+                      continue
+              }
+          }
+          
+          if isTableLevel {
+              let start = base.index(index, offsetBy: -tempKeyword.count)
+              range = start..<index
+          }
+          return range
+      }
 
     mutating func parseBalanced(upTo endCharacter: Character = ",") throws {
       let substring = self
