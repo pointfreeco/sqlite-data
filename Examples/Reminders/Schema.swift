@@ -116,7 +116,7 @@ struct ReminderText: FTS5 {
 }
 
 extension DependencyValues {
-  mutating func bootstrapDatabase() throws {
+  mutating func bootstrapDatabase(syncEngineDelegate: (any SyncEngineDelegate)? = nil) throws {
     defaultDatabase = try Reminders.appDatabase()
     defaultSyncEngine = try SyncEngine(
       for: defaultDatabase,
@@ -124,7 +124,8 @@ extension DependencyValues {
       RemindersListAsset.self,
       Reminder.self,
       Tag.self,
-      ReminderTag.self
+      ReminderTag.self,
+      delegate: syncEngineDelegate
     )
   }
 }
@@ -251,12 +252,7 @@ func appDatabase() throws -> any DatabaseWriter {
 
     try RemindersList.createTemporaryTrigger(
       after: .delete { _ in
-        RemindersList.insert {
-          RemindersList.Draft(
-            color: RemindersList.defaultColor,
-            title: RemindersList.defaultTitle
-          )
-        }
+        Values($createDefaultRemindersList())
       } when: { _ in
         !RemindersList.exists()
       }
@@ -363,6 +359,22 @@ func handleReminderStatusUpdate() {
           .update { $0.status = .completed }
           .execute(db)
       }
+    }
+  }
+}
+
+@DatabaseFunction
+func createDefaultRemindersList() {
+  Task {
+    @Dependency(\.defaultDatabase) var database
+    try await database.write { db in
+      try RemindersList.insert {
+        RemindersList.Draft(
+          color: RemindersList.defaultColor,
+          title: RemindersList.defaultTitle
+        )
+      }
+      .execute(db)
     }
   }
 }

@@ -101,4 +101,29 @@
       Self(accountStatus)
     }
   }
+
+  struct _SyncEngineDelegateTrait: SuiteTrait, TestScoping, TestTrait {
+    @TaskLocal static var syncEngineDelegate: (any SyncEngineDelegate)?
+    let syncEngineDelegate: (any SyncEngineDelegate)?
+    init(syncEngineDelegate: (any SyncEngineDelegate)?) {
+      self.syncEngineDelegate = syncEngineDelegate
+    }
+    func provideScope(
+      for test: Test,
+      testCase: Test.Case?,
+      performing function: () async throws -> Void
+    ) async throws {
+      try await Self.$syncEngineDelegate.withValue(syncEngineDelegate) {
+        try await function()
+      }
+    }
+  }
+
+  extension Trait where Self == _SyncEngineDelegateTrait {
+    static func syncEngineDelegate(
+      _ syncEngineDelegate: (any SyncEngineDelegate)?
+    ) -> Self {
+      Self(syncEngineDelegate: syncEngineDelegate)
+    }
+  }
 #endif

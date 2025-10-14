@@ -10,12 +10,15 @@ import UIKit
 struct RemindersApp: App {
   @UIApplicationDelegateAdaptor var delegate: AppDelegate
   @Dependency(\.context) var context
+  @Dependency(\.defaultSyncEngine) var syncEngine
   static let model = RemindersListsModel()
+
+  @State var syncEngineDelegate = RemindersSyncEngineDelegate()
 
   init() {
     if context == .live {
       try! prepareDependencies {
-        try $0.bootstrapDatabase()
+        try $0.bootstrapDatabase(syncEngineDelegate: syncEngineDelegate)
       }
     }
   }
@@ -26,7 +29,41 @@ struct RemindersApp: App {
         NavigationStack {
           RemindersListsView(model: Self.model)
         }
+        .alert(
+          "Clear local data?",
+          isPresented: $syncEngineDelegate.isDeleteLocalDataAlertPresented
+        ) {
+          Button("Delete local data", role: .destructive) {
+            Task {
+              try await syncEngine.deleteLocalData()
+            }
+          }
+        } message: {
+          Text("""
+              You have logged out of your previous iCloud account. Do you want to delete all of \
+              your local data? This will not delete the data from iCloud.
+              """)
+        }
       }
+    }
+  }
+}
+
+@MainActor
+@Observable
+class RemindersSyncEngineDelegate: SyncEngineDelegate {
+  var isDeleteLocalDataAlertPresented = false
+  func syncEngine(
+    _ syncEngine: SQLiteData.SyncEngine,
+    accountChanged changeType: CKSyncEngine.Event.AccountChange.ChangeType
+  ) async {
+    switch changeType {
+    case .signIn:
+      break
+    case .signOut, .switchAccounts:
+      isDeleteLocalDataAlertPresented = true
+    @unknown default:
+      break
     }
   }
 }

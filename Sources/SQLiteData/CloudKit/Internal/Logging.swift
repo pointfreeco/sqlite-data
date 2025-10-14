@@ -47,9 +47,9 @@
           dataFrame.sort(on: ColumnID("action", String.self))
         }
         var formattingOptions = FormattingOptions(
-          maximumLineWidth: 120,
+          maximumLineWidth: 300,
           maximumCellWidth: 80,
-          maximumRowCount: 50,
+          maximumRowCount: 1000,
           includesColumnTypes: false
         )
         formattingOptions.includesRowAndColumnCounts = false

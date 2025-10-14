@@ -2,16 +2,6 @@
   import CloudKit
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  package protocol SyncEngineDelegate: AnyObject, Sendable {
-    func handleEvent(_ event: SyncEngine.Event, syncEngine: any SyncEngineProtocol) async
-    func nextRecordZoneChangeBatch(
-      reason: CKSyncEngine.SyncReason,
-      options: CKSyncEngine.SendChangesOptions,
-      syncEngine: any SyncEngineProtocol
-    ) async -> CKSyncEngine.RecordZoneChangeBatch?
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {
     associatedtype State: CKSyncEngineStateProtocol
     associatedtype Database: CloudDatabase

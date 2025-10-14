@@ -28,6 +28,7 @@
     let foreignKeysByTableName: [String: [ForeignKey]]
     package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
     package let defaultZone: CKRecordZone
+    let delegate: (any SyncEngineDelegate)?
     let defaultSyncEngines:
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
@@ -85,6 +86,7 @@
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
       startImmediately: Bool = DependencyValues._current.context == .live,
+      delegate: (any SyncEngineDelegate)? = nil,
       logger: Logger = isTesting
         ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
     ) throws
@@ -136,6 +138,7 @@
           },
           userDatabase: userDatabase,
           logger: logger,
+          delegate: delegate,
           tables: allTables,
           privateTables: allPrivateTables
         )
@@ -184,6 +187,7 @@
         },
         userDatabase: userDatabase,
         logger: logger,
+        delegate: delegate,
         tables: allTables,
         privateTables: allPrivateTables
       )
@@ -203,6 +207,7 @@
         ) -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol),
       userDatabase: UserDatabase,
       logger: Logger,
+      delegate: (any SyncEngineDelegate)?,
       tables: [any SynchronizableTable],
       privateTables: [any SynchronizableTable] = []
     ) throws {
@@ -210,6 +215,7 @@
         .map(\.type)
       self.tables = allTables
       self.privateTables = privateTables
+      self.delegate = delegate
 
       let foreignKeysByTableName = Dictionary(
         uniqueKeysWithValues: try userDatabase.read { db in
@@ -620,7 +626,8 @@
       try migrate(metadatabase: metadatabase)
     }
 
-    func deleteLocalData() async throws {
+    // TODO: docs
+    public func deleteLocalData() async throws {
       stop()
       try tearDownSyncEngine()
       await withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -823,7 +830,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension SyncEngine: CKSyncEngineDelegate, SyncEngineDelegate {
+  extension SyncEngine: CKSyncEngineDelegate {
     public func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
       guard let event = Event(event)
       else {
@@ -1174,11 +1181,21 @@
           try await enqueueUnknownRecordsForCloudKit()
         }
       case .signOut, .switchAccounts:
-        await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await deleteLocalData()
-        }
+        await notifyDelegate(changeType: changeType)
+
       @unknown default:
         break
+      }
+
+      func notifyDelegate(changeType: CKSyncEngine.Event.AccountChange.ChangeType) async {
+        guard let delegate
+        else {
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await deleteLocalData()
+          }
+          return
+        }
+        await delegate.syncEngine(self, accountChanged: changeType)
       }
     }
 
