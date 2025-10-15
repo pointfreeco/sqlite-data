@@ -31,6 +31,7 @@
   extension SyncEngine {
     private struct SharingError: LocalizedError {
       enum Reason {
+        case shareCouldNotBeCreated
         case recordMetadataNotFound
         case recordNotRoot([ForeignKey])
         case recordTableNotSynchronized
@@ -136,12 +137,16 @@
         )
       }
 
-      let rootRecord =
-        lastKnownServerRecord
-        ?? CKRecord(
-          recordType: recordType,
-          recordID: CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)
-        )
+      let rootRecordID = lastKnownServerRecord?.recordID
+      ?? CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)
+//      let rootRecord =
+//        lastKnownServerRecord
+//        ?? CKRecord(
+//          recordType: recordType,
+//          recordID: CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)
+//        )
+
+      let rootRecord = try await container.privateCloudDatabase.record(for: rootRecordID)
 
       var existingShare: CKShare? {
         get async throws {
@@ -156,8 +161,9 @@
         }
       }
 
+      let _existingShare = try await existingShare
       let sharedRecord =
-        try await existingShare
+      _existingShare
         ?? CKShare(
           rootRecord: rootRecord,
           shareID: CKRecord.ID(
@@ -167,10 +173,30 @@
         )
 
       configure(sharedRecord)
-      _ = try await container.privateCloudDatabase.modifyRecords(
+      let (saveResults, _) = try await container.privateCloudDatabase.modifyRecords(
         saving: [sharedRecord, rootRecord],
         deleting: []
       )
+      let savedShare = saveResults.values.compactMap { result in
+        switch result {
+        case .success(let record) where record.recordID == sharedRecord.recordID:
+          return record as? CKShare
+        case .success, .failure:
+          return nil
+        }
+      }
+        .first
+      guard let savedShare
+      else {
+        throw SharingError(
+          recordTableName: T.tableName,
+          recordPrimaryKey: record.primaryKey.rawIdentifier,
+          reason: .shareCouldNotBeCreated,
+          debugDescription: """
+            A 'CKShare' could not be created in iCloud.
+            """
+        )
+      }
       try await userDatabase.write { db in
         try SyncMetadata
           .where { $0.recordName.eq(recordName) }
@@ -178,7 +204,7 @@
           .execute(db)
       }
 
-      return SharedRecord(container: container, share: sharedRecord)
+      return SharedRecord(container: container, share: savedShare)
     }
 
     public func unshare<T: PrimaryKeyedTable>(record: T) async throws

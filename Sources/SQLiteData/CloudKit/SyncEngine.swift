@@ -872,19 +872,31 @@
         )
 
       case .willFetchRecordZoneChanges:
-        fetchingChangesCount += 1
+        await MainActor.run {
+          fetchingChangesCount += 1
+        }
       case .didFetchRecordZoneChanges:
-        fetchingChangesCount -= 1
+        await MainActor.run {
+          fetchingChangesCount -= 1
+        }
 
       case .willFetchChanges:
-        fetchingChangesCount += 1
+        await MainActor.run {
+          fetchingChangesCount += 1
+        }
       case .didFetchChanges:
-        fetchingChangesCount -= 1
+        await MainActor.run {
+          fetchingChangesCount -= 1
+        }
 
       case .willSendChanges:
-        sendingChangesCount += 1
+        await MainActor.run {
+          sendingChangesCount += 1
+        }
       case .didSendChanges:
-        sendingChangesCount -= 1
+        await MainActor.run {
+          sendingChangesCount -= 1
+        }
 
       @unknown default:
         break
