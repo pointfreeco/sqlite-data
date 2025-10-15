@@ -654,8 +654,12 @@
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
-        let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
+        let _ = try await syncEngine.share(record: remindersList, configure: {
+          $0[CKShare.SystemFieldKey.title] = "Join my list!"
+        })
+        let _ = try await syncEngine.share(record: remindersList, configure: {
+          $0[CKShare.SystemFieldKey.title] = "Please join my list!"
+        })
 
         assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase) {
           """
@@ -679,7 +683,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: "Please join my list!"
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
