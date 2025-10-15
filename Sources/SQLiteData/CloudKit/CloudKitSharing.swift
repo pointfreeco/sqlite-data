@@ -152,7 +152,7 @@
               .select(\.share)
               .fetchOne(db) ?? nil
           }
-          guard let shareRecordID = share?.recordID // = rootRecord.share?.recordID
+          guard let shareRecordID = share?.recordID  // = rootRecord.share?.recordID
           else {
             return nil
           }
@@ -165,9 +165,8 @@
         }
       }
 
-      let _existingShare = try await existingShare
       let sharedRecord =
-      _existingShare
+        try await existingShare
         ?? CKShare(
           rootRecord: rootRecord,
           shareID: CKRecord.ID(
@@ -181,22 +180,17 @@
         saving: [sharedRecord, rootRecord],
         deleting: []
       )
-      let savedShare = saveResults.values.compactMap { result in
-        switch result {
-        case .success(let record) where record.recordID == sharedRecord.recordID:
-          return record as? CKShare
-        case .success, .failure:
-          return nil
-        }
+
+      let savedShare = try saveResults.values.compactMap { result in
+        let record = try result.get()
+        return record.recordID == sharedRecord.recordID
+        ? record as? CKShare
+        : nil
       }
-        .first
-      let savedRootRecord = saveResults.values.compactMap { result in
-        switch result {
-        case .success(let record) where record.recordID == rootRecord.recordID:
-          return record
-        case .success, .failure:
-          return nil
-        }
+      .first
+      let savedRootRecord = try saveResults.values.compactMap { result in
+        let record = try result.get()
+        return record.recordID == rootRecord.recordID ? record : nil
       }
         .first
       guard let savedShare, let savedRootRecord
@@ -237,7 +231,8 @@
         reportIssue(
           """
           No share found associated with record.
-          """)
+          """
+        )
         return
       }
 
