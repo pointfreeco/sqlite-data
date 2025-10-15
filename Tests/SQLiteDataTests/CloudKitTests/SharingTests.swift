@@ -644,6 +644,23 @@
         }
       }
 
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func shareTwice() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            remindersList
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
+        let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
+
+        assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase)
+        assertInlineSnapshot(of: container, as: .customDump)
+      }
+
       // NB: Swift 6.2 cannot currently compile this:
       //     Pattern that the region based isolation checker does not understand how to check.
       //     Please file a bug.

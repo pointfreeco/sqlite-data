@@ -358,7 +358,7 @@
     public func start() async throws {
       try await start().value
     }
-    
+
     /// Determines if the sync engine is currently sending local changes to the CloudKit server.
     ///
     /// It is an observable value, which means if it is accessed in a SwiftUI view, or some other
@@ -1088,74 +1088,76 @@
         }
       }
 
-      let (sharesToDelete, recordsWithRoot):
-        ([CKShare?], [(lastKnownServerRecord: CKRecord?, rootLastKnownServerRecord: CKRecord?)]) =
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            guard !deletedRecordIDs.isEmpty
-            else { return ([], []) }
+      if syncEngine.database.databaseScope == .shared {
+        let (sharesToDelete, recordsWithRoot):
+          ([CKShare?], [(lastKnownServerRecord: CKRecord?, rootLastKnownServerRecord: CKRecord?)]) =
+            await withErrorReporting(.sqliteDataCloudKitFailure) {
+              guard !deletedRecordIDs.isEmpty
+              else { return ([], []) }
 
-            return try await metadatabase.read { db in
-              let sharesToDelete =
-                try SyncMetadata
-                .findAll(deletedRecordIDs)
-                .where(\.isShared)
-                .select(\.share)
-                .fetchAll(db)
+              return try await metadatabase.read { db in
+                let sharesToDelete =
+                  try SyncMetadata
+                  .findAll(deletedRecordIDs)
+                  .where(\.isShared)
+                  .select(\.share)
+                  .fetchAll(db)
 
-              let recordsWithRoot =
-                try With {
-                  SyncMetadata
-                    .findAll(deletedRecordIDs)
-                    .where { $0.parentRecordName.is(nil) }
-                    .select {
-                      RecordWithRoot.Columns(
-                        parentRecordName: $0.parentRecordName,
-                        recordName: $0.recordName,
-                        lastKnownServerRecord: $0.lastKnownServerRecord,
-                        rootRecordName: $0.recordName,
-                        rootLastKnownServerRecord: $0.lastKnownServerRecord
+                let recordsWithRoot =
+                  try With {
+                    SyncMetadata
+                      .findAll(deletedRecordIDs)
+                      .where { $0.parentRecordName.is(nil) }
+                      .select {
+                        RecordWithRoot.Columns(
+                          parentRecordName: $0.parentRecordName,
+                          recordName: $0.recordName,
+                          lastKnownServerRecord: $0.lastKnownServerRecord,
+                          rootRecordName: $0.recordName,
+                          rootLastKnownServerRecord: $0.lastKnownServerRecord
+                        )
+                      }
+                      .union(
+                        all: true,
+                        SyncMetadata
+                          .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
+                          .select { metadata, tree in
+                            RecordWithRoot.Columns(
+                              parentRecordName: metadata.parentRecordName,
+                              recordName: metadata.recordName,
+                              lastKnownServerRecord: metadata.lastKnownServerRecord,
+                              rootRecordName: tree.rootRecordName,
+                              rootLastKnownServerRecord: tree.lastKnownServerRecord
+                            )
+                          }
                       )
-                    }
-                    .union(
-                      all: true,
-                      SyncMetadata
-                        .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
-                        .select { metadata, tree in
-                          RecordWithRoot.Columns(
-                            parentRecordName: metadata.parentRecordName,
-                            recordName: metadata.recordName,
-                            lastKnownServerRecord: metadata.lastKnownServerRecord,
-                            rootRecordName: tree.rootRecordName,
-                            rootLastKnownServerRecord: tree.lastKnownServerRecord
-                          )
-                        }
-                    )
-                } query: {
-                  RecordWithRoot
-                    .select { ($0.lastKnownServerRecord, $0.rootLastKnownServerRecord) }
-                }
-                .fetchAll(db)
+                  } query: {
+                    RecordWithRoot
+                      .select { ($0.lastKnownServerRecord, $0.rootLastKnownServerRecord) }
+                  }
+                  .fetchAll(db)
 
-              return (sharesToDelete, recordsWithRoot)
+                return (sharesToDelete, recordsWithRoot)
+              }
             }
-          }
-          ?? ([], [])
+            ?? ([], [])
 
-      let shareRecordIDsToDelete = sharesToDelete.compactMap(\.?.recordID)
+        let shareRecordIDsToDelete = sharesToDelete.compactMap(\.?.recordID)
 
-      for recordWithRoot in recordsWithRoot {
-        guard
-          let lastKnownServerRecord = recordWithRoot.lastKnownServerRecord,
-          let rootLastKnownServerRecord = recordWithRoot.rootLastKnownServerRecord
-        else { continue }
-        guard let rootShareRecordID = rootLastKnownServerRecord.share?.recordID
-        else { continue }
-        guard shareRecordIDsToDelete.contains(rootShareRecordID)
-        else { continue }
-        changes.removeAll(where: { $0 == .deleteRecord(lastKnownServerRecord.recordID) })
-        syncEngine.state.remove(
-          pendingRecordZoneChanges: [.deleteRecord(lastKnownServerRecord.recordID)]
-        )
+        for recordWithRoot in recordsWithRoot {
+          guard
+            let lastKnownServerRecord = recordWithRoot.lastKnownServerRecord,
+            let rootLastKnownServerRecord = recordWithRoot.rootLastKnownServerRecord
+          else { continue }
+          guard let rootShareRecordID = rootLastKnownServerRecord.share?.recordID
+          else { continue }
+          guard shareRecordIDsToDelete.contains(rootShareRecordID)
+          else { continue }
+          changes.removeAll(where: { $0 == .deleteRecord(lastKnownServerRecord.recordID) })
+          syncEngine.state.remove(
+            pendingRecordZoneChanges: [.deleteRecord(lastKnownServerRecord.recordID)]
+          )
+        }
       }
 
       await withErrorReporting(.sqliteDataCloudKitFailure) {
