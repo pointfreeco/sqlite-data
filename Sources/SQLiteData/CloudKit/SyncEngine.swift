@@ -1630,15 +1630,21 @@
     }
 
     func deleteShare(shareRecordID: CKRecord.ID) async throws {
-      try await userDatabase.write { db in
-        let shareAndRecordNameAndZone =
-          try SyncMetadata
+      let shareAndRecordNameAndZone = try await userDatabase.read { db in
+        try SyncMetadata
           .where(\.isShared)
           .select { ($0.share, $0.recordName, $0.zoneName, $0.ownerName) }
           .fetchAll(db)
           .first(where: { share, _, _, _ in share?.recordID == shareRecordID }) ?? nil
-        guard let (_, recordName, zoneName, ownerName) = shareAndRecordNameAndZone
-        else { return }
+      }
+      guard let (_, recordName, zoneName, ownerName) = shareAndRecordNameAndZone
+      else { return }
+      let rootRecordID = CKRecord.ID(
+        recordName: recordName,
+        zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
+      )
+      let rootRecord = try await container.privateCloudDatabase.record(for: rootRecordID)
+      try await userDatabase.write { db in
         try SyncMetadata
           .find(
             CKRecord.ID(
@@ -1646,7 +1652,10 @@
               zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
             )
           )
-          .update { $0.share = nil }
+          .update {
+            $0.setLastKnownServerRecord(rootRecord)
+            $0.share = nil
+          }
           .execute(db)
       }
     }

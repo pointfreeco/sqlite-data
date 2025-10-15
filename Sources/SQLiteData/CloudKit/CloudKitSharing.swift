@@ -146,8 +146,16 @@
 
       var existingShare: CKShare? {
         get async throws {
-          guard let shareRecordID = rootRecord.share?.recordID
-          else { return nil }
+          let share = try await userDatabase.read { db in
+            try SyncMetadata
+              .find(rootRecord.recordID)
+              .select(\.share)
+              .fetchOne(db) ?? nil
+          }
+          guard let shareRecordID = share?.recordID // = rootRecord.share?.recordID
+          else {
+            return nil
+          }
           do {
             return try await container.database(for: rootRecord.recordID)
               .record(for: shareRecordID) as? CKShare
@@ -191,7 +199,7 @@
         }
       }
         .first
-      guard let savedShare
+      guard let savedShare, let savedRootRecord
       else {
         throw SharingError(
           recordTableName: T.tableName,
@@ -207,7 +215,7 @@
           .where { $0.recordName.eq(recordName) }
           .update {
             $0.setLastKnownServerRecord(savedRootRecord)
-            $0.share = sharedRecord
+            $0.share = savedShare
           }
           .execute(db)
       }
