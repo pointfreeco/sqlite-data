@@ -137,16 +137,12 @@
         )
       }
 
-      let rootRecordID = lastKnownServerRecord?.recordID
-      ?? CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)
-//      let rootRecord =
-//        lastKnownServerRecord
-//        ?? CKRecord(
-//          recordType: recordType,
-//          recordID: CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)
-//        )
-
-      let rootRecord = try await container.privateCloudDatabase.record(for: rootRecordID)
+      let rootRecord =
+        lastKnownServerRecord
+        ?? CKRecord(
+          recordType: recordType,
+          recordID: CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)
+        )
 
       var existingShare: CKShare? {
         get async throws {
@@ -186,6 +182,15 @@
         }
       }
         .first
+      let savedRootRecord = saveResults.values.compactMap { result in
+        switch result {
+        case .success(let record) where record.recordID == rootRecord.recordID:
+          return record
+        case .success, .failure:
+          return nil
+        }
+      }
+        .first
       guard let savedShare
       else {
         throw SharingError(
@@ -200,7 +205,10 @@
       try await userDatabase.write { db in
         try SyncMetadata
           .where { $0.recordName.eq(recordName) }
-          .update { $0.share = sharedRecord }
+          .update {
+            $0.setLastKnownServerRecord(savedRootRecord)
+            $0.share = sharedRecord
+          }
           .execute(db)
       }
 
