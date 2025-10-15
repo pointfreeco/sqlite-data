@@ -42,7 +42,7 @@ struct RemindersApp: App {
           Text(
             """
             You are no longer logged into iCloud. Would you like to reset your local data to the \
-            defaults? This will not affect your iCloud data.
+            defaults? This will not affect your data in iCloud.
             """
           )
         }
