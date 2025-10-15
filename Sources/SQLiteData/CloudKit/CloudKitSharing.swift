@@ -146,7 +146,7 @@
 
       var existingShare: CKShare? {
         get async throws {
-          let share = try await userDatabase.read { db in
+          let share = try await metadatabase.read { db in
             try SyncMetadata
               .find(rootRecord.recordID)
               .select(\.share)
@@ -183,9 +183,7 @@
 
       let savedShare = try saveResults.values.compactMap { result in
         let record = try result.get()
-        return record.recordID == sharedRecord.recordID
-        ? record as? CKShare
-        : nil
+        return record.recordID == sharedRecord.recordID ? record as? CKShare : nil
       }
       .first
       let savedRootRecord = try saveResults.values.compactMap { result in
@@ -204,7 +202,7 @@
             """
         )
       }
-      try await userDatabase.write { db in
+      try await metadatabase.write { db in
         try SyncMetadata
           .where { $0.recordName.eq(recordName) }
           .update {
