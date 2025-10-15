@@ -657,8 +657,45 @@
         let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
         let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
 
-        assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase)
-        assertInlineSnapshot(of: container, as: .customDump)
+        assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────────────────────────────────────────────────────┐
+          │ CKRecord(                                                              │
+          │   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__), │
+          │   recordType: "cloudkit.share",                                        │
+          │   parent: nil,                                                         │
+          │   share: nil                                                           │
+          │ )                                                                      │
+          └────────────────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__))
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
       }
 
       // NB: Swift 6.2 cannot currently compile this:
