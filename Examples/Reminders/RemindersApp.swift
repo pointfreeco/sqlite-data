@@ -30,19 +30,21 @@ struct RemindersApp: App {
           RemindersListsView(model: Self.model)
         }
         .alert(
-          "Clear local data?",
+          "Reset local data?",
           isPresented: $syncEngineDelegate.isDeleteLocalDataAlertPresented
         ) {
-          Button("Delete local data", role: .destructive) {
+          Button("Reset", role: .destructive) {
             Task {
               try await syncEngine.deleteLocalData()
             }
           }
         } message: {
-          Text("""
-              You have logged out of your previous iCloud account. Do you want to delete all of \
-              your local data? This will not delete the data from iCloud.
-              """)
+          Text(
+            """
+            You are no longer logged into iCloud. Would you like to reset your local data to the \
+            defaults? This will not affect your iCloud data.
+            """
+          )
         }
       }
     }

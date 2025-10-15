@@ -38,8 +38,8 @@
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
 
-    /// The error message used when a write occurs to a record for which the current user
-    /// does not have permission.
+    /// The error message used when a write occurs to a record for which the current user does not
+    /// have permission.
     ///
     /// This error is thrown from any database write to a row for which the current user does
     /// not have permissions to write, as determined by its `CKShare` (if applicable). To catch
@@ -66,16 +66,17 @@
     /// - Parameters:
     ///   - database: The database to synchronize to CloudKit.
     ///   - tables: A list of tables that you want to synchronize _and_ that you want to be
-    ///   shareable with other users on CloudKit.
+    ///     shareable with other users on CloudKit.
     ///   - privateTables: A list of tables that you want to synchronize to CloudKit but that
-    ///   you do not want to be shareable with other users.
+    ///     you do not want to be shareable with other users.
     ///   - containerIdentifier: The container identifier in CloudKit to synchronize to. If omitted
-    ///   the container will be determined from the entitlements of your app.
+    ///     the container will be determined from the entitlements of your app.
     ///   - defaultZone: The zone for all records to be stored in.
     ///   - startImmediately: Determines if the sync engine starts right away or requires an
-    ///   explicit call to ``start()``. By default this argument is `true`.
+    ///     explicit call to ``start()``. By default this argument is `true`.
+    ///   - delegate: A delegate object that can override default sync engine behavior.
     ///   - logger: The logger used to log events in the sync engine. By default a `.disabled`
-    ///   logger is used, which means logs are not printed.
+    ///     logger is used, which means logs are not printed.
     public convenience init<
       each T1: PrimaryKeyedTable & _SendableMetatype,
       each T2: PrimaryKeyedTable & _SendableMetatype
@@ -626,7 +627,15 @@
       try migrate(metadatabase: metadatabase)
     }
 
-    // TODO: docs
+    // Deletes synchronized data locally on device and restarts the sync engine.
+    //
+    // This method is called automatically by the sync engine when it detects the device's iCloud
+    // account has logged out or changed. To customize this behavior, provide a
+    // ``SyncEngineDelegate`` to the sync engine and implement
+    // ``SyncEngineDelegate/syncEngine(_:accountChanged:)``.
+    //
+    // > Important: It is only appropriate to call this method when the device's iCloud account
+    // > logs out or changes.
     public func deleteLocalData() async throws {
       stop()
       try tearDownSyncEngine()

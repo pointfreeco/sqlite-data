@@ -670,7 +670,7 @@ struct MySuite {
 }
 ```
 
-And in preivews you can use it like so:
+And in previews you can use it like so:
 
 ```swift
 #Preview {
@@ -680,6 +680,24 @@ And in preivews you can use it like so:
   // ...
 }
 ```
+
+> Tip: If you configure your ``SyncEngine`` with a ``SyncEngineDelegate``, you can pass it to the
+> bootstrap function for configuration:
+>
+> ```diff
+>  extension DependencyValues {
+>    mutating func bootstrapDatabase(
+> +    syncEngineDelegate: (any SyncEngineDelegate)? = nil
+>    ) throws {
+>      defaultDatabase = try Reminders.appDatabase()
+>      defaultSyncEngine = try SyncEngine(
+>        for: defaultDatabase,
+>        tables: // ...
+> +      delegate: syncEngineDelegate
+>      )
+>    }
+>  }
+> ```
 
 ## Preparing an existing schema for synchronization
 
