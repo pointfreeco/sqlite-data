@@ -152,7 +152,7 @@
               .select(\.share)
               .fetchOne(db) ?? nil
           }
-          guard let shareRecordID = share?.recordID  // = rootRecord.share?.recordID
+          guard let shareRecordID = share?.recordID
           else {
             return nil
           }
