@@ -55,7 +55,7 @@
     /// * The table the `record` belongs to is not synchronized to CloudKit.
     /// * The `record` has any foreign keys. Only root records are shareable in CloudKit.
     /// * The table the `record` belongs to is a "private" table as determined by the
-    /// [`SyncEngine` initializer](<doc:SyncEngine/init(for:tables:privateTables:containerIdentifier:defaultZone:startImmediately:logger:)>).
+    /// [`SyncEngine` initializer](<doc:SyncEngine/init(for:tables:privateTables:containerIdentifier:defaultZone:startImmediately:delegate:logger:)>).
     /// * The `record` is being shared before it has been synchronized to CloudKit.
     /// * Any of the CloudKit APIs invoked throw an error.
     ///
