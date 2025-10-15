@@ -71,7 +71,7 @@ struct TransactionDemo: SwiftUICaseStudy {
 }
 
 @Table
-private struct Fact: Identifiable {
+nonisolated private struct Fact: Identifiable {
   static let databaseTableName = "facts"
   let id: Int
   var body: String

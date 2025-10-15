@@ -7,7 +7,7 @@ import SwiftUI
 import Synchronization
 
 @Table
-struct RemindersList: Hashable, Identifiable {
+nonisolated struct RemindersList: Hashable, Identifiable {
   let id: UUID
   @Column(as: Color.HexRepresentation.self)
   var color: Color = Self.defaultColor
@@ -21,7 +21,7 @@ struct RemindersList: Hashable, Identifiable {
 extension RemindersList.Draft: Identifiable {}
 
 @Table
-struct RemindersListAsset: Hashable, Identifiable {
+nonisolated struct RemindersListAsset: Hashable, Identifiable {
   @Column(primaryKey: true)
   let remindersListID: RemindersList.ID
   var coverImage: Data?
@@ -29,7 +29,7 @@ struct RemindersListAsset: Hashable, Identifiable {
 }
 
 @Table
-struct Reminder: Hashable, Identifiable {
+nonisolated struct Reminder: Hashable, Identifiable {
   let id: UUID
   var dueDate: Date?
   var isFlagged = false
@@ -64,7 +64,7 @@ extension Updates<Reminder> {
 extension Reminder.Draft: Identifiable {}
 
 @Table
-struct Tag: Hashable, Identifiable {
+nonisolated struct Tag: Hashable, Identifiable {
   @Column(primaryKey: true)
   var title: String
   var id: String { title }
@@ -77,7 +77,7 @@ extension Reminder {
     .leftJoin(Tag.all) { $1.tagID.eq($2.primaryKey) }
 }
 
-extension Reminder.TableColumns {
+nonisolated extension Reminder.TableColumns {
   var isCompleted: some QueryExpression<Bool> {
     status.neq(Reminder.Status.incomplete)
   }
@@ -94,14 +94,14 @@ extension Reminder.TableColumns {
   }
 }
 
-extension Tag {
+nonisolated extension Tag {
   static let withReminders = group(by: \.primaryKey)
     .leftJoin(ReminderTag.all) { $0.primaryKey.eq($1.tagID) }
     .leftJoin(Reminder.all) { $1.reminderID.eq($2.id) }
 }
 
 @Table("remindersTags")
-struct ReminderTag: Identifiable {
+nonisolated struct ReminderTag: Identifiable {
   let id: UUID
   let reminderID: Reminder.ID
   let tagID: Tag.ID
@@ -348,9 +348,9 @@ func appDatabase() throws -> any DatabaseWriter {
   return database
 }
 
-let reminderStatusMutex = Mutex<Task<Void, any Error>?>(nil)
+nonisolated let reminderStatusMutex = Mutex<Task<Void, any Error>?>(nil)
 @DatabaseFunction
-func handleReminderStatusUpdate() {
+nonisolated func handleReminderStatusUpdate() {
   reminderStatusMutex.withLock {
     $0?.cancel()
     $0 = Task {
@@ -367,7 +367,7 @@ func handleReminderStatusUpdate() {
   }
 }
 
-private let logger = Logger(subsystem: "Reminders", category: "Database")
+nonisolated private let logger = Logger(subsystem: "Reminders", category: "Database")
 
 #if DEBUG
   extension Database {
