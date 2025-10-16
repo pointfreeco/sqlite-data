@@ -74,7 +74,8 @@
     ///   - defaultZone: The zone for all records to be stored in.
     ///   - startImmediately: Determines if the sync engine starts right away or requires an
     ///     explicit call to ``start()``. By default this argument is `true`.
-    ///   - delegate: A delegate object that can override default sync engine behavior.
+    ///   - delegate: A delegate object that can be notified of events and override default sync
+    ///     engine behavior.
     ///   - logger: The logger used to log events in the sync engine. By default a `.disabled`
     ///     logger is used, which means logs are not printed.
     public convenience init<
@@ -627,15 +628,15 @@
       try migrate(metadatabase: metadatabase)
     }
 
-    // Deletes synchronized data locally on device and restarts the sync engine.
-    //
-    // This method is called automatically by the sync engine when it detects the device's iCloud
-    // account has logged out or changed. To customize this behavior, provide a
-    // ``SyncEngineDelegate`` to the sync engine and implement
-    // ``SyncEngineDelegate/syncEngine(_:accountChanged:)``.
-    //
-    // > Important: It is only appropriate to call this method when the device's iCloud account
-    // > logs out or changes.
+    /// Deletes synchronized data locally on device and restarts the sync engine.
+    ///
+    /// This method is called automatically by the sync engine when it detects the device's iCloud
+    /// account has logged out or changed. To customize this behavior, provide a
+    /// ``SyncEngineDelegate`` to the sync engine and implement
+    /// ``SyncEngineDelegate/syncEngine(_:accountChanged:)``.
+    ///
+    /// > Important: It is only appropriate to call this method when the device's iCloud account
+    /// > logs out or changes.
     public func deleteLocalData() async throws {
       stop()
       try tearDownSyncEngine()
@@ -1204,13 +1205,6 @@
           try await enqueueUnknownRecordsForCloudKit()
         }
       case .signOut, .switchAccounts:
-        await notifyDelegate(changeType: changeType)
-
-      @unknown default:
-        break
-      }
-
-      func notifyDelegate(changeType: CKSyncEngine.Event.AccountChange.ChangeType) async {
         guard let delegate
         else {
           await withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -1219,6 +1213,9 @@
           return
         }
         await delegate.syncEngine(self, accountChanged: changeType)
+
+      @unknown default:
+        break
       }
     }
 

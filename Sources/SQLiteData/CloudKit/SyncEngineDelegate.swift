@@ -2,7 +2,7 @@
   import CloudKit
   import CustomDump
 
-  /// An interface for customizing ``SyncEngine`` behavior.
+  /// An interface for observing ``SyncEngine`` events and customizing ``SyncEngine`` behavior.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public protocol SyncEngineDelegate: AnyObject, Sendable {
     /// An event indicating a change to the device's iCloud account.
