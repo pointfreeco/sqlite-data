@@ -3,7 +3,7 @@ import OSLog
 import SQLiteData
 
 @Table
-struct Counter: Identifiable {
+nonisolated struct Counter: Identifiable {
   let id: UUID
   var count = 0
 }

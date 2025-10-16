@@ -644,6 +644,65 @@
         }
       }
 
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func shareTwice() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            remindersList
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let _ = try await syncEngine.share(record: remindersList, configure: {
+          $0[CKShare.SystemFieldKey.title] = "Join my list!"
+        })
+        let _ = try await syncEngine.share(record: remindersList, configure: {
+          $0[CKShare.SystemFieldKey.title] = "Please join my list!"
+        })
+
+        assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────────────────────────────────────────────────────┐
+          │ CKRecord(                                                              │
+          │   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__), │
+          │   recordType: "cloudkit.share",                                        │
+          │   parent: nil,                                                         │
+          │   share: nil                                                           │
+          │ )                                                                      │
+          └────────────────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil,
+                  cloudkit.title: "Please join my list!"
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__))
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
       // NB: Swift 6.2 cannot currently compile this:
       //     Pattern that the region based isolation checker does not understand how to check.
       //     Please file a bug.

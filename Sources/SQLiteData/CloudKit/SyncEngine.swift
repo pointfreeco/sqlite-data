@@ -365,7 +365,7 @@
     public func start() async throws {
       try await start().value
     }
-    
+
     /// Determines if the sync engine is currently sending local changes to the CloudKit server.
     ///
     /// It is an observable value, which means if it is accessed in a SwiftUI view, or some other
@@ -888,19 +888,31 @@
         )
 
       case .willFetchRecordZoneChanges:
-        fetchingChangesCount += 1
+        await MainActor.run {
+          fetchingChangesCount += 1
+        }
       case .didFetchRecordZoneChanges:
-        fetchingChangesCount -= 1
+        await MainActor.run {
+          fetchingChangesCount -= 1
+        }
 
       case .willFetchChanges:
-        fetchingChangesCount += 1
+        await MainActor.run {
+          fetchingChangesCount += 1
+        }
       case .didFetchChanges:
-        fetchingChangesCount -= 1
+        await MainActor.run {
+          fetchingChangesCount -= 1
+        }
 
       case .willSendChanges:
-        sendingChangesCount += 1
+        await MainActor.run {
+          sendingChangesCount += 1
+        }
       case .didSendChanges:
-        sendingChangesCount -= 1
+        await MainActor.run {
+          sendingChangesCount -= 1
+        }
 
       @unknown default:
         break
@@ -1092,74 +1104,76 @@
         }
       }
 
-      let (sharesToDelete, recordsWithRoot):
-        ([CKShare?], [(lastKnownServerRecord: CKRecord?, rootLastKnownServerRecord: CKRecord?)]) =
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            guard !deletedRecordIDs.isEmpty
-            else { return ([], []) }
+      if syncEngine.database.databaseScope == .shared {
+        let (sharesToDelete, recordsWithRoot):
+          ([CKShare?], [(lastKnownServerRecord: CKRecord?, rootLastKnownServerRecord: CKRecord?)]) =
+            await withErrorReporting(.sqliteDataCloudKitFailure) {
+              guard !deletedRecordIDs.isEmpty
+              else { return ([], []) }
 
-            return try await metadatabase.read { db in
-              let sharesToDelete =
-                try SyncMetadata
-                .findAll(deletedRecordIDs)
-                .where(\.isShared)
-                .select(\.share)
-                .fetchAll(db)
+              return try await metadatabase.read { db in
+                let sharesToDelete =
+                  try SyncMetadata
+                  .findAll(deletedRecordIDs)
+                  .where(\.isShared)
+                  .select(\.share)
+                  .fetchAll(db)
 
-              let recordsWithRoot =
-                try With {
-                  SyncMetadata
-                    .findAll(deletedRecordIDs)
-                    .where { $0.parentRecordName.is(nil) }
-                    .select {
-                      RecordWithRoot.Columns(
-                        parentRecordName: $0.parentRecordName,
-                        recordName: $0.recordName,
-                        lastKnownServerRecord: $0.lastKnownServerRecord,
-                        rootRecordName: $0.recordName,
-                        rootLastKnownServerRecord: $0.lastKnownServerRecord
+                let recordsWithRoot =
+                  try With {
+                    SyncMetadata
+                      .findAll(deletedRecordIDs)
+                      .where { $0.parentRecordName.is(nil) }
+                      .select {
+                        RecordWithRoot.Columns(
+                          parentRecordName: $0.parentRecordName,
+                          recordName: $0.recordName,
+                          lastKnownServerRecord: $0.lastKnownServerRecord,
+                          rootRecordName: $0.recordName,
+                          rootLastKnownServerRecord: $0.lastKnownServerRecord
+                        )
+                      }
+                      .union(
+                        all: true,
+                        SyncMetadata
+                          .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
+                          .select { metadata, tree in
+                            RecordWithRoot.Columns(
+                              parentRecordName: metadata.parentRecordName,
+                              recordName: metadata.recordName,
+                              lastKnownServerRecord: metadata.lastKnownServerRecord,
+                              rootRecordName: tree.rootRecordName,
+                              rootLastKnownServerRecord: tree.lastKnownServerRecord
+                            )
+                          }
                       )
-                    }
-                    .union(
-                      all: true,
-                      SyncMetadata
-                        .join(RecordWithRoot.all) { $1.recordName.is($0.parentRecordName) }
-                        .select { metadata, tree in
-                          RecordWithRoot.Columns(
-                            parentRecordName: metadata.parentRecordName,
-                            recordName: metadata.recordName,
-                            lastKnownServerRecord: metadata.lastKnownServerRecord,
-                            rootRecordName: tree.rootRecordName,
-                            rootLastKnownServerRecord: tree.lastKnownServerRecord
-                          )
-                        }
-                    )
-                } query: {
-                  RecordWithRoot
-                    .select { ($0.lastKnownServerRecord, $0.rootLastKnownServerRecord) }
-                }
-                .fetchAll(db)
+                  } query: {
+                    RecordWithRoot
+                      .select { ($0.lastKnownServerRecord, $0.rootLastKnownServerRecord) }
+                  }
+                  .fetchAll(db)
 
-              return (sharesToDelete, recordsWithRoot)
+                return (sharesToDelete, recordsWithRoot)
+              }
             }
-          }
-          ?? ([], [])
+            ?? ([], [])
 
-      let shareRecordIDsToDelete = sharesToDelete.compactMap(\.?.recordID)
+        let shareRecordIDsToDelete = sharesToDelete.compactMap(\.?.recordID)
 
-      for recordWithRoot in recordsWithRoot {
-        guard
-          let lastKnownServerRecord = recordWithRoot.lastKnownServerRecord,
-          let rootLastKnownServerRecord = recordWithRoot.rootLastKnownServerRecord
-        else { continue }
-        guard let rootShareRecordID = rootLastKnownServerRecord.share?.recordID
-        else { continue }
-        guard shareRecordIDsToDelete.contains(rootShareRecordID)
-        else { continue }
-        changes.removeAll(where: { $0 == .deleteRecord(lastKnownServerRecord.recordID) })
-        syncEngine.state.remove(
-          pendingRecordZoneChanges: [.deleteRecord(lastKnownServerRecord.recordID)]
-        )
+        for recordWithRoot in recordsWithRoot {
+          guard
+            let lastKnownServerRecord = recordWithRoot.lastKnownServerRecord,
+            let rootLastKnownServerRecord = recordWithRoot.rootLastKnownServerRecord
+          else { continue }
+          guard let rootShareRecordID = rootLastKnownServerRecord.share?.recordID
+          else { continue }
+          guard shareRecordIDsToDelete.contains(rootShareRecordID)
+          else { continue }
+          changes.removeAll(where: { $0 == .deleteRecord(lastKnownServerRecord.recordID) })
+          syncEngine.state.remove(
+            pendingRecordZoneChanges: [.deleteRecord(lastKnownServerRecord.recordID)]
+          )
+        }
       }
 
       await withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -1644,15 +1658,21 @@
     }
 
     func deleteShare(shareRecordID: CKRecord.ID) async throws {
-      try await userDatabase.write { db in
-        let shareAndRecordNameAndZone =
-          try SyncMetadata
+      let shareAndRecordNameAndZone = try await userDatabase.read { db in
+        try SyncMetadata
           .where(\.isShared)
           .select { ($0.share, $0.recordName, $0.zoneName, $0.ownerName) }
           .fetchAll(db)
           .first(where: { share, _, _, _ in share?.recordID == shareRecordID }) ?? nil
-        guard let (_, recordName, zoneName, ownerName) = shareAndRecordNameAndZone
-        else { return }
+      }
+      guard let (_, recordName, zoneName, ownerName) = shareAndRecordNameAndZone
+      else { return }
+      let rootRecordID = CKRecord.ID(
+        recordName: recordName,
+        zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
+      )
+      let rootRecord = try await container.privateCloudDatabase.record(for: rootRecordID)
+      try await userDatabase.write { db in
         try SyncMetadata
           .find(
             CKRecord.ID(
@@ -1660,7 +1680,10 @@
               zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
             )
           )
-          .update { $0.share = nil }
+          .update {
+            $0.setLastKnownServerRecord(rootRecord)
+            $0.share = nil
+          }
           .execute(db)
       }
     }
