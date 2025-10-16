@@ -164,7 +164,7 @@ class SearchRemindersModel {
     }
   }
 
-  struct Token: Hashable, Identifiable {
+  nonisolated struct Token: Hashable, Identifiable {
     enum Kind {
       case near
       case tag
@@ -264,7 +264,7 @@ struct SearchRemindersView: View {
   }
 }
 
-fileprivate func baseQuery(
+nonisolated fileprivate func baseQuery(
   searchText: String,
   searchTokens: [SearchRemindersModel.Token]
 ) -> SelectOf<ReminderText, Reminder> {
@@ -291,7 +291,7 @@ fileprivate func baseQuery(
 }
 
 extension String {
-  fileprivate func quoted() -> String {
+  nonisolated fileprivate func quoted() -> String {
     split(separator: " ")
       .map { #""\#($0.replacingOccurrences(of: #"""#, with: #""""#))""# }
       .joined(separator: " ")

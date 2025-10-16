@@ -136,6 +136,7 @@ func appDatabase() throws -> any DatabaseWriter {
   configuration.foreignKeysEnabled = true
   configuration.prepareDatabase { db in
     try db.attachMetadatabase()
+    db.add(function: $createDefaultRemindersList)
     db.add(function: $handleReminderStatusUpdate)
     #if DEBUG
       db.trace(options: .profile) {
@@ -364,7 +365,7 @@ nonisolated func handleReminderStatusUpdate() {
 }
 
 @DatabaseFunction
-func createDefaultRemindersList() {
+nonisolated func createDefaultRemindersList() {
   Task {
     @Dependency(\.defaultDatabase) var database
     try await database.write { db in
