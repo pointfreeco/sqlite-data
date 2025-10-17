@@ -323,42 +323,24 @@
           }
         }
 
-          // drop column unique constraint
-          if dropUniqueConstraints, columnName != oldPrimaryKey {
-              if let range = peek({
-                  $0.parseUniqueConstraintRange()
-              }) {
-                  // append string before unique range
-                  newSchema.append(String(base[index..<range.lowerBound]))
-                  // move index to skip unique string
-                  index = range.upperBound
-              }
+        if dropUniqueConstraints, columnName != oldPrimaryKey {
+          if let range = peek({ $0.parseUniqueConstraintRange() }) {
+            newSchema.append(String(base[index..<range.lowerBound]))
+            index = range.upperBound
           }
-          
+        }
+
         if try parseToNextColumnDefinitionOrTableConstraint(
           skipIf: columnName == oldPrimaryKey
         ) {
           break
         }
       }
+
       while peek({ $0.parseColumnConstraint() }) {
-          // drop table unique constraint
-          if dropUniqueConstraints, peek({ $0.parseKeyword("UNIQUE") }) {
-              let trivia = parseTrivia()
-              if let r = peek({
-                  $0.parseUniqueConstraintRange(isTableLevel: true)
-              }) {
-                  newSchema.append(trivia)
-                  // when table unique string at the end, trim ',' for previous column
-                  let str = String(base[index..<r.lowerBound])
-                      .trimmingCharacters(in: .init(charactersIn: ","))
-                  newSchema.append(str)
-                  index = r.upperBound
-              }
-          }
-          
         if try parseToNextColumnDefinitionOrTableConstraint(
           skipIf: parseKeywords(["PRIMARY", "KEY"])
+            || dropUniqueConstraints && parseKeyword("UNIQUE")
         ) {
           break
         }
@@ -372,102 +354,51 @@
       var substring = self
       return try body(&substring)
     }
-      
-      mutating func parseUniqueConstraintRange(isTableLevel: Bool = false) -> Range<String.Index>? {
-          var range: Range<String.Index>?
-          var keywords: [String] = []
-          var tempKeyword = ""
-          var index = startIndex
-          var uniqueBraceScope = false
-          out: while let c = first {
-              if index != startIndex {
-                  index = base.index(after: index)
-              }
-              
-              func checkKeyword() {
-                  if isTableLevel { return }
-                  
-                  if let temp = range {
-                      range = temp.lowerBound..<index
-                  }
-                  let char = parseTrivia()
-                  if !char.isEmpty {
-                      index = base.index(index, offsetBy: char.count)
-                      
-                      switch keywords.count {
-                          case 0:
-                              if tempKeyword == "UNIQUE" {
-                                  keywords.append(tempKeyword)
-                                  let startIdx = base.index(index, offsetBy: -tempKeyword.count-char.count)
-                                  let end = base.index(index, offsetBy: -char.count)
-                                  range = startIdx..<end
-                              }
-                          case 1:
-                              if tempKeyword == "ON" {
-                                  keywords.append(tempKeyword)
-                              } else {
-                                  range = nil
-                              }
-                          case 2:
-                              if tempKeyword == "CONFLICT" {
-                                  keywords.append(tempKeyword)
-                              } else {
-                                  range = nil
-                              }
-                          case 3:
-                              if ["IGNORE", "REPLACE", "FAIL", "ABORT", "ROLLBACK"].contains(tempKeyword) {
-                                  keywords.append(tempKeyword)
-                              } else {
-                                  range = nil
-                              }
-                          default: break
-                      }
-                      tempKeyword = ""
-                  }
-              }
-              
-              defer {
-                  checkKeyword()
-              }
-              
-              removeFirst()
-              switch c {
-                  case ",":
-                      break out
-                  case "(":
-                      if isTableLevel {
-                          tempKeyword.append(c.uppercased())
-                          uniqueBraceScope = true
-                      }
-                  case ")":
-                      if isTableLevel, uniqueBraceScope {
-                          tempKeyword.append(c.uppercased())
-                          uniqueBraceScope = false
-                      } else {
-                          break out
-                      }
-                  default:
-                      tempKeyword.append(c.uppercased())
-                      continue
-              }
+
+    mutating func parseUniqueConstraintRange() -> Range<String.Index>? {
+      guard
+        let constraintEndIndex = try? peek({
+          try $0.parseBalanced { [",", ")"].contains($0.first) }
+          return $0.startIndex
+        })
+      else { return nil }
+
+      var constraint = self[..<constraintEndIndex]
+      guard
+        (try? constraint.parseBalanced(upTo: {
+          $0.peek {
+            $0.parseKeyword("UNIQUE")
           }
-          
-          if isTableLevel {
-              let start = base.index(index, offsetBy: -tempKeyword.count)
-              range = start..<index
-          }
-          return range
+        })) != nil
+      else { return nil }
+      let startIndex = constraint.startIndex
+      guard constraint.parseKeyword("UNIQUE") else { return nil }
+      if constraint.parseKeywords(["ON", "CONFLICT"]) {
+        guard
+          ["ABORT", "FAIL", "IGNORE", "REPLACE", "ROLLBACK"].contains(
+            where: { constraint.parseKeyword($0) }
+          )
+        else { return nil }
       }
+      return startIndex..<constraint.startIndex
+    }
 
     mutating func parseBalanced(upTo endCharacter: Character = ",") throws {
+      try parseBalanced {
+        $0.parseTrivia()
+        return $0.first == endCharacter
+      }
+    }
+
+    mutating func parseBalanced(upTo predicate: (inout Substring) throws -> Bool) throws {
       let substring = self
-      parseTrivia()
       var parenDepth = 0
-      while let character = first {
-        defer { parseTrivia() }
-        switch character {
-        case endCharacter where parenDepth == 0:
+      loop: while !isEmpty {
+        if parenDepth == 0, try predicate(&self) {
           return
+        }
+
+        switch first {
         case "(":
           parenDepth += 1
           removeFirst()
@@ -478,6 +409,8 @@
           _ = try parseIdentifier()
         case "'":
           _ = try parseText()
+        case nil:
+          break loop
         default:
           removeFirst()
           continue
@@ -590,6 +523,14 @@
       }
       removeFirst(count)
       return true
+    }
+
+    mutating func parseKeyword() -> String? {
+      parseTrivia()
+      let prefix = prefix(while: \.isLetter)
+      guard !prefix.isEmpty else { return nil }
+      removeFirst(prefix.count)
+      return String(prefix)
     }
 
     @discardableResult

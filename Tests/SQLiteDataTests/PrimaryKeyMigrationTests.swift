@@ -197,9 +197,11 @@ struct PrimaryKeyMigrationTests {
         """
       )
       .execute(db)
-      try #sql("""
+      try #sql(
+        """
         INSERT INTO "parents" ("id", "title") VALUES (1, 'blob'), (1000, 'blob jr')
-        """)
+        """
+      )
       .execute(db)
     }
 
@@ -263,82 +265,80 @@ struct PrimaryKeyMigrationTests {
       """#
     }
   }
-    
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @Test func uniqueConstraintsDrop() throws {
-        try database.write { db in
-            try #sql(
-              """
-              CREATE TABLE "users" (
-              "id" INTEGER,
-              "title" TEXT NOT NULL,
 
-              PRIMARY KEY("id"),
-              UNIQUE("title") ON CONFLICT REPLACE
-              ) STRICT
-              """
-            )
-            .execute(db)
-            try #sql(
-              """
-              CREATE TABLE "tags" (
-                "title" TEXT NOT NULL UNIQUE,
-                "name" TEXT NOT NULL UNIQUE ON CONFLICT IGNORE
-              ) STRICT
-              """
-            )
-            .execute(db)
-        }
-        
-        // set dropUniqueConstraints to true
-        try database.writeWithoutTransaction { db in
-          try #sql("PRAGMA foreign_keys = OFF").execute(db)
-          do {
-            try db.inTransaction {
-              try SyncEngine.migratePrimaryKeys(
-                db,
-                tables: User.self, Tag.self,
-                dropUniqueConstraints: true,
-                uuid: $uuid
-              )
-              return .commit
-            }
-          }
-          try #sql("PRAGMA foreign_keys = ON").execute(db)
-        }
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Test func dropUniqueConstraints() throws {
+    try database.write { db in
+      try #sql(
+        """
+        CREATE TABLE "users" (
+          "id" INTEGER,
+          "title" TEXT NOT NULL,
 
-//        try migrate(tables: User.self, Tag.self)
-        assertQuery(SQLiteSchema.default, database: database) {
-        #"""
-        ┌────────────────────────────────────────────────────────────────────────────┐
-        │ SQLiteSchema(                                                              │
-        │   type: .table,                                                            │
-        │   name: "tags",                                                            │
-        │   tableName: "tags",                                                       │
-        │   sql: """                                                                 │
-        │   CREATE TABLE "tags" (                                                    │
-        │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
-        │     "title" TEXT NOT NULL ,                                                │
-        │     "name" TEXT NOT NULL) STRICT                                           │
-        │   """                                                                      │
-        │ )                                                                          │
-        ├────────────────────────────────────────────────────────────────────────────┤
-        │ SQLiteSchema(                                                              │
-        │   type: .table,                                                            │
-        │   name: "users",                                                           │
-        │   tableName: "users",                                                      │
-        │   sql: """                                                                 │
-        │   CREATE TABLE "users" (                                                   │
-        │   "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()),   │
-        │   "title" TEXT NOT NULL                                                    │
-        │                                                                            │
-        │   ) STRICT                                                                 │
-        │   """                                                                      │
-        │ )                                                                          │
-        └────────────────────────────────────────────────────────────────────────────┘
-        """#
-        }
+          PRIMARY KEY("id"),
+          UNIQUE("title") ON CONFLICT REPLACE
+        ) STRICT
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE TABLE "tags" (
+          "title" TEXT NOT NULL UNIQUE,
+          "name" TEXT NOT NULL UNIQUE ON CONFLICT IGNORE
+        ) STRICT
+        """
+      )
+      .execute(db)
     }
+
+    try database.writeWithoutTransaction { db in
+      try #sql("PRAGMA foreign_keys = OFF").execute(db)
+      do {
+        try db.inTransaction {
+          try SyncEngine.migratePrimaryKeys(
+            db,
+            tables: User.self,
+            Tag.self,
+            dropUniqueConstraints: true,
+            uuid: $uuid
+          )
+          return .commit
+        }
+      }
+      try #sql("PRAGMA foreign_keys = ON").execute(db)
+    }
+
+    assertQuery(SQLiteSchema.default, database: database) {
+      #"""
+      ┌────────────────────────────────────────────────────────────────────────────┐
+      │ SQLiteSchema(                                                              │
+      │   type: .table,                                                            │
+      │   name: "tags",                                                            │
+      │   tableName: "tags",                                                       │
+      │   sql: """                                                                 │
+      │   CREATE TABLE "tags" (                                                    │
+      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
+      │     "title" TEXT NOT NULL,                                                 │
+      │     "name" TEXT NOT NULL                                                   │
+      │   ) STRICT                                                                 │
+      │   """                                                                      │
+      │ )                                                                          │
+      ├────────────────────────────────────────────────────────────────────────────┤
+      │ SQLiteSchema(                                                              │
+      │   type: .table,                                                            │
+      │   name: "users",                                                           │
+      │   tableName: "users",                                                      │
+      │   sql: """                                                                 │
+      │   CREATE TABLE "users" (                                                   │
+      │     "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT ("uuid"()), │
+      │     "title" TEXT NOT NULL) STRICT                                          │
+      │   """                                                                      │
+      │ )                                                                          │
+      └────────────────────────────────────────────────────────────────────────────┘
+      """#
+    }
+  }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func columnConstraints() throws {
@@ -774,11 +774,13 @@ struct PrimaryKeyMigrationTests {
         """
       )
       .execute(db)
-      try #sql("""
+      try #sql(
+        """
         INSERT INTO "phoneNumbers"
         VALUES
         ('212-555-1234')
-        """)
+        """
+      )
       .execute(db)
     }
 
@@ -823,7 +825,7 @@ struct PrimaryKeyMigrationTests {
         CREATE TABLE "parents" (
           "id" INTEGER,
           "title" TEXT NOT NULL,
-        
+
           PRIMARY KEY("id", "title")
         ) STRICT
         """
@@ -852,11 +854,13 @@ struct PrimaryKeyMigrationTests {
         """
       )
       .execute(db)
-      try #sql("""
+      try #sql(
+        """
         INSERT INTO "users"
         VALUES
         ('blob'), ('blob jr'), ('blob sr')
-        """)
+        """
+      )
       .execute(db)
     }
 
@@ -902,15 +906,19 @@ struct PrimaryKeyMigrationTests {
         """
       )
       .execute(db)
-      try #sql("""
+      try #sql(
+        """
         CREATE INDEX "parents_name" ON "parents"("title")
-        """)
+        """
+      )
       .execute(db)
-      try #sql("""
+      try #sql(
+        """
         CREATE TRIGGER "parents_trigger" AFTER UPDATE ON "parents" BEGIN
           SELECT 1;
         END
-        """)
+        """
+      )
       .execute(db)
     }
 
@@ -1154,7 +1162,8 @@ struct PrimaryKeyMigrationTests {
 @DatabaseFunction private func customUUID() -> UUID { DependencyValues._current.uuid() }
 
 extension SQLiteSchema {
-  static let `default` = Self
+  static let `default` =
+    Self
     .where { !$0.name.hasPrefix("sqlite_") }
     .order(by: \.name)
 }
