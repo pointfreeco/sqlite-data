@@ -50,6 +50,7 @@
     public static func migratePrimaryKeys<each T: PrimaryKeyedTable>(
       _ db: Database,
       tables: repeat (each T).Type,
+      dropUniqueConstraints: Bool = false,
       uuid uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil
     ) throws
     where
@@ -82,6 +83,7 @@
       for table in repeat each tables {
         try table.migratePrimaryKeyToUUID(
           db: db,
+          dropUniqueConstraints: dropUniqueConstraints,
           uuidFunction: uuidFunction,
           migratedTableNames: migratedTableNames,
           salt: salt
@@ -126,6 +128,7 @@
   extension PrimaryKeyedTable where TableColumns.PrimaryColumn: TableColumnExpression {
     fileprivate static func migratePrimaryKeyToUUID(
       db: Database,
+      dropUniqueConstraints: Bool,
       uuidFunction: (any ScalarDatabaseFunction<(), UUID>)? = nil,
       migratedTableNames: [String],
       salt: String
@@ -164,6 +167,7 @@
       let newTableName = "new_\(tableName)"
       let uuidFunction = uuidFunction?.name ?? "uuid"
       let newSchema = try schema.rewriteSchema(
+        dropUniqueConstraints: dropUniqueConstraints,
         oldPrimaryKey: primaryKeys.first?.name,
         newPrimaryKey: columns.primaryKey.name,
         foreignKeys: foreignKeys.map(\.from),
@@ -231,6 +235,7 @@
 
   extension String {
     func rewriteSchema(
+      dropUniqueConstraints: Bool,
       oldPrimaryKey: String?,
       newPrimaryKey: String,
       foreignKeys: [String],
@@ -238,6 +243,7 @@
     ) throws -> String {
       var substring = self[...]
       return try substring.rewriteSchema(
+        dropUniqueConstraints: dropUniqueConstraints,
         oldPrimaryKey: oldPrimaryKey,
         newPrimaryKey: newPrimaryKey,
         foreignKeys: foreignKeys,
@@ -248,6 +254,7 @@
 
   extension Substring {
     mutating func rewriteSchema(
+      dropUniqueConstraints: Bool,
       oldPrimaryKey: String?,
       newPrimaryKey: String,
       foreignKeys: [String],
@@ -315,15 +322,25 @@
             newSchema.append("TEXT")
           }
         }
+
+        if dropUniqueConstraints, columnName != oldPrimaryKey {
+          if let range = peek({ $0.parseUniqueConstraintRange() }) {
+            newSchema.append(String(base[index..<range.lowerBound]))
+            index = range.upperBound
+          }
+        }
+
         if try parseToNextColumnDefinitionOrTableConstraint(
           skipIf: columnName == oldPrimaryKey
         ) {
           break
         }
       }
+
       while peek({ $0.parseColumnConstraint() }) {
         if try parseToNextColumnDefinitionOrTableConstraint(
           skipIf: parseKeywords(["PRIMARY", "KEY"])
+            || dropUniqueConstraints && parseKeyword("UNIQUE")
         ) {
           break
         }
@@ -338,15 +355,50 @@
       return try body(&substring)
     }
 
+    mutating func parseUniqueConstraintRange() -> Range<String.Index>? {
+      guard
+        let constraintEndIndex = try? peek({
+          try $0.parseBalanced { [",", ")"].contains($0.first) }
+          return $0.startIndex
+        })
+      else { return nil }
+
+      var constraint = self[..<constraintEndIndex]
+      guard
+        (try? constraint.parseBalanced(upTo: {
+          $0.peek {
+            $0.parseKeyword("UNIQUE")
+          }
+        })) != nil
+      else { return nil }
+      let startIndex = constraint.startIndex
+      guard constraint.parseKeyword("UNIQUE") else { return nil }
+      if constraint.parseKeywords(["ON", "CONFLICT"]) {
+        guard
+          ["ABORT", "FAIL", "IGNORE", "REPLACE", "ROLLBACK"].contains(
+            where: { constraint.parseKeyword($0) }
+          )
+        else { return nil }
+      }
+      return startIndex..<constraint.startIndex
+    }
+
     mutating func parseBalanced(upTo endCharacter: Character = ",") throws {
+      try parseBalanced {
+        $0.parseTrivia()
+        return $0.first == endCharacter
+      }
+    }
+
+    mutating func parseBalanced(upTo predicate: (inout Substring) throws -> Bool) throws {
       let substring = self
-      parseTrivia()
       var parenDepth = 0
-      while let character = first {
-        defer { parseTrivia() }
-        switch character {
-        case endCharacter where parenDepth == 0:
+      loop: while !isEmpty {
+        if parenDepth == 0, try predicate(&self) {
           return
+        }
+
+        switch first {
         case "(":
           parenDepth += 1
           removeFirst()
@@ -357,6 +409,8 @@
           _ = try parseIdentifier()
         case "'":
           _ = try parseText()
+        case nil:
+          break loop
         default:
           removeFirst()
           continue
@@ -382,7 +436,7 @@
         || parseKeyword("CHECK")
         || parseKeywords(["FOREIGN", "KEY"])
       {
-        try parseBalanced(upTo: ",")
+        try parseBalanced { [",", ")"].contains($0.first) }
         return true
       } else {
         return false
