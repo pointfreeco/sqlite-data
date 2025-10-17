@@ -436,7 +436,7 @@
         || parseKeyword("CHECK")
         || parseKeywords(["FOREIGN", "KEY"])
       {
-        try parseBalanced(upTo: ",")
+        try parseBalanced { [",", ")"].contains($0.first) }
         return true
       } else {
         return false
