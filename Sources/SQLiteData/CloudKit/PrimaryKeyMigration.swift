@@ -525,14 +525,6 @@
       return true
     }
 
-    mutating func parseKeyword() -> String? {
-      parseTrivia()
-      let prefix = prefix(while: \.isLetter)
-      guard !prefix.isEmpty else { return nil }
-      removeFirst(prefix.count)
-      return String(prefix)
-    }
-
     @discardableResult
     mutating func parseTrivia() -> String {
       var trivia = ""
