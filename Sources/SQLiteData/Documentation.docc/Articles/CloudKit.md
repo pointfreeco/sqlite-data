@@ -87,7 +87,7 @@ struct MyApp: App {
 ```
 
 The `SyncEngine`
-[initializer](<doc:SyncEngine/init(for:tables:privateTables:containerIdentifier:defaultZone:startImmediately:logger:)>)
+[initializer](<doc:SyncEngine/init(for:tables:privateTables:containerIdentifier:defaultZone:startImmediately:delegate:logger:)>)
 has more options you may be interested in configuring.
 
 > Important: You must explicitly provide all tables that you want to synchronize. We do this so that
@@ -486,7 +486,7 @@ See <doc:CloudKitSharing> for more information.
 
 ## Assets
 
-> TL;DR: The library packages all BLOB columns in a table into `CKAsset`s and seamlessly decodes
+> TL;DR: The library packages all `BLOB` columns in a table into `CKAsset`s and seamlessly decodes
 > `CKAsset`s back into your tables. We recommend putting large binary blobs of data in their own
 > tables.
 
@@ -673,7 +673,7 @@ struct MySuite {
 }
 ```
 
-And in preivews you can use it like so:
+And in previews you can use it like so:
 
 ```swift
 #Preview {
@@ -683,6 +683,24 @@ And in preivews you can use it like so:
   // ...
 }
 ```
+
+> Tip: If you configure your ``SyncEngine`` with a ``SyncEngineDelegate``, you can pass it to the
+> bootstrap function for configuration:
+>
+> ```diff
+>  extension DependencyValues {
+>    mutating func bootstrapDatabase(
+> +    syncEngineDelegate: (any SyncEngineDelegate)? = nil
+>    ) throws {
+>      defaultDatabase = try Reminders.appDatabase()
+>      defaultSyncEngine = try SyncEngine(
+>        for: defaultDatabase,
+>        tables: // ...
+> +      delegate: syncEngineDelegate
+>      )
+>    }
+>  }
+> ```
 
 ## Preparing an existing schema for synchronization
 

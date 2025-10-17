@@ -313,6 +313,7 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 - <doc:CloudKit>
 - <doc:CloudKitSharing>
 - ``SyncEngine``
+- ``SyncEngineDelegate``
 - ``Dependencies/DependencyValues/defaultSyncEngine``
 - ``IdentifierStringConvertible``
 - ``SyncMetadata``

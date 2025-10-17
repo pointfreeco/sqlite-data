@@ -59,6 +59,7 @@ class BaseCloudKitTests: @unchecked Sendable {
     _syncEngine = try await SyncEngine(
       container: container,
       userDatabase: self.userDatabase,
+      delegate: _SyncEngineDelegateTrait.syncEngineDelegate,
       tables: Reminder.self,
       RemindersList.self,
       RemindersListAsset.self,
@@ -162,6 +163,7 @@ extension SyncEngine {
   >(
     container: any CloudContainer,
     userDatabase: UserDatabase,
+    delegate: (any SyncEngineDelegate)? = nil,
     tables: repeat (each T1).Type,
     privateTables: repeat (each T2).Type,
     startImmediately: Bool = true
@@ -183,6 +185,7 @@ extension SyncEngine {
     try await self.init(
       container: container,
       userDatabase: userDatabase,
+      delegate: delegate,
       tables: allTables,
       privateTables: allPrivateTables,
       startImmediately: startImmediately
@@ -191,6 +194,7 @@ extension SyncEngine {
   convenience init(
     container: any CloudContainer,
     userDatabase: UserDatabase,
+    delegate: (any SyncEngineDelegate)? = nil,
     tables: [any SynchronizableTable],
     privateTables: [any SynchronizableTable] = [],
     startImmediately: Bool = true
@@ -214,6 +218,7 @@ extension SyncEngine {
       },
       userDatabase: userDatabase,
       logger: Logger(.disabled),
+      delegate: delegate,
       tables: tables,
       privateTables: privateTables
     )
