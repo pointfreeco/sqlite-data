@@ -9,11 +9,6 @@
 
   extension BaseCloudKitTests {
     final class SchemaChangeTests: BaseCloudKitTests, @unchecked Sendable {
-      @Dependency(\.dataManager) var dataManager
-      var inMemoryDataManager: InMemoryDataManager {
-        dataManager as! InMemoryDataManager
-      }
-
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func addColumnToRemindersAndRemindersLists() async throws {
         let personalList = RemindersList(id: 1, title: "Personal")

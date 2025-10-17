@@ -19,6 +19,10 @@ class BaseCloudKitTests: @unchecked Sendable {
   private let _container: any Sendable
 
   @Dependency(\.currentTime.now) var now
+  @Dependency(\.dataManager) var dataManager
+  var inMemoryDataManager: InMemoryDataManager {
+    dataManager as! InMemoryDataManager
+  }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   var container: MockCloudContainer {

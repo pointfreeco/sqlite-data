@@ -3,7 +3,7 @@ import SwiftUI
 
 struct ObservableModelDemo: SwiftUICaseStudy {
   let readMe = """
-    This demonstrates how to use the `@FetchAll` and `@FetchOne` tools in an @Observable model. \
+    This demonstrates how to use the `@FetchAll` and `@FetchOne` tools in an `@Observable` model. \
     In SwiftUI, the `@Query` macro only works when installed directly in a SwiftUI view, and \
     cannot be used outside of views.
 
@@ -87,7 +87,7 @@ private class Model {
 }
 
 @Table
-private struct Fact: Identifiable {
+nonisolated private struct Fact: Identifiable {
   let id: Int
   var body: String
 }

@@ -107,13 +107,13 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
     }
   }
 
-  enum Section: Hashable {
+  nonisolated enum Section: Hashable {
     case facts
   }
 }
 
 @Table
-private struct Fact: Hashable, Identifiable {
+nonisolated private struct Fact: Hashable, Identifiable {
   let id: Int
   var body: String
 }

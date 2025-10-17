@@ -31,6 +31,7 @@
   extension SyncEngine {
     private struct SharingError: LocalizedError {
       enum Reason {
+        case shareCouldNotBeCreated
         case recordMetadataNotFound
         case recordNotRoot([ForeignKey])
         case recordTableNotSynchronized
@@ -145,8 +146,16 @@
 
       var existingShare: CKShare? {
         get async throws {
-          guard let shareRecordID = rootRecord.share?.recordID
-          else { return nil }
+          let share = try await metadatabase.read { db in
+            try SyncMetadata
+              .find(rootRecord.recordID)
+              .select(\.share)
+              .fetchOne(db) ?? nil
+          }
+          guard let shareRecordID = share?.recordID
+          else {
+            return nil
+          }
           do {
             return try await container.database(for: rootRecord.recordID)
               .record(for: shareRecordID) as? CKShare
@@ -167,18 +176,43 @@
         )
 
       configure(sharedRecord)
-      _ = try await container.privateCloudDatabase.modifyRecords(
+      let (saveResults, _) = try await container.privateCloudDatabase.modifyRecords(
         saving: [sharedRecord, rootRecord],
         deleting: []
       )
-      try await userDatabase.write { db in
+
+      let savedShare = try saveResults.values.compactMap { result in
+        let record = try result.get()
+        return record.recordID == sharedRecord.recordID ? record as? CKShare : nil
+      }
+      .first
+      let savedRootRecord = try saveResults.values.compactMap { result in
+        let record = try result.get()
+        return record.recordID == rootRecord.recordID ? record : nil
+      }
+        .first
+      guard let savedShare, let savedRootRecord
+      else {
+        throw SharingError(
+          recordTableName: T.tableName,
+          recordPrimaryKey: record.primaryKey.rawIdentifier,
+          reason: .shareCouldNotBeCreated,
+          debugDescription: """
+            A 'CKShare' could not be created in iCloud.
+            """
+        )
+      }
+      try await metadatabase.write { db in
         try SyncMetadata
           .where { $0.recordName.eq(recordName) }
-          .update { $0.share = sharedRecord }
+          .update {
+            $0.setLastKnownServerRecord(savedRootRecord)
+            $0.share = savedShare
+          }
           .execute(db)
       }
 
-      return SharedRecord(container: container, share: sharedRecord)
+      return SharedRecord(container: container, share: savedShare)
     }
 
     public func unshare<T: PrimaryKeyedTable>(record: T) async throws
@@ -195,7 +229,8 @@
         reportIssue(
           """
           No share found associated with record.
-          """)
+          """
+        )
         return
       }
 
