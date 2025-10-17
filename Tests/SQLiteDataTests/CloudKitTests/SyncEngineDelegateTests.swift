@@ -171,7 +171,7 @@
         try await syncEngine.processPendingDatabaseChanges(scope: .private)
       }
 
-      @Test(.syncEngineDelegate(NoopDelegate()))
+      @Test(.syncEngineDelegate(DefaultImplementationDelegate()))
       func accountChanged_DefaultImplementation() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
@@ -230,16 +230,12 @@
     deinit {
       guard wasCalled.withValue(\.self)
       else {
-        reportIssue(
-          """
-          TODO
-          """
-        )
+        Issue.record("Delegate method 'syncEngine(_:accountChanged:)' was not called.")
         return
       }
     }
   }
 
-  final class NoopDelegate: SyncEngineDelegate {
+  final class DefaultImplementationDelegate: SyncEngineDelegate {
   }
 #endif

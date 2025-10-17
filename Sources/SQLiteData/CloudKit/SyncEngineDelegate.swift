@@ -86,8 +86,15 @@
       _ syncEngine: SyncEngine,
       accountChanged changeType: CKSyncEngine.Event.AccountChange.ChangeType
     ) async {
-      await withErrorReporting {
-        try await syncEngine.deleteLocalData()
+      switch changeType {
+      case .signOut, .switchAccounts:
+        await withErrorReporting {
+          try await syncEngine.deleteLocalData()
+        }
+      case .signIn:
+        break
+      @unknown default:
+        break
       }
     }
   }
