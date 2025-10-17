@@ -1204,6 +1204,7 @@
         await withErrorReporting {
           try await enqueueUnknownRecordsForCloudKit()
         }
+        await delegate?.syncEngine(self, accountChanged: changeType)
       case .signOut, .switchAccounts:
         guard let delegate
         else {
