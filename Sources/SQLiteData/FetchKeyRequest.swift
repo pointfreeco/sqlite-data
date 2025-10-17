@@ -24,7 +24,7 @@
 /// }
 /// ```
 ///
-/// And then can be used with the ``Fetch`` property wrapper to popular state in a SwiftUI view,
+/// And then can be used with the ``Fetch`` property wrapper to populate state in a SwiftUI view,
 /// `@Observable` model, UIKit view controller, and more:
 ///
 /// ```swift
