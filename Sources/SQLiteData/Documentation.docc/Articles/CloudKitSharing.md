@@ -19,10 +19,10 @@ Info.plist with a value of `true`. This is subtly documented in [Apple's documen
   - [Accepting shared records](#Accepting-shared-records)
   - [Diving deeper into sharing](#Diving-deeper-into-sharing)
     - [Sharing root records](#Sharing-root-records)
-      - [Sharing foreign key relationships](#Sharing-foreign-key-relationships)
-        - [One-to-many relationships](#One-to-many-relationships)
-        - [Many-to-many relationships](#Many-to-many-relationships)
-        - [One-to-"at most one" relationships](#One-to-at-most-one-relationships)
+    - [Sharing foreign key relationships](#Sharing-foreign-key-relationships)
+      - [One-to-many relationships](#One-to-many-relationships)
+      - [Many-to-many relationships](#Many-to-many-relationships)
+      - [One-to-"at most one" relationships](#One-to-at-most-one-relationships)
   - [Sharing permissions](#Sharing-permissions)
   - [Controlling what data is shared](#Controlling-what-data-is-shared)
 
@@ -194,7 +194,7 @@ a "root" is `RemindersList`. It is the only one with no foreign key relationship
 `Reminder`, `CoverImage`, `Tag` or `ReminderTag` can be directly shared on their own because they
 are not root tables.
 
-#### Sharing foreign key relationships
+### Sharing foreign key relationships
 
 > Important: Foreign key relationships are automatically synchronized, but only if the related
 > record has a single foreign key. Records with multiple foreign keys cannot be synchronized.
