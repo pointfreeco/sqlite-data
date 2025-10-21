@@ -1916,11 +1916,12 @@
     package static func metadatabase(
       databasePath: String,
       containerIdentifier: String?
-    ) throws -> URL {
+    ) throws -> URL? {
       guard let databaseURL = URL(string: databasePath)
       else {
-        struct InvalidDatabasePath: Error {}
-        throw InvalidDatabasePath()
+        return nil
+//        struct InvalidDatabasePath: Error { let databasePath: String }
+//        throw InvalidDatabasePath(databasePath: databasePath)
       }
       guard !databaseURL.isInMemory
       else {
@@ -2018,24 +2019,24 @@
             """
         )
       }
-      let url = try URL.metadatabase(
-        databasePath: databasePath,
-        containerIdentifier: containerIdentifier
-      )
-      let path = url.path(percentEncoded: false)
-      try FileManager.default.createDirectory(
-        at: .applicationSupportDirectory,
-        withIntermediateDirectories: true
-      )
-      _ = try DatabasePool(path: path).write { db in
-        try #sql("SELECT 1").execute(db)
-      }
-      try #sql(
-        """
-        ATTACH DATABASE \(bind: path) AS \(quote: .sqliteDataCloudKitSchemaName)
-        """
-      )
-      .execute(self)
+//      let url = try URL.metadatabase(
+//        databasePath: databasePath,
+//        containerIdentifier: containerIdentifier
+//      )!
+//      let path = url.path(percentEncoded: false)
+//      try FileManager.default.createDirectory(
+//        at: .applicationSupportDirectory,
+//        withIntermediateDirectories: true
+//      )
+//      _ = try DatabasePool(path: path).write { db in
+//        try #sql("SELECT 1").execute(db)
+//      }
+//      try #sql(
+//        """
+//        ATTACH DATABASE \(bind: path) AS \(quote: .sqliteDataCloudKitSchemaName)
+//        """
+//      )
+//      .execute(self)
     }
   }
 
