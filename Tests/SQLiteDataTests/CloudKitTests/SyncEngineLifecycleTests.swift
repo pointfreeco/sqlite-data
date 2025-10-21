@@ -35,8 +35,10 @@
             """
             ┌─────────────────────────────────────────┐
             │ SyncMetadata(                           │
-            │   recordPrimaryKey: "1",                │
-            │   recordType: "remindersLists",         │
+            │   id: SyncMetadata.ID(                  │
+            │     recordPrimaryKey: "1",              │
+            │     recordType: "remindersLists"        │
+            │   ),                                    │
             │   zoneName: "zone",                     │
             │   ownerName: "__defaultOwner__",        │
             │   recordName: "1:remindersLists",       │
@@ -53,8 +55,10 @@
             │ )                                       │
             ├─────────────────────────────────────────┤
             │ SyncMetadata(                           │
-            │   recordPrimaryKey: "1",                │
-            │   recordType: "reminders",              │
+            │   id: SyncMetadata.ID(                  │
+            │     recordPrimaryKey: "1",              │
+            │     recordType: "reminders"             │
+            │   ),                                    │
             │   zoneName: "zone",                     │
             │   ownerName: "__defaultOwner__",        │
             │   recordName: "1:reminders",            │
@@ -279,8 +283,10 @@
             """
             ┌───────────────────────────────────────────────────────────────────────────┐
             │ SyncMetadata(                                                             │
-            │   recordPrimaryKey: "1",                                                  │
-            │   recordType: "remindersLists",                                           │
+            │   id: SyncMetadata.ID(                                                    │
+            │     recordPrimaryKey: "1",                                                │
+            │     recordType: "remindersLists"                                          │
+            │   ),                                                                      │
             │   zoneName: "external.zone",                                              │
             │   ownerName: "external.owner",                                            │
             │   recordName: "1:remindersLists",                                         │
@@ -310,8 +316,10 @@
             │ )                                                                         │
             ├───────────────────────────────────────────────────────────────────────────┤
             │ SyncMetadata(                                                             │
-            │   recordPrimaryKey: "1",                                                  │
-            │   recordType: "reminders",                                                │
+            │   id: SyncMetadata.ID(                                                    │
+            │     recordPrimaryKey: "1",                                                │
+            │     recordType: "reminders"                                               │
+            │   ),                                                                      │
             │   zoneName: "external.zone",                                              │
             │   ownerName: "external.owner",                                            │
             │   recordName: "1:reminders",                                              │
@@ -500,8 +508,10 @@
             """
             ┌─────────────────────────────────────────┐
             │ SyncMetadata(                           │
-            │   recordPrimaryKey: "1",                │
-            │   recordType: "remindersLists",         │
+            │   id: SyncMetadata.ID(                  │
+            │     recordPrimaryKey: "1",              │
+            │     recordType: "remindersLists"        │
+            │   ),                                    │
             │   zoneName: "zone",                     │
             │   ownerName: "__defaultOwner__",        │
             │   recordName: "1:remindersLists",       │
@@ -518,8 +528,10 @@
             │ )                                       │
             ├─────────────────────────────────────────┤
             │ SyncMetadata(                           │
-            │   recordPrimaryKey: "1",                │
-            │   recordType: "reminders",              │
+            │   id: SyncMetadata.ID(                  │
+            │     recordPrimaryKey: "1",              │
+            │     recordType: "reminders"             │
+            │   ),                                    │
             │   zoneName: "zone",                     │
             │   ownerName: "__defaultOwner__",        │
             │   recordName: "1:reminders",            │
@@ -559,69 +571,47 @@
 
           assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
             """
-            ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-            │ SyncMetadata(                                                                           │
-            │   recordPrimaryKey: "1",                                                                │
-            │   recordType: "remindersLists",                                                         │
-            │   zoneName: "zone",                                                                     │
-            │   ownerName: "__defaultOwner__",                                                        │
-            │   recordName: "1:remindersLists",                                                       │
-            │   parentRecordPrimaryKey: nil,                                                          │
-            │   parentRecordType: nil,                                                                │
-            │   parentRecordName: nil,                                                                │
-            │   lastKnownServerRecord: CKRecord(                                                      │
-            │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),                      │
-            │     recordType: "remindersLists",                                                       │
-            │     parent: nil,                                                                        │
-            │     share: nil                                                                          │
-            │   ),                                                                                    │
-            │   _lastKnownServerRecordAllFields: CKRecord(                                            │
-            │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),                      │
-            │     recordType: "remindersLists",                                                       │
-            │     parent: nil,                                                                        │
-            │     share: nil,                                                                         │
-            │     id: 1,                                                                              │
-            │     title: "Personal"                                                                   │
-            │   ),                                                                                    │
-            │   share: nil,                                                                           │
-            │   _isDeleted: false,                                                                    │
-            │   hasLastKnownServerRecord: true,                                                       │
-            │   isShared: false,                                                                      │
-            │   userModificationTime: 0                                                               │
-            │ )                                                                                       │
-            ├─────────────────────────────────────────────────────────────────────────────────────────┤
-            │ SyncMetadata(                                                                           │
-            │   recordPrimaryKey: "1",                                                                │
-            │   recordType: "reminders",                                                              │
-            │   zoneName: "zone",                                                                     │
-            │   ownerName: "__defaultOwner__",                                                        │
-            │   recordName: "1:reminders",                                                            │
-            │   parentRecordPrimaryKey: "1",                                                          │
-            │   parentRecordType: "remindersLists",                                                   │
-            │   parentRecordName: "1:remindersLists",                                                 │
-            │   lastKnownServerRecord: CKRecord(                                                      │
-            │     recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),                           │
-            │     recordType: "reminders",                                                            │
-            │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)), │
-            │     share: nil                                                                          │
-            │   ),                                                                                    │
-            │   _lastKnownServerRecordAllFields: CKRecord(                                            │
-            │     recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),                           │
-            │     recordType: "reminders",                                                            │
-            │     parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)), │
-            │     share: nil,                                                                         │
-            │     id: 1,                                                                              │
-            │     isCompleted: 0,                                                                     │
-            │     remindersListID: 1,                                                                 │
-            │     title: "Get milk"                                                                   │
-            │   ),                                                                                    │
-            │   share: nil,                                                                           │
-            │   _isDeleted: false,                                                                    │
-            │   hasLastKnownServerRecord: true,                                                       │
-            │   isShared: false,                                                                      │
-            │   userModificationTime: 0                                                               │
-            │ )                                                                                       │
-            └─────────────────────────────────────────────────────────────────────────────────────────┘
+            ┌─────────────────────────────────────────┐
+            │ SyncMetadata(                           │
+            │   id: SyncMetadata.ID(                  │
+            │     recordPrimaryKey: "1",              │
+            │     recordType: "remindersLists"        │
+            │   ),                                    │
+            │   zoneName: "zone",                     │
+            │   ownerName: "__defaultOwner__",        │
+            │   recordName: "1:remindersLists",       │
+            │   parentRecordPrimaryKey: nil,          │
+            │   parentRecordType: nil,                │
+            │   parentRecordName: nil,                │
+            │   lastKnownServerRecord: nil,           │
+            │   _lastKnownServerRecordAllFields: nil, │
+            │   share: nil,                           │
+            │   _isDeleted: false,                    │
+            │   hasLastKnownServerRecord: false,      │
+            │   isShared: false,                      │
+            │   userModificationTime: 0               │
+            │ )                                       │
+            ├─────────────────────────────────────────┤
+            │ SyncMetadata(                           │
+            │   id: SyncMetadata.ID(                  │
+            │     recordPrimaryKey: "1",              │
+            │     recordType: "reminders"             │
+            │   ),                                    │
+            │   zoneName: "zone",                     │
+            │   ownerName: "__defaultOwner__",        │
+            │   recordName: "1:reminders",            │
+            │   parentRecordPrimaryKey: "1",          │
+            │   parentRecordType: "remindersLists",   │
+            │   parentRecordName: "1:remindersLists", │
+            │   lastKnownServerRecord: nil,           │
+            │   _lastKnownServerRecordAllFields: nil, │
+            │   share: nil,                           │
+            │   _isDeleted: false,                    │
+            │   hasLastKnownServerRecord: false,      │
+            │   isShared: false,                      │
+            │   userModificationTime: 0               │
+            │ )                                       │
+            └─────────────────────────────────────────┘
             """
           }
           assertInlineSnapshot(of: container, as: .customDump) {
@@ -629,26 +619,7 @@
             MockCloudContainer(
               privateCloudDatabase: MockCloudDatabase(
                 databaseScope: .private,
-                storage: [
-                  [0]: CKRecord(
-                    recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
-                    recordType: "reminders",
-                    parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
-                    share: nil,
-                    id: 1,
-                    isCompleted: 0,
-                    remindersListID: 1,
-                    title: "Get milk"
-                  ),
-                  [1]: CKRecord(
-                    recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                    recordType: "remindersLists",
-                    parent: nil,
-                    share: nil,
-                    id: 1,
-                    title: "Personal"
-                  )
-                ]
+                storage: []
               ),
               sharedCloudDatabase: MockCloudDatabase(
                 databaseScope: .shared,

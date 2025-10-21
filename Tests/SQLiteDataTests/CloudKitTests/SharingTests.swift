@@ -316,8 +316,10 @@
           """
           ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                       │
-          │   recordPrimaryKey: "1",                                                                            │
-          │   recordType: "remindersLists",                                                                     │
+          │   id: SyncMetadata.ID(                                                                              │
+          │     recordPrimaryKey: "1",                                                                          │
+          │     recordType: "remindersLists"                                                                    │
+          │   ),                                                                                                │
           │   zoneName: "external.zone",                                                                        │
           │   ownerName: "external.owner",                                                                      │
           │   recordName: "1:remindersLists",                                                                   │
@@ -389,8 +391,10 @@
           """
           ┌─────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "1",                                                                │
-          │   recordType: "modelAs",                                                                │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "1",                                                              │
+          │     recordType: "modelAs"                                                               │
+          │   ),                                                                                    │
           │   zoneName: "external.zone",                                                            │
           │   ownerName: "external.owner",                                                          │
           │   recordName: "1:modelAs",                                                              │
@@ -419,8 +423,10 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "1",                                                                │
-          │   recordType: "modelBs",                                                                │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "1",                                                              │
+          │     recordType: "modelBs"                                                               │
+          │   ),                                                                                    │
           │   zoneName: "external.zone",                                                            │
           │   ownerName: "external.owner",                                                          │
           │   recordName: "1:modelBs",                                                              │
@@ -450,8 +456,10 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "1",                                                                │
-          │   recordType: "modelCs",                                                                │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "1",                                                              │
+          │     recordType: "modelCs"                                                               │
+          │   ),                                                                                    │
           │   zoneName: "external.zone",                                                            │
           │   ownerName: "external.owner",                                                          │
           │   recordName: "1:modelCs",                                                              │
@@ -926,8 +934,10 @@
           """
           ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                       │
-          │   recordPrimaryKey: "1",                                                                            │
-          │   recordType: "remindersLists",                                                                     │
+          │   id: SyncMetadata.ID(                                                                              │
+          │     recordPrimaryKey: "1",                                                                          │
+          │     recordType: "remindersLists"                                                                    │
+          │   ),                                                                                                │
           │   zoneName: "external.zone",                                                                        │
           │   ownerName: "external.owner",                                                                      │
           │   recordName: "1:remindersLists",                                                                   │
@@ -961,8 +971,10 @@
           │ )                                                                                                   │
           ├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                       │
-          │   recordPrimaryKey: "1",                                                                            │
-          │   recordType: "reminders",                                                                          │
+          │   id: SyncMetadata.ID(                                                                              │
+          │     recordPrimaryKey: "1",                                                                          │
+          │     recordType: "reminders"                                                                         │
+          │   ),                                                                                                │
           │   zoneName: "external.zone",                                                                        │
           │   ownerName: "external.owner",                                                                      │
           │   recordName: "1:reminders",                                                                        │
@@ -1400,14 +1412,16 @@
           """
         }
         assertQuery(
-          SyncMetadata.order { ($0.recordType, $0.recordName) },
+          SyncMetadata.order { ($0.id.recordType, $0.recordName) },
           database: syncEngine.metadatabase
         ) {
           """
           ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelAs",                                                                   │
@@ -1436,8 +1450,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "2",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "2",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "2:modelAs",                                                                   │
@@ -1471,8 +1487,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelBs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelBs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelBs",                                                                   │
@@ -1502,8 +1520,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelCs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelCs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelCs",                                                                   │
@@ -1695,14 +1715,16 @@
           """
         }
         assertQuery(
-          SyncMetadata.order { ($0.recordType, $0.recordName) },
+          SyncMetadata.order { ($0.id.recordType, $0.recordName) },
           database: syncEngine.metadatabase
         ) {
           """
           ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelAs",                                                                   │
@@ -1731,8 +1753,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "2",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "2",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "2:modelAs",                                                                   │
@@ -1766,8 +1790,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelBs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelBs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelBs",                                                                   │
@@ -1797,8 +1823,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelCs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelCs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelCs",                                                                   │
@@ -1990,14 +2018,16 @@
           """
         }
         assertQuery(
-          SyncMetadata.order { ($0.recordType, $0.recordName) },
+          SyncMetadata.order { ($0.id.recordType, $0.recordName) },
           database: syncEngine.metadatabase
         ) {
           """
           ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelAs",                                                                   │
@@ -2026,8 +2056,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "2",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "2",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "2:modelAs",                                                                   │
@@ -2061,8 +2093,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelBs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelBs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelBs",                                                                   │
@@ -2092,8 +2126,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelCs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelCs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelCs",                                                                   │
@@ -2265,14 +2301,16 @@
           """
         }
         assertQuery(
-          SyncMetadata.order { ($0.recordType, $0.recordName) },
+          SyncMetadata.order { ($0.id.recordType, $0.recordName) },
           database: syncEngine.metadatabase
         ) {
           """
           ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelAs",                                                                   │
@@ -2301,8 +2339,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "2",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "2",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "2:modelAs",                                                                   │
@@ -2336,8 +2376,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelBs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelBs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelBs",                                                                   │
@@ -2501,14 +2543,16 @@
           """
         }
         assertQuery(
-          SyncMetadata.order { ($0.recordType, $0.recordName) },
+          SyncMetadata.order { ($0.id.recordType, $0.recordName) },
           database: syncEngine.metadatabase
         ) {
           """
           ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelAs",                                                                   │
@@ -2537,8 +2581,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "2",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "2",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "2:modelAs",                                                                   │
@@ -2572,8 +2618,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelBs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelBs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelBs",                                                                   │
@@ -2603,8 +2651,10 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelCs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelCs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelCs",                                                                   │

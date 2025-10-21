@@ -122,7 +122,7 @@
         try await metadatabase.read { db in
           try SyncMetadata
             .where { $0.recordName.eq(recordName) }
-            .select { ($0.recordType, $0.recordName, $0.lastKnownServerRecord) }
+            .select { ($0.id.recordType, $0.recordName, $0.lastKnownServerRecord) }
             .fetchOne(db)
         } ?? nil
       guard let (recordType, recordName, lastKnownServerRecord) = metadata

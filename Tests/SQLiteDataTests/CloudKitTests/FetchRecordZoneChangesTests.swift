@@ -522,8 +522,10 @@
           """
           ┌────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                              │
-          │   recordPrimaryKey: "tag",                                 │
-          │   recordType: "tags",                                      │
+          │   id: SyncMetadata.ID(                                     │
+          │     recordPrimaryKey: "tag",                               │
+          │     recordType: "tags"                                     │
+          │   ),                                                       │
           │   zoneName: "zone",                                        │
           │   ownerName: "__defaultOwner__",                           │
           │   recordName: "tag:tags",                                  │
@@ -604,8 +606,10 @@
           """
           ┌────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                              │
-          │   recordPrimaryKey: "tag",                                 │
-          │   recordType: "tags",                                      │
+          │   id: SyncMetadata.ID(                                     │
+          │     recordPrimaryKey: "tag",                               │
+          │     recordType: "tags"                                     │
+          │   ),                                                       │
           │   zoneName: "zone",                                        │
           │   ownerName: "__defaultOwner__",                           │
           │   recordName: "tag:tags",                                  │
@@ -673,8 +677,10 @@
           """
           ┌────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                  │
-          │   recordPrimaryKey: "weekend",                                 │
-          │   recordType: "tags",                                          │
+          │   id: SyncMetadata.ID(                                         │
+          │     recordPrimaryKey: "weekend",                               │
+          │     recordType: "tags"                                         │
+          │   ),                                                           │
           │   zoneName: "zone",                                            │
           │   ownerName: "__defaultOwner__",                               │
           │   recordName: "weekend:tags",                                  │

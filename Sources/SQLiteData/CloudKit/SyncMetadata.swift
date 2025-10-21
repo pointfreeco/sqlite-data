@@ -12,11 +12,22 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Table("sqlitedata_icloud_metadata")
   public struct SyncMetadata: Hashable, Sendable {
-    /// The unique identifier of the record synchronized.
-    public var recordPrimaryKey: String
+    @Selection
+    public struct ID: Hashable, Sendable {
+      /// The unique identifier of the record synchronized.
+      public var recordPrimaryKey: String
 
-    /// The type of the record synchronized, _i.e._ its table name.
-    public var recordType: String
+      /// The type of the record synchronized, _i.e._ its table name.
+      public var recordType: String
+    }
+
+    public let id: ID
+
+//    /// The unique identifier of the record synchronized.
+//    public var recordPrimaryKey: String
+//
+//    /// The type of the record synchronized, _i.e._ its table name.
+//    public var recordType: String
 
     /// The record zone name.
     public var zoneName: String
@@ -99,8 +110,7 @@
       share: CKShare? = nil,
       userModificationTime: Int64
     ) {
-      self.recordPrimaryKey = recordPrimaryKey
-      self.recordType = recordType
+      self.id = ID(recordPrimaryKey: recordPrimaryKey, recordType: recordType)
       self.recordName = "\(recordPrimaryKey):\(recordType)"
       self.zoneName = zoneName
       self.ownerName = ownerName
@@ -147,8 +157,8 @@
       SyncMetadata.where {
         #sql(
           """
-          \($0.recordPrimaryKey) = \(PrimaryKey(queryOutput: primaryKey)) \
-          AND \($0.recordType) = \(bind: tableName)
+          \($0.id.recordPrimaryKey) = \(PrimaryKey(queryOutput: primaryKey)) \
+          AND \($0.id.recordType) = \(bind: tableName)
           """
         )
       }
@@ -180,8 +190,8 @@
     ///   .leftJoin(SyncMetadata.all) { $0.hasMetadata.in($1) }
     /// ```
     public func hasMetadata(in metadata: SyncMetadata.TableColumns) -> some QueryExpression<Bool> {
-      metadata.recordType.eq(QueryValue.tableName)
-        && #sql("\(primaryKey)").eq(metadata.recordPrimaryKey)
+      metadata.id.recordType.eq(QueryValue.tableName)
+      && #sql("\(primaryKey)").eq(metadata.id.recordPrimaryKey)
     }
   }
 

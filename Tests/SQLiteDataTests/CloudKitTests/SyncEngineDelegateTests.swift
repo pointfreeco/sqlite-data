@@ -39,8 +39,10 @@
           """
           ┌────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                      │
-          │   recordPrimaryKey: "1",                                           │
-          │   recordType: "remindersLists",                                    │
+          │   id: SyncMetadata.ID(                                             │
+          │     recordPrimaryKey: "1",                                         │
+          │     recordType: "remindersLists"                                   │
+          │   ),                                                               │
           │   zoneName: "zone",                                                │
           │   ownerName: "__defaultOwner__",                                   │
           │   recordName: "1:remindersLists",                                  │
@@ -112,8 +114,10 @@
           """
           ┌────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                      │
-          │   recordPrimaryKey: "1",                                           │
-          │   recordType: "remindersLists",                                    │
+          │   id: SyncMetadata.ID(                                             │
+          │     recordPrimaryKey: "1",                                         │
+          │     recordType: "remindersLists"                                   │
+          │   ),                                                               │
           │   zoneName: "zone",                                                │
           │   ownerName: "__defaultOwner__",                                   │
           │   recordName: "1:remindersLists",                                  │

@@ -32,8 +32,8 @@
           )
           SyncMetadata
             .where {
-              $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
-                && $0.recordType.eq(tableName)
+              $0.id.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
+              && $0.id.recordType.eq(tableName)
             }
             .update { $0._isDeleted = true }
         } when: { old, new in
@@ -108,8 +108,8 @@
           )
           SyncMetadata
             .where {
-              $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
-                && $0.recordType.eq(tableName)
+              $0.id.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
+              && $0.id.recordType.eq(tableName)
             }
             .update { $0._isDeleted = true }
         } when: { _ in
@@ -125,8 +125,8 @@
         after: .delete { old in
           SyncMetadata
             .where {
-              $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
-                && $0.recordType.eq(tableName)
+              $0.id.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
+              && $0.id.recordType.eq(tableName)
             }
             .delete()
         } when: { _ in
@@ -158,8 +158,8 @@
       )
       return insert {
         (
-          $0.recordPrimaryKey,
-          $0.recordType,
+          $0.id.recordPrimaryKey,
+          $0.id.recordType,
           $0.zoneName,
           $0.ownerName,
           $0.parentRecordPrimaryKey,
@@ -189,8 +189,8 @@
         defaultZone: defaultZone
       )
       return Self.where {
-        $0.recordPrimaryKey.eq(#sql("\(new.primaryKey)"))
-          && $0.recordType.eq(T.tableName)
+        $0.id.recordPrimaryKey.eq(#sql("\(new.primaryKey)"))
+        && $0.id.recordType.eq(T.tableName)
       }
       .update {
         $0.zoneName = zoneName ?? $0.zoneName
@@ -338,8 +338,8 @@
         )
         let parentRecordType = #sql("\(bind: foreignKey.table)", as: String.self)
         let parentMetadata = SyncMetadata.where {
-          $0.recordPrimaryKey.eq(parentRecordPrimaryKey)
-            && $0.recordType.eq(parentRecordType)
+          $0.id.recordPrimaryKey.eq(parentRecordPrimaryKey)
+          && $0.id.recordType.eq(parentRecordType)
         }
         return (
           parentRecordPrimaryKey,
@@ -384,8 +384,8 @@
     return With {
       SyncMetadata
         .where {
-          $0.recordPrimaryKey.is(parentRecordPrimaryKey)
-            && $0.recordType.is(parentRecordType)
+          $0.id.recordPrimaryKey.is(parentRecordPrimaryKey)
+          && $0.id.recordType.is(parentRecordType)
         }
         .select { RootShare.Columns(parentRecordName: $0.parentRecordName, share: $0.share) }
         .union(
@@ -475,8 +475,8 @@
     SyncMetadata
       .select(\.lastKnownServerRecord)
       .where {
-        $0.recordPrimaryKey.is(parentRecordPrimaryKey)
-          && $0.recordType.is(parentRecordType)
+        $0.id.recordPrimaryKey.is(parentRecordPrimaryKey)
+        && $0.id.recordType.is(parentRecordType)
       }
   }
 

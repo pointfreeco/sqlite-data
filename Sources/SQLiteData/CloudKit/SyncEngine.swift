@@ -546,9 +546,14 @@
     private func enqueueUnknownRecordsForCloudKit() async throws {
       try await userDatabase.write { db in
         try $_isSynchronizingChanges.withValue(false) {
+          let q = SyncMetadata
+            .where { !$0.hasLastKnownServerRecord }
+            .update { $0.id.recordType = $0.id.recordType }
+          print(q.queryFragment.debugDescription)
+          print("!!!")
           try SyncMetadata
             .where { !$0.hasLastKnownServerRecord }
-            .update { $0.recordPrimaryKey = $0.recordPrimaryKey }
+            .update { $0.id.recordType = $0.id.recordType }
             .execute(db)
         }
       }
@@ -595,7 +600,7 @@
           .map(\.name)
           let lastKnownServerRecords = try await metadatabase.read { db in
             try SyncMetadata
-              .where { $0.recordType.eq(tableName) }
+              .where { $0.id.recordType.eq(tableName) }
               .select(\._lastKnownServerRecordAllFields)
               .fetchAll(db)
           }
@@ -1010,24 +1015,24 @@
             state.withValue { [missingTable, missingRecord, sentRecord] in
               if let missingTable {
                 $0.events.append("⚠️ Missing table")
-                $0.recordTypes.append(metadata.recordType)
+                $0.recordTypes.append(metadata.id.recordType)
                 $0.recordNames.append(missingTable.recordName)
               }
               if let missingRecord {
                 $0.events.append("⚠️ Missing record")
-                $0.recordTypes.append(metadata.recordType)
+                $0.recordTypes.append(metadata.id.recordType)
                 $0.recordNames.append(missingRecord.recordName)
               }
               if let sentRecord {
                 $0.events.append("➡️ Sending")
-                $0.recordTypes.append(metadata.recordType)
+                $0.recordTypes.append(metadata.id.recordType)
                 $0.recordNames.append(sentRecord.recordName)
               }
             }
           }
         #endif
 
-        guard let table = tablesByName[metadata.recordType]
+        guard let table = tablesByName[metadata.id.recordType]
         else {
           syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           missingTable = recordID
@@ -1039,7 +1044,7 @@
               try userDatabase.read { db in
                 try T
                   .where {
-                    #sql("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
+                    #sql("\($0.primaryKey) = \(bind: metadata.id.recordPrimaryKey)")
                   }
                   .fetchOne(db)
               }
@@ -1055,7 +1060,7 @@
           let record =
             allFields
             ?? CKRecord(
-              recordType: metadata.recordType,
+              recordType: metadata.id.recordType,
               recordID: recordID
             )
           if let parentRecordName = metadata.parentRecordName,
@@ -1272,12 +1277,12 @@
           grouping:
             try SyncMetadata
             .where { $0.zoneName.eq(zoneID.zoneName) && $0.ownerName.eq(zoneID.ownerName) }
-            .select { ($0.recordType, $0.recordPrimaryKey) }
+            .select(\.id)
             .fetchAll(db),
-          by: \.0
+          by: \.recordType
         )
         .mapValues {
-          $0.map(\.1)
+          $0.map(\.recordPrimaryKey)
         }
         for (recordType, primaryKeys) in recordTypes {
           guard let table = tablesByName[recordType]
@@ -1343,7 +1348,7 @@
                   .where {
                     #sql("\($0.primaryKey)").in(
                       SyncMetadata.findAll(recordIDs)
-                        .select(\.recordPrimaryKey)
+                        .select(\.id.recordPrimaryKey)
                     )
                   }
                   .delete()
@@ -1720,7 +1725,7 @@
             userModificationTime: serverRecord.userModificationTime
           )
         } onConflict: {
-          ($0.recordPrimaryKey, $0.recordType)
+          ($0.id.recordPrimaryKey, $0.id.recordType)
         } doUpdate: {
           if tablesByName[serverRecord.recordType] == nil {
             $0.setLastKnownServerRecord(serverRecord)
@@ -1744,7 +1749,7 @@
           var columnNames: [String] = T.TableColumns.writableColumns.map(\.name)
           if !force,
             let allFields = metadata._lastKnownServerRecordAllFields,
-            let row = try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
+             let row = try T.find(#sql("\(bind: metadata.id.recordPrimaryKey)")).fetchOne(db)
           {
             serverRecord.update(
               with: allFields,

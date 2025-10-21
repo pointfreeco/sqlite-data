@@ -209,8 +209,10 @@
           """
           ┌─────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "1",                                                                │
-          │   recordType: "reminderTags",                                                           │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "1",                                                              │
+          │     recordType: "reminderTags"                                                          │
+          │   ),                                                                                    │
           │   zoneName: "zone",                                                                     │
           │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "1:reminderTags",                                                         │
@@ -240,8 +242,10 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "1",                                                                │
-          │   recordType: "reminders",                                                              │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "1",                                                              │
+          │     recordType: "reminders"                                                             │
+          │   ),                                                                                    │
           │   zoneName: "zone",                                                                     │
           │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "1:reminders",                                                            │
@@ -272,8 +276,10 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "1",                                                                │
-          │   recordType: "remindersLists",                                                         │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "1",                                                              │
+          │     recordType: "remindersLists"                                                        │
+          │   ),                                                                                    │
           │   zoneName: "zone",                                                                     │
           │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "1:remindersLists",                                                       │
@@ -302,8 +308,10 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "2",                                                                │
-          │   recordType: "reminderTags",                                                           │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "2",                                                              │
+          │     recordType: "reminderTags"                                                          │
+          │   ),                                                                                    │
           │   zoneName: "zone",                                                                     │
           │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "2:reminderTags",                                                         │
@@ -333,8 +341,10 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "2",                                                                │
-          │   recordType: "reminders",                                                              │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "2",                                                              │
+          │     recordType: "reminders"                                                             │
+          │   ),                                                                                    │
           │   zoneName: "zone",                                                                     │
           │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "2:reminders",                                                            │
@@ -365,8 +375,10 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "2",                                                                │
-          │   recordType: "remindersLists",                                                         │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "2",                                                              │
+          │     recordType: "remindersLists"                                                        │
+          │   ),                                                                                    │
           │   zoneName: "zone",                                                                     │
           │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "2:remindersLists",                                                       │
@@ -395,8 +407,10 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "3",                                                                │
-          │   recordType: "reminderTags",                                                           │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "3",                                                              │
+          │     recordType: "reminderTags"                                                          │
+          │   ),                                                                                    │
           │   zoneName: "zone",                                                                     │
           │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "3:reminderTags",                                                         │
@@ -426,8 +440,10 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "3",                                                                │
-          │   recordType: "reminders",                                                              │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "3",                                                              │
+          │     recordType: "reminders"                                                             │
+          │   ),                                                                                    │
           │   zoneName: "zone",                                                                     │
           │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "3:reminders",                                                            │
@@ -458,8 +474,10 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "optional",                                                         │
-          │   recordType: "tags",                                                                   │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "optional",                                                       │
+          │     recordType: "tags"                                                                  │
+          │   ),                                                                                    │
           │   zoneName: "zone",                                                                     │
           │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "optional:tags",                                                          │
@@ -487,8 +505,10 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "weekend",                                                          │
-          │   recordType: "tags",                                                                   │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "weekend",                                                        │
+          │     recordType: "tags"                                                                  │
+          │   ),                                                                                    │
           │   zoneName: "zone",                                                                     │
           │   ownerName: "__defaultOwner__",                                                        │
           │   recordName: "weekend:tags",                                                           │
@@ -538,9 +558,11 @@
           """
           ┌─────────────────────┬────────────────────────────────────────────────────────────────────┐
           │ RemindersList(      │ SyncMetadata(                                                      │
-          │   id: 1,            │   recordPrimaryKey: "1",                                           │
-          │   title: "Personal" │   recordType: "remindersLists",                                    │
-          │ )                   │   zoneName: "zone",                                                │
+          │   id: 1,            │   id: SyncMetadata.ID(                                             │
+          │   title: "Personal" │     recordPrimaryKey: "1",                                         │
+          │ )                   │     recordType: "remindersLists"                                   │
+          │                     │   ),                                                               │
+          │                     │   zoneName: "zone",                                                │
           │                     │   ownerName: "__defaultOwner__",                                   │
           │                     │   recordName: "1:remindersLists",                                  │
           │                     │   parentRecordPrimaryKey: nil,                                     │
@@ -568,9 +590,11 @@
           │                     │ )                                                                  │
           ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
           │ RemindersList(      │ SyncMetadata(                                                      │
-          │   id: 2,            │   recordPrimaryKey: "2",                                           │
-          │   title: "Work"     │   recordType: "remindersLists",                                    │
-          │ )                   │   zoneName: "zone",                                                │
+          │   id: 2,            │   id: SyncMetadata.ID(                                             │
+          │   title: "Work"     │     recordPrimaryKey: "2",                                         │
+          │ )                   │     recordType: "remindersLists"                                   │
+          │                     │   ),                                                               │
+          │                     │   zoneName: "zone",                                                │
           │                     │   ownerName: "__defaultOwner__",                                   │
           │                     │   recordName: "2:remindersLists",                                  │
           │                     │   parentRecordPrimaryKey: nil,                                     │
