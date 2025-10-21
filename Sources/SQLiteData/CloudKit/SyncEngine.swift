@@ -311,8 +311,19 @@
         .select(\.file)
         .fetchOne(db)
       if let attachedMetadatabasePath {
-        let metadatabaseName = URL(string: metadatabase.path)?.lastPathComponent ?? ""
-        let attachedMetadatabaseName = try URL.metadatabase(
+        let metadatabaseName = metadatabase.path.isEmpty ?
+        try URL.metadatabase(
+          databasePath: "",
+          containerIdentifier: self.container.containerIdentifier
+        )
+        .lastPathComponent
+        :
+        URL(
+          filePath: metadatabase.path
+        ).lastPathComponent
+        let attachedMetadatabaseName = URL(string: attachedMetadatabasePath)?.lastPathComponent ?? ""
+
+        try URL.metadatabase(
           databasePath: attachedMetadatabasePath,
           containerIdentifier: self.container.containerIdentifier
         )
@@ -1932,9 +1943,7 @@
         return URL(string: "file:\(String.sqliteDataCloudKitSchemaName)?mode=memory&cache=shared")!
       }
       return
-        databaseURL
-        .deletingLastPathComponent()
-        .appending(component: ".\(databaseURL.deletingPathExtension().lastPathComponent)")
+        databaseURL.deletingLastPathComponent().appending(component: ".\(databaseURL.deletingPathExtension().lastPathComponent)")
         .appendingPathExtension("metadata\(containerIdentifier.map { "-\($0)" } ?? "").sqlite")
     }
 
