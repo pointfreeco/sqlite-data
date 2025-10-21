@@ -312,13 +312,11 @@
         .fetchOne(db)
       if let attachedMetadatabasePath {
         let metadatabaseName = URL(string: metadatabase.path)?.lastPathComponent ?? ""
-
-        let attachedMetadatabaseURL = try URL.metadatabase(
+        let attachedMetadatabaseName = try URL.metadatabase(
           databasePath: attachedMetadatabasePath,
           containerIdentifier: self.container.containerIdentifier
         )
-        let attachedMetadatabaseName = attachedMetadatabaseURL.lastPathComponent
-
+        .lastPathComponent
         if metadatabaseName != attachedMetadatabaseName {
           throw SchemaError(
             reason: .metadatabaseMismatch(
