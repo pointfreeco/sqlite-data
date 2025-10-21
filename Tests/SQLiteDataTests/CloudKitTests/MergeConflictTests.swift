@@ -708,6 +708,48 @@
           )
         }
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func editCloudKitDirectlyWithoutUpdatingTimestamps() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
+        record.encryptedValues["title"] = "My stuff"
+        try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  id🗓️: 0,
+                  title: "My stuff",
+                  title🗓️: 0,
+                  🗓️: 0
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
     }
   }
 #endif
