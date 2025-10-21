@@ -252,6 +252,7 @@
       self.userDatabase = userDatabase
       self.logger = logger
       self.metadatabase = try defaultMetadatabase(
+        database: userDatabase.database,
         logger: logger,
         url: try URL.metadatabase(
           databasePath: userDatabase.path,
@@ -1917,7 +1918,7 @@
       databasePath: String,
       containerIdentifier: String?
     ) throws -> URL {
-      guard let databaseURL = URL(string: databasePath)
+      guard let databaseURL = URL(string: databasePath.isEmpty ? ":memory:" : databasePath)
       else {
         struct InvalidDatabasePath: Error {}
         throw InvalidDatabasePath()
@@ -2000,6 +2001,8 @@
     /// - Parameter containerIdentifier: The identifier of the CloudKit container used to
     /// synchronize data. Defaults to the value set in the app's entitlements.
     public func attachMetadatabase(containerIdentifier: String? = nil) throws {
+      @Dependency(\.context) var context
+      guard context != .preview else { return }
       let containerIdentifier =
         containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
