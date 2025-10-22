@@ -11,12 +11,25 @@
   /// See <doc:CloudKit#Accessing-CloudKit-metadata> for more info.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Table("sqlitedata_icloud_metadata")
-  public struct SyncMetadata: Hashable, Sendable {
+  public struct SyncMetadata: Hashable, Identifiable, Sendable {
+    /// A selection of columns representing a synchronized record's unique identifier and type.
+    @Selection
+    public struct ID: Hashable, Sendable {
+      /// The unique identifier of the record synchronized.
+      public var recordPrimaryKey: String
+
+      /// The type of the record synchronized, _i.e._ its table name.
+      public var recordType: String
+    }
+
+    /// The unique identifier and type of the record synchronized.
+    public let id: ID
+
     /// The unique identifier of the record synchronized.
-    public var recordPrimaryKey: String
+    public var recordPrimaryKey: String { id.recordPrimaryKey }
 
     /// The type of the record synchronized, _i.e._ its table name.
-    public var recordType: String
+    public var recordType: String { id.recordType }
 
     /// The record zone name.
     public var zoneName: String
@@ -35,11 +48,25 @@
     @Column(generated: .virtual)
     public let recordName: String
 
+    /// A selection of columns representing a synchronized parent record's unique identifier and
+    /// type.
+    @Selection
+    public struct ParentID: Hashable, Sendable {
+      /// The unique identifier of the parent record synchronized.
+      public var parentRecordPrimaryKey: String
+
+      /// The type of the parent record synchronized, _i.e._ its table name.
+      public var parentRecordType: String
+    }
+
+    /// The identifier and type of this record's parent, if any.
+    public var parentRecordID: ParentID?
+
     /// The unique identifier of this record's parent, if any.
-    public var parentRecordPrimaryKey: String?
+    public var parentRecordPrimaryKey: String? { parentRecordID?.parentRecordPrimaryKey }
 
     /// The type of this record's parent, _i.e._ its table name, if any.
-    public var parentRecordType: String?
+    public var parentRecordType: String? { parentRecordID?.parentRecordType }
 
     /// The name of this record's parent, if any.
     ///
@@ -86,6 +113,25 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncMetadata.TableColumns {
+    public var recordPrimaryKey: TableColumn<SyncMetadata, String> {
+      id.recordPrimaryKey
+    }
+
+    public var recordType: TableColumn<SyncMetadata, String> {
+      id.recordType
+    }
+
+    public var parentRecordPrimaryKey: TableColumn<SyncMetadata, String?> {
+      parentRecordID.parentRecordPrimaryKey
+    }
+
+    public var parentRecordType: TableColumn<SyncMetadata, String?> {
+      parentRecordID.parentRecordType
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
     package init(
       recordPrimaryKey: String,
@@ -99,16 +145,18 @@
       share: CKShare? = nil,
       userModificationTime: Int64
     ) {
-      self.recordPrimaryKey = recordPrimaryKey
-      self.recordType = recordType
+      self.id = ID(recordPrimaryKey: recordPrimaryKey, recordType: recordType)
       self.recordName = "\(recordPrimaryKey):\(recordType)"
       self.zoneName = zoneName
       self.ownerName = ownerName
-      self.parentRecordPrimaryKey = parentRecordPrimaryKey
-      self.parentRecordType = parentRecordType
       if let parentRecordPrimaryKey, let parentRecordType {
+        self.parentRecordID = ParentID(
+          parentRecordPrimaryKey: parentRecordPrimaryKey,
+          parentRecordType: parentRecordType
+        )
         self.parentRecordName = "\(parentRecordPrimaryKey):\(parentRecordType)"
       } else {
+        self.parentRecordID = nil
         self.parentRecordName = nil
       }
       self.lastKnownServerRecord = lastKnownServerRecord

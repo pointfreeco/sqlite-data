@@ -39,13 +39,14 @@
           """
           ┌────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                      │
-          │   recordPrimaryKey: "1",                                           │
-          │   recordType: "remindersLists",                                    │
+          │   id: SyncMetadata.ID(                                             │
+          │     recordPrimaryKey: "1",                                         │
+          │     recordType: "remindersLists"                                   │
+          │   ),                                                               │
           │   zoneName: "zone",                                                │
           │   ownerName: "__defaultOwner__",                                   │
           │   recordName: "1:remindersLists",                                  │
-          │   parentRecordPrimaryKey: nil,                                     │
-          │   parentRecordType: nil,                                           │
+          │   parentRecordID: nil,                                             │
           │   parentRecordName: nil,                                           │
           │   lastKnownServerRecord: CKRecord(                                 │
           │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
@@ -112,13 +113,14 @@
           """
           ┌────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                      │
-          │   recordPrimaryKey: "1",                                           │
-          │   recordType: "remindersLists",                                    │
+          │   id: SyncMetadata.ID(                                             │
+          │     recordPrimaryKey: "1",                                         │
+          │     recordType: "remindersLists"                                   │
+          │   ),                                                               │
           │   zoneName: "zone",                                                │
           │   ownerName: "__defaultOwner__",                                   │
           │   recordName: "1:remindersLists",                                  │
-          │   parentRecordPrimaryKey: nil,                                     │
-          │   parentRecordType: nil,                                           │
+          │   parentRecordID: nil,                                             │
           │   parentRecordName: nil,                                           │
           │   lastKnownServerRecord: CKRecord(                                 │
           │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
