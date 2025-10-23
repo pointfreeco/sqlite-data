@@ -187,7 +187,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension PrimaryKeyedTable where PrimaryKey: IdentifierStringConvertible {
+  extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConvertible {
     /// A query for finding the metadata associated with a record.
     ///
     /// - Parameter primaryKey: The primary key of the record whose metadata to look up.
@@ -201,13 +201,15 @@
         )
       }
     }
-  }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConvertible {
-    /// Constructs a ``SyncMetadata/RecordName-swift.struct`` for a primary keyed table give an ID.
-    ///
-    /// - Parameter id: The ID of the record.
+    /// An identifier representing any associated synchronization metadata.
+    public var syncMetadataID: SyncMetadata.ID {
+      SyncMetadata.ID(
+        recordPrimaryKey: primaryKey.rawIdentifier,
+        recordType: Self.tableName
+      )
+    }
+
     package static func recordName(for id: PrimaryKey.QueryOutput) -> String {
       "\(id.rawIdentifier):\(tableName)"
     }
@@ -227,9 +229,28 @@
     /// RemindersList
     ///   .leftJoin(SyncMetadata.all) { $0.hasMetadata.in($1) }
     /// ```
+    @available(
+      *,
+      deprecated,
+      message: """
+        Join the 'SyncMetadata' table using 'SyncMetadata.id' and 'Table.syncMetadataID', instead.
+        """
+    )
     public func hasMetadata(in metadata: SyncMetadata.TableColumns) -> some QueryExpression<Bool> {
       metadata.recordType.eq(QueryValue.tableName)
         && #sql("\(primaryKey)").eq(metadata.recordPrimaryKey)
+    }
+
+    /// An identifier representing any associated synchronization metadata.
+    ///
+    /// This helper can be useful when joining your tables to the ``SyncMetadata`` table:
+    ///
+    /// ```swift
+    /// RemindersList
+    ///   .leftJoin(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+    /// ```
+    public var syncMetadataID: some QueryExpression<SyncMetadata.ID> {
+      #sql("\(primaryKey), \(bind: QueryValue.tableName)")
     }
   }
 
