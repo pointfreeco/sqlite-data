@@ -191,6 +191,7 @@
     /// A query for finding the metadata associated with a record.
     ///
     /// - Parameter primaryKey: The primary key of the record whose metadata to look up.
+    @available(*, deprecated, message: "Use 'SyncMetadata.find(record.syncMetadataID)', instead")
     public static func metadata(for primaryKey: PrimaryKey.QueryOutput) -> Where<SyncMetadata> {
       SyncMetadata.where {
         #sql(
