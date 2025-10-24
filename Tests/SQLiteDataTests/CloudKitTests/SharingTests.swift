@@ -316,13 +316,14 @@
           """
           ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                       │
-          │   recordPrimaryKey: "1",                                                                            │
-          │   recordType: "remindersLists",                                                                     │
+          │   id: SyncMetadata.ID(                                                                              │
+          │     recordPrimaryKey: "1",                                                                          │
+          │     recordType: "remindersLists"                                                                    │
+          │   ),                                                                                                │
           │   zoneName: "external.zone",                                                                        │
           │   ownerName: "external.owner",                                                                      │
           │   recordName: "1:remindersLists",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                                      │
-          │   parentRecordType: nil,                                                                            │
+          │   parentRecordID: nil,                                                                              │
           │   parentRecordName: nil,                                                                            │
           │   lastKnownServerRecord: CKRecord(                                                                  │
           │     recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),                           │
@@ -389,13 +390,14 @@
           """
           ┌─────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "1",                                                                │
-          │   recordType: "modelAs",                                                                │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "1",                                                              │
+          │     recordType: "modelAs"                                                               │
+          │   ),                                                                                    │
           │   zoneName: "external.zone",                                                            │
           │   ownerName: "external.owner",                                                          │
           │   recordName: "1:modelAs",                                                              │
-          │   parentRecordPrimaryKey: nil,                                                          │
-          │   parentRecordType: nil,                                                                │
+          │   parentRecordID: nil,                                                                  │
           │   parentRecordName: nil,                                                                │
           │   lastKnownServerRecord: CKRecord(                                                      │
           │     recordID: CKRecord.ID(1:modelAs/external.zone/external.owner),                      │
@@ -419,13 +421,17 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "1",                                                                │
-          │   recordType: "modelBs",                                                                │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "1",                                                              │
+          │     recordType: "modelBs"                                                               │
+          │   ),                                                                                    │
           │   zoneName: "external.zone",                                                            │
           │   ownerName: "external.owner",                                                          │
           │   recordName: "1:modelBs",                                                              │
-          │   parentRecordPrimaryKey: "1",                                                          │
-          │   parentRecordType: "modelAs",                                                          │
+          │   parentRecordID: SyncMetadata.ParentID(                                                │
+          │     parentRecordPrimaryKey: "1",                                                        │
+          │     parentRecordType: "modelAs"                                                         │
+          │   ),                                                                                    │
           │   parentRecordName: "1:modelAs",                                                        │
           │   lastKnownServerRecord: CKRecord(                                                      │
           │     recordID: CKRecord.ID(1:modelBs/external.zone/external.owner),                      │
@@ -450,13 +456,17 @@
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                           │
-          │   recordPrimaryKey: "1",                                                                │
-          │   recordType: "modelCs",                                                                │
+          │   id: SyncMetadata.ID(                                                                  │
+          │     recordPrimaryKey: "1",                                                              │
+          │     recordType: "modelCs"                                                               │
+          │   ),                                                                                    │
           │   zoneName: "external.zone",                                                            │
           │   ownerName: "external.owner",                                                          │
           │   recordName: "1:modelCs",                                                              │
-          │   parentRecordPrimaryKey: "1",                                                          │
-          │   parentRecordType: "modelBs",                                                          │
+          │   parentRecordID: SyncMetadata.ParentID(                                                │
+          │     parentRecordPrimaryKey: "1",                                                        │
+          │     parentRecordType: "modelBs"                                                         │
+          │   ),                                                                                    │
           │   parentRecordName: "1:modelBs",                                                        │
           │   lastKnownServerRecord: CKRecord(                                                      │
           │     recordID: CKRecord.ID(1:modelCs/external.zone/external.owner),                      │
@@ -926,13 +936,14 @@
           """
           ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                       │
-          │   recordPrimaryKey: "1",                                                                            │
-          │   recordType: "remindersLists",                                                                     │
+          │   id: SyncMetadata.ID(                                                                              │
+          │     recordPrimaryKey: "1",                                                                          │
+          │     recordType: "remindersLists"                                                                    │
+          │   ),                                                                                                │
           │   zoneName: "external.zone",                                                                        │
           │   ownerName: "external.owner",                                                                      │
           │   recordName: "1:remindersLists",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                                      │
-          │   parentRecordType: nil,                                                                            │
+          │   parentRecordID: nil,                                                                              │
           │   parentRecordName: nil,                                                                            │
           │   lastKnownServerRecord: CKRecord(                                                                  │
           │     recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),                           │
@@ -961,13 +972,17 @@
           │ )                                                                                                   │
           ├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                       │
-          │   recordPrimaryKey: "1",                                                                            │
-          │   recordType: "reminders",                                                                          │
+          │   id: SyncMetadata.ID(                                                                              │
+          │     recordPrimaryKey: "1",                                                                          │
+          │     recordType: "reminders"                                                                         │
+          │   ),                                                                                                │
           │   zoneName: "external.zone",                                                                        │
           │   ownerName: "external.owner",                                                                      │
           │   recordName: "1:reminders",                                                                        │
-          │   parentRecordPrimaryKey: "1",                                                                      │
-          │   parentRecordType: "remindersLists",                                                               │
+          │   parentRecordID: SyncMetadata.ParentID(                                                            │
+          │     parentRecordPrimaryKey: "1",                                                                    │
+          │     parentRecordType: "remindersLists"                                                              │
+          │   ),                                                                                                │
           │   parentRecordName: "1:remindersLists",                                                             │
           │   lastKnownServerRecord: CKRecord(                                                                  │
           │     recordID: CKRecord.ID(1:reminders/external.zone/external.owner),                                │
@@ -1406,13 +1421,14 @@
           """
           ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelAs",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                               │
-          │   parentRecordType: nil,                                                                     │
+          │   parentRecordID: nil,                                                                       │
           │   parentRecordName: nil,                                                                     │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__),                                  │
@@ -1436,13 +1452,14 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "2",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "2",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "2:modelAs",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                               │
-          │   parentRecordType: nil,                                                                     │
+          │   parentRecordID: nil,                                                                       │
           │   parentRecordName: nil,                                                                     │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),                           │
@@ -1471,13 +1488,17 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelBs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelBs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelBs",                                                                   │
-          │   parentRecordPrimaryKey: "2",                                                               │
-          │   parentRecordType: "modelAs",                                                               │
+          │   parentRecordID: SyncMetadata.ParentID(                                                     │
+          │     parentRecordPrimaryKey: "2",                                                             │
+          │     parentRecordType: "modelAs"                                                              │
+          │   ),                                                                                         │
           │   parentRecordName: "2:modelAs",                                                             │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelBs/external.zone/external.owner),                           │
@@ -1502,13 +1523,17 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelCs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelCs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelCs",                                                                   │
-          │   parentRecordPrimaryKey: "1",                                                               │
-          │   parentRecordType: "modelBs",                                                               │
+          │   parentRecordID: SyncMetadata.ParentID(                                                     │
+          │     parentRecordPrimaryKey: "1",                                                             │
+          │     parentRecordType: "modelBs"                                                              │
+          │   ),                                                                                         │
           │   parentRecordName: "1:modelBs",                                                             │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelCs/external.zone/external.owner),                           │
@@ -1701,13 +1726,14 @@
           """
           ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelAs",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                               │
-          │   parentRecordType: nil,                                                                     │
+          │   parentRecordID: nil,                                                                       │
           │   parentRecordName: nil,                                                                     │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__),                                  │
@@ -1731,13 +1757,14 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "2",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "2",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "2:modelAs",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                               │
-          │   parentRecordType: nil,                                                                     │
+          │   parentRecordID: nil,                                                                       │
           │   parentRecordName: nil,                                                                     │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),                           │
@@ -1766,13 +1793,17 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelBs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelBs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelBs",                                                                   │
-          │   parentRecordPrimaryKey: "2",                                                               │
-          │   parentRecordType: "modelAs",                                                               │
+          │   parentRecordID: SyncMetadata.ParentID(                                                     │
+          │     parentRecordPrimaryKey: "2",                                                             │
+          │     parentRecordType: "modelAs"                                                              │
+          │   ),                                                                                         │
           │   parentRecordName: "2:modelAs",                                                             │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelBs/external.zone/external.owner),                           │
@@ -1797,13 +1828,17 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelCs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelCs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelCs",                                                                   │
-          │   parentRecordPrimaryKey: "1",                                                               │
-          │   parentRecordType: "modelBs",                                                               │
+          │   parentRecordID: SyncMetadata.ParentID(                                                     │
+          │     parentRecordPrimaryKey: "1",                                                             │
+          │     parentRecordType: "modelBs"                                                              │
+          │   ),                                                                                         │
           │   parentRecordName: "1:modelBs",                                                             │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelCs/external.zone/external.owner),                           │
@@ -1996,13 +2031,14 @@
           """
           ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelAs",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                               │
-          │   parentRecordType: nil,                                                                     │
+          │   parentRecordID: nil,                                                                       │
           │   parentRecordName: nil,                                                                     │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__),                                  │
@@ -2026,13 +2062,14 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "2",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "2",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "2:modelAs",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                               │
-          │   parentRecordType: nil,                                                                     │
+          │   parentRecordID: nil,                                                                       │
           │   parentRecordName: nil,                                                                     │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),                           │
@@ -2061,13 +2098,17 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelBs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelBs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelBs",                                                                   │
-          │   parentRecordPrimaryKey: "2",                                                               │
-          │   parentRecordType: "modelAs",                                                               │
+          │   parentRecordID: SyncMetadata.ParentID(                                                     │
+          │     parentRecordPrimaryKey: "2",                                                             │
+          │     parentRecordType: "modelAs"                                                              │
+          │   ),                                                                                         │
           │   parentRecordName: "2:modelAs",                                                             │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelBs/external.zone/external.owner),                           │
@@ -2092,13 +2133,17 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelCs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelCs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelCs",                                                                   │
-          │   parentRecordPrimaryKey: "1",                                                               │
-          │   parentRecordType: "modelBs",                                                               │
+          │   parentRecordID: SyncMetadata.ParentID(                                                     │
+          │     parentRecordPrimaryKey: "1",                                                             │
+          │     parentRecordType: "modelBs"                                                              │
+          │   ),                                                                                         │
           │   parentRecordName: "1:modelBs",                                                             │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelCs/external.zone/external.owner),                           │
@@ -2271,13 +2316,14 @@
           """
           ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelAs",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                               │
-          │   parentRecordType: nil,                                                                     │
+          │   parentRecordID: nil,                                                                       │
           │   parentRecordName: nil,                                                                     │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__),                                  │
@@ -2301,13 +2347,14 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "2",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "2",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "2:modelAs",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                               │
-          │   parentRecordType: nil,                                                                     │
+          │   parentRecordID: nil,                                                                       │
           │   parentRecordName: nil,                                                                     │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),                           │
@@ -2336,13 +2383,17 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelBs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelBs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelBs",                                                                   │
-          │   parentRecordPrimaryKey: "1",                                                               │
-          │   parentRecordType: "modelAs",                                                               │
+          │   parentRecordID: SyncMetadata.ParentID(                                                     │
+          │     parentRecordPrimaryKey: "1",                                                             │
+          │     parentRecordType: "modelAs"                                                              │
+          │   ),                                                                                         │
           │   parentRecordName: "1:modelAs",                                                             │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelBs/zone/__defaultOwner__),                                  │
@@ -2507,13 +2558,14 @@
           """
           ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "zone",                                                                          │
           │   ownerName: "__defaultOwner__",                                                             │
           │   recordName: "1:modelAs",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                               │
-          │   parentRecordType: nil,                                                                     │
+          │   parentRecordID: nil,                                                                       │
           │   parentRecordName: nil,                                                                     │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__),                                  │
@@ -2537,13 +2589,14 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "2",                                                                     │
-          │   recordType: "modelAs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "2",                                                                   │
+          │     recordType: "modelAs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "2:modelAs",                                                                   │
-          │   parentRecordPrimaryKey: nil,                                                               │
-          │   parentRecordType: nil,                                                                     │
+          │   parentRecordID: nil,                                                                       │
           │   parentRecordName: nil,                                                                     │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),                           │
@@ -2572,13 +2625,17 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelBs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelBs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelBs",                                                                   │
-          │   parentRecordPrimaryKey: "2",                                                               │
-          │   parentRecordType: "modelAs",                                                               │
+          │   parentRecordID: SyncMetadata.ParentID(                                                     │
+          │     parentRecordPrimaryKey: "2",                                                             │
+          │     parentRecordType: "modelAs"                                                              │
+          │   ),                                                                                         │
           │   parentRecordName: "2:modelAs",                                                             │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelBs/external.zone/external.owner),                           │
@@ -2603,13 +2660,17 @@
           │ )                                                                                            │
           ├──────────────────────────────────────────────────────────────────────────────────────────────┤
           │ SyncMetadata(                                                                                │
-          │   recordPrimaryKey: "1",                                                                     │
-          │   recordType: "modelCs",                                                                     │
+          │   id: SyncMetadata.ID(                                                                       │
+          │     recordPrimaryKey: "1",                                                                   │
+          │     recordType: "modelCs"                                                                    │
+          │   ),                                                                                         │
           │   zoneName: "external.zone",                                                                 │
           │   ownerName: "external.owner",                                                               │
           │   recordName: "1:modelCs",                                                                   │
-          │   parentRecordPrimaryKey: "1",                                                               │
-          │   parentRecordType: "modelBs",                                                               │
+          │   parentRecordID: SyncMetadata.ParentID(                                                     │
+          │     parentRecordPrimaryKey: "1",                                                             │
+          │     parentRecordType: "modelBs"                                                              │
+          │   ),                                                                                         │
           │   parentRecordName: "1:modelBs",                                                             │
           │   lastKnownServerRecord: CKRecord(                                                           │
           │     recordID: CKRecord.ID(1:modelCs/external.zone/external.owner),                           │

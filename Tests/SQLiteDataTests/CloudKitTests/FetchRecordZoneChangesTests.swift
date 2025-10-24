@@ -522,13 +522,14 @@
           """
           ┌────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                              │
-          │   recordPrimaryKey: "tag",                                 │
-          │   recordType: "tags",                                      │
+          │   id: SyncMetadata.ID(                                     │
+          │     recordPrimaryKey: "tag",                               │
+          │     recordType: "tags"                                     │
+          │   ),                                                       │
           │   zoneName: "zone",                                        │
           │   ownerName: "__defaultOwner__",                           │
           │   recordName: "tag:tags",                                  │
-          │   parentRecordPrimaryKey: nil,                             │
-          │   parentRecordType: nil,                                   │
+          │   parentRecordID: nil,                                     │
           │   parentRecordName: nil,                                   │
           │   lastKnownServerRecord: CKRecord(                         │
           │     recordID: CKRecord.ID(tag:tags/zone/__defaultOwner__), │
@@ -604,13 +605,14 @@
           """
           ┌────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                              │
-          │   recordPrimaryKey: "tag",                                 │
-          │   recordType: "tags",                                      │
+          │   id: SyncMetadata.ID(                                     │
+          │     recordPrimaryKey: "tag",                               │
+          │     recordType: "tags"                                     │
+          │   ),                                                       │
           │   zoneName: "zone",                                        │
           │   ownerName: "__defaultOwner__",                           │
           │   recordName: "tag:tags",                                  │
-          │   parentRecordPrimaryKey: nil,                             │
-          │   parentRecordType: nil,                                   │
+          │   parentRecordID: nil,                                     │
           │   parentRecordName: nil,                                   │
           │   lastKnownServerRecord: CKRecord(                         │
           │     recordID: CKRecord.ID(tag:tags/zone/__defaultOwner__), │
@@ -673,13 +675,14 @@
           """
           ┌────────────────────────────────────────────────────────────────┐
           │ SyncMetadata(                                                  │
-          │   recordPrimaryKey: "weekend",                                 │
-          │   recordType: "tags",                                          │
+          │   id: SyncMetadata.ID(                                         │
+          │     recordPrimaryKey: "weekend",                               │
+          │     recordType: "tags"                                         │
+          │   ),                                                           │
           │   zoneName: "zone",                                            │
           │   ownerName: "__defaultOwner__",                               │
           │   recordName: "weekend:tags",                                  │
-          │   parentRecordPrimaryKey: nil,                                 │
-          │   parentRecordType: nil,                                       │
+          │   parentRecordID: nil,                                         │
           │   parentRecordName: nil,                                       │
           │   lastKnownServerRecord: CKRecord(                             │
           │     recordID: CKRecord.ID(weekend:tags/zone/__defaultOwner__), │
