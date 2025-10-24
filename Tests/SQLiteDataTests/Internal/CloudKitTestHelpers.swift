@@ -20,9 +20,10 @@ extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConver
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
-  struct ModifyRecordsCallback {
-    fileprivate let operation: @Sendable () async -> Void
-    func notify() async {
+  struct ModifyRecordsCallback<ReturnValue> {
+    fileprivate let operation: @Sendable () async -> ReturnValue
+    @discardableResult
+    func notify() async -> ReturnValue {
       await operation()
     }
   }
@@ -31,7 +32,12 @@ extension SyncEngine {
     scope: CKDatabase.Scope,
     saving recordZonesToSave: [CKRecordZone] = [],
     deleting recordZoneIDsToDelete: [CKRecordZone.ID] = []
-  ) throws -> ModifyRecordsCallback {
+  ) throws -> ModifyRecordsCallback<
+    (
+      saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
+      deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
+    )
+  > {
     let syncEngine = syncEngine(for: scope)
 
     let (saveResults, deleteResults) = try syncEngine.database.modifyRecordZones(
@@ -52,6 +58,7 @@ extension SyncEngine {
           ),
           syncEngine: syncEngine
         )
+      return (saveResults, deleteResults)
     }
   }
 
@@ -59,7 +66,12 @@ extension SyncEngine {
     scope: CKDatabase.Scope,
     saving recordsToSave: [CKRecord] = [],
     deleting recordIDsToDelete: [CKRecord.ID] = []
-  ) throws -> ModifyRecordsCallback {
+  ) throws -> ModifyRecordsCallback<
+    (
+      saveResults: [CKRecord.ID: Result<CKRecord, any Error>],
+      deleteResults: [CKRecord.ID: Result<Void, any Error>]
+    )
+  > {
     let syncEngine = syncEngine(for: scope)
     let recordsToDeleteByID = Dictionary(
       grouping: syncEngine.database.storage.withValue { storage in
@@ -90,6 +102,7 @@ extension SyncEngine {
         ),
         syncEngine: syncEngine
       )
+      return (saveResults, deleteResults)
     }
   }
 

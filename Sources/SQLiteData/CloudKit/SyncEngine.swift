@@ -1670,7 +1670,7 @@
     }
 
     func deleteShare(shareRecordID: CKRecord.ID) async throws {
-      let shareAndRecordNameAndZone = try await userDatabase.read { db in
+      let shareAndRecordNameAndZone = try await metadatabase.read { db in
         try SyncMetadata
           .where(\.isShared)
           .select { ($0.share, $0.recordName, $0.zoneName, $0.ownerName) }
