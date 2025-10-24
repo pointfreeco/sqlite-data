@@ -11,6 +11,7 @@
 
   extension BaseCloudKitTests {
     @MainActor
+    @Suite(.attachMetadatabase(false))
     final class SharingTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func shareNonRootRecord() async throws {
@@ -2687,6 +2688,52 @@
                   title: "Blob"
                 )
               ]
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func deleteShare() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            remindersList
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let sharedRecord = try await syncEngine.share(record: remindersList, configure: { _ in })
+
+        try await syncEngine
+          .modifyRecords(scope: .private, deleting: [sharedRecord.share.recordID])
+          .notify()
+
+        assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase) {
+          """
+          ┌─────┐
+          │ nil │
+          └─────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__))
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
             )
           )
           """
