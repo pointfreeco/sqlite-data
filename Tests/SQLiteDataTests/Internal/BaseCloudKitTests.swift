@@ -11,7 +11,8 @@ import os
   .dependencies {
     $0.currentTime.now = 0
     $0.dataManager = InMemoryDataManager()
-  }
+  },
+  .attachMetadatabase(false)
 )
 class BaseCloudKitTests: @unchecked Sendable {
   let userDatabase: UserDatabase

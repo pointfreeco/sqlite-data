@@ -11,7 +11,6 @@
 
   extension BaseCloudKitTests {
     @MainActor
-    @Suite(.attachMetadatabase(false))
     final class SharingTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func shareNonRootRecord() async throws {
