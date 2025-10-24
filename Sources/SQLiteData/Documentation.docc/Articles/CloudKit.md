@@ -541,8 +541,8 @@ to attach the metadatabase to your database connection. This can be done with th
 ``GRDB/Database/attachMetadatabase(containerIdentifier:)`` method defined on `Database`. See
 <doc:CloudKit#Setting-up-a-SyncEngine> for more information on how to do this.
 
-With that done you can use the ``StructuredQueriesCore/PrimaryKeyedTable/metadata(for:)`` method
-to construct a SQL query for fetching the meta data associated with one of your records.
+With that done you can use the ``StructuredQueriesCore/PrimaryKeyedTable/syncMetadataID`` property
+to construct a SQL query for fetching the metadata associated with one of your records.
 
 For example, if you want to retrieve the `CKRecord` that is associated with a particular row in
 one of your tables, say a reminder, then you can use ``SyncMetadata/lastKnownServerRecord`` to
@@ -550,8 +550,8 @@ retrieve the `CKRecord` and then invoke a CloudKit database function to retrieve
 
 ```swift
 let lastKnownServerRecord = try database.read { db in
-  try RemindersList
-    .metadata(for: remindersListID)
+  try SyncMetadata
+    .find(remindersList.syncMetadataID)
     .select(\.lastKnownServerRecord)
     .fetchOne(db)
     ?? nil
@@ -578,7 +578,7 @@ will give you access to the most current list of participants and permissions fo
 ```swift
 let share = try database.read { db in
   try RemindersList
-    .metadata(for: remindersListID)
+    .find(remindersList.syncMetadataID)
     .select(\.share)
     .fetchOne(db)
 }
@@ -606,7 +606,7 @@ following:
 
 @FetchAll(
   RemindersList
-    .leftJoin(SyncMetadata.all) { $0.hasMetadata(in: $1) }
+    .leftJoin(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
     .select {
       Row.Columns(
         remindersList: $0,
@@ -617,7 +617,7 @@ following:
 var rows
 ```
 
-Here we have used the ``StructuredQueriesCore/PrimaryKeyedTableDefinition/hasMetadata(in:)`` helper
+Here we have used the ``StructuredQueriesCore/PrimaryKeyedTableDefinition/syncMetadataID`` helper
 that is defined on all primary key tables so that we can join ``SyncMetadata`` to `RemindersList`.
 
 <!--

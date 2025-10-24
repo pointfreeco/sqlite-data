@@ -393,8 +393,8 @@ select the ``SyncMetadata/share`` value:
 
 ```swift
 let share = try await database.read { db in
-  RemindersList
-    .metadata(for: id)
+  SyncMetadata
+    .find(remindersList.syncMetadataID)
     .select(\.share)
     .fetchOne(db)
     ?? nil
