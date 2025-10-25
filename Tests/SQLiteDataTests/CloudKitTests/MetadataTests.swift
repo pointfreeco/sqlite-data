@@ -551,7 +551,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         assertQuery(
-          RemindersList.join(SyncMetadata.all) { $0.hasMetadata(in: $1) },
+          RemindersList.join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) },
           database: userDatabase.database
         ) {
           """
