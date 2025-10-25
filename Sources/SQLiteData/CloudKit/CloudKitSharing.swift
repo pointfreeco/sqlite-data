@@ -137,12 +137,11 @@
         )
       }
 
-      let rootRecord =
-        lastKnownServerRecord
-        ?? CKRecord(
-          recordType: recordType,
-          recordID: CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)
-        )
+      let rootRecordID =
+      lastKnownServerRecord?.recordID
+      ?? CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)
+      let cloudKitDatabase = container.database(for: rootRecordID)
+      let rootRecord = try await cloudKitDatabase.record(for: rootRecordID)
 
       var existingShare: CKShare? {
         get async throws {
@@ -157,8 +156,7 @@
             return nil
           }
           do {
-            return try await container.database(for: rootRecord.recordID)
-              .record(for: shareRecordID) as? CKShare
+            return try await cloudKitDatabase.record(for: shareRecordID) as? CKShare
           } catch let error as CKError where error.code == .unknownItem {
             return nil
           }
