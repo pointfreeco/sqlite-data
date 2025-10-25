@@ -533,7 +533,7 @@ data for a list when you need it.
 
 While the library tries to make CloudKit synchronization as seamless and hidden as possible,
 there are times you will need to access the underlying CloudKit types for your tables and records.
-The ``SyncMetadata``table is the central place where this data is stored, and it is publicly
+The ``SyncMetadata`` table is the central place where this data is stored, and it is publicly
 exposed for you to query it in whichever way you want.
 
 > Important: In order to query the `SyncMetadata` table from your database connection you will need

@@ -16,10 +16,10 @@
     @Selection
     public struct ID: Hashable, Sendable {
       /// The unique identifier of the record synchronized.
-      public var recordPrimaryKey: String
+      public let recordPrimaryKey: String
 
       /// The type of the record synchronized, _i.e._ its table name.
-      public var recordType: String
+      public let recordType: String
     }
 
     /// The unique identifier and type of the record synchronized.
@@ -32,10 +32,10 @@
     public var recordType: String { id.recordType }
 
     /// The record zone name.
-    public var zoneName: String
+    public let zoneName: String
 
     /// The record owner name.
-    public var ownerName: String
+    public let ownerName: String
 
     /// The name of the record synchronized.
     ///
@@ -53,14 +53,14 @@
     @Selection
     public struct ParentID: Hashable, Sendable {
       /// The unique identifier of the parent record synchronized.
-      public var parentRecordPrimaryKey: String
+      public let parentRecordPrimaryKey: String
 
       /// The type of the parent record synchronized, _i.e._ its table name.
-      public var parentRecordType: String
+      public let parentRecordType: String
     }
 
     /// The identifier and type of this record's parent, if any.
-    public var parentRecordID: ParentID?
+    public let parentRecordID: ParentID?
 
     /// The unique identifier of this record's parent, if any.
     public var parentRecordPrimaryKey: String? { parentRecordID?.parentRecordPrimaryKey }
@@ -83,19 +83,19 @@
     ///
     /// This record holds only the fields that are archived when using `encodeSystemFields(with:)`.
     @Column(as: CKRecord?.SystemFieldsRepresentation.self)
-    public var lastKnownServerRecord: CKRecord?
+    public let lastKnownServerRecord: CKRecord?
 
     /// The last known `CKRecord` received from the server with all fields archived.
     @Column(as: CKRecord?._AllFieldsRepresentation.self)
-    public var _lastKnownServerRecordAllFields: CKRecord?
+    public let _lastKnownServerRecordAllFields: CKRecord?
 
     /// The `CKShare` associated with this record, if it is shared.
     @Column(as: CKShare?.SystemFieldsRepresentation.self)
-    public var share: CKShare?
+    public let share: CKShare?
 
     /// Determines if the metadata has been "soft" deleted. It will be fully deleted once the
     /// next batch of pending changes is processed.
-    public var _isDeleted = false
+    public let _isDeleted: Bool
 
     @Column(generated: .virtual)
     public let hasLastKnownServerRecord: Bool
@@ -109,7 +109,7 @@
     public let isShared: Bool
 
     /// The time the user last modified the record.
-    public var userModificationTime: Int64
+    public let userModificationTime: Int64
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -165,6 +165,7 @@
       self.hasLastKnownServerRecord = lastKnownServerRecord != nil
       self.isShared = share != nil
       self.userModificationTime = userModificationTime
+      self._isDeleted = false
     }
 
     package static func find(_ recordID: CKRecord.ID) -> Where<Self> {
