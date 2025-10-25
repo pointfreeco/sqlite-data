@@ -125,7 +125,7 @@
             .select { ($0.recordType, $0.recordName, $0.lastKnownServerRecord) }
             .fetchOne(db)
         } ?? nil
-      guard let (recordType, recordName, lastKnownServerRecord) = metadata
+      guard let (_, recordName, lastKnownServerRecord) = metadata
       else {
         throw SharingError(
           recordTableName: T.tableName,
