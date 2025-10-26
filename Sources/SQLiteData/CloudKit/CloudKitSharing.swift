@@ -273,11 +273,11 @@
 
   #if canImport(UIKit) && !os(tvOS) && !os(watchOS)
 
-  @available(iOS 17, tvOS 17, *)
   /// A view that presents standard screens for the collaboration content and options.
   ///
   /// See <doc:CloudKitSharing#Creating-CKShare-records> for more info.
-  public struct CloudCollaborationView: UIViewRepresentable {
+  @available(iOS 17, tvOS 17, *)
+  public struct CloudCollaborationView: View {
     let sharedRecord: SharedRecord
     let allowedSharingOptions: CKAllowedSharingOptions
     let didFinish: (Result<Void, Error>) -> Void
@@ -300,7 +300,29 @@
       self.syncEngine = syncEngine
     }
 
-    public func makeCoordinator() -> _CloudCollaborationDelegate {
+    public var body: some View {
+      _CloudCollaborationView(
+        sharedRecord: sharedRecord,
+        allowedSharingOptions: allowedSharingOptions,
+        didFinish: didFinish,
+        didStopSharing: didStopSharing,
+        syncEngine: syncEngine
+      )
+      // setting frame is required to have it actually be clickable,
+      // otherwise the frame will be zero when placed on toolbar
+      .frame(width: 26, height: 26)
+    }
+  }
+
+  @available(iOS 17, tvOS 17, *)
+  private struct _CloudCollaborationView: UIViewRepresentable {
+    let sharedRecord: SharedRecord
+    let allowedSharingOptions: CKAllowedSharingOptions
+    let didFinish: (Result<Void, Error>) -> Void
+    let didStopSharing: () -> Void
+    let syncEngine: SyncEngine
+
+    func makeCoordinator() -> _CloudCollaborationDelegate {
       _CloudCollaborationDelegate(
         share: sharedRecord.share,
         didFinish: didFinish,
@@ -309,7 +331,7 @@
       )
     }
 
-    public func makeUIView(context: Context) -> SWCollaborationView {
+    func makeUIView(context: Context) -> SWCollaborationView {
       let itemProvider = NSItemProvider()
       itemProvider.registerCKShare(
         sharedRecord.share,
@@ -324,29 +346,29 @@
       return view
     }
 
-    public func updateUIView(
+    func updateUIView(
       _ uiViewController: SWCollaborationView,
       context: Context
     ) {
     }
   }
 
-  @available(iOS 17, tvOS 17, *)
-  public final class _CloudCollaborationDelegate: _CloudSharingDelegate, SWCollaborationViewDelegate {
-    override init(
-      share: CKShare,
-      didFinish: @escaping (Result<Void, Error>) -> Void,
-      didStopSharing: @escaping () -> Void,
-      syncEngine: SyncEngine
-    ) {
-      super.init(
-        share: share,
-        didFinish: didFinish,
-        didStopSharing: didStopSharing,
-        syncEngine: syncEngine
-      )
+    @available(iOS 17, tvOS 17, *)
+    public final class _CloudCollaborationDelegate: _CloudSharingDelegate, SWCollaborationViewDelegate {
+      override init(
+        share: CKShare,
+        didFinish: @escaping (Result<Void, Error>) -> Void,
+        didStopSharing: @escaping () -> Void,
+        syncEngine: SyncEngine
+      ) {
+        super.init(
+          share: share,
+          didFinish: didFinish,
+          didStopSharing: didStopSharing,
+          syncEngine: syncEngine
+        )
+      }
     }
-  }
 
     /// A view that presents standard screens for adding and removing people from a CloudKit share \
     /// record.
