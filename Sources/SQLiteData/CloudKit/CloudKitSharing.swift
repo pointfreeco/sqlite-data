@@ -273,85 +273,85 @@
 
   #if canImport(UIKit) && !os(tvOS) && !os(watchOS)
 
-  /// A view that presents standard screens for the collaboration content and options.
-  ///
-  /// See <doc:CloudKitSharing#Creating-CKShare-records> for more info.
-  @available(iOS 17, tvOS 17, *)
-  public struct CloudCollaborationView: View {
-    let sharedRecord: SharedRecord
-    let allowedSharingOptions: CKAllowedSharingOptions
-    let didFinish: (Result<Void, Error>) -> Void
-    let didStopSharing: () -> Void
-    let syncEngine: SyncEngine
-    public init(
-      sharedRecord: SharedRecord,
-      allowedSharingOptions: CKAllowedSharingOptions = .standard,
-      didFinish: @escaping (Result<Void, Error>) -> Void = { _ in },
-      didStopSharing: @escaping () -> Void = {},
-      syncEngine: SyncEngine = {
-        @Dependency(\.defaultSyncEngine) var defaultSyncEngine
-        return defaultSyncEngine
-      }()
-    ) {
-      self.sharedRecord = sharedRecord
-      self.allowedSharingOptions = allowedSharingOptions
-      self.didFinish = didFinish
-      self.didStopSharing = didStopSharing
-      self.syncEngine = syncEngine
+    /// A view that presents standard screens for the collaboration content and options.
+    ///
+    /// See <doc:CloudKitSharing#Creating-CKShare-records> for more info.
+    @available(iOS 17, tvOS 17, *)
+    public struct CloudCollaborationView: View {
+      let sharedRecord: SharedRecord
+      let allowedSharingOptions: CKAllowedSharingOptions
+      let didFinish: (Result<Void, Error>) -> Void
+      let didStopSharing: () -> Void
+      let syncEngine: SyncEngine
+      public init(
+        sharedRecord: SharedRecord,
+        allowedSharingOptions: CKAllowedSharingOptions = .standard,
+        didFinish: @escaping (Result<Void, Error>) -> Void = { _ in },
+        didStopSharing: @escaping () -> Void = {},
+        syncEngine: SyncEngine = {
+          @Dependency(\.defaultSyncEngine) var defaultSyncEngine
+          return defaultSyncEngine
+        }()
+      ) {
+        self.sharedRecord = sharedRecord
+        self.allowedSharingOptions = allowedSharingOptions
+        self.didFinish = didFinish
+        self.didStopSharing = didStopSharing
+        self.syncEngine = syncEngine
+      }
+
+      public var body: some View {
+        _CloudCollaborationView(
+          sharedRecord: sharedRecord,
+          allowedSharingOptions: allowedSharingOptions,
+          didFinish: didFinish,
+          didStopSharing: didStopSharing,
+          syncEngine: syncEngine
+        )
+        // setting frame is required to have it actually be clickable,
+        // otherwise the frame will be zero when placed on toolbar
+        .frame(width: 26, height: 26)
+      }
     }
 
-    public var body: some View {
-      _CloudCollaborationView(
-        sharedRecord: sharedRecord,
-        allowedSharingOptions: allowedSharingOptions,
-        didFinish: didFinish,
-        didStopSharing: didStopSharing,
-        syncEngine: syncEngine
-      )
-      // setting frame is required to have it actually be clickable,
-      // otherwise the frame will be zero when placed on toolbar
-      .frame(width: 26, height: 26)
+    @available(iOS 17, tvOS 17, *)
+    private struct _CloudCollaborationView: UIViewRepresentable {
+      let sharedRecord: SharedRecord
+      let allowedSharingOptions: CKAllowedSharingOptions
+      let didFinish: (Result<Void, Error>) -> Void
+      let didStopSharing: () -> Void
+      let syncEngine: SyncEngine
+
+      func makeCoordinator() -> _CloudCollaborationDelegate {
+        _CloudCollaborationDelegate(
+          share: sharedRecord.share,
+          didFinish: didFinish,
+          didStopSharing: didStopSharing,
+          syncEngine: syncEngine
+        )
+      }
+
+      func makeUIView(context: Context) -> SWCollaborationView {
+        let itemProvider = NSItemProvider()
+        itemProvider.registerCKShare(
+          sharedRecord.share,
+          container: sharedRecord.container.rawValue,
+          allowedSharingOptions: allowedSharingOptions
+        )
+
+        let view = SWCollaborationView(itemProvider: itemProvider)
+        view.delegate = context.coordinator
+        view.cloudSharingControllerDelegate = context.coordinator
+
+        return view
+      }
+
+      func updateUIView(
+        _ uiViewController: SWCollaborationView,
+        context: Context
+      ) {
+      }
     }
-  }
-
-  @available(iOS 17, tvOS 17, *)
-  private struct _CloudCollaborationView: UIViewRepresentable {
-    let sharedRecord: SharedRecord
-    let allowedSharingOptions: CKAllowedSharingOptions
-    let didFinish: (Result<Void, Error>) -> Void
-    let didStopSharing: () -> Void
-    let syncEngine: SyncEngine
-
-    func makeCoordinator() -> _CloudCollaborationDelegate {
-      _CloudCollaborationDelegate(
-        share: sharedRecord.share,
-        didFinish: didFinish,
-        didStopSharing: didStopSharing,
-        syncEngine: syncEngine
-      )
-    }
-
-    func makeUIView(context: Context) -> SWCollaborationView {
-      let itemProvider = NSItemProvider()
-      itemProvider.registerCKShare(
-        sharedRecord.share,
-        container: sharedRecord.container.rawValue,
-        allowedSharingOptions: allowedSharingOptions
-      )
-
-      let view = SWCollaborationView(itemProvider: itemProvider)
-      view.delegate = context.coordinator
-      view.cloudSharingControllerDelegate = context.coordinator
-
-      return view
-    }
-
-    func updateUIView(
-      _ uiViewController: SWCollaborationView,
-      context: Context
-    ) {
-    }
-  }
 
     @available(iOS 17, tvOS 17, *)
     public final class _CloudCollaborationDelegate: _CloudSharingDelegate, SWCollaborationViewDelegate {
