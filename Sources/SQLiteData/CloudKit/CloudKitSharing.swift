@@ -122,10 +122,12 @@
         try await metadatabase.read { db in
           try SyncMetadata
             .where { $0.recordName.eq(recordName) }
-            .select { ($0.recordType, $0.recordName, $0.lastKnownServerRecord) }
+            .select { ($0.recordName, $0._lastKnownServerRecordAllFields) }
             .fetchOne(db)
         } ?? nil
-      guard let (_, recordName, lastKnownServerRecord) = metadata
+      guard
+        let (recordName, lastKnownServerRecord) = metadata,
+        let lastKnownServerRecord
       else {
         throw SharingError(
           recordTableName: T.tableName,
@@ -137,17 +139,11 @@
         )
       }
 
-      let rootRecordID =
-      lastKnownServerRecord?.recordID
-      ?? CKRecord.ID(recordName: recordName, zoneID: defaultZone.zoneID)
-      let cloudKitDatabase = container.database(for: rootRecordID)
-      let rootRecord = try await cloudKitDatabase.record(for: rootRecordID)
-
       var existingShare: CKShare? {
         get async throws {
           let share = try await metadatabase.read { db in
             try SyncMetadata
-              .find(rootRecord.recordID)
+              .find(lastKnownServerRecord.recordID)
               .select(\.share)
               .fetchOne(db) ?? nil
           }
@@ -156,7 +152,8 @@
             return nil
           }
           do {
-            return try await cloudKitDatabase.record(for: shareRecordID) as? CKShare
+            return try await container.database(for: lastKnownServerRecord.recordID)
+              .record(for: shareRecordID) as? CKShare
           } catch let error as CKError where error.code == .unknownItem {
             return nil
           }
@@ -166,16 +163,16 @@
       let sharedRecord =
         try await existingShare
         ?? CKShare(
-          rootRecord: rootRecord,
+          rootRecord: lastKnownServerRecord,
           shareID: CKRecord.ID(
             recordName: "share-\(recordName)",
-            zoneID: rootRecord.recordID.zoneID
+            zoneID: lastKnownServerRecord.recordID.zoneID
           )
         )
 
       configure(sharedRecord)
       let (saveResults, _) = try await container.privateCloudDatabase.modifyRecords(
-        saving: [sharedRecord, rootRecord],
+        saving: [sharedRecord, lastKnownServerRecord],
         deleting: []
       )
 
@@ -186,9 +183,9 @@
       .first
       let savedRootRecord = try saveResults.values.compactMap { result in
         let record = try result.get()
-        return record.recordID == rootRecord.recordID ? record : nil
+        return record.recordID == lastKnownServerRecord.recordID ? record : nil
       }
-        .first
+      .first
       guard let savedShare, let savedRootRecord
       else {
         throw SharingError(
