@@ -118,16 +118,14 @@
         )
       }
       let recordName = record.recordName
-      let metadata =
+      let lastKnownServerRecord =
         try await metadatabase.read { db in
           try SyncMetadata
             .where { $0.recordName.eq(recordName) }
-            .select { ($0.recordName, $0._lastKnownServerRecordAllFields) }
+            .select(\._lastKnownServerRecordAllFields)
             .fetchOne(db)
         } ?? nil
-      guard
-        let (recordName, lastKnownServerRecord) = metadata,
-        let lastKnownServerRecord
+      guard let lastKnownServerRecord
       else {
         throw SharingError(
           recordTableName: T.tableName,
