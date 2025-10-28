@@ -321,12 +321,6 @@
           : URL(filePath: metadatabase.path).lastPathComponent
         let attachedMetadatabaseName =
           URL(string: attachedMetadatabasePath)?.lastPathComponent ?? ""
-
-        try URL.metadatabase(
-          databasePath: attachedMetadatabasePath,
-          containerIdentifier: self.container.containerIdentifier
-        )
-        .lastPathComponent
         if metadatabaseName != attachedMetadatabaseName {
           throw SchemaError(
             reason: .metadatabaseMismatch(

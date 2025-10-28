@@ -612,16 +612,19 @@
 
         let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
 
-        assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase) {
+        assertQuery(
+          SyncMetadata.select { ($0.share, $0.userModificationTime) },
+          database: syncEngine.metadatabase
+        ) {
           """
-          ┌────────────────────────────────────────────────────────────────────────┐
-          │ CKRecord(                                                              │
-          │   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__), │
-          │   recordType: "cloudkit.share",                                        │
-          │   parent: nil,                                                         │
-          │   share: nil                                                           │
-          │ )                                                                      │
-          └────────────────────────────────────────────────────────────────────────┘
+          ┌────────────────────────────────────────────────────────────────────────┬───┐
+          │ CKRecord(                                                              │ 0 │
+          │   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__), │   │
+          │   recordType: "cloudkit.share",                                        │   │
+          │   parent: nil,                                                         │   │
+          │   share: nil                                                           │   │
+          │ )                                                                      │   │
+          └────────────────────────────────────────────────────────────────────────┴───┘
           """
         }
 
@@ -641,7 +644,9 @@
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                   recordType: "remindersLists",
                   parent: nil,
-                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__))
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__)),
+                  id: 1,
+                  title: "Personal"
                 )
               ]
             ),
@@ -700,7 +705,9 @@
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                   recordType: "remindersLists",
                   parent: nil,
-                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__))
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__)),
+                  id: 1,
+                  title: "Personal"
                 )
               ]
             ),
@@ -763,7 +770,9 @@
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                   recordType: "remindersLists",
                   parent: nil,
-                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__))
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__)),
+                  id: 1,
+                  title: "Personal"
                 )
               ]
             ),
@@ -793,7 +802,9 @@
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                   recordType: "remindersLists",
                   parent: nil,
-                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__))
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__)),
+                  id: 1,
+                  title: "Personal"
                 )
               ]
             ),
@@ -2787,7 +2798,9 @@
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                   recordType: "remindersLists",
                   parent: nil,
-                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__))
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__)),
+                  id: 1,
+                  title: "Personal"
                 )
               ]
             ),

@@ -452,7 +452,9 @@
                     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
                     recordType: "remindersLists",
                     parent: nil,
-                    share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__))
+                    share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__)),
+                    id: 1,
+                    title: "Personal"
                   )
                 ]
               ),
