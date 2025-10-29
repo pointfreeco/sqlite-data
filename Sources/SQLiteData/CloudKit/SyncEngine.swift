@@ -503,6 +503,40 @@
       }
     }
 
+    public func fetchChanges(
+      _ options: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions()
+    ) async throws {
+      let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
+        ($0.private, $0.shared)
+      }
+      guard let privateSyncEngine, let sharedSyncEngine
+      else { return }
+      async let `private`: Void = privateSyncEngine.fetchChanges(options)
+      async let shared: Void = sharedSyncEngine.fetchChanges(options)
+      _ = try await (`private`, shared)
+    }
+
+    public func sendChanges(
+      _ options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
+    ) async throws {
+      let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
+        ($0.private, $0.shared)
+      }
+      guard let privateSyncEngine, let sharedSyncEngine
+      else { return }
+      async let `private`: Void = privateSyncEngine.sendChanges(options)
+      async let shared: Void = sharedSyncEngine.sendChanges(options)
+      _ = try await (`private`, shared)
+    }
+
+    public func processChanges(
+      fetchOptions: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions(),
+      sendOptions: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
+    ) async throws {
+      try await fetchChanges(fetchOptions)
+      try await sendChanges(sendOptions)
+    }
+
     private func cacheUserTables(recordTypes: [RecordType]) async throws {
       try await userDatabase.write { db in
         try RecordType
