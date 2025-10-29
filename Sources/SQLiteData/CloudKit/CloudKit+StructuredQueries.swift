@@ -9,8 +9,8 @@
   }
 
   extension _CKRecord where Self == CKShare {
-    public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<CKRecord>
-    public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKRecord>
+    public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<CKShare>
+    public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKShare>
   }
 
   extension Optional where Wrapped: CKRecord {
