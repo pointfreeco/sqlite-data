@@ -1,3 +1,4 @@
+import CloudKit
 import SQLiteData
 
 private final class Model {
