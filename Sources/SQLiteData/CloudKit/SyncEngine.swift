@@ -506,7 +506,7 @@
     /// Fetches pending remote changes from the server.
     ///
     /// Use this method to ensure the sync engine immediately fetches all pending remote changes
-    /// before your app continues. This isn’t necessary in normal use, as the engine automatically
+    /// before your app continues. This isn't necessary in normal use, as the engine automatically
     /// syncs your app’s records. It is useful, however, in scenarios where you require more control
     /// over sync, such as pull-to-refresh.
     ///
@@ -527,9 +527,9 @@
     /// Sends pending local changes to the server.
     ///
     /// Use this method to ensure the sync engine sends all pending local changes to the server
-    /// before your app continues. This isn’t necessary in normal use, as the engine automatically
+    /// before your app continues. This isn't necessary in normal use, as the engine automatically
     /// syncs your app’s records. It is useful, however, in scenarios where you require greater
-    /// control over sync, such as a “Backup now” button.
+    /// control over sync, such as a "Backup now" button.
     ///
     /// - Parameter options: The options to use when sending changes.
     public func sendChanges(
@@ -549,7 +549,7 @@
     ///
     /// Use this method to ensure the sync engine immediately fetches all pending remote changes
     /// _and_ sends all pending local changes to the server. This isn't necessary in normal use,
-    /// as the engine autmoatically syncs your app's records. It is useful, however, in scenarios
+    /// as the engine automatically syncs your app's records. It is useful, however, in scenarios
     /// where you require greater control over sync.
     ///
     /// - Parameters:
