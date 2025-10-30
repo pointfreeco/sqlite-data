@@ -502,7 +502,15 @@
         }
       }
     }
-
+    
+    /// Fetches pending remote changes from the server.
+    ///
+    /// Use this method to ensure the sync engine immediately fetches all pending remote changes
+    /// before your app continues. This isn’t necessary in normal use, as the engine automatically
+    /// syncs your app’s records. It is useful, however, in scenarios where you require more control
+    /// over sync, such as pull-to-refresh.
+    ///
+    /// - Parameter options: The options to use when fetching changes.
     public func fetchChanges(
       _ options: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions()
     ) async throws {
@@ -515,7 +523,15 @@
       async let shared: Void = sharedSyncEngine.fetchChanges(options)
       _ = try await (`private`, shared)
     }
-
+    
+    /// Sends pending local changes to the server.
+    ///
+    /// Use this method to ensure the sync engine sends all pending local changes to the server
+    /// before your app continues. This isn’t necessary in normal use, as the engine automatically
+    /// syncs your app’s records. It is useful, however, in scenarios where you require greater
+    /// control over sync, such as a “Backup now” button.
+    ///
+    /// - Parameter options: The options to use when sending changes.
     public func sendChanges(
       _ options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
     ) async throws {
@@ -528,8 +544,18 @@
       async let shared: Void = sharedSyncEngine.sendChanges(options)
       _ = try await (`private`, shared)
     }
-
-    public func processChanges(
+    
+    /// Synchronizes local and remote pending changes.
+    ///
+    /// Use this method to ensure the sync engine immediately fetches all pending remote changes
+    /// _and_ sends all pending local changes to the server. This isn't necessary in normal use,
+    /// as the engine autmoatically syncs your app's records. It is useful, however, in scenarios
+    /// where you require greater control over sync.
+    ///
+    /// - Parameters:
+    ///   - fetchOptions: The options to use when fetching changes.
+    ///   - sendOptions: The options to use when sending changes.
+    public func syncChanges(
       fetchOptions: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions(),
       sendOptions: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
     ) async throws {

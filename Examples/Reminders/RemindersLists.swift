@@ -306,7 +306,7 @@ struct RemindersListsView: View {
     }
     .refreshable {
       await withErrorReporting {
-        try await syncEngine.processChanges()
+        try await syncEngine.syncChanges()
       }
     }
     .onAppear {
