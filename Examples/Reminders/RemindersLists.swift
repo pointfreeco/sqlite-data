@@ -304,6 +304,11 @@ struct RemindersListsView: View {
         .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
       }
     }
+    .refreshable {
+      await withErrorReporting {
+        try await syncEngine.syncChanges()
+      }
+    }
     .onAppear {
       model.onAppear()
     }
