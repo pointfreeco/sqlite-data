@@ -507,7 +507,7 @@
     ///
     /// Use this method to ensure the sync engine immediately fetches all pending remote changes
     /// before your app continues. This isn't necessary in normal use, as the engine automatically
-    /// syncs your app’s records. It is useful, however, in scenarios where you require more control
+    /// syncs your app's records. It is useful, however, in scenarios where you require more control
     /// over sync, such as pull-to-refresh.
     ///
     /// - Parameter options: The options to use when fetching changes.
@@ -528,7 +528,7 @@
     ///
     /// Use this method to ensure the sync engine sends all pending local changes to the server
     /// before your app continues. This isn't necessary in normal use, as the engine automatically
-    /// syncs your app’s records. It is useful, however, in scenarios where you require greater
+    /// syncs your app's records. It is useful, however, in scenarios where you require greater
     /// control over sync, such as a "Backup now" button.
     ///
     /// - Parameter options: The options to use when sending changes.
