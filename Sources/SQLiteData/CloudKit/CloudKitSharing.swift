@@ -12,17 +12,23 @@
   /// See <doc:CloudKitSharing#Creating-CKShare-records> for more information.,
   @available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
   public struct SharedRecord: Hashable, Identifiable, Sendable {
-    let container: any CloudContainer
+    public var id: CKRecord.ID { share.recordID }
+    public var container: CKContainer { _container.rawValue }
+
+    let _container: any CloudContainer
     public let share: CKShare
 
-    public var id: CKRecord.ID { share.recordID }
+    init(container: any CloudContainer, share: CKShare) {
+      self._container = container
+      self.share = share
+    }
 
     public static func == (lhs: Self, rhs: Self) -> Bool {
-      lhs.container === rhs.container && lhs.share == rhs.share
+      lhs._container === rhs._container && lhs.share == rhs.share
     }
 
     public func hash(into hasher: inout Hasher) {
-      hasher.combine(ObjectIdentifier(container))
+      hasher.combine(ObjectIdentifier(_container))
       hasher.combine(share)
     }
   }
@@ -284,7 +290,7 @@
       public func makeUIViewController(context: Context) -> UICloudSharingController {
         let controller = UICloudSharingController(
           share: sharedRecord.share,
-          container: sharedRecord.container.rawValue
+          container: sharedRecord.container
         )
         controller.delegate = context.coordinator
         controller.availablePermissions = availablePermissions
