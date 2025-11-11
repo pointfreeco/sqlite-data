@@ -117,12 +117,15 @@
       else {
         let privateDatabase = MockCloudDatabase(databaseScope: .private)
         let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+        let container = MockCloudContainer(
+          containerIdentifier: containerIdentifier ?? "iCloud.co.pointfree.SQLiteData.Tests",
+          privateCloudDatabase: privateDatabase,
+          sharedCloudDatabase: sharedDatabase
+        )
+        privateDatabase.set(container: container)
+        sharedDatabase.set(container: container)
         try self.init(
-          container: MockCloudContainer(
-            containerIdentifier: containerIdentifier ?? "iCloud.co.pointfree.SQLiteData.Tests",
-            privateCloudDatabase: privateDatabase,
-            sharedCloudDatabase: sharedDatabase
-          ),
+          container: container,
           defaultZone: defaultZone,
           defaultSyncEngines: { _, syncEngine in
             (
@@ -438,6 +441,9 @@
             shared: sharedSyncEngine
           )
         }
+      }
+      syncEngines.withValue {
+        $0.private?.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
       }
 
       let previousRecordTypes = try metadatabase.read { db in
