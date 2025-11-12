@@ -6,7 +6,7 @@ let package = Package(
   name: "sqlite-data",
   platforms: [
     .iOS(.v13),
-    .macOS(.v10_15),
+    .macOS(.v13),
     .tvOS(.v13),
     .watchOS(.v7),
   ],

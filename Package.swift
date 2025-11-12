@@ -6,7 +6,7 @@ let package = Package(
   name: "sqlite-data",
   platforms: [
     .iOS(.v13),
-    .macOS(.v10_15),
+    .macOS(.v13),
     .tvOS(.v13),
     .watchOS(.v7),
   ],
@@ -27,6 +27,8 @@ let package = Package(
     )
   ],
   dependencies: [
+    .package(url: "https://github.com/ordo-one/package-benchmark", from: "1.4.0"),
+
     .package(url: "https://github.com/apple/swift-collections", from: "1.0.0"),
     .package(url: "https://github.com/groue/GRDB.swift", from: "7.6.0"),
     .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.0.0"),
@@ -34,13 +36,14 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
-    .package(
-      url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.24.0",
-      traits: [
-        .trait(name: "StructuredQueriesTagged", condition: .when(traits: ["SQLiteDataTagged"]))
-      ]
-    ),
+//    .package(
+//      url: "https://github.com/pointfreeco/swift-structured-queries",
+//      from: "0.24.0",
+//      traits: [
+//        .trait(name: "StructuredQueriesTagged", condition: .when(traits: ["SQLiteDataTagged"]))
+//      ]
+//    ),
+    .package(path: "../swift-structured-queries"),
     .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
     .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
   ],
@@ -108,3 +111,18 @@ for index in package.targets.indices {
     .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0")
   )
 #endif
+
+// Benchmark of StructuredQueriesBenchmarks
+package.targets += [
+  .executableTarget(
+    name: "StructuredQueriesBenchmarks",
+    dependencies: [
+      "SQLiteData",
+      .product(name: "Benchmark", package: "package-benchmark")
+    ],
+    path: "Benchmarks/StructuredQueriesBenchmarks",
+    plugins: [
+      .plugin(name: "BenchmarkPlugin", package: "package-benchmark")
+    ]
+  )
+]
