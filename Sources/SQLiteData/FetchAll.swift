@@ -176,10 +176,11 @@ public struct FetchAll<Element: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
+  @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
-  ) async throws
+  ) async throws -> FetchTask<[Element]>
   where
     Element == S.From.QueryOutput,
     S.QueryValue == (),
@@ -187,7 +188,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
     S.Joins == ()
   {
     let statement = statement.selectStar()
-    try await load(statement, database: database)
+    return try await load(statement, database: database)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -196,10 +197,11 @@ public struct FetchAll<Element: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
+  @discardableResult
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
-  ) async throws
+  ) async throws -> FetchTask<[Element]>
   where
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
@@ -210,6 +212,23 @@ public struct FetchAll<Element: Sendable>: Sendable {
         database: database
       )
     )
+    return FetchTask(sharedReader: sharedReader)
+  }
+}
+
+public struct FetchTask<Value>: Sendable {
+  let sharedReader: SharedReader<Value>
+  init(sharedReader: SharedReader<Value>) {
+    self.sharedReader = sharedReader
+  }
+  public var task: Void {
+    get async throws {
+      try await withTaskCancellationHandler {
+        try await Task.never()
+      } onCancel: {
+        sharedReader.projectedValue = SharedReader(value: sharedReader.wrappedValue)
+      }
+    }
   }
 }
 
