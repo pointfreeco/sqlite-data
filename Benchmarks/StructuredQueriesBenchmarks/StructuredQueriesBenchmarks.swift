@@ -43,6 +43,21 @@ let benchmarks : @Sendable () -> Void = {
     }
   }
 
+  Benchmark("SQLiteData: New style bulk insert") { benchmark in
+    let database = try database()
+    for _ in benchmark.scaledIterations {
+      try database.write { db in
+        defer { precondition(try! Reminder.all.count().fetchOne(db) == batchSize) }
+
+        try db.bulkInsert(
+          (1...batchSize).map { id in
+            Reminder(id: id)
+          }
+        )
+      }
+    }
+  }
+
   Benchmark("SQLiteData: Individual insert") { benchmark in
     let database = try database()
     for _ in benchmark.scaledIterations {
