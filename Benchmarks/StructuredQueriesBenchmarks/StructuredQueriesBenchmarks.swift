@@ -43,21 +43,21 @@ let benchmarks : @Sendable () -> Void = {
     }
   }
 
-//  Benchmark("SQLiteData: Individual insert") { benchmark in
-//    let database = try database()
-//    for _ in benchmark.scaledIterations {
-//      try database.write { db in
-//        defer { precondition(try! Reminder.all.count().fetchOne(db) == batchSize) }
-//
-//        for index in 1...batchSize {
-//          try Reminder.insert {
-//            Reminder(id: index)
-//          }
-//          .execute(db)
-//        }
-//      }
-//    }
-//  }
+  Benchmark("SQLiteData: Individual insert") { benchmark in
+    let database = try database()
+    for _ in benchmark.scaledIterations {
+      try database.write { db in
+        defer { precondition(try! Reminder.all.count().fetchOne(db) == batchSize) }
+
+        for index in 1...batchSize {
+          try Reminder.insert {
+            Reminder(id: index)
+          }
+          .execute(db)
+        }
+      }
+    }
+  }
 }
 
 @Table struct Reminder {
