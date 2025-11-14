@@ -300,6 +300,8 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 
 - ``StructuredQueriesCore/Statement``
 - ``StructuredQueriesCore/SelectStatement``
+- ``StructuredQueriesCore/Table``
+- ``StructuredQueriesCore/PrimaryKeyedTable``
 - ``QueryCursor``
 
 ### Observing model data
