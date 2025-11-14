@@ -60,10 +60,10 @@ extension StructuredQueriesCore.PrimaryKeyedTable {
   ///   - primaryKeys: A sequence of primary keys.
   /// - Returns: A single value decoded from the database.
   @inlinable
-  public static func find(
+  public static func fetchAll(
     _ db: Database,
     keys primaryKeys: some Sequence<some QueryExpression<PrimaryKey>>
   ) throws -> [QueryOutput] {
-    try all.find(db, keys: primaryKeys)
+    try all.fetchAll(db, keys: primaryKeys)
   }
 }

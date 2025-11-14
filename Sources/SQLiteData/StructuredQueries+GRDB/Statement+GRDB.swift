@@ -211,7 +211,7 @@ extension SelectStatement where QueryValue == (), From: PrimaryKeyedTable, Joins
   ///   - primaryKeys: A sequence of primary keys.
   /// - Returns: A single value decoded from the database.
   @inlinable
-  public func find(
+  public func fetchAll(
     _ db: Database,
     keys primaryKeys: some Sequence<some QueryExpression<From.PrimaryKey>>
   ) throws -> [From.QueryOutput] {
