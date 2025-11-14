@@ -3,7 +3,7 @@ import Foundation
 import SQLiteData
 import Testing
 
-@Suite(.dependency(\.defaultDatabase, try .database())) struct FetchTaskTests {
+@Suite(.dependency(\.defaultDatabase, try .database())) struct FetchSubscriptionTests {
   @Dependency(\.defaultDatabase) var database
 
   @Test func stopSubscriptionWhenTaskCancelled() async throws {
@@ -51,6 +51,35 @@ import Testing
     subscription.cancel()
     await task.value
     #expect(didComplete.value)
+  }
+
+  @Test func cancellingOneFetchDoesNotCancelAnother() async throws {
+    @FetchAll var records1: [Record]
+    #expect(records1.count == 0)
+    let task1 = Task { [$records1] in
+      try? await $records1.load(Record.all).task
+    }
+
+    @FetchAll var records2: [Record]
+    #expect(records2.count == 0)
+    await withUnsafeContinuation { continuation in
+      Task { [$records2] in
+        let subscription = try await $records2.load(Record.all)
+        continuation.resume()
+        try await subscription.task
+      }
+    }
+
+    task1.cancel()
+    await task1.value
+
+    try await database.write { db in
+      try Record.insert { Record.Draft() }.execute(db)
+    }
+    try await $records1.load()
+    try await $records2.load()
+    #expect(records1.count == 0)
+    #expect(records2.count == 1)
   }
 }
 
