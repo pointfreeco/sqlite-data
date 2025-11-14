@@ -52,18 +52,4 @@ extension StructuredQueriesCore.PrimaryKeyedTable {
   ) throws -> QueryOutput {
     try all.find(db, key: primaryKey)
   }
-
-  /// Returns an array of all values fetched for the given primary keys.
-  ///
-  /// - Parameters
-  ///   - db: A database connection.
-  ///   - primaryKeys: A sequence of primary keys.
-  /// - Returns: A single value decoded from the database.
-  @inlinable
-  public static func fetchAll(
-    _ db: Database,
-    keys primaryKeys: some Sequence<some QueryExpression<PrimaryKey>>
-  ) throws -> [QueryOutput] {
-    try all.fetchAll(db, keys: primaryKeys)
-  }
 }

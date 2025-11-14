@@ -203,20 +203,6 @@ extension SelectStatement where QueryValue == (), From: PrimaryKeyedTable, Joins
     }
     return record
   }
-
-  /// Returns an array of all values fetched for the given primary keys.
-  ///
-  /// - Parameters
-  ///   - db: A database connection.
-  ///   - primaryKeys: A sequence of primary keys.
-  /// - Returns: A single value decoded from the database.
-  @inlinable
-  public func fetchAll(
-    _ db: Database,
-    keys primaryKeys: some Sequence<some QueryExpression<From.PrimaryKey>>
-  ) throws -> [From.QueryOutput] {
-    try asSelect().find(primaryKeys).fetchAll(db)
-  }
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
