@@ -307,6 +307,7 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 - ``FetchAll``
 - ``FetchOne``
 - ``Fetch``
+- ``FetchTask``
 
 ### CloudKit synchronization and sharing
 
