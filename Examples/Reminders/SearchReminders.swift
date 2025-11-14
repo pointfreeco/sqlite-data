@@ -107,6 +107,7 @@ class SearchRemindersModel {
           ),
           animation: .default
         )
+        .task
       }
     }
   }

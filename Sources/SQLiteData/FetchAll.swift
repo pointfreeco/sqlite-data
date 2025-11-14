@@ -181,7 +181,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   public func load<S: SelectStatement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchTask<[Element]>
+  ) async throws -> FetchSubscription<[Element]>
   where
     Element == S.From.QueryOutput,
     S.QueryValue == (),
@@ -203,7 +203,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchTask<[Element]>
+  ) async throws -> FetchSubscription<[Element]>
   where
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
@@ -214,7 +214,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
         database: database
       )
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 }
 
@@ -334,7 +334,7 @@ extension FetchAll {
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchTask<[Element]>
+  ) async throws -> FetchSubscription<[Element]>
   where
     Element == S.From.QueryOutput,
     S.QueryValue == (),
@@ -359,7 +359,7 @@ extension FetchAll {
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchTask<[Element]>
+  ) async throws -> FetchSubscription<[Element]>
   where
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
@@ -371,7 +371,7 @@ extension FetchAll {
         scheduler: scheduler
       )
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 }
 
@@ -512,7 +512,7 @@ extension FetchAll: Equatable where Element: Equatable {
       _ statement: S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchTask<[Element]>
+    ) async throws -> FetchSubscription<[Element]>
     where
       Element == S.From.QueryOutput,
       S.QueryValue == (),
@@ -538,7 +538,7 @@ extension FetchAll: Equatable where Element: Equatable {
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchTask<[Element]>
+    ) async throws -> FetchSubscription<[Element]>
     where
       Element == V.QueryOutput,
       V.QueryOutput: Sendable
@@ -550,7 +550,7 @@ extension FetchAll: Equatable where Element: Equatable {
           animation: animation
         )
       )
-      return FetchTask(sharedReader: sharedReader)
+      return FetchSubscription(sharedReader: sharedReader)
     }
   }
 #endif

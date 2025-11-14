@@ -102,9 +102,9 @@ public struct Fetch<Value: Sendable>: Sendable {
   public func load(
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchTask<Value> {
+  ) async throws -> FetchSubscription<Value> {
     try await sharedReader.load(.fetch(request, database: database))
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 }
 
@@ -143,9 +143,9 @@ extension Fetch {
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchTask<Value> {
+  ) async throws -> FetchSubscription<Value> {
     try await sharedReader.load(.fetch(request, database: database, scheduler: scheduler))
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 }
 
@@ -204,9 +204,9 @@ extension Fetch: Equatable where Value: Equatable {
       _ request: some FetchKeyRequest<Value>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchTask<Value> {
+    ) async throws -> FetchSubscription<Value> {
       try await sharedReader.load(.fetch(request, database: database, animation: animation))
-      return FetchTask(sharedReader: sharedReader)
+      return FetchSubscription(sharedReader: sharedReader)
     }
   }
 #endif

@@ -304,7 +304,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load<S: SelectStatement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value == S.From.QueryOutput,
     S.QueryValue == (),
@@ -325,14 +325,14 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value == V.QueryOutput
   {
     try await sharedReader.load(
       .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -346,14 +346,14 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value == V.QueryOutput?
   {
     try await sharedReader.load(
       .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -367,7 +367,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load<S: SelectStatement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value: _OptionalProtocol,
     Value == S.From.QueryOutput?,
@@ -378,7 +378,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
     try await sharedReader.load(
       .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -392,7 +392,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load<S: StructuredQueriesCore.Statement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value: _OptionalProtocol,
     S.QueryValue: QueryRepresentable,
@@ -402,7 +402,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
     try await sharedReader.load(
       .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -416,7 +416,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load(
     _ statement: some StructuredQueriesCore.Statement<Value>,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value: QueryRepresentable,
     Value: _OptionalProtocol,
@@ -425,7 +425,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
     try await sharedReader.load(
       .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 }
 
@@ -702,7 +702,7 @@ extension FetchOne {
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value == S.From.QueryOutput,
     S.QueryValue == (),
@@ -726,7 +726,7 @@ extension FetchOne {
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value == V.QueryOutput
   {
@@ -737,7 +737,7 @@ extension FetchOne {
         scheduler: scheduler
       )
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -754,7 +754,7 @@ extension FetchOne {
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value == V.QueryOutput?
   {
@@ -765,7 +765,7 @@ extension FetchOne {
         scheduler: scheduler
       )
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -782,7 +782,7 @@ extension FetchOne {
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value: _OptionalProtocol,
     Value == S.From.QueryOutput?,
@@ -797,7 +797,7 @@ extension FetchOne {
         scheduler: scheduler
       )
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -814,7 +814,7 @@ extension FetchOne {
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value: _OptionalProtocol,
     S.QueryValue: QueryRepresentable,
@@ -828,7 +828,7 @@ extension FetchOne {
         scheduler: scheduler
       )
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -845,7 +845,7 @@ extension FetchOne {
     _ statement: some StructuredQueriesCore.Statement<Value>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchTask<Value>
+  ) async throws -> FetchSubscription<Value>
   where
     Value: QueryRepresentable,
     Value: _OptionalProtocol,
@@ -858,7 +858,7 @@ extension FetchOne {
         scheduler: scheduler
       )
     )
-    return FetchTask(sharedReader: sharedReader)
+    return FetchSubscription(sharedReader: sharedReader)
   }
 }
 
@@ -1137,7 +1137,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchTask<Value>
+    ) async throws -> FetchSubscription<Value>
     where
       Value == S.From.QueryOutput,
       S.QueryValue == (),
@@ -1161,7 +1161,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchTask<Value>
+    ) async throws -> FetchSubscription<Value>
     where
       Value == V.QueryOutput
     {
@@ -1183,7 +1183,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchTask<Value>
+    ) async throws -> FetchSubscription<Value>
     where
       Value == V.QueryOutput?
     {
@@ -1205,7 +1205,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchTask<Value>
+    ) async throws -> FetchSubscription<Value>
     where
       Value: _OptionalProtocol,
       Value == S.From.QueryOutput?,
@@ -1230,7 +1230,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchTask<Value>
+    ) async throws -> FetchSubscription<Value>
     where
       Value: _OptionalProtocol,
       S.QueryValue: QueryRepresentable,
@@ -1255,7 +1255,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: some StructuredQueriesCore.Statement<Value>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchTask<Value>
+    ) async throws -> FetchSubscription<Value>
     where
       Value: QueryRepresentable,
       Value: _OptionalProtocol,

@@ -1,3 +1,4 @@
+import Perception
 import Sharing
 
 /// A task associated with `@FetchAll`, `@FetchOne`, and `@Fetch` observation.
@@ -12,25 +13,30 @@ import Sharing
 ///   try? await $reminders.load(Reminder.all).task
 /// }
 /// ```
-public struct FetchTask<Value>: Sendable {
+public struct FetchSubscription<Value>: Sendable {
   let sharedReader: SharedReader<Value>
-  
+  let cancellable = LockIsolated<Task<Void, any Error>?>(nil)
+
   /// An async handle to the given fetch observation.
   ///
   /// This handle will suspend until the current task is cancelled, at which point it will terminate
   /// the observation of the associated ``FetchAll``, ``FetchOne``, or ``Fetch``.
   public var task: Void {
     get async throws {
-      try await withTaskCancellationHandler {
-        try await Task.never()
-      } onCancel: {
-        cancel()
+      let task = Task {
+        try await withTaskCancellationHandler {
+          try await Task.never()
+        } onCancel: {
+          sharedReader.projectedValue = SharedReader(value: sharedReader.wrappedValue)
+        }
       }
+      cancellable.withValue { $0 = task }
+      try await task.cancellableValue
     }
   }
 
   /// Cancels the database observation of the associated ``FetchAll``, ``FetchOne``, or ``Fetch``.
   public func cancel() {
-    sharedReader.projectedValue = SharedReader(value: sharedReader.wrappedValue)
+    cancellable.value?.cancel()
   }
 }

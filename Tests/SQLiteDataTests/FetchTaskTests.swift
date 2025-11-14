@@ -27,6 +27,31 @@ import Testing
     try await $records.load()
     #expect(records.count == 1)
   }
+
+  @Test func completeWhenTaskExplicitlyCancelled() async throws {
+    @FetchAll var records: [Record]
+    #expect(records.count == 0)
+    let didComplete = LockIsolated(false)
+
+    try await database.write { db in
+      try Record.insert { Record.Draft() }.execute(db)
+    }
+    try await $records.load()
+    #expect(records.count == 1)
+
+    let subscription = try await $records.load(Record.all)
+
+    let task = Task {
+      try? await subscription.task
+      didComplete.withValue { $0 = true }
+    }
+
+    try await Task.sleep(for: .seconds(1))
+
+    subscription.cancel()
+    await task.value
+    #expect(didComplete.value)
+  }
 }
 
 @Table
