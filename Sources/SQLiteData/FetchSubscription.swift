@@ -1,7 +1,7 @@
 import Perception
 import Sharing
 
-/// A task associated with `@FetchAll`, `@FetchOne`, and `@Fetch` observation.
+/// A subscription associated with `@FetchAll`, `@FetchOne`, and `@Fetch` observation.
 ///
 /// This value can be useful in associating the lifetime of observing a query to the lifetime of a
 /// SwiftUI view _via_ the `task` view modifier. For example, loading a query in a view's `task`

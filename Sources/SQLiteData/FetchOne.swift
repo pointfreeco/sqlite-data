@@ -299,7 +299,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
@@ -320,7 +320,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
@@ -341,7 +341,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
@@ -362,7 +362,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
@@ -387,7 +387,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<S: StructuredQueriesCore.Statement>(
     _ statement: S,
@@ -411,7 +411,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load(
     _ statement: some StructuredQueriesCore.Statement<Value>,
@@ -696,7 +696,7 @@ extension FetchOne {
   ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
@@ -720,7 +720,7 @@ extension FetchOne {
   ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
@@ -748,7 +748,7 @@ extension FetchOne {
   ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
@@ -776,7 +776,7 @@ extension FetchOne {
   ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
@@ -808,7 +808,7 @@ extension FetchOne {
   ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<S: StructuredQueriesCore.Statement>(
     _ statement: S,
@@ -839,7 +839,7 @@ extension FetchOne {
   ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
-  /// - Returns: A fetch task associated with the observation.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load(
     _ statement: some StructuredQueriesCore.Statement<Value>,
@@ -1130,7 +1130,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
-    /// - Returns: A fetch task associated with the observation.
+    /// - Returns: A subscription associated with the observation.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load<S: SelectStatement>(
@@ -1154,7 +1154,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
-    /// - Returns: A fetch task associated with the observation.
+    /// - Returns: A subscription associated with the observation.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load<V: QueryRepresentable>(
@@ -1176,7 +1176,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
-    /// - Returns: A fetch task associated with the observation.
+    /// - Returns: A subscription associated with the observation.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load<V: QueryRepresentable>(
@@ -1198,7 +1198,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
-    /// - Returns: A fetch task associated with the observation.
+    /// - Returns: A subscription associated with the observation.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load<S: SelectStatement>(
@@ -1223,7 +1223,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
-    /// - Returns: A fetch task associated with the observation.
+    /// - Returns: A subscription associated with the observation.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load<S: StructuredQueriesCore.Statement>(
@@ -1248,7 +1248,7 @@ extension FetchOne: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
-    /// - Returns: A fetch task associated with the observation.
+    /// - Returns: A subscription associated with the observation.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load(
