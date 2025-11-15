@@ -12,7 +12,7 @@ extension BaseTestSuite {
     @Dependency(\.defaultDatabase) var database
 
     @Test func basics() async throws {
-      let remindersList = try await database.read { try RemindersList.all.fetchOne($0)! }
+      let remindersList = try await database.read { try RemindersList.fetchOne($0)! }
       let model = RemindersDetailModel(detailType: .remindersList(remindersList))
       try await model.$reminderRows.load()
       assertInlineSnapshot(of: model.reminderRows, as: .customDump) {
@@ -118,7 +118,7 @@ extension BaseTestSuite {
     }
 
     @Test func ordering() async throws {
-      let remindersList = try await database.read { try RemindersList.all.fetchOne($0)! }
+      let remindersList = try await database.read { try RemindersList.fetchOne($0)! }
       let model = RemindersDetailModel(detailType: .remindersList(remindersList))
 
       try await model.$reminderRows.load()
@@ -164,7 +164,7 @@ extension BaseTestSuite {
     }
 
     @Test func showCompleted() async throws {
-      let remindersList = try await database.read { try RemindersList.all.fetchOne($0)! }
+      let remindersList = try await database.read { try RemindersList.fetchOne($0)! }
       let model = RemindersDetailModel(detailType: .remindersList(remindersList))
 
       try await model.$reminderRows.load()
@@ -211,7 +211,7 @@ extension BaseTestSuite {
     }
 
     @Test func move() async throws {
-      let remindersList = try await database.read { try RemindersList.all.fetchOne($0)! }
+      let remindersList = try await database.read { try RemindersList.fetchOne($0)! }
       let model = RemindersDetailModel(detailType: .remindersList(remindersList))
 
       try await model.$reminderRows.load()
@@ -319,7 +319,7 @@ extension BaseTestSuite {
     }
 
     @Test func tagged() async throws {
-      let tag = try await database.read { try Tag.find("someday").fetchOne($0)! }
+      let tag = try await database.read { try Tag.find($0, key: "someday") }
       let model = RemindersDetailModel(detailType: .tags([tag]))
       try await model.$reminderRows.load()
       assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {

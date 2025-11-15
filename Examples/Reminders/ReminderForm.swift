@@ -208,7 +208,7 @@ struct ReminderFormPreview: PreviewProvider {
     let (remindersList, reminder) = try! prepareDependencies {
       $0.defaultDatabase = try Reminders.appDatabase()
       return try $0.defaultDatabase.write { db in
-        let remindersList = try RemindersList.all.fetchOne(db)!
+        let remindersList = try RemindersList.fetchOne(db)!
         return (
           remindersList,
           try Reminder.where { $0.remindersListID.eq(remindersList.id) }.fetchOne(db)!
