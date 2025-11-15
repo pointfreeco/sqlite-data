@@ -93,7 +93,7 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
       return try Value(
         facts: search.fetchAll(db),
         searchCount: search.fetchCount(db),
-        totalCount: Fact.all.fetchCount(db)
+        totalCount: Fact.fetchCount(db)
       )
     }
   }
