@@ -181,7 +181,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   public func load<S: SelectStatement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription<[Element]>
+  ) async throws -> FetchSubscription
   where
     Element == S.From.QueryOutput,
     S.QueryValue == (),
@@ -203,7 +203,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription<[Element]>
+  ) async throws -> FetchSubscription
   where
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
@@ -334,7 +334,7 @@ extension FetchAll {
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription<[Element]>
+  ) async throws -> FetchSubscription
   where
     Element == S.From.QueryOutput,
     S.QueryValue == (),
@@ -359,7 +359,7 @@ extension FetchAll {
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription<[Element]>
+  ) async throws -> FetchSubscription
   where
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
@@ -512,7 +512,7 @@ extension FetchAll: Equatable where Element: Equatable {
       _ statement: S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchSubscription<[Element]>
+    ) async throws -> FetchSubscription
     where
       Element == S.From.QueryOutput,
       S.QueryValue == (),
@@ -538,7 +538,7 @@ extension FetchAll: Equatable where Element: Equatable {
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchSubscription<[Element]>
+    ) async throws -> FetchSubscription
     where
       Element == V.QueryOutput,
       V.QueryOutput: Sendable

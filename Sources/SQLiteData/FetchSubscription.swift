@@ -13,9 +13,13 @@ import Sharing
 ///   try? await $reminders.load(Reminder.all).task
 /// }
 /// ```
-public struct FetchSubscription<Value>: Sendable {
-  let sharedReader: SharedReader<Value>
+public struct FetchSubscription: Sendable {
   let cancellable = LockIsolated<Task<Void, any Error>?>(nil)
+  let onCancel: @Sendable () -> Void
+
+  init<Value>(sharedReader: SharedReader<Value>) {
+    onCancel = { sharedReader.projectedValue = SharedReader(value: sharedReader.wrappedValue) }
+  }
 
   /// An async handle to the given fetch observation.
   ///
@@ -27,7 +31,7 @@ public struct FetchSubscription<Value>: Sendable {
         try await withTaskCancellationHandler {
           try await Task.never()
         } onCancel: {
-          sharedReader.projectedValue = SharedReader(value: sharedReader.wrappedValue)
+          onCancel()
         }
       }
       cancellable.withValue { $0 = task }

@@ -304,7 +304,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load<S: SelectStatement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value == S.From.QueryOutput,
     S.QueryValue == (),
@@ -325,7 +325,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value == V.QueryOutput
   {
@@ -346,7 +346,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value == V.QueryOutput?
   {
@@ -367,7 +367,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load<S: SelectStatement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value: _OptionalProtocol,
     Value == S.From.QueryOutput?,
@@ -392,7 +392,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load<S: StructuredQueriesCore.Statement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value: _OptionalProtocol,
     S.QueryValue: QueryRepresentable,
@@ -416,7 +416,7 @@ public struct FetchOne<Value: Sendable>: Sendable {
   public func load(
     _ statement: some StructuredQueriesCore.Statement<Value>,
     database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value: QueryRepresentable,
     Value: _OptionalProtocol,
@@ -702,7 +702,7 @@ extension FetchOne {
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value == S.From.QueryOutput,
     S.QueryValue == (),
@@ -726,7 +726,7 @@ extension FetchOne {
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value == V.QueryOutput
   {
@@ -754,7 +754,7 @@ extension FetchOne {
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value == V.QueryOutput?
   {
@@ -782,7 +782,7 @@ extension FetchOne {
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value: _OptionalProtocol,
     Value == S.From.QueryOutput?,
@@ -814,7 +814,7 @@ extension FetchOne {
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value: _OptionalProtocol,
     S.QueryValue: QueryRepresentable,
@@ -845,7 +845,7 @@ extension FetchOne {
     _ statement: some StructuredQueriesCore.Statement<Value>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription<Value>
+  ) async throws -> FetchSubscription
   where
     Value: QueryRepresentable,
     Value: _OptionalProtocol,
@@ -1137,7 +1137,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchSubscription<Value>
+    ) async throws -> FetchSubscription
     where
       Value == S.From.QueryOutput,
       S.QueryValue == (),
@@ -1161,7 +1161,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchSubscription<Value>
+    ) async throws -> FetchSubscription
     where
       Value == V.QueryOutput
     {
@@ -1183,7 +1183,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchSubscription<Value>
+    ) async throws -> FetchSubscription
     where
       Value == V.QueryOutput?
     {
@@ -1205,7 +1205,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchSubscription<Value>
+    ) async throws -> FetchSubscription
     where
       Value: _OptionalProtocol,
       Value == S.From.QueryOutput?,
@@ -1230,7 +1230,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchSubscription<Value>
+    ) async throws -> FetchSubscription
     where
       Value: _OptionalProtocol,
       S.QueryValue: QueryRepresentable,
@@ -1255,7 +1255,7 @@ extension FetchOne: Equatable where Value: Equatable {
       _ statement: some StructuredQueriesCore.Statement<Value>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws -> FetchSubscription<Value>
+    ) async throws -> FetchSubscription
     where
       Value: QueryRepresentable,
       Value: _OptionalProtocol,
