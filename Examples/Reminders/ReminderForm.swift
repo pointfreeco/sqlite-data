@@ -122,7 +122,7 @@ struct ReminderFormView: View {
         }
         .task(id: reminder.remindersListID) {
           await withErrorReporting {
-            try await $remindersList.load(RemindersList.find(reminder.remindersListID))
+            try await $remindersList.load(RemindersList.find(reminder.remindersListID)).task
           }
         }
       }
