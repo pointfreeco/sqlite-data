@@ -5,6 +5,7 @@
   import OrderedCollections
   import OSLog
   import Observation
+  import Perception
   import StructuredQueriesCore
   import SwiftData
   import TabularData
@@ -423,6 +424,19 @@
       }
     }
 
+    private let _isReady = LockIsolated(false)
+    private var isReady: Bool {
+      get {
+        observationRegistrar.access(self, keyPath: \.isReady)
+        return _isReady.withValue(\.self)
+      }
+      set {
+        observationRegistrar.withMutation(of: self, keyPath: \.isReady) {
+          _isReady.withValue { $0 = newValue }
+        }
+      }
+    }
+
     /// Determines if the sync engine is currently running or not.
     public var isRunning: Bool {
       observationRegistrar.access(self, keyPath: \.isRunning)
@@ -440,10 +454,8 @@
             private: privateSyncEngine,
             shared: sharedSyncEngine
           )
+          privateSyncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
         }
-      }
-      syncEngines.withValue {
-        $0.private?.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
       }
 
       let previousRecordTypes = try metadatabase.read { db in
@@ -492,23 +504,29 @@
           ($0.tableName, $0)
         }
       )
+
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        try uploadRecordsToCloudKit(
+          previousRecordTypeByTableName: previousRecordTypeByTableName,
+          currentRecordTypeByTableName: currentRecordTypeByTableName
+        )
+      }
+
       return Task {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           guard try await container.accountStatus() == .available
           else { return }
-          try await uploadRecordsToCloudKit(
-            previousRecordTypeByTableName: previousRecordTypeByTableName,
-            currentRecordTypeByTableName: currentRecordTypeByTableName
-          )
+
           try await updateLocalFromSchemaChange(
             previousRecordTypeByTableName: previousRecordTypeByTableName,
             currentRecordTypeByTableName: currentRecordTypeByTableName
           )
           try await cacheUserTables(recordTypes: currentRecordTypes)
         }
+        isReady = true
       }
     }
-    
+
     /// Fetches pending remote changes from the server.
     ///
     /// Use this method to ensure the sync engine immediately fetches all pending remote changes
@@ -520,6 +538,7 @@
     public func fetchChanges(
       _ options: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions()
     ) async throws {
+      await isReady()
       let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
         ($0.private, $0.shared)
       }
@@ -529,7 +548,7 @@
       async let shared: Void = sharedSyncEngine.fetchChanges(options)
       _ = try await (`private`, shared)
     }
-    
+
     /// Sends pending local changes to the server.
     ///
     /// Use this method to ensure the sync engine sends all pending local changes to the server
@@ -541,6 +560,7 @@
     public func sendChanges(
       _ options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
     ) async throws {
+      await isReady()
       let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
         ($0.private, $0.shared)
       }
@@ -550,7 +570,12 @@
       async let shared: Void = sharedSyncEngine.sendChanges(options)
       _ = try await (`private`, shared)
     }
-    
+
+    private func isReady() async {
+      guard !isRunning else { return }
+      _ = await Perceptions { self.isReady }.first(where: { $0 })
+    }
+
     /// Synchronizes local and remote pending changes.
     ///
     /// Use this method to ensure the sync engine immediately fetches all pending remote changes
@@ -580,9 +605,9 @@
     private func uploadRecordsToCloudKit(
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
-    ) async throws {
-      try await enqueueLocallyPendingChanges()
-      try await userDatabase.write { db in
+    ) throws {
+      try enqueueLocallyPendingChanges()
+      try userDatabase.write { db in
         try PendingRecordZoneChange.delete().execute(db)
 
         let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
@@ -597,8 +622,8 @@
       }
     }
 
-    private func enqueueLocallyPendingChanges() async throws {
-      let pendingRecordZoneChanges = try await metadatabase.read { db in
+    private func enqueueLocallyPendingChanges() throws {
+      let pendingRecordZoneChanges = try metadatabase.read { db in
         try PendingRecordZoneChange
           .select(\.pendingRecordZoneChange)
           .fetchAll(db)
@@ -1858,7 +1883,8 @@
     }
 
     private func refreshLastKnownServerRecord(_ record: CKRecord) async {
-      await withErrorReporting(.sqliteDataCloudKitFailure) {
+      //await withErrorReporting(.sqliteDataCloudKitFailure) {
+      do {
         try await metadatabase.write { db in
           let metadata = try SyncMetadata.find(record.recordID).fetchOne(db)
           func updateLastKnownServerRecord() throws {
@@ -1876,6 +1902,9 @@
             try updateLastKnownServerRecord()
           }
         }
+      } catch {
+        print(error)
+        print("!!!")
       }
     }
 
