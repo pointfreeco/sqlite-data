@@ -387,8 +387,10 @@ nonisolated private let logger = Logger(subsystem: "Reminders", category: "Datab
     func seedSampleData() throws {
       @Dependency(\.date.now) var now
       @Dependency(\.uuid) var uuid
-      let remindersListIDs = (0...2).map { _ in uuid() }
-      let reminderIDs = (0...10).map { _ in uuid() }
+      let remindersListIDs = [uuid(), uuid(), uuid()]
+      let reminderIDs = [
+        uuid(), uuid(), uuid(), uuid(), uuid(), uuid(), uuid(), uuid(), uuid(), uuid(), uuid()
+      ]
       try seed {
         RemindersList(
           id: remindersListIDs[0],

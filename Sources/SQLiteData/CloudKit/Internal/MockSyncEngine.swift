@@ -1,6 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
-import IssueReporting
+  import IssueReporting
   import OrderedCollections
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -59,13 +59,15 @@ import IssueReporting
 
     package func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws {
 
-      if
-        !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingDatabaseChanges.isEmpty {
+      if !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingDatabaseChanges
+        .isEmpty
+      {
 
         try await parentSyncEngine.processPendingDatabaseChanges(scope: database.databaseScope)
       }
       if !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges
-        .isEmpty {
+        .isEmpty
+      {
 
         try await parentSyncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
       }
@@ -287,32 +289,24 @@ import IssueReporting
       let syncEngine = syncEngine(for: scope)
       guard !syncEngine.state.pendingDatabaseChanges.isEmpty
       else {
-        reportIssue("TODO")
-//        Issue.record(
-//          "Processing empty set of database changes.",
-//          sourceLocation: SourceLocation(
-//            fileID: String(describing: fileID),
-//            filePath: String(describing: filePath),
-//            line: Int(line),
-//            column: Int(column)
-//          )
-//        )
+        reportIssue(
+          "Processing empty set of database changes.",
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
         return
       }
       guard try await container.accountStatus() == .available
       else {
-        reportIssue("TODO")
-//        Issue.record(
-//        """
-//        User must be logged in to process pending changes.
-//        """,
-//        sourceLocation: SourceLocation(
-//          fileID: String(describing: fileID),
-//          filePath: String(describing: filePath),
-//          line: Int(line),
-//          column: Int(column)
-//        )
-//        )
+        reportIssue(
+          "User must be logged in to process pending changes.",
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
         return
       }
 
@@ -329,13 +323,13 @@ import IssueReporting
         }
       }
       let results:
-      (
-        saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
-        deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
-      ) = try syncEngine.database.modifyRecordZones(
-        saving: zonesToSave,
-        deleting: zoneIDsToDelete
-      )
+        (
+          saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
+          deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
+        ) = try syncEngine.database.modifyRecordZones(
+          saving: zonesToSave,
+          deleting: zoneIDsToDelete
+        )
       var savedZones: [CKRecordZone] = []
       var failedZoneSaves: [(zone: CKRecordZone, error: CKError)] = []
       var deletedZoneIDs: [CKRecordZone.ID] = []
