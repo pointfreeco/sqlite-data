@@ -492,18 +492,16 @@
         }
       )
 
-      withErrorReporting(.sqliteDataCloudKitFailure) {
-        try uploadRecordsToCloudKit(
-          previousRecordTypeByTableName: previousRecordTypeByTableName,
-          currentRecordTypeByTableName: currentRecordTypeByTableName
-        )
-      }
-
       let startTask = Task<Void, Never> {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           guard try await container.accountStatus() == .available
           else { return }
-
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await uploadRecordsToCloudKit(
+              previousRecordTypeByTableName: previousRecordTypeByTableName,
+              currentRecordTypeByTableName: currentRecordTypeByTableName
+            )
+          }
           try await updateLocalFromSchemaChange(
             previousRecordTypeByTableName: previousRecordTypeByTableName,
             currentRecordTypeByTableName: currentRecordTypeByTableName
@@ -588,9 +586,9 @@
     private func uploadRecordsToCloudKit(
       previousRecordTypeByTableName: [String: RecordType],
       currentRecordTypeByTableName: [String: RecordType]
-    ) throws {
-      try enqueueLocallyPendingChanges()
-      try userDatabase.write { db in
+    ) async throws {
+      try await enqueueLocallyPendingChanges()
+      try await userDatabase.write { db in
         try PendingRecordZoneChange.delete().execute(db)
 
         let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
@@ -605,8 +603,8 @@
       }
     }
 
-    private func enqueueLocallyPendingChanges() throws {
-      let pendingRecordZoneChanges = try metadatabase.read { db in
+    private func enqueueLocallyPendingChanges() async throws {
+      let pendingRecordZoneChanges = try await metadatabase.read { db in
         try PendingRecordZoneChange
           .select(\.pendingRecordZoneChange)
           .fetchAll(db)
