@@ -5,7 +5,6 @@
   import OrderedCollections
   import OSLog
   import Observation
-  import Perception
   import StructuredQueriesCore
   import SwiftData
   import TabularData
@@ -38,6 +37,7 @@
     private let observationRegistrar = ObservationRegistrar()
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
+    private let startTask = LockIsolated<Task<Void, Never>?>(nil)
 
     /// The error message used when a write occurs to a record for which the current user does not
     /// have permission.
@@ -424,19 +424,6 @@
       }
     }
 
-    private let _isReady = LockIsolated(false)
-    private var isReady: Bool {
-      get {
-        observationRegistrar.access(self, keyPath: \.isReady)
-        return _isReady.withValue(\.self)
-      }
-      set {
-        observationRegistrar.withMutation(of: self, keyPath: \.isReady) {
-          _isReady.withValue { $0 = newValue }
-        }
-      }
-    }
-
     /// Determines if the sync engine is currently running or not.
     public var isRunning: Bool {
       observationRegistrar.access(self, keyPath: \.isRunning)
@@ -512,7 +499,7 @@
         )
       }
 
-      return Task {
+      let startTask = Task<Void, Never> {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           guard try await container.accountStatus() == .available
           else { return }
@@ -523,8 +510,9 @@
           )
           try await cacheUserTables(recordTypes: currentRecordTypes)
         }
-        isReady = true
       }
+      self.startTask.withValue { $0 = startTask }
+      return startTask
     }
 
     /// Fetches pending remote changes from the server.
@@ -538,7 +526,7 @@
     public func fetchChanges(
       _ options: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions()
     ) async throws {
-      await isReady()
+      await startTask.withValue(\.self)?.value
       let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
         ($0.private, $0.shared)
       }
@@ -560,7 +548,7 @@
     public func sendChanges(
       _ options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
     ) async throws {
-      await isReady()
+      await startTask.withValue(\.self)?.value
       let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
         ($0.private, $0.shared)
       }
@@ -569,11 +557,6 @@
       async let `private`: Void = privateSyncEngine.sendChanges(options)
       async let shared: Void = sharedSyncEngine.sendChanges(options)
       _ = try await (`private`, shared)
-    }
-
-    private func isReady() async {
-      guard !isRunning else { return }
-      _ = await Perceptions { self.isReady }.first(where: { $0 })
     }
 
     /// Synchronizes local and remote pending changes.
