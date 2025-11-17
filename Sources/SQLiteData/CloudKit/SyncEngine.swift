@@ -496,12 +496,10 @@
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           guard try await container.accountStatus() == .available
           else { return }
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await uploadRecordsToCloudKit(
-              previousRecordTypeByTableName: previousRecordTypeByTableName,
-              currentRecordTypeByTableName: currentRecordTypeByTableName
-            )
-          }
+          try await uploadRecordsToCloudKit(
+            previousRecordTypeByTableName: previousRecordTypeByTableName,
+            currentRecordTypeByTableName: currentRecordTypeByTableName
+          )
           try await updateLocalFromSchemaChange(
             previousRecordTypeByTableName: previousRecordTypeByTableName,
             currentRecordTypeByTableName: currentRecordTypeByTableName
