@@ -108,13 +108,11 @@ extension BaseTestSuite {
 
     @Test func share() async throws {
       let model = RemindersListsModel()
-
       let personalRemindersList = try #require(
         try await database.read { db in
           try RemindersList.find(UUID(0)).fetchOne(db)
         }
       )
-      try await syncEngine.sendChanges()
       let _ = try await syncEngine.share(record: personalRemindersList, configure: { _ in })
 
       try await model.$remindersLists.load()
