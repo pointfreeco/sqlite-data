@@ -279,7 +279,7 @@
         )
     }
 
-    func processPendingDatabaseChanges(
+    package func processPendingDatabaseChanges(
       scope: CKDatabase.Scope,
       fileID: StaticString = #fileID,
       filePath: StaticString = #filePath,
