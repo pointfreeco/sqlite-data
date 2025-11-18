@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
+  import IssueReporting
   import OrderedCollections
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -57,11 +58,19 @@
     }
 
     package func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws {
-      guard
-        !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges
-          .isEmpty
-      else { return }
-      try await parentSyncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
+
+      if !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingDatabaseChanges
+        .isEmpty
+      {
+
+        try await parentSyncEngine.processPendingDatabaseChanges(scope: database.databaseScope)
+      }
+      if !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges
+        .isEmpty
+      {
+
+        try await parentSyncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
+      }
     }
 
     package func recordZoneChangeBatch(
@@ -265,6 +274,97 @@
             failedRecordSaves: failedRecordSaves,
             deletedRecordIDs: deletedRecordIDs,
             failedRecordDeletes: failedRecordDeletes
+          ),
+          syncEngine: syncEngine
+        )
+    }
+
+    package func processPendingDatabaseChanges(
+      scope: CKDatabase.Scope,
+      fileID: StaticString = #fileID,
+      filePath: StaticString = #filePath,
+      line: UInt = #line,
+      column: UInt = #column
+    ) async throws {
+      let syncEngine = syncEngine(for: scope)
+      guard !syncEngine.state.pendingDatabaseChanges.isEmpty
+      else {
+        reportIssue(
+          "Processing empty set of database changes.",
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        return
+      }
+      guard try await container.accountStatus() == .available
+      else {
+        reportIssue(
+          "User must be logged in to process pending changes.",
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        return
+      }
+
+      var zonesToSave: [CKRecordZone] = []
+      var zoneIDsToDelete: [CKRecordZone.ID] = []
+      for pendingDatabaseChange in syncEngine.state.pendingDatabaseChanges {
+        switch pendingDatabaseChange {
+        case .saveZone(let zone):
+          zonesToSave.append(zone)
+        case .deleteZone(let zoneID):
+          zoneIDsToDelete.append(zoneID)
+        @unknown default:
+          fatalError("Unsupported pendingDatabaseChange: \(pendingDatabaseChange)")
+        }
+      }
+      let results:
+        (
+          saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
+          deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
+        ) = try syncEngine.database.modifyRecordZones(
+          saving: zonesToSave,
+          deleting: zoneIDsToDelete
+        )
+      var savedZones: [CKRecordZone] = []
+      var failedZoneSaves: [(zone: CKRecordZone, error: CKError)] = []
+      var deletedZoneIDs: [CKRecordZone.ID] = []
+      var failedZoneDeletes: [CKRecordZone.ID: CKError] = [:]
+      for (zoneID, saveResult) in results.saveResults {
+        switch saveResult {
+        case .success(let zone):
+          savedZones.append(zone)
+        case .failure(let error as CKError):
+          failedZoneSaves.append((zonesToSave.first(where: { $0.zoneID == zoneID })!, error))
+        case .failure(let error):
+          reportIssue("Error thrown not CKError: \(error)")
+        }
+      }
+      for (zoneID, deleteResult) in results.deleteResults {
+        switch deleteResult {
+        case .success:
+          deletedZoneIDs.append(zoneID)
+        case .failure(let error as CKError):
+          failedZoneDeletes[zoneID] = error
+        case .failure(let error):
+          reportIssue("Error thrown not CKError: \(error)")
+        }
+      }
+
+      syncEngine.state.remove(pendingDatabaseChanges: savedZones.map { .saveZone($0) })
+      syncEngine.state.remove(pendingDatabaseChanges: deletedZoneIDs.map { .deleteZone($0) })
+
+      await syncEngine.parentSyncEngine
+        .handleEvent(
+          .sentDatabaseChanges(
+            savedZones: savedZones,
+            failedZoneSaves: failedZoneSaves,
+            deletedZoneIDs: deletedZoneIDs,
+            failedZoneDeletes: failedZoneDeletes
           ),
           syncEngine: syncEngine
         )
