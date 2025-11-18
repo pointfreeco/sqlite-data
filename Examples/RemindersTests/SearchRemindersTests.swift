@@ -8,9 +8,9 @@ import Testing
 
 extension BaseTestSuite {
   @MainActor
-  //  @Suite(
-  //    .snapshots(record: .missing)
-  //  )
+  @Suite(
+    .snapshots(record: .missing)
+  )
   struct SearchRemindersTests {
     @Dependency(\.defaultDatabase) var database
 
