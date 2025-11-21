@@ -213,6 +213,22 @@
       }
         ?? false
     }
+    
+    @discardableResult
+    package func setInlineValue(
+      _ newValue: [UInt8],
+      forKey key: CKRecord.FieldKey,
+      at userModificationTime: Int64
+    ) -> Bool {
+      guard
+        encryptedValues[at: key] <= userModificationTime,
+        encryptedValues[key] != newValue
+      else { return false }
+      encryptedValues[key] = newValue
+      encryptedValues[at: key] = userModificationTime
+      self.userModificationTime = userModificationTime
+      return true
+    }
 
     @discardableResult
     package func removeValue(
@@ -245,7 +261,12 @@
           let value = Value(queryOutput: row[keyPath: keyPath])
           switch value.queryBinding {
           case .blob(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
+            switch (row as? DataBackingCustomizable)?.backing(for: column.name) ?? .asset  {
+            case .asset:
+              setValue(value, forKey: column.name, at: userModificationTime)
+            case .inline:
+              setInlineValue(value, forKey: column.name, at: userModificationTime)
+            }
           case .bool(let value):
             setValue(value, forKey: column.name, at: userModificationTime)
           case .double(let value):
@@ -290,6 +311,13 @@
           let didSet: Bool
           if let value = other[key] as? CKAsset {
             didSet = setAsset(value, forKey: key, at: other.encryptedValues[at: key])
+          } else if let value = other[key] as? [UInt8] {
+            switch (row as? DataBackingCustomizable)?.backing(for: key) ?? .asset  {
+            case .asset:
+              didSet = setValue(value, forKey: column.name, at: other.encryptedValues[at: key])
+            case .inline:
+              didSet = setInlineValue(value, forKey: column.name, at: other.encryptedValues[at: key])
+            }
           } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
             didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
           } else if other.encryptedValues[key] == nil {
@@ -301,6 +329,7 @@
           var isRowValueModified: Bool {
             switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
             case .blob(let value):
+              // TODO: Use  return other.encryptedValues[key] != value if inline backing
               return other.encryptedValues[hash: key] != value.sha256
             case .bool(let value):
               return other.encryptedValues[key] != value

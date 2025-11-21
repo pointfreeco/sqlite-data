@@ -22,6 +22,11 @@ import SQLiteData
   var coverImage: Data?
   var id: RemindersList.ID { remindersListID }
 }
+extension RemindersListAsset: DataBackingCustomizable {
+  func backing(for column: String) -> DataBacking {
+    .asset
+  }
+}
 @Table struct RemindersListPrivate: Equatable, Identifiable {
   let id: Int
   var position = 0
