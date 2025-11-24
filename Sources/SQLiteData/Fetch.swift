@@ -99,6 +99,7 @@ public struct Fetch<Value: Sendable>: Sendable {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   /// - Returns: A subscription associated with the observation.
+  @discardableResult
   public func load(
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil
@@ -139,6 +140,7 @@ extension Fetch {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   /// - Returns: A subscription associated with the observation.
+  @discardableResult
   public func load(
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil,
