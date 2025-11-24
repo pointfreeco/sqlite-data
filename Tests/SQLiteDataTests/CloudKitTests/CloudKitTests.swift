@@ -75,29 +75,22 @@
               tableName: "remindersListPrivates",
               schema: """
                 CREATE TABLE "remindersListPrivates" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                  "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
-                  "remindersListID" INTEGER NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+                  "remindersListID" INTEGER PRIMARY KEY NOT NULL REFERENCES "remindersLists"("id") 
+                    ON DELETE CASCADE,
+                  "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
                 ) STRICT
                 """,
               tableInfo: [
                 [0]: TableInfo(
-                  defaultValue: nil,
-                  isPrimaryKey: true,
-                  name: "id",
-                  isNotNull: true,
-                  type: "INTEGER"
-                ),
-                [1]: TableInfo(
                   defaultValue: "0",
                   isPrimaryKey: false,
                   name: "position",
                   isNotNull: true,
                   type: "INTEGER"
                 ),
-                [2]: TableInfo(
+                [1]: TableInfo(
                   defaultValue: nil,
-                  isPrimaryKey: false,
+                  isPrimaryKey: true,
                   name: "remindersListID",
                   isNotNull: true,
                   type: "INTEGER"
@@ -769,7 +762,7 @@
           try await userDatabase.userWrite { db in
             try db.seed {
               RemindersList(id: 1, title: "Personal")
-              RemindersListPrivate(id: 1, position: 1, remindersListID: 1)
+              RemindersListPrivate(remindersListID: 1, position: 1)
               Reminder(id: 1, title: "", remindersListID: 1)
               Reminder(id: 2, title: "", remindersListID: 1)
               Reminder(id: 3, title: "", remindersListID: 1)
@@ -901,6 +894,5 @@
         }
       }
     }
-
   }
 #endif
