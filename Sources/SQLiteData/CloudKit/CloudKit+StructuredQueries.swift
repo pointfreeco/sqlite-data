@@ -178,6 +178,9 @@
         encryptedValues[hash: key] != hash
       else { return false }
 
+      if encryptedValues[key] != nil {
+        encryptedValues.setObject(nil, forKey: key)
+      }
       self[key] = newValue
       encryptedValues[hash: key] = hash
       encryptedValues[at: key] = userModificationTime
@@ -194,6 +197,20 @@
       guard encryptedValues[at: key] <= userModificationTime
       else { return false }
 
+      if newValue.isSmall {
+        guard
+          encryptedValues[at: key] <= userModificationTime,
+          encryptedValues[key] != newValue
+        else { return false }
+        if self[key] != nil {
+          self.setObject(nil, forKey: key)
+        }
+        encryptedValues[key] = newValue
+        encryptedValues[at: key] = userModificationTime
+        self.userModificationTime = userModificationTime
+        return true
+      }
+      
       @Dependency(\.dataManager) var dataManager
       let hash = newValue.sha256
       let fileURL = dataManager.temporaryDirectory.appending(
@@ -301,7 +318,13 @@
           var isRowValueModified: Bool {
             switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
             case .blob(let value):
-              return other.encryptedValues[hash: key] != value.sha256
+              if value.isSmall {
+                return other.encryptedValues[key] != value
+              } else if let otherHash = other.encryptedValues[hash: key] {
+                return otherHash != value.sha256
+              } else {
+                return true
+              }
             case .bool(let value):
               return other.encryptedValues[key] != value
             case .double(let value):
@@ -357,6 +380,8 @@
         return value.queryFragment
       } else if let value = self as? Date {
         return value.queryFragment
+      } else if let value = self as? [UInt8] {
+        return value.queryFragment
       } else {
         return "\(.invalid(Unbindable()))"
       }
@@ -376,5 +401,10 @@
     fileprivate var sha256: Data {
       Data(SHA256.hash(data: self))
     }
+    
+    fileprivate var isSmall: Bool {
+      count * MemoryLayout<UInt>.stride < 16384
+    }
   }
+
 #endif
