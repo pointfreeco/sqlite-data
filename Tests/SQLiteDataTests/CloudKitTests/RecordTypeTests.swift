@@ -73,29 +73,22 @@
               tableName: "remindersListPrivates",
               schema: """
                 CREATE TABLE "remindersListPrivates" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                  "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
-                  "remindersListID" INTEGER NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+                  "remindersListID" INTEGER PRIMARY KEY NOT NULL REFERENCES "remindersLists"("id") 
+                    ON DELETE CASCADE,
+                  "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
                 ) STRICT
                 """,
               tableInfo: [
                 [0]: TableInfo(
-                  defaultValue: nil,
-                  isPrimaryKey: true,
-                  name: "id",
-                  isNotNull: true,
-                  type: "INTEGER"
-                ),
-                [1]: TableInfo(
                   defaultValue: "0",
                   isPrimaryKey: false,
                   name: "position",
                   isNotNull: true,
                   type: "INTEGER"
                 ),
-                [2]: TableInfo(
+                [1]: TableInfo(
                   defaultValue: nil,
-                  isPrimaryKey: false,
+                  isPrimaryKey: true,
                   name: "remindersListID",
                   isNotNull: true,
                   type: "INTEGER"

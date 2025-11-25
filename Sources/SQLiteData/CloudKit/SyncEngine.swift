@@ -1127,8 +1127,7 @@
               recordID: recordID
             )
           if let parentRecordName = metadata.parentRecordName,
-            let parentRecordType = metadata.parentRecordType,
-            !privateTables.contains(where: { $0.base.tableName == parentRecordType })
+            !privateTables.contains(where: { $0.base.tableName == metadata.recordType })
           {
             record.parent = CKRecord.Reference(
               recordID: CKRecord.ID(

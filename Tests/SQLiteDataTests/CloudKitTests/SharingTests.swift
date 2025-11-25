@@ -116,7 +116,7 @@
       @Test func sharePrivateTable() async throws {
         let error = await #expect(throws: (any Error).self) {
           _ = try await self.syncEngine.share(
-            record: RemindersListPrivate(id: 1, remindersListID: 1),
+            record: RemindersListPrivate(remindersListID: 1),
             configure: { _ in }
           )
         }
@@ -146,6 +146,58 @@
               ]
             ),
             debugDescription: "Only root records are shareable, but parent record(s) detected via foreign key(s)."
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func privateTableNotShared() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            remindersList
+            RemindersListPrivate(remindersListID: 1, position: 42)
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersListPrivates/zone/__defaultOwner__),
+                  recordType: "remindersListPrivates",
+                  parent: nil,
+                  share: nil,
+                  position: 42,
+                  remindersListID: 1
+                ),
+                [2]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__)),
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
           )
           """
         }
