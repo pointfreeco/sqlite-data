@@ -406,7 +406,9 @@
 
         let newShare = try syncEngine.private.database.record(for: CKRecord.ID(recordName: "share"))
         let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [newShare])
-        _ = try saveResults.values.first?.get()
+        #expect(throws: Never.self) {
+          _ = try saveResults.values.first?.get()
+        }
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -420,6 +422,16 @@
           try saveResults.values.first?.get()
         }
         #expect(error?.code == .unknownItem)
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func saveSharedRecordWithoutParent() async throws {
+        let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
+        let (saveResults, _) = try syncEngine.shared.database.modifyRecords(saving: [record])
+        let error = #expect(throws: CKError.self) {
+          _ = try saveResults.values.first?.get()
+        }
+        #expect(error?.code == .permissionFailure)
       }
     }
   }

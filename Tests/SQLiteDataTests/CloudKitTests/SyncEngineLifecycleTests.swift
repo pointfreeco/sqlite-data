@@ -389,6 +389,7 @@
             ownerName: "external.owner"
           )
           let externalZone = CKRecordZone(zoneID: externalZoneID)
+          try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
 
           let remindersListRecord = CKRecord(
             recordType: RemindersList.tableName,
@@ -397,9 +398,18 @@
           remindersListRecord.setValue(1, forKey: "id", at: now)
           remindersListRecord.setValue(false, forKey: "isCompleted", at: now)
           remindersListRecord.setValue("Personal", forKey: "title", at: now)
+          let share = CKShare(
+            rootRecord: remindersListRecord,
+            shareID: CKRecord.ID(
+              recordName: "share-\(remindersListRecord.recordID.recordName)",
+              zoneID: remindersListRecord.recordID.zoneID
+            )
+          )
 
-          try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
-          try await syncEngine.modifyRecords(scope: .shared, saving: [remindersListRecord]).notify()
+          try await syncEngine.modifyRecords(
+            scope: .shared,
+            saving: [remindersListRecord, share]
+          ).notify()
 
           syncEngine.stop()
 

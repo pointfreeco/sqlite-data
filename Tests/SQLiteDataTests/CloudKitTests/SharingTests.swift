@@ -699,10 +699,17 @@
         reminderRecord.setValue("Get milk", forKey: "title", at: now)
         reminderRecord.setValue(1, forKey: "remindersListID", at: now)
         reminderRecord.parent = CKRecord.Reference(record: remindersListRecord, action: .none)
+        let share = CKShare(
+          rootRecord: remindersListRecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(remindersListRecord.recordID.recordName)",
+            zoneID: remindersListRecord.recordID.zoneID
+          )
+        )
 
         try await syncEngine.modifyRecords(
           scope: .shared,
-          saving: [remindersListRecord, reminderRecord]
+          saving: [remindersListRecord, reminderRecord, share]
         ).notify()
 
         try await withDependencies {
@@ -725,10 +732,16 @@
               databaseScope: .shared,
               storage: [
                 [0]: CKRecord(
+                  recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil
+                ),
+                [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
                   recordType: "remindersLists",
                   parent: nil,
-                  share: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
                   id: 1,
                   title: "Personal"
                 )
@@ -1313,36 +1326,7 @@
             ),
             sharedCloudDatabase: MockCloudDatabase(
               databaseScope: .shared,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
-                  recordType: "reminders",
-                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
-                  share: nil,
-                  id: 1,
-                  isCompleted: 0,
-                  remindersListID: 1,
-                  title: "Get milk"
-                ),
-                [1]: CKRecord(
-                  recordID: CKRecord.ID(2:reminders/external.zone/external.owner),
-                  recordType: "reminders",
-                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
-                  share: nil,
-                  id: 2,
-                  isCompleted: 0,
-                  remindersListID: 1,
-                  title: "Take a walk"
-                ),
-                [2]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
-                  id: 1,
-                  title: "Personal"
-                )
-              ]
+              storage: []
             )
           )
           """
