@@ -204,6 +204,93 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func privateTablesStayInPrivateDatabase() async throws {
+        let externalZone = CKRecordZone(
+          zoneID: CKRecordZone.ID(
+            zoneName: "external.zone",
+            ownerName: "external.owner"
+          )
+        )
+        try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+        let share = CKShare(
+          rootRecord: remindersListRecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(remindersListRecord.recordID.recordName)",
+            zoneID: remindersListRecord.recordID.zoneID
+          )
+        )
+        _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, remindersListRecord])
+        let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+        let freshRemindersListRecord = try syncEngine.shared.database.record(
+          for: remindersListRecord.recordID
+        )
+
+        try await syncEngine
+          .acceptShare(
+            metadata: ShareMetadata(
+              containerIdentifier: container.containerIdentifier!,
+              hierarchicalRootRecordID: freshRemindersListRecord.recordID,
+              rootRecord: freshRemindersListRecord,
+              share: freshShare
+            )
+          )
+
+        try await userDatabase.userWrite { db in
+          try RemindersListPrivate.insert {
+            RemindersListPrivate(remindersListID: 1, position: 42)
+          }
+          .execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersListPrivates/zone/__defaultOwner__),
+                  recordType: "remindersListPrivates",
+                  parent: nil,
+                  share: nil,
+                  position: 42,
+                  remindersListID: 1
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func shareRecordBeforeSync() async throws {
         let error = await #expect(throws: (any Error).self) {
           _ = try await self.syncEngine.share(
