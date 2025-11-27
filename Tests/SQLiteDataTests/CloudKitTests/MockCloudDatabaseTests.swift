@@ -433,6 +433,85 @@
         }
         #expect(error?.code == .permissionFailure)
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func deletingShareDeletesSharedRecords() async throws {
+        let externalZone = CKRecordZone(
+          zoneID: CKRecordZone.ID(zoneName: "external.zone", ownerName: "external.owner")
+        )
+        _ = try syncEngine.shared.database.modifyRecordZones(saving: [externalZone])
+
+        let recordA = CKRecord(
+          recordType: "A",
+          recordID: CKRecord.ID(recordName: "A1", zoneID: externalZone.zoneID)
+        )
+        let recordB = CKRecord(
+          recordType: "B",
+          recordID: CKRecord.ID(recordName: "B1", zoneID: externalZone.zoneID)
+        )
+        recordB.parent = CKRecord.Reference(recordID: recordA.recordID, action: .none)
+        let share = CKShare(
+          rootRecord: recordA,
+          shareID: CKRecord.ID(recordName: "share", zoneID: externalZone.zoneID
+          )
+        )
+        let (saveResults, _) = try syncEngine.shared.database.modifyRecords(
+          saving: [share, recordA, recordB]
+        )
+
+        print(saveResults)
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(A1/external.zone/external.owner),
+                  recordType: "A",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share/external.zone/external.owner))
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(B1/external.zone/external.owner),
+                  recordType: "B",
+                  parent: CKReference(recordID: CKRecord.ID(A1/external.zone/external.owner)),
+                  share: nil
+                ),
+                [2]: CKRecord(
+                  recordID: CKRecord.ID(share/external.zone/external.owner),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil
+                )
+              ]
+            )
+          )
+          """
+        }
+
+        _ = try syncEngine.shared.database.modifyRecords(deleting: [share.recordID])
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
     }
   }
 #endif
