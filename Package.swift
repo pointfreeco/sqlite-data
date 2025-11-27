@@ -82,6 +82,10 @@ let package = Package(
         .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
         .product(name: "SnapshotTestingCustomDump", package: "swift-snapshot-testing"),
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
+      ],
+      resources: [
+        .copy("Resources/test-black.svg"),
+        .copy("Resources/test-red.svg")
       ]
     ),
   ],
