@@ -363,6 +363,7 @@
           foreignKeysByTableName: foreignKeysByTableName,
           tablesByName: tablesByName,
           defaultZone: defaultZone,
+          privateTables: privateTables,
           db: db
         )
       }
@@ -696,7 +697,8 @@
     package func tearDownSyncEngine() throws {
       try userDatabase.write { db in
         for table in tables.reversed() {
-          try table.base.dropTriggers(defaultZone: defaultZone, db: db)
+          try table.base
+            .dropTriggers(defaultZone: defaultZone, privateTables: privateTables, db: db)
         }
         for trigger in SyncMetadata.callbackTriggers(for: self).reversed() {
           try trigger.drop().execute(db)
@@ -896,6 +898,7 @@
       foreignKeysByTableName: [String: [ForeignKey]],
       tablesByName: [String: any SynchronizableTable],
       defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable],
       db: Database
     ) throws {
       let parentForeignKey =
@@ -903,15 +906,28 @@
         ? foreignKeysByTableName[tableName]?.first
         : nil
 
-      for trigger in metadataTriggers(parentForeignKey: parentForeignKey, defaultZone: defaultZone)
+      for trigger in metadataTriggers(
+        parentForeignKey: parentForeignKey,
+        defaultZone: defaultZone,
+        privateTables: privateTables
+      )
       {
         try trigger.execute(db)
       }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    fileprivate static func dropTriggers(defaultZone: CKRecordZone, db: Database) throws {
-      for trigger in metadataTriggers(parentForeignKey: nil, defaultZone: defaultZone).reversed() {
+    fileprivate static func dropTriggers(
+      defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable],
+      db: Database
+    ) throws {
+      for trigger in metadataTriggers(
+        parentForeignKey: nil,
+        defaultZone: defaultZone,
+        privateTables: privateTables
+      )
+        .reversed() {
         try trigger.drop().execute(db)
       }
     }
@@ -1137,8 +1153,7 @@
               recordID: recordID
             )
           if let parentRecordName = metadata.parentRecordName,
-            let parentRecordType = metadata.parentRecordType,
-            !privateTables.contains(where: { $0.base.tableName == parentRecordType })
+            !privateTables.contains(where: { $0.base.tableName == metadata.recordType })
           {
             record.parent = CKRecord.Reference(
               recordID: CKRecord.ID(

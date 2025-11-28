@@ -519,7 +519,7 @@ struct RemindersListCoverImage {
 }
 /*
 CREATE TABLE "remindersListCoverImages" (
-  "remindersListID" TEXT PRIMARY KEY NOT NULL REFERENCES "remindersLists"("id"),
+  "remindersListID" TEXT PRIMARY KEY NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE,
   "image" BLOB NOT NULL
 )
 */
