@@ -93,6 +93,7 @@
           }
 
           try await syncEngine.start()
+          try await syncEngine.processPendingDatabaseChanges(scope: .private)
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
           assertInlineSnapshot(of: container, as: .customDump) {
@@ -153,6 +154,7 @@
           try await Task.sleep(for: .seconds(1))
 
           try await syncEngine.start()
+          try await syncEngine.processPendingDatabaseChanges(scope: .private)
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
           assertInlineSnapshot(of: container, as: .customDump) {
@@ -216,6 +218,7 @@
           }
 
           try await syncEngine.start()
+          try await syncEngine.processPendingDatabaseChanges(scope: .private)
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
           assertInlineSnapshot(of: container, as: .customDump) {
@@ -342,6 +345,7 @@
 
           try await Task.sleep(for: .seconds(0.5))
           try await syncEngine.start()
+          try await syncEngine.processPendingDatabaseChanges(scope: .private)
           try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
           assertInlineSnapshot(of: container, as: .customDump) {
@@ -409,6 +413,7 @@
           try await Task.sleep(for: .seconds(1))
 
           try await syncEngine.start()
+          try await syncEngine.processPendingDatabaseChanges(scope: .private)
           try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
           assertInlineSnapshot(of: container, as: .customDump) {
@@ -474,6 +479,7 @@
 
           try await Task.sleep(for: .seconds(0.5))
           try await syncEngine.start()
+          try await syncEngine.processPendingDatabaseChanges(scope: .private)
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
           assertInlineSnapshot(of: container, as: .customDump) {

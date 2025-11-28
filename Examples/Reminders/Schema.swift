@@ -140,10 +140,13 @@ func appDatabase() throws -> any DatabaseWriter {
     db.add(function: $handleReminderStatusUpdate)
     #if DEBUG
       db.trace(options: .profile) {
-        if context == .live {
+        switch context {
+        case .live:
           logger.debug("\($0.expandedDescription)")
-        } else if context == .preview {
+        case .preview:
           print("\($0.expandedDescription)")
+        case .test:
+          break
         }
       }
     #endif

@@ -442,7 +442,6 @@
             private: privateSyncEngine,
             shared: sharedSyncEngine
           )
-          privateSyncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
         }
       }
 
@@ -497,6 +496,9 @@
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           guard try await container.accountStatus() == .available
           else { return }
+          syncEngines.withValue {
+            $0.private?.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
+          }
           try await uploadRecordsToCloudKit(
             previousRecordTypeByTableName: previousRecordTypeByTableName,
             currentRecordTypeByTableName: currentRecordTypeByTableName
