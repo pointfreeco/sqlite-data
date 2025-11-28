@@ -34,13 +34,7 @@
                   recordType: "remindersListAssets",
                   parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
                   share: nil,
-                  coverImage: [
-                    [0]: 105,
-                    [1]: 109,
-                    [2]: 97,
-                    [3]: 103,
-                    [4]: 101
-                  ],
+                  coverImage_data: Data(5 bytes),
                   remindersListID: 1
                 ),
                 [1]: CKRecord(
@@ -85,17 +79,7 @@
                   recordType: "remindersListAssets",
                   parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
                   share: nil,
-                  coverImage: [
-                    [0]: 110,
-                    [1]: 101,
-                    [2]: 119,
-                    [3]: 45,
-                    [4]: 105,
-                    [5]: 109,
-                    [6]: 97,
-                    [7]: 103,
-                    [8]: 101
-                  ],
+                  coverImage_data: Data(9 bytes),
                   remindersListID: 1
                 ),
                 [1]: CKRecord(

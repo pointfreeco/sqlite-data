@@ -142,6 +142,10 @@
       get { self["\(key)_hash"] as? Data }
       set { self["\(key)_hash"] = newValue }
     }
+    fileprivate subscript(data key: String) -> Data? {
+      get { self["\(key)_data"] as? Data }
+      set { self["\(key)_data"] = newValue }
+    }
   }
 
   @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
@@ -178,8 +182,8 @@
         encryptedValues[hash: key] != hash
       else { return false }
 
-      if encryptedValues[key] != nil {
-        encryptedValues.setObject(nil, forKey: key)
+      if encryptedValues[data: key] != nil {
+        encryptedValues[data: key] = nil
       }
       self[key] = newValue
       encryptedValues[hash: key] = hash
@@ -198,14 +202,16 @@
       else { return false }
 
       if newValue.isSmall {
+        let newData = Data(newValue)
         guard
           encryptedValues[at: key] <= userModificationTime,
-          encryptedValues[key] != newValue
+          encryptedValues[data: key] != newData
         else { return false }
         if self[key] != nil {
-          self.setObject(nil, forKey: key)
+          self[key] = nil
+          encryptedValues[hash: key] = nil
         }
-        encryptedValues[key] = newValue
+        encryptedValues[data: key] = newData
         encryptedValues[at: key] = userModificationTime
         self.userModificationTime = userModificationTime
         return true
@@ -319,7 +325,7 @@
             switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
             case .blob(let value):
               if value.isSmall {
-                return other.encryptedValues[key] != value
+                return other.encryptedValues[key] != Data(value)
               } else if let otherHash = other.encryptedValues[hash: key] {
                 return otherHash != value.sha256
               } else {
