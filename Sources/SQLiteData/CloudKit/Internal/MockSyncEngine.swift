@@ -47,7 +47,7 @@
       }
       records = zoneIDs.reduce(into: [CKRecord]()) { accum, zoneID in
         accum += database.storage.withValue {
-          ($0[zoneID]?.values).map { Array($0) } ?? []
+          ($0[zoneID]?.records.values).map { Array($0) } ?? []
         }
       }
       await parentSyncEngine.handleEvent(
@@ -222,7 +222,7 @@
         saving: batch.recordsToSave,
         deleting: batch.recordIDsToDelete,
         savePolicy: .ifServerRecordUnchanged,
-        atomically: true
+        atomically: batch.atomicByZone
       )
 
       var savedRecords: [CKRecord] = []

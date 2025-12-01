@@ -421,6 +421,57 @@
         }
         #expect(error?.code == .unknownItem)
       }
+
+      @Test func batchRequestFailed() async throws {
+        let record1ID = CKRecord.ID(recordName: "1")
+        let record2ID = CKRecord.ID(recordName: "2")
+
+        do {
+          let record1 = CKRecord(recordType: "record1", recordID: record1ID)
+          let record2 = CKRecord(recordType: "record2", recordID: record2ID)
+          let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [
+            record1, record2,
+          ])
+          #expect(saveResults.values.count(where: { (try? $0.get()) != nil }) == 2)
+        }
+
+        let freshRecord2 = try syncEngine.private.database.record(for: record2ID)
+        do {
+          let freshRecord1 = try syncEngine.private.database.record(for: record1ID)
+          freshRecord1["isOn"] = true
+          freshRecord2["isOn"] = true
+          let (saveResults, _) = try syncEngine.private.database.modifyRecords(
+            saving: [freshRecord1, freshRecord2]
+          )
+          #expect(saveResults.values.count(where: { (try? $0.get()) != nil }) == 2)
+        }
+
+        do {
+          let freshRecord1 = try syncEngine.private.database.record(for: record1ID)
+          freshRecord1["isOn"] = true
+          freshRecord2["isOn"] = false
+          let (saveResults, _) = try syncEngine.private.database.modifyRecords(
+            saving: [freshRecord1, freshRecord2]
+          )
+          #expect(
+            saveResults.compactMapValues { ($0.error as? CKError)?.code } == [
+              record1ID: .batchRequestFailed,
+              record2ID: .serverRecordChanged
+            ]
+          )
+        }
+      }
     }
   }
 #endif
+
+extension Result {
+  fileprivate var error: Failure? {
+    do {
+      _ = try get()
+      return nil
+    } catch {
+      return error
+    }
+  }
+}

@@ -1684,8 +1684,12 @@
             try await open(table)
           }
 
+        case .batchRequestFailed:
+          fatalError()
+          break
+
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .notAuthenticated, .operationCancelled, .batchRequestFailed,
+          .notAuthenticated, .operationCancelled,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,

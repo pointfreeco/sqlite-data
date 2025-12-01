@@ -75,7 +75,7 @@ extension SyncEngine {
     let syncEngine = syncEngine(for: scope)
     let recordsToDeleteByID = Dictionary(
       grouping: syncEngine.database.storage.withValue { storage in
-        recordIDsToDelete.compactMap { recordID in storage[recordID.zoneID]?[recordID] }
+        recordIDsToDelete.compactMap { recordID in storage[recordID.zoneID]?.records[recordID] }
       },
       by: \.recordID
     )
