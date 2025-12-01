@@ -1349,6 +1349,114 @@
         }
       }
 
+      /// Deleting a root shared record that is not owned by current user should only delete
+      /// the CKShare but not the actual records, including associated records.
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func deleteRootSharedRecord_CurrentUserNotOwner_DoNotCascade() async throws {
+        let externalZone = CKRecordZone(
+          zoneID: CKRecordZone.ID(
+            zoneName: "external.zone",
+            ownerName: "external.owner"
+          )
+        )
+        try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+
+        let modelARecord = CKRecord(
+          recordType: ModelA.tableName,
+          recordID: ModelA.recordID(for: 1, zoneID: externalZone.zoneID)
+        )
+        modelARecord.setValue(42, forKey: "count", at: now)
+
+        let share = CKShare(
+          rootRecord: modelARecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(modelARecord.recordID.recordName)",
+            zoneID: modelARecord.recordID.zoneID
+          )
+        )
+
+        try await syncEngine
+          .acceptShare(
+            metadata: ShareMetadata(
+              containerIdentifier: container.containerIdentifier!,
+              hierarchicalRootRecordID: modelARecord.recordID,
+              rootRecord: modelARecord,
+              share: share
+            )
+          )
+
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            ModelB(id: 1, isOn: true, modelAID: 1)
+            ModelC(id: 1, title: "Hello world!", modelBID: 1)
+          }
+        }
+
+        try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+
+        try await userDatabase.userWrite { db in
+          try ModelA.find(1).delete().execute(db)
+        }
+
+        try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          (No results)
+          """
+        }
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          (No results)
+          """
+        }
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          (No results)
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:modelAs/external.zone/external.owner),
+                  recordType: "modelAs",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:modelAs/external.zone/external.owner)),
+                  count: 42
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:modelBs/external.zone/external.owner),
+                  recordType: "modelBs",
+                  parent: CKReference(recordID: CKRecord.ID(1:modelAs/external.zone/external.owner)),
+                  share: nil,
+                  id: 1,
+                  isOn: 1,
+                  modelAID: 1
+                ),
+                [2]: CKRecord(
+                  recordID: CKRecord.ID(1:modelCs/external.zone/external.owner),
+                  recordType: "modelCs",
+                  parent: CKReference(recordID: CKRecord.ID(1:modelBs/external.zone/external.owner)),
+                  share: nil,
+                  id: 1,
+                  modelBID: 1,
+                  title: "Hello world!"
+                )
+              ]
+            )
+          )
+          """
+        }
+      }
+
       /// Syncing deletion of a root shared record that is not owned by current user should delete
       /// entire zone.
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

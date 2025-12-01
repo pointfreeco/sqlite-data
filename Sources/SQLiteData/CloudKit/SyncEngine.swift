@@ -1227,7 +1227,7 @@
                               recordName: metadata.recordName,
                               lastKnownServerRecord: metadata.lastKnownServerRecord,
                               rootRecordName: tree.rootRecordName,
-                              rootLastKnownServerRecord: tree.lastKnownServerRecord
+                              rootLastKnownServerRecord: tree.rootLastKnownServerRecord
                             )
                           }
                       )
