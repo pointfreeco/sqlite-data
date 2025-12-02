@@ -229,6 +229,30 @@ func appDatabase() throws -> any DatabaseWriter {
     .execute(db)
   }
 
+  migrator.registerMigration("Create foreign key indexes") { db in
+    try #sql(
+      """
+      CREATE INDEX IF NOT EXISTS "idx_reminders_remindersListID"
+      ON "reminders"("remindersListID")
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE INDEX IF NOT EXISTS "idx_remindersTags_reminderID"
+      ON "remindersTags"("reminderID")
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE INDEX IF NOT EXISTS "idx_remindersTags_tagID"
+      ON "remindersTags"("tagID")
+      """
+    )
+    .execute(db)
+  }
+  
   try migrator.migrate(database)
 
   try database.write { db in
@@ -515,3 +539,4 @@ nonisolated private let logger = Logger(subsystem: "Reminders", category: "Datab
     }
   }
 #endif
+
