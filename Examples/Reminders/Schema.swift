@@ -174,16 +174,6 @@ func appDatabase() throws -> any DatabaseWriter {
     .execute(db)
     try #sql(
       """
-      CREATE TABLE "remindersListAssets" (
-        "remindersListID" TEXT PRIMARY KEY NOT NULL 
-          REFERENCES "remindersLists"("id") ON DELETE CASCADE,
-        "coverImage" BLOB
-      ) STRICT
-      """
-    )
-    .execute(db)
-    try #sql(
-      """
       CREATE TABLE "reminders" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "dueDate" TEXT,
