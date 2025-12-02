@@ -174,6 +174,16 @@ func appDatabase() throws -> any DatabaseWriter {
     .execute(db)
     try #sql(
       """
+      CREATE TABLE "remindersListAssets" (
+        "remindersListID" TEXT PRIMARY KEY NOT NULL 
+          REFERENCES "remindersLists"("id") ON DELETE CASCADE,
+        "coverImage" BLOB
+      ) STRICT
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
       CREATE TABLE "reminders" (
         "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
         "dueDate" TEXT,
@@ -220,13 +230,6 @@ func appDatabase() throws -> any DatabaseWriter {
   }
 
   migrator.registerMigration("Create foreign key indexes") { db in
-    try #sql(
-      """
-      CREATE INDEX IF NOT EXISTS "idx_remindersListAssets_remindersListID"
-      ON "remindersListAssets"("remindersListID")
-      """
-    )
-    .execute(db)
     try #sql(
       """
       CREATE INDEX IF NOT EXISTS "idx_reminders_remindersListID"
