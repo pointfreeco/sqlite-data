@@ -459,8 +459,6 @@
           saving: [share, recordA, recordB]
         )
 
-        print(saveResults)
-
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
