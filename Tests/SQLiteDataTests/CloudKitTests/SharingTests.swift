@@ -1249,17 +1249,60 @@
         }
       }
 
+      // Deleting a root shared record while the owner of that record deletes the associated CKShare
+      // as well as any other associated records.
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func deleteRootSharedRecord_CurrentUserOwnsRecord() async throws {
         let remindersList = RemindersList(id: 1, title: "Personal")
         try await userDatabase.userWrite { db in
           try db.seed {
             remindersList
+            Reminder(id: 1, remindersListID: 1)
           }
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                  share: nil,
+                  id: 1,
+                  isCompleted: 0,
+                  remindersListID: 1,
+                  title: ""
+                ),
+                [2]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__)),
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
 
         try await userDatabase.userWrite { db in
           try RemindersList.find(1).delete().execute(db)
@@ -1331,6 +1374,56 @@
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                  share: nil,
+                  id: 1,
+                  isCompleted: 0,
+                  remindersListID: 1,
+                  title: "Get milk"
+                ),
+                [2]: CKRecord(
+                  recordID: CKRecord.ID(2:reminders/external.zone/external.owner),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                  share: nil,
+                  id: 2,
+                  isCompleted: 0,
+                  remindersListID: 1,
+                  title: "Take a walk"
+                ),
+                [3]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            )
+          )
+          """
+        }
+
         try await userDatabase.userWrite { db in
           try RemindersList.find(1).delete().execute(db)
         }
@@ -1362,7 +1455,36 @@
             ),
             sharedCloudDatabase: MockCloudDatabase(
               databaseScope: .shared,
-              storage: []
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                  share: nil,
+                  id: 1,
+                  isCompleted: 0,
+                  remindersListID: 1,
+                  title: "Get milk"
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(2:reminders/external.zone/external.owner),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                  share: nil,
+                  id: 2,
+                  isCompleted: 0,
+                  remindersListID: 1,
+                  title: "Take a walk"
+                ),
+                [2]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
             )
           )
           """

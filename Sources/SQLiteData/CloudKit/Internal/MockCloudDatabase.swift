@@ -245,8 +245,13 @@
           storage[recordIDToDelete.zoneID]?[recordIDToDelete] = nil
           deleteResults[recordIDToDelete] = .success(())
 
-          // NB: If deleting a share, delete the shared records and all associated records.
-          if databaseScope == .shared, let shareToDelete = recordToDelete as? CKShare {
+          // NB: If deleting a share that the current user owns, delete the shared records and all
+          //     associated records.
+          if
+            databaseScope == .shared,
+            let shareToDelete = recordToDelete as? CKShare,
+            shareToDelete.recordID.zoneID.ownerName == CKCurrentUserDefaultName
+          {
             func deleteRecords(referencing recordID: CKRecord.ID) {
               for recordToDelete in (storage[recordIDToDelete.zoneID] ?? [:]).values {
                 guard

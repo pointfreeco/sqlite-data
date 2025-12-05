@@ -401,6 +401,9 @@
           }
         }
 
+        // Deleting a root shared record that we do not own while the sync engine is off will
+        // probably sync (delete share on iCloud but does not delete any records) once the sync
+        // engine is turned back on.
         @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
         @Test func externalSharedRecord_StopSyncEngine_DeleteSharedRecord_StartSyncEngine()
           async throws
@@ -432,6 +435,37 @@
             saving: [remindersListRecord, share]
           ).notify()
 
+          assertInlineSnapshot(of: container, as: .customDump) {
+            """
+            MockCloudContainer(
+              privateCloudDatabase: MockCloudDatabase(
+                databaseScope: .private,
+                storage: []
+              ),
+              sharedCloudDatabase: MockCloudDatabase(
+                databaseScope: .shared,
+                storage: [
+                  [0]: CKRecord(
+                    recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
+                    recordType: "cloudkit.share",
+                    parent: nil,
+                    share: nil
+                  ),
+                  [1]: CKRecord(
+                    recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                    recordType: "remindersLists",
+                    parent: nil,
+                    share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                    id: 1,
+                    isCompleted: 0,
+                    title: "Personal"
+                  )
+                ]
+              )
+            )
+            """
+          }
+
           syncEngine.stop()
 
           try await userDatabase.userWrite { db in
@@ -451,7 +485,17 @@
               ),
               sharedCloudDatabase: MockCloudDatabase(
                 databaseScope: .shared,
-                storage: []
+                storage: [
+                  [0]: CKRecord(
+                    recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                    recordType: "remindersLists",
+                    parent: nil,
+                    share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                    id: 1,
+                    isCompleted: 0,
+                    title: "Personal"
+                  )
+                ]
               )
             )
             """
