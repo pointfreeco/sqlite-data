@@ -123,6 +123,22 @@ extension DependencyValues {
       )
       .execute(db)
     }
+    migrator.registerMigration("Create foreign key indexes") { db in
+      try #sql(
+        """
+        CREATE INDEX IF NOT EXISTS "idx_attendees_syncUpID"
+        ON "attendees"("syncUpID")
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        CREATE INDEX IF NOT EXISTS "idx_meetings_syncUpID"
+        ON "meetings"("syncUpID")
+        """
+      )
+      .execute(db)
+    }
     try migrator.migrate(database)
     defaultDatabase = database
     defaultSyncEngine = try SyncEngine(
