@@ -97,8 +97,17 @@
                 saveResults[recordToSave.recordID] = .failure(CKError(.invalidArguments))
                 continue
               }
+            } else if databaseScope == .shared,
+              recordToSave.parent == nil,
+              recordToSave.share == nil
+            {
+              // NB: Emit 'permissionFailure' if saving to shared database with no parent reference
+              //     or share reference.
+              saveResults[recordToSave.recordID] = .failure(CKError(.permissionFailure))
+              continue
             }
 
+            // NB: Emit 'zoneNotFound' error if saving record with a zone not found in database.
             guard storage[recordToSave.recordID.zoneID] != nil
             else {
               saveResults[recordToSave.recordID] = .failure(CKError(.zoneNotFound))
@@ -231,8 +240,30 @@
             deleteResults[recordIDToDelete] = .failure(CKError(.referenceViolation))
             continue
           }
+          let recordToDelete = storage[recordIDToDelete.zoneID]?[recordIDToDelete]
           storage[recordIDToDelete.zoneID]?[recordIDToDelete] = nil
           deleteResults[recordIDToDelete] = .success(())
+
+          // NB: If deleting a share that the current user owns, delete the shared records and all
+          //     associated records.
+          if databaseScope == .shared,
+            let shareToDelete = recordToDelete as? CKShare,
+            shareToDelete.recordID.zoneID.ownerName == CKCurrentUserDefaultName
+          {
+            func deleteRecords(referencing recordID: CKRecord.ID) {
+              for recordToDelete in (storage[recordIDToDelete.zoneID] ?? [:]).values {
+                guard
+                  recordToDelete.share?.recordID == recordID
+                    || recordToDelete.parent?.recordID == recordID
+                else {
+                  continue
+                }
+                storage[recordIDToDelete.zoneID]?[recordToDelete.recordID] = nil
+                deleteRecords(referencing: recordToDelete.recordID)
+              }
+            }
+            deleteRecords(referencing: shareToDelete.recordID)
+          }
         }
 
         return (saveResults: saveResults, deleteResults: deleteResults)
