@@ -2784,6 +2784,7 @@
         }
 
         try await syncEngine.start()
+        try await syncEngine.processPendingDatabaseChanges(scope: .private)
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 

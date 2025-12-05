@@ -138,12 +138,16 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
     try db.attachMetadatabase()
     db.add(function: $createDefaultRemindersList)
     db.add(function: $handleReminderStatusUpdate)
-#if DEBUG
-    db.trace(options: .profile) {
-      if context == .live {
-        logger.debug("\($0.expandedDescription)")
-      } else {
-        print("\($0.expandedDescription)")
+    #if DEBUG
+      db.trace(options: .profile) {
+        switch context {
+        case .live:
+          logger.debug("\($0.expandedDescription)")
+        case .preview:
+          print("\($0.expandedDescription)")
+        case .test:
+          break
+        }
       }
     }
 #endif
