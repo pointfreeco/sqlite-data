@@ -436,10 +436,12 @@ private struct ReminderGridCell: View {
 }
 
 #Preview {
-  let _ = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase()
+  withErrorReporting {
+    try prepareDependencies {
+      try $0.bootstrapDatabase(seedSampleData: false)
+    }
   }
-  NavigationStack {
+  return NavigationStack {
     RemindersListsView(model: RemindersListsModel())
   }
 }
