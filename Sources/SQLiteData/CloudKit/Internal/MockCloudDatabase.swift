@@ -97,15 +97,14 @@
                 saveResults[recordToSave.recordID] = .failure(CKError(.invalidArguments))
                 continue
               }
-            } else {
-              // NB: Emit 'permissionFailure' if saving to shared database with no parent reference.
-              if databaseScope == .shared,
-                recordToSave.parent == nil,
-                recordToSave.share == nil
-              {
-                saveResults[recordToSave.recordID] = .failure(CKError(.permissionFailure))
-                continue
-              }
+            } else if databaseScope == .shared,
+              recordToSave.parent == nil,
+              recordToSave.share == nil
+            {
+              // NB: Emit 'permissionFailure' if saving to shared database with no parent reference
+              //     or share reference.
+              saveResults[recordToSave.recordID] = .failure(CKError(.permissionFailure))
+              continue
             }
 
             // NB: Emit 'zoneNotFound' error if saving record with a zone not found in database.
@@ -247,8 +246,7 @@
 
           // NB: If deleting a share that the current user owns, delete the shared records and all
           //     associated records.
-          if
-            databaseScope == .shared,
+          if databaseScope == .shared,
             let shareToDelete = recordToDelete as? CKShare,
             shareToDelete.recordID.zoneID.ownerName == CKCurrentUserDefaultName
           {
