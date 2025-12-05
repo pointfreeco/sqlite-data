@@ -399,6 +399,7 @@
         try syncEngine.tearDownSyncEngine()
         try syncEngine.setUpSyncEngine()
         try await syncEngine.start()
+        try await syncEngine.processPendingDatabaseChanges(scope: .private)
         let recordTypesAfterReSetup = try await syncEngine.metadatabase.read { db in
           try RecordType.all.fetchAll(db)
         }
@@ -422,6 +423,7 @@
         }
         try syncEngine.setUpSyncEngine()
         try await syncEngine.start()
+        try await syncEngine.processPendingDatabaseChanges(scope: .private)
 
         let recordTypesAfterMigration = try await syncEngine.metadatabase.read { db in
           try RecordType.order(by: \.tableName).fetchAll(db)
