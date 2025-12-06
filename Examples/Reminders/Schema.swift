@@ -116,8 +116,8 @@ struct ReminderText: FTS5 {
 }
 
 extension DependencyValues {
-  mutating func bootstrapDatabase(syncEngineDelegate: (any SyncEngineDelegate)? = nil) throws {
-    defaultDatabase = try Reminders.appDatabase()
+  mutating func bootstrapDatabase(syncEngineDelegate: (any SyncEngineDelegate)? = nil, seedSampleData: Bool) throws {
+    defaultDatabase = try Reminders.appDatabase(seedSampleData: seedSampleData)
     defaultSyncEngine = try SyncEngine(
       for: defaultDatabase,
       tables: RemindersList.self,
@@ -130,7 +130,7 @@ extension DependencyValues {
   }
 }
 
-func appDatabase() throws -> any DatabaseWriter {
+func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
   @Dependency(\.context) var context
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
@@ -363,10 +363,12 @@ func appDatabase() throws -> any DatabaseWriter {
       }
     )
     .execute(db)
-
-    if context != .live {
-      try db.seedSampleData()
-    }
+    
+    #if DEBUG
+      if seedSampleData {
+        try db.seedSampleData()
+      }
+    #endif
   }
 
   return database
