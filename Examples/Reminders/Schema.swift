@@ -138,15 +138,18 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
     try db.attachMetadatabase()
     db.add(function: $createDefaultRemindersList)
     db.add(function: $handleReminderStatusUpdate)
-#if DEBUG
-    db.trace(options: .profile) {
-      if context == .live {
-        logger.debug("\($0.expandedDescription)")
-      } else {
-        print("\($0.expandedDescription)")
+    #if DEBUG
+      db.trace(options: .profile) {
+        switch context {
+        case .live:
+          logger.debug("\($0.expandedDescription)")
+        case .preview:
+          print("\($0.expandedDescription)")
+        case .test:
+          break
+        }
       }
-    }
-#endif
+    #endif
   }
   let database = try SQLiteData.defaultDatabase(configuration: configuration)
   logger.debug(
@@ -156,9 +159,9 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
     """
   )
   var migrator = DatabaseMigrator()
-#if DEBUG
-  migrator.eraseDatabaseOnSchemaChange = true
-#endif
+  #if DEBUG
+    migrator.eraseDatabaseOnSchemaChange = true
+  #endif
   migrator.registerMigration("Create initial tables") { db in
     let defaultListColor = Color.HexRepresentation(queryOutput: RemindersList.defaultColor).hexValue
     try #sql(
@@ -228,7 +231,7 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
     )
     .execute(db)
   }
-  
+
   migrator.registerMigration("Create foreign key indexes") { db in
     try #sql(
       """
@@ -254,9 +257,9 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
   }
   
   try migrator.migrate(database)
-  
+
   try database.write { db in
-    
+
     try RemindersList.createTemporaryTrigger(
       after: .insert { new in
         RemindersList
@@ -265,7 +268,7 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
       }
     )
     .execute(db)
-    
+
     try Reminder.createTemporaryTrigger(
       after: .insert { new in
         Reminder
@@ -274,7 +277,7 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
       }
     )
     .execute(db)
-    
+
     try RemindersList.createTemporaryTrigger(
       after: .delete { _ in
         Values($createDefaultRemindersList())
@@ -283,7 +286,7 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
       }
     )
     .execute(db)
-    
+
     try Reminder.createTemporaryTrigger(
       after: .insert { new in
         ReminderText.insert {
@@ -297,7 +300,7 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
       }
     )
     .execute(db)
-    
+
     try Reminder.createTemporaryTrigger(
       after: .update {
         ($0.title, $0.notes)
@@ -311,7 +314,7 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
       }
     )
     .execute(db)
-    
+
     try Reminder.createTemporaryTrigger(
       after: .delete { old in
         ReminderText
@@ -320,7 +323,7 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
       }
     )
     .execute(db)
-    
+
     func updateReminderTextTags(
       for reminderID: some QueryExpression<Reminder.ID>
     ) -> UpdateOf<ReminderText> {
@@ -328,28 +331,28 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
         .where { $0.rowid.eq(Reminder.find(reminderID).select(\.rowid)) }
         .update {
           $0.tags =
-          ReminderTag
+            ReminderTag
             .order(by: \.tagID)
             .where { $0.reminderID.eq(reminderID) }
             .join(Tag.all) { $0.tagID.eq($1.primaryKey) }
             .select { ("#" + $1.title).groupConcat(" ") ?? "" }
         }
     }
-    
+
     try ReminderTag.createTemporaryTrigger(
       after: .insert { new in
         updateReminderTextTags(for: new.reminderID)
       }
     )
     .execute(db)
-    
+
     try ReminderTag.createTemporaryTrigger(
       after: .delete { old in
         updateReminderTextTags(for: old.reminderID)
       }
     )
     .execute(db)
-    
+
     try Reminder.createTemporaryTrigger(
       after: .update {
         $0.status
@@ -361,13 +364,13 @@ func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
     )
     .execute(db)
     
-#if DEBUG
-    if seedSampleData {
-      try db.seedSampleData()
-    }
-#endif
+    #if DEBUG
+      if seedSampleData {
+        try db.seedSampleData()
+      }
+    #endif
   }
-  
+
   return database
 }
 
