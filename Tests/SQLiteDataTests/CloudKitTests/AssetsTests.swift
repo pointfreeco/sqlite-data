@@ -14,17 +14,20 @@
     final class AssetsTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func basics() async throws {
+        let blackImageURL = Bundle.module.url(forResource: "test-black", withExtension: "svg")!
+        let blackCoverImage = try Data(contentsOf: blackImageURL)
+        
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")
-            RemindersListAsset(remindersListID: 1, coverImage: Data("image".utf8))
+            RemindersListAsset(remindersListID: 1, coverImage: blackCoverImage)
           }
         }
 
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         assertInlineSnapshot(of: container, as: .customDump) {
-          """
+          #"""
           MockCloudContainer(
             privateCloudDatabase: MockCloudDatabase(
               databaseScope: .private,
@@ -37,8 +40,94 @@
                   coverImage_hash: Data(32 bytes),
                   remindersListID: 1,
                   coverImage: CKAsset(
-                    fileURL: URL(file:///6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d),
-                    dataString: "image"
+                    fileURL: URL(file:///4eb74bd60d41b48bd682896ff4ba846da5051a1e190159414b3ba177a9dbe482),
+                    dataString: """
+                      <?xml version="1.0" encoding="UTF-8"?>
+                      <svg width="371px" height="269px" viewBox="0 0 371 269" version="1.1"
+                          xmlns="http://www.w3.org/2000/svg"
+                          xmlns:xlink="http://www.w3.org/1999/xlink">
+                          <defs>
+                              <rect id="path-1" x="28.9705627" y="96.0294373" width="24" height="24"></rect>
+                          </defs>
+                          <g id="PointFree" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                              <g id="logo">
+                                  <circle id="Oval" stroke="#79F2B0" stroke-width="4" fill-opacity="0" fill="#FFFFFF" cx="250" cy="64" r="36"></circle>
+                                  <circle id="Oval-Copy-2" stroke="#79F2B0" stroke-width="4" fill-opacity="0" fill="#FFFFFF" cx="104" cy="214" r="36"></circle>
+                                  <circle id="Oval-Copy" fill="#79F2B0" cx="145" cy="258" r="8"></circle>
+                                  <rect id="Rectangle-7" fill="#974CFF" transform="translate(18.313708, 88.313708) rotate(-315.000000) translate(-18.313708, -88.313708) " x="10.3137085" y="80.3137085" width="16" height="16"></rect>
+                                  <rect id="Rectangle-7-Copy" fill="#FFF080" transform="translate(366.000000, 229.000000) rotate(-270.000000) translate(-366.000000, -229.000000) " x="361" y="224" width="10" height="10" rx="5"></rect>
+                                  <rect id="Rectangle-7-Copy-8" fill="#79F2B0" transform="translate(86.000000, 74.000000) rotate(-270.000000) translate(-86.000000, -74.000000) " x="81" y="69" width="10" height="10" rx="5"></rect>
+                                  <rect id="Rectangle-7-Copy-6" fill="#FFF080" transform="translate(318.000000, 162.000000) rotate(-270.000000) translate(-318.000000, -162.000000) " x="313" y="157" width="10" height="10" rx="5"></rect>
+                                  <rect id="Rectangle-7-Copy-4" fill="#974DFF" transform="translate(351.627417, 133.627417) rotate(-315.000000) translate(-351.627417, -133.627417) " x="335.627417" y="117.627417" width="32" height="32" rx="16"></rect>
+                                  <rect id="Rectangle-7-Copy-2" fill="#4CCCFF" transform="translate(324.970563, 108.970563) rotate(-315.000000) translate(-324.970563, -108.970563) " x="312.970563" y="96.9705627" width="24" height="24" rx="12"></rect>
+                                  <rect id="Rectangle-7-Copy-7" fill="#4CCCFF" transform="translate(16.970563, 133.769553) rotate(-315.000000) translate(-16.970563, -133.769553) " x="4.97056275" y="121.769553" width="24" height="24"></rect>
+                                  <rect id="Rectangle-7-Copy-3" fill="#79F2B0" transform="translate(304.000000, 88.000000) rotate(-270.000000) translate(-304.000000, -88.000000) " x="296" y="80" width="16" height="16" rx="8"></rect>
+                                  <g id="Rectangle-7-Copy-5" transform="translate(40.970563, 108.029437) rotate(-315.000000) translate(-40.970563, -108.029437) ">
+                                      <use fill-opacity="0" fill="#FFFFFF" fill-rule="evenodd" xlink:href="#path-1"></use>
+                                      <rect stroke="#79F2B0" stroke-width="4" x="30.9705627" y="98.0294373" width="20" height="20"></rect>
+                                  </g>
+                                  <rect id="Rectangle-6" fill="#121212" transform="translate(184.675144, 134.350288) rotate(-315.000000) translate(-184.675144, -134.350288) " x="89.6751442" y="39.3502884" width="190" height="190"></rect>
+                                  <rect id="Rectangle-8" fill="#FFF080" x="273" y="202" width="98" height="7" rx="3.5"></rect>
+                                  <rect id="Rectangle-8-Copy-2" fill="#FFF080" x="247" y="226" width="98" height="7" rx="3.5"></rect>
+                                  <rect id="Rectangle-8-Copy" fill="#FFF080" x="234.324856" y="178" width="98" height="7" rx="3.5"></rect>
+                                  <path d="M106.478856,139.884 L106.478856,144 L101.382856,144 L101.382856,124.96 L108.606856,124.96 C113.730856,124.96 116.614856,128.208 116.614856,132.436 C116.614856,136.664 113.730856,139.884 108.606856,139.884 L106.478856,139.884 Z M106.478856,135.572 L108.354856,135.572 C110.650856,135.572 111.490856,134.284 111.490856,132.436 C111.490856,130.588 110.650856,129.272 108.354856,129.272 L106.478856,129.272 L106.478856,135.572 Z M129.902856,144.252 C124.414856,144.252 119.682856,140.22 119.682856,134.48 C119.682856,128.74 124.414856,124.736 129.902856,124.736 C135.390856,124.736 140.122856,128.74 140.122856,134.48 C140.122856,140.22 135.390856,144.252 129.902856,144.252 Z M129.902856,139.828 C133.094856,139.828 134.914856,137.476 134.914856,134.48 C134.914856,131.484 133.094856,129.16 129.902856,129.16 C126.710856,129.16 124.890856,131.484 124.890856,134.48 C124.890856,137.476 126.710856,139.828 129.902856,139.828 Z M144.114856,144 L149.210856,144 L149.210856,124.96 L144.114856,124.96 L144.114856,144 Z M170.870856,144.336 C171.178856,144.588 171.262856,144.504 171.262856,144.28 L171.262856,124.96 L166.474856,124.96 L166.474856,134.508 L154.518856,124.652 C154.210856,124.4 154.126856,124.54 154.126856,124.708 L154.126856,144 L158.914856,144 L158.914856,134.508 L170.870856,144.336 Z M180.098856,144 L185.194856,144 L185.194856,129.244 L190.234856,129.244 L190.234856,124.96 L175.058856,124.96 L175.058856,129.244 L180.098856,129.244 L180.098856,144 Z M194.002856,139.324 C195.962856,139.324 197.726856,137.7 197.726856,135.6 C197.726856,133.472 195.962856,131.876 194.002856,131.876 C192.042856,131.876 190.278856,133.472 190.278856,135.6 C190.278856,137.7 192.042856,139.324 194.002856,139.324 Z M201.578856,144 L206.674856,144 L206.674856,137.952 L213.590856,137.952 L213.590856,133.668 L206.674856,133.668 L206.674856,129.244 L214.514856,129.244 L214.514856,124.96 L201.578856,124.96 L201.578856,144 Z M230.322856,138.596 L233.710856,144 L228.194856,144 L225.534856,139.632 L223.630856,139.632 L223.630856,144 L218.534856,144 L218.534856,124.96 L225.758856,124.96 C230.882856,124.96 233.766856,128.208 233.766856,132.436 C233.766856,135.18 232.562856,137.364 230.322856,138.596 Z M223.630856,135.572 L225.506856,135.572 C227.802856,135.572 228.642856,134.284 228.642856,132.436 C228.642856,130.588 227.802856,129.272 225.506856,129.272 L223.630856,129.272 L223.630856,135.572 Z M237.646856,144 L251.394856,144 L251.394856,139.716 L242.742856,139.716 L242.742856,137.728 L249.630856,137.728 L249.630856,133.668 L242.742856,133.668 L242.742856,129.244 L251.002856,129.244 L251.002856,124.96 L237.646856,124.96 L237.646856,144 Z M255.358856,144 L269.106856,144 L269.106856,139.716 L260.454856,139.716 L260.454856,137.728 L267.342856,137.728 L267.342856,133.668 L260.454856,133.668 L260.454856,129.244 L268.714856,129.244 L268.714856,124.96 L255.358856,124.96 L255.358856,144 Z" id="point•free" fill="#FFFFFF"></path>
+                              </g>
+                          </g>
+                          <!-- 
+                          Filler text to increase file size to be above 16KB for testing purposes.
+                      
+                          Here’s to the crazy ones. The misfits. The rebels. The troublemakers. The round pegs in the square holes. The ones who see things differently. They’re not fond of rules, and they have no respect for the status quo.
+                      
+                          You can quote them, disagree with them, glorify or vilify them. About the only thing you can’t do is ignore them. Because they change things. They push the human race forward.
+                      
+                          And while some see them as the crazy ones, we see genius. Because the people who are crazy enough to think they can change the world, are the ones who do.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                          -->
+                      </svg>
+                      """
                   )
                 ),
                 [1]: CKRecord(
@@ -56,23 +145,26 @@
               storage: []
             )
           )
-          """
+          """#
         }
 
         inMemoryDataManager.storage.withValue { storage in
           let url = URL(
-            string: "file:///6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d"
+            string: "file:///4eb74bd60d41b48bd682896ff4ba846da5051a1e190159414b3ba177a9dbe482"
           )!
-          #expect(storage[url] == Data("image".utf8))
+          #expect(storage[url] == blackCoverImage)
         }
 
+        let redImageURL = Bundle.module.url(forResource: "test-red", withExtension: "svg")!
+        let redCoverImage = try Data(contentsOf: redImageURL)
+        
         try await withDependencies {
           $0.currentTime.now += 1
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersListAsset
               .find(1)
-              .update { $0.coverImage = Data("new-image".utf8) }
+              .update { $0.coverImage = redCoverImage }
               .execute(db)
           }
         }
@@ -80,7 +172,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         assertInlineSnapshot(of: container, as: .customDump) {
-          """
+          #"""
           MockCloudContainer(
             privateCloudDatabase: MockCloudDatabase(
               databaseScope: .private,
@@ -93,8 +185,94 @@
                   coverImage_hash: Data(32 bytes),
                   remindersListID: 1,
                   coverImage: CKAsset(
-                    fileURL: URL(file:///97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf),
-                    dataString: "new-image"
+                    fileURL: URL(file:///43aba58d3830c6821f433a10c9fd554e53c257ebfd9c451514ea2c27c774b79f),
+                    dataString: """
+                      <?xml version="1.0" encoding="UTF-8"?>
+                      <svg width="371px" height="269px" viewBox="0 0 371 269" version="1.1"
+                          xmlns="http://www.w3.org/2000/svg"
+                          xmlns:xlink="http://www.w3.org/1999/xlink">
+                          <defs>
+                              <rect id="path-1" x="28.9705627" y="96.0294373" width="24" height="24"></rect>
+                          </defs>
+                          <g id="PointFree" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                              <g id="logo">
+                                  <circle id="Oval" stroke="#79F2B0" stroke-width="4" fill-opacity="0" fill="#FFFFFF" cx="250" cy="64" r="36"></circle>
+                                  <circle id="Oval-Copy-2" stroke="#79F2B0" stroke-width="4" fill-opacity="0" fill="#FFFFFF" cx="104" cy="214" r="36"></circle>
+                                  <circle id="Oval-Copy" fill="#79F2B0" cx="145" cy="258" r="8"></circle>
+                                  <rect id="Rectangle-7" fill="#974CFF" transform="translate(18.313708, 88.313708) rotate(-315.000000) translate(-18.313708, -88.313708) " x="10.3137085" y="80.3137085" width="16" height="16"></rect>
+                                  <rect id="Rectangle-7-Copy" fill="#FFF080" transform="translate(366.000000, 229.000000) rotate(-270.000000) translate(-366.000000, -229.000000) " x="361" y="224" width="10" height="10" rx="5"></rect>
+                                  <rect id="Rectangle-7-Copy-8" fill="#79F2B0" transform="translate(86.000000, 74.000000) rotate(-270.000000) translate(-86.000000, -74.000000) " x="81" y="69" width="10" height="10" rx="5"></rect>
+                                  <rect id="Rectangle-7-Copy-6" fill="#FFF080" transform="translate(318.000000, 162.000000) rotate(-270.000000) translate(-318.000000, -162.000000) " x="313" y="157" width="10" height="10" rx="5"></rect>
+                                  <rect id="Rectangle-7-Copy-4" fill="#974DFF" transform="translate(351.627417, 133.627417) rotate(-315.000000) translate(-351.627417, -133.627417) " x="335.627417" y="117.627417" width="32" height="32" rx="16"></rect>
+                                  <rect id="Rectangle-7-Copy-2" fill="#4CCCFF" transform="translate(324.970563, 108.970563) rotate(-315.000000) translate(-324.970563, -108.970563) " x="312.970563" y="96.9705627" width="24" height="24" rx="12"></rect>
+                                  <rect id="Rectangle-7-Copy-7" fill="#4CCCFF" transform="translate(16.970563, 133.769553) rotate(-315.000000) translate(-16.970563, -133.769553) " x="4.97056275" y="121.769553" width="24" height="24"></rect>
+                                  <rect id="Rectangle-7-Copy-3" fill="#79F2B0" transform="translate(304.000000, 88.000000) rotate(-270.000000) translate(-304.000000, -88.000000) " x="296" y="80" width="16" height="16" rx="8"></rect>
+                                  <g id="Rectangle-7-Copy-5" transform="translate(40.970563, 108.029437) rotate(-315.000000) translate(-40.970563, -108.029437) ">
+                                      <use fill-opacity="0" fill="#FFFFFF" fill-rule="evenodd" xlink:href="#path-1"></use>
+                                      <rect stroke="#79F2B0" stroke-width="4" x="30.9705627" y="98.0294373" width="20" height="20"></rect>
+                                  </g>
+                                  <rect id="Rectangle-6" fill="#ff0000" transform="translate(184.675144, 134.350288) rotate(-315.000000) translate(-184.675144, -134.350288) " x="89.6751442" y="39.3502884" width="190" height="190"></rect>
+                                  <rect id="Rectangle-8" fill="#FFF080" x="273" y="202" width="98" height="7" rx="3.5"></rect>
+                                  <rect id="Rectangle-8-Copy-2" fill="#FFF080" x="247" y="226" width="98" height="7" rx="3.5"></rect>
+                                  <rect id="Rectangle-8-Copy" fill="#FFF080" x="234.324856" y="178" width="98" height="7" rx="3.5"></rect>
+                                  <path d="M106.478856,139.884 L106.478856,144 L101.382856,144 L101.382856,124.96 L108.606856,124.96 C113.730856,124.96 116.614856,128.208 116.614856,132.436 C116.614856,136.664 113.730856,139.884 108.606856,139.884 L106.478856,139.884 Z M106.478856,135.572 L108.354856,135.572 C110.650856,135.572 111.490856,134.284 111.490856,132.436 C111.490856,130.588 110.650856,129.272 108.354856,129.272 L106.478856,129.272 L106.478856,135.572 Z M129.902856,144.252 C124.414856,144.252 119.682856,140.22 119.682856,134.48 C119.682856,128.74 124.414856,124.736 129.902856,124.736 C135.390856,124.736 140.122856,128.74 140.122856,134.48 C140.122856,140.22 135.390856,144.252 129.902856,144.252 Z M129.902856,139.828 C133.094856,139.828 134.914856,137.476 134.914856,134.48 C134.914856,131.484 133.094856,129.16 129.902856,129.16 C126.710856,129.16 124.890856,131.484 124.890856,134.48 C124.890856,137.476 126.710856,139.828 129.902856,139.828 Z M144.114856,144 L149.210856,144 L149.210856,124.96 L144.114856,124.96 L144.114856,144 Z M170.870856,144.336 C171.178856,144.588 171.262856,144.504 171.262856,144.28 L171.262856,124.96 L166.474856,124.96 L166.474856,134.508 L154.518856,124.652 C154.210856,124.4 154.126856,124.54 154.126856,124.708 L154.126856,144 L158.914856,144 L158.914856,134.508 L170.870856,144.336 Z M180.098856,144 L185.194856,144 L185.194856,129.244 L190.234856,129.244 L190.234856,124.96 L175.058856,124.96 L175.058856,129.244 L180.098856,129.244 L180.098856,144 Z M194.002856,139.324 C195.962856,139.324 197.726856,137.7 197.726856,135.6 C197.726856,133.472 195.962856,131.876 194.002856,131.876 C192.042856,131.876 190.278856,133.472 190.278856,135.6 C190.278856,137.7 192.042856,139.324 194.002856,139.324 Z M201.578856,144 L206.674856,144 L206.674856,137.952 L213.590856,137.952 L213.590856,133.668 L206.674856,133.668 L206.674856,129.244 L214.514856,129.244 L214.514856,124.96 L201.578856,124.96 L201.578856,144 Z M230.322856,138.596 L233.710856,144 L228.194856,144 L225.534856,139.632 L223.630856,139.632 L223.630856,144 L218.534856,144 L218.534856,124.96 L225.758856,124.96 C230.882856,124.96 233.766856,128.208 233.766856,132.436 C233.766856,135.18 232.562856,137.364 230.322856,138.596 Z M223.630856,135.572 L225.506856,135.572 C227.802856,135.572 228.642856,134.284 228.642856,132.436 C228.642856,130.588 227.802856,129.272 225.506856,129.272 L223.630856,129.272 L223.630856,135.572 Z M237.646856,144 L251.394856,144 L251.394856,139.716 L242.742856,139.716 L242.742856,137.728 L249.630856,137.728 L249.630856,133.668 L242.742856,133.668 L242.742856,129.244 L251.002856,129.244 L251.002856,124.96 L237.646856,124.96 L237.646856,144 Z M255.358856,144 L269.106856,144 L269.106856,139.716 L260.454856,139.716 L260.454856,137.728 L267.342856,137.728 L267.342856,133.668 L260.454856,133.668 L260.454856,129.244 L268.714856,129.244 L268.714856,124.96 L255.358856,124.96 L255.358856,144 Z" id="point•free" fill="#FFFFFF"></path>
+                              </g>
+                          </g>
+                          <!-- 
+                          Filler text to increase file size to be above 16KB for testing purposes.
+                      
+                          Here’s to the crazy ones. The misfits. The rebels. The troublemakers. The round pegs in the square holes. The ones who see things differently. They’re not fond of rules, and they have no respect for the status quo.
+                      
+                          You can quote them, disagree with them, glorify or vilify them. About the only thing you can’t do is ignore them. Because they change things. They push the human race forward.
+                      
+                          And while some see them as the crazy ones, we see genius. Because the people who are crazy enough to think they can change the world, are the ones who do.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                      
+                          Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.
+                          -->
+                      </svg>
+                      """
                   )
                 ),
                 [1]: CKRecord(
@@ -112,14 +290,14 @@
               storage: []
             )
           )
-          """
+          """#
         }
 
         inMemoryDataManager.storage.withValue { storage in
           let url = URL(
-            string: "file:///97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf"
+            string: "file:///43aba58d3830c6821f433a10c9fd554e53c257ebfd9c451514ea2c27c774b79f"
           )!
-          #expect(storage[url] == Data("new-image".utf8))
+          #expect(storage[url] == redCoverImage)
         }
       }
 
@@ -127,6 +305,8 @@
       // => Stored in database as bytes
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func receiveAsset() async throws {
+        let blackImageURL = Bundle.module.url(forResource: "test-black", withExtension: "svg")!
+        let blackCoverImage = try Data(contentsOf: blackImageURL)
         let remindersListRecord = CKRecord(
           recordType: RemindersList.tableName,
           recordID: RemindersList.recordID(for: 1)
@@ -135,7 +315,7 @@
         remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
         let fileURL = URL(fileURLWithPath: UUID().uuidString)
-        try inMemoryDataManager.save(Data("image".utf8), to: fileURL)
+        try inMemoryDataManager.save(blackCoverImage, to: fileURL)
         let remindersListAssetRecord = CKRecord(
           recordType: RemindersListAsset.tableName,
           recordID: RemindersListAsset.recordID(for: 1)
@@ -158,7 +338,7 @@
           let remindersListAsset = try #require(
             try RemindersListAsset.find(1).fetchOne(db)
           )
-          #expect(remindersListAsset.coverImage == Data("image".utf8))
+          #expect(remindersListAsset.coverImage == blackCoverImage)
         }
       }
 
@@ -166,19 +346,23 @@
       // => Stored in database as bytes
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func receiveUpdatedAsset() async throws {
+        let blackImageURL = Bundle.module.url(forResource: "test-black", withExtension: "svg")!
+        let blackCoverImage = try Data(contentsOf: blackImageURL)
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")
-            RemindersListAsset(remindersListID: 1, coverImage: Data("image".utf8))
+            RemindersListAsset(remindersListID: 1, coverImage: blackCoverImage)
           }
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
+        let redImageURL = Bundle.module.url(forResource: "test-red", withExtension: "svg")!
+        let redCoverImage = try Data(contentsOf: redImageURL)
         try await withDependencies {
           $0.currentTime.now += 1
         } operation: {
           let fileURL = URL(fileURLWithPath: UUID().uuidString)
-          try inMemoryDataManager.save(Data("new-image".utf8), to: fileURL)
+          try inMemoryDataManager.save(redCoverImage, to: fileURL)
           let remindersListAssetRecord = try syncEngine.private.database.record(
             for: RemindersListAsset.recordID(for: 1)
           )
@@ -198,7 +382,7 @@
           let remindersListAsset = try #require(
             try RemindersListAsset.find(1).fetchOne(db)
           )
-          #expect(remindersListAsset.coverImage == Data("new-image".utf8))
+          #expect(remindersListAsset.coverImage == redCoverImage)
         }
       }
 
@@ -208,6 +392,8 @@
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func receiveAssetThenReceiveUpdate() async throws {
         do {
+          let blackImageURL = Bundle.module.url(forResource: "test-black", withExtension: "svg")!
+          let blackCoverImage = try Data(contentsOf: blackImageURL)
           let remindersListRecord = CKRecord(
             recordType: RemindersList.tableName,
             recordID: RemindersList.recordID(for: 1)
@@ -216,7 +402,7 @@
           remindersListRecord.setValue("Personal", forKey: "title", at: now)
 
           let fileURL = URL(fileURLWithPath: UUID().uuidString)
-          try inMemoryDataManager.save(Data("image".utf8), to: fileURL)
+          try inMemoryDataManager.save(blackCoverImage, to: fileURL)
           let remindersListAssetRecord = CKRecord(
             recordType: RemindersListAsset.tableName,
             recordID: RemindersListAsset.recordID(for: 1)
@@ -240,11 +426,13 @@
           .notify()
         }
 
+        let redImageURL = Bundle.module.url(forResource: "test-red", withExtension: "svg")!
+        let redCoverImage = try Data(contentsOf: redImageURL)
         try await withDependencies {
           $0.currentTime.now += 1
         } operation: {
           let fileURL = URL(fileURLWithPath: UUID().uuidString)
-          try inMemoryDataManager.save(Data("new-image".utf8), to: fileURL)
+          try inMemoryDataManager.save(redCoverImage, to: fileURL)
           let remindersListAssetRecord = try syncEngine.private.database.record(
             for: RemindersListAsset.recordID(for: 1)
           )
@@ -264,7 +452,7 @@
           let remindersListAsset = try #require(
             try RemindersListAsset.find(1).fetchOne(db)
           )
-          #expect(remindersListAsset.coverImage == Data("new-image".utf8))
+          #expect(remindersListAsset.coverImage == redCoverImage)
         }
       }
 
@@ -273,6 +461,8 @@
       // => Both records (and the image data) should be synchronized
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func assetReceivedBeforeParentRecord() async throws {
+        let blackImageURL = Bundle.module.url(forResource: "test-black", withExtension: "svg")!
+        let blackCoverImage = try Data(contentsOf: blackImageURL)
         let remindersListRecord = CKRecord(
           recordType: RemindersList.tableName,
           recordID: RemindersList.recordID(for: 1)
@@ -286,7 +476,7 @@
         )
         remindersListAssetRecord.setValue("1", forKey: "id", at: now)
         remindersListAssetRecord.setValue(
-          Array("image".utf8),
+          blackCoverImage,
           forKey: "coverImage",
           at: now
         )
@@ -320,12 +510,12 @@
         }
         assertQuery(RemindersListAsset.all, database: userDatabase.database) {
           """
-          ┌─────────────────────────────┐
-          │ RemindersListAsset(         │
-          │   remindersListID: 1,       │
-          │   coverImage: Data(5 bytes) │
-          │ )                           │
-          └─────────────────────────────┘
+          ┌──────────────────────────────────┐
+          │ RemindersListAsset(              │
+          │   remindersListID: 1,            │
+          │   coverImage: Data(16,811 bytes) │
+          │ )                                │
+          └──────────────────────────────────┘
           """
         }
 
