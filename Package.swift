@@ -48,7 +48,7 @@ let package = Package(
     ),
     .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
     .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
-    .package(url: "https://github.com/apple/swift-log", from: "1.7.0")
+    .package(url: "https://github.com/apple/swift-log", from: "1.6.0")
   ],
   targets: [
     .target(
