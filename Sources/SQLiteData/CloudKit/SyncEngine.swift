@@ -38,6 +38,7 @@
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
+    private let atomicByZone: Bool
 
     /// The error message used when a write occurs to a record for which the current user does not
     /// have permission.
@@ -215,10 +216,12 @@
       logger: Logger,
       delegate: (any SyncEngineDelegate)?,
       tables: [any SynchronizableTable],
-      privateTables: [any SynchronizableTable] = []
+      privateTables: [any SynchronizableTable] = [],
+      atomicByZone: Bool = false
     ) throws {
       let allTables = Set((tables + privateTables).map(HashableSynchronizedTable.init))
         .map(\.type)
+      self.atomicByZone = atomicByZone
       self.tables = allTables
       self.privateTables = privateTables
       self.delegate = delegate
@@ -618,6 +621,7 @@
           false
         }
       }
+      print("!!!")
       syncEngines.withValue {
         $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
         $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
@@ -1079,7 +1083,7 @@
         }
       #endif
 
-      let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
+      var batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
         guard
           let (metadata, allFields) = await withErrorReporting(
             .sqliteDataCloudKitFailure,
@@ -1178,6 +1182,7 @@
         }
         return await open(table)
       }
+      batch?.atomicByZone = atomicByZone
       return batch
     }
 
@@ -1577,10 +1582,10 @@
 
       var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
       var newPendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] = []
-      defer {
-        syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
-        syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
-      }
+//      defer {
+//        syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
+//        syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
+//      }
       for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() async {
           await withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -1697,7 +1702,18 @@
           }
 
         case .batchRequestFailed:
-          fatalError()
+//          print("?!?!?!")
+//          await withErrorReporting {
+//            try await metadatabase.write { db in
+//              try PendingRecordZoneChange.insert {
+//                PendingRecordZoneChange.init(.saveRecord(failedRecord.recordID))
+//              }
+//              .execute(db)
+//            }
+//          }
+          //[.failed(.serverRecordChanged), .failed(.batchRequestFailed)]
+          //syncEngine.state.add(pendingRecordZoneChanges: [.saveRecord(failedRecord.recordID)])
+          newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
           break
 
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
@@ -1740,6 +1756,15 @@
       if enqueuedUnsyncedRecordID {
         await handleFetchedRecordZoneChanges(syncEngine: syncEngine)
       }
+
+      await withErrorReporting {
+        try await enqueueLocallyPendingChanges()
+      }
+
+//      defer {
+        syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
+        syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
+//      }
     }
 
     private func cacheShare(_ share: CKShare) async throws {

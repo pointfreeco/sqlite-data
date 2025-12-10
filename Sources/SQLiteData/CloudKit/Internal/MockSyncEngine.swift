@@ -260,11 +260,18 @@
           fatalError("Mocks should only raise 'CKError' values.")
         }
       }
+      print("!!!")
       syncEngine.state.remove(
         pendingRecordZoneChanges: savedRecords.map { .saveRecord($0.recordID) }
       )
       syncEngine.state.remove(
+        pendingRecordZoneChanges: failedRecordSaves.map { .saveRecord($0.record.recordID) }
+      )
+      syncEngine.state.remove(
         pendingRecordZoneChanges: deletedRecordIDs.map { .deleteRecord($0) }
+      )
+      syncEngine.state.remove(
+        pendingRecordZoneChanges: failedRecordDeletes.keys.map { .deleteRecord($0) }
       )
 
       await syncEngine.parentSyncEngine

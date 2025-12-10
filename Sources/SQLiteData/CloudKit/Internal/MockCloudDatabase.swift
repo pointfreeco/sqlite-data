@@ -85,6 +85,7 @@
       else { throw ckError(forAccountStatus: accountStatus) }
 
       var (saveResults, deleteResults) = storage.withValue { storage in
+        let previousStorage = storage
         var saveResults: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
         var deleteResults: [CKRecord.ID: Result<Void, any Error>] = [:]
 
@@ -95,7 +96,8 @@
               let isSavingRootRecord = recordsToSave.contains(where: {
                 $0.share?.recordID == share.recordID
               })
-              let shareWasPreviouslySaved = storage[share.recordID.zoneID]?.records[share.recordID] != nil
+              let shareWasPreviouslySaved =
+                storage[share.recordID.zoneID]?.records[share.recordID] != nil
               guard shareWasPreviouslySaved || isSavingRootRecord
               else {
                 saveResults[recordToSave.recordID] = .failure(CKError(.invalidArguments))
@@ -118,7 +120,9 @@
               continue
             }
 
-            let existingRecord = storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID]
+            let existingRecord = storage[recordToSave.recordID.zoneID]?.records[
+              recordToSave.recordID
+            ]
 
             func saveRecordToDatabase() {
               let hasReferenceViolation =
@@ -246,7 +250,7 @@
             deleteResults[recordIDToDelete] = .failure(CKError(.referenceViolation))
             continue
           }
-          let recordToDelete = storage[recordIDToDelete.zoneID]?[recordIDToDelete]
+          let recordToDelete = storage[recordIDToDelete.zoneID]?.records[recordIDToDelete]
           storage[recordIDToDelete.zoneID]?.records[recordIDToDelete] = nil
           deleteResults[recordIDToDelete] = .success(())
 
@@ -257,14 +261,14 @@
             shareToDelete.recordID.zoneID.ownerName == CKCurrentUserDefaultName
           {
             func deleteRecords(referencing recordID: CKRecord.ID) {
-              for recordToDelete in (storage[recordIDToDelete.zoneID] ?? [:]).values {
+              for recordToDelete in (storage[recordIDToDelete.zoneID]?.records ?? [:]).values {
                 guard
                   recordToDelete.share?.recordID == recordID
                     || recordToDelete.parent?.recordID == recordID
                 else {
                   continue
                 }
-                storage[recordIDToDelete.zoneID]?[recordToDelete.recordID] = nil
+                storage[recordIDToDelete.zoneID]?.records[recordToDelete.recordID] = nil
                 deleteRecords(referencing: recordToDelete.recordID)
               }
             }
@@ -272,29 +276,39 @@
           }
         }
 
-        return (saveResults: saveResults, deleteResults: deleteResults)
-      }
+        // NB: atomic is per zone setting
+        // NB: check if zone has atomic capability
+        if atomically {
+          let zones = Set(recordsToSave.map(\.recordID.zoneID) + recordIDsToDelete.map(\.zoneID))
+          for zoneID in zones {
+            let saveResultsInZone = saveResults.filter { recordID, _ in recordID.zoneID == zoneID }
+            let deleteResultsInZone = deleteResults.filter { recordID, _ in
+              recordID.zoneID == zoneID
+            }
+            let saveSuccessRecordIDs = saveResultsInZone.compactMap { recordID, result in
+              (try? result.get()) == nil ? nil : recordID
+            }
+            let deleteSuccessRecordIDs = deleteResultsInZone.compactMap { recordID, result in
+              (try? result.get()) == nil ? nil : recordID
+            }
+            if saveSuccessRecordIDs.count != saveResultsInZone.count
+                || deleteSuccessRecordIDs.count != deleteResultsInZone.count
+            {
+              for saveSuccessRecordID in saveSuccessRecordIDs {
+                print("!!!")
+                saveResults[saveSuccessRecordID] = .failure(CKError(.batchRequestFailed))
+              }
+              for deleteSuccessRecordID in deleteSuccessRecordIDs {
+                print("!!!")
+                deleteResults[deleteSuccessRecordID] = .failure(CKError(.batchRequestFailed))
+              }
 
-      // NB: atomic is per zone setting
-      // NB: check if zone has atomic capability
-      if atomically {
-        let saveSuccessRecordIDs = saveResults.compactMap { recordID, result in
-          (try? result.get()) == nil ? nil : recordID
-        }
-        let deleteSuccessRecordIDs = deleteResults.compactMap { recordID, result in
-          (try? result.get()) == nil ? nil : recordID
-        }
-        if
-          saveSuccessRecordIDs.count != saveResults.count
-            || deleteSuccessRecordIDs.count != deleteResults.count
-        {
-          for saveSuccessRecordID in saveSuccessRecordIDs {
-            saveResults[saveSuccessRecordID] = .failure(CKError(.batchRequestFailed))
-          }
-          for deleteSuccessRecordID in deleteSuccessRecordIDs {
-            deleteResults[deleteSuccessRecordID] = .failure(CKError(.batchRequestFailed))
+              storage[zoneID]?.records = previousStorage[zoneID]?.records ?? [:]
+            }
           }
         }
+
+        return (saveResults: saveResults, deleteResults: deleteResults)
       }
 
       return (saveResults: saveResults, deleteResults: deleteResults)
@@ -316,7 +330,8 @@
         var deleteResults: [CKRecordZone.ID: Result<Void, any Error>] = [:]
 
         for recordZoneToSave in recordZonesToSave {
-          storage[recordZoneToSave.zoneID] = storage[recordZoneToSave.zoneID] ?? Zone(zone: recordZoneToSave)
+          storage[recordZoneToSave.zoneID] =
+            storage[recordZoneToSave.zoneID] ?? Zone(zone: recordZoneToSave)
           saveResults[recordZoneToSave.zoneID] = .success(recordZoneToSave)
         }
 

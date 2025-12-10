@@ -65,7 +65,8 @@ extension SyncEngine {
   func modifyRecords(
     scope: CKDatabase.Scope,
     saving recordsToSave: [CKRecord] = [],
-    deleting recordIDsToDelete: [CKRecord.ID] = []
+    deleting recordIDsToDelete: [CKRecord.ID] = [],
+    atomically: Bool = true
   ) throws -> ModifyRecordsCallback<
     (
       saveResults: [CKRecord.ID: Result<CKRecord, any Error>],
@@ -83,7 +84,8 @@ extension SyncEngine {
 
     let (saveResults, deleteResults) = try syncEngine.database.modifyRecords(
       saving: recordsToSave,
-      deleting: recordIDsToDelete
+      deleting: recordIDsToDelete,
+      atomically: atomically
     )
 
     return ModifyRecordsCallback {

@@ -73,7 +73,8 @@ class BaseCloudKitTests: @unchecked Sendable {
       ModelB.self,
       ModelC.self,
       privateTables: RemindersListPrivate.self,
-      startImmediately: _StartImmediatelyTrait.startImmediately
+      startImmediately: _StartImmediatelyTrait.startImmediately,
+      atomicByZone: _AtomicByZoneTrait.atomicByZone
     )
     if _StartImmediatelyTrait.startImmediately,
       _AccountStatusScope.accountStatus == .available
@@ -167,7 +168,8 @@ extension SyncEngine {
     delegate: (any SyncEngineDelegate)? = nil,
     tables: repeat (each T1).Type,
     privateTables: repeat (each T2).Type,
-    startImmediately: Bool = true
+    startImmediately: Bool = true,
+    atomicByZone: Bool = false
   ) async throws
   where
     repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
@@ -189,7 +191,8 @@ extension SyncEngine {
       delegate: delegate,
       tables: allTables,
       privateTables: allPrivateTables,
-      startImmediately: startImmediately
+      startImmediately: startImmediately,
+      atomicByZone: atomicByZone
     )
   }
   convenience init(
@@ -198,7 +201,8 @@ extension SyncEngine {
     delegate: (any SyncEngineDelegate)? = nil,
     tables: [any SynchronizableTable],
     privateTables: [any SynchronizableTable] = [],
-    startImmediately: Bool = true
+    startImmediately: Bool = true,
+    atomicByZone: Bool = false
   ) async throws {
     try self.init(
       container: container,
@@ -221,7 +225,8 @@ extension SyncEngine {
       logger: Logger(.disabled),
       delegate: delegate,
       tables: tables,
-      privateTables: privateTables
+      privateTables: privateTables,
+      atomicByZone: atomicByZone
     )
     try setUpSyncEngine()
     if startImmediately {
