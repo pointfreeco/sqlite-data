@@ -11,7 +11,7 @@ import Testing
   .dependency(\.date.now, Date(timeIntervalSince1970: 1_234_567_890)),
   .dependency(\.uuid, .incrementing),
   .dependencies {
-    try $0.bootstrapDatabase()
+    try $0.bootstrapDatabase(seedSampleData: true)
     try await $0.defaultSyncEngine.sendChanges()
   },
   .snapshots(record: .failed)
