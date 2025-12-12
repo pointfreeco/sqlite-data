@@ -6,7 +6,8 @@ synchronization.
 ## Overview
 
 SQLiteData is a [fast](#Performance), lightweight replacement for SwiftData, supporting CloudKit
-synchronization (and even CloudKit sharing), built on top of the popular [GRDB] library.
+synchronization (and even CloudKit sharing), built on top of the popular 
+[GRDB](https://github.com/groue/GRDB.swift) library.
 
 @Row {
   @Column {
@@ -177,11 +178,9 @@ a model context, via a property wrapper:
   }
 }
 
-> Important: SQLiteData uses [GRDB] under the hood for interacting with SQLite, and you will use
-> its tools for creating transactions for writing to the database, such as the `database.write`
-> method above.
-
-[GRDB]: https://github.com/groue/GRDB.swift
+> Important: SQLiteData uses [GRDB](https://github.com/groue/GRDB.swift) under the hood for 
+> interacting with SQLite, and you will use its tools for creating transactions for writing 
+> to the database, such as the `database.write` method above.
 
 For more information on how SQLiteData compares to SwiftData, see <doc:ComparisonWithSwiftData>.
 
@@ -249,10 +248,9 @@ for data and keep your views up-to-date when data in the database changes, and y
 either using its type-safe, discoverable query building APIs, or using its `#sql` macro for writing
 safe SQL strings.
 
-Further, this library is built on the popular and battle-tested [GRDB] library for
-interacting with SQLite, such as executing queries and observing the database for changes.
-
-[GRDB]: https://github.com/groue/GRDB.swift
+Further, this library is built on the popular and battle-tested 
+[GRDB](https://github.com/groue/GRDB.swift) library for interacting with SQLite, such as executing 
+queries and observing the database for changes.
 
 ## What is StructuredQueries?
 
