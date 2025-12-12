@@ -295,11 +295,9 @@
                 || deleteSuccessRecordIDs.count != deleteResultsInZone.count
             {
               for saveSuccessRecordID in saveSuccessRecordIDs {
-                print("!!!")
                 saveResults[saveSuccessRecordID] = .failure(CKError(.batchRequestFailed))
               }
               for deleteSuccessRecordID in deleteSuccessRecordIDs {
-                print("!!!")
                 deleteResults[deleteSuccessRecordID] = .failure(CKError(.batchRequestFailed))
               }
 

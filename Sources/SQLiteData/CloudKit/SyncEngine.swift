@@ -621,7 +621,6 @@
           false
         }
       }
-      print("!!!")
       syncEngines.withValue {
         $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
         $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
@@ -1582,10 +1581,10 @@
 
       var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
       var newPendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] = []
-//      defer {
-//        syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
-//        syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
-//      }
+      defer {
+        syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
+        syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
+      }
       for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() async {
           await withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -1702,17 +1701,6 @@
           }
 
         case .batchRequestFailed:
-//          print("?!?!?!")
-//          await withErrorReporting {
-//            try await metadatabase.write { db in
-//              try PendingRecordZoneChange.insert {
-//                PendingRecordZoneChange.init(.saveRecord(failedRecord.recordID))
-//              }
-//              .execute(db)
-//            }
-//          }
-          //[.failed(.serverRecordChanged), .failed(.batchRequestFailed)]
-          //syncEngine.state.add(pendingRecordZoneChanges: [.saveRecord(failedRecord.recordID)])
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
           break
 
@@ -1760,11 +1748,6 @@
       await withErrorReporting {
         try await enqueueLocallyPendingChanges()
       }
-
-//      defer {
-        syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
-        syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
-//      }
     }
 
     private func cacheShare(_ share: CKShare) async throws {
