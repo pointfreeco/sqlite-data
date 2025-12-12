@@ -48,7 +48,7 @@
         : sharedCloudDatabase
 
       let rootRecord: CKRecord? = database.storage.withValue {
-        $0[share.recordID.zoneID]?.values.first { record in
+        $0[share.recordID.zoneID]?.records.values.first { record in
           record.share?.recordID == share.recordID
         }
       }

@@ -38,6 +38,7 @@
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
+    private let atomicByZone: Bool
 
     /// The error message used when a write occurs to a record for which the current user does not
     /// have permission.
@@ -215,10 +216,12 @@
       logger: Logger,
       delegate: (any SyncEngineDelegate)?,
       tables: [any SynchronizableTable],
-      privateTables: [any SynchronizableTable] = []
+      privateTables: [any SynchronizableTable] = [],
+      atomicByZone: Bool = false
     ) throws {
       let allTables = Set((tables + privateTables).map(HashableSynchronizedTable.init))
         .map(\.type)
+      self.atomicByZone = atomicByZone
       self.tables = allTables
       self.privateTables = privateTables
       self.delegate = delegate
@@ -912,8 +915,7 @@
         parentForeignKey: parentForeignKey,
         defaultZone: defaultZone,
         privateTables: privateTables
-      )
-      {
+      ) {
         try trigger.execute(db)
       }
     }
@@ -929,7 +931,7 @@
         defaultZone: defaultZone,
         privateTables: privateTables
       )
-        .reversed() {
+      .reversed() {
         try trigger.drop().execute(db)
       }
     }
@@ -1079,7 +1081,7 @@
         }
       #endif
 
-      let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
+      var batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
         guard
           let (metadata, allFields) = await withErrorReporting(
             .sqliteDataCloudKitFailure,
@@ -1178,6 +1180,7 @@
         }
         return await open(table)
       }
+      batch?.atomicByZone = atomicByZone
       return batch
     }
 
@@ -1696,8 +1699,12 @@
             try await open(table)
           }
 
+        case .batchRequestFailed:
+          newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
+          break
+
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .notAuthenticated, .operationCancelled, .batchRequestFailed,
+          .notAuthenticated, .operationCancelled,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
@@ -1714,20 +1721,43 @@
         }
       }
 
+      for (failedRecordID, error) in failedRecordDeletes {
+      }
+
+      //
+      //
+
       let enqueuedUnsyncedRecordID =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.write { db in
             var enqueuedUnsyncedRecordID = false
             for (failedRecordID, error) in failedRecordDeletes {
-              guard
-                error.code == .referenceViolation
-              else { continue }
-              try UnsyncedRecordID.insert(or: .ignore) {
-                UnsyncedRecordID(recordID: failedRecordID)
+              switch error.code {
+              case .referenceViolation:
+                enqueuedUnsyncedRecordID = true
+                try UnsyncedRecordID.insert(or: .ignore) {
+                  UnsyncedRecordID(recordID: failedRecordID)
+                }
+                .execute(db)
+                syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+                break
+              case .batchRequestFailed:
+                syncEngine.state.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+                break
+              case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
+                  .notAuthenticated, .operationCancelled, .internalError, .partialFailure,
+                  .badContainer, .requestRateLimited, .missingEntitlement, .invalidArguments,
+                  .resultsTruncated, .assetFileNotFound, .assetFileModified, .incompatibleVersion,
+                  .constraintViolation, .changeTokenExpired, .badDatabase, .quotaExceeded,
+                  .limitExceeded, .userDeletedZone, .tooManyParticipants, .alreadyShared,
+                  .managedAccountRestricted, .participantMayNeedVerification, .serverResponseLost,
+                  .assetNotAvailable, .accountTemporarilyUnavailable, .permissionFailure,
+                  .unknownItem, .serverRecordChanged, .serverRejectedRequest, .zoneNotFound,
+                  .participantAlreadyInvited:
+                break
+              @unknown default:
+                break
               }
-              .execute(db)
-              syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
-              enqueuedUnsyncedRecordID = true
             }
             return enqueuedUnsyncedRecordID
           }
@@ -1735,6 +1765,10 @@
         ?? false
       if enqueuedUnsyncedRecordID {
         await handleFetchedRecordZoneChanges(syncEngine: syncEngine)
+      }
+
+      await withErrorReporting {
+        try await enqueueLocallyPendingChanges()
       }
     }
 
