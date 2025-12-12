@@ -11,11 +11,7 @@ nonisolated struct Counter: Identifiable {
 extension DependencyValues {
   mutating func bootstrapDatabase() throws {
     @Dependency(\.context) var context
-    var configuration = Configuration()
-    configuration.prepareDatabase {
-      try $0.attachMetadatabase()
-    }
-    let database = try SQLiteData.defaultDatabase(configuration: configuration)
+    let database = try SQLiteData.defaultDatabase()
     logger.debug(
       """
       App database

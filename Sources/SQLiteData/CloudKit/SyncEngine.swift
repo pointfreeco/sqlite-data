@@ -915,8 +915,7 @@
         parentForeignKey: parentForeignKey,
         defaultZone: defaultZone,
         privateTables: privateTables
-      )
-      {
+      ) {
         try trigger.execute(db)
       }
     }
@@ -932,7 +931,7 @@
         defaultZone: defaultZone,
         privateTables: privateTables
       )
-        .reversed() {
+      .reversed() {
         try trigger.drop().execute(db)
       }
     }
@@ -1722,20 +1721,43 @@
         }
       }
 
+      for (failedRecordID, error) in failedRecordDeletes {
+      }
+
+      //
+      //
+
       let enqueuedUnsyncedRecordID =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.write { db in
             var enqueuedUnsyncedRecordID = false
             for (failedRecordID, error) in failedRecordDeletes {
-              guard
-                error.code == .referenceViolation
-              else { continue }
-              try UnsyncedRecordID.insert(or: .ignore) {
-                UnsyncedRecordID(recordID: failedRecordID)
+              switch error.code {
+              case .referenceViolation:
+                enqueuedUnsyncedRecordID = true
+                try UnsyncedRecordID.insert(or: .ignore) {
+                  UnsyncedRecordID(recordID: failedRecordID)
+                }
+                .execute(db)
+                syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+                break
+              case .batchRequestFailed:
+                syncEngine.state.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+                break
+              case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
+                  .notAuthenticated, .operationCancelled, .internalError, .partialFailure,
+                  .badContainer, .requestRateLimited, .missingEntitlement, .invalidArguments,
+                  .resultsTruncated, .assetFileNotFound, .assetFileModified, .incompatibleVersion,
+                  .constraintViolation, .changeTokenExpired, .badDatabase, .quotaExceeded,
+                  .limitExceeded, .userDeletedZone, .tooManyParticipants, .alreadyShared,
+                  .managedAccountRestricted, .participantMayNeedVerification, .serverResponseLost,
+                  .assetNotAvailable, .accountTemporarilyUnavailable, .permissionFailure,
+                  .unknownItem, .serverRecordChanged, .serverRejectedRequest, .zoneNotFound,
+                  .participantAlreadyInvited:
+                break
+              @unknown default:
+                break
               }
-              .execute(db)
-              syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
-              enqueuedUnsyncedRecordID = true
             }
             return enqueuedUnsyncedRecordID
           }
