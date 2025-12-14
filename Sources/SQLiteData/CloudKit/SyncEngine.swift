@@ -1717,12 +1717,6 @@
         }
       }
 
-      for (failedRecordID, error) in failedRecordDeletes {
-      }
-
-      //
-      //
-
       let enqueuedUnsyncedRecordID =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.write { db in
