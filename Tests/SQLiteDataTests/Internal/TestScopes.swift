@@ -52,29 +52,6 @@
     }
   }
 
-  struct _AtomicByZoneTrait: SuiteTrait, TestScoping, TestTrait {
-    @TaskLocal static var atomicByZone = false
-    let atomicByZone: Bool
-    init(atomicByZone: Bool = false) {
-      self.atomicByZone = atomicByZone
-    }
-    func provideScope(
-      for test: Test,
-      testCase: Test.Case?,
-      performing function: () async throws -> Void
-    ) async throws {
-      try await Self.$atomicByZone.withValue(atomicByZone) {
-        try await function()
-      }
-    }
-  }
-
-  extension Trait where Self == _AtomicByZoneTrait {
-    static func atomicByZone(_ atomicByZone: Bool) -> Self {
-      Self(atomicByZone: atomicByZone)
-    }
-  }
-
   struct _AttachMetadatabaseTrait: SuiteTrait, TestScoping, TestTrait {
     @TaskLocal static var attachMetadatabase = false
     let attachMetadatabase: Bool

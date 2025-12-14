@@ -38,7 +38,6 @@
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
-    private let atomicByZone: Bool
 
     /// The error message used when a write occurs to a record for which the current user does not
     /// have permission.
@@ -216,12 +215,10 @@
       logger: Logger,
       delegate: (any SyncEngineDelegate)?,
       tables: [any SynchronizableTable],
-      privateTables: [any SynchronizableTable] = [],
-      atomicByZone: Bool = false
+      privateTables: [any SynchronizableTable] = []
     ) throws {
       let allTables = Set((tables + privateTables).map(HashableSynchronizedTable.init))
         .map(\.type)
-      self.atomicByZone = atomicByZone
       self.tables = allTables
       self.privateTables = privateTables
       self.delegate = delegate
@@ -1081,7 +1078,7 @@
         }
       #endif
 
-      var batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
+      let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
         guard
           let (metadata, allFields) = await withErrorReporting(
             .sqliteDataCloudKitFailure,
@@ -1180,7 +1177,6 @@
         }
         return await open(table)
       }
-      batch?.atomicByZone = atomicByZone
       return batch
     }
 
