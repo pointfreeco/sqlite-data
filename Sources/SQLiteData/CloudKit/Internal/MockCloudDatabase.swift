@@ -276,39 +276,43 @@
           }
         }
 
-        // NB: atomic is per zone setting
-        // NB: check if zone has atomic capability
-        if atomically {
-          let zones = Set(recordsToSave.map(\.recordID.zoneID) + recordIDsToDelete.map(\.zoneID))
-          for zoneID in zones {
-            let saveResultsInZone = saveResults.filter { recordID, _ in recordID.zoneID == zoneID }
-            let deleteResultsInZone = deleteResults.filter { recordID, _ in
-              recordID.zoneID == zoneID
-            }
-            let saveSuccessRecordIDs = saveResultsInZone.compactMap { recordID, result in
-              (try? result.get()) == nil ? nil : recordID
-            }
-            let deleteSuccessRecordIDs = deleteResultsInZone.compactMap { recordID, result in
-              (try? result.get()) == nil ? nil : recordID
-            }
-            if saveSuccessRecordIDs.count != saveResultsInZone.count
-                || deleteSuccessRecordIDs.count != deleteResultsInZone.count
-            {
-              for saveSuccessRecordID in saveSuccessRecordIDs {
-                saveResults[saveSuccessRecordID] = .failure(CKError(.batchRequestFailed))
-              }
-              for deleteSuccessRecordID in deleteSuccessRecordIDs {
-                deleteResults[deleteSuccessRecordID] = .failure(CKError(.batchRequestFailed))
-              }
-
-              storage[zoneID]?.records = previousStorage[zoneID]?.records ?? [:]
-            }
-          }
+        guard atomically
+        else {
+          return (saveResults: saveResults, deleteResults: deleteResults)
         }
 
+        let affectedZones = Set(
+          recordsToSave.map(\.recordID.zoneID) + recordIDsToDelete.map(\.zoneID)
+        )
+        for zoneID in affectedZones {
+          let saveResultsInZone = saveResults.filter { recordID, _ in recordID.zoneID == zoneID }
+          let deleteResultsInZone = deleteResults.filter { recordID, _ in
+            recordID.zoneID == zoneID
+          }
+          let saveSuccessRecordIDs = saveResultsInZone.compactMap { recordID, result in
+            (try? result.get()) == nil ? nil : recordID
+          }
+          let deleteSuccessRecordIDs = deleteResultsInZone.compactMap { recordID, result in
+            (try? result.get()) == nil ? nil : recordID
+          }
+          guard
+            saveSuccessRecordIDs.count != saveResultsInZone.count
+              || deleteSuccessRecordIDs.count != deleteResultsInZone.count
+          else {
+            continue
+          }
+          // Every successful save and deletion becomes a '.batchRequestFailed'.
+          for saveSuccessRecordID in saveSuccessRecordIDs {
+            saveResults[saveSuccessRecordID] = .failure(CKError(.batchRequestFailed))
+          }
+          for deleteSuccessRecordID in deleteSuccessRecordIDs {
+            deleteResults[deleteSuccessRecordID] = .failure(CKError(.batchRequestFailed))
+          }
+          // All storage changes are reverted in zone.
+          storage[zoneID]?.records = previousStorage[zoneID]?.records ?? [:]
+        }
         return (saveResults: saveResults, deleteResults: deleteResults)
       }
-
       return (saveResults: saveResults, deleteResults: deleteResults)
     }
 
