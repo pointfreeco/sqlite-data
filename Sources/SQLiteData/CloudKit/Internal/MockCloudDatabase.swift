@@ -84,7 +84,7 @@
       guard accountStatus == .available
       else { throw ckError(forAccountStatus: accountStatus) }
 
-      var (saveResults, deleteResults) = storage.withValue { storage in
+      return storage.withValue { storage in
         let previousStorage = storage
         var saveResults: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
         var deleteResults: [CKRecord.ID: Result<Void, any Error>] = [:]
@@ -313,7 +313,6 @@
         }
         return (saveResults: saveResults, deleteResults: deleteResults)
       }
-      return (saveResults: saveResults, deleteResults: deleteResults)
     }
 
     package func modifyRecordZones(
