@@ -4,16 +4,20 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockCloudDatabase: CloudDatabase {
-    package let storage = LockIsolated<[CKRecordZone.ID: [CKRecord.ID: CKRecord]]>([:])
+    package let storage = LockIsolated<[CKRecordZone.ID: Zone]>([:])
     let assets = LockIsolated<[AssetID: Data]>([:])
     package let databaseScope: CKDatabase.Scope
     let _container = IsolatedWeakVar<MockCloudContainer>()
-
     let dataManager = Dependency(\.dataManager)
 
     struct AssetID: Hashable {
       let recordID: CKRecord.ID
       let key: String
+    }
+
+    package struct Zone {
+      package var zone: CKRecordZone
+      package var records: [CKRecord.ID: CKRecord] = [:]
     }
 
     package init(databaseScope: CKDatabase.Scope) {
@@ -34,7 +38,7 @@
       else { throw ckError(forAccountStatus: accountStatus) }
       guard let zone = storage[recordID.zoneID]
       else { throw CKError(.zoneNotFound) }
-      guard let record = zone[recordID]
+      guard let record = zone.records[recordID]
       else { throw CKError(.unknownItem) }
       guard let record = record.copy() as? CKRecord
       else { fatalError("Could not copy CKRecord.") }
@@ -81,6 +85,7 @@
       else { throw ckError(forAccountStatus: accountStatus) }
 
       return storage.withValue { storage in
+        let previousStorage = storage
         var saveResults: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
         var deleteResults: [CKRecord.ID: Result<Void, any Error>] = [:]
 
@@ -91,7 +96,8 @@
               let isSavingRootRecord = recordsToSave.contains(where: {
                 $0.share?.recordID == share.recordID
               })
-              let shareWasPreviouslySaved = storage[share.recordID.zoneID]?[share.recordID] != nil
+              let shareWasPreviouslySaved =
+                storage[share.recordID.zoneID]?.records[share.recordID] != nil
               guard shareWasPreviouslySaved || isSavingRootRecord
               else {
                 saveResults[recordToSave.recordID] = .failure(CKError(.invalidArguments))
@@ -114,12 +120,14 @@
               continue
             }
 
-            let existingRecord = storage[recordToSave.recordID.zoneID]?[recordToSave.recordID]
+            let existingRecord = storage[recordToSave.recordID.zoneID]?.records[
+              recordToSave.recordID
+            ]
 
             func saveRecordToDatabase() {
               let hasReferenceViolation =
                 recordToSave.parent.map { parent in
-                  storage[parent.recordID.zoneID]?[parent.recordID] == nil
+                  storage[parent.recordID.zoneID]?.records[parent.recordID] == nil
                     && !recordsToSave.contains { $0.recordID == parent.recordID }
                 }
                 ?? false
@@ -132,10 +140,12 @@
               func root(of record: CKRecord) -> CKRecord {
                 guard let parent = record.parent
                 else { return record }
-                return (storage[parent.recordID.zoneID]?[parent.recordID]).map(root) ?? record
+                return (storage[parent.recordID.zoneID]?.records[parent.recordID]).map(
+                  root
+                ) ?? record
               }
               func share(for rootRecord: CKRecord) -> CKShare? {
-                for (_, record) in storage[rootRecord.recordID.zoneID] ?? [:] {
+                for (_, record) in storage[rootRecord.recordID.zoneID]?.records ?? [:] {
                   guard record.recordID == rootRecord.share?.recordID
                   else { continue }
                   return record as? CKShare
@@ -169,7 +179,7 @@
               }
 
               // TODO: This should merge copy's values to more accurately reflect reality
-              storage[recordToSave.recordID.zoneID]?[recordToSave.recordID] = copy
+              storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID] = copy
               saveResults[recordToSave.recordID] = .success(copy)
             }
 
@@ -228,7 +238,7 @@
             continue
           }
           let hasReferenceViolation = !Set(
-            storage[recordIDToDelete.zoneID]?.values
+            storage[recordIDToDelete.zoneID]?.records.values
               .compactMap { $0.parent?.recordID == recordIDToDelete ? $0.recordID : nil }
               ?? []
           )
@@ -240,8 +250,8 @@
             deleteResults[recordIDToDelete] = .failure(CKError(.referenceViolation))
             continue
           }
-          let recordToDelete = storage[recordIDToDelete.zoneID]?[recordIDToDelete]
-          storage[recordIDToDelete.zoneID]?[recordIDToDelete] = nil
+          let recordToDelete = storage[recordIDToDelete.zoneID]?.records[recordIDToDelete]
+          storage[recordIDToDelete.zoneID]?.records[recordIDToDelete] = nil
           deleteResults[recordIDToDelete] = .success(())
 
           // NB: If deleting a share that the current user owns, delete the shared records and all
@@ -251,14 +261,14 @@
             shareToDelete.recordID.zoneID.ownerName == CKCurrentUserDefaultName
           {
             func deleteRecords(referencing recordID: CKRecord.ID) {
-              for recordToDelete in (storage[recordIDToDelete.zoneID] ?? [:]).values {
+              for recordToDelete in (storage[recordIDToDelete.zoneID]?.records ?? [:]).values {
                 guard
                   recordToDelete.share?.recordID == recordID
                     || recordToDelete.parent?.recordID == recordID
                 else {
                   continue
                 }
-                storage[recordIDToDelete.zoneID]?[recordToDelete.recordID] = nil
+                storage[recordIDToDelete.zoneID]?.records[recordToDelete.recordID] = nil
                 deleteRecords(referencing: recordToDelete.recordID)
               }
             }
@@ -266,6 +276,41 @@
           }
         }
 
+        guard atomically
+        else {
+          return (saveResults: saveResults, deleteResults: deleteResults)
+        }
+
+        let affectedZones = Set(
+          recordsToSave.map(\.recordID.zoneID) + recordIDsToDelete.map(\.zoneID)
+        )
+        for zoneID in affectedZones {
+          let saveResultsInZone = saveResults.filter { recordID, _ in recordID.zoneID == zoneID }
+          let deleteResultsInZone = deleteResults.filter { recordID, _ in
+            recordID.zoneID == zoneID
+          }
+          let saveSuccessRecordIDs = saveResultsInZone.compactMap { recordID, result in
+            (try? result.get()) == nil ? nil : recordID
+          }
+          let deleteSuccessRecordIDs = deleteResultsInZone.compactMap { recordID, result in
+            (try? result.get()) == nil ? nil : recordID
+          }
+          guard
+            saveSuccessRecordIDs.count != saveResultsInZone.count
+              || deleteSuccessRecordIDs.count != deleteResultsInZone.count
+          else {
+            continue
+          }
+          // Every successful save and deletion becomes a '.batchRequestFailed'.
+          for saveSuccessRecordID in saveSuccessRecordIDs {
+            saveResults[saveSuccessRecordID] = .failure(CKError(.batchRequestFailed))
+          }
+          for deleteSuccessRecordID in deleteSuccessRecordIDs {
+            deleteResults[deleteSuccessRecordID] = .failure(CKError(.batchRequestFailed))
+          }
+          // All storage changes are reverted in zone.
+          storage[zoneID]?.records = previousStorage[zoneID]?.records ?? [:]
+        }
         return (saveResults: saveResults, deleteResults: deleteResults)
       }
     }
@@ -286,7 +331,8 @@
         var deleteResults: [CKRecordZone.ID: Result<Void, any Error>] = [:]
 
         for recordZoneToSave in recordZonesToSave {
-          storage[recordZoneToSave.zoneID] = storage[recordZoneToSave.zoneID] ?? [:]
+          storage[recordZoneToSave.zoneID] =
+            storage[recordZoneToSave.zoneID] ?? Zone(zone: recordZoneToSave)
           saveResults[recordZoneToSave.zoneID] = .success(recordZoneToSave)
         }
 

@@ -239,7 +239,7 @@
           "databaseScope": databaseScope,
           "storage": storage
             .value
-            .flatMap { _, value in value.values }
+            .flatMap { _, value in value.records.values }
             .sorted {
               ($0.recordType, $0.recordID.recordName) < ($1.recordType, $1.recordID.recordName)
             },
