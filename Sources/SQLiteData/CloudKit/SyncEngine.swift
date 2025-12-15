@@ -1756,10 +1756,6 @@
       if enqueuedUnsyncedRecordID {
         await handleFetchedRecordZoneChanges(syncEngine: syncEngine)
       }
-
-      await withErrorReporting {
-        try await enqueueLocallyPendingChanges()
-      }
     }
 
     private func cacheShare(_ share: CKShare) async throws {
