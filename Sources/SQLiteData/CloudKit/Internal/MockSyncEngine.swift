@@ -177,7 +177,7 @@
     package func processPendingRecordZoneChanges(
       options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(),
       scope: CKDatabase.Scope,
-      forceAtomicByZone: Bool = false,
+      forceAtomicByZone: Bool? = nil,
       fileID: StaticString = #fileID,
       filePath: StaticString = #filePath,
       line: UInt = #line,
@@ -225,7 +225,9 @@
           }
         }()
       )
-      batch?.atomicByZone = forceAtomicByZone
+      if let forceAtomicByZone {
+        batch?.atomicByZone = forceAtomicByZone
+      }
       guard let batch
       else { return }
 
