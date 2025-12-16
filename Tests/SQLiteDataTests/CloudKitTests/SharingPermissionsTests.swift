@@ -113,25 +113,27 @@
         reminderRecord.setValue("Get milk", forKey: "title", at: now)
         reminderRecord.setValue(1, forKey: "remindersListID", at: now)
         reminderRecord.parent = CKRecord.Reference(record: remindersListRecord, action: .none)
+        let share = CKShare(
+          rootRecord: remindersListRecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(remindersListRecord.recordID.recordName)",
+            zoneID: remindersListRecord.recordID.zoneID
+          )
+        )
+        share.publicPermission = .readOnly
+        share.currentUserParticipant?.permission = .readOnly
 
         _ = try syncEngine.modifyRecords(
           scope: .shared,
-          saving: [reminderRecord, remindersListRecord]
+          saving: [reminderRecord, remindersListRecord, share]
         )
 
         let freshRemindersListRecord = try syncEngine.shared.database.record(
           for: remindersListRecord.recordID
         )
-
-        let share = CKShare(
-          rootRecord: freshRemindersListRecord,
-          shareID: CKRecord.ID(
-            recordName: "share-\(freshRemindersListRecord.recordID.recordName)",
-            zoneID: freshRemindersListRecord.recordID.zoneID
-          )
+        let freshShare = try #require(
+          syncEngine.shared.database.record(for: share.recordID) as? CKShare
         )
-        share.publicPermission = .readOnly
-        share.currentUserParticipant?.permission = .readOnly
 
         try await syncEngine
           .acceptShare(
@@ -139,7 +141,7 @@
               containerIdentifier: container.containerIdentifier!,
               hierarchicalRootRecordID: freshRemindersListRecord.recordID,
               rootRecord: freshRemindersListRecord,
-              share: share
+              share: freshShare
             )
           )
 
@@ -216,23 +218,26 @@
         reminderRecord.setValue(1, forKey: "remindersListID", at: now)
         reminderRecord.setValue(false, forKey: "isCompleted", at: now)
         reminderRecord.parent = CKRecord.Reference(record: remindersListRecord, action: .none)
+        let share = CKShare(
+          rootRecord: remindersListRecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(remindersListRecord.recordID.recordName)",
+            zoneID: remindersListRecord.recordID.zoneID
+          )
+        )
+        share.publicPermission = .readOnly
+        share.currentUserParticipant?.permission = .readOnly
         _ = try syncEngine.modifyRecords(
           scope: .shared,
-          saving: [remindersListRecord, reminderRecord]
+          saving: [remindersListRecord, reminderRecord, share]
         )
 
         let freshRemindersListRecord = try syncEngine.shared.database.record(
           for: remindersListRecord.recordID
         )
-        let share = CKShare(
-          rootRecord: freshRemindersListRecord,
-          shareID: CKRecord.ID(
-            recordName: "share-\(freshRemindersListRecord.recordID.recordName)",
-            zoneID: freshRemindersListRecord.recordID.zoneID
-          )
+        let freshShare = try #require(
+          syncEngine.shared.database.record(for: share.recordID) as? CKShare
         )
-        share.publicPermission = .readOnly
-        share.currentUserParticipant?.permission = .readOnly
 
         try await syncEngine
           .acceptShare(
@@ -240,7 +245,7 @@
               containerIdentifier: container.containerIdentifier!,
               hierarchicalRootRecordID: freshRemindersListRecord.recordID,
               rootRecord: freshRemindersListRecord,
-              share: share
+              share: freshShare
             )
           )
 

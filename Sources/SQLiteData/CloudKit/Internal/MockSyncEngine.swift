@@ -48,7 +48,7 @@
       }
       records = zoneIDs.reduce(into: [CKRecord]()) { accum, zoneID in
         accum += database.storage.withValue {
-          ($0[zoneID]?.values).map { Array($0) } ?? []
+          ($0[zoneID]?.records.values).map { Array($0) } ?? []
         }
       }
       await parentSyncEngine.handleEvent(
@@ -177,6 +177,7 @@
     package func processPendingRecordZoneChanges(
       options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(),
       scope: CKDatabase.Scope,
+      forceAtomicByZone: Bool? = nil,
       fileID: StaticString = #fileID,
       filePath: StaticString = #filePath,
       line: UInt = #line,
@@ -208,7 +209,7 @@
         return
       }
 
-      let batch = await nextRecordZoneChangeBatch(
+      var batch = await nextRecordZoneChangeBatch(
         reason: .scheduled,
         options: options,
         syncEngine: {
@@ -224,6 +225,9 @@
           }
         }()
       )
+      if let forceAtomicByZone {
+        batch?.atomicByZone = forceAtomicByZone
+      }
       guard let batch
       else { return }
 
@@ -231,7 +235,7 @@
         saving: batch.recordsToSave,
         deleting: batch.recordIDsToDelete,
         savePolicy: .ifServerRecordUnchanged,
-        atomically: true
+        atomically: batch.atomicByZone
       )
 
       var savedRecords: [CKRecord] = []
@@ -264,7 +268,13 @@
         pendingRecordZoneChanges: savedRecords.map { .saveRecord($0.recordID) }
       )
       syncEngine.state.remove(
+        pendingRecordZoneChanges: failedRecordSaves.map { .saveRecord($0.record.recordID) }
+      )
+      syncEngine.state.remove(
         pendingRecordZoneChanges: deletedRecordIDs.map { .deleteRecord($0) }
+      )
+      syncEngine.state.remove(
+        pendingRecordZoneChanges: failedRecordDeletes.keys.map { .deleteRecord($0) }
       )
 
       await syncEngine.parentSyncEngine

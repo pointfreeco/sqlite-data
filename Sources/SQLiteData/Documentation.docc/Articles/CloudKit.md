@@ -106,8 +106,8 @@ you can use the `prepareDatabase` method on `Configuration` to attach the metada
 ```swift
 func appDatabase() -> any DatabaseWriter {
   var configuration = Configuration()
-  configuration.prepareDatabase = { db in
-    db.attachMetadatabase()
+  configuration.prepareDatabase { db in
+    try db.attachMetadatabase()
     …
   }
 }
