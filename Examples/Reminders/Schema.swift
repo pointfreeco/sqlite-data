@@ -130,7 +130,7 @@ extension DependencyValues {
   }
 }
 
-func appDatabase(seedSampleData: Bool = true) throws -> any DatabaseWriter {
+func appDatabase() throws -> any DatabaseWriter {
   @Dependency(\.context) var context
   var configuration = Configuration()
   configuration.foreignKeysEnabled = true
