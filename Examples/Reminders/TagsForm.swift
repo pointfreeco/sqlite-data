@@ -164,6 +164,7 @@ private struct TagView: View {
   @Previewable @State var tags: [Tag] = []
   let _ = try! prepareDependencies {
     $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.defaultDatabase.seed()
   }
 
   TagsView(selectedTags: $tags)

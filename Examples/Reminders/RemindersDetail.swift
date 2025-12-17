@@ -362,9 +362,10 @@ extension RemindersDetailModel.DetailType {
 }
 
 struct RemindersDetailPreview: PreviewProvider {
-  static var previews: some View {
+  private static var detailTypes: [RemindersDetailModel.DetailType] = {
     let (remindersList, tag) = try! prepareDependencies {
       $0.defaultDatabase = try Reminders.appDatabase()
+      try $0.defaultDatabase.seed()
       return try $0.defaultDatabase.read { db in
         (
           try RemindersList.fetchOne(db)!,
@@ -372,11 +373,14 @@ struct RemindersDetailPreview: PreviewProvider {
         )
       }
     }
-    let detailTypes: [RemindersDetailModel.DetailType] = [
+    return [
       .all,
       .remindersList(remindersList),
       .tags([tag]),
     ]
+  }()
+  
+  static var previews: some View {
     ForEach(detailTypes, id: \.self) { detailType in
       NavigationStack {
         RemindersDetailView(model: RemindersDetailModel(detailType: detailType))
@@ -385,3 +389,4 @@ struct RemindersDetailPreview: PreviewProvider {
     }
   }
 }
+

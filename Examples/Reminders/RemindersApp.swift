@@ -18,7 +18,7 @@ struct RemindersApp: App {
   init() {
     if context == .live {
       try! prepareDependencies {
-        try $0.bootstrapDatabase(syncEngineDelegate: syncEngineDelegate, seedSampleData: false)
+        try $0.bootstrapDatabase(syncEngineDelegate: syncEngineDelegate)
       }
     }
   }
