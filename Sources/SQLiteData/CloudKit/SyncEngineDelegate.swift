@@ -78,6 +78,11 @@
       _ syncEngine: SyncEngine,
       accountChanged changeType: CKSyncEngine.Event.AccountChange.ChangeType
     ) async
+
+    func syncEngine(
+      _ syncEngine: SyncEngine,
+      quotaExceeded scope: CKDatabase.Scope
+    )
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -96,6 +101,12 @@
       @unknown default:
         break
       }
+    }
+
+    public func syncEngine(
+      _ syncEngine: SyncEngine,
+      quotaExceeded scope: CKDatabase.Scope
+    ) {
     }
   }
 #endif
