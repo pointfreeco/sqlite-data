@@ -553,6 +553,7 @@
       }
       guard let privateSyncEngine, let sharedSyncEngine
       else { return }
+      try await enqueueLocallyPendingChanges()
       async let `private`: Void = privateSyncEngine.sendChanges(options)
       async let shared: Void = sharedSyncEngine.sendChanges(options)
       _ = try await (`private`, shared)
@@ -590,8 +591,6 @@
     ) async throws {
       try await enqueueLocallyPendingChanges()
       try await userDatabase.write { db in
-        try PendingRecordZoneChange.delete().execute(db)
-
         let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
           previousRecordTypeByTableName[tableName] == nil
         }
@@ -605,9 +604,10 @@
     }
 
     private func enqueueLocallyPendingChanges() async throws {
-      let pendingRecordZoneChanges = try await metadatabase.read { db in
+      let pendingRecordZoneChanges = try await metadatabase.write { db in
         try PendingRecordZoneChange
-          .select(\.pendingRecordZoneChange)
+          .delete()
+          .returning(\.pendingRecordZoneChange)
           .fetchAll(db)
       }
       let changesByIsPrivate = Dictionary(grouping: pendingRecordZoneChanges) {
@@ -1577,6 +1577,12 @@
       var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
       var newPendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] = []
       defer {
+        let quotaExceeded = failedRecordSaves.contains(where: { $0.error.code == .quotaExceeded })
+        delegate?.syncEngine(
+          self,
+          quotaExceeded: quotaExceeded,
+          scope: syncEngine.database.databaseScope
+        )
         syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
@@ -1700,7 +1706,14 @@
           break
 
         case .quotaExceeded:
-          delegate?.syncEngine(self, quotaExceeded: syncEngine.database.databaseScope)
+          await withErrorReporting {
+            try await userDatabase.write { db in
+              try PendingRecordZoneChange.insert {
+                PendingRecordZoneChange(.saveRecord(failedRecord.recordID))
+              }
+              .execute(db)
+            }
+          }
 
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
           .notAuthenticated, .operationCancelled,
@@ -1738,15 +1751,15 @@
                 syncEngine.state.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
                 break
               case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-                  .notAuthenticated, .operationCancelled, .internalError, .partialFailure,
-                  .badContainer, .requestRateLimited, .missingEntitlement, .invalidArguments,
-                  .resultsTruncated, .assetFileNotFound, .assetFileModified, .incompatibleVersion,
-                  .constraintViolation, .changeTokenExpired, .badDatabase, .quotaExceeded,
-                  .limitExceeded, .userDeletedZone, .tooManyParticipants, .alreadyShared,
-                  .managedAccountRestricted, .participantMayNeedVerification, .serverResponseLost,
-                  .assetNotAvailable, .accountTemporarilyUnavailable, .permissionFailure,
-                  .unknownItem, .serverRecordChanged, .serverRejectedRequest, .zoneNotFound,
-                  .participantAlreadyInvited:
+                .notAuthenticated, .operationCancelled, .internalError, .partialFailure,
+                .badContainer, .requestRateLimited, .missingEntitlement, .invalidArguments,
+                .resultsTruncated, .assetFileNotFound, .assetFileModified, .incompatibleVersion,
+                .constraintViolation, .changeTokenExpired, .badDatabase, .quotaExceeded,
+                .limitExceeded, .userDeletedZone, .tooManyParticipants, .alreadyShared,
+                .managedAccountRestricted, .participantMayNeedVerification, .serverResponseLost,
+                .assetNotAvailable, .accountTemporarilyUnavailable, .permissionFailure,
+                .unknownItem, .serverRecordChanged, .serverRejectedRequest, .zoneNotFound,
+                .participantAlreadyInvited:
                 break
               @unknown default:
                 break

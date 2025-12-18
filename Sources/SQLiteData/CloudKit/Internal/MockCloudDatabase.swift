@@ -9,7 +9,7 @@
     package let databaseScope: CKDatabase.Scope
     let _container = IsolatedWeakVar<MockCloudContainer>()
     let dataManager = Dependency(\.dataManager)
-    let quota: Int
+    let quota: LockIsolated<Int>
 
     struct AssetID: Hashable {
       let recordID: CKRecord.ID
@@ -23,7 +23,11 @@
 
     package init(databaseScope: CKDatabase.Scope, quota: Int = Int.max) {
       self.databaseScope = databaseScope
-      self.quota = quota
+      self.quota = LockIsolated(quota)
+    }
+
+    package func setQuota(_ quota: Int) {
+      self.quota.withValue { $0 = quota }
     }
 
     package func set(container: MockCloudContainer) {
@@ -281,7 +285,7 @@
         // Emulate quotas by reverting all changes if the total number of records stored exceeds
         // the quota. This is a very rough approximation of how iCloud handles this in the real
         // database.
-        guard storage.totalRecords <= quota
+        guard storage.totalRecords <= quota.withValue(\.self)
         else {
           storage = previousStorage
           for saveSuccessRecordID in saveResults.keys {

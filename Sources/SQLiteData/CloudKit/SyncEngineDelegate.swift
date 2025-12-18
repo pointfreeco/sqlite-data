@@ -92,14 +92,15 @@
     /// in user, and _their_ iCloud storage is full. You can let the user know that they may want
     /// to contact the owner about upgrading their storage or cleaning up their iCloud account.
     ///
-    /// 
+    ///
     ///
     /// - Parameters:
     ///   - syncEngine: The sync engine that generates the event.
     ///   - scope: The database that the event occured on.
     func syncEngine(
       _ syncEngine: SyncEngine,
-      quotaExceeded scope: CKDatabase.Scope
+      quotaExceeded: Bool,
+      scope: CKDatabase.Scope
     )
   }
 
@@ -123,7 +124,8 @@
 
     public func syncEngine(
       _ syncEngine: SyncEngine,
-      quotaExceeded scope: CKDatabase.Scope
+      quotaExceeded: Bool,
+      scope: CKDatabase.Scope
     ) {
     }
   }
