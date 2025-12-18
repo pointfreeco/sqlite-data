@@ -1,7 +1,6 @@
 import CloudKit
 import SQLiteData
 import SwiftUI
-import SwiftUINavigation
 
 struct CountersListView: View {
   @FetchAll var counters: [Counter]

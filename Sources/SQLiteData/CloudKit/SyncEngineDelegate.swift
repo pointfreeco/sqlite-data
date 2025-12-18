@@ -78,7 +78,25 @@
       _ syncEngine: SyncEngine,
       accountChanged changeType: CKSyncEngine.Event.AccountChange.ChangeType
     ) async
-
+    
+    /// An event indicating that the iCloud database associated with `scope` is full and cannot
+    /// store any more records.
+    ///
+    /// You can use this method to be notified when records can no longer be stored in the user's
+    /// iCloud database. The `scope` argument determines which database is full:
+    ///
+    /// * If `scope` is `.private`, then the currently logged in user's database is full, and you
+    /// can let the user know they need to clear up space on their iCloud account or upgrade for
+    /// more storage.
+    /// * If the `scope` is `.shared`, then an external user has shared a record with the logged
+    /// in user, and _their_ iCloud storage is full. You can let the user know that they may want
+    /// to contact the owner about upgrading their storage or cleaning up their iCloud account.
+    ///
+    /// 
+    ///
+    /// - Parameters:
+    ///   - syncEngine: The sync engine that generates the event.
+    ///   - scope: The database that the event occured on.
     func syncEngine(
       _ syncEngine: SyncEngine,
       quotaExceeded scope: CKDatabase.Scope

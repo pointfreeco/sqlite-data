@@ -46,8 +46,14 @@ class BaseCloudKitTests: @unchecked Sendable {
       )
     )
     try await _PrepareDatabaseTrait.prepareDatabase(userDatabase)
-    let privateDatabase = MockCloudDatabase(databaseScope: .private)
-    let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+    let privateDatabase = MockCloudDatabase(
+      databaseScope: .private,
+      quota: _DatabaseQuotaScope.quota
+    )
+    let sharedDatabase = MockCloudDatabase(
+      databaseScope: .shared,
+      quota: _DatabaseQuotaScope.quota
+    )
     let container = MockCloudContainer(
       accountStatus: _AccountStatusScope.accountStatus,
       containerIdentifier: testContainerIdentifier,

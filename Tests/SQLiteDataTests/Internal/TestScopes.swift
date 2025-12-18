@@ -126,4 +126,53 @@
       Self(syncEngineDelegate: syncEngineDelegate)
     }
   }
+
+  struct _PrintTimestampsScope: SuiteTrait, TestScoping, TestTrait {
+    let printTimestamps: Bool
+    init(_ printTimestamps: Bool = true) {
+      self.printTimestamps = printTimestamps
+    }
+
+    func provideScope(
+      for test: Test,
+      testCase: Test.Case?,
+      performing function: @Sendable () async throws -> Void
+    ) async throws {
+      try await CKRecord.$printTimestamps.withValue(printTimestamps) {
+        try await function()
+      }
+    }
+  }
+
+  extension Trait where Self == _PrintTimestampsScope {
+    static var printTimestamps: Self { Self() }
+    static func printTimestamps(_ printTimestamps: Bool) -> Self {
+      Self(printTimestamps)
+    }
+  }
+
+  struct _DatabaseQuotaScope: SuiteTrait, TestScoping, TestTrait {
+    @TaskLocal static var quota = Int.max
+    let quota: Int
+    init(_ quota: Int = Int.max) {
+      self.quota = quota
+    }
+
+    func provideScope(
+      for test: Test,
+      testCase: Test.Case?,
+      performing function: @Sendable () async throws -> Void
+    ) async throws {
+      try await Self.$quota.withValue(quota) {
+        try await function()
+      }
+    }
+  }
+
+  extension Trait where Self == _DatabaseQuotaScope {
+    static var quota: Self { Self() }
+    static func quota(_ quota: Int) -> Self {
+      Self(quota)
+    }
+  }
 #endif
