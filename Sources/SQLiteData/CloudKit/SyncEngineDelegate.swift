@@ -92,10 +92,12 @@
     /// in user, and _their_ iCloud storage is full. You can let the user know that they may want
     /// to contact the owner about upgrading their storage or cleaning up their iCloud account.
     ///
-    ///
+    /// This method can be called many times, and so you will want to de-duplicate the
+    /// `quotaExceeded` boolean so as to not alert your users multiple times.
     ///
     /// - Parameters:
     ///   - syncEngine: The sync engine that generates the event.
+    ///   - quotaExceeded: Determines if records failed to save due to a 'quotaExceeded` error.
     ///   - scope: The database that the event occured on.
     func syncEngine(
       _ syncEngine: SyncEngine,
