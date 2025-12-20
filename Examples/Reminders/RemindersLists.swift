@@ -439,7 +439,7 @@ private struct ReminderGridCell: View {
     // Create a dummy SyncMetadata table to allow the RemindersLists query to work in preview mode
     try $0.defaultDatabase.write { db in
       try #sql("""
-        CREATE TABLE "sqlitedata_icloud_metadata" (
+        CREATE TABLE IF NOT EXISTS \(SyncMetadata.self) (
           "recordPrimaryKey" TEXT,
           "recordType" TEXT,
           "share" TEXT
