@@ -13,6 +13,64 @@
     import UIKit
   #endif
 
+  /// Specifies which fields should be encrypted when syncing to CloudKit.
+  ///
+  /// By default, all fields are encrypted using CloudKit's `encryptedValues` container.
+  /// Use this type to specify which fields should remain unencrypted for querying,
+  /// indexing, and subscriptions.
+  ///
+  /// ```swift
+  /// // All fields encrypted (default)
+  /// try SyncEngine(for: database, tables: Reminder.self)
+  ///
+  /// // No fields encrypted
+  /// try SyncEngine(for: database, tables: Reminder.self, encryptedFields: .none)
+  ///
+  /// // Only specific fields encrypted
+  /// try SyncEngine(
+  ///   for: database,
+  ///   tables: Reminder.self,
+  ///   encryptedFields: .only(Reminder.notes)
+  /// )
+  /// ```
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public struct EncryptedFields: Sendable {
+    enum Storage: Sendable {
+      case all
+      case none
+      case only([String: Set<String>])
+    }
+    let storage: Storage
+
+    /// All fields are encrypted (default).
+    public static var all: EncryptedFields { .init(storage: .all) }
+
+    /// No fields are encrypted.
+    public static var none: EncryptedFields { .init(storage: .none) }
+
+    /// Only the specified fields are encrypted; all others are unencrypted.
+    public static func only<each F: FieldConvertible>(_ fields: repeat each F) -> EncryptedFields {
+      var columnsByTable: [String: Set<String>] = [:]
+      for field in repeat each fields {
+        columnsByTable[field._fieldTableName, default: []].insert(field._fieldColumnName)
+      }
+      return .init(storage: .only(columnsByTable))
+    }
+  }
+
+  /// A protocol for column expressions that can specify field encryption.
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public protocol FieldConvertible {
+    var _fieldTableName: String { get }
+    var _fieldColumnName: String { get }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension TableColumn: FieldConvertible where Root: PrimaryKeyedTable {
+    public var _fieldTableName: String { Root.tableName }
+    public var _fieldColumnName: String { name }
+  }
+
   /// An object that manages the synchronization of local and remote SQLite data.
   ///
   /// See <doc:CloudKit> for more information.
@@ -70,6 +128,7 @@
     ///     shareable with other users on CloudKit.
     ///   - privateTables: A list of tables that you want to synchronize to CloudKit but that
     ///     you do not want to be shareable with other users.
+    ///   - encryptedFields: Specifies which fields should be encrypted. Defaults to `.all`.
     ///   - containerIdentifier: The container identifier in CloudKit to synchronize to. If omitted
     ///     the container will be determined from the entitlements of your app.
     ///   - defaultZone: The zone for all records to be stored in.
@@ -86,6 +145,7 @@
       for database: any DatabaseWriter,
       tables: repeat (each T1).Type,
       privateTables: repeat (each T2).Type,
+      encryptedFields: EncryptedFields = .all,
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
       startImmediately: Bool = true,
@@ -103,13 +163,55 @@
         containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
 
+      // Compute unencrypted columns based on encryptedFields
+      var unencryptedColumnsByTable: [String: Set<String>] = [:]
+      switch encryptedFields.storage {
+      case .all:
+        // All fields encrypted, no unencrypted columns
+        break
+      case .none:
+        // No fields encrypted, all columns unencrypted
+        for table in repeat each tables {
+          for column in table.TableColumns.writableColumns {
+            unencryptedColumnsByTable[table.tableName, default: []].insert(column.name)
+          }
+        }
+        for table in repeat each privateTables {
+          for column in table.TableColumns.writableColumns {
+            unencryptedColumnsByTable[table.tableName, default: []].insert(column.name)
+          }
+        }
+      case .only(let encryptedColumnsByTable):
+        // Only specified fields encrypted, all others unencrypted
+        for table in repeat each tables {
+          var columns: Set<String> = []
+          for column in table.TableColumns.writableColumns {
+            columns.insert(column.name)
+          }
+          let encryptedColumns = encryptedColumnsByTable[table.tableName] ?? []
+          unencryptedColumnsByTable[table.tableName] = columns.subtracting(encryptedColumns)
+        }
+        for table in repeat each privateTables {
+          var columns: Set<String> = []
+          for column in table.TableColumns.writableColumns {
+            columns.insert(column.name)
+          }
+          let encryptedColumns = encryptedColumnsByTable[table.tableName] ?? []
+          unencryptedColumnsByTable[table.tableName] = columns.subtracting(encryptedColumns)
+        }
+      }
+
       var allTables: [any SynchronizableTable] = []
       var allPrivateTables: [any SynchronizableTable] = []
       for table in repeat each tables {
-        allTables.append(SynchronizedTable(for: table))
+        let unencryptedColumns = unencryptedColumnsByTable[table.tableName] ?? []
+        allTables.append(SynchronizedTable(for: table, unencryptedColumnNames: unencryptedColumns))
       }
       for privateTable in repeat each privateTables {
-        allPrivateTables.append(SynchronizedTable(for: privateTable))
+        let unencryptedColumns = unencryptedColumnsByTable[privateTable.tableName] ?? []
+        allPrivateTables.append(
+          SynchronizedTable(for: privateTable, unencryptedColumnNames: unencryptedColumns)
+        )
       }
       let userDatabase = UserDatabase(database: database)
 
@@ -1128,7 +1230,7 @@
           missingTable = recordID
           return nil
         }
-        func open<T>(_: some SynchronizableTable<T>) async -> CKRecord? {
+        func open<T>(_ table: some SynchronizableTable<T>) async -> CKRecord? {
           let row =
             withErrorReporting(.sqliteDataCloudKitFailure) {
               try userDatabase.read { db in
@@ -1169,7 +1271,8 @@
 
           record.update(
             with: T(queryOutput: row),
-            userModificationTime: metadata.userModificationTime
+            userModificationTime: metadata.userModificationTime,
+            unencryptedColumnNames: table.unencryptedColumnNames
           )
           await refreshLastKnownServerRecord(record)
           sentRecord = recordID
@@ -1867,7 +1970,8 @@
               columnNames: &columnNames,
               parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
                 ? foreignKeysByTableName[T.tableName]?.first
-                : nil
+                : nil,
+              unencryptedColumnNames: table.unencryptedColumnNames
             )
           }
 
@@ -2256,6 +2360,7 @@
       Base.PrimaryKey.QueryOutput: IdentifierStringConvertible,
       Base.TableColumns.PrimaryColumn: WritableTableColumnExpression
     var base: Base.Type { get }
+    var unencryptedColumnNames: Set<String> { get }
   }
 
   package struct SynchronizedTable<
@@ -2265,7 +2370,19 @@
     Base.PrimaryKey.QueryOutput: IdentifierStringConvertible,
     Base.TableColumns.PrimaryColumn: WritableTableColumnExpression
   {
-    package init(for table: Base.Type = Base.self) {}
+    package let unencryptedColumnNames: Set<String>
+
+    package init(for table: Base.Type = Base.self) {
+      self.unencryptedColumnNames = []
+    }
+
+    package init(
+      for table: Base.Type = Base.self,
+      unencryptedColumnNames: Set<String>
+    ) {
+      self.unencryptedColumnNames = unencryptedColumnNames
+    }
+
     package var base: Base.Type { Base.self }
   }
 
@@ -2351,10 +2468,11 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   private func upsert<T>(
-    _: some SynchronizableTable<T>,
+    _ table: some SynchronizableTable<T>,
     record: CKRecord,
     columnNames: some Collection<String>
   ) -> QueryFragment {
+    let unencryptedColumnNames = table.unencryptedColumnNames
     let allColumnNames = T.TableColumns.writableColumns.map(\.name)
     let hasNonPrimaryKeyColumns = columnNames.contains { $0 != T.primaryKey.name }
     var query: QueryFragment = "INSERT INTO \(T.self) ("
@@ -2367,6 +2485,8 @@
             @Dependency(\.dataManager) var dataManager
             return (try? asset.fileURL.map { try dataManager.load($0) })?
               .queryFragment ?? "NULL"
+          } else if unencryptedColumnNames.contains(columnName) {
+            return record[columnName]?.queryFragment ?? "NULL"
           } else {
             return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
           }
