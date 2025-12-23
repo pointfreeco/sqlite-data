@@ -150,23 +150,36 @@
     package func setValue(
       _ newValue: some CKRecordValueProtocol & Equatable,
       forKey key: CKRecord.FieldKey,
-      at userModificationTime: Int64
+      at userModificationTime: Int64,
+      encrypted: Bool = true
     ) -> Bool {
-      guard
-        encryptedValues[at: key] <= userModificationTime,
-        encryptedValues[key] != newValue
-      else { return false }
-      encryptedValues[key] = newValue
-      encryptedValues[at: key] = userModificationTime
-      self.userModificationTime = userModificationTime
-      return true
+      if encrypted {
+        guard
+          encryptedValues[at: key] <= userModificationTime,
+          encryptedValues[key] != newValue
+        else { return false }
+        encryptedValues[key] = newValue
+        encryptedValues[at: key] = userModificationTime
+        self.userModificationTime = userModificationTime
+        return true
+      } else {
+        guard
+          encryptedValues[at: key] <= userModificationTime,
+          self[key] as? (any Equatable) as? AnyHashable != newValue as? AnyHashable
+        else { return false }
+        self[key] = newValue
+        encryptedValues[at: key] = userModificationTime
+        self.userModificationTime = userModificationTime
+        return true
+      }
     }
 
     @discardableResult
     package func setAsset(
       _ newValue: CKAsset,
       forKey key: CKRecord.FieldKey,
-      at userModificationTime: Int64
+      at userModificationTime: Int64,
+      encrypted: Bool = true
     ) -> Bool {
       @Dependency(\.dataManager) var dataManager
       guard
@@ -189,7 +202,8 @@
     package func setValue(
       _ newValue: [UInt8],
       forKey key: CKRecord.FieldKey,
-      at userModificationTime: Int64
+      at userModificationTime: Int64,
+      encrypted: Bool = true
     ) -> Bool {
       guard encryptedValues[at: key] <= userModificationTime
       else { return false }
@@ -217,54 +231,65 @@
     @discardableResult
     package func removeValue(
       forKey key: CKRecord.FieldKey,
-      at userModificationTime: Int64
+      at userModificationTime: Int64,
+      encrypted: Bool = true
     ) -> Bool {
       guard encryptedValues[at: key] <= userModificationTime
       else {
         return false
       }
-      if encryptedValues[key] != nil {
-        encryptedValues[key] = nil
-        encryptedValues[at: key] = userModificationTime
-        self.userModificationTime = userModificationTime
-        return true
-      } else if self[key] != nil {
-        self[key] = nil
-        encryptedValues[at: key] = userModificationTime
-        self.userModificationTime = userModificationTime
-        return true
+      if encrypted {
+        if encryptedValues[key] != nil {
+          encryptedValues[key] = nil
+          encryptedValues[at: key] = userModificationTime
+          self.userModificationTime = userModificationTime
+          return true
+        }
+      } else {
+        if self[key] != nil {
+          self[key] = nil
+          encryptedValues[at: key] = userModificationTime
+          self.userModificationTime = userModificationTime
+          return true
+        }
       }
       return false
     }
 
-    func update<T: PrimaryKeyedTable>(with row: T, userModificationTime: Int64) {
+    func update<T: PrimaryKeyedTable>(
+      with row: T,
+      userModificationTime: Int64,
+      unencryptedColumnNames: Set<String> = []
+    ) {
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
           let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
           let column = column as! any WritableTableColumnExpression<T, Value>
           let value = Value(queryOutput: row[keyPath: keyPath])
+          let encrypted = !unencryptedColumnNames.contains(column.name)
           switch value.queryBinding {
           case .blob(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
+            setValue(value, forKey: column.name, at: userModificationTime, encrypted: encrypted)
           case .bool(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
+            setValue(value, forKey: column.name, at: userModificationTime, encrypted: encrypted)
           case .double(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
+            setValue(value, forKey: column.name, at: userModificationTime, encrypted: encrypted)
           case .date(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
+            setValue(value, forKey: column.name, at: userModificationTime, encrypted: encrypted)
           case .int(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
+            setValue(value, forKey: column.name, at: userModificationTime, encrypted: encrypted)
           case .null:
-            removeValue(forKey: column.name, at: userModificationTime)
+            removeValue(forKey: column.name, at: userModificationTime, encrypted: encrypted)
           case .text(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
+            setValue(value, forKey: column.name, at: userModificationTime, encrypted: encrypted)
           case .uint(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
+            setValue(value, forKey: column.name, at: userModificationTime, encrypted: encrypted)
           case .uuid(let value):
             setValue(
               value.uuidString.lowercased(),
               forKey: column.name,
-              at: userModificationTime
+              at: userModificationTime,
+              encrypted: encrypted
             )
           case .invalid(let error):
             reportIssue(error)
@@ -278,7 +303,8 @@
       with other: CKRecord,
       row: T,
       columnNames: inout [String],
-      parentForeignKey: ForeignKey?
+      parentForeignKey: ForeignKey?,
+      unencryptedColumnNames: Set<String> = []
     ) {
       typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
 
@@ -287,13 +313,18 @@
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
           let key = column.name
           let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
+          let encrypted = !unencryptedColumnNames.contains(key)
           let didSet: Bool
           if let value = other[key] as? CKAsset {
-            didSet = setAsset(value, forKey: key, at: other.encryptedValues[at: key])
-          } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
-            didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
-          } else if other.encryptedValues[key] == nil {
-            didSet = removeValue(forKey: key, at: other.encryptedValues[at: key])
+            didSet = setAsset(value, forKey: key, at: other.encryptedValues[at: key], encrypted: encrypted)
+          } else if encrypted, let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
+            didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key], encrypted: true)
+          } else if !encrypted, let value = other[key] as? any EquatableCKRecordValueProtocol {
+            didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key], encrypted: false)
+          } else if encrypted, other.encryptedValues[key] == nil {
+            didSet = removeValue(forKey: key, at: other.encryptedValues[at: key], encrypted: true)
+          } else if !encrypted, other[key] == nil {
+            didSet = removeValue(forKey: key, at: other.encryptedValues[at: key], encrypted: false)
           } else {
             didSet = false
           }
@@ -303,21 +334,22 @@
             case .blob(let value):
               return other.encryptedValues[hash: key] != value.sha256
             case .bool(let value):
-              return other.encryptedValues[key] != value
+              return encrypted ? other.encryptedValues[key] != value : other[key] != value
             case .double(let value):
-              return other.encryptedValues[key] != value
+              return encrypted ? other.encryptedValues[key] != value : other[key] != value
             case .date(let value):
-              return other.encryptedValues[key] != value
+              return encrypted ? other.encryptedValues[key] != value : other[key] != value
             case .int(let value):
-              return other.encryptedValues[key] != value
+              return encrypted ? other.encryptedValues[key] != value : other[key] != value
             case .null:
-              return other.encryptedValues[key] != nil
+              return encrypted ? other.encryptedValues[key] != nil : other[key] != nil
             case .text(let value):
-              return other.encryptedValues[key] != value
+              return encrypted ? other.encryptedValues[key] != value : other[key] != value
             case .uint(let value):
-              return other.encryptedValues[key] != value
+              return encrypted ? other.encryptedValues[key] != value : other[key] != value
             case .uuid(let value):
-              return other.encryptedValues[key] != value.uuidString.lowercased()
+              let uuidString = value.uuidString.lowercased()
+              return encrypted ? other.encryptedValues[key] != uuidString : other[key] != uuidString
             case .invalid(let error):
               reportIssue(error)
               return false
