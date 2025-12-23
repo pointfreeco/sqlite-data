@@ -495,8 +495,8 @@ assets.
 
 However, general database design guidelines still apply. In particular, it is not recommended to
 store large binary blobs in a table that is queried often. If done naively you may accidentally
-large amounts of data into memory when querying your table, and further large binary blobs can
-slow down SQLite's ability to efficiently access the rows in your tables.
+load large amounts of data into memory when querying your table. Furthermore, large binary blobs
+can slow down SQLite's ability to efficiently access the rows in your tables.
 
 It is recommended to hold binary blobs in a separate, but related, table. For example, if you are
 building a reminders app that has lists, and you allow your users to assign an image to a list.
