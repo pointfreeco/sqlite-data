@@ -46,8 +46,14 @@ class BaseCloudKitTests: @unchecked Sendable {
       )
     )
     try await _PrepareDatabaseTrait.prepareDatabase(userDatabase)
-    let privateDatabase = MockCloudDatabase(databaseScope: .private)
-    let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+    let privateDatabase = MockCloudDatabase(
+      databaseScope: .private,
+      quota: _DatabaseQuotaScope.quota
+    )
+    let sharedDatabase = MockCloudDatabase(
+      databaseScope: .shared,
+      quota: _DatabaseQuotaScope.quota
+    )
     let container = MockCloudContainer(
       accountStatus: _AccountStatusScope.accountStatus,
       containerIdentifier: testContainerIdentifier,
@@ -139,7 +145,8 @@ class BaseCloudKitTests: @unchecked Sendable {
       syncEngine.private.assertAcceptedShareMetadata([])
 
       try! syncEngine.metadatabase.read { db in
-        try #expect(UnsyncedRecordID.count().fetchOne(db) == 0)
+        try #expect(UnsyncedRecordID.fetchCount(db) == 0)
+        try #expect(PendingRecordZoneChange.fetchCount(db) == 0)
       }
     } else {
       Issue.record("Tests must be run on iOS 17+, macOS 14+, tvOS 17+ and watchOS 10+.")
