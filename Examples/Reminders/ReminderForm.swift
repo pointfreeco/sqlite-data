@@ -204,17 +204,20 @@ extension Optional {
 }
 
 struct ReminderFormPreview: PreviewProvider {
-  static var previews: some View {
-    let (remindersList, reminder) = try! prepareDependencies {
+  private static var reminderDetail: (Reminder, RemindersList) = {
+    try! prepareDependencies {
       $0.defaultDatabase = try Reminders.appDatabase()
-      return try $0.defaultDatabase.write { db in
+      try $0.defaultDatabase.seed()
+      return try $0.defaultDatabase.read { db in
         let remindersList = try RemindersList.fetchOne(db)!
-        return (
-          remindersList,
-          try Reminder.where { $0.remindersListID.eq(remindersList.id) }.fetchOne(db)!
-        )
+        let reminder = try Reminder.where { $0.remindersListID.eq(remindersList.id) }.fetchOne(db)!
+        return (reminder, remindersList)
       }
     }
+  }()
+  
+  static var previews: some View {
+    let (reminder, remindersList) = reminderDetail
     NavigationStack {
       ReminderFormView(reminder: Reminder.Draft(reminder), remindersList: remindersList)
         .navigationTitle("Detail")
