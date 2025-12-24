@@ -1,10 +1,47 @@
-#if DEBUG && canImport(CloudKit)
+#if canImport(CloudKit)
+
+#if SQLiteDataSwiftLog
+  @_exported import struct Logging.Logger
+  import protocol Logging.LogHandler
+  
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncEngine {
+    public typealias Logger = Logging.Logger
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncEngine.Logger {
+    public static var `default`: SyncEngine.Logger {
+      .init(label: "SQLiteData")
+    }
+    public static var disabled: SyncEngine.Logger {
+      .init(label: "SQLiteData") { _ in DisabledLogHandler() }
+    }
+  }
+#else
+  @_exported import struct os.Logger
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncEngine {
+    public typealias Logger = os.Logger
+  }
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncEngine.Logger {
+    public static var `default`: SyncEngine.Logger {
+      .init(subsystem: "SQLiteData", category: "CloudKit")
+    }
+    public static var disabled: SyncEngine.Logger {
+      .init(.disabled)
+    }
+  }
+#endif
+
+#if DEBUG
   import CloudKit
   import TabularData
   import os
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension Logger {
+  extension SyncEngine.Logger {
     func log(_ event: SyncEngine.Event, syncEngine: any SyncEngineProtocol) {
       let prefix = "SQLiteData (\(syncEngine.database.databaseScope.label).db)"
       var actions: [String] = []
@@ -301,4 +338,26 @@
       }
     }
   }
+#endif
+
+#if SQLiteDataSwiftLog
+  struct DisabledLogHandler: Logging.LogHandler {
+    var logLevel: Logging.Logger.Level = .info
+    var metadata: Logging.Logger.Metadata = [:]
+    subscript(metadataKey key: String) -> Logging.Logger.Metadata.Value? {
+      get { self.metadata[key] }
+      set { self.metadata[key] = newValue }
+    }
+    func log(
+      level: Logging.Logger.Level,
+      message: Logging.Logger.Message,
+      metadata: Logging.Logger.Metadata?,
+      source: String,
+      file: String,
+      function: String,
+      line: UInt
+    ) {}
+  }
+#endif
+
 #endif
