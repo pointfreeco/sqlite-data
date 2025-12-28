@@ -6,7 +6,7 @@ that all primary keys are UUIDs.
 ## Overview
 
 If the [manual migration](<doc:SyncEngine/migratePrimaryKeys(_:tables:uuid:)>) tool provided
-by this library does not work for you, then you will need to migrate your tables manually. 
+by this library does not work for you, then you will need to migrate your tables manually.
 This consists of converting integer primary keys to UUIDs, and adding a primary key to all tables
 that do not have one.
 

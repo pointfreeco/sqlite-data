@@ -255,7 +255,7 @@ func appDatabase() throws -> any DatabaseWriter {
     )
     .execute(db)
   }
-  
+
   try migrator.migrate(database)
 
   try database.write { db in
@@ -542,4 +542,3 @@ nonisolated private let logger = Logger(subsystem: "Reminders", category: "Datab
     }
   }
 #endif
-

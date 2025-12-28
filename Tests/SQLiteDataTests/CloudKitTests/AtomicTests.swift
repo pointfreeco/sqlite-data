@@ -25,7 +25,9 @@
           for: RemindersList.recordID(for: 1)
         )
         remindersListRecord.setValue("My stuff", forKey: "title", at: 1)
-        let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [remindersListRecord])
+        let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [
+          remindersListRecord
+        ])
         #expect(saveResults.values.allSatisfy { $0.error == nil })
 
         try await withDependencies {
@@ -120,7 +122,9 @@
           for: RemindersList.recordID(for: 1)
         )
         remindersListRecord.setValue("My stuff", forKey: "title", at: 1)
-        let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [remindersListRecord])
+        let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [
+          remindersListRecord
+        ])
         #expect(saveResults.values.allSatisfy { $0.error == nil })
 
         try await withDependencies {

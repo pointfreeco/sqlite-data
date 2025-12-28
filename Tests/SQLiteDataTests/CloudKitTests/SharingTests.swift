@@ -857,12 +857,16 @@
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        let _ = try await syncEngine.share(record: remindersList, configure: {
-          $0[CKShare.SystemFieldKey.title] = "Join my list!"
-        })
-        let _ = try await syncEngine.share(record: remindersList, configure: {
-          $0[CKShare.SystemFieldKey.title] = "Please join my list!"
-        })
+        let _ = try await syncEngine.share(
+          record: remindersList,
+          configure: {
+            $0[CKShare.SystemFieldKey.title] = "Join my list!"
+          })
+        let _ = try await syncEngine.share(
+          record: remindersList,
+          configure: {
+            $0[CKShare.SystemFieldKey.title] = "Please join my list!"
+          })
 
         assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase) {
           """

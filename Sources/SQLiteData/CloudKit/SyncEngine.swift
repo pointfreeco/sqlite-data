@@ -1735,16 +1735,19 @@
                 syncEngine.state.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
                 break
               case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-                  .notAuthenticated, .operationCancelled, .internalError, .partialFailure,
-                  .badContainer, .requestRateLimited, .missingEntitlement, .invalidArguments,
-                  .resultsTruncated, .assetFileNotFound, .assetFileModified, .incompatibleVersion,
-                  .constraintViolation, .changeTokenExpired, .badDatabase, .quotaExceeded,
-                  .limitExceeded, .userDeletedZone, .tooManyParticipants, .alreadyShared,
-                  .managedAccountRestricted, .participantMayNeedVerification, .serverResponseLost,
-                  .assetNotAvailable, .accountTemporarilyUnavailable, .permissionFailure,
-                  .unknownItem, .serverRecordChanged, .serverRejectedRequest, .zoneNotFound,
-                  .participantAlreadyInvited:
+                .notAuthenticated, .operationCancelled, .internalError, .partialFailure,
+                .badContainer, .requestRateLimited, .missingEntitlement, .invalidArguments,
+                .resultsTruncated, .assetFileNotFound, .assetFileModified, .incompatibleVersion,
+                .constraintViolation, .changeTokenExpired, .badDatabase, .quotaExceeded,
+                .limitExceeded, .userDeletedZone, .tooManyParticipants, .alreadyShared,
+                .managedAccountRestricted, .participantMayNeedVerification, .serverResponseLost,
+                .assetNotAvailable, .accountTemporarilyUnavailable, .permissionFailure,
+                .unknownItem, .serverRecordChanged, .serverRejectedRequest, .zoneNotFound:
                 break
+              #if canImport(FoundationModels)
+                case .participantAlreadyInvited:
+                  break
+              #endif
               @unknown default:
                 break
               }
