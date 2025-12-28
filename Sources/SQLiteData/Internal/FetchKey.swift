@@ -94,9 +94,9 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
       }
       scheduler.schedule {
         switch result {
-        case let .success(value):
+        case .success(let value):
           continuation.resume(returning: value)
-        case let .failure(error):
+        case .failure(let error):
           continuation.resume(throwing: error)
         }
       }
@@ -126,16 +126,16 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
         .dropFirst(dropFirst ? 1 : 0)
         .sink { completion in
           switch completion {
-          case let .failure(error):
+          case .failure(let error):
             subscriber.yield(throwing: error)
           case .finished:
             break
           }
         } receiveValue: { newValue in
           switch newValue {
-          case let .success(value):
+          case .success(let value):
             subscriber.yield(value)
-          case let .failure(error):
+          case .failure(let error):
             subscriber.yield(throwing: error)
           }
         }
@@ -147,9 +147,9 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
         subscriber.yield(throwing: error)
       } onChange: { newValue in
         switch newValue {
-        case let .success(value):
+        case .success(let value):
           subscriber.yield(value)
-        case let .failure(error):
+        case .failure(let error):
           subscriber.yield(throwing: error)
         }
       }

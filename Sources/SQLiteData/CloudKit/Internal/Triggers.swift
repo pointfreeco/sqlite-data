@@ -371,7 +371,8 @@
       zoneNameOverride = #sql("NULL")
       ownerNameOverride = #sql("NULL")
     }
-    return parentForeignKey
+    return
+      parentForeignKey
       .map { foreignKey in
         let parentRecordPrimaryKey = #sql(
           #"\#(type(of: alias).QueryValue.self).\#(quote: foreignKey.from)"#,
@@ -385,8 +386,12 @@
         return (
           parentRecordPrimaryKey,
           parentRecordType,
-          #sql("coalesce(\(zoneNameOverride), \($currentZoneName()), (\(parentMetadata.select(\.zoneName))))"),
-          #sql("coalesce(\(ownerNameOverride), \($currentOwnerName()), (\(parentMetadata.select(\.ownerName))))")
+          #sql(
+            "coalesce(\(zoneNameOverride), \($currentZoneName()), (\(parentMetadata.select(\.zoneName))))"
+          ),
+          #sql(
+            "coalesce(\(ownerNameOverride), \($currentOwnerName()), (\(parentMetadata.select(\.ownerName))))"
+          )
         )
       }
       ?? (
