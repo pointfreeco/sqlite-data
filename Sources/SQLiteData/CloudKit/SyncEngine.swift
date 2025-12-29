@@ -37,6 +37,7 @@
     private let observationRegistrar = ObservationRegistrar()
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
+    private let startTask = LockIsolated<Task<Void, Never>?>(nil)
 
     /// The error message used when a write occurs to a record for which the current user does not
     /// have permission.
@@ -87,7 +88,7 @@
       privateTables: repeat (each T2).Type,
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
-      startImmediately: Bool = DependencyValues._current.context == .live,
+      startImmediately: Bool = true,
       delegate: (any SyncEngineDelegate)? = nil,
       logger: Logger = isTesting
         ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
@@ -117,12 +118,15 @@
       else {
         let privateDatabase = MockCloudDatabase(databaseScope: .private)
         let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+        let container = MockCloudContainer(
+          containerIdentifier: containerIdentifier ?? "iCloud.co.pointfree.SQLiteData.Tests",
+          privateCloudDatabase: privateDatabase,
+          sharedCloudDatabase: sharedDatabase
+        )
+        privateDatabase.set(container: container)
+        sharedDatabase.set(container: container)
         try self.init(
-          container: MockCloudContainer(
-            containerIdentifier: containerIdentifier ?? "iCloud.co.pointfree.SQLiteData.Tests",
-            privateCloudDatabase: privateDatabase,
-            sharedCloudDatabase: sharedDatabase
-          ),
+          container: container,
           defaultZone: defaultZone,
           defaultSyncEngines: { _, syncEngine in
             (
@@ -359,6 +363,7 @@
           foreignKeysByTableName: foreignKeysByTableName,
           tablesByName: tablesByName,
           defaultZone: defaultZone,
+          privateTables: privateTables,
           db: db
         )
       }
@@ -486,10 +491,14 @@
           ($0.tableName, $0)
         }
       )
-      return Task {
+
+      let startTask = Task<Void, Never> {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           guard try await container.accountStatus() == .available
           else { return }
+          syncEngines.withValue {
+            $0.private?.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
+          }
           try await uploadRecordsToCloudKit(
             previousRecordTypeByTableName: previousRecordTypeByTableName,
             currentRecordTypeByTableName: currentRecordTypeByTableName
@@ -501,8 +510,10 @@
           try await cacheUserTables(recordTypes: currentRecordTypes)
         }
       }
+      self.startTask.withValue { $0 = startTask }
+      return startTask
     }
-    
+
     /// Fetches pending remote changes from the server.
     ///
     /// Use this method to ensure the sync engine immediately fetches all pending remote changes
@@ -514,6 +525,7 @@
     public func fetchChanges(
       _ options: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions()
     ) async throws {
+      await startTask.withValue(\.self)?.value
       let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
         ($0.private, $0.shared)
       }
@@ -523,7 +535,7 @@
       async let shared: Void = sharedSyncEngine.fetchChanges(options)
       _ = try await (`private`, shared)
     }
-    
+
     /// Sends pending local changes to the server.
     ///
     /// Use this method to ensure the sync engine sends all pending local changes to the server
@@ -535,6 +547,7 @@
     public func sendChanges(
       _ options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
     ) async throws {
+      await startTask.withValue(\.self)?.value
       let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
         ($0.private, $0.shared)
       }
@@ -544,7 +557,7 @@
       async let shared: Void = sharedSyncEngine.sendChanges(options)
       _ = try await (`private`, shared)
     }
-    
+
     /// Synchronizes local and remote pending changes.
     ///
     /// Use this method to ensure the sync engine immediately fetches all pending remote changes
@@ -686,7 +699,8 @@
     package func tearDownSyncEngine() throws {
       try userDatabase.write { db in
         for table in tables.reversed() {
-          try table.base.dropTriggers(defaultZone: defaultZone, db: db)
+          try table.base
+            .dropTriggers(defaultZone: defaultZone, privateTables: privateTables, db: db)
         }
         for trigger in SyncMetadata.callbackTriggers(for: self).reversed() {
           try trigger.drop().execute(db)
@@ -886,6 +900,7 @@
       foreignKeysByTableName: [String: [ForeignKey]],
       tablesByName: [String: any SynchronizableTable],
       defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable],
       db: Database
     ) throws {
       let parentForeignKey =
@@ -893,15 +908,27 @@
         ? foreignKeysByTableName[tableName]?.first
         : nil
 
-      for trigger in metadataTriggers(parentForeignKey: parentForeignKey, defaultZone: defaultZone)
-      {
+      for trigger in metadataTriggers(
+        parentForeignKey: parentForeignKey,
+        defaultZone: defaultZone,
+        privateTables: privateTables
+      ) {
         try trigger.execute(db)
       }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    fileprivate static func dropTriggers(defaultZone: CKRecordZone, db: Database) throws {
-      for trigger in metadataTriggers(parentForeignKey: nil, defaultZone: defaultZone).reversed() {
+    fileprivate static func dropTriggers(
+      defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable],
+      db: Database
+    ) throws {
+      for trigger in metadataTriggers(
+        parentForeignKey: nil,
+        defaultZone: defaultZone,
+        privateTables: privateTables
+      )
+      .reversed() {
         try trigger.drop().execute(db)
       }
     }
@@ -1127,8 +1154,7 @@
               recordID: recordID
             )
           if let parentRecordName = metadata.parentRecordName,
-            let parentRecordType = metadata.parentRecordType,
-            !privateTables.contains(where: { $0.base.tableName == parentRecordType })
+            !privateTables.contains(where: { $0.base.tableName == metadata.recordType })
           {
             record.parent = CKRecord.Reference(
               recordID: CKRecord.ID(
@@ -1212,7 +1238,7 @@
                               recordName: metadata.recordName,
                               lastKnownServerRecord: metadata.lastKnownServerRecord,
                               rootRecordName: tree.rootRecordName,
-                              rootLastKnownServerRecord: tree.lastKnownServerRecord
+                              rootLastKnownServerRecord: tree.rootLastKnownServerRecord
                             )
                           }
                       )
@@ -1669,8 +1695,12 @@
             try await open(table)
           }
 
+        case .batchRequestFailed:
+          newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
+          break
+
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
-          .notAuthenticated, .operationCancelled, .batchRequestFailed,
+          .notAuthenticated, .operationCancelled,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
@@ -1692,15 +1722,35 @@
           try await userDatabase.write { db in
             var enqueuedUnsyncedRecordID = false
             for (failedRecordID, error) in failedRecordDeletes {
-              guard
-                error.code == .referenceViolation
-              else { continue }
-              try UnsyncedRecordID.insert(or: .ignore) {
-                UnsyncedRecordID(recordID: failedRecordID)
+              switch error.code {
+              case .referenceViolation:
+                enqueuedUnsyncedRecordID = true
+                try UnsyncedRecordID.insert(or: .ignore) {
+                  UnsyncedRecordID(recordID: failedRecordID)
+                }
+                .execute(db)
+                syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+                break
+              case .batchRequestFailed:
+                syncEngine.state.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+                break
+              case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
+                .notAuthenticated, .operationCancelled, .internalError, .partialFailure,
+                .badContainer, .requestRateLimited, .missingEntitlement, .invalidArguments,
+                .resultsTruncated, .assetFileNotFound, .assetFileModified, .incompatibleVersion,
+                .constraintViolation, .changeTokenExpired, .badDatabase, .quotaExceeded,
+                .limitExceeded, .userDeletedZone, .tooManyParticipants, .alreadyShared,
+                .managedAccountRestricted, .participantMayNeedVerification, .serverResponseLost,
+                .assetNotAvailable, .accountTemporarilyUnavailable, .permissionFailure,
+                .unknownItem, .serverRecordChanged, .serverRejectedRequest, .zoneNotFound:
+                break
+              #if canImport(FoundationModels)
+                case .participantAlreadyInvited:
+                  break
+              #endif
+              @unknown default:
+                break
               }
-              .execute(db)
-              syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
-              enqueuedUnsyncedRecordID = true
             }
             return enqueuedUnsyncedRecordID
           }

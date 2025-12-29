@@ -140,10 +140,13 @@ func appDatabase() throws -> any DatabaseWriter {
     db.add(function: $handleReminderStatusUpdate)
     #if DEBUG
       db.trace(options: .profile) {
-        if context == .live {
+        switch context {
+        case .live:
           logger.debug("\($0.expandedDescription)")
-        } else {
+        case .preview:
           print("\($0.expandedDescription)")
+        case .test:
+          break
         }
       }
     #endif
@@ -224,6 +227,30 @@ func appDatabase() throws -> any DatabaseWriter {
         "tags",
         tokenize = 'trigram'
       )
+      """
+    )
+    .execute(db)
+  }
+
+  migrator.registerMigration("Create foreign key indexes") { db in
+    try #sql(
+      """
+      CREATE INDEX IF NOT EXISTS "idx_reminders_remindersListID"
+      ON "reminders"("remindersListID")
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE INDEX IF NOT EXISTS "idx_remindersTags_reminderID"
+      ON "remindersTags"("reminderID")
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE INDEX IF NOT EXISTS "idx_remindersTags_tagID"
+      ON "remindersTags"("tagID")
       """
     )
     .execute(db)
@@ -387,8 +414,14 @@ nonisolated private let logger = Logger(subsystem: "Reminders", category: "Datab
     func seedSampleData() throws {
       @Dependency(\.date.now) var now
       @Dependency(\.uuid) var uuid
-      let remindersListIDs = (0...2).map { _ in uuid() }
-      let reminderIDs = (0...10).map { _ in uuid() }
+      var remindersListIDs: [UUID] = []
+      for _ in 0...2 {
+        remindersListIDs.append(uuid())
+      }
+      var reminderIDs: [UUID] = []
+      for _ in 0...10 {
+        reminderIDs.append(uuid())
+      }
       try seed {
         RemindersList(
           id: remindersListIDs[0],

@@ -20,8 +20,8 @@
             RemindersList(id: 2, title: "Business")
             Reminder(id: 1, title: "Get milk", remindersListID: 1)
             Reminder(id: 2, title: "Call accountant", remindersListID: 2)
-            RemindersListPrivate(id: 1, remindersListID: 1)
-            RemindersListPrivate(id: 2, remindersListID: 2)
+            RemindersListPrivate(remindersListID: 1)
+            RemindersListPrivate(remindersListID: 2)
             UnsyncedModel(id: 1)
             UnsyncedModel(id: 2)
           }
@@ -52,8 +52,8 @@
             RemindersList(id: 2, title: "Business")
             Reminder(id: 1, title: "Get milk", remindersListID: 1)
             Reminder(id: 2, title: "Call accountant", remindersListID: 2)
-            RemindersListPrivate(id: 1, remindersListID: 1)
-            RemindersListPrivate(id: 2, remindersListID: 2)
+            RemindersListPrivate(remindersListID: 1)
+            RemindersListPrivate(remindersListID: 2)
             UnsyncedModel(id: 1)
             UnsyncedModel(id: 2)
           }
@@ -106,18 +106,16 @@
                 [2]: CKRecord(
                   recordID: CKRecord.ID(1:remindersListPrivates/zone/__defaultOwner__),
                   recordType: "remindersListPrivates",
-                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                  parent: nil,
                   share: nil,
-                  id: 1,
                   position: 0,
                   remindersListID: 1
                 ),
                 [3]: CKRecord(
                   recordID: CKRecord.ID(2:remindersListPrivates/zone/__defaultOwner__),
                   recordType: "remindersListPrivates",
-                  parent: CKReference(recordID: CKRecord.ID(2:remindersLists/zone/__defaultOwner__)),
+                  parent: nil,
                   share: nil,
-                  id: 2,
                   position: 0,
                   remindersListID: 2
                 ),
