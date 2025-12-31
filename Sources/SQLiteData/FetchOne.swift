@@ -79,6 +79,17 @@ public struct FetchOne<Value: Sendable>: Sendable {
     sharedReader = SharedReader(value: wrappedValue)
   }
 
+  /// Initializes this property with a wrapped value.
+  ///
+  /// - Parameter wrappedValue: A default value to associate with this property.
+  public init(wrappedValue: sending Value)
+  where
+    Value: _Selection,
+    Value.QueryOutput == Value
+  {
+    sharedReader = SharedReader(value: wrappedValue)
+  }
+
   /// Initializes this property with a query that fetches the first row from a table.
   ///
   /// - Parameters:
@@ -119,18 +130,6 @@ public struct FetchOne<Value: Sendable>: Sendable {
       wrappedValue: wrappedValue,
       .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
     )
-  }
-
-  /// Initializes this property with a wrapped value.
-  ///
-  /// - Parameter wrappedValue: A default value to associate with this property.
-  public init(wrappedValue: sending Value)
-  where
-    Value: _OptionalProtocol,
-    Value: _Selection,
-    Value.QueryOutput == Value
-  {
-    sharedReader = SharedReader(value: wrappedValue)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -430,6 +429,33 @@ public struct FetchOne<Value: Sendable>: Sendable {
 }
 
 extension FetchOne {
+  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Value: _Selection,
+    Value.QueryOutput == Value
+  {
+    sharedReader = SharedReader(value: wrappedValue)
+  }
+
+  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  public init(
+    wrappedValue: sending Value = Value._none,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Value: _OptionalProtocol,
+    Value: _Selection,
+    Value.QueryOutput == Value
+  {
+    sharedReader = SharedReader(value: wrappedValue)
+  }
+
   /// Initializes this property with a query that fetches the first row from a table.
   ///
   /// - Parameters:
@@ -878,6 +904,33 @@ extension FetchOne: Equatable where Value: Equatable {
   extension FetchOne: DynamicProperty {
     public func update() {
       sharedReader.update()
+    }
+
+    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    public init(
+      wrappedValue: sending Value,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+      Value: _Selection,
+      Value.QueryOutput == Value
+    {
+      sharedReader = SharedReader(value: wrappedValue)
+    }
+
+    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    public init(
+      wrappedValue: sending Value = Value._none,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+      Value: _OptionalProtocol,
+      Value: _Selection,
+      Value.QueryOutput == Value
+    {
+      sharedReader = SharedReader(value: wrappedValue)
     }
 
     /// Initializes this property with a query that fetches the first row from a table.
