@@ -349,7 +349,7 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func serverRecordEditedAfterClientButProcessedBeforeClient() async throws {
+      @Test func serverRecordEditedAfterClientAndProcessedBeforeClient() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "")
@@ -427,7 +427,86 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func serverRecordEditedAndProcessedBeforeClient() async throws {
+      @Test func serverRecordEditedAfterClientAndProcessedAfterClient() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "")
+            Reminder(id: 1, title: "", remindersListID: 1)
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await withDependencies {
+          $0.currentTime.now = 30
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Reminder.find(1).update { $0.title = "Get milk" }.execute(db)
+          }
+        }
+
+        let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
+        record.setValue("Buy milk", forKey: "title", at: 60)
+        let modificationCallback = try {
+          try syncEngine.modifyRecords(scope: .private, saving: [record])
+        }()
+
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        await modificationCallback.notify()
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          ┌───────────────────────┐
+          │ Reminder(             │
+          │   id: 1,              │
+          │   dueDate: nil,       │
+          │   isCompleted: false, │
+          │   priority: nil,      │
+          │   title: "Buy milk",  │
+          │   remindersListID: 1  │
+          │ )                     │
+          └───────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                share: nil,
+                id: 1,
+                id🗓️: 0,
+                isCompleted: 0,
+                isCompleted🗓️: 0,
+                remindersListID: 1,
+                remindersListID🗓️: 0,
+                title: "Buy milk",
+                title🗓️: 60,
+                🗓️: 60
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 1,
+                id🗓️: 0,
+                title: "",
+                title🗓️: 0,
+                🗓️: 0
+              )
+            ]
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func serverRecordEditedBeforeClientAndProcessedBeforeClient() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "")
@@ -490,7 +569,7 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func serverRecordEditedBeforeClientButProcessedAfterClient() async throws {
+      @Test func serverRecordEditedBeforeClientAndProcessedAfterClient() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "")
