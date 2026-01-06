@@ -24,7 +24,7 @@
     package let tables: [any SynchronizableTable]
     package let privateTables: [any SynchronizableTable]
     let tablesByName: [String: any SynchronizableTable]
-    private let tablesByOrder: [String: Int]
+    package let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
     package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
     package let defaultZone: CKRecordZone
@@ -217,7 +217,7 @@
       tables: [any SynchronizableTable],
       privateTables: [any SynchronizableTable] = []
     ) throws {
-      let allTables = Set((tables + privateTables).map(HashableSynchronizedTable.init))
+      let allTables = OrderedSet((tables + privateTables).map(HashableSynchronizedTable.init))
         .map(\.type)
       self.tables = allTables
       self.privateTables = privateTables
@@ -1491,7 +1491,6 @@
             }
           }
           let batchSize = 150
-          let batchCount = unsyncedRecordIDs.count / batchSize
           let orderedUnsyncedRecordIDs = unsyncedRecordIDs.sorted {
             topologicallyAscending(
               lhsTableName: $0.tableName,
@@ -1500,9 +1499,9 @@
             )
           }
           var unsyncedRecords: [CKRecord] = []
-          for batch in 0...batchCount {
+          for start in stride(from: 0, to: orderedUnsyncedRecordIDs.count, by: batchSize) {
             let recordIDsBatch = orderedUnsyncedRecordIDs
-              .dropFirst(batch * batchSize)
+              .dropFirst(start)
               .prefix(batchSize)
             let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
             for (recordID, result) in results {
@@ -1580,13 +1579,20 @@
       rhsTableName: String?,
       rootFirst: Bool
     ) -> Bool {
-      guard
-        let lhsTableName,
-        let rhsTableName,
-        let lhsIndex = tablesByOrder[lhsTableName],
-        let rhsIndex = tablesByOrder[rhsTableName]
-      else { return false }
-      return rootFirst ? lhsIndex < rhsIndex : lhsIndex > rhsIndex
+      switch (lhsTableName, rhsTableName) {
+      case (nil, nil), (nil, _):
+        return false
+      case (_, nil):
+        return true
+      case let (.some(lhs), .some(rhs)):
+        let lhsIndex = tablesByOrder[lhs] ?? (rootFirst ? .max : .min)
+        let rhsIndex = tablesByOrder[rhs] ?? (rootFirst ? .max : .min)
+        guard lhsIndex != rhsIndex
+        else {
+          return lhs < rhs
+        }
+        return rootFirst ? lhsIndex < rhsIndex : lhsIndex > rhsIndex
+      }
     }
 
     package func handleSentRecordZoneChanges(
@@ -2318,10 +2324,12 @@
     tablesByName: [String: any SynchronizableTable]
   ) throws -> [String: Int] {
     let tableDependencies = try userDatabase.read { db in
-      var dependencies: [HashableSynchronizedTable: [any SynchronizableTable]] = [:]
+      var dependencies: OrderedDictionary<HashableSynchronizedTable, [any SynchronizableTable]> = [:]
       for table in tables {
         func open<T>(_: some SynchronizableTable<T>) throws -> [String] {
-          try PragmaForeignKeyList<T>.select(\.table)
+          try PragmaForeignKeyList<T>
+            .order(by: \.table)
+            .select(\.table)
             .fetchAll(db)
         }
         let toTables = try open(table)
