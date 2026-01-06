@@ -1419,11 +1419,11 @@
     ) async {
       let deletedRecordIDsByRecordType = OrderedDictionary(
         grouping: deletions.sorted { lhs, rhs in
-          guard
-            let lhsIndex = tablesByOrder[lhs.recordType],
-            let rhsIndex = tablesByOrder[rhs.recordType]
-          else { return true }
-          return lhsIndex > rhsIndex
+          topologicallyAscending(
+            lhsTableName: lhs.recordType,
+            rhsTableName: rhs.recordType,
+            rootFirst: false
+          )
         },
         by: \.recordType
       )
@@ -1490,18 +1490,32 @@
                 .execute(db)
             }
           }
-          let results = try await syncEngine.database.records(for: Array(unsyncedRecordIDs))
+          let batchSize = 150
+          let batchCount = unsyncedRecordIDs.count / batchSize
+          let orderedUnsyncedRecordIDs = unsyncedRecordIDs.sorted {
+            topologicallyAscending(
+              lhsTableName: $0.tableName,
+              rhsTableName: $1.tableName,
+              rootFirst: true
+            )
+          }
           var unsyncedRecords: [CKRecord] = []
-          for (recordID, result) in results {
-            switch result {
-            case .success(let record):
-              unsyncedRecords.append(record)
-            case .failure(let error as CKError) where error.code == .unknownItem:
-              try await userDatabase.write { db in
-                try UnsyncedRecordID.find(recordID).delete().execute(db)
+          for batch in 0...batchCount {
+            let recordIDs = orderedUnsyncedRecordIDs
+              .dropFirst(batch * batchSize)
+              .prefix(batchSize)
+            let results = try await syncEngine.database.records(for: Array(recordIDs))
+            for (recordID, result) in results {
+              switch result {
+              case .success(let record):
+                unsyncedRecords.append(record)
+              case .failure(let error as CKError) where error.code == .unknownItem:
+                try await userDatabase.write { db in
+                  try UnsyncedRecordID.find(recordID).delete().execute(db)
+                }
+              case .failure:
+                continue
               }
-            case .failure:
-              continue
             }
           }
           return unsyncedRecords
@@ -1509,13 +1523,11 @@
         ?? [CKRecord]()
 
       let modifications = (modifications + unsyncedRecords).sorted { lhs, rhs in
-        guard
-          let lhsRecordType = lhs.recordID.tableName,
-          let lhsIndex = tablesByOrder[lhsRecordType],
-          let rhsRecordType = rhs.recordID.tableName,
-          let rhsIndex = tablesByOrder[rhsRecordType]
-        else { return true }
-        return lhsIndex < rhsIndex
+        topologicallyAscending(
+          lhsTableName: lhs.recordID.tableName,
+          rhsTableName: rhs.recordID.tableName,
+          rootFirst: true
+        )
       }
 
       enum ShareOrReference {
@@ -1561,6 +1573,20 @@
           }
         }
       }
+    }
+
+    private func topologicallyAscending(
+      lhsTableName: String?,
+      rhsTableName: String?,
+      rootFirst: Bool
+    ) -> Bool {
+      guard
+        let lhsTableName,
+        let rhsTableName,
+        let lhsIndex = tablesByOrder[lhsTableName],
+        let rhsIndex = tablesByOrder[rhsTableName]
+      else { return false }
+      return rootFirst ? lhsIndex < rhsIndex : lhsIndex > rhsIndex
     }
 
     package func handleSentRecordZoneChanges(

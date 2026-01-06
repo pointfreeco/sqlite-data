@@ -649,6 +649,41 @@
           )
         }
       }
+
+      @Test func limitExceeded() async throws {
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+        let reminderRecords = (1...400).map { index in
+          let reminderRecord = CKRecord(
+            recordType: Reminder.tableName,
+            recordID: Reminder.recordID(for: index)
+          )
+          reminderRecord.setValue(index, forKey: "id", at: now)
+          reminderRecord.setValue("Reminder #\(index)", forKey: "title", at: now)
+          reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+          reminderRecord.parent = CKRecord.Reference(
+            record: remindersListRecord,
+            action: .none
+          )
+          return reminderRecord
+        }
+
+        _ = try syncEngine.private.database.modifyRecords(
+          saving: reminderRecords + [remindersListRecord]
+        )
+
+        let error = await #expect(throws: CKError.self) {
+          _ = try await syncEngine.private.database.records(
+            for: [remindersListRecord.recordID] + reminderRecords.map(\.recordID)
+          )
+        }
+        #expect(error?.code == .limitExceeded)
+      }
     }
   }
 #endif

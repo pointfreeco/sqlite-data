@@ -869,6 +869,50 @@
           """
         }
       }
+
+      // When downloading
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func batchAssociations() async throws {
+
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+        let remindersListModification = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [remindersListRecord]
+        )
+
+        let reminderCount = 500
+        let reminderRecords = (1...reminderCount).map { index in
+          let reminderRecord = CKRecord(
+            recordType: Reminder.tableName,
+            recordID: Reminder.recordID(for: index)
+          )
+          reminderRecord.setValue(index, forKey: "id", at: now)
+          reminderRecord.setValue("Reminder #\(index)", forKey: "title", at: now)
+          reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+          reminderRecord.parent = CKRecord.Reference(
+            record: remindersListRecord,
+            action: .none
+          )
+          return reminderRecord
+        }
+
+        try await syncEngine.modifyRecords(
+          scope: .private,
+          saving: reminderRecords
+        )
+        .notify()
+        await remindersListModification.notify()
+
+        try await userDatabase.read { db in
+          try #expect(RemindersList.fetchCount(db) == 1)
+          try #expect(Reminder.fetchCount(db) == reminderCount)
+        }
+      }
     }
   }
 #endif
