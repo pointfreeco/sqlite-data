@@ -891,8 +891,7 @@
           saving: [remindersListRecord]
         )
 
-        let reminderCount = 500
-        let reminderRecords = (1...reminderCount).map { index in
+        let reminderRecords = (1...500).map { index in
           let reminderRecord = CKRecord(
             recordType: Reminder.tableName,
             recordID: Reminder.recordID(for: index)
@@ -909,14 +908,29 @@
 
         try await syncEngine.modifyRecords(
           scope: .private,
-          saving: reminderRecords
-        )
-        .notify()
+          saving: Array(reminderRecords[0...100])
+        ).notify()
+        try await syncEngine.modifyRecords(
+          scope: .private,
+          saving: Array(reminderRecords[101...200])
+        ).notify()
+        try await syncEngine.modifyRecords(
+          scope: .private,
+          saving: Array(reminderRecords[201...300])
+        ).notify()
+        try await syncEngine.modifyRecords(
+          scope: .private,
+          saving: Array(reminderRecords[301...400])
+        ).notify()
+        try await syncEngine.modifyRecords(
+          scope: .private,
+          saving: Array(reminderRecords[401...499])
+        ).notify()
         await remindersListModification.notify()
 
         try await userDatabase.read { db in
           try #expect(RemindersList.fetchCount(db) == 1)
-          try #expect(Reminder.fetchCount(db) == reminderCount)
+          try #expect(Reminder.fetchCount(db) == 500)
         }
       }
     }
