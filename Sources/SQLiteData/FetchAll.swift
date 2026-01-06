@@ -219,6 +219,16 @@ public struct FetchAll<Element: Sendable>: Sendable {
 }
 
 extension FetchAll {
+  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  public init(
+    wrappedValue: [Element] = [],
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where Element: StructuredQueriesCore._Selection, Element.QueryOutput == Element {
+    sharedReader = SharedReader(value: wrappedValue)
+  }
+
   /// Initializes this property with a query that fetches every row from a table.
   ///
   /// - Parameters:
@@ -391,6 +401,16 @@ extension FetchAll: Equatable where Element: Equatable {
   extension FetchAll: DynamicProperty {
     public func update() {
       sharedReader.update()
+    }
+
+    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    public init(
+      wrappedValue: [Element] = [],
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where Element: StructuredQueriesCore._Selection, Element.QueryOutput == Element {
+      sharedReader = SharedReader(value: wrappedValue)
     }
 
     /// Initializes this property with a query that fetches every row from a table.

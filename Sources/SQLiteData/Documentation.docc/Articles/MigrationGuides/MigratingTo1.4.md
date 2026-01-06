@@ -1,7 +1,7 @@
 # Migrating to 1.4
 
 SQLiteData 1.4 introduces a new tool for tying the lifecycle database subscriptions to the
-lifecycle of the surrounding async context, but it may incidentally cause "Result of call … 
+lifecycle of the surrounding async context, but it may incidentally cause "Result of call …
 is unused" warnings in your project.
 
 ## Overview
@@ -9,7 +9,7 @@ is unused" warnings in your project.
 The `load` method defined on [`@FetchAll`](<doc:FetchAll>) / [`@FetchOne`](<doc:FetchOne>) /
 [`@Fetch`](<doc:Fetch>) all now return a discardable result, ``FetchSubscription``. Awaiting the
 ``FetchSubscription/task`` of that result ties the lifecycle of the subscription to the database
-to the lifecycle of the surrounding async context, which can help views to automatically 
+to the lifecycle of the surrounding async context, which can help views to automatically
 unsubscribe from the database when they are not visible.
 
 However, when used with `withErrorReporting` you are likely to get the following warning:

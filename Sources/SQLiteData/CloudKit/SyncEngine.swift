@@ -1758,9 +1758,12 @@
                 .limitExceeded, .userDeletedZone, .tooManyParticipants, .alreadyShared,
                 .managedAccountRestricted, .participantMayNeedVerification, .serverResponseLost,
                 .assetNotAvailable, .accountTemporarilyUnavailable, .permissionFailure,
-                .unknownItem, .serverRecordChanged, .serverRejectedRequest, .zoneNotFound,
-                .participantAlreadyInvited:
+                .unknownItem, .serverRecordChanged, .serverRejectedRequest, .zoneNotFound:
                 break
+              #if canImport(FoundationModels)
+                case .participantAlreadyInvited:
+                  break
+              #endif
               @unknown default:
                 break
               }

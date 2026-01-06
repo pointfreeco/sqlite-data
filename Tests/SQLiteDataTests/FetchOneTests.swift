@@ -3,6 +3,10 @@ import Foundation
 import SQLiteData
 import Testing
 
+#if canImport(SwiftUI)
+  import SwiftUI
+#endif
+
 @Suite(.dependency(\.defaultDatabase, try .database())) struct FetchOneTests {
   @Dependency(\.defaultDatabase) var database
 
@@ -176,6 +180,31 @@ import Testing
     _record = FetchOne(wrappedValue: Record(id: 0), Record.all)
     #expect(record.id == 1)
   }
+
+  @Test func fetchOneSelection() async throws {
+    do {
+      @FetchOne var row: Row?
+      #expect($row.loadError == nil)
+    }
+    do {
+      @FetchOne var row = Row(id: 1)
+      #expect($row.loadError == nil)
+    }
+  }
+
+  @available(*, deprecated)
+  @Test func fetchOneSelection_Deprecated() async throws {
+    #if canImport(SwiftUI)
+      do {
+        @FetchOne(animation: .default) var row: Row?
+        #expect($row.loadError == nil)
+      }
+      do {
+        @FetchOne(animation: .default) var row = Row(id: 1)
+        #expect($row.loadError == nil)
+      }
+    #endif
+  }
 }
 
 @Table
@@ -187,6 +216,12 @@ private struct Record: Equatable {
   @Column(as: Date?.UnixTimeRepresentation.self)
   var optionalDate: Date?
 }
+
+@Selection
+private struct Row {
+  let id: Int
+}
+
 extension DatabaseWriter where Self == DatabaseQueue {
   fileprivate static func database() throws -> DatabaseQueue {
     let database = try DatabaseQueue()

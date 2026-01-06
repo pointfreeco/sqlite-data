@@ -435,7 +435,9 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func deletingShareOwnedByCurrentUserDeletesShareAndDoesNotDeleteAssociatedData() async throws {
+      @Test func deletingShareOwnedByCurrentUserDeletesShareAndDoesNotDeleteAssociatedData()
+        async throws
+      {
         let zone = syncEngine.defaultZone
         _ = try syncEngine.private.database.modifyRecordZones(saving: [zone])
 
@@ -520,7 +522,9 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func deletingShareNotOwnedByCurrentUserDeletesOnlyShareAndNotAssociatedRecords() async throws {
+      @Test func deletingShareNotOwnedByCurrentUserDeletesOnlyShareAndNotAssociatedRecords()
+        async throws
+      {
         let externalZone = CKRecordZone(
           zoneID: CKRecordZone.ID(zoneName: "external.zone", ownerName: "external.owner")
         )
@@ -640,7 +644,7 @@
           #expect(
             saveResults.compactMapValues { ($0.error as? CKError)?.code } == [
               record1ID: .batchRequestFailed,
-              record2ID: .serverRecordChanged
+              record2ID: .serverRecordChanged,
             ]
           )
         }

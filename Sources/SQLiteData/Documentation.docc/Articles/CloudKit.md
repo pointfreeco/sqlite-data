@@ -237,7 +237,7 @@ CREATE TABLE "reminders"(
 ) STRICT
 ```
 
-> Tip: See SQLite's documentation on [foreign keys](https://sqlite.org/foreignkeys.html) for more information. 
+> Tip: See SQLite's documentation on [foreign keys](https://sqlite.org/foreignkeys.html) for more information.
 
 SQLiteData can synchronize many-to-one and many-to-many relationships to CloudKit,
 and you can enforce foreign key constraints in your database connection. While it is possible for
@@ -495,8 +495,8 @@ assets.
 
 However, general database design guidelines still apply. In particular, it is not recommended to
 store large binary blobs in a table that is queried often. If done naively you may accidentally
-large amounts of data into memory when querying your table, and further large binary blobs can
-slow down SQLite's ability to efficiently access the rows in your tables.
+load large amounts of data into memory when querying your table. Furthermore, large binary blobs
+can slow down SQLite's ability to efficiently access the rows in your tables.
 
 It is recommended to hold binary blobs in a separate, but related, table. For example, if you are
 building a reminders app that has lists, and you allow your users to assign an image to a list.
@@ -706,19 +706,19 @@ And in previews you can use it like so:
 If you have an existing app deployed to the app store using SQLite, then you may have to perform
 a migration on your schema to prepare it for synchronization. The most important requirement
 detailed above in <doc:CloudKit#Designing-your-schema-with-synchronization-in-mind> is that
-all tables _must_ have a primary key, and all primary keys must be globally unique identifiers 
+all tables _must_ have a primary key, and all primary keys must be globally unique identifiers
 such as UUID, and cannot be simple auto-incrementing integers.
 
-The steps required to perform such a process are quite lengthy (the SQLite docs describe it in 
+The steps required to perform such a process are quite lengthy (the SQLite docs describe it in
 [12 parts]), and those steps are easy to get wrong, which can either result in the migration
 failing or your app accidentally corrupting your user's data.
 
-SQLiteData provides a tool called ``SyncEngine/migratePrimaryKeys(_:tables:uuid:)`` that 
+SQLiteData provides a tool called ``SyncEngine/migratePrimaryKeys(_:tables:uuid:)`` that
 makes it possible to perform this migration in just 2 steps:
 
   * Update your Swift data types (then used annotated with `@Table`) to use UUID identifiers instead
   of `Int`, and fix all of the resulting compiler errors in your features.
-  * Create a new migration and invoke ``SyncEngine/migratePrimaryKeys(_:tables:uuid:)`` with the 
+  * Create a new migration and invoke ``SyncEngine/migratePrimaryKeys(_:tables:uuid:)`` with the
   database handle from your migration and a list of all of your tables:
 
     ```swift
@@ -731,7 +731,7 @@ makes it possible to perform this migration in just 2 steps:
 That will perform the many step process of migrating each table from integer-based primary keys
 to UUIDs.
 
-This migration tool tries to be conservative with its efforts so that if it ever detects a 
+This migration tool tries to be conservative with its efforts so that if it ever detects a
 schema it does not know how to handle properly, it will throw an error. If this happens, then
 you must migrate your tables manually using the introduces in <doc:ManuallyMigratingPrimaryKeys>.
 
