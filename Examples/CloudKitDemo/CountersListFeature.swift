@@ -33,20 +33,6 @@ struct CountersListView: View {
           }
         }
       }
-      ToolbarItem {
-        Button("💥") {
-          withErrorReporting {
-            try database.write { db in
-              for index in 1...1000 {
-                try Counter.insert {
-                  Counter.Draft(count: index)
-                }
-                .execute(db)
-              }
-            }
-          }
-        }
-      }
     }
   }
 
