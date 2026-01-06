@@ -1501,10 +1501,10 @@
           }
           var unsyncedRecords: [CKRecord] = []
           for batch in 0...batchCount {
-            let recordIDs = orderedUnsyncedRecordIDs
+            let recordIDsBatch = orderedUnsyncedRecordIDs
               .dropFirst(batch * batchSize)
               .prefix(batchSize)
-            let results = try await syncEngine.database.records(for: Array(recordIDs))
+            let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
             for (recordID, result) in results {
               switch result {
               case .success(let record):
