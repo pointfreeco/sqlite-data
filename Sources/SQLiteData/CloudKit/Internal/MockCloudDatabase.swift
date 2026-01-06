@@ -65,9 +65,7 @@
       else { throw ckError(forAccountStatus: accountStatus) }
 
       guard ids.count < 200
-      else {
-        throw CKError(.limitExceeded)
-      }
+      else { throw CKError(.limitExceeded) }
 
       var results: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
       for id in ids {
@@ -88,6 +86,11 @@
       let accountStatus = container.accountStatus()
       guard accountStatus == .available
       else { throw ckError(forAccountStatus: accountStatus) }
+
+      guard (recordsToSave.count + recordIDsToDelete.count) < 200
+      else {
+        throw CKError(.limitExceeded)
+      }
 
       return storage.withValue { storage in
         let previousStorage = storage
