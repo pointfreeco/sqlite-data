@@ -24,7 +24,7 @@
     package let tables: [any SynchronizableTable]
     package let privateTables: [any SynchronizableTable]
     let tablesByName: [String: any SynchronizableTable]
-    private let tablesByOrder: [String: Int]
+    package let tablesByOrder: [String: Int]
     let foreignKeysByTableName: [String: [ForeignKey]]
     package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
     package let defaultZone: CKRecordZone
@@ -217,7 +217,7 @@
       tables: [any SynchronizableTable],
       privateTables: [any SynchronizableTable] = []
     ) throws {
-      let allTables = Set((tables + privateTables).map(HashableSynchronizedTable.init))
+      let allTables = OrderedSet((tables + privateTables).map(HashableSynchronizedTable.init))
         .map(\.type)
       self.tables = allTables
       self.privateTables = privateTables
@@ -1419,11 +1419,11 @@
     ) async {
       let deletedRecordIDsByRecordType = OrderedDictionary(
         grouping: deletions.sorted { lhs, rhs in
-          guard
-            let lhsIndex = tablesByOrder[lhs.recordType],
-            let rhsIndex = tablesByOrder[rhs.recordType]
-          else { return true }
-          return lhsIndex > rhsIndex
+          topologicallyAscending(
+            lhsTableName: lhs.recordType,
+            rhsTableName: rhs.recordType,
+            rootFirst: false
+          )
         },
         by: \.recordType
       )
@@ -1490,18 +1490,31 @@
                 .execute(db)
             }
           }
-          let results = try await syncEngine.database.records(for: Array(unsyncedRecordIDs))
+          let batchSize = 150
+          let orderedUnsyncedRecordIDs = unsyncedRecordIDs.sorted {
+            topologicallyAscending(
+              lhsTableName: $0.tableName,
+              rhsTableName: $1.tableName,
+              rootFirst: true
+            )
+          }
           var unsyncedRecords: [CKRecord] = []
-          for (recordID, result) in results {
-            switch result {
-            case .success(let record):
-              unsyncedRecords.append(record)
-            case .failure(let error as CKError) where error.code == .unknownItem:
-              try await userDatabase.write { db in
-                try UnsyncedRecordID.find(recordID).delete().execute(db)
+          for start in stride(from: 0, to: orderedUnsyncedRecordIDs.count, by: batchSize) {
+            let recordIDsBatch = orderedUnsyncedRecordIDs
+              .dropFirst(start)
+              .prefix(batchSize)
+            let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
+            for (recordID, result) in results {
+              switch result {
+              case .success(let record):
+                unsyncedRecords.append(record)
+              case .failure(let error as CKError) where error.code == .unknownItem:
+                try await userDatabase.write { db in
+                  try UnsyncedRecordID.find(recordID).delete().execute(db)
+                }
+              case .failure:
+                continue
               }
-            case .failure:
-              continue
             }
           }
           return unsyncedRecords
@@ -1509,13 +1522,11 @@
         ?? [CKRecord]()
 
       let modifications = (modifications + unsyncedRecords).sorted { lhs, rhs in
-        guard
-          let lhsRecordType = lhs.recordID.tableName,
-          let lhsIndex = tablesByOrder[lhsRecordType],
-          let rhsRecordType = rhs.recordID.tableName,
-          let rhsIndex = tablesByOrder[rhsRecordType]
-        else { return true }
-        return lhsIndex < rhsIndex
+        topologicallyAscending(
+          lhsTableName: lhs.recordType,
+          rhsTableName: rhs.recordType,
+          rootFirst: true
+        )
       }
 
       enum ShareOrReference {
@@ -1560,6 +1571,27 @@
             }
           }
         }
+      }
+    }
+
+    private func topologicallyAscending(
+      lhsTableName: String?,
+      rhsTableName: String?,
+      rootFirst: Bool
+    ) -> Bool {
+      switch (lhsTableName, rhsTableName) {
+      case (nil, nil), (nil, _):
+        return false
+      case (_, nil):
+        return true
+      case let (.some(lhs), .some(rhs)):
+        let lhsIndex = tablesByOrder[lhs] ?? (rootFirst ? .max : .min)
+        let rhsIndex = tablesByOrder[rhs] ?? (rootFirst ? .max : .min)
+        guard lhsIndex != rhsIndex
+        else {
+          return lhs < rhs
+        }
+        return rootFirst ? lhsIndex < rhsIndex : lhsIndex > rhsIndex
       }
     }
 
@@ -2292,10 +2324,12 @@
     tablesByName: [String: any SynchronizableTable]
   ) throws -> [String: Int] {
     let tableDependencies = try userDatabase.read { db in
-      var dependencies: [HashableSynchronizedTable: [any SynchronizableTable]] = [:]
+      var dependencies: OrderedDictionary<HashableSynchronizedTable, [any SynchronizableTable]> = [:]
       for table in tables {
         func open<T>(_: some SynchronizableTable<T>) throws -> [String] {
-          try PragmaForeignKeyList<T>.select(\.table)
+          try PragmaForeignKeyList<T>
+            .order(by: \.table)
+            .select(\.table)
             .fetchAll(db)
         }
         let toTables = try open(table)
