@@ -870,7 +870,13 @@
         }
       }
 
-      // When downloading
+      /*
+       * Create a parent record in CloudKit database but do not sync to client.
+       * Create many child records in CloudKit database and **do** sync to client.
+       * Sync parent record to client.
+       * => Cached unsaved child records should be batched so as to not run into 'limitExceeded'
+            errors
+       */
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func batchAssociations() async throws {
 
