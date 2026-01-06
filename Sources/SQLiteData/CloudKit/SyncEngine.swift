@@ -1523,8 +1523,8 @@
 
       let modifications = (modifications + unsyncedRecords).sorted { lhs, rhs in
         topologicallyAscending(
-          lhsTableName: lhs.recordID.tableName,
-          rhsTableName: rhs.recordID.tableName,
+          lhsTableName: lhs.recordType,
+          rhsTableName: rhs.recordType,
           rootFirst: true
         )
       }
