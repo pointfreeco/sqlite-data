@@ -4,6 +4,7 @@
   import Foundation
   import InlineSnapshotTesting
   import SQLiteData
+  import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
 
@@ -103,6 +104,342 @@
               )
             ]
           )
+        }
+      }
+
+      /*
+       * Test run from perspective of old device with old schema.
+       * New schema saves record in cloud database.
+       * Record syncs to old device with old schema.
+       * Old device edits record without access to new schema.
+       => All data (new+old schema) is sync'd to cloud database.
+       */
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func oldSchemaUpdatesNewSchemaRecord() async throws {
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+        remindersListRecord.setValue(42, forKey: "position", at: 0)
+
+        try await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]).notify()
+
+        try await userDatabase.userWrite { db in
+          try #expect(RemindersList.fetchCount(db) == 1)
+          try #expect(RemindersList.find(1).fetchOne(db) == RemindersList(id: 1, title: "Personal"))
+          try RemindersList.find(1).update { $0.title = "My Stuff" }.execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                      │
+          │   id: SyncMetadata.ID(                                             │
+          │     recordPrimaryKey: "1",                                         │
+          │     recordType: "remindersLists"                                   │
+          │   ),                                                               │
+          │   zoneName: "zone",                                                │
+          │   ownerName: "__defaultOwner__",                                   │
+          │   recordName: "1:remindersLists",                                  │
+          │   parentRecordID: nil,                                             │
+          │   parentRecordName: nil,                                           │
+          │   lastKnownServerRecord: CKRecord(                                 │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil                                                     │
+          │   ),                                                               │
+          │   _lastKnownServerRecordAllFields: CKRecord(                       │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil,                                                    │
+          │     id: 1,                                                         │
+          │     position: 42,                                                  │
+          │     title: "My Stuff"                                              │
+          │   ),                                                               │
+          │   share: nil,                                                      │
+          │   _isDeleted: false,                                               │
+          │   hasLastKnownServerRecord: true,                                  │
+          │   isShared: false,                                                 │
+          │   userModificationTime: 0                                          │
+          │ )                                                                  │
+          └────────────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  position: 42,
+                  title: "My Stuff"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      /*
+       * Test run from perspective of old device with old schema.
+       * Old schema saves record in cloud database.
+       * New device with new schema saves record with extra fields.
+       => All data (new+old schema) is sync'd to old device with old schema.
+       */
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func newSchemaUpdatesOldSchemaRecord() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed { remindersList }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let remindersListRecord = try syncEngine.private.database.record(
+          for: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue("My Stuff", forKey: "title", at: 1)
+        remindersListRecord.setValue(42, forKey: "position", at: 1)
+        try await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]).notify()
+
+        try await userDatabase.read { db in
+          try #expect(RemindersList.find(1).fetchOne(db) == RemindersList(id: 1, title: "My Stuff"))
+        }
+
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                      │
+          │   id: SyncMetadata.ID(                                             │
+          │     recordPrimaryKey: "1",                                         │
+          │     recordType: "remindersLists"                                   │
+          │   ),                                                               │
+          │   zoneName: "zone",                                                │
+          │   ownerName: "__defaultOwner__",                                   │
+          │   recordName: "1:remindersLists",                                  │
+          │   parentRecordID: nil,                                             │
+          │   parentRecordName: nil,                                           │
+          │   lastKnownServerRecord: CKRecord(                                 │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil                                                     │
+          │   ),                                                               │
+          │   _lastKnownServerRecordAllFields: CKRecord(                       │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil,                                                    │
+          │     id: 1,                                                         │
+          │     position: 42,                                                  │
+          │     title: "My Stuff"                                              │
+          │   ),                                                               │
+          │   share: nil,                                                      │
+          │   _isDeleted: false,                                               │
+          │   hasLastKnownServerRecord: true,                                  │
+          │   isShared: false,                                                 │
+          │   userModificationTime: 1                                          │
+          │ )                                                                  │
+          └────────────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  position: 42,
+                  title: "My Stuff"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      /*
+       * Test run from perspective of new device with new schema.
+       * Old schema saves record in cloud database.
+       => Data syncs new to new device with new schema.
+       * New device updates record.
+       => Data syncs new to cloud database.
+       */
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func runWithNewSchema_oldSchemaSavesRecord_NewSchemaUpdatesRecord() async throws {
+        syncEngine.stop()
+        try syncEngine.tearDownSyncEngine()
+
+        try await userDatabase.userWrite { db in
+          try #sql(
+              """
+              ALTER TABLE "remindersLists" 
+              ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+              """
+          )
+          .execute(db)
+        }
+        let newSyncEngine = try await SyncEngine(
+          container: syncEngine.container,
+          userDatabase: syncEngine.userDatabase,
+          tables: syncEngine.tables
+            .filter { $0.base != RemindersList.self }
+          + [
+            SynchronizedTable(for: RemindersListWithPosition.self),
+          ],
+          privateTables: syncEngine.privateTables
+        )
+        defer { _ = newSyncEngine }
+
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+        try await newSyncEngine.modifyRecords(scope: .private, saving: [remindersListRecord])
+          .notify()
+
+        try await userDatabase.read { db in
+          try #expect(
+            RemindersListWithPosition.find(1).fetchOne(db)
+              == RemindersListWithPosition(id: 1, title: "Personal", position: 0)
+          )
+        }
+
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                      │
+          │   id: SyncMetadata.ID(                                             │
+          │     recordPrimaryKey: "1",                                         │
+          │     recordType: "remindersLists"                                   │
+          │   ),                                                               │
+          │   zoneName: "zone",                                                │
+          │   ownerName: "__defaultOwner__",                                   │
+          │   recordName: "1:remindersLists",                                  │
+          │   parentRecordID: nil,                                             │
+          │   parentRecordName: nil,                                           │
+          │   lastKnownServerRecord: CKRecord(                                 │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil                                                     │
+          │   ),                                                               │
+          │   _lastKnownServerRecordAllFields: CKRecord(                       │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil,                                                    │
+          │     id: 1,                                                         │
+          │     title: "Personal"                                              │
+          │   ),                                                               │
+          │   share: nil,                                                      │
+          │   _isDeleted: false,                                               │
+          │   hasLastKnownServerRecord: true,                                  │
+          │   isShared: false,                                                 │
+          │   userModificationTime: 0                                          │
+          │ )                                                                  │
+          └────────────────────────────────────────────────────────────────────┘
+          """
+        }
+
+        try await userDatabase.userWrite { db in
+          try RemindersListWithPosition.find(1).update {
+            $0.title = "My Stuff"
+            $0.position = 42
+          }
+          .execute(db)
+        }
+        try await newSyncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                      │
+          │   id: SyncMetadata.ID(                                             │
+          │     recordPrimaryKey: "1",                                         │
+          │     recordType: "remindersLists"                                   │
+          │   ),                                                               │
+          │   zoneName: "zone",                                                │
+          │   ownerName: "__defaultOwner__",                                   │
+          │   recordName: "1:remindersLists",                                  │
+          │   parentRecordID: nil,                                             │
+          │   parentRecordName: nil,                                           │
+          │   lastKnownServerRecord: CKRecord(                                 │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil                                                     │
+          │   ),                                                               │
+          │   _lastKnownServerRecordAllFields: CKRecord(                       │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil,                                                    │
+          │     id: 1,                                                         │
+          │     position: 42,                                                  │
+          │     title: "My Stuff"                                              │
+          │   ),                                                               │
+          │   share: nil,                                                      │
+          │   _isDeleted: false,                                               │
+          │   hasLastKnownServerRecord: true,                                  │
+          │   isShared: false,                                                 │
+          │   userModificationTime: 0                                          │
+          │ )                                                                  │
+          └────────────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  position: 42,
+                  title: "My Stuff"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
         }
       }
 
