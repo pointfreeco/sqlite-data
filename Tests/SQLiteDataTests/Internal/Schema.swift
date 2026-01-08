@@ -77,7 +77,8 @@ import SQLiteData
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 func database(
   containerIdentifier: String,
-  attachMetadatabase: Bool
+  attachMetadatabase: Bool,
+  url databaseURL: URL? = nil
 ) throws -> DatabasePool {
   var configuration = Configuration()
   configuration.prepareDatabase { db in
@@ -88,8 +89,11 @@ func database(
     //   print($0.expandedDescription)
     // }
   }
-  let url = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite")
+  let url = databaseURL ?? URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite")
   let database = try DatabasePool(path: url.path(), configuration: configuration)
+  guard databaseURL == nil else {
+    return database
+  }
   try database.write { db in
     try #sql(
       """
