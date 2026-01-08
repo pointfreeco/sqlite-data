@@ -2046,7 +2046,7 @@
       if columnNamesForUpdate.isEmpty {
           query.append(") ON CONFLICT(\(quote: T.primaryKey.name)) DO NOTHING ")
       } else {
-          query.append(") ON CONFLICT(\(quote: T.primaryKey.name)) DO UPDATE SET ")
+          query.append(") ON CONFLICT(\(quote: T.primaryKey.name)) DO UPDATE SET")
           query.append(" ")
           query.append(
             columnNamesForUpdate
@@ -2056,15 +2056,15 @@
                   if data == nil {
                     reportIssue("Asset data not found on disk")
                   }
-                  return "\(quote: columnName) = \(data?.queryFragment ?? #""excluded".\#(quote: columnName)"#))"
+                  return "\(quote: columnName) = \(data?.queryFragment ?? #""excluded".\#(quote: columnName)"#)"
                 } else {
                   return """
                     \(quote: columnName) = \
-                    \(record.encryptedValues[columnName]?.queryFragment ?? #""excluded".\#(quote: columnName)"#))
+                    \(record.encryptedValues[columnName]?.queryFragment ?? #""excluded".\#(quote: columnName)"#)
                     """
                 }
               }
-              .joined(separator: ",")
+              .joined(separator: ", ")
           )
       }
       
