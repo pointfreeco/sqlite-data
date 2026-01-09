@@ -169,10 +169,10 @@
   }
 
   @Table
-  private struct Todo {
+  private struct Post {
     let id: UUID
     var title: String
-    var isCompleted: Bool
+    var upvotes = 0
     @Column(as: Set<String>.JSONRepresentation.self)
     var tags: Set<String> = []
   }
@@ -194,37 +194,39 @@
     @Test
     func versionInit_rowAndModificationTimes() {
       let version = RowVersion(
-        row: Todo(id: UUID(0), title: "Buy milk", isCompleted: false),
+        row: Post(id: UUID(0), title: "My Post"),
         modificationTimes: [
           \.title: 100,
-          \.isCompleted: 0,
+          \.upvotes: 0,
           \.tags: 0
         ]
       )
 
       #expect(version.modificationTime(for: \.title) == 100)
-      #expect(version.modificationTime(for: \.isCompleted) == 0)
+      #expect(version.modificationTime(for: \.upvotes) == 0)
+      #expect(version.modificationTime(for: \.tags) == 0)
     }
 
     @Test
     func versionInit_clientRow() {
       let ancestor = RowVersion(
-        row: Todo(id: UUID(0), title: "", isCompleted: false),
+        row: Post(id: UUID(0), title: ""),
         modificationTimes: [
           \.title: 50,
-          \.isCompleted: 50,
-          \.tags: 0
+          \.upvotes: 50,
+          \.tags: 50
         ]
       )
 
       let client = RowVersion(
-        clientRow: Todo(id: UUID(0), title: "Buy milk", isCompleted: false),
+        clientRow: Post(id: UUID(0), title: "My Post"),
         userModificationTime: 100,
         ancestorVersion: ancestor
       )
 
       #expect(client.modificationTime(for: \.title) == 100)
-      #expect(client.modificationTime(for: \.isCompleted) == 50)
+      #expect(client.modificationTime(for: \.upvotes) == 50)
+      #expect(client.modificationTime(for: \.tags) == 50)
     }
 
     /// Tests the field-wise last edit wins strategy with all seven merge scenarios.
@@ -313,37 +315,34 @@
     }
 
     @Test
-    func mergedValue_customRepresentation() {
+    func mergedValue_differentPoliciesAndCustomRepresentation() {
       let ancestor = RowVersion(
-        row: Todo(
+        row: Post(
           id: UUID(0),
-          title: "Task",
-          isCompleted: false,
-          tags: ["work"]
+          title: "My Post",
+          tags: ["hobby"]
         ),
         modificationTimes: [\.tags: 100]
       )
-      
+
       let client = RowVersion(
-        row: Todo(
+        row: Post(
           id: UUID(0),
-          title: "Task",
-          isCompleted: false,
-          tags: ["work", "urgent"]
+          title: "My Post",
+          tags: ["hobby", "tech"]
         ),
         modificationTimes: [\.tags: 200]
       )
-      
+
       let server = RowVersion(
-        row: Todo(
+        row: Post(
           id: UUID(0),
-          title: "Task",
-          isCompleted: false,
-          tags: ["work", "personal"]
+          title: "My Post",
+          tags: ["hobby", "photography"]
         ),
         modificationTimes: [\.tags: 150]
       )
-      
+
       let conflict = MergeConflict(
         ancestor: ancestor,
         client: client,
@@ -353,7 +352,7 @@
       // - `QueryValue`: `Set<String>.JSONRepresentation` (the storage type)
       // - `QueryOutput`: `Set<String>` (the Swift type)
       // - `QueryBinding`: `.text(…)` (the JSON serialized representation)
-      #expect(conflict.mergedValue(for: \.tags, policy: .latest) == ["work", "urgent"])
+      #expect(conflict.mergedValue(for: \.tags, policy: .latest) == ["hobby", "tech"])
     }
   }
 #endif
