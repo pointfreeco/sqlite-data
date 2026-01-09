@@ -106,6 +106,12 @@
         }
       }
 
+      /*
+       * Old schema creates record and synchronizes to iCloud.
+       * Schema is migrated to add a "NOT NULL" column.
+       * New sync engine is launched.
+       => Sync starts without emitting an error.
+       */
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func addColumn_OldRecordsSyncToNewSchema() async throws {
         let remindersList = RemindersList(id: 1, title: "Personal")
@@ -128,7 +134,8 @@
           .execute(db)
         }
 
-        let relaunchedSyncEngine = try await SyncEngine(
+        // NB: Sync engine should start without emitting issue.
+        _ = try await SyncEngine(
           container: syncEngine.container,
           userDatabase: syncEngine.userDatabase,
           tables: syncEngine.tables
@@ -139,7 +146,6 @@
             ],
           privateTables: syncEngine.privateTables
         )
-        defer { _ = relaunchedSyncEngine }
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
