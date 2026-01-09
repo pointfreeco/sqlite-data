@@ -34,7 +34,10 @@ public func defaultDatabase(
     }
     database = try DatabasePool(path: path ?? defaultPath, configuration: configuration)
   case .preview:
-    database = try DatabaseQueue(configuration: configuration)
+    database = try DatabasePool(
+      path: "\(NSTemporaryDirectory())\(UUID().uuidString).db",
+      configuration: configuration
+    )
   case .test:
     database = try DatabasePool(
       path: "\(NSTemporaryDirectory())\(UUID().uuidString).db",

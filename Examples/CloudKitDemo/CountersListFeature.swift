@@ -39,7 +39,14 @@ struct CountersListView: View {
           Task {
             withErrorReporting {
               try database.write { db in
-                try Counter.insert { Counter.Draft() }
+                try Counter.insert {
+                  Counter.Draft()
+                  Counter.Draft()
+                  Counter.Draft()
+                  Counter.Draft()
+                  Counter.Draft()
+                  Counter.Draft()
+                }
                   .execute(db)
               }
             }
