@@ -112,8 +112,8 @@ class BaseCloudKitTests: @unchecked Sendable {
   func signIn() async {
     container._accountStatus.withValue { $0 = .available }
     // NB: Emulates what CKSyncEngine does when signing in
-    syncEngine.private.state.removePendingChanges()
-    syncEngine.shared.state.removePendingChanges()
+    syncEngine.private.removePendingChanges()
+    syncEngine.shared.removePendingChanges()
     await syncEngine.handleEvent(
       .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
       syncEngine: syncEngine.private
@@ -130,12 +130,12 @@ class BaseCloudKitTests: @unchecked Sendable {
       else { return }
 
       syncEngine.shared.assertFetchChangesScopes([])
-      syncEngine.shared.state.assertPendingDatabaseChanges([])
-      syncEngine.shared.state.assertPendingRecordZoneChanges([])
+      syncEngine.shared.assertPendingDatabaseChanges([])
+      syncEngine.shared.assertPendingRecordZoneChanges([])
       syncEngine.shared.assertAcceptedShareMetadata([])
       syncEngine.private.assertFetchChangesScopes([])
-      syncEngine.private.state.assertPendingDatabaseChanges([])
-      syncEngine.private.state.assertPendingRecordZoneChanges([])
+      syncEngine.private.assertPendingDatabaseChanges([])
+      syncEngine.private.assertPendingRecordZoneChanges([])
       syncEngine.private.assertAcceptedShareMetadata([])
 
       try! syncEngine.metadatabase.read { db in
@@ -207,13 +207,11 @@ extension SyncEngine {
         (
           MockSyncEngine(
             database: container.privateCloudDatabase as! MockCloudDatabase,
-            parentSyncEngine: syncEngine,
-            state: MockSyncEngineState()
+            parentSyncEngine: syncEngine
           ),
           MockSyncEngine(
             database: container.sharedCloudDatabase as! MockCloudDatabase,
-            parentSyncEngine: syncEngine,
-            state: MockSyncEngineState()
+            parentSyncEngine: syncEngine
           )
         )
       },

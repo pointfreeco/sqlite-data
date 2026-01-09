@@ -153,7 +153,7 @@ extension MockSyncEngine {
 }
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-extension MockSyncEngineState {
+extension MockSyncEngine {
   package func assertPendingRecordZoneChanges(
     _ changes: OrderedSet<CKSyncEngine.PendingRecordZoneChange>,
     fileID: StaticString = #fileID,

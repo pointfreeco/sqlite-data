@@ -339,14 +339,7 @@
         )
       }
 
-      public func makeUIViewController(context: Context) -> UIViewController {
-        guard self.context == .live
-        else {
-          Task {
-            try await syncEngine.fetchChanges()
-          }
-          return UIViewController()
-        }
+      public func makeUIViewController(context: Context) -> UICloudSharingController {
         let controller = UICloudSharingController(
           share: sharedRecord.share,
           container: sharedRecord.container.rawValue
@@ -357,7 +350,7 @@
       }
 
       public func updateUIViewController(
-        _ uiViewController: UIViewController,
+        _ uiViewController: UICloudSharingController,
         context: Context
       ) {
       }

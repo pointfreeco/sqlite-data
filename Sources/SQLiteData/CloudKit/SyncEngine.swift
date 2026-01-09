@@ -130,16 +130,8 @@
           defaultZone: defaultZone,
           defaultSyncEngines: { _, syncEngine in
             (
-              private: MockSyncEngine(
-                database: privateDatabase,
-                parentSyncEngine: syncEngine,
-                state: MockSyncEngineState()
-              ),
-              shared: MockSyncEngine(
-                database: sharedDatabase,
-                parentSyncEngine: syncEngine,
-                state: MockSyncEngineState()
-              )
+              private: MockSyncEngine(database: privateDatabase, parentSyncEngine: syncEngine),
+              shared: MockSyncEngine(database: sharedDatabase, parentSyncEngine: syncEngine)
             )
           },
           userDatabase: userDatabase,

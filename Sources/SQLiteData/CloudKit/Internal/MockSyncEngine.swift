@@ -8,7 +8,6 @@ import Dependencies
   package final class MockSyncEngine: SyncEngineProtocol {
     package let database: MockCloudDatabase
     package let parentSyncEngine: SyncEngine
-    private let _state: LockIsolated<MockSyncEngineState>
     package let _fetchChangesScopes = LockIsolated<[CKSyncEngine.FetchChangesOptions.Scope]>([])
     package let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
     package let _pendingRecordZoneChanges = LockIsolated<
@@ -27,7 +26,6 @@ import Dependencies
     package init(
       database: MockCloudDatabase,
       parentSyncEngine: SyncEngine,
-      state: MockSyncEngineState,
       fileID: StaticString = #fileID,
       filePath: StaticString = #filePath,
       line: UInt = #line,
@@ -35,7 +33,6 @@ import Dependencies
     ) {
       self.database = database
       self.parentSyncEngine = parentSyncEngine
-      self._state = LockIsolated(state)
       self.fileID = fileID
       self.filePath = filePath
       self.line = line
@@ -44,10 +41,6 @@ import Dependencies
 
     package var scope: CKDatabase.Scope {
       database.databaseScope
-    }
-
-    package var state: MockSyncEngineState {
-      _state.withValue(\.self)
     }
 
     package func acceptShare(metadata: ShareMetadata) {
@@ -140,10 +133,6 @@ import Dependencies
     package func cancelOperations() async {
     }
 
-
-    /// ----------
-
-
     package var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] {
       _pendingRecordZoneChanges.withValue { Array($0) }
     }
@@ -205,11 +194,6 @@ import Dependencies
         Task { try await parentSyncEngine.sendChanges() }
       }
     }
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  package final class MockSyncEngineState: CKSyncEngineStateProtocol {
-    
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
