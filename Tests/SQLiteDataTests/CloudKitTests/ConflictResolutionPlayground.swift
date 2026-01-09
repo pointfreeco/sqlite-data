@@ -62,7 +62,8 @@
 
   extension MergeConflict {
     func mergedValue<Column: WritableTableColumnExpression>(
-      for keyPath: some KeyPath<T.TableColumns, Column>
+      for keyPath: some KeyPath<T.TableColumns, Column>,
+      policy: FieldMergePolicy<Column.QueryValue>
     ) -> Column.QueryValue.QueryOutput
     where Column.Root == T {
       let column = T.columns[keyPath: keyPath]
@@ -83,13 +84,42 @@
       case (false, true):
         return serverValue
       case (true, true):
-        if areEqual(clientValue, serverValue, as: Column.QueryValue.self) {
-          return clientValue
-        }
+        let ancestorVersion = FieldVersion(
+          value: Column.QueryValue(queryOutput: ancestorValue),
+          modificationTime: ancestor.modificationTime(for: rowKeyPath)
+        )
+        let clientVersion = FieldVersion(
+          value: Column.QueryValue(queryOutput: clientValue),
+          modificationTime: client.modificationTime(for: rowKeyPath)
+        )
+        let serverVersion = FieldVersion(
+          value: Column.QueryValue(queryOutput: serverValue),
+          modificationTime: server.modificationTime(for: rowKeyPath)
+        )
 
-        let clientTime = client.modificationTime(for: rowKeyPath)
-        let serverTime = server.modificationTime(for: rowKeyPath)
-        return serverTime > clientTime ? serverValue : clientValue
+        let resolved = policy.resolve(ancestorVersion, clientVersion, serverVersion)
+        return resolved.queryOutput
+      }
+    }
+  }
+
+  struct FieldVersion<Value: QueryRepresentable & QueryBindable> {
+    let value: Value
+    let modificationTime: Int64
+  }
+
+  struct FieldMergePolicy<Value: QueryRepresentable & QueryBindable> {
+    let resolve: (
+      _ ancestor: FieldVersion<Value>,
+      _ client: FieldVersion<Value>,
+      _ server: FieldVersion<Value>
+    ) -> Value
+  }
+
+  extension FieldMergePolicy {
+    static var latest: Self {
+      Self { _, client, server in
+        server.modificationTime > client.modificationTime ? server.value : client.value
       }
     }
   }
@@ -200,7 +230,7 @@
     /// Tests the field-wise last edit wins strategy with all seven merge scenarios.
     /// See: https://github.com/structuredpath/sqlite-data-sync-notes/blob/main/BuiltInConflictResolutionModel.md
     @Test
-    func mergeConflict_fieldWiseLastEditWins() {
+    func mergedValue_latestPolicy() {
       let ancestor = RowVersion(
         row: MergeExample(
           id: UUID(0),
@@ -273,17 +303,17 @@
         server: server
       )
 
-      #expect(conflict.mergedValue(for: \.field1) == "foo")
-      #expect(conflict.mergedValue(for: \.field2) == "bar")
-      #expect(conflict.mergedValue(for: \.field3) == "baz")
-      #expect(conflict.mergedValue(for: \.field4) == "baz")
-      #expect(conflict.mergedValue(for: \.field5) == "bar")
-      #expect(conflict.mergedValue(for: \.field6) == "bar")
-      #expect(conflict.mergedValue(for: \.field7) == "bar")
+      #expect(conflict.mergedValue(for: \.field1, policy: .latest) == "foo")
+      #expect(conflict.mergedValue(for: \.field2, policy: .latest) == "bar")
+      #expect(conflict.mergedValue(for: \.field3, policy: .latest) == "baz")
+      #expect(conflict.mergedValue(for: \.field4, policy: .latest) == "baz")
+      #expect(conflict.mergedValue(for: \.field5, policy: .latest) == "bar")
+      #expect(conflict.mergedValue(for: \.field6, policy: .latest) == "bar")
+      #expect(conflict.mergedValue(for: \.field7, policy: .latest) == "bar")
     }
-    
+
     @Test
-    func mergeConflict_customRepresentation() {
+    func mergedValue_customRepresentation() {
       let ancestor = RowVersion(
         row: Todo(
           id: UUID(0),
@@ -319,11 +349,11 @@
         client: client,
         server: server
       )
-      
+
       // - `QueryValue`: `Set<String>.JSONRepresentation` (the storage type)
       // - `QueryOutput`: `Set<String>` (the Swift type)
       // - `QueryBinding`: `.text(…)` (the JSON serialized representation)
-      #expect(conflict.mergedValue(for: \.tags) == ["work", "urgent"])
+      #expect(conflict.mergedValue(for: \.tags, policy: .latest) == ["work", "urgent"])
     }
   }
 #endif
