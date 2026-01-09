@@ -107,6 +107,42 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func addColumn_OldRecordsSyncToNewSchema() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            remindersList
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        syncEngine.stop()
+
+        try await userDatabase.userWrite { db in
+          try #sql(
+            """
+            ALTER TABLE "remindersLists" 
+            ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+            """
+          )
+          .execute(db)
+        }
+
+        let relaunchedSyncEngine = try await SyncEngine(
+          container: syncEngine.container,
+          userDatabase: syncEngine.userDatabase,
+          tables: syncEngine.tables
+            .filter { $0.base != Reminder.self && $0.base != RemindersList.self }
+            + [
+              SynchronizedTable(for: ReminderWithPosition.self),
+              SynchronizedTable(for: RemindersListWithPosition.self),
+            ],
+          privateTables: syncEngine.privateTables
+        )
+        defer { _ = relaunchedSyncEngine }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func addAssetToRemindersList() async throws {
         let personalList = RemindersList(id: 1, title: "Personal")
         try await userDatabase.userWrite { db in
