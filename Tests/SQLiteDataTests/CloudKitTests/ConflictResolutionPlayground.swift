@@ -139,10 +139,12 @@
   }
 
   @Table
-  private struct Counter {
+  private struct Todo {
     let id: UUID
     var title: String
-    var count: Int
+    var isCompleted: Bool
+    @Column(as: Set<String>.JSONRepresentation.self)
+    var tags: Set<String> = []
   }
 
   @Table
@@ -162,35 +164,37 @@
     @Test
     func versionInit_rowAndModificationTimes() {
       let version = RowVersion(
-        row: Counter(id: UUID(0), title: "My Counter", count: 0),
+        row: Todo(id: UUID(0), title: "Buy milk", isCompleted: false),
         modificationTimes: [
           \.title: 100,
-          \.count: 0
+          \.isCompleted: 0,
+          \.tags: 0
         ]
       )
-      
+
       #expect(version.modificationTime(for: \.title) == 100)
-      #expect(version.modificationTime(for: \.count) == 0)
+      #expect(version.modificationTime(for: \.isCompleted) == 0)
     }
 
     @Test
     func versionInit_clientRow() {
       let ancestor = RowVersion(
-        row: Counter(id: UUID(0), title: "", count: 0),
+        row: Todo(id: UUID(0), title: "", isCompleted: false),
         modificationTimes: [
           \.title: 50,
-          \.count: 50
+          \.isCompleted: 50,
+          \.tags: 0
         ]
       )
 
       let client = RowVersion(
-        clientRow: Counter(id: UUID(0), title: "My Counter", count: 0),
+        clientRow: Todo(id: UUID(0), title: "Buy milk", isCompleted: false),
         userModificationTime: 100,
         ancestorVersion: ancestor
       )
 
       #expect(client.modificationTime(for: \.title) == 100)
-      #expect(client.modificationTime(for: \.count) == 50)
+      #expect(client.modificationTime(for: \.isCompleted) == 50)
     }
 
     /// Tests the field-wise last edit wins strategy with all seven merge scenarios.
