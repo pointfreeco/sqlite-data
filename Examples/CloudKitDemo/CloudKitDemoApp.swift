@@ -5,10 +5,13 @@ import SwiftUI
 @main
 struct CloudKitDemoApp: App {
   @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
+  @Dependency(\.context) var context
 
   init() {
-    try! prepareDependencies {
-      try $0.bootstrapDatabase()
+    if context == .live {
+      try! prepareDependencies {
+        try $0.bootstrapDatabase()
+      }
     }
   }
 
