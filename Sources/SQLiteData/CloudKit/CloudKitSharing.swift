@@ -145,7 +145,6 @@
               .select(\.share)
               .fetchOne(db) ?? nil
           }
-          print(#function, #line)
           guard let shareRecordID = share?.recordID
           else {
             return nil
