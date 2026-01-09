@@ -124,6 +124,16 @@
     }
   }
 
+  extension FieldMergePolicy where Value: BinaryInteger {
+    static var counter: Self {
+      Self { ancestor, client, server in
+        ancestor.value
+          + (client.value - ancestor.value)
+          + (server.value - ancestor.value)
+      }
+    }
+  }
+
   /// Compares values using their database representation (`QueryBinding`), which eliminates
   /// the need for `Equatable` conformance and efficiently handles special cases.
   fileprivate func areEqual<Value: QueryRepresentable & QueryBindable>(
@@ -320,27 +330,42 @@
         row: Post(
           id: UUID(0),
           title: "My Post",
+          upvotes: 0,
           tags: ["hobby"]
         ),
-        modificationTimes: [\.tags: 100]
+        modificationTimes: [
+          \.title: 0,
+          \.upvotes: 0,
+          \.tags: 0
+        ]
       )
 
       let client = RowVersion(
         row: Post(
           id: UUID(0),
-          title: "My Post",
+          title: "My Great Post",
+          upvotes: 2,
           tags: ["hobby", "tech"]
         ),
-        modificationTimes: [\.tags: 200]
+        modificationTimes: [
+          \.title: 100,
+          \.upvotes: 100,
+          \.tags: 100
+        ]
       )
 
       let server = RowVersion(
         row: Post(
           id: UUID(0),
-          title: "My Post",
+          title: "My Awesome Post",
+          upvotes: 3,
           tags: ["hobby", "photography"]
         ),
-        modificationTimes: [\.tags: 150]
+        modificationTimes: [
+          \.title: 50,
+          \.upvotes: 50,
+          \.tags: 50
+        ]
       )
 
       let conflict = MergeConflict(
@@ -348,6 +373,9 @@
         client: client,
         server: server
       )
+
+      #expect(conflict.mergedValue(for: \.title, policy: .latest) == "My Great Post")
+      #expect(conflict.mergedValue(for: \.upvotes, policy: .counter) == 5)
 
       // - `QueryValue`: `Set<String>.JSONRepresentation` (the storage type)
       // - `QueryOutput`: `Set<String>` (the Swift type)
