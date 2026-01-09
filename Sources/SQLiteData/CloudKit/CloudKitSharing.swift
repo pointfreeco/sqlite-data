@@ -288,11 +288,24 @@
           )
         } else {
           Form {
-            Button("Stop sharing", role: .destructive) {
-              Task {
-                try await syncEngine.unshare(share: sharedRecord.share)
-                try await syncEngine.fetchChanges()
-                dismiss()
+            Section {
+              if let title = sharedRecord.share[CKShare.SystemFieldKey.title] as? String {
+                Text(title)
+              }
+              if
+                let imageData = sharedRecord.share[CKShare.SystemFieldKey.thumbnailImageData] as? Data,
+                let image = UIImage(data: imageData)
+              {
+                Image(uiImage: image)
+              }
+            }
+            Section {
+              Button("Stop sharing", role: .destructive) {
+                Task {
+                  try await syncEngine.unshare(share: sharedRecord.share)
+                  try await syncEngine.fetchChanges()
+                  dismiss()
+                }
               }
             }
           }
