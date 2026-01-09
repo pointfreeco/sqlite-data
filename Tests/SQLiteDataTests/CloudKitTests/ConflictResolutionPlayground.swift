@@ -61,10 +61,36 @@
   }
 
   extension MergeConflict {
-    func mergedValue<V: Equatable>(
-      for keyPath: some KeyPath<T.TableColumns, V>
-    ) -> V {
-      fatalError("Not implemented")
+    func mergedValue<Column: WritableTableColumnExpression>(
+      for keyPath: some KeyPath<T.TableColumns, Column>
+    ) -> Column.QueryValue.QueryOutput
+    where Column.Root == T {
+      let column = T.columns[keyPath: keyPath]
+      let rowKeyPath = column.keyPath
+
+      let ancestorValue = ancestor.row[keyPath: rowKeyPath]
+      let clientValue = client.row[keyPath: rowKeyPath]
+      let serverValue = server.row[keyPath: rowKeyPath]
+
+      let clientChanged = !areEqual(ancestorValue, clientValue, as: Column.QueryValue.self)
+      let serverChanged = !areEqual(ancestorValue, serverValue, as: Column.QueryValue.self)
+
+      switch (clientChanged, serverChanged) {
+      case (false, false):
+        return clientValue
+      case (true, false):
+        return clientValue
+      case (false, true):
+        return serverValue
+      case (true, true):
+        if areEqual(clientValue, serverValue, as: Column.QueryValue.self) {
+          return clientValue
+        }
+
+        let clientTime = client.modificationTime(for: rowKeyPath)
+        let serverTime = server.modificationTime(for: rowKeyPath)
+        return serverTime > clientTime ? serverValue : clientValue
+      }
     }
   }
 
@@ -119,12 +145,24 @@
     var count: Int
   }
 
+  @Table
+  private struct MergeExample {
+    let id: UUID
+    var field1: String
+    var field2: String
+    var field3: String
+    var field4: String
+    var field5: String
+    var field6: String
+    var field7: String
+  }
+
   @Suite
   struct ConflictResolutionPlaygroundTests {
     @Test
-    func init_rowAndModificationTimes() {
+    func versionInit_rowAndModificationTimes() {
       let version = RowVersion(
-        row: Counter(id: UUID(0), title: "MyCounter", count: 0),
+        row: Counter(id: UUID(0), title: "My Counter", count: 0),
         modificationTimes: [
           \.title: 100,
           \.count: 0
@@ -136,7 +174,7 @@
     }
 
     @Test
-    func init_clientRow() {
+    func versionInit_clientRow() {
       let ancestor = RowVersion(
         row: Counter(id: UUID(0), title: "", count: 0),
         modificationTimes: [
@@ -153,6 +191,91 @@
 
       #expect(client.modificationTime(for: \.title) == 100)
       #expect(client.modificationTime(for: \.count) == 50)
+    }
+
+    /// Tests the field-wise last edit wins strategy with all seven merge scenarios.
+    /// See: https://github.com/structuredpath/sqlite-data-sync-notes/blob/main/BuiltInConflictResolutionModel.md
+    @Test
+    func mergeConflict_fieldWiseLastEditWins() {
+      let ancestor = RowVersion(
+        row: MergeExample(
+          id: UUID(0),
+          field1: "foo",
+          field2: "foo",
+          field3: "foo",
+          field4: "foo",
+          field5: "foo",
+          field6: "foo",
+          field7: "foo"
+        ),
+        modificationTimes: [
+          \.field1: 0,
+          \.field2: 0,
+          \.field3: 0,
+          \.field4: 0,
+          \.field5: 0,
+          \.field6: 0,
+          \.field7: 0
+        ]
+      )
+
+      let client = RowVersion(
+        row: MergeExample(
+          id: UUID(0),
+          field1: "foo",
+          field2: "bar",
+          field3: "foo",
+          field4: "bar",
+          field5: "bar",
+          field6: "bar",
+          field7: "bar"
+        ),
+        modificationTimes: [
+          \.field1: 0,
+          \.field2: 100,
+          \.field3: 0,
+          \.field4: 100,
+          \.field5: 100,
+          \.field6: 100,
+          \.field7: 100
+        ]
+      )
+
+      let server = RowVersion(
+        row: MergeExample(
+          id: UUID(0),
+          field1: "foo",
+          field2: "foo",
+          field3: "baz",
+          field4: "baz",
+          field5: "baz",
+          field6: "baz",
+          field7: "bar"
+        ),
+        modificationTimes: [
+          \.field1: 0,
+          \.field2: 0,
+          \.field3: 200,
+          \.field4: 200,
+          \.field5: 50,
+          \.field6: 100,
+          \.field7: 200
+        ]
+      )
+
+      let conflict = MergeConflict(
+        ancestor: ancestor,
+        client: client,
+        server: server
+      )
+
+      #expect(conflict.mergedValue(for: \.field1) == "foo")
+      #expect(conflict.mergedValue(for: \.field2) == "bar")
+      #expect(conflict.mergedValue(for: \.field3) == "baz")
+      #expect(conflict.mergedValue(for: \.field4) == "baz")
+      #expect(conflict.mergedValue(for: \.field5) == "bar")
+      #expect(conflict.mergedValue(for: \.field6) == "bar")
+      #expect(conflict.mergedValue(for: \.field7) == "bar")
     }
   }
 #endif
