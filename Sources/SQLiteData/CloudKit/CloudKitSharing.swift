@@ -325,7 +325,6 @@
       let didFinish: (Result<Void, Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
-      @Dependency(\.context) var context
       public init(
         sharedRecord: SharedRecord,
         availablePermissions: UICloudSharingController.PermissionOptions = [],
