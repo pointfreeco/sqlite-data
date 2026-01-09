@@ -281,5 +281,49 @@
       #expect(conflict.mergedValue(for: \.field6) == "bar")
       #expect(conflict.mergedValue(for: \.field7) == "bar")
     }
+    
+    @Test
+    func mergeConflict_customRepresentation() {
+      let ancestor = RowVersion(
+        row: Todo(
+          id: UUID(0),
+          title: "Task",
+          isCompleted: false,
+          tags: ["work"]
+        ),
+        modificationTimes: [\.tags: 100]
+      )
+      
+      let client = RowVersion(
+        row: Todo(
+          id: UUID(0),
+          title: "Task",
+          isCompleted: false,
+          tags: ["work", "urgent"]
+        ),
+        modificationTimes: [\.tags: 200]
+      )
+      
+      let server = RowVersion(
+        row: Todo(
+          id: UUID(0),
+          title: "Task",
+          isCompleted: false,
+          tags: ["work", "personal"]
+        ),
+        modificationTimes: [\.tags: 150]
+      )
+      
+      let conflict = MergeConflict(
+        ancestor: ancestor,
+        client: client,
+        server: server
+      )
+      
+      // - `QueryValue`: `Set<String>.JSONRepresentation` (the storage type)
+      // - `QueryOutput`: `Set<String>` (the Swift type)
+      // - `QueryBinding`: `.text(…)` (the JSON serialized representation)
+      #expect(conflict.mergedValue(for: \.tags) == ["work", "urgent"])
+    }
   }
 #endif
