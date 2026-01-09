@@ -499,7 +499,7 @@
           guard try await container.accountStatus() == .available
           else { return }
           syncEngines.withValue {
-            $0.private?.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
+            $0.private?.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
           }
           try await uploadRecordsToCloudKit(
             previousRecordTypeByTableName: previousRecordTypeByTableName,
@@ -621,8 +621,8 @@
         }
       }
       syncEngines.withValue {
-        $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
-        $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
+        $0.private?.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
+        $0.shared?.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
       }
     }
 
@@ -807,8 +807,8 @@
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
-      oldSyncEngine?.state.add(pendingRecordZoneChanges: oldChanges)
-      syncEngine?.state.add(pendingRecordZoneChanges: newChanges)
+      oldSyncEngine?.add(pendingRecordZoneChanges: oldChanges)
+      syncEngine?.add(pendingRecordZoneChanges: newChanges)
     }
 
     @DatabaseFunction(
@@ -845,7 +845,7 @@
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
-      syncEngine?.state.add(pendingRecordZoneChanges: changes)
+      syncEngine?.add(pendingRecordZoneChanges: changes)
     }
 
     package func acceptShare(metadata: ShareMetadata) async throws {
@@ -1095,7 +1095,7 @@
           )
             ?? nil
         else {
-          syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+          syncEngine.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           return nil
         }
 
@@ -1126,7 +1126,7 @@
 
         guard let table = tablesByName[metadata.recordType]
         else {
-          syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+          syncEngine.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           missingTable = recordID
           return nil
         }
@@ -1144,7 +1144,7 @@
             ?? nil
           guard let row
           else {
-            syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+            syncEngine.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
             missingRecord = recordID
             return nil
           }
@@ -1186,7 +1186,7 @@
       options: CKSyncEngine.SendChangesOptions,
       syncEngine: any SyncEngineProtocol
     ) async -> [CKSyncEngine.PendingRecordZoneChange] {
-      var changes = syncEngine.state.pendingRecordZoneChanges.filter(options.scope.contains)
+      var changes = syncEngine.pendingRecordZoneChanges.filter(options.scope.contains)
       guard !changes.isEmpty
       else { return [] }
 
@@ -1267,7 +1267,7 @@
           guard shareRecordIDsToDelete.contains(rootShareRecordID)
           else { continue }
           changes.removeAll(where: { $0 == .deleteRecord(lastKnownServerRecord.recordID) })
-          syncEngine.state.remove(
+          syncEngine.remove(
             pendingRecordZoneChanges: [.deleteRecord(lastKnownServerRecord.recordID)]
           )
         }
@@ -1296,7 +1296,7 @@
 
       switch changeType {
       case .signIn:
-        syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
+        syncEngine.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
         await withErrorReporting {
           try await enqueueUnknownRecordsForCloudKit()
         }
@@ -1360,7 +1360,7 @@
         }
         ?? false
       if defaultZoneDeleted {
-        syncEngine.state.add(pendingDatabaseChanges: [.saveZone(self.defaultZone)])
+        syncEngine.add(pendingDatabaseChanges: [.saveZone(self.defaultZone)])
       }
       @Sendable
       func deleteRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
@@ -1410,7 +1410,7 @@
           }
           open(table)
         }
-        syncEngine.state.add(pendingRecordZoneChanges: pendingRecordZoneChanges)
+        syncEngine.add(pendingRecordZoneChanges: pendingRecordZoneChanges)
       }
     }
 
@@ -1611,8 +1611,8 @@
       var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
       var newPendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] = []
       defer {
-        syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
-        syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
+        syncEngine.add(pendingDatabaseChanges: newPendingDatabaseChanges)
+        syncEngine.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
       for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() async {
@@ -1763,10 +1763,10 @@
                   UnsyncedRecordID(recordID: failedRecordID)
                 }
                 .execute(db)
-                syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+                syncEngine.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
                 break
               case .batchRequestFailed:
-                syncEngine.state.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+                syncEngine.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
                 break
               case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
                 .notAuthenticated, .operationCancelled, .internalError, .partialFailure,

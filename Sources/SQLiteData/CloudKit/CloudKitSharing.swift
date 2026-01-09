@@ -73,8 +73,10 @@
       configure: @Sendable (CKShare) -> Void
     ) async throws -> SharedRecord
     where T.TableColumns.PrimaryKey.QueryOutput: IdentifierStringConvertible {
+      print(#function, #line)
       guard isRunning
       else {
+        print(#function, #line)
         throw SharingError(
           reason: .syncEngineNotRunning,
           debugDescription: """
@@ -85,6 +87,7 @@
       }
       guard tablesByName[T.tableName] != nil
       else {
+        print(#function, #line)
         throw SharingError(
           recordTableName: T.tableName,
           recordPrimaryKey: record.primaryKey.rawIdentifier,
@@ -96,6 +99,7 @@
         )
       }
       if let foreignKeys = foreignKeysByTableName[T.tableName], !foreignKeys.isEmpty {
+        print(#function, #line)
         throw SharingError(
           recordTableName: T.tableName,
           recordPrimaryKey: record.primaryKey.rawIdentifier,
@@ -107,6 +111,7 @@
       }
       guard !privateTables.contains(where: { T.self == $0.base })
       else {
+        print(#function, #line)
         throw SharingError(
           recordTableName: T.tableName,
           recordPrimaryKey: record.primaryKey.rawIdentifier,
@@ -118,6 +123,7 @@
         )
       }
       let recordName = record.recordName
+      print(#function, #line)
       let lastKnownServerRecord =
         try await metadatabase.read { db in
           try SyncMetadata
@@ -125,8 +131,10 @@
             .select(\._lastKnownServerRecordAllFields)
             .fetchOne(db)
         } ?? nil
+      print(#function, #line)
       guard let lastKnownServerRecord
       else {
+        print(#function, #line)
         throw SharingError(
           recordTableName: T.tableName,
           recordPrimaryKey: record.primaryKey.rawIdentifier,
@@ -137,6 +145,7 @@
         )
       }
 
+      print(#function, #line)
       var existingShare: CKShare? {
         get async throws {
           let share = try await metadatabase.read { db in
@@ -145,14 +154,18 @@
               .select(\.share)
               .fetchOne(db) ?? nil
           }
+          print(#function, #line)
           guard let shareRecordID = share?.recordID
           else {
+            print(#function, #line)
             return nil
           }
           do {
+            print(#function, #line)
             return try await container.database(for: lastKnownServerRecord.recordID)
               .record(for: shareRecordID) as? CKShare
           } catch let error as CKError where error.code == .unknownItem {
+            print(#function, #line)
             return nil
           }
         }
@@ -167,25 +180,32 @@
             zoneID: lastKnownServerRecord.recordID.zoneID
           )
         )
+      print(#function, #line)
 
       configure(sharedRecord)
+      print(#function, #line)
       let (saveResults, _) = try await container.privateCloudDatabase.modifyRecords(
         saving: [sharedRecord, lastKnownServerRecord],
         deleting: []
       )
 
+      print(#function, #line)
       let savedShare = try saveResults.values.compactMap { result in
         let record = try result.get()
         return record.recordID == sharedRecord.recordID ? record as? CKShare : nil
       }
       .first
+      print(#function, #line)
       let savedRootRecord = try saveResults.values.compactMap { result in
         let record = try result.get()
+        print(#function, #line)
         return record.recordID == lastKnownServerRecord.recordID ? record : nil
       }
       .first
+      print(#function, #line)
       guard let savedShare, let savedRootRecord
       else {
+        print(#function, #line)
         throw SharingError(
           recordTableName: T.tableName,
           recordPrimaryKey: record.primaryKey.rawIdentifier,
@@ -195,6 +215,7 @@
             """
         )
       }
+      print(#function, #line)
       try await metadatabase.write { db in
         try SyncMetadata
           .where { $0.recordName.eq(recordName) }
@@ -205,6 +226,7 @@
           .execute(db)
       }
 
+      print(#function, #line)
       return SharedRecord(container: container, share: savedShare)
     }
 
@@ -227,6 +249,10 @@
         return
       }
 
+      try await unshare(share: share)
+    }
+
+    func unshare(share: CKShare) async throws {
       let result = try await syncEngines.private?.database.modifyRecords(
         saving: [],
         deleting: [share.recordID]
@@ -249,12 +275,66 @@
     ///
     /// See <doc:CloudKitSharing#Creating-CKShare-records> for more info.
     @available(iOS 17, macOS 14, tvOS 17, *)
-    public struct CloudSharingView: UIViewControllerRepresentable {
+    public struct CloudSharingView: View {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
       let didFinish: (Result<Void, Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
+      @Dependency(\.context) var context
+      @Environment(\.dismiss) var dismiss
+      public init(
+        sharedRecord: SharedRecord,
+        availablePermissions: UICloudSharingController.PermissionOptions = [],
+        didFinish: @escaping (Result<Void, Error>) -> Void = { _ in },
+        didStopSharing: @escaping () -> Void = {},
+        syncEngine: SyncEngine = {
+          @Dependency(\.defaultSyncEngine) var defaultSyncEngine
+          return defaultSyncEngine
+        }()
+      ) {
+        self.sharedRecord = sharedRecord
+        self.didFinish = didFinish
+        self.didStopSharing = didStopSharing
+        self.availablePermissions = availablePermissions
+        self.syncEngine = syncEngine
+      }
+      public var body: some View {
+        if context == .live {
+          CloudSharingViewRepresentable(
+            sharedRecord: sharedRecord,
+            availablePermissions: availablePermissions,
+            didFinish: didFinish,
+            didStopSharing: didStopSharing,
+            syncEngine: syncEngine
+          )
+        } else {
+          Form {
+            Button("Stop sharing", role: .destructive) {
+              Task {
+                try await syncEngine.unshare(share: sharedRecord.share)
+                try await syncEngine.fetchChanges()
+                dismiss()
+              }
+            }
+          }
+          .task {
+            await withErrorReporting {
+              try await syncEngine.fetchChanges()
+            }
+          }
+        }
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, *)
+    private struct CloudSharingViewRepresentable: UIViewControllerRepresentable {
+      let sharedRecord: SharedRecord
+      let availablePermissions: UICloudSharingController.PermissionOptions
+      let didFinish: (Result<Void, Error>) -> Void
+      let didStopSharing: () -> Void
+      let syncEngine: SyncEngine
+      @Dependency(\.context) var context
       public init(
         sharedRecord: SharedRecord,
         availablePermissions: UICloudSharingController.PermissionOptions = [],
@@ -281,7 +361,14 @@
         )
       }
 
-      public func makeUIViewController(context: Context) -> UICloudSharingController {
+      public func makeUIViewController(context: Context) -> UIViewController {
+        guard self.context == .live
+        else {
+          Task {
+            try await syncEngine.fetchChanges()
+          }
+          return UIViewController()
+        }
         let controller = UICloudSharingController(
           share: sharedRecord.share,
           container: sharedRecord.container.rawValue
@@ -292,7 +379,7 @@
       }
 
       public func updateUIViewController(
-        _ uiViewController: UICloudSharingController,
+        _ uiViewController: UIViewController,
         context: Context
       ) {
       }
