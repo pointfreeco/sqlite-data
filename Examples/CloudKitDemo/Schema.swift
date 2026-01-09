@@ -10,7 +10,6 @@ nonisolated struct Counter: Identifiable {
 
 extension DependencyValues {
   mutating func bootstrapDatabase() throws {
-    @Dependency(\.context) var context
     var configuration = Configuration()
     configuration.prepareDatabase { db in
       try db.attachMetadatabase()

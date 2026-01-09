@@ -77,7 +77,6 @@ extension Int {
 
 extension DependencyValues {
   mutating func bootstrapDatabase() throws {
-    @Dependency(\.context) var context
     let database = try SQLiteData.defaultDatabase()
     logger.debug(
       """
