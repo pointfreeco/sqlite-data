@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
+  import CryptoKit
   import Foundation
   import SQLiteData
   import Testing
@@ -24,12 +25,12 @@
       var modificationTimes: [PartialKeyPath<T>: Int64] = [:]
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
-          let keyPath = column.keyPath as! KeyPath<T, Value>
+          let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
 
           let clientValue = row[keyPath: keyPath]
           let ancestorValue = ancestorVersion.row[keyPath: keyPath]
 
-          if areEqual(clientValue, ancestorValue) {
+          if areEqual(clientValue, ancestorValue, as: Value.self) {
             modificationTimes[keyPath] = ancestorVersion.modificationTime(for: keyPath)
           } else {
             modificationTimes[keyPath] = userModificationTime
@@ -53,21 +54,6 @@
     }
   }
 
-  private func areEqual(_ lhs: Any, _ rhs: Any) -> Bool {
-    guard
-      let lhs = lhs as? any Equatable,
-      let rhs = rhs as? any Equatable
-    else {
-      return false
-    }
-    
-    func open<E: Equatable>(_ lhs: E, _ rhs: Any) -> Bool {
-      guard let rhs = rhs as? E else { return false }
-      return lhs == rhs
-    }
-    return open(lhs, rhs)
-  }
-
   struct MergeConflict<T: PrimaryKeyedTable> {
     let ancestor: RowVersion<T>
     let client: RowVersion<T>
@@ -79,6 +65,50 @@
       for keyPath: some KeyPath<T.TableColumns, V>
     ) -> V {
       fatalError("Not implemented")
+    }
+  }
+
+  /// Compares values using their database representation (`QueryBinding`), which eliminates
+  /// the need for `Equatable` conformance and efficiently handles special cases.
+  fileprivate func areEqual<Value: QueryRepresentable & QueryBindable>(
+    _ lhs: Value.QueryOutput,
+    _ rhs: Value.QueryOutput,
+    as: Value.Type
+  ) -> Bool {
+    let lhsBinding = Value(queryOutput: lhs).queryBinding
+    let rhsBinding = Value(queryOutput: rhs).queryBinding
+
+    switch (lhsBinding, rhsBinding) {
+    case (.blob(let lhsValue), .blob(let rhsValue)):
+      return lhsValue.sha256 == rhsValue.sha256
+    case (.bool(let lhsValue), .bool(let rhsValue)):
+      return lhsValue == rhsValue
+    case (.double(let lhsValue), .double(let rhsValue)):
+      return lhsValue == rhsValue
+    case (.date(let lhsValue), .date(let rhsValue)):
+      return lhsValue == rhsValue
+    case (.int(let lhsValue), .int(let rhsValue)):
+      return lhsValue == rhsValue
+    case (.null, .null):
+      return true
+    case (.text(let lhsValue), .text(let rhsValue)):
+      return lhsValue == rhsValue
+    case (.uint(let lhsValue), .uint(let rhsValue)):
+      return lhsValue == rhsValue
+    case (.uuid(let lhsValue), .uuid(let rhsValue)):
+      // TODO: Can't we compare the UUID instances directly?
+      return lhsValue.uuidString.lowercased() == rhsValue.uuidString.lowercased()
+    case (.invalid(let error), _), (_, .invalid(let error)):
+      reportIssue(error)
+      return false
+    default:
+      return false
+    }
+  }
+
+  extension DataProtocol {
+    fileprivate var sha256: Data {
+      Data(SHA256.hash(data: self))
     }
   }
 
