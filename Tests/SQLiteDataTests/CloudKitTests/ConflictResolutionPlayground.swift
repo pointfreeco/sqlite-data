@@ -63,7 +63,7 @@
   extension MergeConflict {
     func mergedValue<Column: WritableTableColumnExpression>(
       for keyPath: some KeyPath<T.TableColumns, Column>,
-      policy: FieldMergePolicy<Column.QueryValue>
+      policy: FieldMergePolicy<Column.QueryValue.QueryOutput>
     ) -> Column.QueryValue.QueryOutput
     where Column.Root == T {
       let column = T.columns[keyPath: keyPath]
@@ -85,30 +85,29 @@
         return serverValue
       case (true, true):
         let ancestorVersion = FieldVersion(
-          value: Column.QueryValue(queryOutput: ancestorValue),
+          value: ancestorValue,
           modificationTime: ancestor.modificationTime(for: rowKeyPath)
         )
         let clientVersion = FieldVersion(
-          value: Column.QueryValue(queryOutput: clientValue),
+          value: clientValue,
           modificationTime: client.modificationTime(for: rowKeyPath)
         )
         let serverVersion = FieldVersion(
-          value: Column.QueryValue(queryOutput: serverValue),
+          value: serverValue,
           modificationTime: server.modificationTime(for: rowKeyPath)
         )
 
-        let resolved = policy.resolve(ancestorVersion, clientVersion, serverVersion)
-        return resolved.queryOutput
+        return policy.resolve(ancestorVersion, clientVersion, serverVersion)
       }
     }
   }
 
-  struct FieldVersion<Value: QueryRepresentable & QueryBindable> {
+  struct FieldVersion<Value> {
     let value: Value
     let modificationTime: Int64
   }
 
-  struct FieldMergePolicy<Value: QueryRepresentable & QueryBindable> {
+  struct FieldMergePolicy<Value> {
     let resolve: (
       _ ancestor: FieldVersion<Value>,
       _ client: FieldVersion<Value>,
@@ -130,6 +129,23 @@
         ancestor.value
           + (client.value - ancestor.value)
           + (server.value - ancestor.value)
+      }
+    }
+  }
+
+  extension FieldMergePolicy where Value: SetAlgebra, Value.Element: Equatable {
+    static var set: Self {
+      Self { ancestor, client, server in
+        let notDeleted = ancestor.value
+          .intersection(client.value)
+          .intersection(server.value)
+
+        let addedByClient = client.value.subtracting(ancestor.value)
+        let addedByServer = server.value.subtracting(ancestor.value)
+
+        return notDeleted
+          .union(addedByClient)
+          .union(addedByServer)
       }
     }
   }
@@ -331,7 +347,7 @@
           id: UUID(0),
           title: "My Post",
           upvotes: 0,
-          tags: ["hobby"]
+          tags: ["hobby", "travel"]
         ),
         modificationTimes: [
           \.title: 0,
@@ -345,7 +361,7 @@
           id: UUID(0),
           title: "My Great Post",
           upvotes: 2,
-          tags: ["hobby", "tech"]
+          tags: ["hobby", "travel", "photography"]
         ),
         modificationTimes: [
           \.title: 100,
@@ -359,7 +375,7 @@
           id: UUID(0),
           title: "My Awesome Post",
           upvotes: 3,
-          tags: ["hobby", "photography"]
+          tags: ["hobby", "tech"]
         ),
         modificationTimes: [
           \.title: 50,
@@ -380,7 +396,7 @@
       // - `QueryValue`: `Set<String>.JSONRepresentation` (the storage type)
       // - `QueryOutput`: `Set<String>` (the Swift type)
       // - `QueryBinding`: `.text(…)` (the JSON serialized representation)
-      #expect(conflict.mergedValue(for: \.tags, policy: .latest) == ["hobby", "tech"])
+      #expect(conflict.mergedValue(for: \.tags, policy: .set) == ["hobby", "photography", "tech"])
     }
   }
 #endif
