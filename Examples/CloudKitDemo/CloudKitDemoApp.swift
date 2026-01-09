@@ -17,8 +17,10 @@ struct CloudKitDemoApp: App {
 
   var body: some Scene {
     WindowGroup {
-      NavigationStack {
-        CountersListView()
+      if context == .live {
+        NavigationStack {
+          CountersListView()
+        }
       }
     }
   }
