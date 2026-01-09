@@ -148,15 +148,12 @@
           print(#function, #line)
           guard let shareRecordID = share?.recordID
           else {
-            print(#function, #line)
             return nil
           }
           do {
-            print(#function, #line)
             return try await container.database(for: lastKnownServerRecord.recordID)
               .record(for: shareRecordID) as? CKShare
           } catch let error as CKError where error.code == .unknownItem {
-            print(#function, #line)
             return nil
           }
         }
