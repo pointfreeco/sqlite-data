@@ -73,10 +73,8 @@
       configure: @Sendable (CKShare) -> Void
     ) async throws -> SharedRecord
     where T.TableColumns.PrimaryKey.QueryOutput: IdentifierStringConvertible {
-      print(#function, #line)
       guard isRunning
       else {
-        print(#function, #line)
         throw SharingError(
           reason: .syncEngineNotRunning,
           debugDescription: """
@@ -87,7 +85,6 @@
       }
       guard tablesByName[T.tableName] != nil
       else {
-        print(#function, #line)
         throw SharingError(
           recordTableName: T.tableName,
           recordPrimaryKey: record.primaryKey.rawIdentifier,
@@ -99,7 +96,6 @@
         )
       }
       if let foreignKeys = foreignKeysByTableName[T.tableName], !foreignKeys.isEmpty {
-        print(#function, #line)
         throw SharingError(
           recordTableName: T.tableName,
           recordPrimaryKey: record.primaryKey.rawIdentifier,
@@ -111,7 +107,6 @@
       }
       guard !privateTables.contains(where: { T.self == $0.base })
       else {
-        print(#function, #line)
         throw SharingError(
           recordTableName: T.tableName,
           recordPrimaryKey: record.primaryKey.rawIdentifier,
@@ -123,7 +118,6 @@
         )
       }
       let recordName = record.recordName
-      print(#function, #line)
       let lastKnownServerRecord =
         try await metadatabase.read { db in
           try SyncMetadata
@@ -131,10 +125,8 @@
             .select(\._lastKnownServerRecordAllFields)
             .fetchOne(db)
         } ?? nil
-      print(#function, #line)
       guard let lastKnownServerRecord
       else {
-        print(#function, #line)
         throw SharingError(
           recordTableName: T.tableName,
           recordPrimaryKey: record.primaryKey.rawIdentifier,
@@ -145,7 +137,6 @@
         )
       }
 
-      print(#function, #line)
       var existingShare: CKShare? {
         get async throws {
           let share = try await metadatabase.read { db in
@@ -180,32 +171,25 @@
             zoneID: lastKnownServerRecord.recordID.zoneID
           )
         )
-      print(#function, #line)
 
       configure(sharedRecord)
-      print(#function, #line)
       let (saveResults, _) = try await container.privateCloudDatabase.modifyRecords(
         saving: [sharedRecord, lastKnownServerRecord],
         deleting: []
       )
 
-      print(#function, #line)
       let savedShare = try saveResults.values.compactMap { result in
         let record = try result.get()
         return record.recordID == sharedRecord.recordID ? record as? CKShare : nil
       }
       .first
-      print(#function, #line)
       let savedRootRecord = try saveResults.values.compactMap { result in
         let record = try result.get()
-        print(#function, #line)
         return record.recordID == lastKnownServerRecord.recordID ? record : nil
       }
       .first
-      print(#function, #line)
       guard let savedShare, let savedRootRecord
       else {
-        print(#function, #line)
         throw SharingError(
           recordTableName: T.tableName,
           recordPrimaryKey: record.primaryKey.rawIdentifier,
@@ -215,7 +199,6 @@
             """
         )
       }
-      print(#function, #line)
       try await metadatabase.write { db in
         try SyncMetadata
           .where { $0.recordName.eq(recordName) }
@@ -226,7 +209,6 @@
           .execute(db)
       }
 
-      print(#function, #line)
       return SharedRecord(container: container, share: savedShare)
     }
 
