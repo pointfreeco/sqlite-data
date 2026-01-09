@@ -851,6 +851,7 @@
        * Create parent record and synchronize.
        * Create child record and synchronize.
        * Share parent record.
+       * See: https://github.com/pointfreeco/sqlite-data/pull/363
        */
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func createParentThenChildThenShare() async throws {
