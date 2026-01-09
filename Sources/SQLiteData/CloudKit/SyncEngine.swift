@@ -13,8 +13,6 @@
     import UIKit
   #endif
 
-extension String: Error {}
-
   /// An object that manages the synchronization of local and remote SQLite data.
   ///
   /// See <doc:CloudKit> for more information.
@@ -105,7 +103,7 @@ extension String: Error {}
       let containerIdentifier =
         containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
-        (context == .preview ? "preview" : nil)
+        ?? (context == .preview ? "preview" : nil)
       var allTables: [any SynchronizableTable] = []
       var allPrivateTables: [any SynchronizableTable] = []
       for table in repeat each tables {
