@@ -423,6 +423,10 @@
     /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
       guard isRunning else { return }
+      previewTimerTask.withValue {
+        $0?.cancel()
+        $0 = nil
+      }
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
         syncEngines.withValue {
           $0 = SyncEngines()
