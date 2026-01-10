@@ -25,15 +25,7 @@
       throw InMemoryDatabase()
     }
 
-    var configuration = Configuration()
-    configuration.busyMode = .callback({ numberOfTries in
-      print("numberOfTries", numberOfTries)
-      return numberOfTries < 100
-    })
-    let metadatabase: any DatabaseWriter =
-
-        try DatabasePool(path: url.path(percentEncoded: false))
-
+    let metadatabase = try DatabasePool(path: url.path(percentEncoded: false))
     try migrate(metadatabase: metadatabase)
     return metadatabase
   }

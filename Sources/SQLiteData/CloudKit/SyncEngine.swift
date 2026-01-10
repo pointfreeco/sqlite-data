@@ -38,6 +38,9 @@
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
+#if canImport(DeveloperToolsSupport)
+    private let previewTimerTask = LockIsolated<Task<Void, Never>?>(nil)
+    #endif
 
     /// The error message used when a write occurs to a record for which the current user does not
     /// have permission.
@@ -130,8 +133,16 @@
           defaultZone: defaultZone,
           defaultSyncEngines: { _, syncEngine in
             (
-              private: MockSyncEngine(database: privateDatabase, parentSyncEngine: syncEngine),
-              shared: MockSyncEngine(database: sharedDatabase, parentSyncEngine: syncEngine)
+              private: MockSyncEngine(
+                database: privateDatabase,
+                parentSyncEngine: syncEngine,
+                state: MockSyncEngineState()
+              ),
+              shared: MockSyncEngine(
+                database: sharedDatabase,
+                parentSyncEngine: syncEngine,
+                state: MockSyncEngineState()
+              )
             )
           },
           userDatabase: userDatabase,
@@ -411,7 +422,6 @@
     /// All edits made after stopping the sync engine will not be synchronized to CloudKit.
     /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
-      timerTask?.cancel()
       guard isRunning else { return }
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
         syncEngines.withValue {
@@ -428,19 +438,7 @@
       }
     }
 
-    nonisolated(unsafe) var timerTask: Task<Void, any Error>?
-
     private func start() throws -> Task<Void, Never> {
-      timerTask?.cancel()
-      @Dependency(\.context) var context
-      if context == .preview {
-        timerTask = Task {
-          while true {
-            try await Task.sleep(for: .seconds(1))
-            try await self.syncChanges()
-          }
-        }
-      }
       guard !isRunning else { return Task {} }
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
         syncEngines.withValue {
@@ -499,12 +497,29 @@
         }
       )
 
+#if canImport(DeveloperToolsSupport)
+      @Dependency(\.context) var context
+      if context == .preview {
+        previewTimerTask.withValue {
+          $0?.cancel()
+          $0 = Task { [weak self] in
+            await withErrorReporting {
+              while true {
+                guard let self else { break }
+                try await Task.sleep(for: .seconds(1))
+                try await self.syncChanges()
+              }
+            }
+          }
+        }
+      }
+#endif
       let startTask = Task<Void, Never> {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           guard try await container.accountStatus() == .available
           else { return }
           syncEngines.withValue {
-            $0.private?.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
+            $0.private?.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
           }
           try await uploadRecordsToCloudKit(
             previousRecordTypeByTableName: previousRecordTypeByTableName,
@@ -517,7 +532,10 @@
           try await cacheUserTables(recordTypes: currentRecordTypes)
         }
       }
-      self.startTask.withValue { $0 = startTask }
+      self.startTask.withValue {
+        $0?.cancel()
+        $0 = startTask
+      }
       return startTask
     }
 
@@ -626,8 +644,8 @@
         }
       }
       syncEngines.withValue {
-        $0.private?.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
-        $0.shared?.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
+        $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
+        $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
       }
     }
 
@@ -812,8 +830,8 @@
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
-      oldSyncEngine?.add(pendingRecordZoneChanges: oldChanges)
-      syncEngine?.add(pendingRecordZoneChanges: newChanges)
+      oldSyncEngine?.state.add(pendingRecordZoneChanges: oldChanges)
+      syncEngine?.state.add(pendingRecordZoneChanges: newChanges)
     }
 
     @DatabaseFunction(
@@ -850,7 +868,7 @@
       let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
-      syncEngine?.add(pendingRecordZoneChanges: changes)
+      syncEngine?.state.add(pendingRecordZoneChanges: changes)
     }
 
     package func acceptShare(metadata: ShareMetadata) async throws {
@@ -1100,7 +1118,7 @@
           )
             ?? nil
         else {
-          syncEngine.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+          syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           return nil
         }
 
@@ -1131,7 +1149,7 @@
 
         guard let table = tablesByName[metadata.recordType]
         else {
-          syncEngine.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+          syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
           missingTable = recordID
           return nil
         }
@@ -1149,7 +1167,7 @@
             ?? nil
           guard let row
           else {
-            syncEngine.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
+            syncEngine.state.remove(pendingRecordZoneChanges: [.saveRecord(recordID)])
             missingRecord = recordID
             return nil
           }
@@ -1191,7 +1209,7 @@
       options: CKSyncEngine.SendChangesOptions,
       syncEngine: any SyncEngineProtocol
     ) async -> [CKSyncEngine.PendingRecordZoneChange] {
-      var changes = syncEngine.pendingRecordZoneChanges.filter(options.scope.contains)
+      var changes = syncEngine.state.pendingRecordZoneChanges.filter(options.scope.contains)
       guard !changes.isEmpty
       else { return [] }
 
@@ -1272,7 +1290,7 @@
           guard shareRecordIDsToDelete.contains(rootShareRecordID)
           else { continue }
           changes.removeAll(where: { $0 == .deleteRecord(lastKnownServerRecord.recordID) })
-          syncEngine.remove(
+          syncEngine.state.remove(
             pendingRecordZoneChanges: [.deleteRecord(lastKnownServerRecord.recordID)]
           )
         }
@@ -1301,7 +1319,7 @@
 
       switch changeType {
       case .signIn:
-        syncEngine.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
+        syncEngine.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
         await withErrorReporting {
           try await enqueueUnknownRecordsForCloudKit()
         }
@@ -1365,7 +1383,7 @@
         }
         ?? false
       if defaultZoneDeleted {
-        syncEngine.add(pendingDatabaseChanges: [.saveZone(self.defaultZone)])
+        syncEngine.state.add(pendingDatabaseChanges: [.saveZone(self.defaultZone)])
       }
       @Sendable
       func deleteRecords(in zoneID: CKRecordZone.ID, db: Database) throws {
@@ -1415,7 +1433,7 @@
           }
           open(table)
         }
-        syncEngine.add(pendingRecordZoneChanges: pendingRecordZoneChanges)
+        syncEngine.state.add(pendingRecordZoneChanges: pendingRecordZoneChanges)
       }
     }
 
@@ -1507,7 +1525,8 @@
           }
           var unsyncedRecords: [CKRecord] = []
           for start in stride(from: 0, to: orderedUnsyncedRecordIDs.count, by: batchSize) {
-            let recordIDsBatch = orderedUnsyncedRecordIDs
+            let recordIDsBatch =
+              orderedUnsyncedRecordIDs
               .dropFirst(start)
               .prefix(batchSize)
             let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
@@ -1591,7 +1610,7 @@
         return false
       case (_, nil):
         return true
-      case let (.some(lhs), .some(rhs)):
+      case (.some(let lhs), .some(let rhs)):
         let lhsIndex = tablesByOrder[lhs] ?? (rootFirst ? .max : .min)
         let rhsIndex = tablesByOrder[rhs] ?? (rootFirst ? .max : .min)
         guard lhsIndex != rhsIndex
@@ -1616,8 +1635,8 @@
       var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
       var newPendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] = []
       defer {
-        syncEngine.add(pendingDatabaseChanges: newPendingDatabaseChanges)
-        syncEngine.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
+        syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
+        syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
       for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() async {
@@ -1768,10 +1787,10 @@
                   UnsyncedRecordID(recordID: failedRecordID)
                 }
                 .execute(db)
-                syncEngine.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+                syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
                 break
               case .batchRequestFailed:
-                syncEngine.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
+                syncEngine.state.add(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
                 break
               case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
                 .notAuthenticated, .operationCancelled, .internalError, .partialFailure,
@@ -2333,7 +2352,8 @@
     tablesByName: [String: any SynchronizableTable]
   ) throws -> [String: Int] {
     let tableDependencies = try userDatabase.read { db in
-      var dependencies: OrderedDictionary<HashableSynchronizedTable, [any SynchronizableTable]> = [:]
+      var dependencies: OrderedDictionary<HashableSynchronizedTable, [any SynchronizableTable]> =
+        [:]
       for table in tables {
         func open<T>(_: some SynchronizableTable<T>) throws -> [String] {
           try PragmaForeignKeyList<T>

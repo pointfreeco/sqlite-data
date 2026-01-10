@@ -1,6 +1,5 @@
 #if canImport(CloudKit)
   import CloudKit
-import Dependencies
   import IssueReporting
   import OrderedCollections
 
@@ -8,39 +7,26 @@ import Dependencies
   package final class MockSyncEngine: SyncEngineProtocol {
     package let database: MockCloudDatabase
     package let parentSyncEngine: SyncEngine
+    private let _state: LockIsolated<MockSyncEngineState>
     package let _fetchChangesScopes = LockIsolated<[CKSyncEngine.FetchChangesOptions.Scope]>([])
     package let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
-    package let _pendingRecordZoneChanges = LockIsolated<
-      OrderedSet<CKSyncEngine.PendingRecordZoneChange>
-    >([]
-    )
-    package let _pendingDatabaseChanges = LockIsolated<
-      OrderedSet<CKSyncEngine.PendingDatabaseChange>
-    >([])
-    private let fileID: StaticString
-    private let filePath: StaticString
-    private let line: UInt
-    private let column: UInt
-    let context = Dependency(\.context)
 
     package init(
       database: MockCloudDatabase,
       parentSyncEngine: SyncEngine,
-      fileID: StaticString = #fileID,
-      filePath: StaticString = #filePath,
-      line: UInt = #line,
-      column: UInt = #column
+      state: MockSyncEngineState
     ) {
       self.database = database
       self.parentSyncEngine = parentSyncEngine
-      self.fileID = fileID
-      self.filePath = filePath
-      self.line = line
-      self.column = column
+      self._state = LockIsolated(state)
     }
 
     package var scope: CKDatabase.Scope {
       database.databaseScope
+    }
+
+    package var state: MockSyncEngineState {
+      _state.withValue(\.self)
     }
 
     package func acceptShare(metadata: ShareMetadata) {
@@ -65,7 +51,6 @@ import Dependencies
           ($0[zoneID]?.records.values).map { Array($0) } ?? []
         }
       }
-
       await parentSyncEngine.handleEvent(
         .fetchedRecordZoneChanges(
           modifications: modifications,
@@ -85,13 +70,13 @@ import Dependencies
 
     package func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws {
 
-      if !parentSyncEngine.syncEngine(for: database.databaseScope).pendingDatabaseChanges
+      if !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingDatabaseChanges
         .isEmpty
       {
 
         try await parentSyncEngine.processPendingDatabaseChanges(scope: database.databaseScope)
       }
-      if !parentSyncEngine.syncEngine(for: database.databaseScope).pendingRecordZoneChanges
+      if !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges
         .isEmpty
       {
 
@@ -122,7 +107,7 @@ import Dependencies
         }
       }
 
-      remove(pendingRecordZoneChanges: recordsToSave.map { .saveRecord($0.recordID) })
+      state.remove(pendingRecordZoneChanges: recordsToSave.map { .saveRecord($0.recordID) })
 
       return CKSyncEngine.RecordZoneChangeBatch(
         recordsToSave: recordsToSave,
@@ -131,6 +116,33 @@ import Dependencies
     }
 
     package func cancelOperations() async {
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  package final class MockSyncEngineState: CKSyncEngineStateProtocol {
+    package let _pendingRecordZoneChanges = LockIsolated<
+      OrderedSet<CKSyncEngine.PendingRecordZoneChange>
+    >([]
+    )
+    package let _pendingDatabaseChanges = LockIsolated<
+      OrderedSet<CKSyncEngine.PendingDatabaseChange>
+    >([])
+    private let fileID: StaticString
+    private let filePath: StaticString
+    private let line: UInt
+    private let column: UInt
+
+    package init(
+      fileID: StaticString = #fileID,
+      filePath: StaticString = #filePath,
+      line: UInt = #line,
+      column: UInt = #column
+    ) {
+      self.fileID = fileID
+      self.filePath = filePath
+      self.line = line
+      self.column = column
     }
 
     package var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] {
@@ -147,52 +159,27 @@ import Dependencies
     }
 
     package func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
-      guard !pendingRecordZoneChanges.isEmpty
-      else { return }
-
       self._pendingRecordZoneChanges.withValue {
         $0.append(contentsOf: pendingRecordZoneChanges)
       }
-
-//      if context.wrappedValue == .preview {
-//        Task { try await parentSyncEngine.sendChanges() }
-//      }
     }
 
     package func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
-      guard !pendingRecordZoneChanges.isEmpty
-      else { return }
-
       self._pendingRecordZoneChanges.withValue {
         $0.subtract(pendingRecordZoneChanges)
       }
-//      if context.wrappedValue == .preview {
-//        Task { try await parentSyncEngine.sendChanges() }
-//      }
     }
 
     package func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
-      guard !pendingDatabaseChanges.isEmpty
-      else { return }
-
       self._pendingDatabaseChanges.withValue {
         $0.append(contentsOf: pendingDatabaseChanges)
       }
-//      if context.wrappedValue == .preview {
-//        Task { try await parentSyncEngine.sendChanges() }
-//      }
     }
 
     package func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
-      guard !pendingDatabaseChanges.isEmpty
-      else { return }
-
       self._pendingDatabaseChanges.withValue {
         $0.subtract(pendingDatabaseChanges)
       }
-//      if context.wrappedValue == .preview {
-//        Task { try await parentSyncEngine.sendChanges() }
-//      }
     }
   }
 
@@ -208,7 +195,7 @@ import Dependencies
       column: UInt = #column
     ) async throws {
       let syncEngine = syncEngine(for: scope)
-      guard !syncEngine.pendingRecordZoneChanges.isEmpty
+      guard !syncEngine.state.pendingRecordZoneChanges.isEmpty
       else {
         reportIssue(
           "Processing empty set of record zone changes.",
@@ -288,16 +275,16 @@ import Dependencies
           fatalError("Mocks should only raise 'CKError' values.")
         }
       }
-      syncEngine.remove(
+      syncEngine.state.remove(
         pendingRecordZoneChanges: savedRecords.map { .saveRecord($0.recordID) }
       )
-      syncEngine.remove(
+      syncEngine.state.remove(
         pendingRecordZoneChanges: failedRecordSaves.map { .saveRecord($0.record.recordID) }
       )
-      syncEngine.remove(
+      syncEngine.state.remove(
         pendingRecordZoneChanges: deletedRecordIDs.map { .deleteRecord($0) }
       )
-      syncEngine.remove(
+      syncEngine.state.remove(
         pendingRecordZoneChanges: failedRecordDeletes.keys.map { .deleteRecord($0) }
       )
 
@@ -321,7 +308,7 @@ import Dependencies
       column: UInt = #column
     ) async throws {
       let syncEngine = syncEngine(for: scope)
-      guard !syncEngine.pendingDatabaseChanges.isEmpty
+      guard !syncEngine.state.pendingDatabaseChanges.isEmpty
       else {
         reportIssue(
           "Processing empty set of database changes.",
@@ -346,7 +333,7 @@ import Dependencies
 
       var zonesToSave: [CKRecordZone] = []
       var zoneIDsToDelete: [CKRecordZone.ID] = []
-      for pendingDatabaseChange in syncEngine.pendingDatabaseChanges {
+      for pendingDatabaseChange in syncEngine.state.pendingDatabaseChanges {
         switch pendingDatabaseChange {
         case .saveZone(let zone):
           zonesToSave.append(zone)
@@ -389,8 +376,8 @@ import Dependencies
         }
       }
 
-      syncEngine.remove(pendingDatabaseChanges: savedZones.map { .saveZone($0) })
-      syncEngine.remove(pendingDatabaseChanges: deletedZoneIDs.map { .deleteZone($0) })
+      syncEngine.state.remove(pendingDatabaseChanges: savedZones.map { .saveZone($0) })
+      syncEngine.state.remove(pendingDatabaseChanges: deletedZoneIDs.map { .deleteZone($0) })
 
       await syncEngine.parentSyncEngine
         .handleEvent(

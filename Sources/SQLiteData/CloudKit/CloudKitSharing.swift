@@ -309,6 +309,7 @@
               }
             }
           }
+          .navigationTitle("Share")
           .task {
             await withErrorReporting {
               try await syncEngine.fetchChanges()

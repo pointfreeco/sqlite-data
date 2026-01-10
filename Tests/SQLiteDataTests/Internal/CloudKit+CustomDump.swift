@@ -157,7 +157,7 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension MockSyncEngine: CustomDumpReflectable {
+  extension MockSyncEngineState: CustomDumpReflectable {
     package var customDumpMirror: Mirror {
       return Mirror(
         self,

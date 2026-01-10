@@ -33,17 +33,7 @@ public func defaultDatabase(
       }
     }
     database = try DatabasePool(path: path ?? defaultPath, configuration: configuration)
-  case .preview:
-    var configuration = configuration
-    configuration.busyMode = .callback({ numberOfTries in
-      print("numberOfTries", numberOfTries)
-      return numberOfTries < 100
-    })
-    database = try DatabasePool(
-      path: "\(NSTemporaryDirectory())\(UUID().uuidString).db",
-      configuration: configuration
-    )
-  case .test:
+  case .preview, .test:
     database = try DatabasePool(
       path: "\(NSTemporaryDirectory())\(UUID().uuidString).db",
       configuration: configuration
