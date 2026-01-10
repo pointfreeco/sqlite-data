@@ -78,6 +78,35 @@
       _ syncEngine: SyncEngine,
       accountChanged changeType: CKSyncEngine.Event.AccountChange.ChangeType
     ) async
+      
+    
+    /// Handle any DatabaseError thrown while attempting to update or insert a record from iCloud
+    ///
+    /// By default, a sync engine will re-throw this error and end up not syncing the record. To override this behaviour, _e.g._ if your local schema is no longer compatible and you need to apply a custom data migration before inserting, implement this method, and explicitly handle your db updates.
+    ///
+    /// For example, your `PostalAddress` Table may have in the past used an enum field
+    /// for addressType: (residential, commercial etc) but now uses a foreignKey to a
+    /// dedicated table of `AddressType`. However the record being restored from iCloud
+    /// predates this database migration so it attempting to save the string `residential`
+    /// into the `addressType` field rather than the `ID` of the `AddressType` row who's
+    /// name is `residential`, overriding this method and handling update/inserts to `PostalAddress`
+    /// in this case will allow users to restore historic iCloud data when they re-install
+    /// the app even through the schema is no longer backwards compatible:
+    ///   .... EXAMPLE here
+    ///
+    /// Parameters:
+    ///   - error: The DatabaseError that was thrown.
+    ///   - serverRecord: The CKRecord that is being updated or inserted.
+    ///   - columnNames: The column names that contain an update.
+    ///   - table: The local database table.
+    ///   - Database: The database into which the changes should be written.
+    func handleUpsertFromServerRecord<T: Table>(
+        error: DatabaseError,
+        serverRecord: CKRecord,
+        columnNames: some Collection<String>,
+        table: T.Type,
+        into database: Database
+    ) throws
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -96,6 +125,16 @@
       @unknown default:
         break
       }
+    }
+      
+    public func handleUpsertFromServerRecord<T: Table>(
+        error: DatabaseError,
+        serverRecord: CKRecord,
+        columnNames: some Collection<String>,
+        table: T.Type,
+        into database: Database
+    ) throws {
+      throw error
     }
   }
 #endif
