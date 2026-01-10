@@ -41,13 +41,8 @@ struct CountersListView: View {
               try database.write { db in
                 try Counter.insert {
                   Counter.Draft()
-                  Counter.Draft()
-                  Counter.Draft()
-                  Counter.Draft()
-                  Counter.Draft()
-                  Counter.Draft()
                 }
-                  .execute(db)
+                .execute(db)
               }
             }
           }
