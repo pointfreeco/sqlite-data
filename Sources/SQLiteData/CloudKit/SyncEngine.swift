@@ -38,8 +38,8 @@
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
-#if canImport(DeveloperToolsSupport)
-    private let previewTimerTask = LockIsolated<Task<Void, Never>?>(nil)
+    #if canImport(DeveloperToolsSupport)
+      private let previewTimerTask = LockIsolated<Task<Void, Never>?>(nil)
     #endif
 
     /// The error message used when a write occurs to a record for which the current user does not
@@ -497,23 +497,23 @@
         }
       )
 
-#if canImport(DeveloperToolsSupport)
-      @Dependency(\.context) var context
-      if context == .preview {
-        previewTimerTask.withValue {
-          $0?.cancel()
-          $0 = Task { [weak self] in
-            await withErrorReporting {
-              while true {
-                guard let self else { break }
-                try await Task.sleep(for: .seconds(1))
-                try await self.syncChanges()
+      #if canImport(DeveloperToolsSupport)
+        @Dependency(\.context) var context
+        if context == .preview {
+          previewTimerTask.withValue {
+            $0?.cancel()
+            $0 = Task { [weak self] in
+              await withErrorReporting {
+                while true {
+                  guard let self else { break }
+                  try await Task.sleep(for: .seconds(1))
+                  try await self.syncChanges()
+                }
               }
             }
           }
         }
-      }
-#endif
+      #endif
       let startTask = Task<Void, Never> {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           guard try await container.accountStatus() == .available
