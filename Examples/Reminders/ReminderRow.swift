@@ -156,17 +156,20 @@ struct ReminderRow: View {
 }
 
 struct ReminderRowPreview: PreviewProvider {
-  static var previews: some View {
-    var reminder: Reminder!
-    var remindersList: RemindersList!
-    let _ = try! prepareDependencies {
+  private static var reminderDetail: (Reminder, RemindersList) = {
+    try! prepareDependencies {
       $0.defaultDatabase = try Reminders.appDatabase()
-      try $0.defaultDatabase.read { db in
-        reminder = try Reminder.fetchOne(db)
-        remindersList = try RemindersList.fetchOne(db)!
+      try $0.defaultDatabase.seed()
+      return try $0.defaultDatabase.read { db in
+        let reminder = try Reminder.fetchOne(db)!
+        let remindersList = try RemindersList.where { $0.id.eq(reminder.remindersListID) }.fetchOne(db)!
+        return (reminder, remindersList)
       }
     }
-
+  }()
+  
+  static var previews: some View {
+    let (reminder, remindersList) = reminderDetail
     NavigationStack {
       List {
         ReminderRow(

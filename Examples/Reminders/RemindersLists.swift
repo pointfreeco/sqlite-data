@@ -144,9 +144,7 @@ class RemindersListsModel {
   #if DEBUG
     func seedDatabaseButtonTapped() {
       withErrorReporting {
-        try database.write { db in
-          try db.seedSampleData()
-        }
+        try database.seed()
       }
     }
   #endif
@@ -438,6 +436,18 @@ private struct ReminderGridCell: View {
 #Preview {
   let _ = try! prepareDependencies {
     $0.defaultDatabase = try Reminders.appDatabase()
+    // Create a dummy SyncMetadata table to allow the RemindersLists query to work in preview mode
+    try $0.defaultDatabase.write { db in
+      try #sql("""
+        CREATE TABLE IF NOT EXISTS \(SyncMetadata.self) (
+          "recordPrimaryKey" TEXT,
+          "recordType" TEXT,
+          "share" TEXT
+        ) STRICT
+        """
+      )
+      .execute(db)
+    }
   }
   NavigationStack {
     RemindersListsView(model: RemindersListsModel())
