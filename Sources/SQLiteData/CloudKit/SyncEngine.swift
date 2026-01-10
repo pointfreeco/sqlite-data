@@ -411,6 +411,7 @@
     /// All edits made after stopping the sync engine will not be synchronized to CloudKit.
     /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
+      timerTask?.cancel()
       guard isRunning else { return }
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
         syncEngines.withValue {
@@ -427,7 +428,19 @@
       }
     }
 
+    nonisolated(unsafe) var timerTask: Task<Void, any Error>?
+
     private func start() throws -> Task<Void, Never> {
+      timerTask?.cancel()
+      @Dependency(\.context) var context
+      if context == .preview {
+        timerTask = Task {
+          while true {
+            try await Task.sleep(for: .seconds(1))
+            try await self.syncChanges()
+          }
+        }
+      }
       guard !isRunning else { return Task {} }
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
         syncEngines.withValue {

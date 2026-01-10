@@ -154,9 +154,9 @@ import Dependencies
         $0.append(contentsOf: pendingRecordZoneChanges)
       }
 
-      if context.wrappedValue == .preview {
-        Task { try await parentSyncEngine.sendChanges() }
-      }
+//      if context.wrappedValue == .preview {
+//        Task { try await parentSyncEngine.sendChanges() }
+//      }
     }
 
     package func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
@@ -166,9 +166,9 @@ import Dependencies
       self._pendingRecordZoneChanges.withValue {
         $0.subtract(pendingRecordZoneChanges)
       }
-      if context.wrappedValue == .preview {
-        Task { try await parentSyncEngine.sendChanges() }
-      }
+//      if context.wrappedValue == .preview {
+//        Task { try await parentSyncEngine.sendChanges() }
+//      }
     }
 
     package func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
@@ -178,9 +178,9 @@ import Dependencies
       self._pendingDatabaseChanges.withValue {
         $0.append(contentsOf: pendingDatabaseChanges)
       }
-      if context.wrappedValue == .preview {
-        Task { try await parentSyncEngine.sendChanges() }
-      }
+//      if context.wrappedValue == .preview {
+//        Task { try await parentSyncEngine.sendChanges() }
+//      }
     }
 
     package func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
@@ -190,9 +190,9 @@ import Dependencies
       self._pendingDatabaseChanges.withValue {
         $0.subtract(pendingDatabaseChanges)
       }
-      if context.wrappedValue == .preview {
-        Task { try await parentSyncEngine.sendChanges() }
-      }
+//      if context.wrappedValue == .preview {
+//        Task { try await parentSyncEngine.sendChanges() }
+//      }
     }
   }
 
