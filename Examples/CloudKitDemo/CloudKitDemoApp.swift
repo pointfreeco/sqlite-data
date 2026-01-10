@@ -8,20 +8,19 @@ struct CloudKitDemoApp: App {
   @Dependency(\.context) var context
 
   init() {
-//    if context == .live {
-    try! prepareDependencies {
-      $0.context = .preview
-    }
+    if context == .live {
       try! prepareDependencies {
         try $0.bootstrapDatabase()
       }
-//    }
+    }
   }
 
   var body: some Scene {
     WindowGroup {
-      NavigationStack {
-        CountersListView()
+      if context == .live {
+        NavigationStack {
+          CountersListView()
+        }
       }
     }
   }
