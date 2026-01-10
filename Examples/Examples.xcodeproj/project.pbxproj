@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
+		CA2BDE2A2E71C469000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE292E71C469000974D3 /* SQLiteData */; };
 		CA2BDE2C2E71C472000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE2B2E71C472000974D3 /* SQLiteData */; };
 		CA2BDE2E2E71C479000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE2D2E71C479000974D3 /* SQLiteData */; };
 		CA2BDE302E71C480000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE2F2E71C480000974D3 /* SQLiteData */; };
@@ -17,7 +18,6 @@
 		CA5E47092DECEFC80069E0F8 /* SnapshotTestingCustomDump in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E47082DECEFC80069E0F8 /* SnapshotTestingCustomDump */; };
 		CA5E470B2DECF0280069E0F8 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CA5E470A2DECF0280069E0F8 /* DependenciesTestSupport */; };
 		CAD001872D874F1F00FA977A /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = CAD001862D874F1F00FA977A /* DependenciesTestSupport */; };
-		CAF2E0252F11C87A00F4E40B /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CAF2E0242F11C87A00F4E40B /* SQLiteData */; };
 		DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = DC5FA7472D4C63D60082743E /* DependenciesMacros */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
 		DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = DCF267382D48437300B680BE /* SwiftUINavigation */; };
@@ -148,7 +148,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CAF2E0252F11C87A00F4E40B /* SQLiteData in Frameworks */,
+				CA2BDE2A2E71C469000974D3 /* SQLiteData in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -268,7 +268,7 @@
 			);
 			name = CloudKitDemo;
 			packageProductDependencies = (
-				CAF2E0242F11C87A00F4E40B /* SQLiteData */,
+				CA2BDE292E71C469000974D3 /* SQLiteData */,
 			);
 			productName = CloudKitDemo;
 			productReference = CA2BDD9D2E71C30B000974D3 /* CloudKitDemo.app */;
@@ -1208,6 +1208,10 @@
 			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
 			productName = UIKitNavigation;
 		};
+		CA2BDE292E71C469000974D3 /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SQLiteData;
+		};
 		CA2BDE2B2E71C472000974D3 /* SQLiteData */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */;
@@ -1247,10 +1251,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */;
 			productName = DependenciesTestSupport;
-		};
-		CAF2E0242F11C87A00F4E40B /* SQLiteData */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = SQLiteData;
 		};
 		DC5FA7472D4C63D60082743E /* DependenciesMacros */ = {
 			isa = XCSwiftPackageProductDependency;
