@@ -38,6 +38,9 @@
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
+    #if canImport(DeveloperToolsSupport)
+      private let previewTimerTask = LockIsolated<Task<Void, Never>?>(nil)
+    #endif
 
     /// The error message used when a write occurs to a record for which the current user does not
     /// have permission.
@@ -420,6 +423,12 @@
     /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
       guard isRunning else { return }
+      #if canImport(DeveloperToolsSupport)
+        previewTimerTask.withValue {
+          $0?.cancel()
+          $0 = nil
+        }
+      #endif
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
         syncEngines.withValue {
           $0 = SyncEngines()
@@ -494,6 +503,23 @@
         }
       )
 
+      #if canImport(DeveloperToolsSupport)
+        @Dependency(\.context) var context
+        if context == .preview {
+          previewTimerTask.withValue {
+            $0?.cancel()
+            $0 = Task { [weak self] in
+              await withErrorReporting {
+                while true {
+                  guard let self else { break }
+                  try await Task.sleep(for: .seconds(1))
+                  try await self.syncChanges()
+                }
+              }
+            }
+          }
+        }
+      #endif
       let startTask = Task<Void, Never> {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           guard try await container.accountStatus() == .available
@@ -512,7 +538,10 @@
           try await cacheUserTables(recordTypes: currentRecordTypes)
         }
       }
-      self.startTask.withValue { $0 = startTask }
+      self.startTask.withValue {
+        $0?.cancel()
+        $0 = startTask
+      }
       return startTask
     }
 
@@ -1502,7 +1531,8 @@
           }
           var unsyncedRecords: [CKRecord] = []
           for start in stride(from: 0, to: orderedUnsyncedRecordIDs.count, by: batchSize) {
-            let recordIDsBatch = orderedUnsyncedRecordIDs
+            let recordIDsBatch =
+              orderedUnsyncedRecordIDs
               .dropFirst(start)
               .prefix(batchSize)
             let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
@@ -1586,7 +1616,7 @@
         return false
       case (_, nil):
         return true
-      case let (.some(lhs), .some(rhs)):
+      case (.some(let lhs), .some(let rhs)):
         let lhsIndex = tablesByOrder[lhs] ?? (rootFirst ? .max : .min)
         let rhsIndex = tablesByOrder[rhs] ?? (rootFirst ? .max : .min)
         guard lhsIndex != rhsIndex
@@ -2328,7 +2358,8 @@
     tablesByName: [String: any SynchronizableTable]
   ) throws -> [String: Int] {
     let tableDependencies = try userDatabase.read { db in
-      var dependencies: OrderedDictionary<HashableSynchronizedTable, [any SynchronizableTable]> = [:]
+      var dependencies: OrderedDictionary<HashableSynchronizedTable, [any SynchronizableTable]> =
+        [:]
       for table in tables {
         func open<T>(_: some SynchronizableTable<T>) throws -> [String] {
           try PragmaForeignKeyList<T>

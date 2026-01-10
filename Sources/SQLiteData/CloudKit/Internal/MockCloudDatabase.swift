@@ -9,6 +9,7 @@
     package let databaseScope: CKDatabase.Scope
     let _container = IsolatedWeakVar<MockCloudContainer>()
     let dataManager = Dependency(\.dataManager)
+    let deletedRecords = LockIsolated<[(CKRecord.ID, CKRecord.RecordType)]>([])
 
     struct AssetID: Hashable {
       let recordID: CKRecord.ID
@@ -261,6 +262,9 @@
           let recordToDelete = storage[recordIDToDelete.zoneID]?.records[recordIDToDelete]
           storage[recordIDToDelete.zoneID]?.records[recordIDToDelete] = nil
           deleteResults[recordIDToDelete] = .success(())
+          if let recordType = recordToDelete?.recordType {
+            deletedRecords.withValue { $0.append((recordIDToDelete, recordType)) }
+          }
 
           // NB: If deleting a share that the current user owns, delete the shared records and all
           //     associated records.
@@ -277,6 +281,8 @@
                   continue
                 }
                 storage[recordIDToDelete.zoneID]?.records[recordToDelete.recordID] = nil
+                deleteResults[recordToDelete.recordID] = .success(())
+                deletedRecords.withValue { $0.append((recordIDToDelete, recordToDelete.recordType)) }
                 deleteRecords(referencing: recordToDelete.recordID)
               }
             }

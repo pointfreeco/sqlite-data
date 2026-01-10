@@ -25,12 +25,7 @@
       throw InMemoryDatabase()
     }
 
-    let metadatabase: any DatabaseWriter =
-      if url.isInMemory {
-        try DatabaseQueue(path: url.absoluteString)
-      } else {
-        try DatabasePool(path: url.path(percentEncoded: false))
-      }
+    let metadatabase = try DatabasePool(path: url.path(percentEncoded: false))
     try migrate(metadatabase: metadatabase)
     return metadatabase
   }

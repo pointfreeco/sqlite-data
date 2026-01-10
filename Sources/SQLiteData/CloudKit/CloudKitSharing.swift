@@ -227,6 +227,10 @@
         return
       }
 
+      try await unshare(share: share)
+    }
+
+    func unshare(share: CKShare) async throws {
       let result = try await syncEngines.private?.database.modifyRecords(
         saving: [],
         deleting: [share.recordID]
@@ -249,7 +253,74 @@
     ///
     /// See <doc:CloudKitSharing#Creating-CKShare-records> for more info.
     @available(iOS 17, macOS 14, tvOS 17, *)
-    public struct CloudSharingView: UIViewControllerRepresentable {
+    public struct CloudSharingView: View {
+      let sharedRecord: SharedRecord
+      let availablePermissions: UICloudSharingController.PermissionOptions
+      let didFinish: (Result<Void, Error>) -> Void
+      let didStopSharing: () -> Void
+      let syncEngine: SyncEngine
+      @Dependency(\.context) var context
+      @Environment(\.dismiss) var dismiss
+      public init(
+        sharedRecord: SharedRecord,
+        availablePermissions: UICloudSharingController.PermissionOptions = [],
+        didFinish: @escaping (Result<Void, Error>) -> Void = { _ in },
+        didStopSharing: @escaping () -> Void = {},
+        syncEngine: SyncEngine = {
+          @Dependency(\.defaultSyncEngine) var defaultSyncEngine
+          return defaultSyncEngine
+        }()
+      ) {
+        self.sharedRecord = sharedRecord
+        self.didFinish = didFinish
+        self.didStopSharing = didStopSharing
+        self.availablePermissions = availablePermissions
+        self.syncEngine = syncEngine
+      }
+      public var body: some View {
+        if context == .live {
+          CloudSharingViewRepresentable(
+            sharedRecord: sharedRecord,
+            availablePermissions: availablePermissions,
+            didFinish: didFinish,
+            didStopSharing: didStopSharing,
+            syncEngine: syncEngine
+          )
+        } else {
+          Form {
+            Section {
+              if let title = sharedRecord.share[CKShare.SystemFieldKey.title] as? String {
+                Text(title)
+              }
+              if
+                let imageData = sharedRecord.share[CKShare.SystemFieldKey.thumbnailImageData] as? Data,
+                let image = UIImage(data: imageData)
+              {
+                Image(uiImage: image)
+              }
+            }
+            Section {
+              Button("Stop sharing", role: .destructive) {
+                Task {
+                  try await syncEngine.unshare(share: sharedRecord.share)
+                  try await syncEngine.fetchChanges()
+                  dismiss()
+                }
+              }
+            }
+          }
+          .navigationTitle("Share")
+          .task {
+            await withErrorReporting {
+              try await syncEngine.fetchChanges()
+            }
+          }
+        }
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, *)
+    private struct CloudSharingViewRepresentable: UIViewControllerRepresentable {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
       let didFinish: (Result<Void, Error>) -> Void

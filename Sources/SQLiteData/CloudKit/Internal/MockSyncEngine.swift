@@ -34,7 +34,7 @@
     }
 
     package func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws {
-      let records: [CKRecord]
+      let modifications: [CKRecord]
       let zoneIDs: [CKRecordZone.ID]
       switch options.scope {
       case .all:
@@ -46,13 +46,24 @@
       @unknown default:
         fatalError()
       }
-      records = zoneIDs.reduce(into: [CKRecord]()) { accum, zoneID in
+      modifications = zoneIDs.reduce(into: [CKRecord]()) { accum, zoneID in
         accum += database.storage.withValue {
           ($0[zoneID]?.records.values).map { Array($0) } ?? []
         }
       }
       await parentSyncEngine.handleEvent(
-        .fetchedRecordZoneChanges(modifications: records, deletions: []),
+        .fetchedRecordZoneChanges(
+          modifications: modifications,
+          deletions: database.deletedRecords.withValue {
+            let records = $0.filter { recordID, _ in
+              zoneIDs.contains(recordID.zoneID)
+            }
+            $0.removeAll { lhs, _ in
+              records.contains { rhs, _ in lhs == rhs }
+            }
+            return records
+          }
+        ),
         syncEngine: self
       )
     }
