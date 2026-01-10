@@ -99,10 +99,11 @@
       repeat (each T2).PrimaryKey.QueryOutput: IdentifierStringConvertible,
       repeat (each T2).TableColumns.PrimaryColumn: WritableTableColumnExpression
     {
+      @Dependency(\.context) var context
       let containerIdentifier =
         containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
-
+        ?? (context == .preview ? "preview" : nil)
       var allTables: [any SynchronizableTable] = []
       var allPrivateTables: [any SynchronizableTable] = []
       for table in repeat each tables {
@@ -113,7 +114,6 @@
       }
       let userDatabase = UserDatabase(database: database)
 
-      @Dependency(\.context) var context
       guard context == .live
       else {
         let privateDatabase = MockCloudDatabase(databaseScope: .private)
@@ -325,7 +325,10 @@
           : URL(filePath: metadatabase.path).lastPathComponent
         let attachedMetadatabaseName =
           URL(string: attachedMetadatabasePath)?.lastPathComponent ?? ""
-        if metadatabaseName != attachedMetadatabaseName {
+        @Dependency(\.context) var context
+        if metadatabaseName != attachedMetadatabaseName
+          && !(context == .preview && attachedMetadatabaseName.isEmpty)
+        {
           throw SchemaError(
             reason: .metadatabaseMismatch(
               attachedPath: attachedMetadatabasePath,
@@ -337,7 +340,6 @@
               """
           )
         }
-
       } else {
         try #sql(
           """
@@ -2151,9 +2153,11 @@
     /// - Parameter containerIdentifier: The identifier of the CloudKit container used to
     /// synchronize data. Defaults to the value set in the app's entitlements.
     public func attachMetadatabase(containerIdentifier: String? = nil) throws {
+      @Dependency(\.context) var context
       let containerIdentifier =
         containerIdentifier
         ?? ModelConfiguration(groupContainer: .automatic).cloudKitContainerIdentifier
+        ?? (context == .preview ? "preview" : nil)
 
       guard let containerIdentifier else {
         throw SyncEngine.SchemaError.noCloudKitContainer

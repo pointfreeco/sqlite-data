@@ -1,7 +1,6 @@
 import CloudKit
 import SQLiteData
 import SwiftUI
-import SwiftUINavigation
 
 struct CountersListView: View {
   @FetchAll var counters: [Counter]
@@ -105,5 +104,14 @@ struct CounterRow: View {
         .execute(db)
       }
     }
+  }
+}
+
+#Preview {
+  let _ = try! prepareDependencies {
+    try $0.bootstrapDatabase()
+  }
+  NavigationStack {
+    CountersListView()
   }
 }
