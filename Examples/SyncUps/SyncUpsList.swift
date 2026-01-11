@@ -34,9 +34,7 @@ final class SyncUpsListModel {
   #if DEBUG
     func seedDatabase() {
       withErrorReporting {
-        try database.write { db in
-          try db.seedSampleData()
-        }
+        try database.seedSampleData()
       }
     }
   #endif
@@ -156,6 +154,7 @@ private struct SeedDatabaseTip: Tip {
 #Preview {
   let _ = try! prepareDependencies {
     try $0.bootstrapDatabase()
+    try $0.defaultDatabase.seedSampleData()
   }
   NavigationStack {
     SyncUpsList(model: SyncUpsListModel())

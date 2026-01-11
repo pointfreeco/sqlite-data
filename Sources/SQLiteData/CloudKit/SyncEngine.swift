@@ -1789,8 +1789,9 @@
               switch error.code {
               case .referenceViolation:
                 enqueuedUnsyncedRecordID = true
-                try UnsyncedRecordID.insert(or: .ignore) {
+                try UnsyncedRecordID.insert {
                   UnsyncedRecordID(recordID: failedRecordID)
+                } onConflictDoUpdate: { _ in
                 }
                 .execute(db)
                 syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
@@ -1955,8 +1956,9 @@
             else {
               throw error
             }
-            try UnsyncedRecordID.insert(or: .ignore) {
+            try UnsyncedRecordID.insert {
               UnsyncedRecordID(recordID: serverRecord.recordID)
+            } onConflictDoUpdate: { _ in
             }
             .execute(db)
           }
