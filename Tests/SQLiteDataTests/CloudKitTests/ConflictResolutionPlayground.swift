@@ -64,21 +64,28 @@
     func mergedValue<Column: WritableTableColumnExpression>(
       for keyPath: some KeyPath<T.TableColumns, Column>,
       policy: FieldMergePolicy<Column.QueryValue.QueryOutput>
-    ) -> Column.QueryValue.QueryOutput
-    where Column.Root == T {
-      let column = T.columns[keyPath: keyPath]
-      let rowKeyPath = column.keyPath
-
-      let ancestorValue = ancestor.row[keyPath: rowKeyPath]
-      let clientValue = client.row[keyPath: rowKeyPath]
-      let serverValue = server.row[keyPath: rowKeyPath]
-
+    ) -> Column.QueryValue.QueryOutput where Column.Root == T {
+      mergedValue(
+        column: T.columns[keyPath: keyPath],
+        policy: policy
+      )
+    }
+    
+    func mergedValue<Column: WritableTableColumnExpression>(
+      column: Column,
+      policy: FieldMergePolicy<Column.QueryValue.QueryOutput>
+    ) -> Column.QueryValue.QueryOutput where Column.Root == T {
+      let keyPath = column.keyPath
+      let ancestorValue = ancestor.row[keyPath: keyPath]
+      let clientValue = client.row[keyPath: keyPath]
+      let serverValue = server.row[keyPath: keyPath]
+      
       let clientChanged = !areEqual(ancestorValue, clientValue, as: Column.QueryValue.self)
       let serverChanged = !areEqual(ancestorValue, serverValue, as: Column.QueryValue.self)
-
+      
       switch (clientChanged, serverChanged) {
       case (false, false):
-        return clientValue
+        return ancestorValue
       case (true, false):
         return clientValue
       case (false, true):
@@ -86,17 +93,17 @@
       case (true, true):
         let ancestorVersion = FieldVersion(
           value: ancestorValue,
-          modificationTime: ancestor.modificationTime(for: rowKeyPath)
+          modificationTime: ancestor.modificationTime(for: keyPath)
         )
         let clientVersion = FieldVersion(
           value: clientValue,
-          modificationTime: client.modificationTime(for: rowKeyPath)
+          modificationTime: client.modificationTime(for: keyPath)
         )
         let serverVersion = FieldVersion(
           value: serverValue,
-          modificationTime: server.modificationTime(for: rowKeyPath)
+          modificationTime: server.modificationTime(for: keyPath)
         )
-
+        
         return policy.resolve(ancestorVersion, clientVersion, serverVersion)
       }
     }
