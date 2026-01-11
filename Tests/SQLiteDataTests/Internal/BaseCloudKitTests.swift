@@ -1,3 +1,5 @@
+#if canImport(CloudKit)
+import Clocks
 import CloudKit
 import DependenciesTestSupport
 import OrderedCollections
@@ -10,6 +12,7 @@ import os
   .snapshots(record: .missing),
   .dependencies {
     $0.currentTime.now = 0
+    $0.continuousClock = TestClock<Duration>()
     $0.dataManager = InMemoryDataManager()
   },
   .attachMetadatabase(false)
@@ -19,10 +22,14 @@ class BaseCloudKitTests: @unchecked Sendable {
   private let _syncEngine: any Sendable
   private let _container: any Sendable
 
+  @Dependency(\.continuousClock) var clock
   @Dependency(\.currentTime.now) var now
   @Dependency(\.dataManager) var dataManager
   var inMemoryDataManager: InMemoryDataManager {
     dataManager as! InMemoryDataManager
+  }
+  var testClock: TestClock<Duration> {
+    clock as! TestClock<Duration>
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -240,3 +247,4 @@ private let currentUserRecordID = CKRecord.ID(
 // NB: This conformance is only used for ease of testing. In general it is not appropriate to
 // conform integer types to this protocol.
 extension Int: IdentifierStringConvertible {}
+#endif

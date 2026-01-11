@@ -505,6 +505,7 @@
 
       #if canImport(DeveloperToolsSupport)
         @Dependency(\.context) var context
+      @Dependency(\.continuousClock) var clock
         if context == .preview {
           previewTimerTask.withValue {
             $0?.cancel()
@@ -512,7 +513,7 @@
               await withErrorReporting {
                 while true {
                   guard let self else { break }
-                  try await Task.sleep(for: .seconds(1))
+                  try await clock.sleep(for: .seconds(1))
                   try await self.syncChanges()
                 }
               }
@@ -603,8 +604,8 @@
       fetchOptions: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions(),
       sendOptions: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
     ) async throws {
-      try await fetchChanges(fetchOptions)
       try await sendChanges(sendOptions)
+      try await fetchChanges(fetchOptions)
     }
 
     private func cacheUserTables(recordTypes: [RecordType]) async throws {
