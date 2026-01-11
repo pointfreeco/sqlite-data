@@ -24,7 +24,11 @@ let package = Package(
     .trait(
       name: "SQLiteDataTagged",
       description: "Introduce SQLiteData conformances to the swift-tagged package."
-    )
+    ),
+    .trait(
+        name: "SQLiteDataSwiftLog",
+        description: "Use swift-log instead of OSLog for logging."
+    ),
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-collections", from: "1.0.0"),
@@ -44,6 +48,7 @@ let package = Package(
     ),
     .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
     .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
+    .package(url: "https://github.com/apple/swift-log", from: "1.6.0")
   ],
   targets: [
     .target(
@@ -62,6 +67,11 @@ let package = Package(
           package: "swift-tagged",
           condition: .when(traits: ["SQLiteDataTagged"])
         ),
+        .product(
+            name: "Logging",
+            package: "swift-log",
+            condition: .when(traits: ["SQLiteDataSwiftLog"])
+        )
       ]
     ),
     .target(

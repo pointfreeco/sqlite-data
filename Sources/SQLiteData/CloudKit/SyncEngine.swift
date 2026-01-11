@@ -3,7 +3,6 @@
   import ConcurrencyExtras
   import Dependencies
   import OrderedCollections
-  import OSLog
   import Observation
   import StructuredQueriesCore
   import SwiftData
@@ -90,8 +89,7 @@
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
       startImmediately: Bool = true,
       delegate: (any SyncEngineDelegate)? = nil,
-      logger: Logger = isTesting
-        ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
+      logger: Logger = isTesting ? Logger.disabled : Logger.default
     ) throws
     where
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,

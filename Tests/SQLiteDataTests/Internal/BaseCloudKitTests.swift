@@ -218,7 +218,7 @@ extension SyncEngine {
         )
       },
       userDatabase: userDatabase,
-      logger: Logger(.disabled),
+      logger: Logger.disabled,
       delegate: delegate,
       tables: tables,
       privateTables: privateTables
