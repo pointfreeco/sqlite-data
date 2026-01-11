@@ -10,7 +10,7 @@
   ///
   /// See <doc:CloudKit#Accessing-CloudKit-metadata> for more info.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Table("sqlitedata_icloud_metadata")
+  @Table("sqlitedata_icloud_metadata", schema: "sqlitedata_icloud")
   public struct SyncMetadata: Hashable, Identifiable, Sendable {
     /// A selection of columns representing a synchronized record's unique identifier and type.
     @Selection
