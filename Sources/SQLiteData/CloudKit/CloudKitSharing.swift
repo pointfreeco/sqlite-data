@@ -118,24 +118,27 @@
         )
       }
       let recordName = record.recordName
-      let lastKnownServerRecord =
-        try await metadatabase.read { db in
+      let lastKnownServerRecord = try await {
+        let lastKnownServerRecord = try await metadatabase.read { db in
           try SyncMetadata
             .where { $0.recordName.eq(recordName) }
             .select(\._lastKnownServerRecordAllFields)
             .fetchOne(db)
         } ?? nil
-      guard let lastKnownServerRecord
-      else {
-        throw SharingError(
-          recordTableName: T.tableName,
-          recordPrimaryKey: record.primaryKey.rawIdentifier,
-          reason: .recordMetadataNotFound,
-          debugDescription: """
+        guard let lastKnownServerRecord
+        else {
+          throw SharingError(
+            recordTableName: T.tableName,
+            recordPrimaryKey: record.primaryKey.rawIdentifier,
+            reason: .recordMetadataNotFound,
+            debugDescription: """
             No sync metadata found for record. Has the record been saved to the database?
             """
-        )
-      }
+          )
+        }
+        return try await container.database(for: lastKnownServerRecord.recordID)
+          .record(for: lastKnownServerRecord.recordID)
+      }()
 
       var existingShare: CKShare? {
         get async throws {
