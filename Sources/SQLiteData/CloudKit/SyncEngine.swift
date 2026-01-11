@@ -20,7 +20,7 @@
   public final class SyncEngine: Observable, Sendable {
     package let userDatabase: UserDatabase
     package let logger: Logger
-    package let metadatabase: any DatabaseWriter
+    package let metadatabase: any DatabaseReader
     package let tables: [any SynchronizableTable]
     package let privateTables: [any SynchronizableTable]
     let tablesByName: [String: any SynchronizableTable]
@@ -738,8 +738,13 @@
           try trigger.drop().execute(db)
         }
       }
-      try metadatabase.erase()
-      try migrate(metadatabase: metadatabase)
+      if let writableMetadatabase = metadatabase as? any DatabaseWriter {
+        func open(_ writableMetadatabase: some DatabaseWriter) throws {
+          try writableMetadatabase.erase()
+          try migrate(metadatabase: writableMetadatabase)
+        }
+        try open(writableMetadatabase)
+      }
     }
 
     /// Deletes synchronized data locally on device and restarts the sync engine.

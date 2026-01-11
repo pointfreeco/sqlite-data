@@ -51,7 +51,7 @@ public func assertQuery<
 >(
   includeSQL: Bool = false,
   _ query: S,
-  database: (any DatabaseWriter)? = nil,
+  database: (any DatabaseReader)? = nil,
   sql: (() -> String)? = nil,
   results: (() -> String)? = nil,
   fileID: StaticString = #fileID,
@@ -80,7 +80,7 @@ public func assertQuery<
   let results = includeSQL ? results : sql
   do {
     @Dependency(\.defaultDatabase) var defaultDatabase
-    let rows = try (database ?? defaultDatabase).write { try query.fetchAll($0) }
+    let rows = try (database ?? defaultDatabase).read { try query.fetchAll($0) }
     var table = ""
     if rows.isEmpty {
       table = "(No results)"
@@ -181,7 +181,7 @@ public func assertQuery<
 public func assertQuery<S: SelectStatement, each J: StructuredQueriesCore.Table>(
   includeSQL: Bool = false,
   _ query: S,
-  database: (any DatabaseWriter)? = nil,
+  database: (any DatabaseReader)? = nil,
   sql: (() -> String)? = nil,
   results: (() -> String)? = nil,
   fileID: StaticString = #fileID,
