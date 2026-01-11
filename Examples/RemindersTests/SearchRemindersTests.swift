@@ -67,62 +67,60 @@ extension BaseTestSuite {
       let model = SearchRemindersModel()
       model.searchText = "Take"
       try await model.showCompletedButtonTapped()
+      try await model.$searchResults.load()
+      try await model.searchTask?.value
 
-      withKnownIssue(
-        "'@Fetch' introduces an escaping closure and loses the task-local dependency"
-      ) {
-        assertInlineSnapshot(of: model.searchResults.rows, as: .customDump) {
-          """
-          [
-            [0]: SearchRemindersModel.Row(
-              isPastDue: false,
+      assertInlineSnapshot(of: model.searchResults.rows, as: .customDump) {
+        """
+        [
+          [0]: SearchRemindersModel.Row(
+            isPastDue: false,
+            notes: "",
+            reminder: Reminder(
+              id: UUID(00000000-0000-0000-0000-00000000000A),
+              dueDate: Date(2009-02-17T23:31:30.000Z),
+              isCompleted: false,
+              isFlagged: false,
               notes: "",
-              reminder: Reminder(
-                id: UUID(00000000-0000-0000-0000-00000000000A),
-                dueDate: Date(2009-02-17T23:31:30.000Z),
-                isCompleted: false,
-                isFlagged: false,
-                notes: "",
-                position: 8,
-                priority: .high,
-                remindersListID: UUID(00000000-0000-0000-0000-000000000001),
-                title: "Take out trash"
-              ),
-              remindersList: RemindersList(
-                id: UUID(00000000-0000-0000-0000-000000000001),
-                color: 3985191935,
-                position: 2,
-                title: "Family"
-              ),
-              tags: "",
-              title: "**Take** out trash"
+              position: 8,
+              priority: .high,
+              remindersListID: UUID(00000000-0000-0000-0000-000000000001),
+              title: "Take out trash"
             ),
-            [1]: SearchRemindersModel.Row(
-              isPastDue: false,
+            remindersList: RemindersList(
+              id: UUID(00000000-0000-0000-0000-000000000001),
+              color: 3985191935,
+              position: 2,
+              title: "Family"
+            ),
+            tags: "",
+            title: "**Take** out trash"
+          ),
+          [1]: SearchRemindersModel.Row(
+            isPastDue: false,
+            notes: "",
+            reminder: Reminder(
+              id: UUID(00000000-0000-0000-0000-000000000006),
+              dueDate: Date(2008-08-07T23:31:30.000Z),
+              isCompleted: true,
+              isFlagged: false,
               notes: "",
-              reminder: Reminder(
-                id: UUID(00000000-0000-0000-0000-000000000006),
-                dueDate: Date(2008-08-07T23:31:30.000Z),
-                isCompleted: true,
-                isFlagged: false,
-                notes: "",
-                position: 4,
-                priority: nil,
-                remindersListID: UUID(00000000-0000-0000-0000-000000000000),
-                title: "Take a walk"
-              ),
-              remindersList: RemindersList(
-                id: UUID(00000000-0000-0000-0000-000000000000),
-                color: 1218047999,
-                position: 1,
-                title: "Personal"
-              ),
-              tags: "#car #kids #social",
-              title: "**Take** a walk"
-            )
-          ]
-          """
-        }
+              position: 4,
+              priority: nil,
+              remindersListID: UUID(00000000-0000-0000-0000-000000000000),
+              title: "Take a walk"
+            ),
+            remindersList: RemindersList(
+              id: UUID(00000000-0000-0000-0000-000000000000),
+              color: 1218047999,
+              position: 1,
+              title: "Personal"
+            ),
+            tags: "#car #kids #social",
+            title: "**Take** a walk"
+          )
+        ]
+        """
       }
     }
 

@@ -287,29 +287,31 @@
             syncEngine: syncEngine
           )
         } else {
-          Form {
-            Section {
-              if let title = sharedRecord.share[CKShare.SystemFieldKey.title] as? String {
-                Text(title)
+          NavigationStack {
+            Form {
+              Section {
+                if let title = sharedRecord.share[CKShare.SystemFieldKey.title] as? String {
+                  Text(title)
+                }
+                if let imageData = sharedRecord.share[CKShare.SystemFieldKey.thumbnailImageData]
+                  as? Data,
+                  let image = UIImage(data: imageData)
+                {
+                  Image(uiImage: image)
+                }
               }
-              if
-                let imageData = sharedRecord.share[CKShare.SystemFieldKey.thumbnailImageData] as? Data,
-                let image = UIImage(data: imageData)
-              {
-                Image(uiImage: image)
-              }
-            }
-            Section {
-              Button("Stop sharing", role: .destructive) {
-                Task {
-                  try await syncEngine.unshare(share: sharedRecord.share)
-                  try await syncEngine.fetchChanges()
-                  dismiss()
+              Section {
+                Button("Stop sharing", role: .destructive) {
+                  Task {
+                    try await syncEngine.unshare(share: sharedRecord.share)
+                    try await syncEngine.fetchChanges()
+                    dismiss()
+                  }
                 }
               }
             }
+            .navigationTitle("Share")
           }
-          .navigationTitle("Share")
           .task {
             await withErrorReporting {
               try await syncEngine.fetchChanges()
