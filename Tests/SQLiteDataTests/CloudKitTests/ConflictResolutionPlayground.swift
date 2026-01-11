@@ -1,8 +1,9 @@
 #if canImport(CloudKit)
   import CloudKit
   import CryptoKit
+  import DependenciesTestSupport
   import Foundation
-  import SQLiteData
+  @testable import SQLiteData
   import Testing
 
   struct RowVersion<T: PrimaryKeyedTable> {
@@ -46,9 +47,39 @@
     }
 
     init(from record: CKRecord) throws {
-      var decoder = CKRecordQueryDecoder<T>(record: record)
-      let row = try T(decoder: &decoder)
+      @Dependency(\.defaultDatabase) var database
+      @Dependency(\.dataManager) var dataManager
+      
+      func makeQuery() -> SQLQueryExpression<T> {
+        let values = T.TableColumns.allColumns.map { column in
+          let value = record.encryptedValues[column.name]
+          
+          if let asset = value as? CKAsset,
+             let data = try? asset.fileURL.map({ try dataManager.load($0) }) {
+            return data.queryFragment
+          }
+          
+          if let value {
+            return value.queryFragment
+          }
+          
+          return "NULL"
+        }
+        
+        return #sql("SELECT \(values.joined(separator: ", "))")
+      }
 
+      // Convert CKRecord values into a SQL SELECT with literal values and execute through
+      // the database. This leverages SQLiteQueryDecoder to handle all type conversions
+      // and produces a properly decoded T instance.
+      let query = makeQuery()
+      let row = try database.read { db in
+        // TODO: The synthetic selection always returns exactly one row, should we force-cast instead?
+        guard let row = try query.fetchOne(db) else { throw NotFound() }
+        // TODO: Is there a way to make the compiler aware of T.QueryOutput == T?
+        return row as! T
+      }
+      
       var modificationTimes: [PartialKeyPath<T>: Int64] = [:]
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
@@ -67,96 +98,6 @@
     func modificationTime(for column: PartialKeyPath<T>) -> Int64 {
       return modificationTimes[column] ?? -1
     }
-  }
-
-  struct CKRecordQueryDecoder<T: PrimaryKeyedTable>: QueryDecoder {
-    let record: CKRecord
-    var columnIterator: IndexingIterator<[String]>
-
-    init(record: CKRecord) {
-      self.record = record
-      self.columnIterator = T.TableColumns.allColumns.map(\.name).makeIterator()
-    }
-
-    mutating func decode(_ columnType: [UInt8].Type) throws -> [UInt8]? {
-      guard let key = columnIterator.next() else {
-        throw MissingColumn()
-      }
-
-      if let asset = record[key] as? CKAsset,
-         let fileURL = asset.fileURL {
-        @Dependency(\.dataManager) var dataManager
-        return try [UInt8](dataManager.load(fileURL))
-      } else if let value = record.encryptedValues[key] as? Data {
-        return [UInt8](value)
-      }
-
-      return nil
-    }
-
-    mutating func decode(_ columnType: Bool.Type) throws -> Bool? {
-      guard let key = columnIterator.next() else {
-        throw MissingColumn()
-      }
-      return record.encryptedValues[key] as? Bool
-    }
-
-    mutating func decode(_ columnType: Date.Type) throws -> Date? {
-      guard let key = columnIterator.next() else {
-        throw MissingColumn()
-      }
-      return record.encryptedValues[key] as? Date
-    }
-
-    mutating func decode(_ columnType: Double.Type) throws -> Double? {
-      guard let key = columnIterator.next() else {
-        throw MissingColumn()
-      }
-      return record.encryptedValues[key] as? Double
-    }
-
-    mutating func decode(_ columnType: Int.Type) throws -> Int? {
-      try decode(Int64.self).map(Int.init)
-    }
-
-    mutating func decode(_ columnType: Int64.Type) throws -> Int64? {
-      guard let key = columnIterator.next() else {
-        throw MissingColumn()
-      }
-      return record.encryptedValues[key] as? Int64
-    }
-
-    mutating func decode(_ columnType: String.Type) throws -> String? {
-      guard let key = columnIterator.next() else {
-        throw MissingColumn()
-      }
-      return record.encryptedValues[key] as? String
-    }
-
-    mutating func decode(_ columnType: UInt64.Type) throws -> UInt64? {
-      guard let n = try decode(Int64.self) else { return nil }
-      guard n >= 0 else { throw UInt64OverflowError() }
-      return UInt64(n)
-    }
-
-    mutating func decode(_ columnType: UUID.Type) throws -> UUID? {
-      guard let key = columnIterator.next() else {
-        throw MissingColumn()
-      }
-
-      if let uuidString = record.encryptedValues[key] as? String {
-        guard let uuid = UUID(uuidString: uuidString) else {
-          throw InvalidUUID()
-        }
-        return uuid
-      }
-
-      return nil
-    }
-
-    private struct MissingColumn: Error {}
-    private struct InvalidUUID: Error {}
-    private struct UInt64OverflowError: Error {}
   }
 
   struct MergeConflict<T: PrimaryKeyedTable> {
@@ -327,7 +268,7 @@
     var field7: String
   }
 
-  @Suite
+  @Suite(.dependency(\.defaultDatabase, try DatabaseQueue()))
   struct ConflictResolutionPlaygroundTests {
     @Test
     func versionInit_rowAndModificationTimes() {
