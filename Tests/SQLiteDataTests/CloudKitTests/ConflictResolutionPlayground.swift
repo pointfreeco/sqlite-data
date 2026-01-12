@@ -277,7 +277,7 @@
   }
 
   @Table
-  private struct MergeExample {
+  private struct MergeModel {
     let id: UUID
     var field1: String
     var field2: String
@@ -286,6 +286,78 @@
     var field5: String
     var field6: String
     var field7: String
+  }
+
+  /// Creates a three-way merge conflict covering all seven canonical merge scenarios.
+  /// See: https://github.com/structuredpath/sqlite-data-sync-notes/blob/main/BuiltInConflictResolutionModel.md
+  private func makeTestMergeConflict() -> MergeConflict<MergeModel> {
+    let ancestor = RowVersion(
+      row: MergeModel(
+        id: UUID(0),
+        field1: "foo",  // Scenario 1: No changes
+        field2: "foo",  // Scenario 2: Client-only change
+        field3: "foo",  // Scenario 3: Server-only change
+        field4: "foo",  // Scenario 4: Both changed, server newer
+        field5: "foo",  // Scenario 5: Both changed, client newer
+        field6: "foo",  // Scenario 6: Both changed, equal timestamps
+        field7: "foo"   // Scenario 7: Both changed, same value
+      ),
+      modificationTimes: [
+        \.field1: 0,
+        \.field2: 0,
+        \.field3: 0,
+        \.field4: 0,
+        \.field5: 0,
+        \.field6: 0,
+        \.field7: 0
+      ]
+    )
+
+    let client = RowVersion(
+      row: MergeModel(
+        id: UUID(0),
+        field1: "foo",
+        field2: "bar",
+        field3: "foo",
+        field4: "bar",
+        field5: "bar",
+        field6: "bar",
+        field7: "bar"
+      ),
+      modificationTimes: [
+        \.field1: 0,
+        \.field2: 100,
+        \.field3: 0,
+        \.field4: 100,
+        \.field5: 100,
+        \.field6: 100,
+        \.field7: 100
+      ]
+    )
+
+    let server = RowVersion(
+      row: MergeModel(
+        id: UUID(0),
+        field1: "foo",
+        field2: "foo",
+        field3: "baz",
+        field4: "baz",
+        field5: "baz",
+        field6: "baz",
+        field7: "bar"
+      ),
+      modificationTimes: [
+        \.field1: 0,
+        \.field2: 0,
+        \.field3: 200,
+        \.field4: 200,
+        \.field5: 50,
+        \.field6: 100,
+        \.field7: 200
+      ]
+    )
+
+    return MergeConflict(ancestor: ancestor, client: client, server: server)
   }
 
   @Suite(.dependency(\.defaultDatabase, try DatabaseQueue()))
@@ -351,81 +423,9 @@
       #expect(version.modificationTime(for: \.tags) == 50)
     }
 
-    /// Tests the field-wise last edit wins strategy with all seven merge scenarios.
-    /// See: https://github.com/structuredpath/sqlite-data-sync-notes/blob/main/BuiltInConflictResolutionModel.md
     @Test
     func mergedValue_latestPolicy() {
-      let ancestor = RowVersion(
-        row: MergeExample(
-          id: UUID(0),
-          field1: "foo",
-          field2: "foo",
-          field3: "foo",
-          field4: "foo",
-          field5: "foo",
-          field6: "foo",
-          field7: "foo"
-        ),
-        modificationTimes: [
-          \.field1: 0,
-          \.field2: 0,
-          \.field3: 0,
-          \.field4: 0,
-          \.field5: 0,
-          \.field6: 0,
-          \.field7: 0
-        ]
-      )
-
-      let client = RowVersion(
-        row: MergeExample(
-          id: UUID(0),
-          field1: "foo",
-          field2: "bar",
-          field3: "foo",
-          field4: "bar",
-          field5: "bar",
-          field6: "bar",
-          field7: "bar"
-        ),
-        modificationTimes: [
-          \.field1: 0,
-          \.field2: 100,
-          \.field3: 0,
-          \.field4: 100,
-          \.field5: 100,
-          \.field6: 100,
-          \.field7: 100
-        ]
-      )
-
-      let server = RowVersion(
-        row: MergeExample(
-          id: UUID(0),
-          field1: "foo",
-          field2: "foo",
-          field3: "baz",
-          field4: "baz",
-          field5: "baz",
-          field6: "baz",
-          field7: "bar"
-        ),
-        modificationTimes: [
-          \.field1: 0,
-          \.field2: 0,
-          \.field3: 200,
-          \.field4: 200,
-          \.field5: 50,
-          \.field6: 100,
-          \.field7: 200
-        ]
-      )
-
-      let conflict = MergeConflict(
-        ancestor: ancestor,
-        client: client,
-        server: server
-      )
+      let conflict = makeTestMergeConflict()
 
       #expect(conflict.mergedValue(for: \.field1, policy: .latest) == "foo")
       #expect(conflict.mergedValue(for: \.field2, policy: .latest) == "bar")
