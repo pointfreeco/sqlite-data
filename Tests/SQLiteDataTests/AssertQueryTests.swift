@@ -8,7 +8,7 @@ import Testing
 @MainActor
 @Suite(
   .dependency(\.defaultDatabase, try .database()),
-  .snapshots(record: .failed),
+  .snapshots(record: .missing),
 )
 struct AssertQueryTests {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

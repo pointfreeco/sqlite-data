@@ -621,6 +621,72 @@
           """
         }
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.attachMetadatabase(true))
+      func observation() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed { remindersList }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        @FetchAll(
+          SyncMetadata
+            .select {
+              RecordNameAndIsShared.Columns(
+                recordName: $0.recordName,
+                isShared: $0.share.isNot(nil)
+              )
+            },
+          database: userDatabase.database
+        )
+        var rows
+        try await $rows.load()
+        #expect(rows == [RecordNameAndIsShared(recordName: "1:remindersLists", isShared: false)])
+
+        _ = try await syncEngine.share(record: remindersList) { _ in }
+
+        try await Task.sleep(for: .seconds(0.5))
+        #expect(rows == [RecordNameAndIsShared(recordName: "1:remindersLists", isShared: true)])
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.attachMetadatabase(true))
+      func observation_GeneratedColumn() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed { remindersList }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        @FetchAll(
+          SyncMetadata
+            .select {
+              RecordNameAndIsShared.Columns(
+                recordName: $0.recordName,
+                isShared: $0.isShared
+              )
+            },
+          database: userDatabase.database
+        )
+        var rows
+        try await $rows.load()
+        #expect(rows == [RecordNameAndIsShared(recordName: "1:remindersLists", isShared: false)])
+
+        _ = try await syncEngine.share(record: remindersList) { _ in }
+
+        try await Task.sleep(for: .seconds(0.5))
+        withKnownIssue("Query observation does not work with generated columns right now") {
+          #expect(rows == [RecordNameAndIsShared(recordName: "1:remindersLists", isShared: true)])
+        }
+      }
     }
   }
+
+
+@Selection struct RecordNameAndIsShared: Equatable {
+  let recordName: String
+  let isShared: Bool
+}
 #endif
