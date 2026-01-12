@@ -196,6 +196,8 @@
   }
 
   extension FieldMergePolicy {
+    /// Last-edit-wins merge policy that picks the edited value with the newer modification
+    /// timestamp (ties favor the client).
     static var latest: Self {
       Self { _, client, server in
         server.modificationTime > client.modificationTime ? server.value : client.value
@@ -204,6 +206,8 @@
   }
 
   extension FieldMergePolicy where Value: BinaryInteger {
+    /// Counter merge policy that combines the independent increments and decrements from
+    /// both edited values.
     static var counter: Self {
       Self { ancestor, client, server in
         ancestor.value
@@ -214,6 +218,8 @@
   }
 
   extension FieldMergePolicy where Value: SetAlgebra, Value.Element: Equatable {
+    /// Set merge policy that preserves elements not deleted on either side and adds new elements
+    /// from either side.
     static var set: Self {
       Self { ancestor, client, server in
         let notDeleted = ancestor.value
