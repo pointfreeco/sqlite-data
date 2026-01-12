@@ -8,21 +8,22 @@
   import StructuredQueriesTestSupport
   import Testing
 
-  struct MergeConflict<T: PrimaryKeyedTable> where T.TableColumns.PrimaryColumn: WritableTableColumnExpression {
-    let ancestor: RowVersion<T>
-    let client: RowVersion<T>
-    let server: RowVersion<T>
+  struct MergeConflict<Table: PrimaryKeyedTable>
+    where Table.TableColumns.PrimaryColumn: WritableTableColumnExpression {
+    let ancestor: RowVersion<Table>
+    let client: RowVersion<Table>
+    let server: RowVersion<Table>
   }
 
   extension MergeConflict {
     /// Computes the merged value for a field identified by key path using the given merge policy,
     /// delegating to `mergedValue(column:policy:)`.
     func mergedValue<Column: WritableTableColumnExpression>(
-      for keyPath: some KeyPath<T.TableColumns, Column>,
+      for keyPath: some KeyPath<Table.TableColumns, Column>,
       policy: FieldMergePolicy<Column.QueryValue.QueryOutput>
-    ) -> Column.QueryValue.QueryOutput where Column.Root == T {
+    ) -> Column.QueryValue.QueryOutput where Column.Root == Table {
       mergedValue(
-        column: T.columns[keyPath: keyPath],
+        column: Table.columns[keyPath: keyPath],
         policy: policy
       )
     }
@@ -32,7 +33,7 @@
     func mergedValue<Column: WritableTableColumnExpression>(
       column: Column,
       policy: FieldMergePolicy<Column.QueryValue.QueryOutput>
-    ) -> Column.QueryValue.QueryOutput where Column.Root == T {
+    ) -> Column.QueryValue.QueryOutput where Column.Root == Table {
       let keyPath = column.keyPath
       let ancestorValue = ancestor.row[keyPath: keyPath]
       let clientValue = client.row[keyPath: keyPath]
@@ -68,12 +69,12 @@
     
     /// Generates an UPDATE statement that resolves the merge conflict using the `.latest` policy.
     func makeUpdateQuery() -> QueryFragment {
-      let assignments = T.TableColumns.writableColumns.compactMap { column in
+      let assignments = Table.TableColumns.writableColumns.compactMap { column in
         func open<Root, Value>(
           _ column: some WritableTableColumnExpression<Root, Value>
         ) -> (column: String, value: QueryBinding)? {
-          guard column.name != T.primaryKey.name else { return nil }
-          let column = column as! (any WritableTableColumnExpression<T, Value>)
+          guard column.name != Table.primaryKey.name else { return nil }
+          let column = column as! (any WritableTableColumnExpression<Table, Value>)
           let merged = mergedValue(column: column, policy: .latest)
           return (column: column.name, value: Value(queryOutput: merged).queryBinding)
         }
@@ -81,38 +82,38 @@
       }
 
       return """
-        UPDATE \(T.self)
+        UPDATE \(Table.self)
         SET \(assignments.map { "\(quote: $0.column) = \($0.value)" }.joined(separator: ", "))
-        WHERE (\(T.primaryKey)) = (\(T.PrimaryKey(queryOutput: ancestor.row.primaryKey)))
+        WHERE (\(Table.primaryKey)) = (\(Table.PrimaryKey(queryOutput: ancestor.row.primaryKey)))
         """
     }
   }
 
-  struct RowVersion<T: PrimaryKeyedTable> {
-    let row: T
-    private let modificationTimes: [PartialKeyPath<T>: Int64]
-    
+  struct RowVersion<Table: PrimaryKeyedTable> {
+    let row: Table
+    private let modificationTimes: [PartialKeyPath<Table>: Int64]
+
     package init(
-      row: T,
-      modificationTimes: [PartialKeyPath<T>: Int64]
+      row: Table,
+      modificationTimes: [PartialKeyPath<Table>: Int64]
     ) {
       self.row = row
       self.modificationTimes = modificationTimes
     }
     
     init(
-      clientRow row: T,
+      clientRow row: Table,
       userModificationTime: Int64,
-      ancestorVersion: RowVersion<T>
+      ancestorVersion: RowVersion<Table>
     ) {
-      var modificationTimes: [PartialKeyPath<T>: Int64] = [:]
-      for column in T.TableColumns.writableColumns {
+      var modificationTimes: [PartialKeyPath<Table>: Int64] = [:]
+      for column in Table.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
-          let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
-          
+          let keyPath = column.keyPath as! KeyPath<Table, Value.QueryOutput>
+
           let clientValue = row[keyPath: keyPath]
           let ancestorValue = ancestorVersion.row[keyPath: keyPath]
-          
+
           if areEqual(clientValue, ancestorValue, as: Value.self) {
             modificationTimes[keyPath] = ancestorVersion.modificationTime(for: keyPath)
           } else {
@@ -121,7 +122,7 @@
         }
         open(column)
       }
-      
+
       self.init(
         row: row,
         modificationTimes: modificationTimes
@@ -131,53 +132,53 @@
     init(from record: CKRecord) throws {
       @Dependency(\.defaultDatabase) var database
       @Dependency(\.dataManager) var dataManager
-      
-      func makeQuery() -> SQLQueryExpression<T> {
-        let values = T.TableColumns.allColumns.map { column in
+
+      func makeQuery() -> SQLQueryExpression<Table> {
+        let values = Table.TableColumns.allColumns.map { column in
           let value = record.encryptedValues[column.name]
-          
+
           if let asset = value as? CKAsset,
              let data = try? asset.fileURL.map({ try dataManager.load($0) }) {
             return data.queryFragment
           }
-          
+
           if let value {
             return value.queryFragment
           }
-          
+
           return "NULL"
         }
-        
+
         return #sql("SELECT \(values.joined(separator: ", "))")
       }
-      
-      // Convert CKRecord values into a SQL SELECT with literal values and execute through
-      // the database. This leverages SQLiteQueryDecoder to handle all type conversions
-      // and produces a properly decoded T instance.
+
+      // Convert `CKRecord` values into a SQL SELECT with literal values and execute through
+      // the database. This leverages `SQLiteQueryDecoder` to handle all type conversions
+      // and produces a properly decoded `Table` instance.
       let query = makeQuery()
       let row = try database.read { db in
         // TODO: The synthetic selection always returns exactly one row, should we force-cast instead?
         guard let row = try query.fetchOne(db) else { throw NotFound() }
-        // TODO: Is there a way to make the compiler aware of T.QueryOutput == T?
-        return row as! T
+        // TODO: Is there a way to make the compiler aware of Table.QueryOutput == Table?
+        return row as! Table
       }
-      
-      var modificationTimes: [PartialKeyPath<T>: Int64] = [:]
-      for column in T.TableColumns.writableColumns {
+
+      var modificationTimes: [PartialKeyPath<Table>: Int64] = [:]
+      for column in Table.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
-          let keyPath = column.keyPath as! PartialKeyPath<T>
+          let keyPath = column.keyPath as! PartialKeyPath<Table>
           modificationTimes[keyPath] = record.encryptedValues[at: column.name]
         }
         open(column)
       }
-      
+
       self.init(
         row: row,
         modificationTimes: modificationTimes
       )
     }
     
-    func modificationTime(for column: PartialKeyPath<T>) -> Int64 {
+    func modificationTime(for column: PartialKeyPath<Table>) -> Int64 {
       return modificationTimes[column] ?? -1
     }
   }
