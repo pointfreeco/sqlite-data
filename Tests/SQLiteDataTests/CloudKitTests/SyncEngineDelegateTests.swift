@@ -64,7 +64,7 @@
           │   ),                                                               │
           │   share: nil,                                                      │
           │   _isDeleted: false,                                               │
-          │   hasLastKnownServerRecord: true,                                  │
+          │   _hasLastKnownServerRecord: true,                                 │
           │   _isShared: false,                                                │
           │   userModificationTime: 0                                          │
           │ )                                                                  │
@@ -138,7 +138,7 @@
           │   ),                                                               │
           │   share: nil,                                                      │
           │   _isDeleted: false,                                               │
-          │   hasLastKnownServerRecord: true,                                  │
+          │   _hasLastKnownServerRecord: true,                                 │
           │   _isShared: false,                                                │
           │   userModificationTime: 0                                          │
           │ )                                                                  │

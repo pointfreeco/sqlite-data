@@ -56,7 +56,7 @@
           │                     │   ),                                                               │
           │                     │   share: nil,                                                      │
           │                     │   _isDeleted: false,                                               │
-          │                     │   hasLastKnownServerRecord: true,                                  │
+          │                     │   _hasLastKnownServerRecord: true,                                 │
           │                     │   _isShared: false,                                                │
           │                     │   userModificationTime: 0                                          │
           │                     │ )                                                                  │
