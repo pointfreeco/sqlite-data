@@ -44,25 +44,39 @@
       }
 
       modifications = database.state.withValue { state in
-        zoneIDs.reduce(into: [CKRecord]()) { accum, zoneID in
-        accum += ((state.storage[zoneID]?.records.values).map { Array($0) } ?? [])
-            .filter { $0._recordChangeTag > self.state.changeTag.value }
+        zoneIDs.reduce(into: [CKRecord]()) {
+          accum,
+          zoneID in
+          accum += ((state.storage[zoneID]?.records.values).map { Array($0) } ?? [])
+            .filter {
+              precondition(
+                $0._recordChangeTag != nil,
+                "Records stored in database should have their 'recordChangeTag' assigned."
+              )
+              return $0._recordChangeTag! > self.state.changeTag.value
+            }
         }
       }
 
+      let deletions = database.state.withValue {
+        let records = $0.deletedRecords.filter { recordID, _ in
+          zoneIDs.contains(recordID.zoneID)
+        }
+        $0.deletedRecords.removeAll { lhs, _ in
+          records.contains { rhs, _ in lhs == rhs }
+        }
+        return records
+      }
+
+      guard !modifications.isEmpty || !deletions.isEmpty
+      else { return }
+
+      state.changeTag.withValue { changeTag in
+        changeTag = modifications.compactMap(\._recordChangeTag).max() ?? changeTag
+      }
+
       await parentSyncEngine.handleEvent(
-        .fetchedRecordZoneChanges(
-          modifications: modifications,
-          deletions: database.state.withValue {
-            let records = $0.deletedRecords.filter { recordID, _ in
-              zoneIDs.contains(recordID.zoneID)
-            }
-            $0.deletedRecords.removeAll { lhs, _ in
-              records.contains { rhs, _ in lhs == rhs }
-            }
-            return records
-          }
-        ),
+        .fetchedRecordZoneChanges(modifications: modifications, deletions: deletions),
         syncEngine: self
       )
     }

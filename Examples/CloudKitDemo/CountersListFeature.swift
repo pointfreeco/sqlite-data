@@ -129,7 +129,7 @@ struct CounterRow: View {
 #Preview {
   let _ = try! prepareDependencies {
     try $0.bootstrapDatabase()
-    try $0.defaultDatabase.seedSampleData()
+    try? $0.defaultDatabase.seedSampleData()
   }
   NavigationStack {
     CountersListView()

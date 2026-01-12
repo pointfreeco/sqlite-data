@@ -75,8 +75,10 @@ extension SyncEngine {
   > {
     let syncEngine = syncEngine(for: scope)
     let recordsToDeleteByID = Dictionary(
-      grouping: syncEngine.database.storage.withValue { storage in
-        recordIDsToDelete.compactMap { recordID in storage[recordID.zoneID]?.records[recordID] }
+      grouping: syncEngine.database.state.withValue { state in
+        recordIDsToDelete.compactMap {
+          recordID in state.storage[recordID.zoneID]?.records[recordID]
+        }
       },
       by: \.recordID
     )
@@ -93,13 +95,11 @@ extension SyncEngine {
         .fetchedRecordZoneChanges(
           modifications: saveResults.values.compactMap { try? $0.get() },
           deletions: deleteResults.compactMap { recordID, result in
-            syncEngine.database.storage.withValue { storage in
               (recordsToDeleteByID[recordID]?.recordType).flatMap { recordType in
                 (try? result.get()) != nil
                   ? (recordID, recordType)
                   : nil
               }
-            }
           }
         ),
         syncEngine: syncEngine

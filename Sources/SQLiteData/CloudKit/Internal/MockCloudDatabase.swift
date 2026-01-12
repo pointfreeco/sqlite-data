@@ -188,7 +188,7 @@
 
               guard let copy = recordToSave.copy() as? CKRecord
               else { fatalError("Could not copy CKRecord.") }
-              copy._recordChangeTag = UUID().uuidString
+              copy._recordChangeTag = state.nextRecordChangeTag()
 
               for key in copy.allKeys() {
                 guard let assetURL = (copy[key] as? CKAsset)?.fileURL
