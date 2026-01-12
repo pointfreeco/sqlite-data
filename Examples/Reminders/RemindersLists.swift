@@ -434,14 +434,11 @@ private struct ReminderGridCell: View {
 }
 
 #Preview {
-  @Dependency(\.defaultDatabase) var database
   let _ = try! prepareDependencies {
     try $0.bootstrapDatabase()
+    try $0.defaultDatabase.seedSampleData()
   }
   NavigationStack {
     RemindersListsView(model: RemindersListsModel())
-  }
-  .task {
-    try? database.seedSampleData()
   }
 }

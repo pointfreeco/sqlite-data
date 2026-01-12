@@ -152,14 +152,11 @@ private struct SeedDatabaseTip: Tip {
 }
 
 #Preview {
-  @Dependency(\.defaultDatabase) var database
   let _ = try! prepareDependencies {
     try $0.bootstrapDatabase()
+    try $0.defaultDatabase.seedSampleData()
   }
   NavigationStack {
     SyncUpsList(model: SyncUpsListModel())
-  }
-  .task {
-    try? database.seedSampleData()
   }
 }
