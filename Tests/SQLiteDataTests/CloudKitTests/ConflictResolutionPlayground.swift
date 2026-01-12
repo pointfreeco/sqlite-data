@@ -62,7 +62,7 @@
           modificationTime: server.modificationTime(for: keyPath)
         )
         
-        return policy.resolve(ancestorVersion, clientVersion, serverVersion)
+        return policy.merge(ancestorVersion, clientVersion, serverVersion)
       }
     }
     
@@ -188,7 +188,7 @@
   }
 
   struct FieldMergePolicy<Value> {
-    let resolve: (
+    let merge: (
       _ ancestor: FieldVersion<Value>,
       _ client: FieldVersion<Value>,
       _ server: FieldVersion<Value>
