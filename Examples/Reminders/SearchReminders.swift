@@ -249,9 +249,9 @@ struct SearchRemindersView: View {
 
 #Preview {
   @Previewable @State var searchText = "take"
+  @Dependency(\.defaultDatabase) var database
   let _ = try! prepareDependencies {
     try $0.bootstrapDatabase()
-    try $0.defaultDatabase.seedSampleData()
   }
 
   NavigationStack {
@@ -263,6 +263,9 @@ struct SearchRemindersView: View {
       }
     }
     .searchable(text: $searchText)
+  }
+  .task {
+    try? database.seedSampleData()
   }
 }
 
