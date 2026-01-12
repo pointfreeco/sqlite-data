@@ -103,8 +103,11 @@ struct TagsView: View {
             .where { $0.title.eq(existingTagTitle) }
             .execute(db)
         } else {
-          try Tag.insert(or: .ignore) { tag }
-            .execute(db)
+          try Tag.insert {
+            tag
+          } onConflictDoUpdate: { _ in
+          }
+          .execute(db)
         }
       }
       selectedTags.append(tag)

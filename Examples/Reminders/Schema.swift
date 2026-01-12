@@ -140,6 +140,7 @@ func appDatabase() throws -> any DatabaseWriter {
     db.add(function: $handleReminderStatusUpdate)
     #if DEBUG
       db.trace(options: .profile) {
+        guard !_isSynchronizingChanges else { return }
         switch context {
         case .live:
           logger.debug("\($0.expandedDescription)")

@@ -2467,7 +2467,7 @@
     return query
   }
 
-  @TaskLocal package var _isSynchronizingChanges = false
+  @TaskLocal public var _isSynchronizingChanges = false
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @TaskLocal package var _currentZoneID: CKRecordZone.ID?
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

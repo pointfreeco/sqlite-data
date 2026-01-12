@@ -10,9 +10,14 @@
     let dataManager = Dependency(\.dataManager)
 
     package struct State {
+      package private(set) var lastRecordChangeTag = 0
       package var storage: [CKRecordZone.ID: Zone] = [:]
       var assets: [AssetID: Data] = [:]
       package var deletedRecords: [(CKRecord.ID, CKRecord.RecordType)] = []
+      mutating func nextRecordChangeTag() -> Int {
+        lastRecordChangeTag += 1
+        return lastRecordChangeTag
+      }
     }
 
     struct AssetID: Hashable {

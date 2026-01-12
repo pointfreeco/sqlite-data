@@ -7,7 +7,7 @@
   package final class MockSyncEngine: SyncEngineProtocol {
     package let database: MockCloudDatabase
     package let parentSyncEngine: SyncEngine
-    private let _state: LockIsolated<MockSyncEngineState>
+    package let state: MockSyncEngineState
     package let _fetchChangesScopes = LockIsolated<[CKSyncEngine.FetchChangesOptions.Scope]>([])
     package let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
 
@@ -18,15 +18,11 @@
     ) {
       self.database = database
       self.parentSyncEngine = parentSyncEngine
-      self._state = LockIsolated(state)
+      self.state = state
     }
 
     package var scope: CKDatabase.Scope {
       database.databaseScope
-    }
-
-    package var state: MockSyncEngineState {
-      _state.withValue(\.self)
     }
 
     package func acceptShare(metadata: ShareMetadata) {
@@ -38,27 +34,30 @@
       let zoneIDs: [CKRecordZone.ID]
       switch options.scope {
       case .all:
-        zoneIDs = Array(database.storage.keys)
+        zoneIDs = Array(database.state.storage.keys)
       case .allExcluding(let excludedZoneIDs):
-        zoneIDs = Array(Set(database.storage.keys).subtracting(excludedZoneIDs))
+        zoneIDs = Array(Set(database.state.storage.keys).subtracting(excludedZoneIDs))
       case .zoneIDs(let includedZoneIDs):
         zoneIDs = includedZoneIDs
       @unknown default:
         fatalError()
       }
-      modifications = zoneIDs.reduce(into: [CKRecord]()) { accum, zoneID in
-        accum += database.storage.withValue {
-          ($0[zoneID]?.records.values).map { Array($0) } ?? []
+
+      modifications = database.state.withValue { state in
+        zoneIDs.reduce(into: [CKRecord]()) { accum, zoneID in
+        accum += ((state.storage[zoneID]?.records.values).map { Array($0) } ?? [])
+            .filter { $0._recordChangeTag > self.state.changeTag.value }
         }
       }
+
       await parentSyncEngine.handleEvent(
         .fetchedRecordZoneChanges(
           modifications: modifications,
-          deletions: database.deletedRecords.withValue {
-            let records = $0.filter { recordID, _ in
+          deletions: database.state.withValue {
+            let records = $0.deletedRecords.filter { recordID, _ in
               zoneIDs.contains(recordID.zoneID)
             }
-            $0.removeAll { lhs, _ in
+            $0.deletedRecords.removeAll { lhs, _ in
               records.contains { rhs, _ in lhs == rhs }
             }
             return records
@@ -121,6 +120,7 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockSyncEngineState: CKSyncEngineStateProtocol {
+    package let changeTag = LockIsolated(0)
     package let _pendingRecordZoneChanges = LockIsolated<
       OrderedSet<CKSyncEngine.PendingRecordZoneChange>
     >([]
