@@ -100,7 +100,7 @@
     }
   }
 
-  struct MergeConflict<T: PrimaryKeyedTable> {
+  struct MergeConflict<T: PrimaryKeyedTable> where T.TableColumns.PrimaryColumn: WritableTableColumnExpression {
     let ancestor: RowVersion<T>
     let client: RowVersion<T>
     let server: RowVersion<T>
@@ -152,6 +152,26 @@
         
         return policy.resolve(ancestorVersion, clientVersion, serverVersion)
       }
+    }
+    
+    func makeUpdateQuery() -> QueryFragment {
+      let assignments = T.TableColumns.writableColumns.compactMap { column in
+        func open<Root, Value>(
+          _ column: some WritableTableColumnExpression<Root, Value>
+        ) -> (column: String, value: QueryBinding)? {
+          guard column.name != T.primaryKey.name else { return nil }
+          let column = column as! (any WritableTableColumnExpression<T, Value>)
+          let merged = mergedValue(column: column, policy: .latest)
+          return (column: column.name, value: Value(queryOutput: merged).queryBinding)
+        }
+        return open(column)
+      }
+
+      return """
+        UPDATE \(T.self)
+        SET \(assignments.map { "\(quote: $0.column) = \($0.value)" }.joined(separator: ", "))
+        WHERE (\(T.primaryKey)) = (\(T.PrimaryKey(queryOutput: ancestor.row.primaryKey)))
+        """
     }
   }
 
