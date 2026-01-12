@@ -3,7 +3,9 @@
   import CryptoKit
   import DependenciesTestSupport
   import Foundation
+  import InlineSnapshotTesting
   @testable import SQLiteData
+  import StructuredQueriesTestSupport
   import Testing
 
   struct RowVersion<T: PrimaryKeyedTable> {
@@ -493,6 +495,19 @@
       // - `QueryOutput`: `Set<String>` (the Swift type)
       // - `QueryBinding`: `.text(…)` (the JSON serialized representation)
       #expect(conflict.mergedValue(for: \.tags, policy: .set) == ["hobby", "photography", "tech"])
+    }
+    
+    @Test
+    func makeUpdateQuery_latestPolicy() {
+      let conflict = makeTestMergeConflict()
+      
+      assertInlineSnapshot(of: #sql(conflict.makeUpdateQuery()), as: .sql) {
+        """
+        UPDATE "mergeModels"
+        SET "field1" = 'foo', "field2" = 'bar', "field3" = 'baz', "field4" = 'baz', "field5" = 'bar', "field6" = 'bar', "field7" = 'bar'
+        WHERE ("mergeModels"."id") = ('00000000-0000-0000-0000-000000000000')
+        """
+      }
     }
   }
 #endif
