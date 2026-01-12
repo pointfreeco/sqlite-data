@@ -100,6 +100,9 @@
     @Column(generated: .virtual)
     public let hasLastKnownServerRecord: Bool
 
+    @Column("isShared", generated: .virtual)
+    fileprivate let _isShared: Bool
+
     /// The time the user last modified the record.
     public let userModificationTime: Int64
 
@@ -134,7 +137,7 @@
     // NB: Workaround for https://github.com/groue/GRDB.swift/discussions/1844
     public var isShared: some QueryExpression<Bool> {
       #sql("""
-      ((\(QueryValue.self)."isShared" = 1) AND (\(self.share) OR 1))
+      (\(self._isShared) = 1) AND (\(self.share) OR 1))
       """)
     }
   }
@@ -170,6 +173,7 @@
       self.lastKnownServerRecord = lastKnownServerRecord
       self._lastKnownServerRecordAllFields = _lastKnownServerRecordAllFields
       self.share = share
+      self._isShared = share != nil
       self.hasLastKnownServerRecord = lastKnownServerRecord != nil
       self.userModificationTime = userModificationTime
       self._isDeleted = false
