@@ -237,8 +237,9 @@
         self,
         children: [
           "databaseScope": databaseScope,
-          "storage": storage
+          "storage": state
             .value
+            .storage
             .flatMap { _, value in value.records.values }
             .sorted {
               ($0.recordType, $0.recordID.recordName) < ($1.recordType, $1.recordID.recordName)
