@@ -109,6 +109,8 @@
   }
 
   extension MergeConflict {
+    /// Computes the merged value for a field identified by key path using the given merge policy,
+    /// delegating to `mergedValue(column:policy:)`.
     func mergedValue<Column: WritableTableColumnExpression>(
       for keyPath: some KeyPath<T.TableColumns, Column>,
       policy: FieldMergePolicy<Column.QueryValue.QueryOutput>
@@ -119,6 +121,8 @@
       )
     }
     
+    /// Computes the merged value for a field identified by column using three-way merge logic,
+    /// applying the given merge policy when both versions changed.
     func mergedValue<Column: WritableTableColumnExpression>(
       column: Column,
       policy: FieldMergePolicy<Column.QueryValue.QueryOutput>
@@ -156,6 +160,7 @@
       }
     }
     
+    /// Generates an UPDATE statement that resolves the merge conflict using the `.latest` policy.
     func makeUpdateQuery() -> QueryFragment {
       let assignments = T.TableColumns.writableColumns.compactMap { column in
         func open<Root, Value>(
@@ -280,7 +285,7 @@
 
   @Table
   private struct MergeModel {
-    let id: UUID
+    let id: Int
     var field1: String
     var field2: String
     var field3: String
@@ -290,79 +295,81 @@
     var field7: String
   }
 
-  /// Creates a three-way merge conflict covering all seven canonical merge scenarios.
-  /// See: https://github.com/structuredpath/sqlite-data-sync-notes/blob/main/BuiltInConflictResolutionModel.md
-  private func makeTestMergeConflict() -> MergeConflict<MergeModel> {
-    let ancestor = RowVersion(
-      row: MergeModel(
-        id: UUID(0),
-        field1: "foo",  // Scenario 1: No changes
-        field2: "foo",  // Scenario 2: Client-only change
-        field3: "foo",  // Scenario 3: Server-only change
-        field4: "foo",  // Scenario 4: Both changed, server newer
-        field5: "foo",  // Scenario 5: Both changed, client newer
-        field6: "foo",  // Scenario 6: Both changed, equal timestamps
-        field7: "foo"   // Scenario 7: Both changed, same value
-      ),
-      modificationTimes: [
-        \.field1: 0,
-        \.field2: 0,
-        \.field3: 0,
-        \.field4: 0,
-        \.field5: 0,
-        \.field6: 0,
-        \.field7: 0
-      ]
-    )
-
-    let client = RowVersion(
-      row: MergeModel(
-        id: UUID(0),
-        field1: "foo",
-        field2: "bar",
-        field3: "foo",
-        field4: "bar",
-        field5: "bar",
-        field6: "bar",
-        field7: "bar"
-      ),
-      modificationTimes: [
-        \.field1: 0,
-        \.field2: 100,
-        \.field3: 0,
-        \.field4: 100,
-        \.field5: 100,
-        \.field6: 100,
-        \.field7: 100
-      ]
-    )
-
-    let server = RowVersion(
-      row: MergeModel(
-        id: UUID(0),
-        field1: "foo",
-        field2: "foo",
-        field3: "baz",
-        field4: "baz",
-        field5: "baz",
-        field6: "baz",
-        field7: "bar"
-      ),
-      modificationTimes: [
-        \.field1: 0,
-        \.field2: 0,
-        \.field3: 200,
-        \.field4: 200,
-        \.field5: 50,
-        \.field6: 100,
-        \.field7: 200
-      ]
-    )
-
-    return MergeConflict(ancestor: ancestor, client: client, server: server)
   }
 
   @Suite(.dependency(\.defaultDatabase, try DatabaseQueue()))
+  extension MergeModel {
+    /// Creates a three-way merge conflict covering all seven canonical merge scenarios.
+    /// See: https://github.com/structuredpath/sqlite-data-sync-notes/blob/main/BuiltInConflictResolutionModel.md
+    fileprivate static func makeCanonicalConflict() -> MergeConflict<Self> {
+      let ancestor = RowVersion(
+        row: MergeModel(
+          id: 0,
+          field1: "foo", // Scenario 1: No changes
+          field2: "foo", // Scenario 2: Client-only change
+          field3: "foo", // Scenario 3: Server-only change
+          field4: "foo", // Scenario 4: Both changed, server newer
+          field5: "foo", // Scenario 5: Both changed, client newer
+          field6: "foo", // Scenario 6: Both changed, equal timestamps
+          field7: "foo"  // Scenario 7: Both changed, same value
+        ),
+        modificationTimes: [
+          \.field1: 0,
+           \.field2: 0,
+           \.field3: 0,
+           \.field4: 0,
+           \.field5: 0,
+           \.field6: 0,
+           \.field7: 0
+        ]
+      )
+      
+      let client = RowVersion(
+        row: MergeModel(
+          id: 0,
+          field1: "foo",
+          field2: "bar",
+          field3: "foo",
+          field4: "bar",
+          field5: "bar",
+          field6: "bar",
+          field7: "bar"
+        ),
+        modificationTimes: [
+          \.field1: 0,
+           \.field2: 100,
+           \.field3: 0,
+           \.field4: 100,
+           \.field5: 100,
+           \.field6: 100,
+           \.field7: 100
+        ]
+      )
+      
+      let server = RowVersion(
+        row: MergeModel(
+          id: 0,
+          field1: "foo",
+          field2: "foo",
+          field3: "baz",
+          field4: "baz",
+          field5: "baz",
+          field6: "baz",
+          field7: "bar"
+        ),
+        modificationTimes: [
+          \.field1: 0,
+           \.field2: 0,
+           \.field3: 200,
+           \.field4: 200,
+           \.field5: 50,
+           \.field6: 100,
+           \.field7: 200
+        ]
+      )
+      
+      return MergeConflict(ancestor: ancestor, client: client, server: server)
+    }
   struct ConflictResolutionPlaygroundTests {
     @Test
     func versionInit_rowAndModificationTimes() {
@@ -426,8 +433,8 @@
     }
 
     @Test
-    func mergedValue_latestPolicy() {
-      let conflict = makeTestMergeConflict()
+    func mergedValue_canonicalConflictWithLatestPolicy() {
+      let conflict = MergeModel.makeCanonicalConflict()
 
       #expect(conflict.mergedValue(for: \.field1, policy: .latest) == "foo")
       #expect(conflict.mergedValue(for: \.field2, policy: .latest) == "bar")
@@ -498,14 +505,14 @@
     }
     
     @Test
-    func makeUpdateQuery_latestPolicy() {
-      let conflict = makeTestMergeConflict()
+    func makeUpdateQuery_canonicalConflictWithLatestPolicy() {
+      let conflict = MergeModel.makeCanonicalConflict()
       
       assertInlineSnapshot(of: #sql(conflict.makeUpdateQuery()), as: .sql) {
         """
         UPDATE "mergeModels"
         SET "field1" = 'foo', "field2" = 'bar', "field3" = 'baz', "field4" = 'baz', "field5" = 'bar', "field6" = 'bar', "field7" = 'bar'
-        WHERE ("mergeModels"."id") = ('00000000-0000-0000-0000-000000000000')
+        WHERE ("mergeModels"."id") = (0)
         """
       }
     }
