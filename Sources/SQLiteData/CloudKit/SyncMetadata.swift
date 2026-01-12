@@ -116,7 +116,7 @@
     /// `RemindersList` can have `isShared == true`, but a `Reminder` associated with the list
     /// will have `isShared == false`.
     public var isShared: Bool {
-      share != nil
+      _isShared
     }
   }
 
