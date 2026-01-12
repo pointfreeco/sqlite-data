@@ -236,7 +236,6 @@
           │   share: nil,                                                                           │
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
-          │   isShared: false,                                                                      │
           │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
@@ -272,7 +271,6 @@
           │   share: nil,                                                                           │
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
-          │   isShared: false,                                                                      │
           │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
@@ -303,7 +301,6 @@
           │   share: nil,                                                                           │
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
-          │   isShared: false,                                                                      │
           │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
@@ -335,7 +332,6 @@
           │   share: nil,                                                                           │
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
-          │   isShared: false,                                                                      │
           │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
@@ -371,7 +367,6 @@
           │   share: nil,                                                                           │
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
-          │   isShared: false,                                                                      │
           │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
@@ -402,7 +397,6 @@
           │   share: nil,                                                                           │
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
-          │   isShared: false,                                                                      │
           │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
@@ -434,7 +428,6 @@
           │   share: nil,                                                                           │
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
-          │   isShared: false,                                                                      │
           │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
@@ -470,7 +463,6 @@
           │   share: nil,                                                                           │
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
-          │   isShared: false,                                                                      │
           │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
@@ -500,7 +492,6 @@
           │   share: nil,                                                                           │
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
-          │   isShared: false,                                                                      │
           │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           ├─────────────────────────────────────────────────────────────────────────────────────────┤
@@ -530,7 +521,6 @@
           │   share: nil,                                                                           │
           │   _isDeleted: false,                                                                    │
           │   hasLastKnownServerRecord: true,                                                       │
-          │   isShared: false,                                                                      │
           │   userModificationTime: 0                                                               │
           │ )                                                                                       │
           └─────────────────────────────────────────────────────────────────────────────────────────┘
@@ -583,7 +573,6 @@
           │                     │   share: nil,                                                      │
           │                     │   _isDeleted: false,                                               │
           │                     │   hasLastKnownServerRecord: true,                                  │
-          │                     │   isShared: false,                                                 │
           │                     │   userModificationTime: 0                                          │
           │                     │ )                                                                  │
           ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
@@ -614,7 +603,6 @@
           │                     │   share: nil,                                                      │
           │                     │   _isDeleted: false,                                               │
           │                     │   hasLastKnownServerRecord: true,                                  │
-          │                     │   isShared: false,                                                 │
           │                     │   userModificationTime: 0                                          │
           │                     │ )                                                                  │
           └─────────────────────┴────────────────────────────────────────────────────────────────────┘
@@ -677,9 +665,7 @@
         _ = try await syncEngine.share(record: remindersList) { _ in }
 
         try await Task.sleep(for: .seconds(0.5))
-        withKnownIssue("Query observation does not work with generated columns right now") {
-          #expect(rows == [RecordNameAndIsShared(recordName: "1:remindersLists", isShared: true)])
-        }
+        #expect(rows == [RecordNameAndIsShared(recordName: "1:remindersLists", isShared: true)])
       }
     }
   }

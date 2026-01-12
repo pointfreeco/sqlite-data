@@ -100,16 +100,17 @@
     @Column(generated: .virtual)
     public let hasLastKnownServerRecord: Bool
 
+    /// The time the user last modified the record.
+    public let userModificationTime: Int64
+
     /// Determines if the record associated with this metadata is currently shared in CloudKit.
     ///
     /// This can only return `true` for root records. For example, the metadata associated with a
     /// `RemindersList` can have `isShared == true`, but a `Reminder` associated with the list
     /// will have `isShared == false`.
-    @Column(generated: .virtual)
-    public let isShared: Bool
-
-    /// The time the user last modified the record.
-    public let userModificationTime: Int64
+    public var isShared: Bool {
+      share != nil
+    }
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -128,6 +129,13 @@
 
     public var parentRecordType: TableColumn<SyncMetadata, String?> {
       parentRecordID.parentRecordType
+    }
+
+    // NB: Workaround for https://github.com/groue/GRDB.swift/discussions/1844
+    public var isShared: some QueryExpression<Bool> {
+      #sql("""
+      (\(QueryValue.self)."isShared" AND (\(self.share) OR 1))
+      """)
     }
   }
 
@@ -163,7 +171,6 @@
       self._lastKnownServerRecordAllFields = _lastKnownServerRecordAllFields
       self.share = share
       self.hasLastKnownServerRecord = lastKnownServerRecord != nil
-      self.isShared = share != nil
       self.userModificationTime = userModificationTime
       self._isDeleted = false
     }
