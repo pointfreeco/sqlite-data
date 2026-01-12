@@ -140,16 +140,20 @@
 
     // NB: Workaround for https://github.com/groue/GRDB.swift/discussions/1844
     public var isShared: some QueryExpression<Bool> {
-      #sql("""
-      ((\(self._isShared) = 1) AND (\(self.share) OR 1))
-      """)
+      #sql(
+        """
+        ((\(self._isShared) = 1) AND (\(self.share) OR 1))
+        """
+      )
     }
 
     // NB: Workaround for https://github.com/groue/GRDB.swift/discussions/1844
     public var hasLastKnownServerRecord: some QueryExpression<Bool> {
-      #sql("""
-      ((\(self._hasLastKnownServerRecord) = 1) AND (\(self.lastKnownServerRecord) OR 1))
-      """)
+      #sql(
+        """
+        ((\(self._hasLastKnownServerRecord) = 1) AND (\(self.lastKnownServerRecord) OR 1))
+        """
+      )
     }
   }
 

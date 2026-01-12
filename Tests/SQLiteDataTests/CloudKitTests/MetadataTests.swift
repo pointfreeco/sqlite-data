@@ -682,9 +682,8 @@
     }
   }
 
-
-@Selection struct RecordNameAndIsShared: Equatable {
-  let recordName: String
-  let isShared: Bool
-}
+  @Selection struct RecordNameAndIsShared: Equatable {
+    let recordName: String
+    let isShared: Bool
+  }
 #endif
