@@ -491,7 +491,17 @@
               ),
               sharedCloudDatabase: MockCloudDatabase(
                 databaseScope: .shared,
-                storage: []
+                storage: [
+                  [0]: CKRecord(
+                    recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                    recordType: "remindersLists",
+                    parent: nil,
+                    share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                    id: 1,
+                    isCompleted: 0,
+                    title: "Personal"
+                  )
+                ]
               )
             )
             """
