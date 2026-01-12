@@ -137,7 +137,7 @@
     // NB: Workaround for https://github.com/groue/GRDB.swift/discussions/1844
     public var isShared: some QueryExpression<Bool> {
       #sql("""
-      (\(self._isShared) = 1) AND (\(self.share) OR 1))
+      ((\(self._isShared) = 1) AND (\(self.share) OR 1))
       """)
     }
   }
