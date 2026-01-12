@@ -295,9 +295,25 @@
     var field7: String
   }
 
+  extension DatabaseWriter {
+    /// Resolves a merge conflict via a database roundtrip using the “last edit wins” field merge
+    /// policy. Primarily used for testing conflict resolution logic.
+    fileprivate func resolve<T: PrimaryKeyedTable>(
+      conflict: MergeConflict<T>
+    ) throws -> T where T == T.QueryOutput, T.TableColumns.PrimaryColumn: WritableTableColumnExpression {
+      try write { db in
+        // Insert the initial client row.
+        try T.insert { conflict.client.row }.execute(db)
+        
+        // Perform the update query resolving the conflict.
+        try #sql(conflict.makeUpdateQuery()).execute(db)
+        
+        // Fetch the updated client row.
+        return try T.fetchOne(db)!
+      }
+    }
   }
 
-  @Suite(.dependency(\.defaultDatabase, try DatabaseQueue()))
   extension MergeModel {
     /// Creates a three-way merge conflict covering all seven canonical merge scenarios.
     /// See: https://github.com/structuredpath/sqlite-data-sync-notes/blob/main/BuiltInConflictResolutionModel.md
@@ -370,6 +386,44 @@
       
       return MergeConflict(ancestor: ancestor, client: client, server: server)
     }
+  }
+
+  extension DatabaseWriter where Self == DatabaseQueue {
+    fileprivate static func databaseForMergeConflicts() throws -> DatabaseQueue {
+      let database = try DatabaseQueue()
+      try database.write { db in
+        try #sql(
+            """
+            CREATE TABLE "posts" (
+              "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+              "title" TEXT NOT NULL,
+              "upvotes" INTEGER NOT NULL DEFAULT 0,
+              "tags" TEXT NOT NULL
+            )
+            """
+        )
+        .execute(db)
+        try #sql(
+            """
+            CREATE TABLE "mergeModels" (
+              "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+              "field1" TEXT NOT NULL,
+              "field2" TEXT NOT NULL,
+              "field3" TEXT NOT NULL,
+              "field4" TEXT NOT NULL,
+              "field5" TEXT NOT NULL,
+              "field6" TEXT NOT NULL,
+              "field7" TEXT NOT NULL
+            )
+            """
+        )
+        .execute(db)
+      }
+      return database
+    }
+  }
+
+  @Suite(.dependency(\.defaultDatabase, try .databaseForMergeConflicts()))
   struct ConflictResolutionPlaygroundTests {
     @Test
     func versionInit_rowAndModificationTimes() {
@@ -515,6 +569,21 @@
         WHERE ("mergeModels"."id") = (0)
         """
       }
+    }
+
+    @Test
+    func resolve_canonicalConflictWithLatestPolicy() throws {
+      @Dependency(\.defaultDatabase) var database
+      let conflict = MergeModel.makeCanonicalConflict()
+      let merged = try database.resolve(conflict: conflict)
+
+      #expect(merged.field1 == "foo")
+      #expect(merged.field2 == "bar")
+      #expect(merged.field3 == "baz")
+      #expect(merged.field4 == "baz")
+      #expect(merged.field5 == "bar")
+      #expect(merged.field6 == "bar")
+      #expect(merged.field7 == "bar")
     }
   }
 #endif
