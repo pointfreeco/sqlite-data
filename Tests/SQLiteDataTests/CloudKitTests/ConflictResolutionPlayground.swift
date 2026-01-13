@@ -8,100 +8,6 @@
   import StructuredQueriesTestSupport
   import Testing
 
-  struct RowVersion<T: PrimaryKeyedTable> {
-    let row: T
-    private let modificationTimes: [PartialKeyPath<T>: Int64]
-
-    package init(
-      row: T,
-      modificationTimes: [PartialKeyPath<T>: Int64]
-    ) {
-      self.row = row
-      self.modificationTimes = modificationTimes
-    }
-
-    init(
-      clientRow row: T,
-      userModificationTime: Int64,
-      ancestorVersion: RowVersion<T>
-    ) {
-      var modificationTimes: [PartialKeyPath<T>: Int64] = [:]
-      for column in T.TableColumns.writableColumns {
-        func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
-          let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
-
-          let clientValue = row[keyPath: keyPath]
-          let ancestorValue = ancestorVersion.row[keyPath: keyPath]
-
-          if areEqual(clientValue, ancestorValue, as: Value.self) {
-            modificationTimes[keyPath] = ancestorVersion.modificationTime(for: keyPath)
-          } else {
-            modificationTimes[keyPath] = userModificationTime
-          }
-        }
-        open(column)
-      }
-
-      self.init(
-        row: row,
-        modificationTimes: modificationTimes
-      )
-    }
-
-    init(from record: CKRecord) throws {
-      @Dependency(\.defaultDatabase) var database
-      @Dependency(\.dataManager) var dataManager
-      
-      func makeQuery() -> SQLQueryExpression<T> {
-        let values = T.TableColumns.allColumns.map { column in
-          let value = record.encryptedValues[column.name]
-          
-          if let asset = value as? CKAsset,
-             let data = try? asset.fileURL.map({ try dataManager.load($0) }) {
-            return data.queryFragment
-          }
-          
-          if let value {
-            return value.queryFragment
-          }
-          
-          return "NULL"
-        }
-        
-        return #sql("SELECT \(values.joined(separator: ", "))")
-      }
-
-      // Convert CKRecord values into a SQL SELECT with literal values and execute through
-      // the database. This leverages SQLiteQueryDecoder to handle all type conversions
-      // and produces a properly decoded T instance.
-      let query = makeQuery()
-      let row = try database.read { db in
-        // TODO: The synthetic selection always returns exactly one row, should we force-cast instead?
-        guard let row = try query.fetchOne(db) else { throw NotFound() }
-        // TODO: Is there a way to make the compiler aware of T.QueryOutput == T?
-        return row as! T
-      }
-      
-      var modificationTimes: [PartialKeyPath<T>: Int64] = [:]
-      for column in T.TableColumns.writableColumns {
-        func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
-          let keyPath = column.keyPath as! PartialKeyPath<T>
-          modificationTimes[keyPath] = record.encryptedValues[at: column.name]
-        }
-        open(column)
-      }
-
-      self.init(
-        row: row,
-        modificationTimes: modificationTimes
-      )
-    }
-
-    func modificationTime(for column: PartialKeyPath<T>) -> Int64 {
-      return modificationTimes[column] ?? -1
-    }
-  }
-
   struct MergeConflict<T: PrimaryKeyedTable> where T.TableColumns.PrimaryColumn: WritableTableColumnExpression {
     let ancestor: RowVersion<T>
     let client: RowVersion<T>
@@ -179,6 +85,100 @@
         SET \(assignments.map { "\(quote: $0.column) = \($0.value)" }.joined(separator: ", "))
         WHERE (\(T.primaryKey)) = (\(T.PrimaryKey(queryOutput: ancestor.row.primaryKey)))
         """
+    }
+  }
+
+  struct RowVersion<T: PrimaryKeyedTable> {
+    let row: T
+    private let modificationTimes: [PartialKeyPath<T>: Int64]
+    
+    package init(
+      row: T,
+      modificationTimes: [PartialKeyPath<T>: Int64]
+    ) {
+      self.row = row
+      self.modificationTimes = modificationTimes
+    }
+    
+    init(
+      clientRow row: T,
+      userModificationTime: Int64,
+      ancestorVersion: RowVersion<T>
+    ) {
+      var modificationTimes: [PartialKeyPath<T>: Int64] = [:]
+      for column in T.TableColumns.writableColumns {
+        func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
+          let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
+          
+          let clientValue = row[keyPath: keyPath]
+          let ancestorValue = ancestorVersion.row[keyPath: keyPath]
+          
+          if areEqual(clientValue, ancestorValue, as: Value.self) {
+            modificationTimes[keyPath] = ancestorVersion.modificationTime(for: keyPath)
+          } else {
+            modificationTimes[keyPath] = userModificationTime
+          }
+        }
+        open(column)
+      }
+      
+      self.init(
+        row: row,
+        modificationTimes: modificationTimes
+      )
+    }
+    
+    init(from record: CKRecord) throws {
+      @Dependency(\.defaultDatabase) var database
+      @Dependency(\.dataManager) var dataManager
+      
+      func makeQuery() -> SQLQueryExpression<T> {
+        let values = T.TableColumns.allColumns.map { column in
+          let value = record.encryptedValues[column.name]
+          
+          if let asset = value as? CKAsset,
+             let data = try? asset.fileURL.map({ try dataManager.load($0) }) {
+            return data.queryFragment
+          }
+          
+          if let value {
+            return value.queryFragment
+          }
+          
+          return "NULL"
+        }
+        
+        return #sql("SELECT \(values.joined(separator: ", "))")
+      }
+      
+      // Convert CKRecord values into a SQL SELECT with literal values and execute through
+      // the database. This leverages SQLiteQueryDecoder to handle all type conversions
+      // and produces a properly decoded T instance.
+      let query = makeQuery()
+      let row = try database.read { db in
+        // TODO: The synthetic selection always returns exactly one row, should we force-cast instead?
+        guard let row = try query.fetchOne(db) else { throw NotFound() }
+        // TODO: Is there a way to make the compiler aware of T.QueryOutput == T?
+        return row as! T
+      }
+      
+      var modificationTimes: [PartialKeyPath<T>: Int64] = [:]
+      for column in T.TableColumns.writableColumns {
+        func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
+          let keyPath = column.keyPath as! PartialKeyPath<T>
+          modificationTimes[keyPath] = record.encryptedValues[at: column.name]
+        }
+        open(column)
+      }
+      
+      self.init(
+        row: row,
+        modificationTimes: modificationTimes
+      )
+    }
+    
+    func modificationTime(for column: PartialKeyPath<T>) -> Int64 {
+      return modificationTimes[column] ?? -1
     }
   }
 
@@ -271,155 +271,6 @@
   extension DataProtocol {
     fileprivate var sha256: Data {
       Data(SHA256.hash(data: self))
-    }
-  }
-
-  @Table
-  private struct Post {
-    let id: UUID
-    var title: String
-    var upvotes = 0
-    @Column(as: Set<String>.JSONRepresentation.self)
-    var tags: Set<String> = []
-  }
-
-  @Table
-  private struct MergeModel {
-    let id: Int
-    var field1: String
-    var field2: String
-    var field3: String
-    var field4: String
-    var field5: String
-    var field6: String
-    var field7: String
-  }
-
-  extension DatabaseWriter {
-    /// Resolves a merge conflict via a database roundtrip using the “last edit wins” field merge
-    /// policy. Primarily used for testing conflict resolution logic.
-    fileprivate func resolve<T: PrimaryKeyedTable>(
-      conflict: MergeConflict<T>
-    ) throws -> T where T == T.QueryOutput, T.TableColumns.PrimaryColumn: WritableTableColumnExpression {
-      try write { db in
-        // Insert the initial client row.
-        try T.insert { conflict.client.row }.execute(db)
-        
-        // Perform the update query resolving the conflict.
-        try #sql(conflict.makeUpdateQuery()).execute(db)
-        
-        // Fetch the updated client row.
-        return try T.fetchOne(db)!
-      }
-    }
-  }
-
-  extension MergeModel {
-    /// Creates a three-way merge conflict covering all seven canonical merge scenarios.
-    /// See: https://github.com/structuredpath/sqlite-data-sync-notes/blob/main/BuiltInConflictResolutionModel.md
-    fileprivate static func makeCanonicalConflict() -> MergeConflict<Self> {
-      let ancestor = RowVersion(
-        row: MergeModel(
-          id: 0,
-          field1: "foo", // Scenario 1: No changes
-          field2: "foo", // Scenario 2: Client-only change
-          field3: "foo", // Scenario 3: Server-only change
-          field4: "foo", // Scenario 4: Both changed, server newer
-          field5: "foo", // Scenario 5: Both changed, client newer
-          field6: "foo", // Scenario 6: Both changed, equal timestamps
-          field7: "foo"  // Scenario 7: Both changed, same value
-        ),
-        modificationTimes: [
-          \.field1: 0,
-           \.field2: 0,
-           \.field3: 0,
-           \.field4: 0,
-           \.field5: 0,
-           \.field6: 0,
-           \.field7: 0
-        ]
-      )
-      
-      let client = RowVersion(
-        row: MergeModel(
-          id: 0,
-          field1: "foo",
-          field2: "bar",
-          field3: "foo",
-          field4: "bar",
-          field5: "bar",
-          field6: "bar",
-          field7: "bar"
-        ),
-        modificationTimes: [
-          \.field1: 0,
-           \.field2: 100,
-           \.field3: 0,
-           \.field4: 100,
-           \.field5: 100,
-           \.field6: 100,
-           \.field7: 100
-        ]
-      )
-      
-      let server = RowVersion(
-        row: MergeModel(
-          id: 0,
-          field1: "foo",
-          field2: "foo",
-          field3: "baz",
-          field4: "baz",
-          field5: "baz",
-          field6: "baz",
-          field7: "bar"
-        ),
-        modificationTimes: [
-          \.field1: 0,
-           \.field2: 0,
-           \.field3: 200,
-           \.field4: 200,
-           \.field5: 50,
-           \.field6: 100,
-           \.field7: 200
-        ]
-      )
-      
-      return MergeConflict(ancestor: ancestor, client: client, server: server)
-    }
-  }
-
-  extension DatabaseWriter where Self == DatabaseQueue {
-    fileprivate static func databaseForMergeConflicts() throws -> DatabaseQueue {
-      let database = try DatabaseQueue()
-      try database.write { db in
-        try #sql(
-            """
-            CREATE TABLE "posts" (
-              "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
-              "title" TEXT NOT NULL,
-              "upvotes" INTEGER NOT NULL DEFAULT 0,
-              "tags" TEXT NOT NULL
-            )
-            """
-        )
-        .execute(db)
-        try #sql(
-            """
-            CREATE TABLE "mergeModels" (
-              "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-              "field1" TEXT NOT NULL,
-              "field2" TEXT NOT NULL,
-              "field3" TEXT NOT NULL,
-              "field4" TEXT NOT NULL,
-              "field5" TEXT NOT NULL,
-              "field6" TEXT NOT NULL,
-              "field7" TEXT NOT NULL
-            )
-            """
-        )
-        .execute(db)
-      }
-      return database
     }
   }
 
@@ -584,6 +435,155 @@
       #expect(merged.field5 == "bar")
       #expect(merged.field6 == "bar")
       #expect(merged.field7 == "bar")
+    }
+  }
+
+  @Table
+  private struct Post {
+    let id: UUID
+    var title: String
+    var upvotes = 0
+    @Column(as: Set<String>.JSONRepresentation.self)
+    var tags: Set<String> = []
+  }
+
+  @Table
+  private struct MergeModel {
+    let id: Int
+    var field1: String
+    var field2: String
+    var field3: String
+    var field4: String
+    var field5: String
+    var field6: String
+    var field7: String
+  }
+
+  extension MergeModel {
+    /// Creates a three-way merge conflict covering all seven canonical merge scenarios.
+    /// See: https://github.com/structuredpath/sqlite-data-sync-notes/blob/main/BuiltInConflictResolutionModel.md
+    fileprivate static func makeCanonicalConflict() -> MergeConflict<Self> {
+      let ancestor = RowVersion(
+        row: MergeModel(
+          id: 0,
+          field1: "foo", // Scenario 1: No changes
+          field2: "foo", // Scenario 2: Client-only change
+          field3: "foo", // Scenario 3: Server-only change
+          field4: "foo", // Scenario 4: Both changed, server newer
+          field5: "foo", // Scenario 5: Both changed, client newer
+          field6: "foo", // Scenario 6: Both changed, equal timestamps
+          field7: "foo"  // Scenario 7: Both changed, same value
+        ),
+        modificationTimes: [
+          \.field1: 0,
+          \.field2: 0,
+          \.field3: 0,
+          \.field4: 0,
+          \.field5: 0,
+          \.field6: 0,
+          \.field7: 0
+        ]
+      )
+      
+      let client = RowVersion(
+        row: MergeModel(
+          id: 0,
+          field1: "foo",
+          field2: "bar",
+          field3: "foo",
+          field4: "bar",
+          field5: "bar",
+          field6: "bar",
+          field7: "bar"
+        ),
+        modificationTimes: [
+          \.field1: 0,
+          \.field2: 100,
+          \.field3: 0,
+          \.field4: 100,
+          \.field5: 100,
+          \.field6: 100,
+          \.field7: 100
+        ]
+      )
+      
+      let server = RowVersion(
+        row: MergeModel(
+          id: 0,
+          field1: "foo",
+          field2: "foo",
+          field3: "baz",
+          field4: "baz",
+          field5: "baz",
+          field6: "baz",
+          field7: "bar"
+        ),
+        modificationTimes: [
+          \.field1: 0,
+          \.field2: 0,
+          \.field3: 200,
+          \.field4: 200,
+          \.field5: 50,
+          \.field6: 100,
+          \.field7: 200
+        ]
+      )
+      
+      return MergeConflict(ancestor: ancestor, client: client, server: server)
+    }
+  }
+
+  extension DatabaseWriter where Self == DatabaseQueue {
+    fileprivate static func databaseForMergeConflicts() throws -> DatabaseQueue {
+      let database = try DatabaseQueue()
+      try database.write { db in
+        try #sql(
+          """
+          CREATE TABLE "posts" (
+            "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+            "title" TEXT NOT NULL,
+            "upvotes" INTEGER NOT NULL DEFAULT 0,
+            "tags" TEXT NOT NULL
+          )
+          """
+        )
+        .execute(db)
+        try #sql(
+          """
+          CREATE TABLE "mergeModels" (
+            "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+            "field1" TEXT NOT NULL,
+            "field2" TEXT NOT NULL,
+            "field3" TEXT NOT NULL,
+            "field4" TEXT NOT NULL,
+            "field5" TEXT NOT NULL,
+            "field6" TEXT NOT NULL,
+            "field7" TEXT NOT NULL
+          )
+          """
+        )
+        .execute(db)
+      }
+      return database
+    }
+  }
+
+  extension DatabaseWriter {
+    /// Resolves a merge conflict via a database roundtrip using the “last edit wins” field merge
+    /// policy. Primarily used for testing conflict resolution logic.
+    fileprivate func resolve<T: PrimaryKeyedTable>(
+      conflict: MergeConflict<T>
+    ) throws -> T where T == T.QueryOutput, T.TableColumns.PrimaryColumn: WritableTableColumnExpression {
+      try write { db in
+        // Insert the initial client row.
+        try T.insert { conflict.client.row }.execute(db)
+        
+        // Perform the update query resolving the conflict.
+        try #sql(conflict.makeUpdateQuery()).execute(db)
+        
+        // Fetch the updated client row.
+        return try T.fetchOne(db)!
+      }
     }
   }
 #endif
