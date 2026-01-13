@@ -141,7 +141,7 @@
             }
             .update { $0._isDeleted = true }
         } when: { _ in
-          !SyncEngine.isSynchronizingChanges()
+          !SyncEngine.$isSynchronizing
         }
       )
     }
@@ -158,7 +158,7 @@
             }
             .delete()
         } when: { _ in
-          SyncEngine.isSynchronizingChanges()
+          SyncEngine.$isSynchronizing
         }
       )
     }
@@ -263,7 +263,7 @@
             )
           )
         } when: { _ in
-          !SyncEngine.isSynchronizingChanges()
+          !SyncEngine.$isSynchronizing
         }
       )
     }
@@ -323,7 +323,7 @@
             )
           )
         } when: { old, new in
-          old._isDeleted.eq(new._isDeleted) && !SyncEngine.isSynchronizingChanges()
+          old._isDeleted.eq(new._isDeleted) && !SyncEngine.$isSynchronizing
         }
       )
     }
@@ -344,7 +344,7 @@
             )
           )
         } when: { old, new in
-          !old._isDeleted && new._isDeleted && !SyncEngine.isSynchronizingChanges()
+          !old._isDeleted && new._isDeleted && !SyncEngine.$isSynchronizing
         }
       )
     }
@@ -453,7 +453,7 @@
           )
         }
         .where {
-          !SyncEngine.isSynchronizingChanges()
+          !SyncEngine.$isSynchronizing
             && $0.parentRecordName.is(nil)
             && !$hasPermission($0.share)
         }

@@ -18,9 +18,4 @@
     return share.publicPermission == .readWrite
       || share.currentUserParticipant?.permission == .readWrite
   }
-
-  @DatabaseFunction("sqlitedata_icloud_syncEngineIsSynchronizingChanges")
-  func syncEngineIsSynchronizingChanges() -> Bool {
-    _isSynchronizingChanges
-  }
 #endif
