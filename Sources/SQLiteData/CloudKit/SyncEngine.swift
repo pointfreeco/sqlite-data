@@ -505,7 +505,7 @@
 
       #if canImport(DeveloperToolsSupport)
         @Dependency(\.context) var context
-      @Dependency(\.continuousClock) var clock
+        @Dependency(\.continuousClock) var clock
         if context == .preview {
           previewTimerTask.withValue {
             $0?.cancel()

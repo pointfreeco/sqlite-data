@@ -193,7 +193,8 @@
               for key in copy.allKeys() {
                 guard let assetURL = (copy[key] as? CKAsset)?.fileURL
                 else { continue }
-                state.assets[AssetID(recordID: copy.recordID, key: key)] = try? dataManager.wrappedValue
+                state.assets[AssetID(recordID: copy.recordID, key: key)] =
+                  try? dataManager.wrappedValue
                   .load(assetURL)
               }
 
@@ -206,7 +207,8 @@
                 // If the parent isn't also being saved in this batch.
                 !recordsToSave.contains(where: { $0.recordID == parent.recordID }),
                 // And if the parent is in the database.
-                 let parentRecord = state.storage[parent.recordID.zoneID]?.records[parent.recordID]?.copy()
+                let parentRecord = state.storage[parent.recordID.zoneID]?.records[parent.recordID]?
+                  .copy()
                   as? CKRecord
               {
                 parentRecord._recordChangeTag = state.nextRecordChangeTag()
@@ -295,7 +297,8 @@
             shareToDelete.recordID.zoneID.ownerName == CKCurrentUserDefaultName
           {
             func deleteRecords(referencing recordID: CKRecord.ID) {
-              for recordToDelete in (state.storage[recordIDToDelete.zoneID]?.records ?? [:]).values {
+              for recordToDelete in (state.storage[recordIDToDelete.zoneID]?.records ?? [:]).values
+              {
                 guard
                   recordToDelete.share?.recordID == recordID
                     || recordToDelete.parent?.recordID == recordID

@@ -298,10 +298,10 @@
 
         try await userDatabase.userWrite { db in
           try #sql(
-              """
-              ALTER TABLE "remindersLists" 
-              ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
-              """
+            """
+            ALTER TABLE "remindersLists"
+            ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+            """
           )
           .execute(db)
         }
@@ -310,9 +310,9 @@
           userDatabase: syncEngine.userDatabase,
           tables: syncEngine.tables
             .filter { $0.base != RemindersList.self }
-          + [
-            SynchronizedTable(for: RemindersListWithPosition.self),
-          ],
+            + [
+              SynchronizedTable(for: RemindersListWithPosition.self)
+            ],
           privateTables: syncEngine.privateTables
         )
         defer { _ = newSyncEngine }

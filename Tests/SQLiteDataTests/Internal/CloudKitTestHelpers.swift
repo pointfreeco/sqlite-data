@@ -95,11 +95,11 @@ extension SyncEngine {
         .fetchedRecordZoneChanges(
           modifications: saveResults.values.compactMap { try? $0.get() },
           deletions: deleteResults.compactMap { recordID, result in
-              (recordsToDeleteByID[recordID]?.recordType).flatMap { recordType in
-                (try? result.get()) != nil
-                  ? (recordID, recordType)
-                  : nil
-              }
+            (recordsToDeleteByID[recordID]?.recordType).flatMap { recordType in
+              (try? result.get()) != nil
+                ? (recordID, recordType)
+                : nil
+            }
           }
         ),
         syncEngine: syncEngine

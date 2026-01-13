@@ -498,10 +498,10 @@ nonisolated private let logger = Logger(subsystem: "Reminders", category: "Datab
             id: reminderIDs[8],
             dueDate: now.addingTimeInterval(60 * 60 * 24 * 2),
             notes: """
-            Status of tax return
-            Expenses for next year
-            Changing payroll company
-            """,
+              Status of tax return
+              Expenses for next year
+              Changing payroll company
+              """,
             remindersListID: remindersListIDs[2],
             title: "Call accountant"
           )

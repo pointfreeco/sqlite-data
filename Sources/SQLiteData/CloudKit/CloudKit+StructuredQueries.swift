@@ -50,7 +50,8 @@
         throw DecodingError()
       }
       if isTesting {
-        queryOutput._recordChangeTag = coder
+        queryOutput._recordChangeTag =
+          coder
           .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
       }
       self.init(queryOutput: queryOutput)
@@ -91,7 +92,8 @@
         throw DecodingError()
       }
       if isTesting {
-        queryOutput._recordChangeTag = coder
+        queryOutput._recordChangeTag =
+          coder
           .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
       }
       self.init(queryOutput: queryOutput)
