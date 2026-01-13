@@ -749,7 +749,7 @@ or CloudKit is updating the data.
 
 [FTS]: https://sqlite.org/fts5.html
 
-To customize this behavior you can use the ``SyncEngine/isSynchronizingChanges()`` SQL expression.
+To customize this behavior you can use the projected ``SyncEngine/isSynchronizing`` SQL expression.
 It represents a custom database function that is installed in your database connection, and it will
 return true if the write to your database originates from the sync engine. You can use it in a
 trigger like so:
@@ -759,7 +759,7 @@ trigger like so:
   """
   CREATE TEMPORARY TRIGGER "…"
   AFTER DELETE ON "…"
-  FOR EACH ROW WHEN NOT \(SyncEngine.isSynchronizingChanges())
+  FOR EACH ROW WHEN NOT \(SyncEngine.$isSynchronizing)
   BEGIN
     …
   END
@@ -776,7 +776,7 @@ Model.createTemporaryTrigger(
   after: .insert { new in
     // ...
   } when: { _ in
-    !SyncEngine.isSynchronizingChanges()
+    !SyncEngine.$isSynchronizing
   }
 )
 ```

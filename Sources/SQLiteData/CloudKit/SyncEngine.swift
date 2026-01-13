@@ -352,7 +352,7 @@
         .execute(db)
       }
       db.add(function: $currentTime)
-      db.add(function: $syncEngineIsSynchronizingChanges)
+      db.add(function: SyncEngine.$isSynchronizing)
       db.add(function: $didUpdate)
       db.add(function: $didDelete)
       db.add(function: $hasPermission)
@@ -894,12 +894,17 @@
       )
     }
 
-    /// A query expression that can be used in SQL queries to determine if the ``SyncEngine``
-    /// is currently writing changes to the database.
+    /// Whether or not the ``SyncEngine`` is currently writing changes to the database.
     ///
     /// See <doc:CloudKit#Updating-triggers-to-be-compatible-with-synchronization> for more info.
+    @DatabaseFunction("sqlitedata_icloud_syncEngineIsSynchronizingChanges")
+    public static var isSynchronizing: Bool {
+      _isSynchronizingChanges
+    }
+
+    @available(*, deprecated, message: "Use 'SyncEngine.$isSynchronizing', instead.")
     public static func isSynchronizingChanges() -> some QueryExpression<Bool> {
-      $syncEngineIsSynchronizingChanges()
+      $isSynchronizing
     }
 
     private var sendingChangesCount: Int {
