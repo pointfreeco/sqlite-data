@@ -189,6 +189,18 @@
               // TODO: This should merge copy's values to more accurately reflect reality
               storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID] = copy
               saveResults[recordToSave.recordID] = .success(copy)
+
+              // NB: "Touch" parent records when saving a child:
+              if let parent = recordToSave.parent,
+                // If the parent isn't also being saved in this batch.
+                !recordsToSave.contains(where: { $0.recordID == parent.recordID }),
+                // And if the parent is in the database.
+                let parentRecord = storage[parent.recordID.zoneID]?.records[parent.recordID]?.copy()
+                  as? CKRecord
+              {
+                parentRecord._recordChangeTag = UUID().uuidString
+                storage[parent.recordID.zoneID]?.records[parent.recordID] = parentRecord
+              }
             }
 
             switch (existingRecord, recordToSave._recordChangeTag) {

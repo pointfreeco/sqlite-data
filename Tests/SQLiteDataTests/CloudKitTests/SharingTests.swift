@@ -847,6 +847,87 @@
         }
       }
 
+      /*
+       * Create parent record and synchronize.
+       * Create child record and synchronize.
+       * Share parent record.
+       */
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.bug("https://github.com/pointfreeco/sqlite-data/pull/363"))
+      func createParentThenChildThenShare() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed { remindersList }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let reminder = Reminder(id: 1, title: "Groceries", remindersListID: 1)
+        try await userDatabase.userWrite { db in
+          try db.seed { reminder }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let _ = try await syncEngine.share(record: remindersList, configure: { _ in })
+
+        assertQuery(
+          SyncMetadata.select { ($0.share, $0.userModificationTime) },
+          database: syncEngine.metadatabase
+        ) {
+          """
+          ┌────────────────────────────────────────────────────────────────────────┬───┐
+          │ CKRecord(                                                              │ 0 │
+          │   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__), │   │
+          │   recordType: "cloudkit.share",                                        │   │
+          │   parent: nil,                                                         │   │
+          │   share: nil                                                           │   │
+          │ )                                                                      │   │
+          ├────────────────────────────────────────────────────────────────────────┼───┤
+          │ nil                                                                    │ 0 │
+          └────────────────────────────────────────────────────────────────────────┴───┘
+          """
+        }
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                  share: nil,
+                  id: 1,
+                  isCompleted: 0,
+                  remindersListID: 1,
+                  title: "Groceries"
+                ),
+                [2]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__)),
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func shareTwice() async throws {
         let remindersList = RemindersList(id: 1, title: "Personal")
