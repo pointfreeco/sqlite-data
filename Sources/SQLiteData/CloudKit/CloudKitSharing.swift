@@ -312,9 +312,27 @@
                     dismiss()
                   }
                 }
+              } footer: {
+                Text("""
+                  This is a mock 'CloudSharingView' used only in previews. You are not interacting \
+                  with iCloud.
+                  """)
               }
             }
             .navigationTitle("Share")
+            .toolbar {
+              ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                  dismiss()
+                } label: {
+                  Image(systemName: "checkmark")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .padding(6)
+                    .background(Circle().fill(Color.blue))
+                }
+              }
+            }
           }
           .task {
             await withErrorReporting {
