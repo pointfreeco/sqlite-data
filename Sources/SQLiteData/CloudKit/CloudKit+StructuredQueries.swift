@@ -366,9 +366,7 @@
   extension CKRecord {
     package var _recordChangeTag: Int? {
       get { self[#function] }
-      set {
-        self[#function] = newValue
-      }
+      set { self[#function] = newValue }
     }
   }
 

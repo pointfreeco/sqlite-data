@@ -62,8 +62,8 @@
         let records = $0.deletedRecords.filter { recordID, _ in
           zoneIDs.contains(recordID.zoneID)
         }
-        $0.deletedRecords.removeAll { lhs, _ in
-          records.contains { rhs, _ in lhs == rhs }
+        $0.deletedRecords.removeAll { lhsRecordID, _ in
+          records.contains { rhsRecordID, _ in lhsRecordID == rhsRecordID }
         }
         return records
       }
