@@ -555,6 +555,7 @@
       }
       guard let privateSyncEngine, let sharedSyncEngine
       else { return }
+      try await enqueueLocallyPendingChanges()
       async let `private`: Void = privateSyncEngine.sendChanges(options)
       async let shared: Void = sharedSyncEngine.sendChanges(options)
       _ = try await (`private`, shared)
@@ -592,8 +593,6 @@
     ) async throws {
       try await enqueueLocallyPendingChanges()
       try await userDatabase.write { db in
-        try PendingRecordZoneChange.delete().execute(db)
-
         let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
           previousRecordTypeByTableName[tableName] == nil
         }
@@ -607,9 +606,10 @@
     }
 
     private func enqueueLocallyPendingChanges() async throws {
-      let pendingRecordZoneChanges = try await metadatabase.read { db in
+      let pendingRecordZoneChanges = try await metadatabase.write { db in
         try PendingRecordZoneChange
-          .select(\.pendingRecordZoneChange)
+          .delete()
+          .returning(\.pendingRecordZoneChange)
           .fetchAll(db)
       }
       let changesByIsPrivate = Dictionary(grouping: pendingRecordZoneChanges) {
@@ -1617,6 +1617,12 @@
       var newPendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = []
       var newPendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] = []
       defer {
+        let quotaExceeded = failedRecordSaves.contains(where: { $0.error.code == .quotaExceeded })
+        delegate?.syncEngine(
+          self,
+          quotaExceeded: quotaExceeded,
+          scope: syncEngine.database.databaseScope
+        )
         syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
@@ -1739,12 +1745,22 @@
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
           break
 
+        case .quotaExceeded:
+          await withErrorReporting {
+            try await userDatabase.write { db in
+              try PendingRecordZoneChange.insert {
+                PendingRecordZoneChange(.saveRecord(failedRecord.recordID))
+              }
+              .execute(db)
+            }
+          }
+
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
           .notAuthenticated, .operationCancelled,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
-          .badDatabase, .quotaExceeded, .limitExceeded, .userDeletedZone, .tooManyParticipants,
+          .badDatabase, .limitExceeded, .userDeletedZone, .tooManyParticipants,
           .alreadyShared, .managedAccountRestricted, .participantMayNeedVerification,
           .serverResponseLost, .assetNotAvailable, .accountTemporarilyUnavailable:
           continue

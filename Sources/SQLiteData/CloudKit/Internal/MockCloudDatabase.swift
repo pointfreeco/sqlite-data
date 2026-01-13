@@ -9,6 +9,7 @@
     package let databaseScope: CKDatabase.Scope
     let _container = IsolatedWeakVar<MockCloudContainer>()
     let dataManager = Dependency(\.dataManager)
+    let quota: LockIsolated<Int>
 
     struct AssetID: Hashable {
       let recordID: CKRecord.ID
@@ -20,8 +21,13 @@
       package var records: [CKRecord.ID: CKRecord] = [:]
     }
 
-    package init(databaseScope: CKDatabase.Scope) {
+    package init(databaseScope: CKDatabase.Scope, quota: Int = Int.max) {
       self.databaseScope = databaseScope
+      self.quota = LockIsolated(quota)
+    }
+
+    package func setQuota(_ quota: Int) {
+      self.quota.withValue { $0 = quota }
     }
 
     package func set(container: MockCloudContainer) {
@@ -296,6 +302,21 @@
           }
         }
 
+        // Emulate quotas by reverting all changes if the total number of records stored exceeds
+        // the quota. This is a very rough approximation of how iCloud handles this in the real
+        // database.
+        guard storage.totalRecords <= quota.withValue(\.self)
+        else {
+          storage = previousStorage
+          for saveSuccessRecordID in saveResults.keys {
+            saveResults[saveSuccessRecordID] = .failure(CKError(.quotaExceeded))
+          }
+          for deleteSuccessRecordID in deleteResults.keys {
+            deleteResults[deleteSuccessRecordID] = .failure(CKError(.quotaExceeded))
+          }
+          return (saveResults: saveResults, deleteResults: deleteResults)
+        }
+
         guard atomically
         else {
           return (saveResults: saveResults, deleteResults: deleteResults)
@@ -331,6 +352,7 @@
           // All storage changes are reverted in zone.
           storage[zoneID]?.records = previousStorage[zoneID]?.records ?? [:]
         }
+
         return (saveResults: saveResults, deleteResults: deleteResults)
       }
     }
@@ -390,6 +412,15 @@
       fatalError()
     @unknown default:
       fatalError()
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension [CKRecordZone.ID: MockCloudDatabase.Zone] {
+    fileprivate var totalRecords: Int {
+      values.reduce(into: 0) { total, zone in
+        total += zone.records.count
+      }
     }
   }
 #endif
