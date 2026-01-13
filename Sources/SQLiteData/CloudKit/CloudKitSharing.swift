@@ -198,7 +198,7 @@
             """
         )
       }
-      try await metadatabase.write { db in
+      try await userDatabase.write { db in
         try SyncMetadata
           .where { $0.recordName.eq(recordName) }
           .update {

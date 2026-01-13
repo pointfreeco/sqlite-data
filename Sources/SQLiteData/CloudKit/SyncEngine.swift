@@ -1502,7 +1502,8 @@
           }
           var unsyncedRecords: [CKRecord] = []
           for start in stride(from: 0, to: orderedUnsyncedRecordIDs.count, by: batchSize) {
-            let recordIDsBatch = orderedUnsyncedRecordIDs
+            let recordIDsBatch =
+              orderedUnsyncedRecordIDs
               .dropFirst(start)
               .prefix(batchSize)
             let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
@@ -1586,7 +1587,7 @@
         return false
       case (_, nil):
         return true
-      case let (.some(lhs), .some(rhs)):
+      case (.some(let lhs), .some(let rhs)):
         let lhsIndex = tablesByOrder[lhs] ?? (rootFirst ? .max : .min)
         let rhsIndex = tablesByOrder[rhs] ?? (rootFirst ? .max : .min)
         guard lhsIndex != rhsIndex
@@ -1937,7 +1938,7 @@
 
     private func refreshLastKnownServerRecord(_ record: CKRecord) async {
       await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await metadatabase.write { db in
+        try await userDatabase.write { db in
           let metadata = try SyncMetadata.find(record.recordID).fetchOne(db)
           func updateLastKnownServerRecord() throws {
             try SyncMetadata
@@ -2328,7 +2329,8 @@
     tablesByName: [String: any SynchronizableTable]
   ) throws -> [String: Int] {
     let tableDependencies = try userDatabase.read { db in
-      var dependencies: OrderedDictionary<HashableSynchronizedTable, [any SynchronizableTable]> = [:]
+      var dependencies: OrderedDictionary<HashableSynchronizedTable, [any SynchronizableTable]> =
+        [:]
       for table in tables {
         func open<T>(_: some SynchronizableTable<T>) throws -> [String] {
           try PragmaForeignKeyList<T>

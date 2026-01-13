@@ -14,7 +14,7 @@ import Testing
     try $0.bootstrapDatabase()
     try await $0.defaultSyncEngine.sendChanges()
   },
-  .snapshots(record: .failed)
+  .snapshots(record: .missing)
 )
 struct BaseTestSuite {}
 
