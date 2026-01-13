@@ -851,10 +851,10 @@
        * Create parent record and synchronize.
        * Create child record and synchronize.
        * Share parent record.
-       * See: https://github.com/pointfreeco/sqlite-data/pull/363
        */
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func createParentThenChildThenShare() async throws {
+      @Test(.bug("https://github.com/pointfreeco/sqlite-data/pull/363"))
+      func createParentThenChildThenShare() async throws {
         let remindersList = RemindersList(id: 1, title: "Personal")
         try await userDatabase.userWrite { db in
           try db.seed { remindersList }
