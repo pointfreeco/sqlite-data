@@ -97,19 +97,27 @@
     /// next batch of pending changes is processed.
     public let _isDeleted: Bool
 
-    @Column(generated: .virtual)
-    public let hasLastKnownServerRecord: Bool
+    @Column("hasLastKnownServerRecord", generated: .virtual)
+    public let _hasLastKnownServerRecord: Bool
+
+    @Column("isShared", generated: .virtual)
+    fileprivate let _isShared: Bool
+
+    /// The time the user last modified the record.
+    public let userModificationTime: Int64
+
+    public var hasLastKnownServerRecord: Bool {
+      lastKnownServerRecord != nil
+    }
 
     /// Determines if the record associated with this metadata is currently shared in CloudKit.
     ///
     /// This can only return `true` for root records. For example, the metadata associated with a
     /// `RemindersList` can have `isShared == true`, but a `Reminder` associated with the list
     /// will have `isShared == false`.
-    @Column(generated: .virtual)
-    public let isShared: Bool
-
-    /// The time the user last modified the record.
-    public let userModificationTime: Int64
+    public var isShared: Bool {
+      _isShared
+    }
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -128,6 +136,24 @@
 
     public var parentRecordType: TableColumn<SyncMetadata, String?> {
       parentRecordID.parentRecordType
+    }
+
+    // NB: Workaround for https://github.com/groue/GRDB.swift/discussions/1844
+    public var hasLastKnownServerRecord: some QueryExpression<Bool> {
+      #sql(
+        """
+        ((\(self._hasLastKnownServerRecord) = 1) AND (\(self.lastKnownServerRecord) OR 1))
+        """
+      )
+    }
+
+    // NB: Workaround for https://github.com/groue/GRDB.swift/discussions/1844
+    public var isShared: some QueryExpression<Bool> {
+      #sql(
+        """
+        ((\(self._isShared) = 1) AND (\(self.share) OR 1))
+        """
+      )
     }
   }
 
@@ -162,8 +188,8 @@
       self.lastKnownServerRecord = lastKnownServerRecord
       self._lastKnownServerRecordAllFields = _lastKnownServerRecordAllFields
       self.share = share
-      self.hasLastKnownServerRecord = lastKnownServerRecord != nil
-      self.isShared = share != nil
+      self._hasLastKnownServerRecord = lastKnownServerRecord != nil
+      self._isShared = share != nil
       self.userModificationTime = userModificationTime
       self._isDeleted = false
     }
