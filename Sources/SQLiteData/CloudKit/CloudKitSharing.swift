@@ -293,33 +293,65 @@
         } else {
           NavigationStack {
             Form {
-              Section {
-                if let title = sharedRecord.share[CKShare.SystemFieldKey.title] as? String {
-                  Text(title)
-                }
-                if let imageData = sharedRecord.share[CKShare.SystemFieldKey.thumbnailImageData]
-                  as? Data,
-                  let image = UIImage(data: imageData)
-                {
-                  Image(uiImage: image)
-                }
-              }
-              Section {
-                Button("Stop sharing", role: .destructive) {
-                  Task {
-                    try await syncEngine.unshare(share: sharedRecord.share)
-                    try await syncEngine.fetchChanges()
-                    dismiss()
+              VStack(alignment: .center, spacing: 10) {
+                Group {
+                  if let data = sharedRecord.share[CKShare.SystemFieldKey.thumbnailImageData]
+                    as? Data,
+                    let uiImage = UIImage(data: data)
+                  {
+                    Image(uiImage: uiImage)
+                  } else {
+                    Text("☁️")
                   }
                 }
-              } footer: {
-                Text("""
-                  This is a mock 'CloudSharingView' used only in previews. You are not interacting \
-                  with iCloud.
-                  """)
+                .font(.system(size: 96))
+                Text(
+                  sharedRecord.share[CKShare.SystemFieldKey.title] as? String
+                    ?? "Share"
+                )
+                .font(.title.weight(.semibold))
               }
+              .frame(maxWidth: .infinity)
+              .listRowBackground(Color.clear)
+
+              Section {
+                HStack {
+                  Image(systemName: "person.crop.circle.fill")
+                    .imageScale(.large)
+                    .font(.title)
+                    .foregroundStyle(
+                      Gradient(colors: [
+                        Color(red: 0.7, green: 0.75, blue: 0.9),
+                        Color(red: 0.4, green: 0.45, blue: 0.6),
+                      ])
+                    )
+                  NavigationLink("(Owner)", value: Bool?.none)
+                }
+              }
+
+              Section {
+                VStack(alignment: .leading) {
+                  Text("\(Image(systemName: "eye.fill")) Share Preview")
+                    .font(.headline)
+                  Text(
+                    """
+                    This is a mock screen used only in previews. You are not interacting with iCloud.
+                    """
+                  )
+                  .font(.callout)
+                  .foregroundStyle(.gray)
+                }
+              }
+
+              Button("Stop Sharing", role: .destructive) {
+                Task {
+                  try await syncEngine.unshare(share: sharedRecord.share)
+                  try await syncEngine.fetchChanges()
+                  dismiss()
+                }
+              }
+              .frame(maxWidth: .infinity)
             }
-            .navigationTitle("Share")
             .toolbar {
               ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -329,7 +361,7 @@
                     .font(.headline)
                     .foregroundStyle(.white)
                     .padding(6)
-                    .background(Circle().fill(Color.blue))
+                    .background(Circle().fill(.blue))
                 }
               }
             }

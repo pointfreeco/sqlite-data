@@ -14,7 +14,7 @@ jobs:
     name: macOS
     strategy:
       matrix:
-        xcode: ['26.1']
+        xcode: ['26.2']
         config: ['debug', 'release']
     runs-on: macos-26
     steps:
@@ -28,7 +28,7 @@ jobs:
     name: Examples
     strategy:
       matrix:
-        xcode: ['26.1']
+        xcode: ['26.2']
         config: ['debug']
         scheme: ['Reminders', 'CaseStudies', 'SyncUps']
     runs-on: macos-26
