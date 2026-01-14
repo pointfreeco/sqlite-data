@@ -668,7 +668,7 @@
           """
         }
         assertInlineSnapshot(
-          of: syncEngine.private.database.storage[syncEngine.defaultZone.zoneID]?.records[
+          of: syncEngine.private.database.state.storage[syncEngine.defaultZone.zoneID]?.records[
             Reminder.recordID(for: 1)
           ],
           as: .customDump
@@ -763,7 +763,7 @@
           """
         }
         assertInlineSnapshot(
-          of: syncEngine.private.database.storage[syncEngine.defaultZone.zoneID]?.records[
+          of: syncEngine.private.database.state.storage[syncEngine.defaultZone.zoneID]?.records[
             Reminder.recordID(for: 1)
           ],
           as: .customDump

@@ -666,7 +666,7 @@
         let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
         record.setValue("Work", forKey: "title", at: now)
         // NB: Manually setting '_recordChangeTag' simulates another device saving a record.
-        record._recordChangeTag = UUID().uuidString
+        record._recordChangeTag = .random(in: 9999 ... .max)
         try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
 
         assertQuery(Reminder.all, database: userDatabase.database) {

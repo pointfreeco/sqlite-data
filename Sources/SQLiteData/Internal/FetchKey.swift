@@ -53,6 +53,7 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
   #if DEBUG
     let isDefaultDatabase: Bool
   #endif
+  @Dependency(\.self) var dependencies
 
   public typealias ID = FetchKeyID
 
@@ -86,18 +87,22 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
       return
     }
     let scheduler: any ValueObservationScheduler = scheduler ?? ImmediateScheduler()
-    database.asyncRead { dbResult in
-      let result = dbResult.flatMap { db in
-        Result {
-          try request.fetch(db)
+    withEscapedDependencies { dependencies in
+      database.asyncRead { dbResult in
+        let result = dbResult.flatMap { db in
+          Result {
+            try dependencies.yield {
+              try request.fetch(db)
+            }
+          }
         }
-      }
-      scheduler.schedule {
-        switch result {
-        case .success(let value):
-          continuation.resume(returning: value)
-        case .failure(let error):
-          continuation.resume(throwing: error)
+        scheduler.schedule {
+          switch result {
+          case .success(let value):
+            continuation.resume(returning: value)
+          case .failure(let error):
+            continuation.resume(throwing: error)
+          }
         }
       }
     }
@@ -111,8 +116,12 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
         return SharedSubscription {}
       }
     #endif
-    let observation = ValueObservation.tracking { db in
-      Result { try request.fetch(db) }
+    let observation = withEscapedDependencies { dependencies in
+      ValueObservation.tracking { db in
+        dependencies.yield {
+          Result { try request.fetch(db) }
+        }
+      }
     }
 
     let scheduler: any ValueObservationScheduler = scheduler ?? ImmediateScheduler()

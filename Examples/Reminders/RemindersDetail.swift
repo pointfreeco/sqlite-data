@@ -84,7 +84,7 @@ class RemindersDetailModel: HashableObject {
 
   private func updateQuery() async {
     await withErrorReporting {
-      try await $reminderRows.load(remindersQuery, animation: .default)
+      _ = try await $reminderRows.load(remindersQuery, animation: .default)
     }
   }
 

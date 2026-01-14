@@ -10,8 +10,11 @@ nonisolated struct Counter: Identifiable {
 
 extension DependencyValues {
   mutating func bootstrapDatabase() throws {
-    @Dependency(\.context) var context
-    let database = try SQLiteData.defaultDatabase()
+    var configuration = Configuration()
+    configuration.prepareDatabase { db in
+      try db.attachMetadatabase()
+    }
+    let database = try SQLiteData.defaultDatabase(configuration: configuration)
     logger.debug(
       """
       App database
@@ -44,3 +47,16 @@ extension DependencyValues {
 }
 
 private let logger = Logger(subsystem: "CloudKitDemo", category: "Database")
+
+#if DEBUG
+  extension DatabaseWriter {
+    func seedSampleData() throws {
+      try write { db in
+        try db.seed {
+          Counter.Draft(count: 24)
+          Counter.Draft(count: 1729)
+        }
+      }
+    }
+  }
+#endif

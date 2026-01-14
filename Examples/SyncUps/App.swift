@@ -66,7 +66,7 @@ struct AppView: View {
           switch path {
           case .detail(let model):
             SyncUpDetailView(model: model)
-          case .meeting(let meeting, attendees: let attendees):
+          case .meeting(let meeting, let attendees):
             MeetingView(meeting: meeting, attendees: attendees)
           case .record(let model):
             RecordMeetingView(model: model)
@@ -77,6 +77,9 @@ struct AppView: View {
 }
 
 #Preview("Happy path") {
-  let _ = try! prepareDependencies { try $0.bootstrapDatabase() }
+  let _ = try! prepareDependencies {
+    try $0.bootstrapDatabase()
+    try? $0.defaultDatabase.seedSampleData()
+  }
   AppView(model: AppModel())
 }
