@@ -2045,11 +2045,11 @@
               if data == nil {
                 reportIssue("Asset data not found on disk")
               }
-              return "\(quote: columnName) = \(data?.queryFragment ?? "NULL")"
+              return "\(quote: columnName) = \(data?.queryFragment ?? #""excluded".\#(quote: columnName)"#)"
             } else {
               return """
                 \(quote: columnName) = \
-                \(record.encryptedValues[columnName]?.queryFragment ?? "NULL")
+                \(record.encryptedValues[columnName]?.queryFragment ?? #""excluded".\#(quote: columnName)"#)
                 """
             }
           }
