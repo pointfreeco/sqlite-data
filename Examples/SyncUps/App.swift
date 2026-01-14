@@ -77,6 +77,9 @@ struct AppView: View {
 }
 
 #Preview("Happy path") {
-  let _ = try! prepareDependencies { try $0.bootstrapDatabase() }
+  let _ = try! prepareDependencies {
+    try $0.bootstrapDatabase()
+    try? $0.defaultDatabase.seedSampleData()
+  }
   AppView(model: AppModel())
 }

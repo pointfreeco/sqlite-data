@@ -47,3 +47,16 @@ extension DependencyValues {
 }
 
 private let logger = Logger(subsystem: "CloudKitDemo", category: "Database")
+
+#if DEBUG
+  extension DatabaseWriter {
+    func seedSampleData() throws {
+      try write { db in
+        try db.seed {
+          Counter.Draft(count: 24)
+          Counter.Draft(count: 1729)
+        }
+      }
+    }
+  }
+#endif

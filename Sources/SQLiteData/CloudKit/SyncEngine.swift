@@ -38,6 +38,9 @@
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
+    #if canImport(DeveloperToolsSupport)
+      private let previewTimerTask = LockIsolated<Task<Void, Never>?>(nil)
+    #endif
 
     /// The error message used when a write occurs to a record for which the current user does not
     /// have permission.
@@ -420,6 +423,12 @@
     /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
       guard isRunning else { return }
+      #if canImport(DeveloperToolsSupport)
+        previewTimerTask.withValue {
+          $0?.cancel()
+          $0 = nil
+        }
+      #endif
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
         syncEngines.withValue {
           $0 = SyncEngines()
@@ -494,6 +503,24 @@
         }
       )
 
+      #if canImport(DeveloperToolsSupport)
+        @Dependency(\.context) var context
+        @Dependency(\.continuousClock) var clock
+        if context == .preview {
+          previewTimerTask.withValue {
+            $0?.cancel()
+            $0 = Task { [weak self] in
+              await withErrorReporting {
+                while true {
+                  guard let self else { break }
+                  try await clock.sleep(for: .seconds(1))
+                  try await self.syncChanges()
+                }
+              }
+            }
+          }
+        }
+      #endif
       let startTask = Task<Void, Never> {
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           guard try await container.accountStatus() == .available
@@ -512,7 +539,10 @@
           try await cacheUserTables(recordTypes: currentRecordTypes)
         }
       }
-      self.startTask.withValue { $0 = startTask }
+      self.startTask.withValue {
+        $0?.cancel()
+        $0 = startTask
+      }
       return startTask
     }
 
@@ -574,8 +604,8 @@
       fetchOptions: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions(),
       sendOptions: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
     ) async throws {
-      try await fetchChanges(fetchOptions)
       try await sendChanges(sendOptions)
+      try await fetchChanges(fetchOptions)
     }
 
     private func cacheUserTables(recordTypes: [RecordType]) async throws {
@@ -1765,8 +1795,9 @@
               switch error.code {
               case .referenceViolation:
                 enqueuedUnsyncedRecordID = true
-                try UnsyncedRecordID.insert(or: .ignore) {
+                try UnsyncedRecordID.insert {
                   UnsyncedRecordID(recordID: failedRecordID)
+                } onConflictDoUpdate: { _ in
                 }
                 .execute(db)
                 syncEngine.state.remove(pendingRecordZoneChanges: [.deleteRecord(failedRecordID)])
@@ -1931,8 +1962,9 @@
             else {
               throw error
             }
-            try UnsyncedRecordID.insert(or: .ignore) {
+            try UnsyncedRecordID.insert {
               UnsyncedRecordID(recordID: serverRecord.recordID)
+            } onConflictDoUpdate: { _ in
             }
             .execute(db)
           }

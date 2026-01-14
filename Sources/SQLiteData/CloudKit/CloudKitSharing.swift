@@ -119,12 +119,13 @@
       }
       let recordName = record.recordName
       let lastKnownServerRecord = try await {
-        let lastKnownServerRecord = try await metadatabase.read { db in
-          try SyncMetadata
-            .where { $0.recordName.eq(recordName) }
-            .select(\._lastKnownServerRecordAllFields)
-            .fetchOne(db)
-        } ?? nil
+        let lastKnownServerRecord =
+          try await metadatabase.read { db in
+            try SyncMetadata
+              .where { $0.recordName.eq(recordName) }
+              .select(\._lastKnownServerRecordAllFields)
+              .fetchOne(db)
+          } ?? nil
         guard let lastKnownServerRecord
         else {
           throw SharingError(
@@ -132,8 +133,8 @@
             recordPrimaryKey: record.primaryKey.rawIdentifier,
             reason: .recordMetadataNotFound,
             debugDescription: """
-            No sync metadata found for record. Has the record been saved to the database?
-            """
+              No sync metadata found for record. Has the record been saved to the database?
+              """
           )
         }
         return try await container.database(for: lastKnownServerRecord.recordID)
@@ -230,6 +231,10 @@
         return
       }
 
+      try await unshare(share: share)
+    }
+
+    func unshare(share: CKShare) async throws {
       let result = try await syncEngines.private?.database.modifyRecords(
         saving: [],
         deleting: [share.recordID]
@@ -252,7 +257,126 @@
     ///
     /// See <doc:CloudKitSharing#Creating-CKShare-records> for more info.
     @available(iOS 17, macOS 14, tvOS 17, *)
-    public struct CloudSharingView: UIViewControllerRepresentable {
+    public struct CloudSharingView: View {
+      let sharedRecord: SharedRecord
+      let availablePermissions: UICloudSharingController.PermissionOptions
+      let didFinish: (Result<Void, Error>) -> Void
+      let didStopSharing: () -> Void
+      let syncEngine: SyncEngine
+      @Dependency(\.context) var context
+      @Environment(\.dismiss) var dismiss
+      public init(
+        sharedRecord: SharedRecord,
+        availablePermissions: UICloudSharingController.PermissionOptions = [],
+        didFinish: @escaping (Result<Void, Error>) -> Void = { _ in },
+        didStopSharing: @escaping () -> Void = {},
+        syncEngine: SyncEngine = {
+          @Dependency(\.defaultSyncEngine) var defaultSyncEngine
+          return defaultSyncEngine
+        }()
+      ) {
+        self.sharedRecord = sharedRecord
+        self.didFinish = didFinish
+        self.didStopSharing = didStopSharing
+        self.availablePermissions = availablePermissions
+        self.syncEngine = syncEngine
+      }
+      public var body: some View {
+        if context == .live {
+          CloudSharingViewRepresentable(
+            sharedRecord: sharedRecord,
+            availablePermissions: availablePermissions,
+            didFinish: didFinish,
+            didStopSharing: didStopSharing,
+            syncEngine: syncEngine
+          )
+        } else {
+          NavigationStack {
+            Form {
+              VStack(alignment: .center, spacing: 10) {
+                Group {
+                  if let data = sharedRecord.share[CKShare.SystemFieldKey.thumbnailImageData]
+                    as? Data,
+                    let uiImage = UIImage(data: data)
+                  {
+                    Image(uiImage: uiImage)
+                  } else {
+                    Text("☁️")
+                  }
+                }
+                .font(.system(size: 96))
+                Text(
+                  sharedRecord.share[CKShare.SystemFieldKey.title] as? String
+                    ?? "Share"
+                )
+                .font(.title.weight(.semibold))
+              }
+              .frame(maxWidth: .infinity)
+              .listRowBackground(Color.clear)
+
+              Section {
+                HStack {
+                  Image(systemName: "person.crop.circle.fill")
+                    .imageScale(.large)
+                    .font(.title)
+                    .foregroundStyle(
+                      Gradient(colors: [
+                        Color(red: 0.7, green: 0.75, blue: 0.9),
+                        Color(red: 0.4, green: 0.45, blue: 0.6),
+                      ])
+                    )
+                  NavigationLink("(Owner)", value: Bool?.none)
+                }
+              }
+
+              Section {
+                VStack(alignment: .leading) {
+                  Text("\(Image(systemName: "eye.fill")) Share Preview")
+                    .font(.headline)
+                  Text(
+                    """
+                    This is a mock screen used only in previews. You are not interacting with iCloud.
+                    """
+                  )
+                  .font(.callout)
+                  .foregroundStyle(.gray)
+                }
+              }
+
+              Button("Stop Sharing", role: .destructive) {
+                Task {
+                  try await syncEngine.unshare(share: sharedRecord.share)
+                  try await syncEngine.fetchChanges()
+                  dismiss()
+                }
+              }
+              .frame(maxWidth: .infinity)
+            }
+            .toolbar {
+              ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                  dismiss()
+                } label: {
+                  Image(systemName: "checkmark")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .padding(6)
+                    .background(Circle().fill(.blue))
+                }
+              }
+            }
+          }
+          .task {
+            await withErrorReporting {
+              try await syncEngine.fetchChanges()
+            }
+          }
+        }
+      }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, *)
+    private struct CloudSharingViewRepresentable: UIViewControllerRepresentable {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
       let didFinish: (Result<Void, Error>) -> Void
