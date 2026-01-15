@@ -1167,14 +1167,17 @@
         }
         func open<T>(_: some SynchronizableTable<T>) async -> CKRecord? {
           let row =
-            withErrorReporting(.sqliteDataCloudKitFailure) {
-              try userDatabase.read { db in
-                try T
+            await withErrorReporting(.sqliteDataCloudKitFailure) {
+              // NB: Fake 'sending' result.
+              nonisolated(unsafe) var result: T.QueryOutput?
+              try await userDatabase.read { db in
+                result = try T
                   .where {
                     #sql("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
                   }
                   .fetchOne(db)
               }
+              return result
             }
             ?? nil
           guard let row
