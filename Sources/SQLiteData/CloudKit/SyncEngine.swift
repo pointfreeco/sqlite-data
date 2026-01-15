@@ -91,7 +91,7 @@
       privateTables: repeat (each T2).Type,
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
-      startImmediately: Bool = true,
+      startImmediately: Bool? = nil,
       delegate: (any SyncEngineDelegate)? = nil,
       logger: Logger = isTesting
         ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
@@ -152,7 +152,7 @@
           privateTables: allPrivateTables
         )
         try setUpSyncEngine()
-        if startImmediately {
+        if startImmediately ?? !isTesting {
           _ = try start()
         }
         return
@@ -201,7 +201,7 @@
         privateTables: allPrivateTables
       )
       try setUpSyncEngine()
-      if startImmediately {
+      if startImmediately ?? !isTesting {
         _ = try start()
       }
     }
