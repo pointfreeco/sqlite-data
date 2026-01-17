@@ -2009,6 +2009,12 @@
       else {
         return ""
       }
+        
+      // On conflict only update columns that have a value the server record.
+      let columnNamesForUpdate = nonPrimaryKeyChangedColumns.filter { columnName in
+        record[columnName] is CKAsset || record.encryptedValues.allKeys().contains(columnName)
+      }
+
       var record = record
       let recordHasAsset = nonPrimaryKeyChangedColumns.contains { columnName in
         record[columnName] is CKAsset
@@ -2035,26 +2041,33 @@
           }
           .joined(separator: ", ")
       )
-      query.append(") ON CONFLICT(\(quote: T.primaryKey.name)) DO UPDATE SET ")
-      query.append(" ")
-      query.append(
-        nonPrimaryKeyChangedColumns
-          .map { columnName in
-            if let asset = record[columnName] as? CKAsset {
-              let data = try? asset.fileURL.map { try dataManager.wrappedValue.load($0) }
-              if data == nil {
-                reportIssue("Asset data not found on disk")
+        
+      // if there are no columns
+      if columnNamesForUpdate.isEmpty {
+          query.append(") ON CONFLICT(\(quote: T.primaryKey.name)) DO NOTHING ")
+      } else {
+          query.append(") ON CONFLICT(\(quote: T.primaryKey.name)) DO UPDATE SET ")
+          query.append(" ")
+          query.append(
+            columnNamesForUpdate
+              .map { columnName in
+                if let asset = record[columnName] as? CKAsset {
+                  let data = try? asset.fileURL.map { try dataManager.wrappedValue.load($0) }
+                  if data == nil {
+                    reportIssue("Asset data not found on disk")
+                  }
+                  return "\(quote: columnName) = \(data?.queryFragment ?? #""excluded".\#(quote: columnName)"#))"
+                } else {
+                  return """
+                    \(quote: columnName) = \
+                    \(record.encryptedValues[columnName]?.queryFragment ?? #""excluded".\#(quote: columnName)"#))
+                    """
+                }
               }
-              return "\(quote: columnName) = \(data?.queryFragment ?? #""excluded".\#(quote: columnName)"#)"
-            } else {
-              return """
-                \(quote: columnName) = \
-                \(record.encryptedValues[columnName]?.queryFragment ?? #""excluded".\#(quote: columnName)"#)
-                """
-            }
-          }
-          .joined(separator: ",")
-      )
+              .joined(separator: ",")
+          )
+      }
+      
       return query
     }
   }
@@ -2437,6 +2450,14 @@
   ) -> QueryFragment {
     let allColumnNames = T.TableColumns.writableColumns.map(\.name)
     let hasNonPrimaryKeyColumns = columnNames.contains { $0 != T.primaryKey.name }
+    
+    let columnNamesForUpdate = columnNames.filter { columnName in
+      if columnName == T.primaryKey.name {
+        return false
+      }
+      return (record[columnName] is CKAsset) || record.encryptedValues.allKeys().contains(columnName)
+    }
+      
     var query: QueryFragment = "INSERT INTO \(T.self) ("
     query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
     query.append(") VALUES (")
@@ -2454,11 +2475,10 @@
         .joined(separator: ", ")
     )
     query.append(") ON CONFLICT(\(quote: T.primaryKey.name)) DO")
-    if hasNonPrimaryKeyColumns {
+    if !columnNamesForUpdate.isEmpty {
       query.append(" UPDATE SET ")
       query.append(
-        columnNames
-          .filter { $0 != T.primaryKey.name }
+        columnNamesForUpdate
           .map {
             """
             \(quote: $0) = "excluded".\(quote: $0)
