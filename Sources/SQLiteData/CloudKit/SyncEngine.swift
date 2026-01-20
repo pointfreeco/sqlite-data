@@ -2003,7 +2003,11 @@
     ) async throws -> QueryFragment {
       let nonPrimaryKeyChangedColumns =
         changedColumnNames
-        .filter { $0 != T.primaryKey.name }
+        .filter {
+          $0 != T.primaryKey.name
+          && (record.allKeys().contains($0)
+              || record.encryptedValues.allKeys().contains($0))
+        }
       guard
         !nonPrimaryKeyChangedColumns.isEmpty
       else {

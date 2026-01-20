@@ -218,7 +218,7 @@
           try #sql(
             """
             ALTER TABLE "remindersLists" 
-            ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+            ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 42
             """
           )
           .execute(db)
@@ -236,6 +236,63 @@
             ],
           privateTables: syncEngine.privateTables
         )
+
+        try await userDatabase.read { db in
+          try #expect(
+            RemindersListWithPosition.fetchAll(db) == [
+              RemindersListWithPosition(id: 1, title: "Personal", position: 42)
+            ]
+          )
+        }
+      }
+
+      /*
+       * Old schema creates record and synchronizes to iCloud.
+       * Schema is migrated to add a "NULL DEFAULT _" column.
+       * New sync engine is launched.
+       => Sync starts without emitting an error and default value is persisted in local database.
+       */
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func addNullableColumn_OldRecordsSyncToNewSchema() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            remindersList
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        syncEngine.stop()
+
+        try await userDatabase.userWrite { db in
+          try #sql(
+            """
+            ALTER TABLE "remindersLists" 
+            ADD COLUMN "color" INTEGER DEFAULT 42
+            """
+          )
+          .execute(db)
+        }
+
+        // NB: Sync engine should start without emitting issue.
+        _ = try await SyncEngine(
+          container: syncEngine.container,
+          userDatabase: syncEngine.userDatabase,
+          tables: syncEngine.tables
+            .filter { $0.base != RemindersList.self }
+          + [
+            SynchronizedTable(for: RemindersListWithColor.self),
+          ],
+          privateTables: syncEngine.privateTables
+        )
+
+        try await userDatabase.read { db in
+          try #expect(
+            RemindersListWithColor.fetchAll(db) == [
+              RemindersListWithColor(id: 1, title: "Personal", color: 42)
+            ]
+          )
+        }
       }
 
       /*
@@ -668,14 +725,30 @@
           )
         }
       }
+
+      /*
+       * Sync engine saves records with old schema.
+       * Sync engine is relaunched with new schema, adding a 'NOT NULL DEFAULT' column.
+       => Defaults are set in local records.
+       */
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func addNotNullColumn() async throws {
+      }
     }
   }
 
+@Table("remindersLists")
+private struct RemindersListWithPosition: Equatable, Identifiable {
+  let id: Int
+  var title = ""
+  var position = 0
+}
+
   @Table("remindersLists")
-  private struct RemindersListWithPosition: Equatable, Identifiable {
+  private struct RemindersListWithColor: Equatable, Identifiable {
     let id: Int
     var title = ""
-    var position = 0
+    var color: Int?
   }
 
   @Table("reminders")
