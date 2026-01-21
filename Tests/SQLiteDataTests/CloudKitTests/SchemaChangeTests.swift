@@ -725,15 +725,6 @@
           )
         }
       }
-
-      /*
-       * Sync engine saves records with old schema.
-       * Sync engine is relaunched with new schema, adding a 'NOT NULL DEFAULT' column.
-       => Defaults are set in local records.
-       */
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func addNotNullColumn() async throws {
-      }
     }
   }
 
