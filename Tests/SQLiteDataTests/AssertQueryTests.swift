@@ -136,7 +136,7 @@ struct AssertQueryTests {
         """
         SELECT "records"."id", "records"."date"
         FROM "records"
-        WHERE ("records"."id") = (1)
+        WHERE (("records"."id") = (1))
         """
       } results: {
         """
