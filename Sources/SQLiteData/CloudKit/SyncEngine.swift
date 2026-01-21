@@ -2458,10 +2458,6 @@
             return (try? asset.fileURL.map { try dataManager.load($0) })?
               .queryFragment ?? "NULL"
           } else {
-            // no key present
-            // key present, nil value
-            // key present, non-nil value
-
             return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
           }
         }
