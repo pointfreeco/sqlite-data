@@ -228,6 +228,16 @@ func database(
       """
     )
     .execute(db)
+    try #sql(
+      """
+      CREATE TABLE "foods" (
+        "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE DEFAULT (uuid()),
+        "dateEaten" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT (datetime('subsec')),
+        "wasEaten" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+      )
+      """
+    )
+    .execute(db)
   }
   return database
 }

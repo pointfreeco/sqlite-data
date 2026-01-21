@@ -78,7 +78,9 @@ struct SQLiteQueryDecoder: QueryDecoder {
   @inlinable
   mutating func decode(_ columnType: UUID.Type) throws -> UUID? {
     guard let uuidString = try decode(String.self) else { return nil }
-    guard let uuid = UUID(uuidString: uuidString) else { throw InvalidUUID() }
+    guard let uuid = UUID(uuidString: uuidString) else {
+      throw InvalidUUID()
+    }
     return uuid
   }
 }
