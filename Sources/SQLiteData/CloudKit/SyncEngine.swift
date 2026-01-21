@@ -899,7 +899,15 @@
     /// See <doc:CloudKit#Updating-triggers-to-be-compatible-with-synchronization> for more info.
     @DatabaseFunction("sqlitedata_icloud_syncEngineIsSynchronizingChanges")
     public static var isSynchronizing: Bool {
-      _isSynchronizingChanges
+      if _isCreatingTemporaryTrigger {
+        reportIssue(
+          """
+          Invoked 'SyncEngine.isSynchronizing' at trigger creation, which is unexpected. Use \
+          'SyncEngine.$isSynchronizing' to invoke at trigger execution, instead.
+          """
+        )
+      }
+      return _isSynchronizingChanges
     }
 
     @available(*, deprecated, message: "Use 'SyncEngine.$isSynchronizing', instead.")

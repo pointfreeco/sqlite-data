@@ -37,7 +37,8 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.27.0",
+      branch: "trigger-local",
+      // from: "0.27.0",
       traits: [
         .trait(name: "StructuredQueriesTagged", condition: .when(traits: ["SQLiteDataTagged"]))
       ]
