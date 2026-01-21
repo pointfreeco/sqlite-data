@@ -2005,8 +2005,7 @@
         changedColumnNames
         .filter {
           $0 != T.primaryKey.name
-          && (record.allKeys().contains($0)
-              || record.encryptedValues.allKeys().contains($0))
+          && record.hasSet(key: $0)
         }
       guard
         !nonPrimaryKeyChangedColumns.isEmpty
@@ -2440,6 +2439,13 @@
     columnNames: some Collection<String>
   ) -> QueryFragment {
     let allColumnNames = T.TableColumns.writableColumns.map(\.name)
+      .filter {
+        record.hasSet(key: $0)
+      }
+    guard !allColumnNames.isEmpty
+    else {
+      return ""
+    }
     let hasNonPrimaryKeyColumns = columnNames.contains { $0 != T.primaryKey.name }
     var query: QueryFragment = "INSERT INTO \(T.self) ("
     query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
@@ -2452,6 +2458,10 @@
             return (try? asset.fileURL.map { try dataManager.load($0) })?
               .queryFragment ?? "NULL"
           } else {
+            // no key present
+            // key present, nil value
+            // key present, non-nil value
+
             return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
           }
         }
