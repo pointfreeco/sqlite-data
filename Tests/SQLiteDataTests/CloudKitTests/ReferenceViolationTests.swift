@@ -79,6 +79,78 @@
         }
       }
 
+      // * Local client receives a parent record.
+      // * Local client deletes the parent record.
+      // * Local client receieves a child record belonging to that parent.
+      // => ???
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func deleteParentBeforeReceivingChildRecord() async throws {
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+        let reminderRecord = CKRecord(
+          recordType: Reminder.tableName,
+          recordID: Reminder.recordID(for: 1)
+        )
+        reminderRecord.setValue(1, forKey: "id", at: now)
+        reminderRecord.setValue("Get milk", forKey: "title", at: now)
+        reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+        reminderRecord.parent = CKRecord.Reference(
+          recordID: RemindersList.recordID(for: 1),
+          action: .none
+        )
+
+        try await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]).notify()
+        let reminderModification = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [reminderRecord]
+        )
+
+        try await userDatabase.userWrite { db in
+          try #expect(RemindersList.delete().returning(\.id).fetchAll(db).count == 1)
+        }
+
+        await reminderModification.notify()
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+
+        assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                  share: nil,
+                  id: 1,
+                  remindersListID: 1,
+                  title: "Get milk"
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
       // * Local client deletes a list
       // * At the same time, remote adds a reminder to that list.
       // * Local data is sync'd first, then remote data syncs.
