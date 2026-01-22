@@ -2004,8 +2004,7 @@
       let nonPrimaryKeyChangedColumns =
         changedColumnNames
         .filter {
-          $0 != T.primaryKey.name
-          && record.hasSet(key: $0)
+          $0 != T.primaryKey.name && record.hasSet(key: $0)
         }
       guard
         !nonPrimaryKeyChangedColumns.isEmpty
