@@ -745,6 +745,66 @@
         let record = CKRecord(recordType: "foo", recordID: CKRecord.ID(recordName: "bar"))
         try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
       }
+
+      /*
+       * Local client has sync'd record.
+       * Local record is edited outside the sync engine (somehow)
+       * New record received from iCloud
+       => Server record overwrites local changes
+       */
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func serverRecordOverwritesLocalChangesWhenNoPendingChanges() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await userDatabase.write { db in
+          try RemindersList.update { $0.title = "My stuff" }.execute(db)
+        }
+
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          let remindersListRecord = try syncEngine.private.database.record(
+            for: RemindersList.recordID(for: 1)
+          )
+          remindersListRecord.setValue("Personal!", forKey: "title", at: now)
+          try await syncEngine.modifyRecords(scope: .private, saving: [remindersListRecord]).notify()
+        }
+
+        try await userDatabase.read { db in
+          expectNoDifference(
+            try RemindersList.fetchAll(db),
+            [RemindersList(id: 1, title: "Personal!")]
+          )
+        }
+        assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  title: "Personal!"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
     }
   }
 #endif

@@ -278,7 +278,8 @@
       with other: CKRecord,
       row: T,
       columnNames: inout [String],
-      parentForeignKey: ForeignKey?
+      parentForeignKey: ForeignKey?,
+      syncEngineHasPendingChanges: Bool
     ) {
       typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
 
@@ -323,7 +324,7 @@
               return false
             }
           }
-          if didSet || isRowValueModified {
+          if didSet || (syncEngineHasPendingChanges && isRowValueModified) {
             columnNames.removeAll(where: { $0 == key })
             if didSet, let parentForeignKey, key == parentForeignKey.from {
               self.parent = other.parent
