@@ -709,6 +709,25 @@
           """
         }
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func outsideRecordWithColon() async throws {
+        let customRecord = CKRecord(
+          recordType: "customRecord",
+          recordID: CKRecord.ID(
+            recordName: "1:customRecord",
+            zoneID: SyncEngine.defaultTestZone.zoneID
+          )
+        )
+        try await syncEngine.modifyRecords(scope: .private, saving: [customRecord]).notify()
+        withKnownIssue("We should have a way to not sync this record's metadata") {
+          assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+            """
+            (No results)
+            """
+          }
+        }
+      }
     }
   }
 
