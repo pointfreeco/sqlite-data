@@ -632,6 +632,7 @@
             saving: [imageRecord]
           )
           .notify()
+          syncEngine.stop()
 
           inMemoryDataManager.storage.withValue { $0.removeAll() }
 
@@ -656,16 +657,56 @@
           )
           defer { _ = relaunchedSyncEngine }
 
-          let images = try await userDatabase.read { db in
-            try Image.order(by: \.id).fetchAll(db)
+          try await userDatabase.read { db in
+            expectNoDifference(
+              try Image.order(by: \.id).fetchAll(db),
+              [
+                Image(id: 1, image: Data("image".utf8), caption: "A good image")
+              ]
+            )
           }
 
-          expectNoDifference(
-            images,
-            [
-              Image(id: 1, image: Data("image".utf8), caption: "A good image")
-            ]
+          assertInlineSnapshot(of: relaunchedSyncEngine.container, as: .customDump) {
+            """
+            MockCloudContainer(
+              privateCloudDatabase: MockCloudDatabase(
+                databaseScope: .private,
+                storage: [
+                  [0]: CKRecord(
+                    recordID: CKRecord.ID(1:images/zone/__defaultOwner__),
+                    recordType: "images",
+                    parent: nil,
+                    share: nil,
+                    caption: "A good image",
+                    id: "1",
+                    image: Data(5 bytes)
+                  )
+                ]
+              ),
+              sharedCloudDatabase: MockCloudDatabase(
+                databaseScope: .shared,
+                storage: []
+              )
+            )
+            """
+          }
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func outsideRecord() async throws {
+        let customRecord = CKRecord(
+          recordType: "customRecord",
+          recordID: CKRecord.ID(
+            recordName: "customRecord",
+            zoneID: SyncEngine.defaultTestZone.zoneID
           )
+        )
+        try await syncEngine.modifyRecords(scope: .private, saving: [customRecord]).notify()
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          (No results)
+          """
         }
       }
     }
