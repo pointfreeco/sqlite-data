@@ -192,6 +192,75 @@
         }
       }
 
+      /// Delete root shared record when user does not have permission.
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func deleteRootSharedRecord() async throws {
+        let externalZone = CKRecordZone(
+          zoneID: CKRecordZone.ID(
+            zoneName: "external.zone",
+            ownerName: "external.owner"
+          )
+        )
+        try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+        let reminderRecord = CKRecord(
+          recordType: Reminder.tableName,
+          recordID: Reminder.recordID(for: 1, zoneID: externalZone.zoneID)
+        )
+        reminderRecord.setValue(1, forKey: "id", at: now)
+        reminderRecord.setValue("Get milk", forKey: "title", at: now)
+        reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+        reminderRecord.parent = CKRecord.Reference(record: remindersListRecord, action: .none)
+        let share = CKShare(
+          rootRecord: remindersListRecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(remindersListRecord.recordID.recordName)",
+            zoneID: remindersListRecord.recordID.zoneID
+          )
+        )
+        share.publicPermission = .readOnly
+        share.currentUserParticipant?.permission = .readOnly
+
+        _ = try syncEngine.modifyRecords(
+          scope: .shared,
+          saving: [reminderRecord, remindersListRecord, share]
+        )
+
+        let freshRemindersListRecord = try syncEngine.shared.database.record(
+          for: remindersListRecord.recordID
+        )
+        let freshShare = try #require(
+          syncEngine.shared.database.record(for: share.recordID) as? CKShare
+        )
+
+        try await syncEngine
+          .acceptShare(
+            metadata: ShareMetadata(
+              containerIdentifier: container.containerIdentifier!,
+              hierarchicalRootRecordID: freshRemindersListRecord.recordID,
+              rootRecord: freshRemindersListRecord,
+              share: freshShare
+            )
+          )
+
+        await withKnownIssue(
+          """
+          It should be allowed to delete the root record even with read-only permissions
+          """
+        ) {
+          try await self.userDatabase.userWrite { db in
+            try RemindersList.find(1).delete().execute(db)
+            try #expect(RemindersList.fetchCount(db) == 0)
+          }
+        }
+      }
+
       /// Editing record in shared record when user does not have permission.
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func editReminderInReadOnlyRemindersList() async throws {
