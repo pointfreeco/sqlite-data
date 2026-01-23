@@ -358,6 +358,14 @@
       db.add(function: $hasPermission)
       db.add(function: $currentZoneName)
       db.add(function: $currentOwnerName)
+      try #sql(
+        """
+        CREATE TEMP TABLE IF NOT EXISTS "\(raw: String.sqliteDataCloudKitSchemaName)_deletingRootRecords" (
+          "recordName" TEXT PRIMARY KEY
+        )
+        """
+      )
+      .execute(db)
 
       for trigger in SyncMetadata.callbackTriggers(for: self) {
         try trigger.execute(db)
