@@ -126,4 +126,53 @@
       Self(syncEngineDelegate: syncEngineDelegate)
     }
   }
+
+  struct _PrintRecordChangeTag: SuiteTrait, TestScoping, TestTrait {
+    let printRecordChangeTag: Bool
+    init(_ printRecordChangeTag: Bool = true) {
+      self.printRecordChangeTag = printRecordChangeTag
+    }
+
+    func provideScope(
+      for test: Test,
+      testCase: Test.Case?,
+      performing function: @Sendable () async throws -> Void
+    ) async throws {
+      try await CKRecord.$printRecordChangeTag.withValue(true) {
+        try await function()
+      }
+    }
+  }
+
+  extension Trait where Self == _PrintRecordChangeTag {
+    static var printRecordChangeTag: Self { Self() }
+    static func printRecordChangeTag(_ printRecordChangeTag: Bool) -> Self {
+      Self(printRecordChangeTag)
+    }
+  }
+
+  struct _PrintTimestampsScope: SuiteTrait, TestScoping, TestTrait {
+    let printTimestamps: Bool
+    init(_ printTimestamps: Bool = true) {
+      self.printTimestamps = printTimestamps
+    }
+
+    func provideScope(
+      for test: Test,
+      testCase: Test.Case?,
+      performing function: @Sendable () async throws -> Void
+    ) async throws {
+      try await CKRecord.$printTimestamps.withValue(true) {
+        try await function()
+      }
+    }
+  }
+
+  extension Trait where Self == _PrintTimestampsScope {
+    static var printTimestamps: Self { Self() }
+    static func printTimestamps(_ printTimestamps: Bool) -> Self {
+      Self(printTimestamps)
+    }
+  }
+
 #endif

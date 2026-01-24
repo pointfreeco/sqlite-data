@@ -20,6 +20,7 @@
 
   extension CKRecord {
     @TaskLocal static var printTimestamps = false
+    @TaskLocal static var printRecordChangeTag = false
   }
 
   @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
@@ -50,14 +51,18 @@
       let nonEncryptedKeys = Set(allKeys())
         .subtracting(encryptedValues.allKeys())
         .subtracting(["_recordChangeTag"])
+      var baseChildren = [
+        ("recordID", recordID as Any),
+        ("recordType", recordType as Any),
+        ("parent", parent as Any),
+        ("share", share as Any),
+      ]
+      if Self.printRecordChangeTag {
+        baseChildren.append(("recordChangeTag", _recordChangeTag as Any))
+      }
       return Mirror(
         self,
-        children: [
-          ("recordID", recordID as Any),
-          ("recordType", recordType as Any),
-          ("parent", parent as Any),
-          ("share", share as Any),
-        ]
+        children: baseChildren
           + keys
           .map {
             $0.hasPrefix(CKRecord.userModificationTimeKey)

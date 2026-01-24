@@ -199,7 +199,15 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
-    package func processPendingRecordZoneChanges(
+    package struct SendRecordsCallback {
+      fileprivate let operation: @Sendable () async -> Void
+      @discardableResult
+      package func receive() async {
+        await operation()
+      }
+    }
+
+    package func sendPendingRecordZoneChanges(
       options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(),
       scope: CKDatabase.Scope,
       forceAtomicByZone: Bool? = nil,
@@ -207,7 +215,7 @@
       filePath: StaticString = #filePath,
       line: UInt = #line,
       column: UInt = #column
-    ) async throws {
+    ) async throws -> SendRecordsCallback {
       let syncEngine = syncEngine(for: scope)
       guard !syncEngine.state.pendingRecordZoneChanges.isEmpty
       else {
@@ -218,7 +226,7 @@
           line: line,
           column: column
         )
-        return
+        return SendRecordsCallback {}
       }
       guard try await container.accountStatus() == .available
       else {
@@ -231,7 +239,7 @@
           line: line,
           column: column
         )
-        return
+        return SendRecordsCallback {}
       }
 
       var batch = await nextRecordZoneChangeBatch(
@@ -254,7 +262,9 @@
         batch?.atomicByZone = forceAtomicByZone
       }
       guard let batch
-      else { return }
+      else {
+        return SendRecordsCallback {}
+      }
 
       let (saveResults, deleteResults) = try syncEngine.database.modifyRecords(
         saving: batch.recordsToSave,
@@ -302,16 +312,39 @@
         pendingRecordZoneChanges: failedRecordDeletes.keys.map { .deleteRecord($0) }
       )
 
-      await syncEngine.parentSyncEngine
-        .handleEvent(
-          .sentRecordZoneChanges(
-            savedRecords: savedRecords,
-            failedRecordSaves: failedRecordSaves,
-            deletedRecordIDs: deletedRecordIDs,
-            failedRecordDeletes: failedRecordDeletes
-          ),
-          syncEngine: syncEngine
-        )
+      return SendRecordsCallback { [savedRecords, failedRecordSaves, deletedRecordIDs, failedRecordDeletes] in
+        await syncEngine.parentSyncEngine
+          .handleEvent(
+            .sentRecordZoneChanges(
+              savedRecords: savedRecords,
+              failedRecordSaves: failedRecordSaves,
+              deletedRecordIDs: deletedRecordIDs,
+              failedRecordDeletes: failedRecordDeletes
+            ),
+            syncEngine: syncEngine
+          )
+      }
+    }
+
+    package func processPendingRecordZoneChanges(
+      options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(),
+      scope: CKDatabase.Scope,
+      forceAtomicByZone: Bool? = nil,
+      fileID: StaticString = #fileID,
+      filePath: StaticString = #filePath,
+      line: UInt = #line,
+      column: UInt = #column
+    ) async throws {
+      try await sendPendingRecordZoneChanges(
+        options: options,
+        scope: scope,
+        forceAtomicByZone: forceAtomicByZone,
+        fileID: fileID,
+        filePath: filePath,
+        line: line,
+        column: column
+      )
+      .receive()
     }
 
     package func processPendingDatabaseChanges(
