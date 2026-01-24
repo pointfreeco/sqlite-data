@@ -1454,7 +1454,6 @@
       deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
       syncEngine: any SyncEngineProtocol
     ) async {
-      print("asdf", "handleFetchedRecordZoneChanges", modifications.map(\.encryptedValues["score"]))
       let deletedRecordIDsByRecordType = OrderedDictionary(
         grouping: deletions.sorted { lhs, rhs in
           topologicallyAscending(
