@@ -404,8 +404,8 @@
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func receiveRecord_SingleFieldPrimaryKey() async throws {
-        let tagRecord = CKRecord(recordType: "tags", recordID: Tag.recordID(for: "weekend"))
-        tagRecord.encryptedValues["title"] = "weekend"
+        let tagRecord = CKRecord(recordType: Tag.tableName, recordID: Tag.recordID(for: "weekend"))
+        tagRecord.setValue("weekend", forKey: "title", at: 0)
         try await syncEngine.modifyRecords(scope: .private, saving: [tagRecord]).notify()
 
         try await userDatabase.read { db in

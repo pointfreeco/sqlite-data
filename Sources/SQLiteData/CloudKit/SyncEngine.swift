@@ -2003,7 +2003,9 @@
     ) async throws -> QueryFragment {
       let nonPrimaryKeyChangedColumns =
         changedColumnNames
-        .filter { $0 != T.primaryKey.name }
+        .filter {
+          $0 != T.primaryKey.name && record.hasSet(key: $0)
+        }
       guard
         !nonPrimaryKeyChangedColumns.isEmpty
       else {
@@ -2436,13 +2438,19 @@
     record: CKRecord,
     columnNames: some Collection<String>
   ) -> QueryFragment {
-    let allColumnNames = T.TableColumns.writableColumns.map(\.name)
+    let setColumnNames = T.TableColumns.writableColumns.map(\.name)
+      .filter { record.hasSet(key: $0) }
+    guard !setColumnNames.isEmpty
+    else {
+      return ""
+    }
+    let columnNames = columnNames.filter { setColumnNames.contains($0) }
     let hasNonPrimaryKeyColumns = columnNames.contains { $0 != T.primaryKey.name }
     var query: QueryFragment = "INSERT INTO \(T.self) ("
-    query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+    query.append(setColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
     query.append(") VALUES (")
     query.append(
-      allColumnNames
+      setColumnNames
         .map { columnName in
           if let asset = record[columnName] as? CKAsset {
             @Dependency(\.dataManager) var dataManager
