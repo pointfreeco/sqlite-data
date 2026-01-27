@@ -1941,19 +1941,7 @@
               columnNames: &columnNames,
               parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
                 ? foreignKeysByTableName[T.tableName]?.first
-                : nil,
-              syncEngineHasPendingChanges: syncEngine(for: serverRecord.recordID.zoneID)?.state
-                .pendingRecordZoneChanges.contains {
-                  switch $0 {
-                  case .saveRecord(let recordID):
-                    return recordID == serverRecord.recordID
-                  case .deleteRecord:
-                    return false
-                  @unknown default:
-                    return false
-                  }
-                }
-                ?? false
+                : nil
             )
           }
 

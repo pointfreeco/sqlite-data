@@ -806,69 +806,6 @@
           """
         }
       }
-
-      @Test func badRepresentation() async throws {
-        let database = UserDatabase(database: try SQLiteData.defaultDatabase())
-        try await database.write { db in
-          try #sql("""
-            CREATE TABLE "badTables" (
-              "id" INT PRIMARY KEY NOT NULL,
-              "value" INTEGER NOT NULL DEFAULT 0,
-              "title" TEXT NOT NULL DEFAULT ''
-            )
-            """)
-          .execute(db)
-        }
-        let syncEngine = try await SyncEngine(
-          container: self.syncEngine.container,
-          userDatabase: database,
-          tables: BadTable.self
-        )
-        try await syncEngine.processPendingDatabaseChanges(scope: .private)
-        try await database.userWrite { db in
-          try BadTable.insert { BadTable.Draft(id: 0) }.execute(db)
-        }
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        let record = try syncEngine.private.database.record(for: BadTable.recordID(for: 0))
-        record.setValue(1, forKey: "value", at: 1)
-        try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
-
-        do {
-          let record = try syncEngine.private.database.record(for: BadTable.recordID(for: 0))
-          record.setValue(2, forKey: "value", at: 2)
-          await withKnownIssue {
-            try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
-          } matching: { issue in
-            issue.description.hasSuffix("""
-              Roundtrip error detected for 'badTables.value'. The value that was decoded from \
-              SQLite does not match the value that was encoded to SQLite. If you are using custom \
-              representable SQLite types, make sure their encoding and decoding roundtrip.
-              """)
-          }
-        }
-      }
-    }
-  }
-
-  @Table struct BadTable {
-    let id: Int
-    @Column(as: Int.BadRepresentation.self)
-    var value = 0
-    var title = ""
-  }
-
-  extension Int {
-    struct BadRepresentation: QueryBindable, QueryDecodable, QueryRepresentable {
-      var queryBinding: StructuredQueriesCore.QueryBinding {
-        .int(Int64(queryOutput))
-      }
-      init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
-        queryOutput = try Int(decoder: &decoder) + 1
-      }
-      let queryOutput: Int
-      init(queryOutput: Int) {
-        self.queryOutput = queryOutput
-      }
     }
   }
 #endif
