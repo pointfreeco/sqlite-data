@@ -831,14 +831,14 @@
         }
         return
       }
-      syncEngine(for: oldZoneID)?.state.add(pendingRecordZoneChanges: oldChanges)
-      syncEngine(for: zoneID)?.state.add(pendingRecordZoneChanges: newChanges)
-    }
-
-    fileprivate func syncEngine(for zoneID: CKRecordZone.ID) -> (any SyncEngineProtocol)? {
-      syncEngines.withValue {
+      let oldSyncEngine = self.syncEngines.withValue {
+        oldZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+      }
+      let syncEngine = self.syncEngines.withValue {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
+      oldSyncEngine?.state.add(pendingRecordZoneChanges: oldChanges)
+      syncEngine?.state.add(pendingRecordZoneChanges: newChanges)
     }
 
     @DatabaseFunction(
@@ -2047,8 +2047,7 @@
               if data == nil {
                 reportIssue("Asset data not found on disk")
               }
-              return
-                "\(quote: columnName) = \(data?.queryFragment ?? #""excluded".\#(quote: columnName)"#)"
+              return "\(quote: columnName) = \(data?.queryFragment ?? #""excluded".\#(quote: columnName)"#)"
             } else {
               return """
                 \(quote: columnName) = \
