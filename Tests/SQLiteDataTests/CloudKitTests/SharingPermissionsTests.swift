@@ -249,15 +249,43 @@
             )
           )
 
-        await withKnownIssue(
+        try await self.userDatabase.userWrite { db in
+          try RemindersList.find(1).delete().execute(db)
+          try #expect(RemindersList.fetchCount(db) == 0)
+          try #expect(Reminder.fetchCount(db) == 0)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+        assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
           """
-          It should be allowed to delete the root record even with read-only permissions
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                  share: nil,
+                  id: 1,
+                  remindersListID: 1,
+                  title: "Get milk"
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            )
+          )
           """
-        ) {
-          try await self.userDatabase.userWrite { db in
-            try RemindersList.find(1).delete().execute(db)
-            try #expect(RemindersList.fetchCount(db) == 0)
-          }
         }
       }
 

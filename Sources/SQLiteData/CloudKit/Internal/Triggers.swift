@@ -20,6 +20,11 @@
           defaultZone: defaultZone,
           privateTables: privateTables
         ),
+        beforeDeleteFromUser(
+          parentForeignKey: parentForeignKey,
+          defaultZone: defaultZone,
+          privateTables: privateTables
+        ),
         afterDeleteFromUser(
           parentForeignKey: parentForeignKey,
           defaultZone: defaultZone,
@@ -117,6 +122,29 @@
       )
     }
 
+    fileprivate static func beforeDeleteFromUser(
+      parentForeignKey: ForeignKey?,
+      defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable]
+    ) -> TemporaryTrigger<
+      Self
+    > {
+      createTemporaryTrigger(
+        "\(String.sqliteDataCloudKitSchemaName)_before_delete_on_\(tableName)_from_user",
+        ifNotExists: true,
+        before: .delete { old in
+          SyncMetadata
+            .where {
+              $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
+              && $0.recordType.eq(tableName)
+            }
+            .update { $0._isDeleted = true }
+        } when: { _ in
+          !SyncEngine.$isSynchronizing
+        }
+      )
+    }
+
     fileprivate static func afterDeleteFromUser(
       parentForeignKey: ForeignKey?,
       defaultZone: CKRecordZone,
@@ -134,12 +162,6 @@
             defaultZone: defaultZone,
             privateTables: privateTables
           )
-          SyncMetadata
-            .where {
-              $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
-                && $0.recordType.eq(tableName)
-            }
-            .update { $0._isDeleted = true }
         } when: { _ in
           !SyncEngine.$isSynchronizing
         }
@@ -435,12 +457,23 @@
           $0.recordPrimaryKey.is(parentRecordPrimaryKey)
             && $0.recordType.is(parentRecordType)
         }
-        .select { RootShare.Columns(parentRecordName: $0.parentRecordName, share: $0.share) }
+        .select {
+          RootShare
+            .Columns(
+              parentRecordName: $0.parentRecordName,
+              share: $0.share,
+              _isDeleted: $0._isDeleted
+            )
+        }
         .union(
           all: true,
           SyncMetadata
             .select {
-              RootShare.Columns(parentRecordName: $0.parentRecordName, share: $0.share)
+              RootShare.Columns(
+                parentRecordName: $0.parentRecordName,
+                share: $0.share,
+                _isDeleted: $0._isDeleted
+              )
             }
             .join(RootShare.all) { $0.recordName.is($1.parentRecordName) }
         )
@@ -455,6 +488,7 @@
         .where {
           !SyncEngine.$isSynchronizing
             && $0.parentRecordName.is(nil)
+            && !$0._isDeleted
             && !$hasPermission($0.share)
         }
     }
@@ -578,5 +612,6 @@
     let parentRecordName: String?
     @Column(as: CKShare?.SystemFieldsRepresentation.self)
     let share: CKShare?
+    let _isDeleted: Bool
   }
 #endif
