@@ -119,10 +119,13 @@
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func remoteCreatesRecordABC_localReceivesAC_remoteDeletesBC() async throws {
         let modelARecord = CKRecord(recordType: ModelA.tableName, recordID: ModelA.recordID(for: 1))
+        modelARecord.setValue(1, forKey: "id", at: 0)
         let modelBRecord = CKRecord(recordType: ModelB.tableName, recordID: ModelB.recordID(for: 1))
+        modelBRecord.setValue(1, forKey: "id", at: 0)
         modelBRecord.setValue(1, forKey: "modelAID", at: now)
         modelBRecord.parent = CKRecord.Reference(record: modelARecord, action: .none)
         let modelCRecord = CKRecord(recordType: ModelC.tableName, recordID: ModelC.recordID(for: 1))
+        modelCRecord.setValue(1, forKey: "id", at: 0)
         modelCRecord.setValue(1, forKey: "modelBID", at: now)
         modelCRecord.parent = CKRecord.Reference(record: modelBRecord, action: .none)
 
@@ -205,7 +208,8 @@
                   recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__),
                   recordType: "modelAs",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  id: 1
                 )
               ]
             ),

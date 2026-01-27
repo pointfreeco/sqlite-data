@@ -1892,7 +1892,9 @@
       db: Database
     ) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
-        guard let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey
+        guard
+          let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey,
+          serverRecord.encryptedValues[CKRecord.userModificationTimeKey] != nil
         else {
           return
         }

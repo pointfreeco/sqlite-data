@@ -405,7 +405,7 @@
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func receiveRecord_SingleFieldPrimaryKey() async throws {
         let tagRecord = CKRecord(recordType: "tags", recordID: Tag.recordID(for: "weekend"))
-        tagRecord.encryptedValues["title"] = "weekend"
+        tagRecord.setValue("weekend", forKey: "title", at: 0)
         try await syncEngine.modifyRecords(scope: .private, saving: [tagRecord]).notify()
 
         try await userDatabase.read { db in
@@ -508,7 +508,7 @@
           recordType: Tag.tableName,
           recordID: Tag.recordID(for: "tag")
         )
-        tagRecord.encryptedValues["title"] = "tag"
+        tagRecord.setValue("tag", forKey: "title", at: 0)
         try await syncEngine.modifyRecords(scope: .private, saving: [tagRecord]).notify()
 
         assertQuery(Tag.all, database: userDatabase.database) {
@@ -583,7 +583,7 @@
           recordType: Tag.tableName,
           recordID: Tag.recordID(for: "tag")
         )
-        tagRecord.encryptedValues["title"] = "tag"
+        tagRecord.setValue("tag", forKey: "title", at: 0)
         let modifications = try syncEngine.modifyRecords(scope: .private, saving: [tagRecord])
 
         try await userDatabase.userWrite { db in

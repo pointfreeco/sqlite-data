@@ -860,7 +860,7 @@
         }
 
         let record = try syncEngine.private.database.record(for: ModelA.recordID(for: 1))
-        record.encryptedValues["isEven"] = false
+        record.setValue(false, forKey: "isEven", at: 0)
         try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
 
         assertInlineSnapshot(of: container, as: .customDump) {

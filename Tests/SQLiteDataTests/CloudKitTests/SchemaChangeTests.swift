@@ -720,12 +720,10 @@
           )
         )
         try await syncEngine.modifyRecords(scope: .private, saving: [customRecord]).notify()
-        withKnownIssue("We should have a way to not sync this record's metadata") {
-          assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
-            """
-            (No results)
-            """
-          }
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          (No results)
+          """
         }
       }
     }
