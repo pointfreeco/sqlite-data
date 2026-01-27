@@ -324,6 +324,16 @@
               return false
             }
           }
+          if isRowValueModified {
+            print("!?!?!?!?!")
+          }
+          if !syncEngineHasPendingChanges && isRowValueModified {
+            reportIssue("""
+              Roundtrip error detected for '\(T.tableName).\(key)'. The value that was decoded \
+              from SQLite does not match the value that was encoded to SQLite. If you are using \
+              custom representable SQLite types, make sure their encoding and decoding roundtrip.
+              """)
+          }
           if didSet || (syncEngineHasPendingChanges && isRowValueModified) {
             columnNames.removeAll(where: { $0 == key })
             if didSet, let parentForeignKey, key == parentForeignKey.from {
