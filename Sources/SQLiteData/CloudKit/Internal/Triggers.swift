@@ -132,8 +132,7 @@
             alias: old,
             parentForeignKey: parentForeignKey,
             defaultZone: defaultZone,
-            privateTables: privateTables,
-            skipPermissionChecksIfDeletingRootRecord: true
+            privateTables: privateTables
           )
           SyncMetadata
             .where {
@@ -421,10 +420,8 @@
     alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
     defaultZone: CKRecordZone,
-    privateTables: [any SynchronizableTable],
-    skipPermissionChecksIfDeletingRootRecord: Bool = false
+    privateTables: [any SynchronizableTable]
   ) -> some StructuredQueriesCore.Statement<Never> {
-    let isRootTable = parentForeignKey == nil
     let (parentRecordPrimaryKey, parentRecordType, _, _) = parentFields(
       alias: alias,
       parentForeignKey: parentForeignKey,
@@ -438,22 +435,12 @@
           $0.recordPrimaryKey.is(parentRecordPrimaryKey)
             && $0.recordType.is(parentRecordType)
         }
-        .select {
-          RootShare.Columns(
-            recordName: $0.recordName,
-            parentRecordName: $0.parentRecordName,
-            share: $0.share
-          )
-        }
+        .select { RootShare.Columns(parentRecordName: $0.parentRecordName, share: $0.share) }
         .union(
           all: true,
           SyncMetadata
             .select {
-              RootShare.Columns(
-                recordName: $0.recordName,
-                parentRecordName: $0.parentRecordName,
-                share: $0.share
-              )
+              RootShare.Columns(parentRecordName: $0.parentRecordName, share: $0.share)
             }
             .join(RootShare.all) { $0.recordName.is($1.parentRecordName) }
         )
@@ -469,14 +456,8 @@
           !SyncEngine.$isSynchronizing
             && $0.parentRecordName.is(nil)
             && !$hasPermission($0.share)
-            && ((isRootTable && triggerDepth().gt(1)) || (!isRootTable && triggerDepth().eq(1)))
         }
     }
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  private func triggerDepth() -> some QueryExpression<Int> {
-    #sql("sqlite_trigger_depth()", as: Int.self)
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -594,7 +575,6 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Selection
   private struct RootShare {
-    let recordName: String
     let parentRecordName: String?
     @Column(as: CKShare?.SystemFieldsRepresentation.self)
     let share: CKShare?
