@@ -18,6 +18,23 @@
         lastRecordChangeTag += 1
         return lastRecordChangeTag
       }
+
+      mutating func saveRecord(_ record: CKRecord) {
+        guard let existingEntry = storage[record.recordID.zoneID]?.records[record.recordID]
+        else {
+          storage[record.recordID.zoneID]?.records[record.recordID] =
+            RecordEntry(current: record, history: [:])
+          return
+        }
+        var updatedEntry = existingEntry
+        if let existingRecordChangeTag = existingEntry.current._recordChangeTag,
+          let existingRecordCopy = existingEntry.current.copy() as? CKRecord
+        {
+          updatedEntry.history[existingRecordChangeTag] = existingRecordCopy
+        }
+        updatedEntry.current = record
+        storage[record.recordID.zoneID]?.records[record.recordID] = updatedEntry
+      }
     }
 
     struct AssetID: Hashable {
@@ -204,28 +221,7 @@
               }
 
               // TODO: This should merge copy's values to more accurately reflect reality
-              if let existingEntry = state.storage[recordToSave.recordID.zoneID]?.records[
-                recordToSave.recordID
-              ],
-                let existingRecord = Optional(existingEntry.current),
-                let existingRecordChangeTag = existingRecord._recordChangeTag,
-                let existingRecordCopy = existingRecord.copy() as? CKRecord
-              {
-                var updatedEntry = existingEntry
-                updatedEntry.history[existingRecordChangeTag] = existingRecordCopy
-                state.storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID] =
-                  updatedEntry
-              }
-              if var existingEntry = state.storage[recordToSave.recordID.zoneID]?.records[
-                recordToSave.recordID
-              ] {
-                existingEntry.current = copy
-                state.storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID] =
-                  existingEntry
-              } else {
-                state.storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID] =
-                  RecordEntry(current: copy, history: [:])
-              }
+              state.saveRecord(copy)
               saveResults[recordToSave.recordID] = .success(copy)
 
               // NB: "Touch" parent records when saving a child:
@@ -238,20 +234,7 @@
                   .copy() as? CKRecord
               {
                 parentRecord._recordChangeTag = state.nextRecordChangeTag()
-                if var parentEntry =
-                  state.storage[parent.recordID.zoneID]?.records[parent.recordID]
-                {
-                  if let parentChangeTag = parentEntry.current._recordChangeTag,
-                    let parentRecordCopy = parentEntry.current.copy() as? CKRecord
-                  {
-                    parentEntry.history[parentChangeTag] = parentRecordCopy
-                  }
-                  parentEntry.current = parentRecord
-                  state.storage[parent.recordID.zoneID]?.records[parent.recordID] = parentEntry
-                } else {
-                  state.storage[parent.recordID.zoneID]?.records[parent.recordID] =
-                    RecordEntry(current: parentRecord, history: [:])
-                }
+                state.saveRecord(parentRecord)
               }
             }
 
