@@ -26,10 +26,8 @@
             RecordEntry(record: record, history: [:])
           return
         }
-        if let existingRecordChangeTag = existingEntry.record._recordChangeTag,
-          let existingRecordCopy = existingEntry.record.copy() as? CKRecord
-        {
-          existingEntry.history[existingRecordChangeTag] = existingRecordCopy
+        if let existingRecordChangeTag = existingEntry.record._recordChangeTag {
+          existingEntry.history[existingRecordChangeTag] = existingEntry.record.copy() as? CKRecord
         }
         existingEntry.record = record
         storage[record.recordID.zoneID]?.entries[record.recordID] = existingEntry
