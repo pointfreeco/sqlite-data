@@ -192,6 +192,103 @@
         }
       }
 
+      /// Delete root shared record when user does not have permission.
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func deleteRootSharedRecord() async throws {
+        let externalZone = CKRecordZone(
+          zoneID: CKRecordZone.ID(
+            zoneName: "external.zone",
+            ownerName: "external.owner"
+          )
+        )
+        try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+        let reminderRecord = CKRecord(
+          recordType: Reminder.tableName,
+          recordID: Reminder.recordID(for: 1, zoneID: externalZone.zoneID)
+        )
+        reminderRecord.setValue(1, forKey: "id", at: now)
+        reminderRecord.setValue("Get milk", forKey: "title", at: now)
+        reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+        reminderRecord.parent = CKRecord.Reference(record: remindersListRecord, action: .none)
+        let share = CKShare(
+          rootRecord: remindersListRecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(remindersListRecord.recordID.recordName)",
+            zoneID: remindersListRecord.recordID.zoneID
+          )
+        )
+        share.publicPermission = .readOnly
+        share.currentUserParticipant?.permission = .readOnly
+
+        _ = try syncEngine.modifyRecords(
+          scope: .shared,
+          saving: [reminderRecord, remindersListRecord, share]
+        )
+
+        let freshRemindersListRecord = try syncEngine.shared.database.record(
+          for: remindersListRecord.recordID
+        )
+        let freshShare = try #require(
+          syncEngine.shared.database.record(for: share.recordID) as? CKShare
+        )
+
+        try await syncEngine
+          .acceptShare(
+            metadata: ShareMetadata(
+              containerIdentifier: container.containerIdentifier!,
+              hierarchicalRootRecordID: freshRemindersListRecord.recordID,
+              rootRecord: freshRemindersListRecord,
+              share: freshShare
+            )
+          )
+
+        try await self.userDatabase.userWrite { db in
+          try RemindersList.find(1).delete().execute(db)
+          try #expect(RemindersList.fetchCount(db) == 0)
+          try #expect(Reminder.fetchCount(db) == 0)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+        assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner)),
+                  share: nil,
+                  id: 1,
+                  remindersListID: 1,
+                  title: "Get milk"
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner)),
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            )
+          )
+          """
+        }
+      }
+
       /// Editing record in shared record when user does not have permission.
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func editReminderInReadOnlyRemindersList() async throws {
