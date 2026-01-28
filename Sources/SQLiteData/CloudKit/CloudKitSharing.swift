@@ -134,7 +134,7 @@
             reason: .recordMetadataNotFound,
             debugDescription: """
               No sync metadata found for record. Has the record been saved to the database \
-              and synchronized to iCloud? You can invoke 'SyncEngine.sendChanges()` to force \
+              and synchronized to iCloud? Invoke 'SyncEngine.sendChanges()' to force \
               synchronization.
               """
           )
