@@ -24,7 +24,7 @@
               tableName: "remindersLists",
               schema: """
                 CREATE TABLE "remindersLists" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                  "id" INT PRIMARY KEY NOT NULL,
                   "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
                 ) STRICT
                 """,
@@ -34,7 +34,7 @@
                   isPrimaryKey: true,
                   name: "id",
                   isNotNull: true,
-                  type: "INTEGER"
+                  type: "INT"
                 ),
                 [1]: TableInfo(
                   defaultValue: "\'\'",
@@ -101,7 +101,7 @@
               tableName: "reminders",
               schema: """
                 CREATE TABLE "reminders" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                  "id" INT PRIMARY KEY NOT NULL,
                   "dueDate" TEXT,
                   "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
                   "priority" INTEGER,
@@ -124,7 +124,7 @@
                   isPrimaryKey: true,
                   name: "id",
                   isNotNull: true,
-                  type: "INTEGER"
+                  type: "INT"
                 ),
                 [2]: TableInfo(
                   defaultValue: "0",
@@ -177,7 +177,7 @@
               tableName: "reminderTags",
               schema: """
                 CREATE TABLE "reminderTags" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                  "id" INT PRIMARY KEY NOT NULL,
                   "reminderID" INTEGER NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
                   "tagID" TEXT NOT NULL REFERENCES "tags"("title") ON DELETE CASCADE ON UPDATE CASCADE
                 ) STRICT
@@ -188,7 +188,7 @@
                   isPrimaryKey: true,
                   name: "id",
                   isNotNull: true,
-                  type: "INTEGER"
+                  type: "INT"
                 ),
                 [1]: TableInfo(
                   defaultValue: nil,
@@ -210,7 +210,7 @@
               tableName: "parents",
               schema: """
                 CREATE TABLE "parents"(
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
+                  "id" INT PRIMARY KEY NOT NULL
                 ) STRICT
                 """,
               tableInfo: [
@@ -219,7 +219,7 @@
                   isPrimaryKey: true,
                   name: "id",
                   isNotNull: true,
-                  type: "INTEGER"
+                  type: "INT"
                 )
               ]
             ),
@@ -227,7 +227,7 @@
               tableName: "childWithOnDeleteSetNulls",
               schema: """
                 CREATE TABLE "childWithOnDeleteSetNulls"(
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                  "id" INT PRIMARY KEY NOT NULL,
                   "parentID" INTEGER REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
                 ) STRICT
                 """,
@@ -237,7 +237,7 @@
                   isPrimaryKey: true,
                   name: "id",
                   isNotNull: true,
-                  type: "INTEGER"
+                  type: "INT"
                 ),
                 [1]: TableInfo(
                   defaultValue: nil,
@@ -252,7 +252,7 @@
               tableName: "childWithOnDeleteSetDefaults",
               schema: """
                 CREATE TABLE "childWithOnDeleteSetDefaults"(
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                  "id" INT PRIMARY KEY NOT NULL,
                   "parentID" INTEGER NOT NULL DEFAULT 0 
                     REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
                 ) STRICT
@@ -263,7 +263,7 @@
                   isPrimaryKey: true,
                   name: "id",
                   isNotNull: true,
-                  type: "INTEGER"
+                  type: "INT"
                 ),
                 [1]: TableInfo(
                   defaultValue: "0",
@@ -278,7 +278,7 @@
               tableName: "modelAs",
               schema: """
                 CREATE TABLE "modelAs" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                  "id" INT PRIMARY KEY NOT NULL,
                   "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
                   "isEven" INTEGER GENERATED ALWAYS AS ("count" % 2 == 0) VIRTUAL 
                 )
@@ -296,7 +296,7 @@
                   isPrimaryKey: true,
                   name: "id",
                   isNotNull: true,
-                  type: "INTEGER"
+                  type: "INT"
                 )
               ]
             ),
@@ -304,7 +304,7 @@
               tableName: "modelBs",
               schema: """
                 CREATE TABLE "modelBs" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                  "id" INT PRIMARY KEY NOT NULL,
                   "isOn" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
                   "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
                 )
@@ -315,7 +315,7 @@
                   isPrimaryKey: true,
                   name: "id",
                   isNotNull: true,
-                  type: "INTEGER"
+                  type: "INT"
                 ),
                 [1]: TableInfo(
                   defaultValue: "0",
@@ -337,7 +337,7 @@
               tableName: "modelCs",
               schema: """
                 CREATE TABLE "modelCs" (
-                  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                  "id" INT PRIMARY KEY NOT NULL,
                   "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
                   "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
                 )
@@ -348,7 +348,7 @@
                   isPrimaryKey: true,
                   name: "id",
                   isNotNull: true,
-                  type: "INTEGER"
+                  type: "INT"
                 ),
                 [1]: TableInfo(
                   defaultValue: nil,
@@ -860,7 +860,7 @@
         }
 
         let record = try syncEngine.private.database.record(for: ModelA.recordID(for: 1))
-        record.encryptedValues["isEven"] = false
+        record.setValue(false, forKey: "isEven", at: 0)
         try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
 
         assertInlineSnapshot(of: container, as: .customDump) {

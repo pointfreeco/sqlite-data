@@ -1,4 +1,4 @@
-#if canImport(CloudKit)
+#if DEBUG && canImport(DeveloperToolsSupport) && canImport(CloudKit)
   import DependenciesTestSupport
   import InlineSnapshotTesting
   import SnapshotTestingCustomDump
@@ -43,9 +43,8 @@
         }
       }
 
-      @Test
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      func delete() async throws {
+      @Test func delete() async throws {
         @FetchAll(RemindersList.all, database: userDatabase.database) var remindersLists
 
         try await userDatabase.userWrite { db in

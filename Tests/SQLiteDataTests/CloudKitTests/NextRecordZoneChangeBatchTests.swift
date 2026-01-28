@@ -262,6 +262,71 @@
           """
         }
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.printTimestamps(true), .printRecordChangeTag)
+      func editBetweenBatchAndSentRecordZoneChanges() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try RemindersList.find(1).update { $0.title = "Personal 2" }.execute(db)
+          }
+
+          let changes = try await syncEngine.sendPendingRecordZoneChanges(scope: .private)
+
+          try await withDependencies {
+            $0.currentTime.now += 1
+          } operation: {
+            try await userDatabase.userWrite { db in
+              try RemindersList.find(1).update { $0.title = "Personal 3" }.execute(db)
+            }
+            await changes.receive()
+            try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+            try await userDatabase.read { db in
+              expectNoDifference(
+                try RemindersList.fetchAll(db),
+                [RemindersList(id: 1, title: "Personal 3")]
+              )
+            }
+            assertInlineSnapshot(of: syncEngine.container, as: .customDump) {
+              """
+              MockCloudContainer(
+                privateCloudDatabase: MockCloudDatabase(
+                  databaseScope: .private,
+                  storage: [
+                    [0]: CKRecord(
+                      recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                      recordType: "remindersLists",
+                      parent: nil,
+                      share: nil,
+                      recordChangeTag: 3,
+                      id: 1,
+                      id🗓️: 0,
+                      title: "Personal 3",
+                      title🗓️: 2,
+                      🗓️: 2
+                    )
+                  ]
+                ),
+                sharedCloudDatabase: MockCloudDatabase(
+                  databaseScope: .shared,
+                  storage: []
+                )
+              )
+              """
+            }
+          }
+        }
+      }
     }
   }
 

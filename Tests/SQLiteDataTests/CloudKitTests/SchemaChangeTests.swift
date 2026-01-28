@@ -218,7 +218,7 @@
           try #sql(
             """
             ALTER TABLE "remindersLists" 
-            ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+            ADD COLUMN "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 42
             """
           )
           .execute(db)
@@ -236,6 +236,220 @@
             ],
           privateTables: syncEngine.privateTables
         )
+
+        try await userDatabase.read { db in
+          try #expect(
+            RemindersListWithPosition.fetchAll(db) == [
+              RemindersListWithPosition(id: 1, title: "Personal", position: 42)
+            ]
+          )
+        }
+      }
+
+      /*
+       * Old schema creates record and synchronizes to iCloud.
+       * Schema is migrated to add a "NULL DEFAULT _" column.
+       * New sync engine is launched.
+       => Sync starts without emitting an error and default value is persisted in local database.
+       */
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func addNullableColumn_OldRecordsSyncToNewSchema() async throws {
+        let remindersList = RemindersList(id: 1, title: "Personal")
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            remindersList
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        syncEngine.stop()
+
+        try await userDatabase.userWrite { db in
+          try #sql(
+            """
+            ALTER TABLE "remindersLists" 
+            ADD COLUMN "color" INTEGER DEFAULT 42
+            """
+          )
+          .execute(db)
+        }
+
+        // NB: Sync engine should start without emitting issue.
+        _ = try await SyncEngine(
+          container: syncEngine.container,
+          userDatabase: syncEngine.userDatabase,
+          tables: syncEngine.tables
+            .filter { $0.base != RemindersList.self }
+          + [
+            SynchronizedTable(for: RemindersListWithColor.self),
+          ],
+          privateTables: syncEngine.privateTables
+        )
+
+        try await userDatabase.read { db in
+          try #expect(
+            RemindersListWithColor.fetchAll(db) == [
+              RemindersListWithColor(id: 1, title: "Personal", color: 42)
+            ]
+          )
+        }
+      }
+
+      /*
+       * Schema is migrated to add a "NULL DEFAULT _" column.
+       * New sync engine is launched.
+       * Old record with no 'color' value synchronized
+       => Local database row created uses default for 'color'.
+       */
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func addNullableColumn_OldDeviceSyncsMissingColor() async throws {
+        syncEngine.stop()
+
+        try await userDatabase.userWrite { db in
+          try #sql(
+            """
+            ALTER TABLE "remindersLists" 
+            ADD COLUMN "color" INTEGER DEFAULT 42
+            """
+          )
+          .execute(db)
+        }
+
+        // NB: Sync engine should start without emitting issue.
+        let relaunchedSyncEngine = try await SyncEngine(
+          container: syncEngine.container,
+          userDatabase: syncEngine.userDatabase,
+          tables: syncEngine.tables
+            .filter { $0.base != RemindersList.self }
+          + [
+            SynchronizedTable(for: RemindersListWithColor.self),
+          ],
+          privateTables: syncEngine.privateTables
+        )
+
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          let remindersListRecord = CKRecord(
+            recordType: RemindersList.tableName,
+            recordID: RemindersList.recordID(for: 1)
+          )
+          remindersListRecord.setValue(1, forKey: "id", at: now)
+          remindersListRecord.setValue("My stuff", forKey: "title", at: now)
+          try await relaunchedSyncEngine
+            .modifyRecords(scope: .private, saving: [remindersListRecord])
+            .notify()
+
+          try await userDatabase.read { db in
+            try #expect(
+              RemindersListWithColor.fetchAll(db) == [
+                RemindersListWithColor(id: 1, title: "My stuff", color: 42)
+              ]
+            )
+          }
+          assertInlineSnapshot(of: relaunchedSyncEngine.container, as: .customDump) {
+            """
+            MockCloudContainer(
+              privateCloudDatabase: MockCloudDatabase(
+                databaseScope: .private,
+                storage: [
+                  [0]: CKRecord(
+                    recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                    recordType: "remindersLists",
+                    parent: nil,
+                    share: nil,
+                    id: 1,
+                    title: "My stuff"
+                  )
+                ]
+              ),
+              sharedCloudDatabase: MockCloudDatabase(
+                databaseScope: .shared,
+                storage: []
+              )
+            )
+            """
+          }
+        }
+      }
+
+      /*
+       * Schema is migrated to add a "NULL DEFAULT _" column.
+       * New sync engine is launched.
+       * New record with NULL 'color' value synchronized
+       => Local database row created uses NULL for color
+       */
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func addNullableColumn_NewDeviceSyncsNullColor() async throws {
+        syncEngine.stop()
+
+        try await userDatabase.userWrite { db in
+          try #sql(
+            """
+            ALTER TABLE "remindersLists" 
+            ADD COLUMN "color" INTEGER DEFAULT 42
+            """
+          )
+          .execute(db)
+        }
+
+        // NB: Sync engine should start without emitting issue.
+        let relaunchedSyncEngine = try await SyncEngine(
+          container: syncEngine.container,
+          userDatabase: syncEngine.userDatabase,
+          tables: syncEngine.tables
+            .filter { $0.base != RemindersList.self }
+          + [
+            SynchronizedTable(for: RemindersListWithColor.self),
+          ],
+          privateTables: syncEngine.privateTables
+        )
+
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          let remindersListRecord = CKRecord(
+            recordType: RemindersList.tableName,
+            recordID: RemindersList.recordID(for: 1)
+          )
+          remindersListRecord.setValue(1, forKey: "id", at: now)
+          remindersListRecord.setValue("My stuff", forKey: "title", at: now)
+          remindersListRecord.removeValue(forKey: "color", at: now)
+          try await relaunchedSyncEngine
+            .modifyRecords(scope: .private, saving: [remindersListRecord])
+            .notify()
+
+          try await userDatabase.read { db in
+            try #expect(
+              RemindersListWithColor.fetchAll(db) == [
+                RemindersListWithColor(id: 1, title: "My stuff", color: nil)
+              ]
+            )
+          }
+          assertInlineSnapshot(of: relaunchedSyncEngine.container, as: .customDump) {
+            """
+            MockCloudContainer(
+              privateCloudDatabase: MockCloudDatabase(
+                databaseScope: .private,
+                storage: [
+                  [0]: CKRecord(
+                    recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                    recordType: "remindersLists",
+                    parent: nil,
+                    share: nil,
+                    id: 1,
+                    title: "My stuff"
+                  )
+                ]
+              ),
+              sharedCloudDatabase: MockCloudDatabase(
+                databaseScope: .shared,
+                storage: []
+              )
+            )
+            """
+          }
+        }
       }
 
       /*
@@ -632,6 +846,7 @@
             saving: [imageRecord]
           )
           .notify()
+          syncEngine.stop()
 
           inMemoryDataManager.storage.withValue { $0.removeAll() }
 
@@ -656,26 +871,90 @@
           )
           defer { _ = relaunchedSyncEngine }
 
-          let images = try await userDatabase.read { db in
-            try Image.order(by: \.id).fetchAll(db)
+          try await userDatabase.read { db in
+            expectNoDifference(
+              try Image.order(by: \.id).fetchAll(db),
+              [
+                Image(id: 1, image: Data("image".utf8), caption: "A good image")
+              ]
+            )
           }
 
-          expectNoDifference(
-            images,
-            [
-              Image(id: 1, image: Data("image".utf8), caption: "A good image")
-            ]
+          assertInlineSnapshot(of: relaunchedSyncEngine.container, as: .customDump) {
+            """
+            MockCloudContainer(
+              privateCloudDatabase: MockCloudDatabase(
+                databaseScope: .private,
+                storage: [
+                  [0]: CKRecord(
+                    recordID: CKRecord.ID(1:images/zone/__defaultOwner__),
+                    recordType: "images",
+                    parent: nil,
+                    share: nil,
+                    caption: "A good image",
+                    id: "1",
+                    image: Data(5 bytes)
+                  )
+                ]
+              ),
+              sharedCloudDatabase: MockCloudDatabase(
+                databaseScope: .shared,
+                storage: []
+              )
+            )
+            """
+          }
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func outsideRecord() async throws {
+        let customRecord = CKRecord(
+          recordType: "customRecord",
+          recordID: CKRecord.ID(
+            recordName: "customRecord",
+            zoneID: SyncEngine.defaultTestZone.zoneID
           )
+        )
+        try await syncEngine.modifyRecords(scope: .private, saving: [customRecord]).notify()
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          (No results)
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func outsideRecordWithColon() async throws {
+        let customRecord = CKRecord(
+          recordType: "customRecord",
+          recordID: CKRecord.ID(
+            recordName: "1:customRecord",
+            zoneID: SyncEngine.defaultTestZone.zoneID
+          )
+        )
+        try await syncEngine.modifyRecords(scope: .private, saving: [customRecord]).notify()
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          (No results)
+          """
         }
       }
     }
   }
 
+@Table("remindersLists")
+private struct RemindersListWithPosition: Equatable, Identifiable {
+  let id: Int
+  var title = ""
+  var position = 0
+}
+
   @Table("remindersLists")
-  private struct RemindersListWithPosition: Equatable, Identifiable {
+  private struct RemindersListWithColor: Equatable, Identifiable {
     let id: Int
     var title = ""
-    var position = 0
+    var color: Int?
   }
 
   @Table("reminders")

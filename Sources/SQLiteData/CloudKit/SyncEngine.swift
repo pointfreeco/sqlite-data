@@ -38,7 +38,7 @@
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
-    #if canImport(DeveloperToolsSupport)
+    #if DEBUG && canImport(DeveloperToolsSupport)
       private let previewTimerTask = LockIsolated<Task<Void, Never>?>(nil)
     #endif
 
@@ -423,7 +423,7 @@
     /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
       guard isRunning else { return }
-      #if canImport(DeveloperToolsSupport)
+      #if DEBUG && canImport(DeveloperToolsSupport)
         previewTimerTask.withValue {
           $0?.cancel()
           $0 = nil
@@ -503,7 +503,7 @@
         }
       )
 
-      #if canImport(DeveloperToolsSupport)
+      #if DEBUG && canImport(DeveloperToolsSupport)
         @Dependency(\.context) var context
         @Dependency(\.continuousClock) var clock
         if context == .preview {
@@ -1895,8 +1895,12 @@
       db: Database
     ) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
-        guard let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey
-        else { return }
+        guard
+          let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey,
+          serverRecord.encryptedValues[CKRecord.userModificationTimeKey] != nil
+        else {
+          return
+        }
 
         try SyncMetadata.insert {
           SyncMetadata(
@@ -2006,7 +2010,9 @@
     ) async throws -> QueryFragment {
       let nonPrimaryKeyChangedColumns =
         changedColumnNames
-        .filter { $0 != T.primaryKey.name }
+        .filter {
+          $0 != T.primaryKey.name && record.hasSet(key: $0)
+        }
       guard
         !nonPrimaryKeyChangedColumns.isEmpty
       else {
@@ -2427,7 +2433,9 @@
       self.lastKnownServerRecord = lastKnownServerRecord
       self._lastKnownServerRecordAllFields = lastKnownServerRecord
       if let lastKnownServerRecord {
-        self.userModificationTime = lastKnownServerRecord.userModificationTime
+        self.userModificationTime = #sql("""
+          max(\(self.userModificationTime), \(lastKnownServerRecord.userModificationTime))
+          """)
       }
     }
   }
@@ -2438,13 +2446,19 @@
     record: CKRecord,
     columnNames: some Collection<String>
   ) -> QueryFragment {
-    let allColumnNames = T.TableColumns.writableColumns.map(\.name)
+    let setColumnNames = T.TableColumns.writableColumns.map(\.name)
+      .filter { record.hasSet(key: $0) }
+    guard !setColumnNames.isEmpty
+    else {
+      return ""
+    }
+    let columnNames = columnNames.filter { setColumnNames.contains($0) }
     let hasNonPrimaryKeyColumns = columnNames.contains { $0 != T.primaryKey.name }
     var query: QueryFragment = "INSERT INTO \(T.self) ("
-    query.append(allColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
+    query.append(setColumnNames.map { "\(quote: $0)" }.joined(separator: ", "))
     query.append(") VALUES (")
     query.append(
-      allColumnNames
+      setColumnNames
         .map { columnName in
           if let asset = record[columnName] as? CKAsset {
             @Dependency(\.dataManager) var dataManager
