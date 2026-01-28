@@ -20,20 +20,19 @@
       }
 
       mutating func saveRecord(_ record: CKRecord) {
-        guard let existingEntry = storage[record.recordID.zoneID]?.entries[record.recordID]
+        guard var existingEntry = storage[record.recordID.zoneID]?.entries[record.recordID]
         else {
           storage[record.recordID.zoneID]?.entries[record.recordID] =
             RecordEntry(record: record, history: [:])
           return
         }
-        var updatedEntry = existingEntry
         if let existingRecordChangeTag = existingEntry.record._recordChangeTag,
           let existingRecordCopy = existingEntry.record.copy() as? CKRecord
         {
-          updatedEntry.history[existingRecordChangeTag] = existingRecordCopy
+          existingEntry.history[existingRecordChangeTag] = existingRecordCopy
         }
-        updatedEntry.record = record
-        storage[record.recordID.zoneID]?.entries[record.recordID] = updatedEntry
+        existingEntry.record = record
+        storage[record.recordID.zoneID]?.entries[record.recordID] = existingEntry
       }
     }
 
