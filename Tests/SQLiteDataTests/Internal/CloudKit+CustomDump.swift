@@ -245,7 +245,7 @@
           "storage": state
             .value
             .storage
-            .flatMap { _, value in value.records.values.map(\.current) }
+            .flatMap { _, value in value.entries.values.map(\.record) }
             .sorted {
               ($0.recordType, $0.recordID.recordName) < ($1.recordType, $1.recordID.recordName)
             },

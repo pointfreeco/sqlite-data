@@ -47,7 +47,7 @@
         zoneIDs.reduce(into: [CKRecord]()) {
           accum,
           zoneID in
-          accum += (state.storage[zoneID]?.records.values.map(\.current) ?? [])
+          accum += (state.storage[zoneID]?.entries.values.map(\.record) ?? [])
             .filter {
               precondition(
                 $0._recordChangeTag != nil,
@@ -201,7 +201,6 @@
   extension SyncEngine {
     package struct SendRecordsCallback {
       fileprivate let operation: @Sendable () async -> Void
-      @discardableResult
       package func receive() async {
         await operation()
       }
