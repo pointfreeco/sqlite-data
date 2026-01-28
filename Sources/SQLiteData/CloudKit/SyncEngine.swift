@@ -2426,7 +2426,9 @@
       self.lastKnownServerRecord = lastKnownServerRecord
       self._lastKnownServerRecordAllFields = lastKnownServerRecord
       if let lastKnownServerRecord {
-        self.userModificationTime = lastKnownServerRecord.userModificationTime
+        self.userModificationTime = #sql("""
+          max(\(self.userModificationTime), \(lastKnownServerRecord.userModificationTime))
+          """)
       }
     }
   }
