@@ -38,7 +38,7 @@
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
-    #if canImport(DeveloperToolsSupport)
+    #if DEBUG && canImport(DeveloperToolsSupport)
       private let previewTimerTask = LockIsolated<Task<Void, Never>?>(nil)
     #endif
 
@@ -423,7 +423,7 @@
     /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
       guard isRunning else { return }
-      #if canImport(DeveloperToolsSupport)
+      #if DEBUG && canImport(DeveloperToolsSupport)
         previewTimerTask.withValue {
           $0?.cancel()
           $0 = nil
@@ -503,7 +503,7 @@
         }
       )
 
-      #if canImport(DeveloperToolsSupport)
+      #if DEBUG && canImport(DeveloperToolsSupport)
         @Dependency(\.context) var context
         @Dependency(\.continuousClock) var clock
         if context == .preview {
@@ -1892,8 +1892,12 @@
       db: Database
     ) {
       withErrorReporting(.sqliteDataCloudKitFailure) {
-        guard let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey
-        else { return }
+        guard
+          let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey,
+          serverRecord.encryptedValues[CKRecord.userModificationTimeKey] != nil
+        else {
+          return
+        }
 
         try SyncMetadata.insert {
           SyncMetadata(

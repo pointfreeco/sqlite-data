@@ -508,7 +508,7 @@
           recordType: Tag.tableName,
           recordID: Tag.recordID(for: "tag")
         )
-        tagRecord.encryptedValues["title"] = "tag"
+        tagRecord.setValue("tag", forKey: "title", at: 0)
         try await syncEngine.modifyRecords(scope: .private, saving: [tagRecord]).notify()
 
         assertQuery(Tag.all, database: userDatabase.database) {
@@ -583,7 +583,7 @@
           recordType: Tag.tableName,
           recordID: Tag.recordID(for: "tag")
         )
-        tagRecord.encryptedValues["title"] = "tag"
+        tagRecord.setValue("tag", forKey: "title", at: 0)
         let modifications = try syncEngine.modifyRecords(scope: .private, saving: [tagRecord])
 
         try await userDatabase.userWrite { db in

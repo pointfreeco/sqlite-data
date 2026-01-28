@@ -1,4 +1,4 @@
-#if canImport(CloudKit)
+#if DEBUG && canImport(DeveloperToolsSupport) && canImport(CloudKit)
   import DependenciesTestSupport
   import InlineSnapshotTesting
   import SnapshotTestingCustomDump
