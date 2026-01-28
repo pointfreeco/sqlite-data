@@ -652,7 +652,7 @@
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func serverRecordChangedIncludesAncestorRecord() async throws {
-        let recordID = CKRecord.ID(recordName: "ancestor-test")
+        let recordID = CKRecord.ID(recordName: "1")
         let record = CKRecord(recordType: "A", recordID: recordID)
         record["value"] = 1
 
