@@ -91,7 +91,7 @@
       privateTables: repeat (each T2).Type,
       containerIdentifier: String? = nil,
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
-      startImmediately: Bool = true,
+      startImmediately: Bool? = nil,
       delegate: (any SyncEngineDelegate)? = nil,
       logger: Logger = isTesting
         ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
@@ -152,7 +152,7 @@
           privateTables: allPrivateTables
         )
         try setUpSyncEngine()
-        if startImmediately {
+        if startImmediately ?? !isTesting {
           _ = try start()
         }
         return
@@ -201,7 +201,7 @@
         privateTables: allPrivateTables
       )
       try setUpSyncEngine()
-      if startImmediately {
+      if startImmediately ?? !isTesting {
         _ = try start()
       }
     }
@@ -1167,14 +1167,17 @@
         }
         func open<T>(_: some SynchronizableTable<T>) async -> CKRecord? {
           let row =
-            withErrorReporting(.sqliteDataCloudKitFailure) {
-              try userDatabase.read { db in
-                try T
+            await withErrorReporting(.sqliteDataCloudKitFailure) {
+              // NB: Fake 'sending' result.
+              nonisolated(unsafe) var result: T.QueryOutput?
+              try await userDatabase.read { db in
+                result = try T
                   .where {
                     #sql("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
                   }
                   .fetchOne(db)
               }
+              return result
             }
             ?? nil
           guard let row

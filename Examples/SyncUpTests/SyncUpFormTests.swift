@@ -10,6 +10,7 @@ import Testing
 @Suite(
   .dependencies {
     try $0.bootstrapDatabase()
+    try await $0.defaultSyncEngine.start()
     try await $0.defaultDatabase.seedForTests()
     $0.uuid = .incrementing
   }

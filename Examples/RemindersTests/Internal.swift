@@ -12,6 +12,7 @@ import Testing
   .dependency(\.uuid, .incrementing),
   .dependencies {
     try $0.bootstrapDatabase()
+    try await $0.defaultSyncEngine.start()
     try $0.defaultDatabase.seedSampleData()
     try await $0.defaultSyncEngine.sendChanges()
   },
