@@ -142,6 +142,10 @@
       get { self["\(key)_hash"] as? Data }
       set { self["\(key)_hash"] = newValue }
     }
+    fileprivate subscript(data key: String) -> Data? {
+      get { self["\(key)_data"] as? Data }
+      set { self["\(key)_data"] = newValue }
+    }
   }
 
   @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
@@ -182,6 +186,9 @@
         encryptedValues[hash: key] != hash
       else { return false }
 
+      if encryptedValues[data: key] != nil {
+        encryptedValues[data: key] = nil
+      }
       self[key] = newValue
       encryptedValues[hash: key] = hash
       encryptedValues[at: key] = userModificationTime
@@ -198,6 +205,22 @@
       guard encryptedValues[at: key] <= userModificationTime
       else { return false }
 
+      if newValue.isSmall {
+        let newData = Data(newValue)
+        guard
+          encryptedValues[at: key] <= userModificationTime,
+          encryptedValues[data: key] != newData
+        else { return false }
+        if self[key] != nil {
+          self[key] = nil
+          encryptedValues[hash: key] = nil
+        }
+        encryptedValues[data: key] = newData
+        encryptedValues[at: key] = userModificationTime
+        self.userModificationTime = userModificationTime
+        return true
+      }
+      
       @Dependency(\.dataManager) var dataManager
       let hash = newValue.sha256
       let fileURL = dataManager.temporaryDirectory.appending(
@@ -308,7 +331,13 @@
           var isRowValueModified: Bool {
             switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
             case .blob(let value):
-              return other.encryptedValues[hash: key] != value.sha256
+              if value.isSmall {
+                return other.encryptedValues[key] != Data(value)
+              } else if let otherHash = other.encryptedValues[hash: key] {
+                return otherHash != value.sha256
+              } else {
+                return true
+              }
             case .bool(let value):
               return other.encryptedValues[key] != value
             case .double(let value):
@@ -364,6 +393,8 @@
         return value.queryFragment
       } else if let value = self as? Date {
         return value.queryFragment
+      } else if let value = self as? [UInt8] {
+        return value.queryFragment
       } else {
         return "\(.invalid(Unbindable()))"
       }
@@ -383,5 +414,10 @@
     fileprivate var sha256: Data {
       Data(SHA256.hash(data: self))
     }
+    
+    fileprivate var isSmall: Bool {
+      count * MemoryLayout<UInt>.stride < 16384
+    }
   }
+
 #endif
