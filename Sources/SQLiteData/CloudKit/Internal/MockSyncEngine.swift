@@ -201,7 +201,6 @@
   extension SyncEngine {
     package struct SendRecordsCallback {
       fileprivate let operation: @Sendable () async -> Void
-      @discardableResult
       package func receive() async {
         await operation()
       }
