@@ -211,6 +211,54 @@
         #sql("(\($0.recordName), \($0.zoneName), \($0.ownerName)) IN (\(condition))")
       }
     }
+
+    public static func findRoot(for id: ID) -> some StructuredQueriesCore.Statement<SyncMetadata> {
+      With {
+        SyncMetadata
+          .where { $0.id.eq(id) }
+          .select {
+            RootSyncMetadata.Columns(
+              parentRecordPrimaryKey: $0.parentRecordID.parentRecordPrimaryKey,
+              parentRecordType: $0.parentRecordID.parentRecordType,
+              root: $0
+            )
+          }
+          .union(
+            all: true,
+            SyncMetadata
+              .select {
+                RootSyncMetadata.Columns(
+                  parentRecordPrimaryKey: $0.parentRecordID.parentRecordPrimaryKey,
+                  parentRecordType: $0.parentRecordID.parentRecordType,
+                  root: $0
+                )
+              }
+              .join(RootSyncMetadata.all) {
+                $0.id.recordPrimaryKey.is($1.parentRecordPrimaryKey)
+                && $0.id.recordType.is($1.parentRecordType)
+              }
+          )
+      } query: {
+        RootSyncMetadata.where { $0.parentRecordPrimaryKey.is(nil) }
+          .select { $0.root }
+      }
+    }
+  }
+
+
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+@Selection
+private struct RootSyncMetadata {
+  let parentRecordPrimaryKey: String?
+  let parentRecordType: String?
+  let root: SyncMetadata
+}
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Selection
+  fileprivate struct AncestorMetadata {
+    let recordName: String
+    let parentRecordName: String?
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
