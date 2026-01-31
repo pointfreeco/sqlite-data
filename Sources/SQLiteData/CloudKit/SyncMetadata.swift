@@ -239,7 +239,8 @@
               }
           )
       } query: {
-        RootSyncMetadata.where { $0.parentRecordPrimaryKey.is(nil) }
+        RootSyncMetadata
+          .where { $0.parentRecordPrimaryKey.is(nil) }
           .select { $0.root }
       }
     }
