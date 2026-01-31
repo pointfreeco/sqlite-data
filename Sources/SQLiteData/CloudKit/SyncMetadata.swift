@@ -235,7 +235,7 @@
               }
               .join(RootSyncMetadata.all) {
                 $0.id.recordPrimaryKey.is($1.parentRecordPrimaryKey)
-                && $0.id.recordType.is($1.parentRecordType)
+                  && $0.id.recordType.is($1.parentRecordType)
               }
           )
       } query: {
@@ -245,18 +245,17 @@
     }
   }
 
-
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-@Selection
-private struct RootSyncMetadata {
-  let parentRecordPrimaryKey: String?
-  let parentRecordType: String?
-  let root: SyncMetadata
-}
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @Selection
+  private struct RootSyncMetadata {
+    let parentRecordPrimaryKey: String?
+    let parentRecordType: String?
+    let root: SyncMetadata
+  }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Selection
-  fileprivate struct AncestorMetadata {
+  private struct AncestorMetadata {
     let recordName: String
     let parentRecordName: String?
   }
