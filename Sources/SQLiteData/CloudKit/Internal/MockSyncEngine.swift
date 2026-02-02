@@ -47,7 +47,7 @@
         zoneIDs.reduce(into: [CKRecord]()) {
           accum,
           zoneID in
-          accum += ((state.storage[zoneID]?.records.values).map { Array($0) } ?? [])
+          accum += (state.storage[zoneID]?.entries.values.map(\.record) ?? [])
             .filter {
               precondition(
                 $0._recordChangeTag != nil,
