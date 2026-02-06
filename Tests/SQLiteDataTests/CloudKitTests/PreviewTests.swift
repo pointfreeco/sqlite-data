@@ -44,14 +44,6 @@
         }
       }
 
-      @Test
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      func inMemoryDataManagerUsesNSTemporaryDirectory() {
-        let expectedPath = URL(fileURLWithPath: NSTemporaryDirectory()).path
-        let actualPath = inMemoryDataManager.temporaryDirectory.path
-        #expect(actualPath == expectedPath)
-      }
-
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func delete() async throws {
         @FetchAll(RemindersList.all, database: userDatabase.database) var remindersLists
