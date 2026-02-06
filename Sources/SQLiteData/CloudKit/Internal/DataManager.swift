@@ -77,7 +77,7 @@
     }
 
     package var temporaryDirectory: URL {
-      URL(fileURLWithPath: "/")
+      URL(fileURLWithPath: NSTemporaryDirectory())
     }
   }
 
