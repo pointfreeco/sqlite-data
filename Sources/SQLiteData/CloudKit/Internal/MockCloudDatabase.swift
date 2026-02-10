@@ -60,7 +60,7 @@
         for key in record.allKeys() {
           guard let assetData = state.assets[AssetID(recordID: record.recordID, key: key)]
           else { continue }
-          let url = URL(filePath: UUID().uuidString.lowercased())
+          let url = dataManager.wrappedValue.temporaryDirectory.appending(path: UUID().uuidString)
           try dataManager.wrappedValue.save(assetData, to: url)
           record[key] = CKAsset(fileURL: url)
         }

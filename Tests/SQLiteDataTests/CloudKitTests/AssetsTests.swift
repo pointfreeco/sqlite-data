@@ -37,7 +37,7 @@
                   coverImage_hash: Data(32 bytes),
                   remindersListID: 1,
                   coverImage: CKAsset(
-                    fileURL: URL(file:///6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d),
+                    fileURL: URL(file:///tmp/6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d),
                     dataString: "image"
                   )
                 ),
@@ -61,7 +61,7 @@
 
         inMemoryDataManager.storage.withValue { storage in
           let url = URL(
-            string: "file:///6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d"
+            string: "file:///tmp/6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d"
           )!
           #expect(storage[url] == Data("image".utf8))
         }
@@ -93,7 +93,7 @@
                   coverImage_hash: Data(32 bytes),
                   remindersListID: 1,
                   coverImage: CKAsset(
-                    fileURL: URL(file:///97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf),
+                    fileURL: URL(file:///tmp/97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf),
                     dataString: "new-image"
                   )
                 ),
@@ -117,7 +117,7 @@
 
         inMemoryDataManager.storage.withValue { storage in
           let url = URL(
-            string: "file:///97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf"
+            string: "file:///tmp/97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf"
           )!
           #expect(storage[url] == Data("new-image".utf8))
         }
