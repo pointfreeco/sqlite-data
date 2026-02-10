@@ -2241,7 +2241,7 @@
         url.isInMemory
         ? try DatabaseQueue(path: path)
         : try DatabasePool(path: path)
-      _ = try database.write { db in
+      _ = try database.read { db in
         try #sql("SELECT 1").execute(db)
       }
       try #sql(
