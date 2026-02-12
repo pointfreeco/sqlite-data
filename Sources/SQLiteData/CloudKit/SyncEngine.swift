@@ -2237,19 +2237,15 @@
         at: .applicationSupportDirectory,
         withIntermediateDirectories: true
       )
-      let database: any DatabaseWriter =
-        url.isInMemory
-        ? try DatabaseQueue(path: path)
-        : try DatabasePool(path: path)
-      _ = try database.write { db in
-        try #sql("SELECT 1").execute(db)
-      }
+      print(path)
+      print("--------")
       try #sql(
         """
         ATTACH DATABASE \(bind: path) AS \(quote: .sqliteDataCloudKitSchemaName)
         """
       )
       .execute(self)
+      print("----")
     }
   }
 

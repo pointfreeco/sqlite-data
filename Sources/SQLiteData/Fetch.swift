@@ -87,7 +87,7 @@ public struct Fetch<Value: Sendable>: Sendable {
   public init(
     wrappedValue: Value,
     _ request: some FetchKeyRequest<Value>,
-    database: (any DatabaseReader)? = nil
+    database: (any DatabaseWriter)? = nil
   ) {
     sharedReader = SharedReader(wrappedValue: wrappedValue, .fetch(request, database: database))
   }
@@ -102,7 +102,7 @@ public struct Fetch<Value: Sendable>: Sendable {
   @discardableResult
   public func load(
     _ request: some FetchKeyRequest<Value>,
-    database: (any DatabaseReader)? = nil
+    database: (any DatabaseWriter)? = nil
   ) async throws -> FetchSubscription {
     try await sharedReader.load(.fetch(request, database: database))
     return FetchSubscription(sharedReader: sharedReader)
@@ -122,7 +122,7 @@ extension Fetch {
   public init(
     wrappedValue: Value,
     _ request: some FetchKeyRequest<Value>,
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) {
     sharedReader = SharedReader(
@@ -143,7 +143,7 @@ extension Fetch {
   @discardableResult
   public func load(
     _ request: some FetchKeyRequest<Value>,
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws -> FetchSubscription {
     try await sharedReader.load(.fetch(request, database: database, scheduler: scheduler))
@@ -182,7 +182,7 @@ extension Fetch: Equatable where Value: Equatable {
     public init(
       wrappedValue: Value,
       _ request: some FetchKeyRequest<Value>,
-      database: (any DatabaseReader)? = nil,
+      database: (any DatabaseWriter)? = nil,
       animation: Animation
     ) {
       sharedReader = SharedReader(
@@ -204,7 +204,7 @@ extension Fetch: Equatable where Value: Equatable {
     @discardableResult
     public func load(
       _ request: some FetchKeyRequest<Value>,
-      database: (any DatabaseReader)? = nil,
+      database: (any DatabaseWriter)? = nil,
       animation: Animation
     ) async throws -> FetchSubscription {
       try await sharedReader.load(.fetch(request, database: database, animation: animation))

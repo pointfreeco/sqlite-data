@@ -79,7 +79,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   ///     (`@Dependency(\.defaultDatabase)`).
   public init(
     wrappedValue: [Element] = [],
-    database: (any DatabaseReader)? = nil
+    database: (any DatabaseWriter)? = nil
   )
   where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
     let statement = Element.all.selectStar().asSelect()
@@ -108,7 +108,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   public init<S: SelectStatement>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    database: (any DatabaseReader)? = nil
+    database: (any DatabaseWriter)? = nil
   )
   where
     Element == S.From.QueryOutput,
@@ -130,7 +130,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   public init<V: QueryRepresentable>(
     wrappedValue: [Element] = [],
     _ statement: some StructuredQueriesCore.Statement<V>,
-    database: (any DatabaseReader)? = nil
+    database: (any DatabaseWriter)? = nil
   )
   where
     Element == V.QueryOutput,
@@ -155,7 +155,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   public init<S: StructuredQueriesCore.Statement<Element>>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    database: (any DatabaseReader)? = nil
+    database: (any DatabaseWriter)? = nil
   )
   where
     Element: QueryRepresentable,
@@ -180,7 +180,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
-    database: (any DatabaseReader)? = nil
+    database: (any DatabaseWriter)? = nil
   ) async throws -> FetchSubscription
   where
     Element == S.From.QueryOutput,
@@ -202,7 +202,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   @discardableResult
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
-    database: (any DatabaseReader)? = nil
+    database: (any DatabaseWriter)? = nil
   ) async throws -> FetchSubscription
   where
     Element == V.QueryOutput,
@@ -222,7 +222,7 @@ extension FetchAll {
   @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
   public init(
     wrappedValue: [Element] = [],
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
   where Element: StructuredQueriesCore._Selection, Element.QueryOutput == Element {
@@ -239,7 +239,7 @@ extension FetchAll {
   ///     asynchronously on the main queue.
   public init(
     wrappedValue: [Element] = [],
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
   where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
@@ -259,7 +259,7 @@ extension FetchAll {
   public init<S: SelectStatement>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
   where
@@ -284,7 +284,7 @@ extension FetchAll {
   public init<V: QueryRepresentable>(
     wrappedValue: [Element] = [],
     _ statement: some StructuredQueriesCore.Statement<V>,
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
   where
@@ -313,7 +313,7 @@ extension FetchAll {
   public init<S: StructuredQueriesCore.Statement<Element>>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
   where
@@ -342,7 +342,7 @@ extension FetchAll {
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws -> FetchSubscription
   where
@@ -367,7 +367,7 @@ extension FetchAll {
   @discardableResult
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws -> FetchSubscription
   where
@@ -406,7 +406,7 @@ extension FetchAll: Equatable where Element: Equatable {
     @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
     public init(
       wrappedValue: [Element] = [],
-      database: (any DatabaseReader)? = nil,
+      database: (any DatabaseWriter)? = nil,
       animation: Animation
     )
     where Element: StructuredQueriesCore._Selection, Element.QueryOutput == Element {
@@ -424,7 +424,7 @@ extension FetchAll: Equatable where Element: Equatable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init(
       wrappedValue: [Element] = [],
-      database: (any DatabaseReader)? = nil,
+      database: (any DatabaseWriter)? = nil,
       animation: Animation
     )
     where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
@@ -444,7 +444,7 @@ extension FetchAll: Equatable where Element: Equatable {
     public init<S: SelectStatement>(
       wrappedValue: [Element] = [],
       _ statement: S,
-      database: (any DatabaseReader)? = nil,
+      database: (any DatabaseWriter)? = nil,
       animation: Animation
     )
     where
@@ -474,7 +474,7 @@ extension FetchAll: Equatable where Element: Equatable {
     public init<V: QueryRepresentable>(
       wrappedValue: [Element] = [],
       _ statement: some StructuredQueriesCore.Statement<V>,
-      database: (any DatabaseReader)? = nil,
+      database: (any DatabaseWriter)? = nil,
       animation: Animation
     )
     where
@@ -502,7 +502,7 @@ extension FetchAll: Equatable where Element: Equatable {
     public init<S: StructuredQueriesCore.Statement<Element>>(
       wrappedValue: [Element] = [],
       _ statement: S,
-      database: (any DatabaseReader)? = nil,
+      database: (any DatabaseWriter)? = nil,
       animation: Animation
     )
     where
@@ -530,7 +530,7 @@ extension FetchAll: Equatable where Element: Equatable {
     @discardableResult
     public func load<S: SelectStatement>(
       _ statement: S,
-      database: (any DatabaseReader)? = nil,
+      database: (any DatabaseWriter)? = nil,
       animation: Animation
     ) async throws -> FetchSubscription
     where
@@ -556,7 +556,7 @@ extension FetchAll: Equatable where Element: Equatable {
     @discardableResult
     public func load<V: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<V>,
-      database: (any DatabaseReader)? = nil,
+      database: (any DatabaseWriter)? = nil,
       animation: Animation
     ) async throws -> FetchSubscription
     where

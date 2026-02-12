@@ -6,7 +6,7 @@
   extension SharedReaderKey {
     static func fetch<Value>(
       _ request: some FetchKeyRequest<Value>,
-      database: (any DatabaseReader)? = nil,
+      database: (any DatabaseWriter)? = nil,
       animation: Animation
     ) -> Self
     where Self == FetchKey<Value> {
@@ -15,7 +15,7 @@
 
     static func fetch<Records: RangeReplaceableCollection>(
       _ request: some FetchKeyRequest<Records>,
-      database: (any DatabaseReader)? = nil,
+      database: (any DatabaseWriter)? = nil,
       animation: Animation
     ) -> Self
     where Self == FetchKey<Records>.Default {

@@ -11,7 +11,7 @@ import Sharing
 extension SharedReaderKey {
   static func fetch<Value>(
     _ request: some FetchKeyRequest<Value>,
-    database: (any DatabaseReader)? = nil
+    database: (any DatabaseWriter)? = nil
   ) -> Self
   where Self == FetchKey<Value> {
     FetchKey(request: request, database: database, scheduler: nil)
@@ -19,7 +19,7 @@ extension SharedReaderKey {
 
   static func fetch<Records: RangeReplaceableCollection>(
     _ request: some FetchKeyRequest<Records>,
-    database: (any DatabaseReader)? = nil
+    database: (any DatabaseWriter)? = nil
   ) -> Self
   where Self == FetchKey<Records>.Default {
     Self[.fetch(request, database: database), default: Value()]
@@ -29,7 +29,7 @@ extension SharedReaderKey {
 extension SharedReaderKey {
   static func fetch<Value>(
     _ request: some FetchKeyRequest<Value>,
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) -> Self
   where Self == FetchKey<Value> {
@@ -38,7 +38,7 @@ extension SharedReaderKey {
 
   static func fetch<Records: RangeReplaceableCollection>(
     _ request: some FetchKeyRequest<Records>,
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) -> Self
   where Self == FetchKey<Records>.Default {
@@ -46,10 +46,37 @@ extension SharedReaderKey {
   }
 }
 
+/*
+ @FetchAll var as
+ @FetchAll var bs
+ @FetchAll var cs
+
+ write {
+ insert a
+ insert b
+ }
+ */
+
+final class Observer: TransactionObserver, Sendable {
+  let didCommit: @Sendable () -> Void
+  init(didCommit: @Sendable @escaping () -> Void) {
+    self.didCommit = didCommit
+  }
+  func observes(eventsOfKind eventKind: GRDB.DatabaseEventKind) -> Bool {
+    true
+  }
+  func databaseDidCommit(_ db: GRDB.Database) {
+    //didCommit()
+  }
+  func databaseDidRollback(_ db: GRDB.Database) {}
+  func databaseDidChange(with event: GRDB.DatabaseEvent) {}
+}
+
 struct FetchKey<Value: Sendable>: SharedReaderKey {
-  let database: any DatabaseReader
+  let database: any DatabaseWriter
   let request: any FetchKeyRequest<Value>
   let scheduler: (any ValueObservationScheduler & Hashable)?
+
   #if DEBUG
     let isDefaultDatabase: Bool
   #endif
@@ -63,11 +90,14 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
 
   init(
     request: some FetchKeyRequest<Value>,
-    database: (any DatabaseReader)? = nil,
+    database: (any DatabaseWriter)? = nil,
     scheduler: (any ValueObservationScheduler & Hashable)?
   ) {
     @Dependency(\.defaultDatabase) var defaultDatabase
     self.scheduler = scheduler
+    if database == nil {
+      // self.isDefaultDatabase = true
+    }
     self.database = database ?? defaultDatabase
     self.request = request
     #if DEBUG
@@ -116,6 +146,35 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
         return SharedSubscription {}
       }
     #endif
+
+    /*
+     write {
+     }
+     if rows.isEmpty {
+       store.send(…)
+     }
+     */
+
+
+    @Dependency(\.context) var dependencyContext
+    guard dependencyContext != .test
+    else {
+      let observer = Observer { [weak database] in
+        guard let database else { return }
+        subscriber.yield(
+          with: Result {
+            try database.read { db in
+              try request.fetch(db)
+            }
+          }
+        )
+      }
+      database.add(transactionObserver: observer)
+      return SharedSubscription {
+        _ = observer
+      }
+    }
+
     let observation = withEscapedDependencies { dependencies in
       ValueObservation.tracking { db in
         dependencies.yield {
