@@ -248,6 +248,12 @@
       }
       if encryptedValues[key] != nil {
         encryptedValues[key] = nil
+        encryptedValues[hash: key] = nil
+        encryptedValues[at: key] = userModificationTime
+        self.userModificationTime = userModificationTime
+        return true
+      } else if encryptedValues[data: key] != nil {
+        encryptedValues[data: key] = nil
         encryptedValues[at: key] = userModificationTime
         self.userModificationTime = userModificationTime
         return true

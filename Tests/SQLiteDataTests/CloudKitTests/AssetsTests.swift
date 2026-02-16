@@ -513,7 +513,7 @@
           ┌──────────────────────────────────┐
           │ RemindersListAsset(              │
           │   remindersListID: 1,            │
-          │   coverImage: Data(16,811 bytes) │
+          │   coverImage: Data(16.811 bytes) │
           │ )                                │
           └──────────────────────────────────┘
           """
