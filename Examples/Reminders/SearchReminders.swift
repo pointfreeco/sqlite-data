@@ -67,9 +67,10 @@ class SearchRemindersModel {
       try database.write { db in
         try Reminder
           .where {
-            $0.isCompleted && $0.id.in(
-              baseQuery(searchText: searchText, searchTokens: searchTokens).select { $1.id }
-            )
+            $0.isCompleted
+              && $0.id.in(
+                baseQuery(searchText: searchText, searchTokens: searchTokens).select { $1.id }
+              )
           }
           .where {
             if let monthsAgo {
@@ -249,9 +250,9 @@ struct SearchRemindersView: View {
 #Preview {
   @Previewable @State var searchText = "take"
   let _ = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.bootstrapDatabase()
+    try? $0.defaultDatabase.seedSampleData()
   }
-
   NavigationStack {
     List {
       if !searchText.isEmpty {
@@ -264,7 +265,7 @@ struct SearchRemindersView: View {
   }
 }
 
-nonisolated fileprivate func baseQuery(
+nonisolated private func baseQuery(
   searchText: String,
   searchTokens: [SearchRemindersModel.Token]
 ) -> SelectOf<ReminderText, Reminder> {

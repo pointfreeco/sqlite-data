@@ -1,18 +1,29 @@
 import CloudKit
 import SQLiteData
 import SwiftUI
-import SwiftUINavigation
 
 struct CountersListView: View {
-  @FetchAll var counters: [Counter]
+  @FetchAll(
+    Counter
+      .leftJoin(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+      .select {
+        Row.Columns(counter: $0, isShared: $1.isShared.ifnull(false))
+      }
+  ) var rows
   @Dependency(\.defaultDatabase) var database
+  @Dependency(\.defaultSyncEngine) var syncEngine
+
+  @Selection struct Row {
+    let counter: Counter
+    let isShared: Bool
+  }
 
   var body: some View {
     List {
-      if !counters.isEmpty {
+      if !rows.isEmpty {
         Section {
-          ForEach(counters) { counter in
-            CounterRow(counter: counter)
+          ForEach(rows, id: \.counter.id) { row in
+            CounterRow(row: row)
               .buttonStyle(.borderless)
           }
           .onDelete { indexSet in
@@ -25,10 +36,14 @@ struct CountersListView: View {
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
         Button("Add") {
-          withErrorReporting {
-            try database.write { db in
-              try Counter.insert { Counter.Draft() }
+          Task {
+            withErrorReporting {
+              try database.write { db in
+                try Counter.insert {
+                  Counter.Draft()
+                }
                 .execute(db)
+              }
             }
           }
         }
@@ -40,7 +55,7 @@ struct CountersListView: View {
     withErrorReporting {
       try database.write { db in
         for index in indexSet {
-          try Counter.find(counters[index].id).delete()
+          try Counter.find(rows[index].counter.id).delete()
             .execute(db)
         }
       }
@@ -49,7 +64,7 @@ struct CountersListView: View {
 }
 
 struct CounterRow: View {
-  let counter: Counter
+  let row: CountersListView.Row
   @State var sharedRecord: SharedRecord?
   @Dependency(\.defaultDatabase) var database
   @Dependency(\.defaultSyncEngine) var syncEngine
@@ -57,7 +72,10 @@ struct CounterRow: View {
   var body: some View {
     VStack {
       HStack {
-        Text("\(counter.count)")
+        if row.isShared {
+          Image(systemName: "network")
+        }
+        Text("\(row.counter.count)")
         Button("-") {
           decrementButtonTapped()
         }
@@ -79,7 +97,7 @@ struct CounterRow: View {
 
   func shareButtonTapped() {
     Task {
-      sharedRecord = try await syncEngine.share(record: counter) { share in
+      sharedRecord = try await syncEngine.share(record: row.counter) { share in
         share[CKShare.SystemFieldKey.title] = "Join my counter!"
       }
     }
@@ -88,7 +106,7 @@ struct CounterRow: View {
   func decrementButtonTapped() {
     withErrorReporting {
       try database.write { db in
-        try Counter.find(counter.id).update {
+        try Counter.find(row.counter.id).update {
           $0.count -= 1
         }
         .execute(db)
@@ -99,11 +117,21 @@ struct CounterRow: View {
   func incrementButtonTapped() {
     withErrorReporting {
       try database.write { db in
-        try Counter.find(counter.id).update {
+        try Counter.find(row.counter.id).update {
           $0.count += 1
         }
         .execute(db)
       }
     }
+  }
+}
+
+#Preview {
+  let _ = try! prepareDependencies {
+    try $0.bootstrapDatabase()
+    try? $0.defaultDatabase.seedSampleData()
+  }
+  NavigationStack {
+    CountersListView()
   }
 }

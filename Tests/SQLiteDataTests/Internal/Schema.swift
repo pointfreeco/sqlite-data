@@ -23,9 +23,10 @@ import SQLiteData
   var id: RemindersList.ID { remindersListID }
 }
 @Table struct RemindersListPrivate: Equatable, Identifiable {
-  let id: Int
-  var position = 0
+  @Column(primaryKey: true)
   var remindersListID: RemindersList.ID
+  var position = 0
+  var id: RemindersList.ID { remindersListID }
 }
 @Table struct Tag: Equatable, Identifiable {
   @Column(primaryKey: true)
@@ -93,7 +94,7 @@ func database(
     try #sql(
       """
       CREATE TABLE "remindersLists" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "id" INT PRIMARY KEY NOT NULL,
         "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT ''
       ) STRICT
       """
@@ -112,9 +113,9 @@ func database(
     try #sql(
       """
       CREATE TABLE "remindersListPrivates" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
-        "remindersListID" INTEGER NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+        "remindersListID" INTEGER PRIMARY KEY NOT NULL REFERENCES "remindersLists"("id") 
+          ON DELETE CASCADE,
+        "position" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
       ) STRICT
       """
     )
@@ -122,7 +123,7 @@ func database(
     try #sql(
       """
       CREATE TABLE "reminders" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "id" INT PRIMARY KEY NOT NULL,
         "dueDate" TEXT,
         "isCompleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "priority" INTEGER,
@@ -145,7 +146,7 @@ func database(
     try #sql(
       """
       CREATE TABLE "reminderTags" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "id" INT PRIMARY KEY NOT NULL,
         "reminderID" INTEGER NOT NULL REFERENCES "reminders"("id") ON DELETE CASCADE,
         "tagID" TEXT NOT NULL REFERENCES "tags"("title") ON DELETE CASCADE ON UPDATE CASCADE
       ) STRICT
@@ -155,7 +156,7 @@ func database(
     try #sql(
       """
       CREATE TABLE "parents"(
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
+        "id" INT PRIMARY KEY NOT NULL
       ) STRICT
       """
     )
@@ -163,7 +164,7 @@ func database(
     try #sql(
       """
       CREATE TABLE "childWithOnDeleteSetNulls"(
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "id" INT PRIMARY KEY NOT NULL,
         "parentID" INTEGER REFERENCES "parents"("id") ON DELETE SET NULL ON UPDATE SET NULL
       ) STRICT
       """
@@ -172,7 +173,7 @@ func database(
     try #sql(
       """
       CREATE TABLE "childWithOnDeleteSetDefaults"(
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "id" INT PRIMARY KEY NOT NULL,
         "parentID" INTEGER NOT NULL DEFAULT 0 
           REFERENCES "parents"("id") ON DELETE SET DEFAULT ON UPDATE SET DEFAULT
       ) STRICT
@@ -182,7 +183,7 @@ func database(
     try #sql(
       """
       CREATE TABLE "localUsers" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "id" INT PRIMARY KEY NOT NULL,
         "name" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
         "parentID" INTEGER REFERENCES "localUsers"("id") ON DELETE CASCADE
       ) STRICT
@@ -192,7 +193,7 @@ func database(
     try #sql(
       """
       CREATE TABLE "modelAs" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "id" INT PRIMARY KEY NOT NULL,
         "count" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "isEven" INTEGER GENERATED ALWAYS AS ("count" % 2 == 0) VIRTUAL 
       )
@@ -202,7 +203,7 @@ func database(
     try #sql(
       """
       CREATE TABLE "modelBs" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "id" INT PRIMARY KEY NOT NULL,
         "isOn" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0,
         "modelAID" INTEGER NOT NULL REFERENCES "modelAs"("id") ON DELETE CASCADE
       )
@@ -212,7 +213,7 @@ func database(
     try #sql(
       """
       CREATE TABLE "modelCs" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        "id" INT PRIMARY KEY NOT NULL,
         "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
         "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
       )
@@ -222,7 +223,7 @@ func database(
     try #sql(
       """
       CREATE TABLE "unsyncedModels" (
-        "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
+        "id" INT PRIMARY KEY NOT NULL
       )
       """
     )

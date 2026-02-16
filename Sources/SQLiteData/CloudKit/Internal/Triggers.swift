@@ -6,20 +6,38 @@
   extension PrimaryKeyedTable {
     static func metadataTriggers(
       parentForeignKey: ForeignKey?,
-      defaultZone: CKRecordZone
+      defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable]
     ) -> [TemporaryTrigger<Self>] {
       [
-        afterInsert(parentForeignKey: parentForeignKey, defaultZone: defaultZone),
-        afterUpdate(parentForeignKey: parentForeignKey, defaultZone: defaultZone),
-        afterDeleteFromUser(parentForeignKey: parentForeignKey, defaultZone: defaultZone),
+        afterInsert(
+          parentForeignKey: parentForeignKey,
+          defaultZone: defaultZone,
+          privateTables: privateTables
+        ),
+        afterUpdate(
+          parentForeignKey: parentForeignKey,
+          defaultZone: defaultZone,
+          privateTables: privateTables
+        ),
+        afterDeleteFromUser(
+          parentForeignKey: parentForeignKey,
+          defaultZone: defaultZone,
+          privateTables: privateTables
+        ),
         afterDeleteFromSyncEngine,
-        afterPrimaryKeyChange(parentForeignKey: parentForeignKey, defaultZone: defaultZone),
+        afterPrimaryKeyChange(
+          parentForeignKey: parentForeignKey,
+          defaultZone: defaultZone,
+          privateTables: privateTables
+        ),
       ]
     }
 
     fileprivate static func afterPrimaryKeyChange(
       parentForeignKey: ForeignKey?,
-      defaultZone: CKRecordZone
+      defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable]
     ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_primary_key_change_on_\(tableName)",
@@ -28,7 +46,8 @@
           checkWritePermissions(
             alias: new,
             parentForeignKey: parentForeignKey,
-            defaultZone: defaultZone
+            defaultZone: defaultZone,
+            privateTables: privateTables
           )
           SyncMetadata
             .where {
@@ -44,7 +63,8 @@
 
     fileprivate static func afterInsert(
       parentForeignKey: ForeignKey?,
-      defaultZone: CKRecordZone
+      defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable]
     ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_\(tableName)",
@@ -53,12 +73,14 @@
           checkWritePermissions(
             alias: new,
             parentForeignKey: parentForeignKey,
-            defaultZone: defaultZone
+            defaultZone: defaultZone,
+            privateTables: privateTables
           )
           SyncMetadata.insert(
             new: new,
             parentForeignKey: parentForeignKey,
-            defaultZone: defaultZone
+            defaultZone: defaultZone,
+            privateTables: privateTables
           )
         }
       )
@@ -66,7 +88,8 @@
 
     fileprivate static func afterUpdate(
       parentForeignKey: ForeignKey?,
-      defaultZone: CKRecordZone
+      defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable]
     ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_update_on_\(tableName)",
@@ -75,17 +98,20 @@
           checkWritePermissions(
             alias: new,
             parentForeignKey: parentForeignKey,
-            defaultZone: defaultZone
+            defaultZone: defaultZone,
+            privateTables: privateTables
           )
           SyncMetadata.insert(
             new: new,
             parentForeignKey: parentForeignKey,
-            defaultZone: defaultZone
+            defaultZone: defaultZone,
+            privateTables: privateTables
           )
           SyncMetadata.update(
             new: new,
             parentForeignKey: parentForeignKey,
-            defaultZone: defaultZone
+            defaultZone: defaultZone,
+            privateTables: privateTables
           )
         }
       )
@@ -93,7 +119,8 @@
 
     fileprivate static func afterDeleteFromUser(
       parentForeignKey: ForeignKey?,
-      defaultZone: CKRecordZone
+      defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable]
     ) -> TemporaryTrigger<
       Self
     > {
@@ -104,7 +131,8 @@
           checkWritePermissions(
             alias: old,
             parentForeignKey: parentForeignKey,
-            defaultZone: defaultZone
+            defaultZone: defaultZone,
+            privateTables: privateTables
           )
           SyncMetadata
             .where {
@@ -113,7 +141,7 @@
             }
             .update { $0._isDeleted = true }
         } when: { _ in
-          !SyncEngine.isSynchronizingChanges()
+          !SyncEngine.$isSynchronizing
         }
       )
     }
@@ -130,7 +158,7 @@
             }
             .delete()
         } when: { _ in
-          SyncEngine.isSynchronizingChanges()
+          SyncEngine.$isSynchronizing
         }
       )
     }
@@ -141,12 +169,14 @@
     fileprivate static func insert<T: PrimaryKeyedTable, Name>(
       new: StructuredQueriesCore.TableAlias<T, Name>.TableColumns,
       parentForeignKey: ForeignKey?,
-      defaultZone: CKRecordZone
+      defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable]
     ) -> some StructuredQueriesCore.Statement {
       let (parentRecordPrimaryKey, parentRecordType, zoneName, ownerName) = parentFields(
         alias: new,
         parentForeignKey: parentForeignKey,
-        defaultZone: defaultZone
+        defaultZone: defaultZone,
+        privateTables: privateTables
       )
       let defaultZoneName = #sql(
         "\(quote: defaultZone.zoneID.zoneName, delimiter: .text)",
@@ -181,12 +211,14 @@
     fileprivate static func update<T: PrimaryKeyedTable, Name>(
       new: StructuredQueriesCore.TableAlias<T, Name>.TableColumns,
       parentForeignKey: ForeignKey?,
-      defaultZone: CKRecordZone
+      defaultZone: CKRecordZone,
+      privateTables: [any SynchronizableTable]
     ) -> some StructuredQueriesCore.Statement {
       let (parentRecordPrimaryKey, parentRecordType, zoneName, ownerName) = parentFields(
         alias: new,
         parentForeignKey: parentForeignKey,
-        defaultZone: defaultZone
+        defaultZone: defaultZone,
+        privateTables: privateTables
       )
       return Self.where {
         $0.recordPrimaryKey.eq(#sql("\(new.primaryKey)"))
@@ -231,7 +263,7 @@
             )
           )
         } when: { _ in
-          !SyncEngine.isSynchronizingChanges()
+          !SyncEngine.$isSynchronizing
         }
       )
     }
@@ -291,7 +323,7 @@
             )
           )
         } when: { old, new in
-          old._isDeleted.eq(new._isDeleted) && !SyncEngine.isSynchronizingChanges()
+          old._isDeleted.eq(new._isDeleted) && !SyncEngine.$isSynchronizing
         }
       )
     }
@@ -312,7 +344,7 @@
             )
           )
         } when: { old, new in
-          !old._isDeleted && new._isDeleted && !SyncEngine.isSynchronizingChanges()
+          !old._isDeleted && new._isDeleted && !SyncEngine.$isSynchronizing
         }
       )
     }
@@ -322,13 +354,23 @@
   private func parentFields<Base, Name>(
     alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
-    defaultZone: CKRecordZone
+    defaultZone: CKRecordZone,
+    privateTables: [any SynchronizableTable]
   ) -> (
     parentRecordPrimaryKey: SQLQueryExpression<String>?,
     parentRecordType: SQLQueryExpression<String>?,
     zoneName: SQLQueryExpression<String?>,
     ownerName: SQLQueryExpression<String?>
   ) {
+    let zoneNameOverride: SQLQueryExpression<String?>
+    let ownerNameOverride: SQLQueryExpression<String?>
+    if privateTables.contains(where: { $0.base.tableName == Base.tableName }) {
+      zoneNameOverride = #sql("\(quote: defaultZone.zoneID.zoneName, delimiter: .text)")
+      ownerNameOverride = #sql("\(quote: defaultZone.zoneID.ownerName, delimiter: .text)")
+    } else {
+      zoneNameOverride = #sql("NULL")
+      ownerNameOverride = #sql("NULL")
+    }
     return
       parentForeignKey
       .map { foreignKey in
@@ -344,8 +386,12 @@
         return (
           parentRecordPrimaryKey,
           parentRecordType,
-          #sql("coalesce(\($currentZoneName()), (\(parentMetadata.select(\.zoneName))))"),
-          #sql("coalesce(\($currentOwnerName()), (\(parentMetadata.select(\.ownerName))))")
+          #sql(
+            "coalesce(\(zoneNameOverride), \($currentZoneName()), (\(parentMetadata.select(\.zoneName))))"
+          ),
+          #sql(
+            "coalesce(\(ownerNameOverride), \($currentOwnerName()), (\(parentMetadata.select(\.ownerName))))"
+          )
         )
       }
       ?? (
@@ -373,12 +419,14 @@
   private func checkWritePermissions<Base, Name>(
     alias: StructuredQueriesCore.TableAlias<Base, Name>.TableColumns,
     parentForeignKey: ForeignKey?,
-    defaultZone: CKRecordZone
+    defaultZone: CKRecordZone,
+    privateTables: [any SynchronizableTable]
   ) -> some StructuredQueriesCore.Statement<Never> {
     let (parentRecordPrimaryKey, parentRecordType, _, _) = parentFields(
       alias: alias,
       parentForeignKey: parentForeignKey,
-      defaultZone: defaultZone
+      defaultZone: defaultZone,
+      privateTables: privateTables
     )
 
     return With {
@@ -405,7 +453,7 @@
           )
         }
         .where {
-          !SyncEngine.isSynchronizingChanges()
+          !SyncEngine.$isSynchronizing
             && $0.parentRecordName.is(nil)
             && !$hasPermission($0.share)
         }

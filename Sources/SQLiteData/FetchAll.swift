@@ -176,10 +176,12 @@ public struct FetchAll<Element: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
+  /// - Returns: A subscription associated with the observation.
+  @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil
-  ) async throws
+  ) async throws -> FetchSubscription
   where
     Element == S.From.QueryOutput,
     S.QueryValue == (),
@@ -187,7 +189,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
     S.Joins == ()
   {
     let statement = statement.selectStar()
-    try await load(statement, database: database)
+    return try await load(statement, database: database)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -196,10 +198,12 @@ public struct FetchAll<Element: Sendable>: Sendable {
   ///   - statement: A query associated with the wrapped value.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
+  /// - Returns: A subscription associated with the observation.
+  @discardableResult
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil
-  ) async throws
+  ) async throws -> FetchSubscription
   where
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
@@ -210,10 +214,21 @@ public struct FetchAll<Element: Sendable>: Sendable {
         database: database
       )
     )
+    return FetchSubscription(sharedReader: sharedReader)
   }
 }
 
 extension FetchAll {
+  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  public init(
+    wrappedValue: [Element] = [],
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where Element: StructuredQueriesCore._Selection, Element.QueryOutput == Element {
+    sharedReader = SharedReader(value: wrappedValue)
+  }
+
   /// Initializes this property with a query that fetches every row from a table.
   ///
   /// - Parameters:
@@ -323,11 +338,13 @@ extension FetchAll {
   ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
+  /// - Returns: A subscription associated with the observation.
+  @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws
+  ) async throws -> FetchSubscription
   where
     Element == S.From.QueryOutput,
     S.QueryValue == (),
@@ -335,7 +352,7 @@ extension FetchAll {
     S.Joins == ()
   {
     let statement = statement.selectStar()
-    try await load(statement, database: database, scheduler: scheduler)
+    return try await load(statement, database: database, scheduler: scheduler)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -346,11 +363,13 @@ extension FetchAll {
   ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
+  /// - Returns: A subscription associated with the observation.
+  @discardableResult
   public func load<V: QueryRepresentable>(
     _ statement: some StructuredQueriesCore.Statement<V>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws
+  ) async throws -> FetchSubscription
   where
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
@@ -362,6 +381,7 @@ extension FetchAll {
         scheduler: scheduler
       )
     )
+    return FetchSubscription(sharedReader: sharedReader)
   }
 }
 
@@ -381,6 +401,16 @@ extension FetchAll: Equatable where Element: Equatable {
   extension FetchAll: DynamicProperty {
     public func update() {
       sharedReader.update()
+    }
+
+    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    public init(
+      wrappedValue: [Element] = [],
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where Element: StructuredQueriesCore._Selection, Element.QueryOutput == Element {
+      sharedReader = SharedReader(value: wrappedValue)
     }
 
     /// Initializes this property with a query that fetches every row from a table.
@@ -495,12 +525,14 @@ extension FetchAll: Equatable where Element: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    /// - Returns: A subscription associated with the observation.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @discardableResult
     public func load<S: SelectStatement>(
       _ statement: S,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws
+    ) async throws -> FetchSubscription
     where
       Element == S.From.QueryOutput,
       S.QueryValue == (),
@@ -508,7 +540,7 @@ extension FetchAll: Equatable where Element: Equatable {
       S.Joins == ()
     {
       let statement = statement.selectStar()
-      try await load(statement, database: database, animation: animation)
+      return try await load(statement, database: database, animation: animation)
     }
 
     /// Replaces the wrapped value with data from the given query.
@@ -519,12 +551,14 @@ extension FetchAll: Equatable where Element: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    /// - Returns: A subscription associated with the observation.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @discardableResult
     public func load<V: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws
+    ) async throws -> FetchSubscription
     where
       Element == V.QueryOutput,
       V.QueryOutput: Sendable
@@ -536,6 +570,7 @@ extension FetchAll: Equatable where Element: Equatable {
           animation: animation
         )
       )
+      return FetchSubscription(sharedReader: sharedReader)
     }
   }
 #endif

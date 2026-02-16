@@ -340,7 +340,6 @@ struct PrimaryKeyMigrationTests {
     }
   }
 
-
   @Table("users") struct PrimaryKeyNamedUnique {
     @Column(primaryKey: true)
     let unique: UUID

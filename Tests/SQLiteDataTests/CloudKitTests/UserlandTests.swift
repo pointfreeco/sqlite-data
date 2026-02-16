@@ -26,7 +26,7 @@
         @FetchAll var modelAs: [ModelA] = []
         try await database.write { db in
           try db.seed {
-            ModelA.Draft()
+            ModelA.Draft(id: 1)
           }
         }
         try await $modelAs.load()

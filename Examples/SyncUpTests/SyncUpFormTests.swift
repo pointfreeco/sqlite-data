@@ -6,12 +6,12 @@ import Testing
 
 @testable import SyncUps
 
+@MainActor
 @Suite(
   .dependencies {
     try $0.bootstrapDatabase()
-    try $0.defaultDatabase.write { db in
-      try db.seed()
-    }
+    try await $0.defaultSyncEngine.start()
+    try await $0.defaultDatabase.seedForTests()
     $0.uuid = .incrementing
   }
 )

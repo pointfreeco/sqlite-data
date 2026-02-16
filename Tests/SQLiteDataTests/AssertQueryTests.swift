@@ -8,7 +8,7 @@ import Testing
 @MainActor
 @Suite(
   .dependency(\.defaultDatabase, try .database()),
-  .snapshots(record: .failed),
+  .snapshots(record: .missing),
 )
 struct AssertQueryTests {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -136,7 +136,7 @@ struct AssertQueryTests {
         """
         SELECT "records"."id", "records"."date"
         FROM "records"
-        WHERE ("records"."id") = (1)
+        WHERE (("records"."id") = (1))
         """
       } results: {
         """

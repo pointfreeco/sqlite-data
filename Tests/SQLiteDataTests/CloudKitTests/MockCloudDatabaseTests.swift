@@ -47,6 +47,30 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func assetsUseTemporaryDirectory() async throws {
+        let recordID = CKRecord.ID(recordName: "record")
+        let record = CKRecord(recordType: "Record", recordID: recordID)
+        let sourceURL = URL(fileURLWithPath: "/sqlite-data-test-assets/asset.jpg")
+        try inMemoryDataManager.save(Data("image".utf8), to: sourceURL)
+        record["asset"] = CKAsset(fileURL: sourceURL)
+
+        let database = syncEngine.private.database
+        let (saveResults, _) = try database.modifyRecords(
+          saving: [record],
+          deleting: []
+        )
+        _ = try saveResults[recordID]?.get()
+
+        let fetched = try database.record(for: recordID)
+        let asset = fetched["asset"] as? CKAsset
+        let assetDirectory = try #require(asset?.fileURL?.path())
+        #expect(
+          assetDirectory
+            .hasPrefix(inMemoryDataManager.temporaryDirectory.path())
+        )
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func saveTransaction_ChildBeforeParent() async throws {
         let parent = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "A"))
         let child = CKRecord(recordType: "B", recordID: CKRecord.ID(recordName: "B"))
@@ -406,7 +430,9 @@
 
         let newShare = try syncEngine.private.database.record(for: CKRecord.ID(recordName: "share"))
         let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [newShare])
-        _ = try saveResults.values.first?.get()
+        #expect(throws: Never.self) {
+          _ = try saveResults.values.first?.get()
+        }
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -420,6 +446,300 @@
           try saveResults.values.first?.get()
         }
         #expect(error?.code == .unknownItem)
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func saveSharedRecordWithoutParent() async throws {
+        let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
+        let (saveResults, _) = try syncEngine.shared.database.modifyRecords(saving: [record])
+        let error = #expect(throws: CKError.self) {
+          _ = try saveResults.values.first?.get()
+        }
+        #expect(error?.code == .permissionFailure)
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func deletingShareOwnedByCurrentUserDeletesShareAndDoesNotDeleteAssociatedData()
+        async throws
+      {
+        let zone = syncEngine.defaultZone
+        _ = try syncEngine.private.database.modifyRecordZones(saving: [zone])
+
+        let recordA = CKRecord(
+          recordType: "A",
+          recordID: CKRecord.ID(recordName: "A1", zoneID: zone.zoneID)
+        )
+        let recordB = CKRecord(
+          recordType: "B",
+          recordID: CKRecord.ID(recordName: "B1", zoneID: zone.zoneID)
+        )
+        recordB.parent = CKRecord.Reference(recordID: recordA.recordID, action: .none)
+        let share = CKShare(
+          rootRecord: recordA,
+          shareID: CKRecord.ID(recordName: "share", zoneID: zone.zoneID)
+        )
+        _ = try syncEngine.private.database.modifyRecords(saving: [share, recordA, recordB])
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(A1/zone/__defaultOwner__),
+                  recordType: "A",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share/zone/__defaultOwner__))
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(B1/zone/__defaultOwner__),
+                  recordType: "B",
+                  parent: CKReference(recordID: CKRecord.ID(A1/zone/__defaultOwner__)),
+                  share: nil
+                ),
+                [2]: CKRecord(
+                  recordID: CKRecord.ID(share/zone/__defaultOwner__),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+
+        _ = try syncEngine.private.database.modifyRecords(deleting: [share.recordID])
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(A1/zone/__defaultOwner__),
+                  recordType: "A",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share/zone/__defaultOwner__))
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(B1/zone/__defaultOwner__),
+                  recordType: "B",
+                  parent: CKReference(recordID: CKRecord.ID(A1/zone/__defaultOwner__)),
+                  share: nil
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func deletingShareNotOwnedByCurrentUserDeletesOnlyShareAndNotAssociatedRecords()
+        async throws
+      {
+        let externalZone = CKRecordZone(
+          zoneID: CKRecordZone.ID(zoneName: "external.zone", ownerName: "external.owner")
+        )
+        _ = try syncEngine.shared.database.modifyRecordZones(saving: [externalZone])
+
+        let recordA = CKRecord(
+          recordType: "A",
+          recordID: CKRecord.ID(recordName: "A1", zoneID: externalZone.zoneID)
+        )
+        let recordB = CKRecord(
+          recordType: "B",
+          recordID: CKRecord.ID(recordName: "B1", zoneID: externalZone.zoneID)
+        )
+        recordB.parent = CKRecord.Reference(recordID: recordA.recordID, action: .none)
+        let share = CKShare(
+          rootRecord: recordA,
+          shareID: CKRecord.ID(recordName: "share", zoneID: externalZone.zoneID)
+        )
+        _ = try syncEngine.shared.database.modifyRecords(saving: [share, recordA, recordB])
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(A1/external.zone/external.owner),
+                  recordType: "A",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share/external.zone/external.owner))
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(B1/external.zone/external.owner),
+                  recordType: "B",
+                  parent: CKReference(recordID: CKRecord.ID(A1/external.zone/external.owner)),
+                  share: nil
+                ),
+                [2]: CKRecord(
+                  recordID: CKRecord.ID(share/external.zone/external.owner),
+                  recordType: "cloudkit.share",
+                  parent: nil,
+                  share: nil
+                )
+              ]
+            )
+          )
+          """
+        }
+
+        _ = try syncEngine.shared.database.modifyRecords(deleting: [share.recordID])
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(A1/external.zone/external.owner),
+                  recordType: "A",
+                  parent: nil,
+                  share: CKReference(recordID: CKRecord.ID(share/external.zone/external.owner))
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(B1/external.zone/external.owner),
+                  recordType: "B",
+                  parent: CKReference(recordID: CKRecord.ID(A1/external.zone/external.owner)),
+                  share: nil
+                )
+              ]
+            )
+          )
+          """
+        }
+      }
+
+      @Test func batchRequestFailed() async throws {
+        let record1ID = CKRecord.ID(recordName: "1")
+        let record2ID = CKRecord.ID(recordName: "2")
+
+        do {
+          let record1 = CKRecord(recordType: "record1", recordID: record1ID)
+          let record2 = CKRecord(recordType: "record2", recordID: record2ID)
+          let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [
+            record1, record2,
+          ])
+          #expect(saveResults.values.count(where: { (try? $0.get()) != nil }) == 2)
+        }
+
+        let freshRecord2 = try syncEngine.private.database.record(for: record2ID)
+        do {
+          let freshRecord1 = try syncEngine.private.database.record(for: record1ID)
+          freshRecord1["isOn"] = true
+          freshRecord2["isOn"] = true
+          let (saveResults, _) = try syncEngine.private.database.modifyRecords(
+            saving: [freshRecord1, freshRecord2]
+          )
+          #expect(saveResults.values.count(where: { (try? $0.get()) != nil }) == 2)
+        }
+
+        do {
+          let freshRecord1 = try syncEngine.private.database.record(for: record1ID)
+          freshRecord1["isOn"] = true
+          freshRecord2["isOn"] = false
+          let (saveResults, _) = try syncEngine.private.database.modifyRecords(
+            saving: [freshRecord1, freshRecord2]
+          )
+          #expect(
+            saveResults.compactMapValues { ($0.error as? CKError)?.code } == [
+              record1ID: .batchRequestFailed,
+              record2ID: .serverRecordChanged,
+            ]
+          )
+        }
+      }
+
+      @Test func limitExceeded_modifyRecords() async throws {
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+        let reminderRecords = (1...400).map { index in
+          let reminderRecord = CKRecord(
+            recordType: Reminder.tableName,
+            recordID: Reminder.recordID(for: index)
+          )
+          reminderRecord.setValue(index, forKey: "id", at: now)
+          reminderRecord.setValue("Reminder #\(index)", forKey: "title", at: now)
+          reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+          reminderRecord.parent = CKRecord.Reference(
+            record: remindersListRecord,
+            action: .none
+          )
+          return reminderRecord
+        }
+
+        let error = #expect(throws: CKError.self) {
+          _ = try syncEngine.private.database.modifyRecords(
+            saving: reminderRecords + [remindersListRecord]
+          )
+        }
+        #expect(error?.code == .limitExceeded)
+      }
+
+      @Test func records_limitExceeded() async throws {
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+        let reminderRecords = (1...400).map { index in
+          let reminderRecord = CKRecord(
+            recordType: Reminder.tableName,
+            recordID: Reminder.recordID(for: index)
+          )
+          reminderRecord.setValue(index, forKey: "id", at: now)
+          reminderRecord.setValue("Reminder #\(index)", forKey: "title", at: now)
+          reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+          reminderRecord.parent = CKRecord.Reference(
+            record: remindersListRecord,
+            action: .none
+          )
+          return reminderRecord
+        }
+
+        _ = try syncEngine.private.database.modifyRecords(saving: [remindersListRecord])
+        _ = try syncEngine.private.database.modifyRecords(saving: Array(reminderRecords[0...100]))
+        _ = try syncEngine.private.database.modifyRecords(saving: Array(reminderRecords[101...200]))
+        _ = try syncEngine.private.database.modifyRecords(saving: Array(reminderRecords[201...300]))
+        _ = try syncEngine.private.database.modifyRecords(saving: Array(reminderRecords[301...399]))
+
+        let error = await #expect(throws: CKError.self) {
+          _ = try await syncEngine.private.database.records(
+            for: [remindersListRecord.recordID] + reminderRecords.map(\.recordID)
+          )
+        }
+        #expect(error?.code == .limitExceeded)
       }
     }
   }

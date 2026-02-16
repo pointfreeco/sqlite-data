@@ -93,6 +93,28 @@
             """
         )
       }
+
+      @Test func isSynchronizingTriggerWarning() {
+        withKnownIssue {
+          _ = Reminder.createTemporaryTrigger(
+            after: .insert { new in
+              Values(SyncEngine.isSynchronizing)
+            }
+          )
+        } matching: { issue in
+          issue.description.hasSuffix(
+            """
+            Invoked 'SyncEngine.isSynchronizing' at trigger creation, which is unexpected. Use \
+            'SyncEngine.$isSynchronizing' to invoke at trigger execution, instead.
+            """
+          )
+        }
+        _ = Reminder.createTemporaryTrigger(
+          after: .insert { new in
+            Values(SyncEngine.$isSynchronizing)
+          }
+        )
+      }
     }
   }
 

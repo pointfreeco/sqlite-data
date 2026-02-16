@@ -52,7 +52,7 @@
       if isTesting {
         queryOutput._recordChangeTag =
           coder
-          .decodeObject(of: NSString.self, forKey: "_recordChangeTag") as? String
+          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
       }
       self.init(queryOutput: queryOutput)
     }
@@ -94,7 +94,7 @@
       if isTesting {
         queryOutput._recordChangeTag =
           coder
-          .decodeObject(of: NSString.self, forKey: "_recordChangeTag") as? String
+          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
       }
       self.init(queryOutput: queryOutput)
     }
@@ -150,6 +150,10 @@
 
   @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   extension CKRecord {
+    func hasSet(key: String) -> Bool {
+      self.encryptedValues["\(CKRecord.userModificationTimeKey)_\(key)"] != nil
+    }
+
     @discardableResult
     package func setValue(
       _ newValue: some CKRecordValueProtocol & Equatable,
@@ -262,6 +266,9 @@
         encryptedValues[at: key] = userModificationTime
         self.userModificationTime = userModificationTime
         return true
+      } else if !hasSet(key: key) {
+        encryptedValues[at: key] = userModificationTime
+        self.userModificationTime = userModificationTime
       }
       return false
     }
@@ -403,7 +410,7 @@
   private struct Unbindable: Error {}
 
   extension CKRecord {
-    package var _recordChangeTag: String? {
+    package var _recordChangeTag: Int? {
       get { self[#function] }
       set { self[#function] = newValue }
     }

@@ -1,4 +1,6 @@
+import Dependencies
 import DependenciesTestSupport
+import Foundation
 import InlineSnapshotTesting
 import SnapshotTestingCustomDump
 import Testing
@@ -8,6 +10,9 @@ import Testing
 extension BaseTestSuite {
   @MainActor
   struct RemindersListsTests {
+    @Dependency(\.defaultDatabase) var database
+    @Dependency(\.defaultSyncEngine) var syncEngine
+
     @Test func basics() async throws {
       let model = RemindersListsModel()
       try await model.$remindersLists.load()
@@ -96,6 +101,55 @@ extension BaseTestSuite {
           [0]: "Business",
           [1]: "Personal",
           [2]: "Family"
+        ]
+        """
+      }
+    }
+
+    @Test func share() async throws {
+      let model = RemindersListsModel()
+
+      let personalRemindersList = try #require(
+        try await database.read { db in
+          try RemindersList.find(UUID(0)).fetchOne(db)
+        }
+      )
+      let _ = try await syncEngine.share(record: personalRemindersList, configure: { _ in })
+
+      try await model.$remindersLists.load()
+      assertInlineSnapshot(of: model.remindersLists, as: .customDump) {
+        """
+        [
+          [0]: RemindersListsModel.ReminderListState(
+            remindersCount: 4,
+            remindersList: RemindersList(
+              id: UUID(00000000-0000-0000-0000-000000000000),
+              color: 1218047999,
+              position: 1,
+              title: "Personal"
+            ),
+            share: CKShare()
+          ),
+          [1]: RemindersListsModel.ReminderListState(
+            remindersCount: 2,
+            remindersList: RemindersList(
+              id: UUID(00000000-0000-0000-0000-000000000001),
+              color: 3985191935,
+              position: 2,
+              title: "Family"
+            ),
+            share: nil
+          ),
+          [2]: RemindersListsModel.ReminderListState(
+            remindersCount: 2,
+            remindersList: RemindersList(
+              id: UUID(00000000-0000-0000-0000-000000000002),
+              color: 2992493567,
+              position: 3,
+              title: "Business"
+            ),
+            share: nil
+          )
         ]
         """
       }

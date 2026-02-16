@@ -17,7 +17,7 @@
           try db.seed {
             RemindersList(id: 1, title: "Personal")
             Reminder(id: 1, title: "Get milk", remindersListID: 1)
-            RemindersListPrivate(id: 1, remindersListID: 1)
+            RemindersListPrivate(remindersListID: 1)
             UnsyncedModel(id: 1)
           }
         }
@@ -43,7 +43,7 @@
           try db.seed {
             RemindersList(id: 1, title: "Personal")
             Reminder(id: 1, title: "Get milk", remindersListID: 1)
-            RemindersListPrivate(id: 1, remindersListID: 1)
+            RemindersListPrivate(remindersListID: 1)
             UnsyncedModel(id: 1)
           }
         }
@@ -95,9 +95,8 @@
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersListPrivates/zone/__defaultOwner__),
                   recordType: "remindersListPrivates",
-                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                  parent: nil,
                   share: nil,
-                  id: 1,
                   position: 0,
                   remindersListID: 1
                 ),
@@ -172,8 +171,8 @@
         │   ),                                                               │
         │   share: nil,                                                      │
         │   _isDeleted: false,                                               │
-        │   hasLastKnownServerRecord: true,                                  │
-        │   isShared: false,                                                 │
+        │   _hasLastKnownServerRecord: true,                                 │
+        │   _isShared: false,                                                │
         │   userModificationTime: 0                                          │
         │ )                                                                  │
         ├────────────────────────────────────────────────────────────────────┤
@@ -194,8 +193,8 @@
         │   _lastKnownServerRecordAllFields: nil,                            │
         │   share: nil,                                                      │
         │   _isDeleted: false,                                               │
-        │   hasLastKnownServerRecord: false,                                 │
-        │   isShared: false,                                                 │
+        │   _hasLastKnownServerRecord: false,                                │
+        │   _isShared: false,                                                │
         │   userModificationTime: 0                                          │
         │ )                                                                  │
         └────────────────────────────────────────────────────────────────────┘
@@ -258,8 +257,8 @@
         │   ),                                                                                    │
         │   share: nil,                                                                           │
         │   _isDeleted: false,                                                                    │
-        │   hasLastKnownServerRecord: true,                                                       │
-        │   isShared: false,                                                                      │
+        │   _hasLastKnownServerRecord: true,                                                      │
+        │   _isShared: false,                                                                     │
         │   userModificationTime: 0                                                               │
         │ )                                                                                       │
         ├─────────────────────────────────────────────────────────────────────────────────────────┤
@@ -294,8 +293,8 @@
         │   ),                                                                                    │
         │   share: nil,                                                                           │
         │   _isDeleted: false,                                                                    │
-        │   hasLastKnownServerRecord: true,                                                       │
-        │   isShared: false,                                                                      │
+        │   _hasLastKnownServerRecord: true,                                                      │
+        │   _isShared: false,                                                                     │
         │   userModificationTime: 0                                                               │
         │ )                                                                                       │
         └─────────────────────────────────────────────────────────────────────────────────────────┘
@@ -422,8 +421,8 @@
         │     share: nil                                                                                      │
         │   ),                                                                                                │
         │   _isDeleted: false,                                                                                │
-        │   hasLastKnownServerRecord: true,                                                                   │
-        │   isShared: true,                                                                                   │
+        │   _hasLastKnownServerRecord: true,                                                                  │
+        │   _isShared: true,                                                                                  │
         │   userModificationTime: 0                                                                           │
         │ )                                                                                                   │
         ├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
@@ -444,8 +443,8 @@
         │   _lastKnownServerRecordAllFields: nil,                                                             │
         │   share: nil,                                                                                       │
         │   _isDeleted: false,                                                                                │
-        │   hasLastKnownServerRecord: false,                                                                  │
-        │   isShared: false,                                                                                  │
+        │   _hasLastKnownServerRecord: false,                                                                 │
+        │   _isShared: false,                                                                                 │
         │   userModificationTime: 0                                                                           │
         │ )                                                                                                   │
         └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -519,8 +518,8 @@
         │     share: nil                                                                                      │
         │   ),                                                                                                │
         │   _isDeleted: false,                                                                                │
-        │   hasLastKnownServerRecord: true,                                                                   │
-        │   isShared: true,                                                                                   │
+        │   _hasLastKnownServerRecord: true,                                                                  │
+        │   _isShared: true,                                                                                  │
         │   userModificationTime: 0                                                                           │
         │ )                                                                                                   │
         ├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
@@ -555,8 +554,8 @@
         │   ),                                                                                                │
         │   share: nil,                                                                                       │
         │   _isDeleted: false,                                                                                │
-        │   hasLastKnownServerRecord: true,                                                                   │
-        │   isShared: false,                                                                                  │
+        │   _hasLastKnownServerRecord: true,                                                                  │
+        │   _isShared: false,                                                                                 │
         │   userModificationTime: 0                                                                           │
         │ )                                                                                                   │
         └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -611,7 +610,7 @@
           try db.seed {
             RemindersList(id: 1, title: "Personal")
             Reminder(id: 1, title: "Get milk", remindersListID: 1)
-            RemindersListPrivate(id: 1, remindersListID: 1)
+            RemindersListPrivate(remindersListID: 1)
             UnsyncedModel(id: 1)
           }
         }

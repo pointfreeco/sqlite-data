@@ -10,8 +10,13 @@ import Testing
   .dependency(\.continuousClock, ImmediateClock()),
   .dependency(\.date.now, Date(timeIntervalSince1970: 1_234_567_890)),
   .dependency(\.uuid, .incrementing),
-  .dependencies { try $0.bootstrapDatabase() },
-  .snapshots(record: .failed)
+  .dependencies {
+    try $0.bootstrapDatabase()
+    try await $0.defaultSyncEngine.start()
+    try $0.defaultDatabase.seedSampleData()
+    try await $0.defaultSyncEngine.sendChanges()
+  },
+  .snapshots(record: .missing)
 )
 struct BaseTestSuite {}
 

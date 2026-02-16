@@ -37,7 +37,7 @@ class AppModel {
   private func bind() {
     for destination in path {
       switch destination {
-      case let .detail(detailModel):
+      case .detail(let detailModel):
         bindDetail(model: detailModel)
 
       case .meeting, .record:
@@ -64,11 +64,11 @@ struct AppView: View {
       SyncUpsList(model: model.syncUpsList)
         .navigationDestination(for: AppModel.Path.self) { path in
           switch path {
-          case let .detail(model):
+          case .detail(let model):
             SyncUpDetailView(model: model)
-          case let .meeting(meeting, attendees: attendees):
+          case .meeting(let meeting, let attendees):
             MeetingView(meeting: meeting, attendees: attendees)
-          case let .record(model):
+          case .record(let model):
             RecordMeetingView(model: model)
           }
         }
@@ -77,6 +77,9 @@ struct AppView: View {
 }
 
 #Preview("Happy path") {
-  let _ = try! prepareDependencies { try $0.bootstrapDatabase() }
+  let _ = try! prepareDependencies {
+    try $0.bootstrapDatabase()
+    try? $0.defaultDatabase.seedSampleData()
+  }
   AppView(model: AppModel())
 }

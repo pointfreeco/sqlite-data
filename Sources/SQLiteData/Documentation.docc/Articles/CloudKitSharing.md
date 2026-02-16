@@ -401,7 +401,7 @@ let share = try await database.read { db in
 }
 guard
   share?.currentUserParticipant?.permission == .readWrite
-    || share?.permission == .readWrite
+    || share?.publicPermission == .readWrite
 else {
   // User does not have permissions to write to record.
   return

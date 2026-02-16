@@ -1,12 +1,13 @@
 #if canImport(CloudKit)
   import CloudKit
+  import IssueReporting
   import OrderedCollections
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockSyncEngine: SyncEngineProtocol {
     package let database: MockCloudDatabase
     package let parentSyncEngine: SyncEngine
-    private let _state: LockIsolated<MockSyncEngineState>
+    package let state: MockSyncEngineState
     package let _fetchChangesScopes = LockIsolated<[CKSyncEngine.FetchChangesOptions.Scope]>([])
     package let _acceptedShareMetadata = LockIsolated<Set<ShareMetadata>>([])
 
@@ -17,15 +18,11 @@
     ) {
       self.database = database
       self.parentSyncEngine = parentSyncEngine
-      self._state = LockIsolated(state)
+      self.state = state
     }
 
     package var scope: CKDatabase.Scope {
       database.databaseScope
-    }
-
-    package var state: MockSyncEngineState {
-      _state.withValue(\.self)
     }
 
     package func acceptShare(metadata: ShareMetadata) {
@@ -33,35 +30,71 @@
     }
 
     package func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws {
-      let records: [CKRecord]
+      let modifications: [CKRecord]
       let zoneIDs: [CKRecordZone.ID]
       switch options.scope {
       case .all:
-        zoneIDs = Array(database.storage.keys)
+        zoneIDs = Array(database.state.storage.keys)
       case .allExcluding(let excludedZoneIDs):
-        zoneIDs = Array(Set(database.storage.keys).subtracting(excludedZoneIDs))
+        zoneIDs = Array(Set(database.state.storage.keys).subtracting(excludedZoneIDs))
       case .zoneIDs(let includedZoneIDs):
         zoneIDs = includedZoneIDs
       @unknown default:
         fatalError()
       }
-      records = zoneIDs.reduce(into: [CKRecord]()) { accum, zoneID in
-        accum += database.storage.withValue {
-          ($0[zoneID]?.values).map { Array($0) } ?? []
+
+      modifications = database.state.withValue { state in
+        zoneIDs.reduce(into: [CKRecord]()) {
+          accum,
+          zoneID in
+          accum += ((state.storage[zoneID]?.records.values).map { Array($0) } ?? [])
+            .filter {
+              precondition(
+                $0._recordChangeTag != nil,
+                "Records stored in database should have their 'recordChangeTag' assigned."
+              )
+              return $0._recordChangeTag! > self.state.changeTag.value
+            }
         }
       }
+
+      let deletions = database.state.withValue {
+        let records = $0.deletedRecords.filter { recordID, _ in
+          zoneIDs.contains(recordID.zoneID)
+        }
+        $0.deletedRecords.removeAll { lhsRecordID, _ in
+          records.contains { rhsRecordID, _ in lhsRecordID == rhsRecordID }
+        }
+        return records
+      }
+
+      guard !modifications.isEmpty || !deletions.isEmpty
+      else { return }
+
+      state.changeTag.withValue { changeTag in
+        changeTag = modifications.compactMap(\._recordChangeTag).max() ?? changeTag
+      }
+
       await parentSyncEngine.handleEvent(
-        .fetchedRecordZoneChanges(modifications: records, deletions: []),
+        .fetchedRecordZoneChanges(modifications: modifications, deletions: deletions),
         syncEngine: self
       )
     }
 
     package func sendChanges(_ options: CKSyncEngine.SendChangesOptions) async throws {
-      guard
-        !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges
-          .isEmpty
-      else { return }
-      try await parentSyncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
+
+      if !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingDatabaseChanges
+        .isEmpty
+      {
+
+        try await parentSyncEngine.processPendingDatabaseChanges(scope: database.databaseScope)
+      }
+      if !parentSyncEngine.syncEngine(for: database.databaseScope).state.pendingRecordZoneChanges
+        .isEmpty
+      {
+
+        try await parentSyncEngine.processPendingRecordZoneChanges(scope: database.databaseScope)
+      }
     }
 
     package func recordZoneChangeBatch(
@@ -101,6 +134,7 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockSyncEngineState: CKSyncEngineStateProtocol {
+    package let changeTag = LockIsolated(0)
     package let _pendingRecordZoneChanges = LockIsolated<
       OrderedSet<CKSyncEngine.PendingRecordZoneChange>
     >([]
@@ -165,14 +199,22 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
-    package func processPendingRecordZoneChanges(
+    package struct SendRecordsCallback {
+      fileprivate let operation: @Sendable () async -> Void
+      package func receive() async {
+        await operation()
+      }
+    }
+
+    package func sendPendingRecordZoneChanges(
       options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(),
       scope: CKDatabase.Scope,
+      forceAtomicByZone: Bool? = nil,
       fileID: StaticString = #fileID,
       filePath: StaticString = #filePath,
       line: UInt = #line,
       column: UInt = #column
-    ) async throws {
+    ) async throws -> SendRecordsCallback {
       let syncEngine = syncEngine(for: scope)
       guard !syncEngine.state.pendingRecordZoneChanges.isEmpty
       else {
@@ -183,7 +225,7 @@
           line: line,
           column: column
         )
-        return
+        return SendRecordsCallback {}
       }
       guard try await container.accountStatus() == .available
       else {
@@ -196,10 +238,10 @@
           line: line,
           column: column
         )
-        return
+        return SendRecordsCallback {}
       }
 
-      let batch = await nextRecordZoneChangeBatch(
+      var batch = await nextRecordZoneChangeBatch(
         reason: .scheduled,
         options: options,
         syncEngine: {
@@ -215,14 +257,19 @@
           }
         }()
       )
+      if let forceAtomicByZone {
+        batch?.atomicByZone = forceAtomicByZone
+      }
       guard let batch
-      else { return }
+      else {
+        return SendRecordsCallback {}
+      }
 
       let (saveResults, deleteResults) = try syncEngine.database.modifyRecords(
         saving: batch.recordsToSave,
         deleting: batch.recordIDsToDelete,
         savePolicy: .ifServerRecordUnchanged,
-        atomically: true
+        atomically: batch.atomicByZone
       )
 
       var savedRecords: [CKRecord] = []
@@ -255,16 +302,136 @@
         pendingRecordZoneChanges: savedRecords.map { .saveRecord($0.recordID) }
       )
       syncEngine.state.remove(
+        pendingRecordZoneChanges: failedRecordSaves.map { .saveRecord($0.record.recordID) }
+      )
+      syncEngine.state.remove(
         pendingRecordZoneChanges: deletedRecordIDs.map { .deleteRecord($0) }
       )
+      syncEngine.state.remove(
+        pendingRecordZoneChanges: failedRecordDeletes.keys.map { .deleteRecord($0) }
+      )
+
+      return SendRecordsCallback { [savedRecords, failedRecordSaves, deletedRecordIDs, failedRecordDeletes] in
+        await syncEngine.parentSyncEngine
+          .handleEvent(
+            .sentRecordZoneChanges(
+              savedRecords: savedRecords,
+              failedRecordSaves: failedRecordSaves,
+              deletedRecordIDs: deletedRecordIDs,
+              failedRecordDeletes: failedRecordDeletes
+            ),
+            syncEngine: syncEngine
+          )
+      }
+    }
+
+    package func processPendingRecordZoneChanges(
+      options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions(),
+      scope: CKDatabase.Scope,
+      forceAtomicByZone: Bool? = nil,
+      fileID: StaticString = #fileID,
+      filePath: StaticString = #filePath,
+      line: UInt = #line,
+      column: UInt = #column
+    ) async throws {
+      try await sendPendingRecordZoneChanges(
+        options: options,
+        scope: scope,
+        forceAtomicByZone: forceAtomicByZone,
+        fileID: fileID,
+        filePath: filePath,
+        line: line,
+        column: column
+      )
+      .receive()
+    }
+
+    package func processPendingDatabaseChanges(
+      scope: CKDatabase.Scope,
+      fileID: StaticString = #fileID,
+      filePath: StaticString = #filePath,
+      line: UInt = #line,
+      column: UInt = #column
+    ) async throws {
+      let syncEngine = syncEngine(for: scope)
+      guard !syncEngine.state.pendingDatabaseChanges.isEmpty
+      else {
+        reportIssue(
+          "Processing empty set of database changes.",
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        return
+      }
+      guard try await container.accountStatus() == .available
+      else {
+        reportIssue(
+          "User must be logged in to process pending changes.",
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        return
+      }
+
+      var zonesToSave: [CKRecordZone] = []
+      var zoneIDsToDelete: [CKRecordZone.ID] = []
+      for pendingDatabaseChange in syncEngine.state.pendingDatabaseChanges {
+        switch pendingDatabaseChange {
+        case .saveZone(let zone):
+          zonesToSave.append(zone)
+        case .deleteZone(let zoneID):
+          zoneIDsToDelete.append(zoneID)
+        @unknown default:
+          fatalError("Unsupported pendingDatabaseChange: \(pendingDatabaseChange)")
+        }
+      }
+      let results:
+        (
+          saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
+          deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
+        ) = try syncEngine.database.modifyRecordZones(
+          saving: zonesToSave,
+          deleting: zoneIDsToDelete
+        )
+      var savedZones: [CKRecordZone] = []
+      var failedZoneSaves: [(zone: CKRecordZone, error: CKError)] = []
+      var deletedZoneIDs: [CKRecordZone.ID] = []
+      var failedZoneDeletes: [CKRecordZone.ID: CKError] = [:]
+      for (zoneID, saveResult) in results.saveResults {
+        switch saveResult {
+        case .success(let zone):
+          savedZones.append(zone)
+        case .failure(let error as CKError):
+          failedZoneSaves.append((zonesToSave.first(where: { $0.zoneID == zoneID })!, error))
+        case .failure(let error):
+          reportIssue("Error thrown not CKError: \(error)")
+        }
+      }
+      for (zoneID, deleteResult) in results.deleteResults {
+        switch deleteResult {
+        case .success:
+          deletedZoneIDs.append(zoneID)
+        case .failure(let error as CKError):
+          failedZoneDeletes[zoneID] = error
+        case .failure(let error):
+          reportIssue("Error thrown not CKError: \(error)")
+        }
+      }
+
+      syncEngine.state.remove(pendingDatabaseChanges: savedZones.map { .saveZone($0) })
+      syncEngine.state.remove(pendingDatabaseChanges: deletedZoneIDs.map { .deleteZone($0) })
 
       await syncEngine.parentSyncEngine
         .handleEvent(
-          .sentRecordZoneChanges(
-            savedRecords: savedRecords,
-            failedRecordSaves: failedRecordSaves,
-            deletedRecordIDs: deletedRecordIDs,
-            failedRecordDeletes: failedRecordDeletes
+          .sentDatabaseChanges(
+            savedZones: savedZones,
+            failedZoneSaves: failedZoneSaves,
+            deletedZoneIDs: deletedZoneIDs,
+            failedZoneDeletes: failedZoneDeletes
           ),
           syncEngine: syncEngine
         )

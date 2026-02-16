@@ -68,6 +68,7 @@ struct TagsView: View {
       Button("Save") {
         saveButtonTapped()
       }
+      Button("Cancel", role: .cancel) {}
     }
     .toolbar {
       ToolbarItem {
@@ -102,8 +103,11 @@ struct TagsView: View {
             .where { $0.title.eq(existingTagTitle) }
             .execute(db)
         } else {
-          try Tag.insert(or: .ignore) { tag }
-            .execute(db)
+          try Tag.insert {
+            tag
+          } onConflictDoUpdate: { _ in
+          }
+          .execute(db)
         }
       }
       selectedTags.append(tag)
@@ -163,8 +167,8 @@ private struct TagView: View {
 #Preview {
   @Previewable @State var tags: [Tag] = []
   let _ = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.bootstrapDatabase()
+    try? $0.defaultDatabase.seedSampleData()
   }
-
   TagsView(selectedTags: $tags)
 }

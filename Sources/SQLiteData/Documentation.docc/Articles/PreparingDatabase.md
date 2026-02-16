@@ -170,7 +170,7 @@ code, but we personally feel that it is simpler, more flexible and more powerful
 migrator.registerMigration("Create tables") { db in
   try #sql("""
     CREATE TABLE "remindersLists"(
-      "id" INT NOT NULL PRIMARY KEY AUTOINCREMENT,
+      "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
       "title" TEXT NOT NULL
     ) STRICT
     """)
@@ -178,10 +178,10 @@ migrator.registerMigration("Create tables") { db in
 
   try #sql("""
     CREATE TABLE "reminders"(
-      "id" INT NOT NULL PRIMARY KEY AUTOINCREMENT,
-      "isCompleted" INT NOT NULL DEFAULT 0,
+      "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+      "isCompleted" INTEGER NOT NULL DEFAULT 0,
       "title" TEXT NOT NULL,
-      "remindersListID" INT NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
+      "remindersListID" INTEGER NOT NULL REFERENCES "remindersLists"("id") ON DELETE CASCADE
     ) STRICT
     """)
     .execute(db)

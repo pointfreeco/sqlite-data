@@ -3,6 +3,10 @@ import Foundation
 import SQLiteData
 import Testing
 
+#if canImport(SwiftUI)
+  import SwiftUI
+#endif
+
 @Suite(.dependency(\.defaultDatabase, try .database()))
 struct FetchAllTests {
   @Dependency(\.defaultDatabase) var database
@@ -63,6 +67,16 @@ struct FetchAllTests {
       )
     }
   }
+
+  @available(*, deprecated)
+  @Test func fetchAllSelection_Deprecated() async throws {
+    #if canImport(SwiftUI)
+      do {
+        @FetchAll(animation: .default) var row: [Row]
+        #expect($row.loadError == nil)
+      }
+    #endif
+  }
 }
 
 @Table
@@ -73,6 +87,12 @@ private struct Record: Equatable {
   @Column(as: Date?.UnixTimeRepresentation.self)
   var optionalDate: Date?
 }
+
+@Selection
+private struct Row {
+  let id: Int
+}
+
 extension DatabaseWriter where Self == DatabaseQueue {
   fileprivate static func database() throws -> DatabaseQueue {
     let database = try DatabaseQueue()

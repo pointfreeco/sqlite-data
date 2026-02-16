@@ -119,10 +119,13 @@
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func remoteCreatesRecordABC_localReceivesAC_remoteDeletesBC() async throws {
         let modelARecord = CKRecord(recordType: ModelA.tableName, recordID: ModelA.recordID(for: 1))
+        modelARecord.setValue(1, forKey: "id", at: now)
         let modelBRecord = CKRecord(recordType: ModelB.tableName, recordID: ModelB.recordID(for: 1))
+        modelBRecord.setValue(1, forKey: "id", at: now)
         modelBRecord.setValue(1, forKey: "modelAID", at: now)
         modelBRecord.parent = CKRecord.Reference(record: modelARecord, action: .none)
         let modelCRecord = CKRecord(recordType: ModelC.tableName, recordID: ModelC.recordID(for: 1))
+        modelCRecord.setValue(1, forKey: "id", at: now)
         modelCRecord.setValue(1, forKey: "modelBID", at: now)
         modelCRecord.parent = CKRecord.Reference(record: modelBRecord, action: .none)
 
@@ -205,7 +208,8 @@
                   recordID: CKRecord.ID(1:modelAs/zone/__defaultOwner__),
                   recordType: "modelAs",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  id: 1
                 )
               ]
             ),
@@ -668,7 +672,7 @@
           """
         }
         assertInlineSnapshot(
-          of: syncEngine.private.database.storage[syncEngine.defaultZone.zoneID]?[
+          of: syncEngine.private.database.state.storage[syncEngine.defaultZone.zoneID]?.records[
             Reminder.recordID(for: 1)
           ],
           as: .customDump
@@ -763,7 +767,7 @@
           """
         }
         assertInlineSnapshot(
-          of: syncEngine.private.database.storage[syncEngine.defaultZone.zoneID]?[
+          of: syncEngine.private.database.state.storage[syncEngine.defaultZone.zoneID]?.records[
             Reminder.recordID(for: 1)
           ],
           as: .customDump
@@ -867,6 +871,70 @@
             )
           )
           """
+        }
+      }
+
+      /*
+       * Create a parent record in CloudKit database but do not sync to client.
+       * Create many child records in CloudKit database and **do** sync to client.
+       * Sync parent record to client.
+       * => Cached unsaved child records should be batched so as to not run into 'limitExceeded'
+            errors
+       */
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func batchAssociations() async throws {
+
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+        let remindersListModification = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [remindersListRecord]
+        )
+
+        let reminderRecords = (1...500).map { index in
+          let reminderRecord = CKRecord(
+            recordType: Reminder.tableName,
+            recordID: Reminder.recordID(for: index)
+          )
+          reminderRecord.setValue(index, forKey: "id", at: now)
+          reminderRecord.setValue("Reminder #\(index)", forKey: "title", at: now)
+          reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+          reminderRecord.parent = CKRecord.Reference(
+            record: remindersListRecord,
+            action: .none
+          )
+          return reminderRecord
+        }
+
+        try await syncEngine.modifyRecords(
+          scope: .private,
+          saving: Array(reminderRecords[0...100])
+        ).notify()
+        try await syncEngine.modifyRecords(
+          scope: .private,
+          saving: Array(reminderRecords[101...200])
+        ).notify()
+        try await syncEngine.modifyRecords(
+          scope: .private,
+          saving: Array(reminderRecords[201...300])
+        ).notify()
+        try await syncEngine.modifyRecords(
+          scope: .private,
+          saving: Array(reminderRecords[301...400])
+        ).notify()
+        try await syncEngine.modifyRecords(
+          scope: .private,
+          saving: Array(reminderRecords[401...499])
+        ).notify()
+        await remindersListModification.notify()
+
+        try await userDatabase.read { db in
+          try #expect(RemindersList.fetchCount(db) == 1)
+          try #expect(Reminder.fetchCount(db) == 500)
         }
       }
     }

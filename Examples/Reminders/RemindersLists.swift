@@ -144,9 +144,7 @@ class RemindersListsModel {
   #if DEBUG
     func seedDatabaseButtonTapped() {
       withErrorReporting {
-        try database.write { db in
-          try db.seedSampleData()
-        }
+        try database.seedSampleData()
       }
     }
   #endif
@@ -437,7 +435,8 @@ private struct ReminderGridCell: View {
 
 #Preview {
   let _ = try! prepareDependencies {
-    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.bootstrapDatabase()
+    try? $0.defaultDatabase.seedSampleData()
   }
   NavigationStack {
     RemindersListsView(model: RemindersListsModel())

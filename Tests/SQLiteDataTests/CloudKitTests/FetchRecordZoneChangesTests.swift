@@ -404,8 +404,8 @@
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func receiveRecord_SingleFieldPrimaryKey() async throws {
-        let tagRecord = CKRecord(recordType: "tags", recordID: Tag.recordID(for: "weekend"))
-        tagRecord.encryptedValues["title"] = "weekend"
+        let tagRecord = CKRecord(recordType: Tag.tableName, recordID: Tag.recordID(for: "weekend"))
+        tagRecord.setValue("weekend", forKey: "title", at: 0)
         try await syncEngine.modifyRecords(scope: .private, saving: [tagRecord]).notify()
 
         try await userDatabase.read { db in
@@ -508,7 +508,7 @@
           recordType: Tag.tableName,
           recordID: Tag.recordID(for: "tag")
         )
-        tagRecord.encryptedValues["title"] = "tag"
+        tagRecord.setValue("tag", forKey: "title", at: 0)
         try await syncEngine.modifyRecords(scope: .private, saving: [tagRecord]).notify()
 
         assertQuery(Tag.all, database: userDatabase.database) {
@@ -546,8 +546,8 @@
           │   ),                                                       │
           │   share: nil,                                              │
           │   _isDeleted: false,                                       │
-          │   hasLastKnownServerRecord: true,                          │
-          │   isShared: false,                                         │
+          │   _hasLastKnownServerRecord: true,                         │
+          │   _isShared: false,                                        │
           │   userModificationTime: 0                                  │
           │ )                                                          │
           └────────────────────────────────────────────────────────────┘
@@ -583,7 +583,7 @@
           recordType: Tag.tableName,
           recordID: Tag.recordID(for: "tag")
         )
-        tagRecord.encryptedValues["title"] = "tag"
+        tagRecord.setValue("tag", forKey: "title", at: 0)
         let modifications = try syncEngine.modifyRecords(scope: .private, saving: [tagRecord])
 
         try await userDatabase.userWrite { db in
@@ -629,8 +629,8 @@
           │   ),                                                       │
           │   share: nil,                                              │
           │   _isDeleted: false,                                       │
-          │   hasLastKnownServerRecord: true,                          │
-          │   isShared: false,                                         │
+          │   _hasLastKnownServerRecord: true,                         │
+          │   _isShared: false,                                        │
           │   userModificationTime: 0                                  │
           │ )                                                          │
           └────────────────────────────────────────────────────────────┘
@@ -699,8 +699,8 @@
           │   ),                                                           │
           │   share: nil,                                                  │
           │   _isDeleted: false,                                           │
-          │   hasLastKnownServerRecord: true,                              │
-          │   isShared: false,                                             │
+          │   _hasLastKnownServerRecord: true,                             │
+          │   _isShared: false,                                            │
           │   userModificationTime: 0                                      │
           │ )                                                              │
           └────────────────────────────────────────────────────────────────┘
@@ -738,6 +738,12 @@
           }
         }
         #expect(error?.message == SyncEngine.invalidRecordNameError)
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func syncInvalidRecordID() async throws {
+        let record = CKRecord(recordType: "foo", recordID: CKRecord.ID(recordName: "bar"))
+        try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
       }
     }
   }

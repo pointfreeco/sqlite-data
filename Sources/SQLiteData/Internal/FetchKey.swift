@@ -53,6 +53,7 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
   #if DEBUG
     let isDefaultDatabase: Bool
   #endif
+  @Dependency(\.self) var dependencies
 
   public typealias ID = FetchKeyID
 
@@ -86,18 +87,22 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
       return
     }
     let scheduler: any ValueObservationScheduler = scheduler ?? ImmediateScheduler()
-    database.asyncRead { dbResult in
-      let result = dbResult.flatMap { db in
-        Result {
-          try request.fetch(db)
+    withEscapedDependencies { dependencies in
+      database.asyncRead { dbResult in
+        let result = dbResult.flatMap { db in
+          Result {
+            try dependencies.yield {
+              try request.fetch(db)
+            }
+          }
         }
-      }
-      scheduler.schedule {
-        switch result {
-        case let .success(value):
-          continuation.resume(returning: value)
-        case let .failure(error):
-          continuation.resume(throwing: error)
+        scheduler.schedule {
+          switch result {
+          case .success(let value):
+            continuation.resume(returning: value)
+          case .failure(let error):
+            continuation.resume(throwing: error)
+          }
         }
       }
     }
@@ -111,8 +116,12 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
         return SharedSubscription {}
       }
     #endif
-    let observation = ValueObservation.tracking { db in
-      Result { try request.fetch(db) }
+    let observation = withEscapedDependencies { dependencies in
+      ValueObservation.tracking { db in
+        dependencies.yield {
+          Result { try request.fetch(db) }
+        }
+      }
     }
 
     let scheduler: any ValueObservationScheduler = scheduler ?? ImmediateScheduler()
@@ -126,16 +135,16 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
         .dropFirst(dropFirst ? 1 : 0)
         .sink { completion in
           switch completion {
-          case let .failure(error):
+          case .failure(let error):
             subscriber.yield(throwing: error)
           case .finished:
             break
           }
         } receiveValue: { newValue in
           switch newValue {
-          case let .success(value):
+          case .success(let value):
             subscriber.yield(value)
-          case let .failure(error):
+          case .failure(let error):
             subscriber.yield(throwing: error)
           }
         }
@@ -147,9 +156,9 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
         subscriber.yield(throwing: error)
       } onChange: { newValue in
         switch newValue {
-        case let .success(value):
+        case .success(let value):
           subscriber.yield(value)
-        case let .failure(error):
+        case .failure(let error):
           subscriber.yield(throwing: error)
         }
       }

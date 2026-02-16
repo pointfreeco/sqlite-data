@@ -98,11 +98,14 @@ public struct Fetch<Value: Sendable>: Sendable {
   ///   - request: A request describing the data to fetch.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
+  /// - Returns: A subscription associated with the observation.
+  @discardableResult
   public func load(
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil
-  ) async throws {
+  ) async throws -> FetchSubscription {
     try await sharedReader.load(.fetch(request, database: database))
+    return FetchSubscription(sharedReader: sharedReader)
   }
 }
 
@@ -136,12 +139,15 @@ extension Fetch {
   ///     (`@Dependency(\.defaultDatabase)`).
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
+  /// - Returns: A subscription associated with the observation.
+  @discardableResult
   public func load(
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
-  ) async throws {
+  ) async throws -> FetchSubscription {
     try await sharedReader.load(.fetch(request, database: database, scheduler: scheduler))
+    return FetchSubscription(sharedReader: sharedReader)
   }
 }
 
@@ -193,13 +199,16 @@ extension Fetch: Equatable where Value: Equatable {
     ///     (`@Dependency(\.defaultDatabase)`).
     ///   - animation: The animation to use for user interface changes that result from changes to
     ///     the fetched results.
+    /// - Returns: A subscription associated with the observation.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @discardableResult
     public func load(
       _ request: some FetchKeyRequest<Value>,
       database: (any DatabaseReader)? = nil,
       animation: Animation
-    ) async throws {
+    ) async throws -> FetchSubscription {
       try await sharedReader.load(.fetch(request, database: database, animation: animation))
+      return FetchSubscription(sharedReader: sharedReader)
     }
   }
 #endif

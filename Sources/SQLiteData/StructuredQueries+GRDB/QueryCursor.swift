@@ -148,27 +148,27 @@ extension QueryBinding {
   var databaseValue: DatabaseValue {
     get throws {
       switch self {
-      case let .blob(blob):
+      case .blob(let blob):
         return Data(blob).databaseValue
-      case let .bool(bool):
+      case .bool(let bool):
         return (bool ? 1 : 0).databaseValue
-      case let .date(date):
+      case .date(let date):
         return date.iso8601String.databaseValue
-      case let .double(double):
+      case .double(let double):
         return double.databaseValue
-      case let .int(int):
+      case .int(let int):
         return int.databaseValue
       case .null:
         return .null
-      case let .text(text):
+      case .text(let text):
         return text.databaseValue
-      case let .uint(uint) where uint <= UInt64(Int64.max):
+      case .uint(let uint) where uint <= UInt64(Int64.max):
         return uint.databaseValue
-      case let .uint(uint):
+      case .uint(let uint):
         throw Int64OverflowError(unsignedInteger: uint)
-      case let .uuid(uuid):
+      case .uuid(let uuid):
         return uuid.uuidString.lowercased().databaseValue
-      case let .invalid(error):
+      case .invalid(let error):
         throw error
       }
     }

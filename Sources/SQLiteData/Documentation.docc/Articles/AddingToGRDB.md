@@ -183,9 +183,9 @@ to specify that:
 }
 ```
 
-The library further requires your tables use globally unique identifiers (such as UUID) for their 
-primary keys, and in particular auto-incrementing integer IDs do _not_ work. You will need to 
-migrate your tables to use UUIDs, see 
+The library further requires your tables use globally unique identifiers (such as UUID) for their
+primary keys, and in particular auto-incrementing integer IDs do _not_ work. You will need to
+migrate your tables to use UUIDs, see
 <doc:CloudKit#Preparing-an-existing-schema-for-synchronization> for more information.
 
 [GRDB]: http://github.com/groue/GRDB.swift
