@@ -104,7 +104,7 @@
       // * Receive record with CKAsset from CloudKit
       // => Stored in database as bytes
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.disabled()) func receiveData() async throws {
+      @Test func receiveData() async throws {
         let remindersListRecord = CKRecord(
           recordType: RemindersList.tableName,
           recordID: RemindersList.recordID(for: 1)
@@ -141,7 +141,7 @@
       // * Receive record with Data from CloudKit when local asset exists
       // => Stored in database as bytes
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.disabled()) func receiveUpdatedData() async throws {
+      @Test func receiveUpdatedData() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")
@@ -180,7 +180,7 @@
       // * Receive updated asset from CloudKit
       // => Local database has freshest asset
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.disabled()) func receiveAssetThenReceiveUpdate() async throws {
+      @Test func receiveAssetThenReceiveUpdate() async throws {
         do {
           let remindersListRecord = CKRecord(
             recordType: RemindersList.tableName,
@@ -246,7 +246,7 @@
       // * A moment later client receives the parent RemindersList
       // => Both records (and the image data) should be synchronized
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.disabled()) func assetReceivedBeforeParentRecord() async throws {
+      @Test func assetReceivedBeforeParentRecord() async throws {
         let remindersListRecord = CKRecord(
           recordType: RemindersList.tableName,
           recordID: RemindersList.recordID(for: 1)

@@ -142,7 +142,7 @@
       get { self["\(key)_hash"] as? Data }
       set { self["\(key)_hash"] = newValue }
     }
-    fileprivate subscript(data key: String) -> Data? {
+    package subscript(data key: String) -> Data? {
       get { self["\(key)_data"] as? Data }
       set { self["\(key)_data"] = newValue }
     }
@@ -328,7 +328,9 @@
             didSet = setAsset(value, forKey: key, at: other.encryptedValues[at: key])
           } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
             didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
-          } else if other.encryptedValues[key] == nil {
+          } else if let data = other.encryptedValues[data: key] {
+            didSet = setValue(Array(data), forKey: key, at: other.encryptedValues[at: key])
+          } else if other.encryptedValues[key] == nil, other.encryptedValues[data: key] == nil {
             didSet = removeValue(forKey: key, at: other.encryptedValues[at: key])
           } else {
             didSet = false
@@ -337,8 +339,11 @@
           var isRowValueModified: Bool {
             switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
             case .blob(let value):
-              if value.isSmall {
-                return other.encryptedValues[key] != Data(value)
+              if value.isSmall,
+                let serverData =
+                  other.encryptedValues[key] as? Data ?? other.encryptedValues[data: key]
+              {
+                return serverData != Data(value)
               } else if let otherHash = other.encryptedValues[hash: key] {
                 return otherHash != value.sha256
               } else {
@@ -422,7 +427,7 @@
     }
     
     fileprivate var isSmall: Bool {
-      count * MemoryLayout<UInt>.stride < 16384
+      count <= 16_384
     }
   }
 

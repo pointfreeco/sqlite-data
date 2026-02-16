@@ -40,7 +40,7 @@
                   coverImage_hash: Data(32 bytes),
                   remindersListID: 1,
                   coverImage: CKAsset(
-                    fileURL: URL(file:///4eb74bd60d41b48bd682896ff4ba846da5051a1e190159414b3ba177a9dbe482),
+                    fileURL: URL(file:///tmp/4eb74bd60d41b48bd682896ff4ba846da5051a1e190159414b3ba177a9dbe482),
                     dataString: """
                       <?xml version="1.0" encoding="UTF-8"?>
                       <svg width="371px" height="269px" viewBox="0 0 371 269" version="1.1"
@@ -150,7 +150,7 @@
 
         inMemoryDataManager.storage.withValue { storage in
           let url = URL(
-            string: "file:///4eb74bd60d41b48bd682896ff4ba846da5051a1e190159414b3ba177a9dbe482"
+            string: "file:///tmp/4eb74bd60d41b48bd682896ff4ba846da5051a1e190159414b3ba177a9dbe482"
           )!
           #expect(storage[url] == blackCoverImage)
         }
@@ -185,7 +185,7 @@
                   coverImage_hash: Data(32 bytes),
                   remindersListID: 1,
                   coverImage: CKAsset(
-                    fileURL: URL(file:///43aba58d3830c6821f433a10c9fd554e53c257ebfd9c451514ea2c27c774b79f),
+                    fileURL: URL(file:///tmp/43aba58d3830c6821f433a10c9fd554e53c257ebfd9c451514ea2c27c774b79f),
                     dataString: """
                       <?xml version="1.0" encoding="UTF-8"?>
                       <svg width="371px" height="269px" viewBox="0 0 371 269" version="1.1"
@@ -295,7 +295,7 @@
 
         inMemoryDataManager.storage.withValue { storage in
           let url = URL(
-            string: "file:///43aba58d3830c6821f433a10c9fd554e53c257ebfd9c451514ea2c27c774b79f"
+            string: "file:///tmp/43aba58d3830c6821f433a10c9fd554e53c257ebfd9c451514ea2c27c774b79f"
           )!
           #expect(storage[url] == redCoverImage)
         }

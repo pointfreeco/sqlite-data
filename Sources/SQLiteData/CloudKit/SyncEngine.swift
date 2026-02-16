@@ -2047,7 +2047,9 @@
               }
               return data?.queryFragment ?? "NULL"
             } else {
-              return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
+              return record.encryptedValues[columnName]?.queryFragment
+                ?? record.encryptedValues[data: columnName]?.queryFragment
+                ?? "NULL"
             }
           }
           .joined(separator: ", ")
@@ -2063,10 +2065,14 @@
                 reportIssue("Asset data not found on disk")
               }
               return "\(quote: columnName) = \(data?.queryFragment ?? #""excluded".\#(quote: columnName)"#)"
+            } else if let queryFragment = record.encryptedValues[columnName]?.queryFragment
+              ?? record.encryptedValues[data: columnName]?.queryFragment
+            {
+              return "\(quote: columnName) = \(queryFragment)"
             } else {
               return """
                 \(quote: columnName) = \
-                \(record.encryptedValues[columnName]?.queryFragment ?? #""excluded".\#(quote: columnName)"#)
+                \(#""excluded".\#(quote: columnName)"#)
                 """
             }
           }
@@ -2473,7 +2479,9 @@
             return (try? asset.fileURL.map { try dataManager.load($0) })?
               .queryFragment ?? "NULL"
           } else {
-            return record.encryptedValues[columnName]?.queryFragment ?? "NULL"
+            return record.encryptedValues[columnName]?.queryFragment
+              ?? record.encryptedValues[data: columnName]?.queryFragment
+              ?? "NULL"
           }
         }
         .joined(separator: ", ")
