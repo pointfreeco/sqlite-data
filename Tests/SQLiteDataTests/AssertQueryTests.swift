@@ -29,7 +29,7 @@ struct AssertQueryTests {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func assertQueryRecord() throws {
     assertQuery(
-      Record.where { $0.id == 1 }
+      Record.find(1)
     ) {
       """
       ┌────────────────────────────────────────┐
@@ -46,7 +46,7 @@ struct AssertQueryTests {
   @Test func assertQueryBasicUpdate() throws {
     assertQuery(
       Record.all
-        .update { $0.date = Date(timeIntervalSince1970: 45) }
+        .update { $0.date = #bind(Date(timeIntervalSince1970: 45)) }
         .returning { ($0.id, $0.date) }
     ) {
       """
@@ -63,8 +63,8 @@ struct AssertQueryTests {
   @Test func assertQueryRecordUpdate() throws {
     assertQuery(
       Record
-        .where { $0.id == 1 }
-        .update { $0.date = Date(timeIntervalSince1970: 45) }
+        .where { $0.id.eq(1) }
+        .update { $0.date = #bind(Date(timeIntervalSince1970: 45)) }
         .returning(\.self)
     ) {
       """
@@ -81,7 +81,7 @@ struct AssertQueryTests {
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func assertQueryEmpty() throws {
     assertQuery(
-      Record.all.where { $0.id == -1 }.select(\.id)
+      Record.all.where { $0.id.eq(-1) }.select(\.id)
     ) {
       """
       (No results)
@@ -131,7 +131,7 @@ struct AssertQueryTests {
     @Test func assertQueryRecordIncludeSQL() throws {
       assertQuery(
         includeSQL: true,
-        Record.where { $0.id == 1 }
+        Record.where { $0.id.eq(1) }
       ) {
         """
         SELECT "records"."id", "records"."date"
