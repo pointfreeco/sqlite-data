@@ -1,7 +1,7 @@
 name: platforms ci
 on:
   push:
-    branches: [ main ]
+    branches: [ * ]
   workflow_dispatch:
   pull_request:
     branches:
