@@ -381,7 +381,7 @@ nonisolated func handleReminderStatusUpdate() {
       try await database.write { db in
         try Reminder
           .where { $0.status.eq(#bind(.completing)) }
-          .update { $0.status = .completed }
+          .update { $0.status = #bind(.completed) }
           .execute(db)
       }
     }

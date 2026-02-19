@@ -288,8 +288,8 @@
             .update {
               $0.zoneName = new.zoneName
               $0.ownerName = new.ownerName
-              $0.lastKnownServerRecord = nil
-              $0._lastKnownServerRecordAllFields = nil
+              $0.lastKnownServerRecord = #bind(nil)
+              $0._lastKnownServerRecordAllFields = #bind(nil)
             }
         } when: { old, new in
           new.zoneName.neq(old.zoneName) || new.ownerName.neq(old.ownerName)

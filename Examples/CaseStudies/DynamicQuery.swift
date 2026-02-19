@@ -53,7 +53,7 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
     .searchable(text: $query)
     .task(id: query) {
       await withErrorReporting {
-        try await $facts.load(Facts(query: query), animation: .default)
+        try await $facts.load(Facts(query: query), animation: .default).task
       }
     }
     .task {
