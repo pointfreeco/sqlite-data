@@ -2167,7 +2167,9 @@
     package var `private`: (any SyncEngineProtocol)? {
       guard let `private` = rawValue?.private
       else {
-        reportIssue("Private sync engine has not been set.")
+        if isRunning {
+          reportIssue("Private sync engine has not been set.")
+        }
         return nil
       }
       return `private`
@@ -2175,7 +2177,9 @@
     package var `shared`: (any SyncEngineProtocol)? {
       guard let `shared` = rawValue?.shared
       else {
-        reportIssue("Shared sync engine has not been set.")
+        if isRunning {
+          reportIssue("Shared sync engine has not been set.")
+        }
         return nil
       }
       return `shared`
