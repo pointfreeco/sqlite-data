@@ -1,5 +1,5 @@
 {
-  "originHash" : "56d285438747111db875a66988e33e778b76a32eff70e5ac8e5f8622d0cc47ff",
+  "originHash" : "3e185480096846c15fc1227e25219b8af8c08d28987ad22e1223ee3ed586f5ec",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -11,12 +11,12 @@
       }
     },
     {
-      "identity" : "grdb.swift",
+      "identity" : "grdb-flex",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/groue/GRDB.swift",
+      "location" : "https://github.com/swift-everywhere/grdb-flex",
       "state" : {
-        "revision" : "aa0079aeb82a4bf00324561a40bffe68c6fe1c26",
-        "version" : "7.9.0"
+        "branch" : "custom-sqlite",
+        "revision" : "180c1fbaaef5bfee4b2ac1da35a97f281ff572c8"
       }
     },
     {
@@ -125,6 +125,15 @@
       "state" : {
         "revision" : "bf8d8c27f0f0c6d5e77bff0db76ab68f2050d15d",
         "version" : "1.18.9"
+      }
+    },
+    {
+      "identity" : "swift-sqlcipher",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/skiptools/swift-sqlcipher",
+      "state" : {
+        "branch" : "sqlite-traits",
+        "revision" : "58193dbad7c9965072d47fadf1e61680c242eb2a"
       }
     },
     {

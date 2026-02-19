@@ -1,0 +1,51 @@
+name: platforms ci
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - '*'
+  schedule:
+    - cron: '0 12 * * *'
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: "Test Swift Package Linux"
+        run: swift test
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Free Disk Space"
+        run: |
+          sudo rm -rf /opt/microsoft /opt/google /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker image prune --all --force
+          docker builder prune -a
+      - uses: actions/checkout@v6
+      - name: "Test Swift Package Android"
+        uses: skiptools/swift-android-action@v2
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: "Test Swift Package iOS"
+        run: xcodebuild test -sdk "iphonesimulator" -destination "platform=iOS Simulator,name=iPhone 17" -project GRDB.xcodeproj -scheme GRDB
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: "Test Swift Package macOS"
+        run: swift test
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: compnerd/gha-setup-swift@main
+        with:
+          swift-version: swift-6.2.3-release
+          swift-build: 6.2.3-RELEASE
+      - uses: actions/checkout@v6
+      - name: "Test Swift Package Windows"
+        run: swift test
+
