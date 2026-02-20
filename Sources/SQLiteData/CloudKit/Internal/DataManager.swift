@@ -77,7 +77,7 @@
     }
 
     package var temporaryDirectory: URL {
-      URL(fileURLWithPath: "/")
+      URL(fileURLWithPath: "/tmp")
     }
   }
 
@@ -85,6 +85,9 @@
   private enum DataManagerKey: DependencyKey {
     static var liveValue: any DataManager {
       LiveDataManager()
+    }
+    static var previewValue: any DataManager {
+      InMemoryDataManager()
     }
     static var testValue: any DataManager {
       InMemoryDataManager()

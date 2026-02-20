@@ -47,6 +47,30 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func assetsUseTemporaryDirectory() async throws {
+        let recordID = CKRecord.ID(recordName: "record")
+        let record = CKRecord(recordType: "Record", recordID: recordID)
+        let sourceURL = URL(fileURLWithPath: "/sqlite-data-test-assets/asset.jpg")
+        try inMemoryDataManager.save(Data("image".utf8), to: sourceURL)
+        record["asset"] = CKAsset(fileURL: sourceURL)
+
+        let database = syncEngine.private.database
+        let (saveResults, _) = try database.modifyRecords(
+          saving: [record],
+          deleting: []
+        )
+        _ = try saveResults[recordID]?.get()
+
+        let fetched = try database.record(for: recordID)
+        let asset = fetched["asset"] as? CKAsset
+        let assetDirectory = try #require(asset?.fileURL?.path())
+        #expect(
+          assetDirectory
+            .hasPrefix(inMemoryDataManager.temporaryDirectory.path())
+        )
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func saveTransaction_ChildBeforeParent() async throws {
         let parent = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "A"))
         let child = CKRecord(recordType: "B", recordID: CKRecord.ID(recordName: "B"))
