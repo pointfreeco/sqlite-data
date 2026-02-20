@@ -164,7 +164,7 @@
           try await userDatabase.userWrite { db in
             try RemindersListAsset
               .find(1)
-              .update { $0.coverImage = redCoverImage }
+              .update { $0.coverImage = #bind(redCoverImage) }
               .execute(db)
           }
         }
@@ -513,7 +513,7 @@
           ┌──────────────────────────────────┐
           │ RemindersListAsset(              │
           │   remindersListID: 1,            │
-          │   coverImage: Data(16.811 bytes) │
+          │   coverImage: Data(16,811 bytes) │
           │ )                                │
           └──────────────────────────────────┘
           """
@@ -522,10 +522,4 @@
       }
     }
   }
-
-extension Data {
-    var debugDescription: String {
-        return "Data(\(count) bytes!)"
-    }
-}
 #endif
