@@ -1,5 +1,5 @@
 {
-  "originHash" : "56d285438747111db875a66988e33e778b76a32eff70e5ac8e5f8622d0cc47ff",
+  "originHash" : "2b95f254bb904411c5a0aba0e0402c157014542e9bd40eb5848c42c8598b80a9",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -15,17 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/groue/GRDB.swift",
       "state" : {
-        "revision" : "aa0079aeb82a4bf00324561a40bffe68c6fe1c26",
-        "version" : "7.9.0"
-      }
-    },
-    {
-      "identity" : "swift-case-paths",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/swift-case-paths",
-      "state" : {
-        "revision" : "6989976265be3f8d2b5802c722f9ba168e227c71",
-        "version" : "1.7.2"
+        "revision" : "36e30a6f1ef10e4194f6af0cff90888526f0c115",
+        "version" : "7.10.0"
       }
     },
     {
@@ -60,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-custom-dump",
       "state" : {
-        "revision" : "91be35a71a9890246f2a8f0dd1ee9bdf7157645d",
-        "version" : "1.4.0"
+        "revision" : "2a2a938798236b8fa0bc57c453ee9de9f9ec3ab0",
+        "version" : "1.4.1"
       }
     },
     {
@@ -69,8 +60,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-dependencies",
       "state" : {
-        "revision" : "411297072220a96f1501211afebd3715316907d2",
-        "version" : "1.10.1"
+        "revision" : "c79f72b3e67a1eb64f66f76704c22ed6a5c1ed84",
+        "version" : "1.11.0"
       }
     },
     {
@@ -78,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-docc-plugin",
       "state" : {
-        "revision" : "3e4f133a77e644a5812911a0513aeb7288b07d06",
-        "version" : "1.4.5"
+        "revision" : "e977f65879f82b375a044c8837597f690c067da6",
+        "version" : "1.4.6"
       }
     },
     {
@@ -132,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
-        "revision" : "dc29ae126d9767a064202db6afa0b651ba23b7f8",
-        "version" : "0.29.0"
+        "revision" : "20db4a2a446f51e67e1207d54a23ad0a03471a7b",
+        "version" : "0.31.0"
       }
     },
     {
@@ -146,21 +137,12 @@
       }
     },
     {
-      "identity" : "swift-tagged",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/swift-tagged",
-      "state" : {
-        "revision" : "3907a9438f5b57d317001dc99f3f11b46882272b",
-        "version" : "0.10.0"
-      }
-    },
-    {
       "identity" : "xctest-dynamic-overlay",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",
       "state" : {
-        "revision" : "34e463e98ab8541c604af706c99bed7160f5ec70",
-        "version" : "1.8.1"
+        "revision" : "dfd70507def84cb5fb821278448a262c6ff2bbad",
+        "version" : "1.9.0"
       }
     }
   ],

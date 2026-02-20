@@ -509,7 +509,7 @@
         if context == .preview {
           previewTimerTask.withValue {
             $0?.cancel()
-            $0 = Task { [weak self] in
+            $0 = Task { @Sendable [weak self] in
               await withErrorReporting {
                 while true {
                   guard let self else { break }
@@ -1179,7 +1179,8 @@
               // NB: Fake 'sending' result.
               nonisolated(unsafe) var result: T.QueryOutput?
               try await userDatabase.read { db in
-                result = try T
+                result =
+                  try T
                   .where {
                     #sql("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
                   }
@@ -1850,7 +1851,7 @@
       try await userDatabase.write { db in
         try SyncMetadata
           .find(rootRecordID)
-          .update { $0.share = share }
+          .update { $0.share = #bind(share) }
           .execute(db)
       }
     }
@@ -1880,7 +1881,7 @@
           )
           .update {
             $0.setLastKnownServerRecord(rootRecord)
-            $0.share = nil
+            $0.share = #bind(nil)
           }
           .execute(db)
       }
@@ -2062,7 +2063,8 @@
               if data == nil {
                 reportIssue("Asset data not found on disk")
               }
-              return "\(quote: columnName) = \(data?.queryFragment ?? #""excluded".\#(quote: columnName)"#)"
+              return
+                "\(quote: columnName) = \(data?.queryFragment ?? #""excluded".\#(quote: columnName)"#)"
             } else {
               return """
                 \(quote: columnName) = \
@@ -2330,7 +2332,7 @@
         for table in tables {
           func open<T>(_: some SynchronizableTable<T>) throws {
             let columnsWithUniqueConstraints = try PragmaIndexList<T>
-              .where { $0.isUnique && $0.origin != "pk" }
+              .where { $0.isUnique && $0.origin.neq("pk") }
               .select(\.name)
               .fetchAll(db)
             if !columnsWithUniqueConstraints.isEmpty {
@@ -2442,12 +2444,14 @@
     mutating func setLastKnownServerRecord(_ lastKnownServerRecord: CKRecord?) {
       self.zoneName = lastKnownServerRecord?.recordID.zoneID.zoneName ?? self.zoneName
       self.ownerName = lastKnownServerRecord?.recordID.zoneID.ownerName ?? self.ownerName
-      self.lastKnownServerRecord = lastKnownServerRecord
-      self._lastKnownServerRecordAllFields = lastKnownServerRecord
+      self.lastKnownServerRecord = #bind(lastKnownServerRecord)
+      self._lastKnownServerRecordAllFields = #bind(lastKnownServerRecord)
       if let lastKnownServerRecord {
-        self.userModificationTime = #sql("""
+        self.userModificationTime = #sql(
+          """
           max(\(self.userModificationTime), \(lastKnownServerRecord.userModificationTime))
-          """)
+          """
+        )
       }
     }
   }

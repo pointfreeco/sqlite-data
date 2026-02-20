@@ -72,7 +72,7 @@
           try await userDatabase.userWrite { db in
             try RemindersListAsset
               .find(1)
-              .update { $0.coverImage = Data("new-image".utf8) }
+              .update { $0.coverImage = #bind(Data("new-image".utf8)) }
               .execute(db)
           }
         }
