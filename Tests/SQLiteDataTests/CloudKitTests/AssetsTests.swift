@@ -522,4 +522,10 @@
       }
     }
   }
+
+extension Data {
+    var debugDescription: String {
+        return "Data(\(count) bytes!)"
+    }
+}
 #endif
