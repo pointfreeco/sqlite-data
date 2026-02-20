@@ -206,7 +206,7 @@
           .where { $0.recordName.eq(recordName) }
           .update {
             $0.setLastKnownServerRecord(savedRootRecord)
-            $0.share = savedShare
+            $0.share = #bind(savedShare)
           }
           .execute(db)
       }

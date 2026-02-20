@@ -52,6 +52,15 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.startImmediately(false))
+      func background_whileNotRunning() async throws {
+        defaultNotificationCenter.post(
+          name: UIApplication.willResignActiveNotification, object: nil)
+        try await Task.sleep(for: .seconds(1))
+        // NB: Not runtime warnings emitted.
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func sendSharedChanges() async throws {
         let externalZone = CKRecordZone(
           zoneID: CKRecordZone.ID(

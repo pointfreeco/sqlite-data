@@ -266,7 +266,7 @@
           $0.currentTime.now += 1
         } operation: {
           try await userDatabase.userWrite { db in
-            try ChildWithOnDeleteSetNull.find(1).update { $0.parentID = 2 }.execute(db)
+            try ChildWithOnDeleteSetNull.find(1).update { $0.parentID = #bind(2) }.execute(db)
           }
         }
         try await withDependencies {

@@ -666,7 +666,7 @@
             $0.currentTime.now += 1
           } operation: {
             try await userDatabase.userWrite { db in
-              try Reminder.find(1).update { $0.priority = 3 }.execute(db)
+              try Reminder.find(1).update { $0.priority = #bind(3) }.execute(db)
             }
             await modificationsFinished.notify()
             try await syncEngine.processPendingRecordZoneChanges(scope: .private)
