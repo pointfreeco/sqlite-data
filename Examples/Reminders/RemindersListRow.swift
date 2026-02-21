@@ -35,7 +35,7 @@ struct RemindersListRow: View {
     .swipeActions {
       Button {
         withErrorReporting {
-          try database.write { db in
+          try database.writeWithUndoGroup("Delete list") { db in
             try RemindersList.delete(remindersList)
               .execute(db)
           }

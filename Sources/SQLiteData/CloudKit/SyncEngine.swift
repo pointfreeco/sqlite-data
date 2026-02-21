@@ -1481,21 +1481,30 @@
         if let table = tablesByName[recordType] {
           func open<T>(_: some SynchronizableTable<T>) async {
             await withErrorReporting(.sqliteDataCloudKitFailure) {
-              try await userDatabase.write { db in
-                try T
-                  .where {
-                    #sql("\($0.primaryKey)").in(
-                      SyncMetadata.findAll(recordIDs)
-                        .select(\.recordPrimaryKey)
-                    )
-                  }
-                  .delete()
-                  .execute(db)
+              let write = {
+                try await self.userDatabase.write { db in
+                  try T
+                    .where {
+                      #sql("\($0.primaryKey)").in(
+                        SyncMetadata.findAll(recordIDs)
+                          .select(\.recordPrimaryKey)
+                      )
+                    }
+                    .delete()
+                    .execute(db)
 
-                try UnsyncedRecordID
-                  .findAll(recordIDs)
-                  .delete()
-                  .execute(db)
+                  try UnsyncedRecordID
+                    .findAll(recordIDs)
+                    .delete()
+                    .execute(db)
+                }
+              }
+              if let zoneID = recordIDs.first?.zoneID {
+                try await $_currentZoneID.withValue(zoneID) {
+                  try await write()
+                }
+              } else {
+                try await write()
               }
             }
           }
@@ -1585,19 +1594,28 @@
       }
       let shares: [ShareOrReference] =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await userDatabase.write { db in
-            var shares: [ShareOrReference] = []
-            for record in modifications {
-              if let share = record as? CKShare {
-                shares.append(.share(share))
-              } else {
-                upsertFromServerRecord(record, db: db)
-                if let shareReference = record.share {
-                  shares.append(.reference(shareReference))
+          let write = {
+            try await self.userDatabase.write { db in
+              var shares: [ShareOrReference] = []
+              for record in modifications {
+                if let share = record as? CKShare {
+                  shares.append(.share(share))
+                } else {
+                  self.upsertFromServerRecord(record, db: db)
+                  if let shareReference = record.share {
+                    shares.append(.reference(shareReference))
+                  }
                 }
               }
+              return shares
             }
-            return shares
+          }
+          if let zoneID = modifications.first?.recordID.zoneID {
+            return try await $_currentZoneID.withValue(zoneID) {
+              try await write()
+            }
+          } else {
+            return try await write()
           }
         }
         ?? []
@@ -1892,8 +1910,10 @@
       force: Bool = false
     ) async {
       await withErrorReporting(.sqliteDataCloudKitFailure) {
-        try await userDatabase.write { db in
-          upsertFromServerRecord(serverRecord, force: force, db: db)
+        try await $_currentZoneID.withValue(serverRecord.recordID.zoneID) {
+          try await userDatabase.write { db in
+            upsertFromServerRecord(serverRecord, force: force, db: db)
+          }
         }
       }
     }

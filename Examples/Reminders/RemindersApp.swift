@@ -14,11 +14,15 @@ struct RemindersApp: App {
   static let model = RemindersListsModel()
 
   @State var syncEngineDelegate = RemindersSyncEngineDelegate()
+  @State var undoManagerDelegate = RemindersUndoManagerDelegate()
 
   init() {
     if context == .live {
       try! prepareDependencies {
-        try $0.bootstrapDatabase(syncEngineDelegate: syncEngineDelegate)
+        try $0.bootstrapDatabase(
+          syncEngineDelegate: syncEngineDelegate,
+          undoManagerDelegate: undoManagerDelegate
+        )
       }
     }
   }
@@ -29,6 +33,7 @@ struct RemindersApp: App {
         NavigationStack {
           RemindersListsView(model: Self.model)
         }
+        .bindSQLiteUndoManagerToSystemUndo()
         .alert(
           "Reset local data?",
           isPresented: $syncEngineDelegate.isDeleteLocalDataAlertPresented
@@ -44,6 +49,18 @@ struct RemindersApp: App {
             You are no longer logged into iCloud. Would you like to reset your local data to the \
             defaults? This will not affect your data in iCloud.
             """
+          )
+        }
+        .alert(item: $undoManagerDelegate.confirmationRequest) { request in
+          Alert(
+            title: Text(request.title),
+            message: Text(request.message),
+            primaryButton: .destructive(Text(request.confirmButtonTitle)) {
+              undoManagerDelegate.respondToConfirmation(confirmed: true)
+            },
+            secondaryButton: .cancel {
+              undoManagerDelegate.respondToConfirmation(confirmed: false)
+            }
           )
         }
       }
@@ -66,6 +83,88 @@ class RemindersSyncEngineDelegate: SyncEngineDelegate {
       isDeleteLocalDataAlertPresented = true
     @unknown default:
       break
+    }
+  }
+}
+
+@MainActor
+@Observable
+final class RemindersUndoManagerDelegate: UndoManagerDelegate {
+  struct ConfirmationRequest: Identifiable {
+    let action: UndoAction
+    let group: UndoGroup
+    var id: UUID { group.id }
+    var title: String {
+      switch action {
+      case .undo: "Undo \"\(group.description)\"?"
+      case .redo: "Redo \"\(group.description)\"?"
+      }
+    }
+    var message: String {
+      "This change came from \(originDescription). Are you sure you want to continue?"
+    }
+    var confirmButtonTitle: String {
+      switch action {
+      case .undo: "Undo"
+      case .redo: "Redo"
+      }
+    }
+
+    private var originDescription: String {
+      var parts: [String] = []
+      if group.deviceID != SQLiteUndoManager.defaultDeviceID {
+        if group.deviceID == "sqlitedata-sync" {
+          parts.append("another device")
+        } else {
+          parts.append("device \(group.deviceID)")
+        }
+      }
+      if
+        let userRecordName = group.userRecordName
+      {
+        parts.append("user \(userRecordName)")
+      }
+      return parts.isEmpty ? "this device" : parts.joined(separator: " and ")
+    }
+  }
+
+  var confirmationRequest: ConfirmationRequest?
+  private var confirmationContinuation: CheckedContinuation<Bool, Never>?
+
+  func undoManager(
+    _ undoManager: SQLiteData.UndoManager,
+    willPerform action: UndoAction,
+    for group: UndoGroup,
+    performAction: @Sendable () async throws -> Void
+  ) async throws {
+    guard shouldConfirm(for: group) else {
+      try await performAction()
+      return
+    }
+    if await requestConfirmation(action: action, group: group) {
+      try await performAction()
+    }
+  }
+
+  func respondToConfirmation(confirmed: Bool) {
+    confirmationContinuation?.resume(returning: confirmed)
+    confirmationContinuation = nil
+    confirmationRequest = nil
+  }
+
+  private func shouldConfirm(for group: UndoGroup) -> Bool {
+    let isOtherDevice = group.deviceID != SQLiteUndoManager.defaultDeviceID
+    let isOtherUser = group.userRecordName != nil
+    return isOtherDevice || isOtherUser
+  }
+
+  private func requestConfirmation(action: UndoAction, group: UndoGroup) async -> Bool {
+    if confirmationContinuation != nil {
+      respondToConfirmation(confirmed: false)
+    }
+    return await withCheckedContinuation { continuation in
+      confirmationContinuation = continuation
+      confirmationRequest = ConfirmationRequest(action: action, group: group)
     }
   }
 }
