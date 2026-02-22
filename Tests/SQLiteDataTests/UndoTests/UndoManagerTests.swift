@@ -23,11 +23,6 @@ import Testing
   var message: String
 }
 
-@Table("parents") private struct Parent: Equatable, Identifiable {
-  let id: Int
-  var name: String
-}
-
 @Table("children") private struct Child: Equatable, Identifiable {
   let id: Int
   var parentID: Int

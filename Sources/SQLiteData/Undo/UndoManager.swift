@@ -272,7 +272,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
       return activeBarrier.barrier
     }
     let summary = try database.write { db -> (maxSeq: Int, modifiedTables: Set<String>)? in
-      guard var maxSeq = try UndoLog.order { $0.seq.desc() }.fetchOne(db)?.seq,
+      guard var maxSeq = try UndoLog.order(by: { $0.seq.desc() }).fetchOne(db)?.seq,
         maxSeq >= barrier.firstLog
       else {
         return nil
@@ -301,7 +301,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
       return activeBarrier.barrier
     }
     let summary = try await database.write { db -> (maxSeq: Int, modifiedTables: Set<String>)? in
-      guard var maxSeq = try UndoLog.order { $0.seq.desc() }.fetchOne(db)?.seq,
+      guard var maxSeq = try UndoLog.order(by: { $0.seq.desc() }).fetchOne(db)?.seq,
         maxSeq >= barrier.firstLog
       else {
         return nil
@@ -576,7 +576,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
 
     // The triggers fired during `applyInverse` will have added new rows to the log.
     let newEnd = try await database.write { db -> Int in
-      guard var newEnd = try UndoLog.order { $0.seq.desc() }.fetchOne(db)?.seq else { return 0 }
+      guard var newEnd = try UndoLog.order(by: { $0.seq.desc() }).fetchOne(db)?.seq else { return 0 }
       if newEnd >= firstLog {
         try undoReconcileEntries(in: db, from: firstLog, to: newEnd)
         newEnd = try UndoLog.order { $0.seq.desc() }.fetchOne(db)?.seq ?? 0
