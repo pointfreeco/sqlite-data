@@ -171,8 +171,8 @@ struct ReminderFormView: View {
     withErrorReporting {
       try database.writeWithUndoGroup(
         reminder.id == nil
-          ? LocalizedStringKey("Create reminder")
-          : LocalizedStringKey("Edit reminder")
+          ? "Create reminder"
+          : "Edit reminder"
       ) { db in
         let reminderID = try Reminder.upsert { reminder }
           .returning(\.id)

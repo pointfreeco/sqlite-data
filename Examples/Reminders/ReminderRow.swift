@@ -76,7 +76,7 @@ struct ReminderRow: View {
     .swipeActions {
       Button("Delete", role: .destructive) {
         withErrorReporting {
-          try database.writeWithUndoGroup(LocalizedStringKey("Delete reminder")) { db in
+          try database.writeWithUndoGroup("Delete reminder") { db in
             try Reminder.delete(reminder).execute(db)
           }
         }
@@ -85,8 +85,8 @@ struct ReminderRow: View {
         withErrorReporting {
           try database.writeWithUndoGroup(
             reminder.isFlagged
-              ? LocalizedStringKey("Unflag reminder")
-              : LocalizedStringKey("Flag reminder")
+              ? "Unflag reminder"
+              : "Flag reminder"
           ) { db in
             try Reminder
               .find(reminder.id)
@@ -112,8 +112,8 @@ struct ReminderRow: View {
     withErrorReporting {
       try database.writeWithUndoGroup(
         reminder.isCompleted
-          ? LocalizedStringKey("Mark reminder incomplete")
-          : LocalizedStringKey("Mark reminder complete")
+          ? "Mark reminder incomplete"
+          : "Mark reminder complete"
       ) { db in
         try Reminder
           .find(reminder.id)

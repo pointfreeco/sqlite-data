@@ -50,7 +50,7 @@ class RemindersDetailModel: HashableObject {
 
   func move(from source: IndexSet, to destination: Int) async {
     withErrorReporting {
-      try database.writeWithUndoGroup(LocalizedStringKey("Reorder reminders")) { db in
+      try database.writeWithUndoGroup("Reorder reminders") { db in
         var ids = reminderRows.map(\.reminder.id)
         ids.move(fromOffsets: source, toOffset: destination)
         try Reminder

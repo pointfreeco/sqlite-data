@@ -79,8 +79,8 @@ struct RemindersListForm: View {
             await withErrorReporting {
               try await database.writeWithUndoGroup(
                 remindersList.id == nil
-                  ? LocalizedStringKey("Create list")
-                  : LocalizedStringKey("Edit list")
+                  ? "Create list"
+                  : "Edit list"
               ) { db in
                 let remindersListID =
                   try RemindersList

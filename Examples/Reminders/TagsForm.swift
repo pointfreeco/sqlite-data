@@ -80,7 +80,7 @@ struct TagsView: View {
 
   func deleteButtonTapped(tag: Tag) {
     withErrorReporting {
-      try database.writeWithUndoGroup(LocalizedStringKey("Delete tag")) { db in
+      try database.writeWithUndoGroup("Delete tag") { db in
         try Tag.find(tag.title).delete().execute(db)
       }
     }
@@ -97,8 +97,8 @@ struct TagsView: View {
     withErrorReporting {
       try database.writeWithUndoGroup(
         editingTag == nil
-          ? LocalizedStringKey("Create tag")
-          : LocalizedStringKey("Edit tag")
+          ? "Create tag"
+          : "Edit tag"
       ) { db in
         if let existingTagTitle = editingTag?.title {
           selectedTags.removeAll(where: { $0.title == existingTagTitle })
