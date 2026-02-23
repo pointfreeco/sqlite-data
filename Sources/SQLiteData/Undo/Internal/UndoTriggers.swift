@@ -4,6 +4,15 @@ import StructuredQueriesCore
 
 // MARK: - Undo log table
 
+/// Trigger-local mapping to avoid qualifying temp table names inside trigger DML.
+@Table("sqlitedata_undo_log")
+private struct TriggerUndoLog {
+  let seq: Int
+  let tableName: String
+  let trackedRowID: Int
+  let sql: String
+}
+
 /// The DDL that creates the per-connection temporary undo log table.
 package let undoLogTableSQL = """
   CREATE TEMP TABLE IF NOT EXISTS "sqlitedata_undo_log" (
@@ -29,7 +38,7 @@ extension PrimaryKeyedTable {
       "_sqlitedata_undo_insert_\(tableName)",
       ifNotExists: true,
       after: .insert { new in
-        UndoLog.insert {
+        TriggerUndoLog.insert {
           ($0.tableName, $0.trackedRowID, $0.sql)
         } select: {
           Values(
@@ -52,7 +61,7 @@ extension PrimaryKeyedTable {
       "_sqlitedata_undo_update_\(tableName)",
       ifNotExists: true,
       before: .update { old, _ in
-        UndoLog.insert {
+        TriggerUndoLog.insert {
           ($0.tableName, $0.trackedRowID, $0.sql)
         } select: {
           Values(
@@ -75,7 +84,7 @@ extension PrimaryKeyedTable {
       "_sqlitedata_undo_delete_\(tableName)",
       ifNotExists: true,
       before: .delete { old in
-        UndoLog.insert {
+        TriggerUndoLog.insert {
           ($0.tableName, $0.trackedRowID, $0.sql)
         } select: {
           Values(
