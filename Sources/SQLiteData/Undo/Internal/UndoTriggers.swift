@@ -1,5 +1,6 @@
 import Foundation
 import GRDB
+import StructuredQueriesCore
 
 // MARK: - Column info
 
@@ -13,22 +14,24 @@ package func undoColumnNames(for tableName: String, in db: Database) throws -> [
   // parameters in table-valued-function arguments.
   let tableLiteral = "'" + tableName.replacingOccurrences(of: "'", with: "''") + "'"
   do {
-    return try String.fetchAll(
-      db,
-      sql: """
-        SELECT name FROM pragma_table_xinfo(\(tableLiteral))
+    return try #sql(
+        """
+        SELECT name FROM pragma_table_xinfo(\(raw: tableLiteral))
         WHERE hidden = 0
         ORDER BY cid
-        """
-    )
+        """,
+        as: String.self
+      )
+      .fetchAll(db)
   } catch {
-    return try String.fetchAll(
-      db,
-      sql: """
-        SELECT name FROM pragma_table_info(\(tableLiteral))
-        ORDER BY cid
+    return try #sql(
         """
-    )
+        SELECT name FROM pragma_table_info(\(raw: tableLiteral))
+        ORDER BY cid
+        """,
+        as: String.self
+      )
+      .fetchAll(db)
   }
 }
 
@@ -134,17 +137,14 @@ package func undoTriggerDropSQL(for tableName: String) -> [String] {
 // MARK: - Undo log analysis
 
 package func undoModifiedTableNames(in db: Database, from startSeq: Int, to endSeq: Int) throws -> Set<String> {
-  Set(
-    try String.fetchAll(
-      db,
-      sql: """
-        SELECT DISTINCT "tableName"
-        FROM "sqlitedata_undo_log"
-        WHERE "seq" >= ? AND "seq" <= ?
-        """,
-      arguments: [startSeq, endSeq]
-    )
-  )
+  Set(try #sql(
+    """
+    SELECT DISTINCT "tableName"
+    FROM "sqlitedata_undo_log"
+    WHERE "seq" >= \(startSeq) AND "seq" <= \(endSeq)
+    """,
+    as: String.self
+  ).fetchAll(db))
 }
 
 package func undoReconcileEntries(in db: Database, from startSeq: Int, to endSeq: Int) throws {
@@ -185,7 +185,10 @@ package func undoReconcileEntries(in db: Database, from startSeq: Int, to endSeq
 
   guard !seqsToDelete.isEmpty else { return }
   let sqlList = seqsToDelete.map(String.init).joined(separator: ",")
-  try db.execute(sql: "DELETE FROM \"sqlitedata_undo_log\" WHERE \"seq\" IN (\(sqlList))")
+  try #sql(
+    #"DELETE FROM "sqlitedata_undo_log" WHERE "seq" IN (\#(raw: sqlList))"#
+  )
+  .execute(db)
 }
 
 // MARK: - Helpers

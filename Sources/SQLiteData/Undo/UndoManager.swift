@@ -167,14 +167,14 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
       db.add(function: $_shouldRecord)
       db.add(function: $_isReplaying)
 
-      try db.execute(sql: undoLogTableSQL)
+      try #sql("\(raw: undoLogTableSQL)").execute(db)
 
       for table in repeat each tables {
         let tableName = table.tableName
         let columns = try undoColumnNames(for: tableName, in: db)
         guard !columns.isEmpty else { continue }
         for sql in undoTriggerSQL(for: tableName, columns: columns) {
-          try db.execute(sql: sql)
+          try #sql("\(raw: sql)").execute(db)
         }
       }
     }
@@ -564,11 +564,11 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
 
         // Replayed statements can include child-before-parent row restoration from cascading
         // deletes. Deferring FK checks until commit lets the full inverse set restore first.
-        try db.execute(sql: "PRAGMA defer_foreign_keys = ON")
+        try #sql("PRAGMA defer_foreign_keys = ON").execute(db)
 
         // Execute each inverse SQL statement in order.
         for row in rows {
-          try db.execute(sql: row.sql)
+          try #sql("\(raw: row.sql)").execute(db)
         }
         return affectedRows
       }
