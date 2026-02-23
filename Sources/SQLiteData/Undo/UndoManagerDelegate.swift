@@ -13,6 +13,7 @@ public protocol UndoManagerDelegate: AnyObject, Sendable {
   ///   - action: Whether this is an undo or redo.
   ///   - group: The group of changes that will be undone or redone.
   ///   - performAction: Call this to commit the operation.  Omitting this call cancels it.
+  @MainActor
   func undoManager(
     _ undoManager: SQLiteData.UndoManager,
     willPerform action: UndoAction,
@@ -23,6 +24,7 @@ public protocol UndoManagerDelegate: AnyObject, Sendable {
 
 extension UndoManagerDelegate {
   /// Default implementation: immediately performs the action without confirmation.
+  @MainActor
   public func undoManager(
     _ undoManager: SQLiteData.UndoManager,
     willPerform action: UndoAction,
