@@ -78,7 +78,9 @@ struct RemindersListForm: View {
           Task { [remindersList, coverImageData] in
             await withErrorReporting {
               try await database.writeWithUndoGroup(
-                remindersList.id == nil ? "Create list" : "Edit list"
+                remindersList.id == nil
+                  ? LocalizedStringKey("Create list")
+                  : LocalizedStringKey("Edit list")
               ) { db in
                 let remindersListID =
                   try RemindersList

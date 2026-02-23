@@ -169,8 +169,11 @@ struct ReminderFormView: View {
 
   private func saveButtonTapped() {
     withErrorReporting {
-      try database.writeWithUndoGroup(reminder.id == nil ? "Create reminder" : "Edit reminder") {
-        db in
+      try database.writeWithUndoGroup(
+        reminder.id == nil
+          ? LocalizedStringKey("Create reminder")
+          : LocalizedStringKey("Edit reminder")
+      ) { db in
         let reminderID = try Reminder.upsert { reminder }
           .returning(\.id)
           .fetchOne(db)!

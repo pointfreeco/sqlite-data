@@ -6,6 +6,9 @@ import Perception
 #if canImport(Observation)
   import Observation
 #endif
+#if canImport(SwiftUI)
+  import SwiftUI
+#endif
 import StructuredQueriesCore
 
 #if canImport(UIKit)
@@ -232,7 +235,45 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
 
   /// Begins recording a barrier that can later be ended or cancelled.
   ///
+  /// This overload accepts a localized resource so group names can participate in localization.
+  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
+  @discardableResult
+  public func beginBarrier(
+    _ description: LocalizedStringResource,
+    deviceID: String? = nil,
+    userRecordName: String? = nil
+  ) throws -> UUID {
+    try beginBarrier(
+      String(localized: description),
+      deviceID: deviceID,
+      userRecordName: userRecordName
+    )
+  }
+
+  #if canImport(SwiftUI)
+    /// Begins recording a barrier that can later be ended or cancelled.
+    ///
+    /// This overload accepts a localized key and resolves it using the app's main bundle.
+    @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+    @_disfavoredOverload
+    @discardableResult
+    public func beginBarrier(
+      _ description: LocalizedStringKey,
+      deviceID: String? = nil,
+      userRecordName: String? = nil
+    ) throws -> UUID {
+      try beginBarrier(
+        description.undoGroupKeyString,
+        deviceID: deviceID,
+        userRecordName: userRecordName
+      )
+    }
+  #endif
+
+  /// Begins recording a barrier that can later be ended or cancelled.
+  ///
   /// Use this API when an undoable action spans multiple writes or async boundaries.
+  @_disfavoredOverload
   @discardableResult
   public func beginBarrier(
     _ description: String,
@@ -366,6 +407,66 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   ///   - description: A human-readable label for the change, e.g. `"Delete reminder"`.
   ///   - body: A closure that performs database writes.  Receives a `Database` connection.
   /// - Returns: The value returned by `body`.
+  #if canImport(SwiftUI)
+    @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+    @_disfavoredOverload
+    @discardableResult
+    public func withGroup<T: Sendable>(
+      _ description: LocalizedStringKey,
+      deviceID: String? = nil,
+      userRecordName: String? = nil,
+      _ body: @Sendable (Database) throws -> T
+    ) async throws -> T {
+      try await withGroup(
+        description.undoGroupKeyString,
+        deviceID: deviceID,
+        userRecordName: userRecordName,
+        body
+      )
+    }
+  #endif
+
+  /// Performs `body` inside a database write transaction and records all changes as a named
+  /// undo group.
+  ///
+  /// If `body` makes no changes (or triggers are suppressed because recording is frozen), no
+  /// undo entry is added.
+  ///
+  /// Calling this method clears the redo stack.
+  ///
+  /// - Parameters:
+  ///   - description: A human-readable label for the change, e.g. `"Delete reminder"`.
+  ///   - body: A closure that performs database writes.  Receives a `Database` connection.
+  /// - Returns: The value returned by `body`.
+  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
+  @discardableResult
+  public func withGroup<T: Sendable>(
+    _ description: LocalizedStringResource,
+    deviceID: String? = nil,
+    userRecordName: String? = nil,
+    _ body: @Sendable (Database) throws -> T
+  ) async throws -> T {
+    try await withGroup(
+      String(localized: description),
+      deviceID: deviceID,
+      userRecordName: userRecordName,
+      body
+    )
+  }
+
+  /// Performs `body` inside a database write transaction and records all changes as a named
+  /// undo group.
+  ///
+  /// If `body` makes no changes (or triggers are suppressed because recording is frozen), no
+  /// undo entry is added.
+  ///
+  /// Calling this method clears the redo stack.
+  ///
+  /// - Parameters:
+  ///   - description: A human-readable label for the change, e.g. `"Delete reminder"`.
+  ///   - body: A closure that performs database writes.  Receives a `Database` connection.
+  /// - Returns: The value returned by `body`.
+  @_disfavoredOverload
   @discardableResult
   public func withGroup<T: Sendable>(
     _ description: String,
@@ -391,6 +492,44 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   }
 
   /// Synchronous variant of ``withGroup(_:deviceID:userRecordName:_:)``.
+  #if canImport(SwiftUI)
+    @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+    @_disfavoredOverload
+    @discardableResult
+    public func withGroup<T>(
+      _ description: LocalizedStringKey,
+      deviceID: String? = nil,
+      userRecordName: String? = nil,
+      _ body: (Database) throws -> T
+    ) throws -> T {
+      try withGroup(
+        description.undoGroupKeyString,
+        deviceID: deviceID,
+        userRecordName: userRecordName,
+        body
+      )
+    }
+  #endif
+
+  /// Synchronous variant of ``withGroup(_:deviceID:userRecordName:_:)``.
+  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
+  @discardableResult
+  public func withGroup<T>(
+    _ description: LocalizedStringResource,
+    deviceID: String? = nil,
+    userRecordName: String? = nil,
+    _ body: (Database) throws -> T
+  ) throws -> T {
+    try withGroup(
+      String(localized: description),
+      deviceID: deviceID,
+      userRecordName: userRecordName,
+      body
+    )
+  }
+
+  /// Synchronous variant of ``withGroup(_:deviceID:userRecordName:_:)``.
+  @_disfavoredOverload
   @discardableResult
   public func withGroup<T>(
     _ description: String,
@@ -654,6 +793,19 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     private func registerFoundationAction(_ action: UndoAction, group: UndoGroup) {}
   #endif
 }
+
+#if canImport(SwiftUI)
+  @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
+  private extension LocalizedStringKey {
+    var undoGroupKeyString: String {
+      Mirror(reflecting: self)
+        .children
+        .first { $0.label == "key" }
+        .flatMap { $0.value as? String }
+        ?? String(describing: self)
+    }
+  }
+#endif
 
 #if canImport(Observation)
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

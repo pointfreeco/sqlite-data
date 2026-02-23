@@ -85,7 +85,7 @@ class RemindersListsModel {
   func deleteTags(atOffsets offsets: IndexSet) {
     withErrorReporting {
       let tagTitles = offsets.map { tags[$0].title }
-      try database.writeWithUndoGroup("Delete tags") { db in
+      try database.writeWithUndoGroup(LocalizedStringKey("Delete tags")) { db in
         try Tag
           .where { $0.title.in(tagTitles) }
           .delete()
@@ -126,7 +126,7 @@ class RemindersListsModel {
 
   func move(from source: IndexSet, to destination: Int) {
     withErrorReporting {
-      try database.writeWithUndoGroup("Reorder lists") { db in
+      try database.writeWithUndoGroup(LocalizedStringKey("Reorder lists")) { db in
         var ids = remindersLists.map(\.remindersList.id)
         ids.move(fromOffsets: source, toOffset: destination)
         try RemindersList
@@ -148,8 +148,21 @@ class RemindersListsModel {
 
   #if DEBUG
     func seedDatabaseButtonTapped() {
-      withErrorReporting {
-        try database.seedSampleData()
+      Task {
+        await withErrorReporting {
+          if let undoManager {
+            try await undoManager.freeze()
+            do {
+              try database.seedSampleData()
+              try await undoManager.unfreeze()
+            } catch {
+              try await undoManager.unfreeze()
+              throw error
+            }
+          } else {
+            try database.seedSampleData()
+          }
+        }
       }
     }
   #endif
