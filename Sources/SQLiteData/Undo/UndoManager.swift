@@ -170,12 +170,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
       try #sql("\(raw: undoLogTableSQL)").execute(db)
 
       for table in repeat each tables {
-        let tableName = table.tableName
-        let columns = try undoColumnNames(for: tableName, in: db)
-        guard !columns.isEmpty else { continue }
-        for sql in undoTriggerSQL(for: tableName, columns: columns) {
-          try #sql("\(raw: sql)").execute(db)
-        }
+        try table.installUndoTriggers(in: db)
       }
     }
 

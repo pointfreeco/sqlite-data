@@ -382,10 +382,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
           )
           """
       )
-      let columns = try undoColumnNames(for: "audits", in: db)
-      for sql in undoTriggerSQL(for: "audits", columns: columns) {
-        try db.execute(sql: sql)
-      }
+      try Audit.installUndoTriggers(in: db)
     }
 
     try await withKnownIssue {
