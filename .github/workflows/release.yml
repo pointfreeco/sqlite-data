@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 jobs:
   project-channel:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Dump Github context
         env:
@@ -44,7 +44,7 @@ jobs:
             ]
 
   releases-channel:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Dump Github context
         env:

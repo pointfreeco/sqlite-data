@@ -16,7 +16,7 @@ jobs:
       matrix:
         xcode: ['26.2']
         config: ['debug', 'release']
-    runs-on: macos-26
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v5
       - name: Select Xcode ${{ matrix.xcode }}
@@ -31,7 +31,7 @@ jobs:
         xcode: ['26.2']
         config: ['debug']
         scheme: ['Reminders', 'CaseStudies', 'SyncUps']
-    runs-on: macos-26
+    runs-on: self-hosted
     continue-on-error: true
     steps:
       - uses: actions/checkout@v5
@@ -60,7 +60,7 @@ jobs:
   #     matrix:
   #       swift:
   #         - '6.1'
-  #   runs-on: ubuntu-latest
+  #   runs-on: self-hosted
   #   container: swift:${{ matrix.swift }}
   #   steps:
   #     - uses: actions/checkout@v4
