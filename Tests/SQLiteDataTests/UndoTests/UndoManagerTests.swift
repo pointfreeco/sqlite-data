@@ -396,7 +396,6 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 
   @Test func delegateCancel() async throws {
-    @MainActor
     final class CancelDelegate: UndoManagerDelegate {
       func undoManager(
         _ undoManager: SQLiteData.UndoManager,
@@ -433,7 +432,6 @@ extension DatabaseWriter where Self == DatabaseQueue {
     }
     let capture = MetadataCapture()
 
-    @MainActor
     final class MetadataDelegate: UndoManagerDelegate, @unchecked Sendable {
       let capture: MetadataCapture
       init(_ capture: MetadataCapture) { self.capture = capture }
@@ -475,7 +473,6 @@ extension DatabaseWriter where Self == DatabaseQueue {
     }
     let capture = ActionCapture()
 
-    @MainActor
     final class ActionDelegate: UndoManagerDelegate, @unchecked Sendable {
       let capture: ActionCapture
       init(_ capture: ActionCapture) { self.capture = capture }

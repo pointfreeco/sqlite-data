@@ -89,7 +89,7 @@ class RemindersSyncEngineDelegate: SyncEngineDelegate {
 
 @MainActor
 @Observable
-final class RemindersUndoManagerDelegate: UndoManagerDelegate {
+final class RemindersUndoManagerDelegate: SQLiteData.UndoManagerDelegate {
   struct ConfirmationRequest: Identifiable {
     let action: UndoAction
     let group: UndoGroup
@@ -135,7 +135,7 @@ final class RemindersUndoManagerDelegate: UndoManagerDelegate {
     _ undoManager: SQLiteData.UndoManager,
     willPerform action: UndoAction,
     for group: UndoGroup,
-    performAction: @Sendable () async throws -> Void
+    performAction: @isolated(any) @Sendable () async throws -> Void
   ) async throws {
     guard shouldConfirm(for: group) else {
       try await performAction()
