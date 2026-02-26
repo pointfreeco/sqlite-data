@@ -138,23 +138,21 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 
   // 5. Sync-origin writes can be grouped, undone, and carry synced-origin metadata.
-  @Test func syncIncludedWithMetadata() async throws {
+  @Test func syncIncludedWithOrigin() async throws {
     let db = try DatabaseQueue.undoDatabase()
     let undoManager = try UndoManager(for: db, tables: Item.self)
 
     try await $_isSynchronizingChanges.withValue(true) {
       try await undoManager.withGroup(
         "Sync insert",
-        deviceID: UndoManager.syncDeviceID,
-        userRecordName: "collaborator-user"
+        origin: .sync
       ) { db in
         _ = try Item.insert { Item.Draft(title: "Sync item") }.execute(db)
       }
     }
 
     #expect(undoManager.canUndo)
-    #expect(undoManager.undoStack.first?.deviceID == UndoManager.syncDeviceID)
-    #expect(undoManager.undoStack.first?.userRecordName == "collaborator-user")
+    #expect(undoManager.undoStack.first?.origin == .sync)
 
     try await undoManager.undo()
     let items = try await db.read { try Item.fetchAll($0) }
@@ -451,7 +449,6 @@ extension DatabaseWriter where Self == DatabaseQueue {
     let undoManager = try UndoManager(
       for: db,
       tables: Item.self,
-      deviceID: "test-device",
       delegate: delegate
     )
 
@@ -462,7 +459,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
 
     let group = await capture.capturedGroup
     #expect(group?.description == "My operation")
-    #expect(group?.deviceID == "test-device")
+    #expect(group?.origin == .local)
   }
 
   // 10. The delegate receives `.undo` for undo and `.redo` for redo.
@@ -715,8 +712,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
       }
 
       #expect(undoManager.undoStack.count == 1)
-      #expect(undoManager.undoStack.first?.deviceID == UndoManager.syncDeviceID)
-      #expect(undoManager.undoStack.first?.userRecordName == zoneID.ownerName)
+      #expect(undoManager.undoStack.first?.origin == .sync)
 
       try await undoManager.undo()
       let items = try await db.read { try Item.fetchAll($0) }

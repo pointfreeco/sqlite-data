@@ -111,20 +111,12 @@ final class RemindersUndoManagerDelegate: SQLiteData.UndoManagerDelegate {
     }
 
     private var originDescription: String {
-      var parts: [String] = []
-      if group.deviceID != SQLiteUndoManager.defaultDeviceID {
-        if group.deviceID == "sqlitedata-sync" {
-          parts.append("another device")
-        } else {
-          parts.append("device \(group.deviceID)")
-        }
+      switch group.origin {
+      case .local:
+        return "this device"
+      case .sync:
+        return "syncing"
       }
-      if
-        let userRecordName = group.userRecordName
-      {
-        parts.append("user \(userRecordName)")
-      }
-      return parts.isEmpty ? "this device" : parts.joined(separator: " and ")
     }
   }
 
@@ -153,9 +145,7 @@ final class RemindersUndoManagerDelegate: SQLiteData.UndoManagerDelegate {
   }
 
   private func shouldConfirm(for group: UndoGroup) -> Bool {
-    let isOtherDevice = group.deviceID != SQLiteUndoManager.defaultDeviceID
-    let isOtherUser = group.userRecordName != nil
-    return isOtherDevice || isOtherUser
+    group.origin == .sync
   }
 
   private func requestConfirmation(action: UndoAction, group: UndoGroup) async -> Bool {

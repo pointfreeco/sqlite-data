@@ -11,12 +11,6 @@ import Perception
 #endif
 import StructuredQueriesCore
 
-#if canImport(UIKit)
-  import UIKit
-#elseif canImport(AppKit)
-  import AppKit
-#endif
-
 /// Tracks changes made to a SQLite database and lets you undo and redo them.
 ///
 /// Prefer ``SQLiteUndoManager`` in your code when you also work with `Foundation.UndoManager`.
@@ -28,8 +22,7 @@ import StructuredQueriesCore
 /// ```swift
 /// let undoManager = try UndoManager(
 ///   for: database,
-///   tables: Reminder.self, ReminderTag.self,
-///   deviceID: UIDevice.current.identifierForVendor?.uuidString ?? ""
+///   tables: Reminder.self, ReminderTag.self
 /// )
 ///
 /// // Record a named group of changes
@@ -54,8 +47,6 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   }
 
   private static let _managersByID = LockIsolated([ObjectIdentifier: WeakUndoManager]())
-  package static let syncDeviceID = "sqlitedata-sync"
-
   // MARK: - Internal state
 
   private struct State {
@@ -83,8 +74,6 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   private let _state = LockIsolated(State())
   private let database: any DatabaseWriter
   private let databaseID: ObjectIdentifier
-  private let deviceID: String
-  private let userRecordName: @Sendable () -> String?
   private let trackedTableNames: Set<String>
   private let delegate: (any UndoManagerDelegate)?
   private let eventsContinuation: AsyncStream<UndoEvent>.Continuation
@@ -139,17 +128,12 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   /// - Parameters:
   ///   - database: The database to observe.
   ///   - tables: The names of the tables whose changes should be undoable.
-  ///   - deviceID: An identifier for this device shown in ``UndoGroup/deviceID``.
-  ///     Defaults to the system device identifier.
-  ///   - userRecordName: A closure returning the current user's iCloud record name, or `nil`.
   ///   - delegate: An optional delegate that can intercept and confirm undo/redo operations.
   public init<
     each T: PrimaryKeyedTable & _SendableMetatype
   >(
     for database: any DatabaseWriter,
     tables: repeat (each T).Type,
-    deviceID: String = UndoManager.defaultDeviceID,
-    userRecordName: @Sendable @escaping () -> String? = { nil },
     delegate: (any UndoManagerDelegate)? = nil
   ) throws {
     var trackedTableNames = Set<String>()
@@ -159,8 +143,6 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     (self.events, self.eventsContinuation) = AsyncStream.makeStream()
     self.database = database
     self.databaseID = ObjectIdentifier(database as AnyObject)
-    self.deviceID = deviceID
-    self.userRecordName = userRecordName
     self.delegate = delegate
     self.trackedTableNames = trackedTableNames
 
@@ -213,17 +195,6 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
 
   // MARK: - Static helpers
 
-  /// A device identifier suitable for use with ``init(for:tables:deviceID:userRecordName:delegate:)``.
-  ///
-  /// On iOS this is `UIDevice.identifierForVendor`; on macOS it is the machine's host name.
-  public static var defaultDeviceID: String {
-    #if canImport(UIKit)
-      return UIDevice.current.identifierForVendor?.uuidString ?? ProcessInfo.processInfo.hostName
-    #else
-      return ProcessInfo.processInfo.hostName
-    #endif
-  }
-
   /// A SQL expression that reports whether undo/redo replay is currently executing.
   ///
   /// Use this in application trigger `WHEN` clauses to suppress side-effect writes during replay.
@@ -240,13 +211,11 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   @discardableResult
   public func beginBarrier(
     _ description: LocalizedStringResource,
-    deviceID: String? = nil,
-    userRecordName: String? = nil
+    origin: UndoGroup.Origin = .local
   ) throws -> UUID {
     try beginBarrier(
       String(localized: description),
-      deviceID: deviceID,
-      userRecordName: userRecordName
+      origin: origin
     )
   }
 
@@ -259,13 +228,11 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     @discardableResult
     public func beginBarrier(
       _ description: LocalizedStringKey,
-      deviceID: String? = nil,
-      userRecordName: String? = nil
+      origin: UndoGroup.Origin = .local
     ) throws -> UUID {
       try beginBarrier(
         description.undoGroupKeyString,
-        deviceID: deviceID,
-        userRecordName: userRecordName
+        origin: origin
       )
     }
   #endif
@@ -277,13 +244,11 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   @discardableResult
   public func beginBarrier(
     _ description: String,
-    deviceID: String? = nil,
-    userRecordName: String? = nil
+    origin: UndoGroup.Origin = .local
   ) throws -> UUID {
     let group = UndoGroup(
       description: description,
-      deviceID: deviceID ?? self.deviceID,
-      userRecordName: userRecordName ?? self.userRecordName(),
+      origin: origin,
       date: Date()
     )
     let barrierID = UUID()
@@ -413,14 +378,12 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     @discardableResult
     public func withGroup<T: Sendable>(
       _ description: LocalizedStringKey,
-      deviceID: String? = nil,
-      userRecordName: String? = nil,
+      origin: UndoGroup.Origin = .local,
       _ body: @Sendable (Database) throws -> T
     ) async throws -> T {
       try await withGroup(
         description.undoGroupKeyString,
-        deviceID: deviceID,
-        userRecordName: userRecordName,
+        origin: origin,
         body
       )
     }
@@ -442,14 +405,12 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   @discardableResult
   public func withGroup<T: Sendable>(
     _ description: LocalizedStringResource,
-    deviceID: String? = nil,
-    userRecordName: String? = nil,
+    origin: UndoGroup.Origin = .local,
     _ body: @Sendable (Database) throws -> T
   ) async throws -> T {
     try await withGroup(
       String(localized: description),
-      deviceID: deviceID,
-      userRecordName: userRecordName,
+      origin: origin,
       body
     )
   }
@@ -470,14 +431,12 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   @discardableResult
   public func withGroup<T: Sendable>(
     _ description: String,
-    deviceID: String? = nil,
-    userRecordName: String? = nil,
+    origin: UndoGroup.Origin = .local,
     _ body: @Sendable (Database) throws -> T
   ) async throws -> T {
     let barrierID = try beginBarrier(
       description,
-      deviceID: deviceID,
-      userRecordName: userRecordName
+      origin: origin
     )
     do {
       let result = try await database.write { db in
@@ -491,56 +450,50 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     }
   }
 
-  /// Synchronous variant of ``withGroup(_:deviceID:userRecordName:_:)``.
+  /// Synchronous variant of ``withGroup(_:origin:_:)``.
   #if canImport(SwiftUI)
     @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
     @_disfavoredOverload
     @discardableResult
     public func withGroup<T>(
       _ description: LocalizedStringKey,
-      deviceID: String? = nil,
-      userRecordName: String? = nil,
+      origin: UndoGroup.Origin = .local,
       _ body: (Database) throws -> T
     ) throws -> T {
       try withGroup(
         description.undoGroupKeyString,
-        deviceID: deviceID,
-        userRecordName: userRecordName,
+        origin: origin,
         body
       )
     }
   #endif
 
-  /// Synchronous variant of ``withGroup(_:deviceID:userRecordName:_:)``.
+  /// Synchronous variant of ``withGroup(_:origin:_:)``.
   @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
   @discardableResult
   public func withGroup<T>(
     _ description: LocalizedStringResource,
-    deviceID: String? = nil,
-    userRecordName: String? = nil,
+    origin: UndoGroup.Origin = .local,
     _ body: (Database) throws -> T
   ) throws -> T {
     try withGroup(
       String(localized: description),
-      deviceID: deviceID,
-      userRecordName: userRecordName,
+      origin: origin,
       body
     )
   }
 
-  /// Synchronous variant of ``withGroup(_:deviceID:userRecordName:_:)``.
+  /// Synchronous variant of ``withGroup(_:origin:_:)``.
   @_disfavoredOverload
   @discardableResult
   public func withGroup<T>(
     _ description: String,
-    deviceID: String? = nil,
-    userRecordName: String? = nil,
+    origin: UndoGroup.Origin = .local,
     _ body: (Database) throws -> T
   ) throws -> T {
     let barrierID = try beginBarrier(
       description,
-      deviceID: deviceID,
-      userRecordName: userRecordName
+      origin: origin
     )
     do {
       let result = try database.write { db in
