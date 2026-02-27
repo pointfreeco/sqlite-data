@@ -301,6 +301,16 @@ if let group = undoManager.undoStack.dropFirst().first {
 Each `UndoGroup` records an `origin` (`.local` or `.sync`) so UIs can distinguish local edits
 from synced changes.
 
+You can also control how synced writes interact with undo history:
+
+```swift
+let undoManager = try UndoManager(
+  for: database,
+  tables: Item.self,
+  syncUndoPolicy: .disabled(boundary: .stopAtBoundary)
+)
+```
+
 This is all you need to know to get started with SQLiteData, but there's much more to learn. Read
 the [articles][articles] below to learn how to best utilize this library:
 

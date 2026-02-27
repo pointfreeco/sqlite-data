@@ -1,4 +1,5 @@
 import ConcurrencyExtras
+import Dependencies
 import Foundation
 import GRDB
 import IssueReporting
@@ -71,10 +72,46 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     case notFound
   }
 
+  /// Summary information for a recorded sync undo group.
+  public struct SyncUndoSummary: Sendable {
+    /// Table names touched by the recorded sync group.
+    public let affectedTables: Set<String>
+    /// Number of inverse log entries captured for the sync group.
+    public let changeCount: Int
+
+    public init(affectedTables: Set<String>, changeCount: Int) {
+      self.affectedTables = affectedTables
+      self.changeCount = changeCount
+    }
+  }
+
+  /// Behavior for history around sync changes when sync undo registration is disabled.
+  public enum SyncBoundaryBehavior: Sendable {
+    /// Keep existing local undo history, allowing undo operations to cross past sync changes.
+    case allowCrossing
+    /// Prevent undo from crossing sync changes by clearing undo/redo history at each sync write.
+    case stopAtBoundary
+  }
+
+  /// Policy controlling how sync-applied writes interact with undo history.
+  public enum SyncUndoPolicy: Sendable {
+    /// Record sync changes as undo groups.
+    ///
+    /// The `actionName` closure customizes each sync undo group's description.
+    case enabled(
+      actionName: @Sendable (_ summary: SyncUndoSummary) -> String = { _ in "Sync iCloud changes" }
+    )
+    /// Do not register sync changes as undo groups.
+    ///
+    /// Use `boundary` to control whether existing local history can be undone past sync writes.
+    case disabled(boundary: SyncBoundaryBehavior = .stopAtBoundary)
+  }
+
   private let _state = LockIsolated(State())
   private let database: any DatabaseWriter
   private let databaseID: ObjectIdentifier
   private let trackedTableNames: Set<String>
+  private let syncUndoPolicy: SyncUndoPolicy
   private let delegate: (any UndoManagerDelegate)?
   private let eventsContinuation: AsyncStream<UndoEvent>.Continuation
   public let events: AsyncStream<UndoEvent>
@@ -128,12 +165,15 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   /// - Parameters:
   ///   - database: The database to observe.
   ///   - tables: The names of the tables whose changes should be undoable.
+  ///   - syncUndoPolicy: Controls whether sync changes are recorded as undo groups and whether
+  ///     undo history can cross sync boundaries when not recorded.
   ///   - delegate: An optional delegate that can intercept and confirm undo/redo operations.
   public init<
     each T: PrimaryKeyedTable & _SendableMetatype
   >(
     for database: any DatabaseWriter,
     tables: repeat (each T).Type,
+    syncUndoPolicy: SyncUndoPolicy = .enabled(),
     delegate: (any UndoManagerDelegate)? = nil
   ) throws {
     var trackedTableNames = Set<String>()
@@ -143,6 +183,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     (self.events, self.eventsContinuation) = AsyncStream.makeStream()
     self.database = database
     self.databaseID = ObjectIdentifier(database as AnyObject)
+    self.syncUndoPolicy = syncUndoPolicy
     self.delegate = delegate
     self.trackedTableNames = trackedTableNames
 
@@ -254,10 +295,11 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     _ description: String,
     origin: UndoGroup.Origin = .local
   ) throws -> UUID {
+    @Dependency(\.date.now) var now
     let group = UndoGroup(
       description: description,
       origin: origin,
-      date: Date()
+      date: now
     )
     let barrierID = UUID()
     try _state.withValue { state in
@@ -547,6 +589,45 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     try await perform(.redo, to: group)
   }
 
+  package func writeSyncChanges<T: Sendable>(
+    _ updates: @Sendable (Database) throws -> T
+  ) async throws -> T {
+    switch syncUndoPolicy {
+    case .enabled(let actionName):
+      return try await recordSyncChanges(actionName: actionName, updates)
+    case .disabled(let boundary):
+      let result = try await $_isUndoRecordingDisabled.withValue(true) {
+        try await database.write { db in
+          try updates(db)
+        }
+      }
+      if boundary == .stopAtBoundary {
+        dropHistoryAtSyncBoundary()
+      }
+      return result
+    }
+  }
+
+  @_disfavoredOverload
+  package func writeSyncChanges<T>(
+    _ updates: (Database) throws -> T
+  ) throws -> T {
+    switch syncUndoPolicy {
+    case .enabled(let actionName):
+      return try recordSyncChanges(actionName: actionName, updates)
+    case .disabled(let boundary):
+      let result = try $_isUndoRecordingDisabled.withValue(true) {
+        try database.write { db in
+          try updates(db)
+        }
+      }
+      if boundary == .stopAtBoundary {
+        dropHistoryAtSyncBoundary()
+      }
+      return result
+    }
+  }
+
   // MARK: - Freeze / Unfreeze
 
   /// Suspends undo recording.
@@ -586,6 +667,109 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   }
 
   // MARK: - Private helpers
+
+  private func recordSyncChanges<T: Sendable>(
+    actionName: @Sendable (SyncUndoSummary) -> String,
+    _ updates: @Sendable (Database) throws -> T
+  ) async throws -> T {
+    @Dependency(\.date.now) var now
+    let firstLog = _state.value.firstLog
+    let result = try await database.write { db in
+      try updates(db)
+    }
+    guard let summary = try await syncUndoSummary(from: firstLog) else {
+      return result
+    }
+    let group = UndoGroup(
+      description: actionName(
+        SyncUndoSummary(affectedTables: summary.modifiedTables, changeCount: summary.changeCount)
+      ),
+      origin: .sync,
+      date: now
+    )
+    _ = finalizeBarrier(
+      OpenBarrier(group: group, firstLog: firstLog),
+      maxSeq: summary.maxSeq,
+      modifiedTables: summary.modifiedTables
+    )
+    return result
+  }
+
+  private func recordSyncChanges<T>(
+    actionName: @Sendable (SyncUndoSummary) -> String,
+    _ updates: (Database) throws -> T
+  ) throws -> T {
+    @Dependency(\.date.now) var now
+    let firstLog = _state.value.firstLog
+    let result = try database.write { db in
+      try updates(db)
+    }
+    guard let summary = try syncUndoSummary(from: firstLog) else {
+      return result
+    }
+    let group = UndoGroup(
+      description: actionName(
+        SyncUndoSummary(affectedTables: summary.modifiedTables, changeCount: summary.changeCount)
+      ),
+      origin: .sync,
+      date: now
+    )
+    _ = finalizeBarrier(
+      OpenBarrier(group: group, firstLog: firstLog),
+      maxSeq: summary.maxSeq,
+      modifiedTables: summary.modifiedTables
+    )
+    return result
+  }
+
+  private func syncUndoSummary(from firstLog: Int) async throws -> (
+    maxSeq: Int, modifiedTables: Set<String>, changeCount: Int
+  )? {
+    try await database.write { db in
+      try syncUndoSummary(in: db, from: firstLog)
+    }
+  }
+
+  private func syncUndoSummary(from firstLog: Int) throws -> (
+    maxSeq: Int, modifiedTables: Set<String>, changeCount: Int
+  )? {
+    try database.write { db in
+      try syncUndoSummary(in: db, from: firstLog)
+    }
+  }
+
+  private func syncUndoSummary(
+    in db: Database,
+    from firstLog: Int
+  ) throws -> (maxSeq: Int, modifiedTables: Set<String>, changeCount: Int)? {
+    guard var maxSeq = try UndoLog.order(by: { $0.seq.desc() }).fetchOne(db)?.seq, maxSeq >= firstLog
+    else {
+      return nil
+    }
+    try undoReconcileEntries(in: db, from: firstLog, to: maxSeq)
+    maxSeq = try UndoLog.order { $0.seq.desc() }.fetchOne(db)?.seq ?? 0
+    guard maxSeq >= firstLog else { return nil }
+    let rows = try UndoLog
+      .where { $0.seq >= firstLog && $0.seq <= maxSeq }
+      .fetchAll(db)
+    guard !rows.isEmpty else { return nil }
+    return (
+      maxSeq,
+      Set(rows.map(\.tableName)),
+      rows.count
+    )
+  }
+
+  private func dropHistoryAtSyncBoundary() {
+    _$perceptionRegistrar.withMutation(of: self, keyPath: \.undoStack) {
+      _$perceptionRegistrar.withMutation(of: self, keyPath: \.redoStack) {
+        _state.withValue { state in
+          state.undoEntries = []
+          state.redoEntries = []
+        }
+      }
+    }
+  }
 
   private func finalizeBarrier(
     _ barrier: OpenBarrier,

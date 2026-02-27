@@ -21,10 +21,7 @@
       @Dependency(\.defaultUndoManager) var defaultUndoManager
       let undoManager = UndoManager.manager(for: database, defaultUndoManager: defaultUndoManager)
       if let undoManager {
-        return try await undoManager.withGroup(
-          "Sync iCloud changes",
-          origin: .sync
-        ) { db in
+        return try await undoManager.writeSyncChanges { db in
           try $_isSynchronizingChanges.withValue(true) {
             try updates(db)
           }
@@ -52,10 +49,7 @@
       @Dependency(\.defaultUndoManager) var defaultUndoManager
       let undoManager = UndoManager.manager(for: database, defaultUndoManager: defaultUndoManager)
       if let undoManager {
-        return try undoManager.withGroup(
-          "Sync iCloud changes",
-          origin: .sync
-        ) { db in
+        return try undoManager.writeSyncChanges { db in
           try $_isSynchronizingChanges.withValue(true) {
             try updates(db)
           }

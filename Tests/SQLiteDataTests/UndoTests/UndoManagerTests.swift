@@ -1,5 +1,6 @@
 import Foundation
 import Dependencies
+import DependenciesTestSupport
 import SQLiteData
 import Testing
 #if canImport(CloudKit)
@@ -53,7 +54,8 @@ extension DatabaseWriter where Self == DatabaseQueue {
 
 // MARK: - Tests
 
-@Suite struct UndoManagerCoreTests {
+@Suite(.dependencies { $0.date.now = Date(timeIntervalSince1970: 0) })
+struct UndoManagerCoreTests {
   @Test func defaultUndoManagerDependencyDefaultsToNil() {
     @Dependency(\.defaultUndoManager) var defaultUndoManager
     #expect(defaultUndoManager == nil)

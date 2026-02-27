@@ -1,12 +1,14 @@
 import Foundation
 import Dependencies
+import DependenciesTestSupport
 import SQLiteData
 import Testing
 #if canImport(CloudKit)
   import CloudKit
 #endif
 
-@Suite struct UndoManagerDelegateAndIntegrationTests {
+@Suite(.dependencies { $0.date.now = Date(timeIntervalSince1970: 0) })
+struct UndoManagerDelegateAndIntegrationTests {
 
   @Test func delegateCancel() async throws {
     final class CancelDelegate: UndoManagerDelegate {
@@ -283,6 +285,103 @@ import Testing
         let items = try await db.read { try Item.fetchAll($0) }
         #expect(items.count == 1)
       }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func syncUndoPolicyCustomActionName() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(
+        for: db,
+        tables: Item.self,
+        syncUndoPolicy: .enabled(
+          actionName: { summary in
+            "Synced \(summary.changeCount) changes across \(summary.affectedTables.count) table(s)"
+          }
+        )
+      )
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      try await $_currentZoneID.withValue(zoneID) {
+        try await userDatabase.write { db in
+          _ = try Item.insert { Item.Draft(title: "Synced item") }.execute(db)
+        }
+      }
+
+      #expect(undoManager.undoStack.count == 1)
+      #expect(undoManager.undoStack.first?.origin == .sync)
+      #expect(undoManager.undoStack.first?.description == "Synced 1 changes across 1 table(s)")
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func syncUndoPolicyDisabledAllowCrossing() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(
+        for: db,
+        tables: Item.self,
+        syncUndoPolicy: .disabled(boundary: .allowCrossing)
+      )
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      try await undoManager.withGroup("Local A") { db in
+        _ = try Item.insert { Item.Draft(title: "A") }.execute(db)
+      }
+      try await $_currentZoneID.withValue(zoneID) {
+        try await userDatabase.write { db in
+          _ = try Item.insert { Item.Draft(title: "Sync") }.execute(db)
+        }
+      }
+      try await undoManager.withGroup("Local B") { db in
+        _ = try Item.insert { Item.Draft(title: "B") }.execute(db)
+      }
+
+      #expect(undoManager.undoStack.map(\.description) == ["Local B", "Local A"])
+      #expect(undoManager.undoStack.allSatisfy { $0.origin == .local })
+
+      try await undoManager.undo()
+      try await undoManager.undo()
+
+      let titles = try await db.read { db in
+        try String.fetchAll(db, sql: "SELECT title FROM items ORDER BY id")
+      }
+      #expect(titles == ["Sync"])
+      #expect(undoManager.undoStack.isEmpty)
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func syncUndoPolicyDisabledStopAtBoundary() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(
+        for: db,
+        tables: Item.self,
+        syncUndoPolicy: .disabled(boundary: .stopAtBoundary)
+      )
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      try await undoManager.withGroup("Local A") { db in
+        _ = try Item.insert { Item.Draft(title: "A") }.execute(db)
+      }
+      try await $_currentZoneID.withValue(zoneID) {
+        try await userDatabase.write { db in
+          _ = try Item.insert { Item.Draft(title: "Sync") }.execute(db)
+        }
+      }
+      try await undoManager.withGroup("Local B") { db in
+        _ = try Item.insert { Item.Draft(title: "B") }.execute(db)
+      }
+
+      #expect(undoManager.undoStack.map(\.description) == ["Local B"])
+
+      try await undoManager.undo()
+      try await undoManager.undo()
+
+      let titles = try await db.read { db in
+        try String.fetchAll(db, sql: "SELECT title FROM items ORDER BY id")
+      }
+      #expect(titles == ["A", "Sync"])
+      #expect(undoManager.undoStack.isEmpty)
     }
   #endif
 }
