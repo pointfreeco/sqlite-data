@@ -51,47 +51,26 @@ struct UndoMenuItems: View {
   }
 
   private func performUndo(to group: UndoGroup? = nil) {
-    perform(.undo, to: group)
-  }
-
-  private func performRedo(to group: UndoGroup? = nil) {
-    perform(.redo, to: group)
-  }
-
-  private func perform(_ action: UndoAction, to targetGroup: UndoGroup?) {
     guard let undoManager else { return }
     Task {
       await withErrorReporting {
-        let stack: [UndoGroup]
-        switch action {
-        case .undo: stack = undoManager.undoStack
-        case .redo: stack = undoManager.redoStack
+        if let group {
+          try await undoManager.undo(to: group)
+        } else {
+          try await undoManager.undo()
         }
-        let count =
-          targetGroup
-          .flatMap { target in stack.firstIndex { $0.id == target.id }.map { $0 + 1 } }
-          ?? 1
-        guard count > 0 else { return }
-        for _ in 0..<count {
-          let beforeID: UndoGroup.ID?
-          switch action {
-          case .undo: beforeID = undoManager.undoStack.first?.id
-          case .redo: beforeID = undoManager.redoStack.first?.id
-          }
-          switch action {
-          case .undo:
-            try await undoManager.undo()
-          case .redo:
-            try await undoManager.redo()
-          }
-          let afterID: UndoGroup.ID?
-          switch action {
-          case .undo: afterID = undoManager.undoStack.first?.id
-          case .redo: afterID = undoManager.redoStack.first?.id
-          }
-          if beforeID == afterID {
-            break
-          }
+      }
+    }
+  }
+
+  private func performRedo(to group: UndoGroup? = nil) {
+    guard let undoManager else { return }
+    Task {
+      await withErrorReporting {
+        if let group {
+          try await undoManager.redo(to: group)
+        } else {
+          try await undoManager.redo()
         }
       }
     }

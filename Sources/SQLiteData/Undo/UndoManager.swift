@@ -517,12 +517,22 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     try await perform(.undo)
   }
 
+  /// Reverts changes up to and including a specific undo group.
+  public func undo(to group: UndoGroup) async throws {
+    try await perform(.undo, to: group)
+  }
+
   /// Re-applies the most-recently-undone group.
   ///
   /// The delegate (if any) is called before the operation is performed so that you can present a
   /// confirmation prompt.
   public func redo() async throws {
     try await perform(.redo)
+  }
+
+  /// Re-applies changes up to and including a specific redo group.
+  public func redo(to group: UndoGroup) async throws {
+    try await perform(.redo, to: group)
   }
 
   // MARK: - Freeze / Unfreeze
@@ -621,6 +631,40 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
       try await delegate.undoManager(self, willPerform: action, for: entry.group, performAction: performAction)
     } else {
       try await performAction()
+    }
+  }
+
+  private func perform(_ action: UndoAction, to targetGroup: UndoGroup) async throws {
+    let stack: [UndoGroup]
+    switch action {
+    case .undo:
+      stack = undoStack
+    case .redo:
+      stack = redoStack
+    }
+    guard let index = stack.firstIndex(where: { $0.id == targetGroup.id }) else { return }
+    let count = index + 1
+    guard count > 0 else { return }
+
+    for _ in 0..<count {
+      let beforeID: UndoGroup.ID?
+      switch action {
+      case .undo:
+        beforeID = undoStack.first?.id
+      case .redo:
+        beforeID = redoStack.first?.id
+      }
+      try await perform(action)
+      let afterID: UndoGroup.ID?
+      switch action {
+      case .undo:
+        afterID = undoStack.first?.id
+      case .redo:
+        afterID = redoStack.first?.id
+      }
+      if beforeID == afterID {
+        break
+      }
     }
   }
 
