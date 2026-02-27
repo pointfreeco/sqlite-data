@@ -289,11 +289,11 @@ struct UndoManagerCoreTests {
     #expect(items.count == 1)
   }
 
-  @Test func withoutUndoSuppressesRecording() async throws {
+  @Test func writeWithoutUndoGroupSuppressesRecording() async throws {
     let db = try DatabaseQueue.undoDatabase()
     let undoManager = try UndoManager(for: db, tables: Item.self)
 
-    try await withoutUndo {
+    try await db.writeWithoutUndoGroup {
       try await undoManager.withGroup("Suppressed insert") { db in
         _ = try Item.insert { Item.Draft(title: "Suppressed") }.execute(db)
       }
@@ -396,7 +396,7 @@ struct UndoManagerCoreTests {
     }
     let undoManager = try UndoManager(for: db, tables: Parent.self, Child.self)
 
-    try await withoutUndo {
+    try await db.writeWithoutUndoGroup {
       try await db.write { db in
         try db.execute(sql: #"INSERT INTO "parents" ("id","name") VALUES (1,'P')"#)
         try db.execute(sql: #"INSERT INTO "children" ("id","parentID","name") VALUES (1,1,'C')"#)

@@ -149,17 +149,8 @@ class RemindersListsModel {
   #if DEBUG
     func seedDatabaseButtonTapped() {
       Task {
-        await withErrorReporting {
-          if let undoManager {
-            try await undoManager.freeze()
-            do {
-              try database.seedSampleData()
-              try await undoManager.unfreeze()
-            } catch {
-              try await undoManager.unfreeze()
-              throw error
-            }
-          } else {
+        withErrorReporting {
+          try database.writeWithoutUndoGroup {
             try database.seedSampleData()
           }
         }

@@ -311,6 +311,16 @@ let undoManager = try UndoManager(
 )
 ```
 
+When you need writes that should not participate in undo logging at all, use:
+
+```swift
+try await database.writeWithoutUndoGroup {
+  try await database.write { db in
+    // Seed or maintenance writes
+  }
+}
+```
+
 This is all you need to know to get started with SQLiteData, but there's much more to learn. Read
 the [articles][articles] below to learn how to best utilize this library:
 
