@@ -179,6 +179,14 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     }
   }
 
+  package static func manager(
+    for database: any DatabaseWriter,
+    defaultUndoManager: UndoManager?
+  ) -> UndoManager? {
+    (defaultUndoManager?.manages(database: database) == true ? defaultUndoManager : nil)
+      ?? manager(for: database)
+  }
+
   package func manages(database: any DatabaseWriter) -> Bool {
     databaseID == ObjectIdentifier(database as AnyObject)
   }
@@ -518,6 +526,8 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   }
 
   /// Reverts changes up to and including a specific undo group.
+  ///
+  /// The delegate is consulted for each individual step. If a step is cancelled, processing stops.
   public func undo(to group: UndoGroup) async throws {
     try await perform(.undo, to: group)
   }
@@ -531,6 +541,8 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   }
 
   /// Re-applies changes up to and including a specific redo group.
+  ///
+  /// The delegate is consulted for each individual step. If a step is cancelled, processing stops.
   public func redo(to group: UndoGroup) async throws {
     try await perform(.redo, to: group)
   }

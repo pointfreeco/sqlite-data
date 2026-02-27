@@ -113,6 +113,60 @@ import Testing
     #expect(actions == [.undo, .redo])
   }
 
+  @Test func undoToStopsWhenDelegateCancelsMidJump() async throws {
+    actor CallCounter {
+      var count = 0
+      func increment() -> Int {
+        count += 1
+        return count
+      }
+      func value() -> Int { count }
+    }
+    let counter = CallCounter()
+
+    final class CancelOnSecondCallDelegate: UndoManagerDelegate, @unchecked Sendable {
+      let counter: CallCounter
+      init(counter: CallCounter) {
+        self.counter = counter
+      }
+
+      func undoManager(
+        _ undoManager: SQLiteData.UndoManager,
+        willPerform action: UndoAction,
+        for group: UndoGroup,
+        performAction: @Sendable () async throws -> Void
+      ) async throws {
+        let call = await counter.increment()
+        if call == 1 {
+          try await performAction()
+        }
+      }
+    }
+
+    let db = try DatabaseQueue.undoDatabase()
+    let delegate = CancelOnSecondCallDelegate(counter: counter)
+    let undoManager = try UndoManager(for: db, tables: Item.self, delegate: delegate)
+
+    try await undoManager.withGroup("Insert A") { db in
+      _ = try Item.insert { Item.Draft(title: "A") }.execute(db)
+    }
+    try await undoManager.withGroup("Insert B") { db in
+      _ = try Item.insert { Item.Draft(title: "B") }.execute(db)
+    }
+    try await undoManager.withGroup("Insert C") { db in
+      _ = try Item.insert { Item.Draft(title: "C") }.execute(db)
+    }
+
+    let target = try #require(undoManager.undoStack.dropFirst().first)
+    try await undoManager.undo(to: target)
+
+    let titles = try await db.read { db in
+      try String.fetchAll(db, sql: "SELECT title FROM items ORDER BY id")
+    }
+    #expect(titles == ["A", "B"])
+    #expect(await counter.value() == 2)
+  }
+
   #if canImport(ObjectiveC)
     @Test func foundationUndoBridgeRoundTrip() async throws {
       let db = try DatabaseQueue.undoDatabase()

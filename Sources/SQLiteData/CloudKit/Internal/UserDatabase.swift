@@ -19,9 +19,7 @@
       _ updates: @Sendable (Database) throws -> T
     ) async throws -> T {
       @Dependency(\.defaultUndoManager) var defaultUndoManager
-      let undoManager =
-        (defaultUndoManager?.manages(database: database) == true ? defaultUndoManager : nil)
-        ?? UndoManager.manager(for: database)
+      let undoManager = UndoManager.manager(for: database, defaultUndoManager: defaultUndoManager)
       if let undoManager {
         return try await undoManager.withGroup(
           "Sync iCloud changes",
@@ -52,9 +50,7 @@
       _ updates: (Database) throws -> T
     ) throws -> T {
       @Dependency(\.defaultUndoManager) var defaultUndoManager
-      let undoManager =
-        (defaultUndoManager?.manages(database: database) == true ? defaultUndoManager : nil)
-        ?? UndoManager.manager(for: database)
+      let undoManager = UndoManager.manager(for: database, defaultUndoManager: defaultUndoManager)
       if let undoManager {
         return try undoManager.withGroup(
           "Sync iCloud changes",

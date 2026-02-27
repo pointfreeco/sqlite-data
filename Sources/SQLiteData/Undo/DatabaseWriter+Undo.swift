@@ -11,9 +11,7 @@ public extension DatabaseWriter {
       _ updates: (Database) throws -> T
     ) throws -> T {
       @Dependency(\.defaultUndoManager) var defaultUndoManager
-      let undoManager =
-        (defaultUndoManager?.manages(database: self) == true ? defaultUndoManager : nil)
-        ?? UndoManager.manager(for: self)
+      let undoManager = UndoManager.manager(for: self, defaultUndoManager: defaultUndoManager)
       if let undoManager {
         return try undoManager.withGroup(description, updates)
       }
@@ -28,9 +26,7 @@ public extension DatabaseWriter {
     _ updates: (Database) throws -> T
   ) throws -> T {
     @Dependency(\.defaultUndoManager) var defaultUndoManager
-    let undoManager =
-      (defaultUndoManager?.manages(database: self) == true ? defaultUndoManager : nil)
-      ?? UndoManager.manager(for: self)
+    let undoManager = UndoManager.manager(for: self, defaultUndoManager: defaultUndoManager)
     if let undoManager {
       return try undoManager.withGroup(description, updates)
     }
@@ -43,9 +39,7 @@ public extension DatabaseWriter {
     _ updates: (Database) throws -> T
   ) throws -> T {
     @Dependency(\.defaultUndoManager) var defaultUndoManager
-    let undoManager =
-      (defaultUndoManager?.manages(database: self) == true ? defaultUndoManager : nil)
-      ?? UndoManager.manager(for: self)
+    let undoManager = UndoManager.manager(for: self, defaultUndoManager: defaultUndoManager)
     if let undoManager {
       return try undoManager.withGroup(description, updates)
     }
@@ -60,9 +54,7 @@ public extension DatabaseWriter {
       _ updates: @Sendable (Database) throws -> T
     ) async throws -> T {
       @Dependency(\.defaultUndoManager) var defaultUndoManager
-      let undoManager =
-        (defaultUndoManager?.manages(database: self) == true ? defaultUndoManager : nil)
-        ?? UndoManager.manager(for: self)
+      let undoManager = UndoManager.manager(for: self, defaultUndoManager: defaultUndoManager)
       if let undoManager {
         return try await undoManager.withGroup(description, updates)
       }
@@ -76,9 +68,7 @@ public extension DatabaseWriter {
     _ updates: @Sendable (Database) throws -> T
   ) async throws -> T {
     @Dependency(\.defaultUndoManager) var defaultUndoManager
-    let undoManager =
-      (defaultUndoManager?.manages(database: self) == true ? defaultUndoManager : nil)
-      ?? UndoManager.manager(for: self)
+    let undoManager = UndoManager.manager(for: self, defaultUndoManager: defaultUndoManager)
     if let undoManager {
       return try await undoManager.withGroup(description, updates)
     }
@@ -91,9 +81,7 @@ public extension DatabaseWriter {
     _ updates: @Sendable (Database) throws -> T
   ) async throws -> T {
     @Dependency(\.defaultUndoManager) var defaultUndoManager
-    let undoManager =
-      (defaultUndoManager?.manages(database: self) == true ? defaultUndoManager : nil)
-      ?? UndoManager.manager(for: self)
+    let undoManager = UndoManager.manager(for: self, defaultUndoManager: defaultUndoManager)
     if let undoManager {
       return try await undoManager.withGroup(description, updates)
     }

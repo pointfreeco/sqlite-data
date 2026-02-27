@@ -168,6 +168,34 @@ extension DatabaseWriter where Self == DatabaseQueue {
     #expect(titlesAfterRedoTo == ["A", "B", "C"])
   }
 
+  @Test func undoRedoToMissingGroupNoops() async throws {
+    let db = try DatabaseQueue.undoDatabase()
+    let undoManager = try UndoManager(for: db, tables: Item.self)
+
+    try await undoManager.withGroup("Insert A") { db in
+      _ = try Item.insert { Item.Draft(title: "A") }.execute(db)
+    }
+    try await undoManager.withGroup("Insert B") { db in
+      _ = try Item.insert { Item.Draft(title: "B") }.execute(db)
+    }
+
+    let target = try #require(undoManager.undoStack.first)
+    try await undoManager.undo(to: target)
+
+    let undoIDsBeforeMissingUndo = undoManager.undoStack.map(\.id)
+    let redoIDsBeforeMissingUndo = undoManager.redoStack.map(\.id)
+    try await undoManager.undo(to: target)
+    #expect(undoManager.undoStack.map(\.id) == undoIDsBeforeMissingUndo)
+    #expect(undoManager.redoStack.map(\.id) == redoIDsBeforeMissingUndo)
+
+    try await undoManager.redo(to: target)
+    let undoIDsBeforeMissingRedo = undoManager.undoStack.map(\.id)
+    let redoIDsBeforeMissingRedo = undoManager.redoStack.map(\.id)
+    try await undoManager.redo(to: target)
+    #expect(undoManager.undoStack.map(\.id) == undoIDsBeforeMissingRedo)
+    #expect(undoManager.redoStack.map(\.id) == redoIDsBeforeMissingRedo)
+  }
+
   // 5. Sync-origin writes can be grouped, undone, and carry synced-origin metadata.
   @Test func syncIncludedWithOrigin() async throws {
     let db = try DatabaseQueue.undoDatabase()
