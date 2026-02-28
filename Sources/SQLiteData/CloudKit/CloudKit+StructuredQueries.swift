@@ -24,9 +24,7 @@
     public var queryBinding: QueryBinding {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encodeSystemFields(with: archiver)
-      if isTesting {
-        archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
-      }
+      queryOutput.encodeMockSystemFieldsIfNeeded(with: archiver)
       return archiver.encodedData.queryBinding
     }
 
@@ -44,16 +42,12 @@
     }
 
     private init(data: Data) throws {
-      let coder = try NSKeyedUnarchiver(forReadingFrom: data)
-      coder.requiresSecureCoding = true
-      guard let queryOutput = Record(coder: coder) else {
+      let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
+      unarchiver.requiresSecureCoding = true
+      guard let queryOutput = Record(coder: unarchiver) else {
         throw DecodingError()
       }
-      if isTesting {
-        queryOutput._recordChangeTag =
-          coder
-          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
-      }
+      queryOutput.decodeMockSystemFieldsIfNeeded(from: unarchiver)
       self.init(queryOutput: queryOutput)
     }
 
@@ -66,9 +60,7 @@
     public var queryBinding: QueryBinding {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encode(with: archiver)
-      if isTesting {
-        archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
-      }
+      queryOutput.encodeMockSystemFieldsIfNeeded(with: archiver)
       return archiver.encodedData.queryBinding
     }
 
@@ -91,15 +83,37 @@
       guard let queryOutput = Record(coder: coder) else {
         throw DecodingError()
       }
-      if isTesting {
-        queryOutput._recordChangeTag =
-          coder
-          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
-      }
+      queryOutput.decodeMockSystemFieldsIfNeeded(from: coder)
       self.init(queryOutput: queryOutput)
     }
 
     private struct DecodingError: Error {}
+  }
+
+  extension CKRecord {
+    fileprivate func encodeMockSystemFieldsIfNeeded(with coder: NSKeyedArchiver) {
+      guard isTesting else { return }
+      coder.encode(
+        self._recordChangeTag,
+        forKey: "_recordChangeTag"
+      )
+      coder.encode(
+        self._modificationDate.map { $0 as NSDate },
+        forKey: "_modificationDate"
+      )
+    }
+
+    fileprivate func decodeMockSystemFieldsIfNeeded(from coder: NSKeyedUnarchiver) {
+      guard isTesting else { return }
+      self._recordChangeTag = coder.decodeObject(
+        of: NSNumber.self,
+        forKey: "_recordChangeTag"
+      )?.intValue
+      self._modificationDate = coder.decodeObject(
+        of: NSDate.self,
+        forKey: "_modificationDate"
+      ) as Date?
+    }
   }
 
   extension CKDatabase.Scope {
