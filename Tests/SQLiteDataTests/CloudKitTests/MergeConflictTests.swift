@@ -14,7 +14,7 @@
     @Suite(.printTimestamps) final class MergeConflictTests: BaseCloudKitTests, @unchecked Sendable
     {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func merge_clientRecordUpdatedBeforeServerRecord() async throws {
+      @Test func clientRecordUpdatedBeforeServerRecord() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "")
@@ -143,7 +143,7 @@
                   id: 1,
                   id🗓️: 0,
                   isCompleted: 1,
-                  isCompleted🗓️: 30,
+                  isCompleted🗓️: 60,
                   priority🗓️: 0,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
