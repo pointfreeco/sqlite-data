@@ -78,12 +78,12 @@
     }
 
     private init(data: Data) throws {
-      let coder = try NSKeyedUnarchiver(forReadingFrom: data)
-      coder.requiresSecureCoding = true
-      guard let queryOutput = Record(coder: coder) else {
+      let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
+      unarchiver.requiresSecureCoding = true
+      guard let queryOutput = Record(coder: unarchiver) else {
         throw DecodingError()
       }
-      queryOutput.decodeMockSystemFieldsIfNeeded(from: coder)
+      queryOutput.decodeMockSystemFieldsIfNeeded(from: unarchiver)
       self.init(queryOutput: queryOutput)
     }
 
