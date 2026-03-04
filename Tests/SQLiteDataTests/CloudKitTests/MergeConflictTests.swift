@@ -229,6 +229,133 @@
         }
       }
 
+      @Test func differentFieldsChange_conflictOnFetch_clientNewer() async throws {
+        // Step 1: Seed and initial sync
+        try await userDatabase.userWrite { db in
+          try db.seed { Post(id: 1, title: "") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                recordType: "posts",
+                parent: nil,
+                share: nil,
+                body🗓️: 0,
+                id: 1,
+                id🗓️: 0,
+                isPublished: 0,
+                isPublished🗓️: 0,
+                title: "",
+                title🗓️: 0,
+                🗓️: 0
+              )
+            ]
+          )
+          """
+        }
+
+        // Step 2: Server edits title @ t=30
+        let record = try syncEngine.private.database.record(for: Post.recordID(for: 1))
+        record.setValue("Hello", forKey: "title", at: 30)
+        let fetchedRecordZoneChangesCallback = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [record]
+        )
+        
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                recordType: "posts",
+                parent: nil,
+                share: nil,
+                body🗓️: 0,
+                id: 1,
+                id🗓️: 0,
+                isPublished: 0,
+                isPublished🗓️: 0,
+                title: "Hello",
+                title🗓️: 30,
+                🗓️: 30
+              )
+            ]
+          )
+          """
+        }
+
+        // Step 3: Client edits isPublished @ t=60
+        try await withDependencies {
+          $0.currentTime.now = 60
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Post.find(1).update { $0.isPublished = true }.execute(db)
+          }
+        }
+
+        // Step 4: Fetch arrives (merged locally)
+        await fetchedRecordZoneChangesCallback.notify()
+
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                recordType: "posts",
+                parent: nil,
+                share: nil,
+                body🗓️: 0,
+                id: 1,
+                id🗓️: 0,
+                isPublished: 0,
+                isPublished🗓️: 0,
+                title: "Hello",
+                title🗓️: 30,
+                🗓️: 30
+              )
+            ]
+          )
+          """
+        }
+
+        // Step 5: Send (merged record)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                recordType: "posts",
+                parent: nil,
+                share: nil,
+                body🗓️: 0,
+                id: 1,
+                id🗓️: 0,
+                isPublished: 1,
+                isPublished🗓️: 60,
+                title: "Hello",
+                title🗓️: 30,
+                🗓️: 60
+              )
+            ]
+          )
+          """
+        }
+      }
+
       // MARK: - Old tests
       // TODO: Remove old tests once new analogues are verified
 
