@@ -1218,6 +1218,229 @@
         }
       }
 
+      // MARK: - Same Field Change & Removal
+
+      @Test func sameFieldChangeAndRemoval_conflictOnSend_clientNewer() async throws {
+        // Step 1: Seed with body and initial sync
+        try await userDatabase.userWrite { db in
+          try db.seed { Post(id: 1, title: "Hello", body: "Original body") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                recordType: "posts",
+                parent: nil,
+                share: nil,
+                body: "Original body",
+                body🗓️: 0,
+                id: 1,
+                id🗓️: 0,
+                isPublished: 0,
+                isPublished🗓️: 0,
+                title: "Hello",
+                title🗓️: 0,
+                🗓️: 0
+              )
+            ]
+          )
+          """
+        }
+
+        // Step 2: Server changes body @ t=30
+        let record = try syncEngine.private.database.record(for: Post.recordID(for: 1))
+        record.setValue("Server body", forKey: "body", at: 30)
+        let fetchedRecordZoneChangesCallback = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [record]
+        )
+
+        // Step 3: Client nulls body @ t=60
+        try await withDependencies {
+          $0.currentTime.now = 60
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Post.find(1).update { $0.body = #bind(nil as String?) }.execute(db)
+          }
+        }
+
+        // Step 4: Send (rejected, merged locally)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                recordType: "posts",
+                parent: nil,
+                share: nil,
+                body: "Server body",
+                body🗓️: 30,
+                id: 1,
+                id🗓️: 0,
+                isPublished: 0,
+                isPublished🗓️: 0,
+                title: "Hello",
+                title🗓️: 0,
+                🗓️: 30
+              )
+            ]
+          )
+          """
+        }
+
+        // Step 5: Retry send
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 6: Fetch arrives (no-op, conflict already resolved)
+        await fetchedRecordZoneChangesCallback.notify()
+
+        assertQuery(Post.all, database: userDatabase.database) {
+          """
+          ┌──────────────────────┐
+          │ Post(                │
+          │   id: 1,             │
+          │   title: "Hello",    │
+          │   body: nil,         │
+          │   isPublished: false │
+          │ )                    │
+          └──────────────────────┘
+          """
+        }
+        assertQuery(
+          SyncMetadata.select(\.userModificationTime),
+          database: syncEngine.metadatabase
+        ) {
+          """
+          ┌────┐
+          │ 60 │
+          └────┘
+          """
+        }
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                recordType: "posts",
+                parent: nil,
+                share: nil,
+                body🗓️: 60,
+                id: 1,
+                id🗓️: 0,
+                isPublished: 0,
+                isPublished🗓️: 0,
+                title: "Hello",
+                title🗓️: 0,
+                🗓️: 60
+              )
+            ]
+          )
+          """
+        }
+      }
+
+      @Test func sameFieldChangeAndRemoval_conflictOnSend_serverNewer() async throws {
+        // Step 1: Seed with body and initial sync
+        try await userDatabase.userWrite { db in
+          try db.seed { Post(id: 1, title: "Hello", body: "Original body") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                recordType: "posts",
+                parent: nil,
+                share: nil,
+                body: "Original body",
+                body🗓️: 0,
+                id: 1,
+                id🗓️: 0,
+                isPublished: 0,
+                isPublished🗓️: 0,
+                title: "Hello",
+                title🗓️: 0,
+                🗓️: 0
+              )
+            ]
+          )
+          """
+        }
+
+        // Step 2: Client nulls body @ t=30
+        try await withDependencies {
+          $0.currentTime.now = 30
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Post.find(1).update { $0.body = #bind(nil as String?) }.execute(db)
+          }
+        }
+
+        // Step 3: Server changes body @ t=60
+        let record = try syncEngine.private.database.record(for: Post.recordID(for: 1))
+        record.setValue("Server body", forKey: "body", at: 60)
+        let fetchedRecordZoneChangesCallback = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [record]
+        )
+
+        // Step 4: Send (rejected, merged locally)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                recordType: "posts",
+                parent: nil,
+                share: nil,
+                body: "Server body",
+                body🗓️: 60,
+                id: 1,
+                id🗓️: 0,
+                isPublished: 0,
+                isPublished🗓️: 0,
+                title: "Hello",
+                title🗓️: 0,
+                🗓️: 60
+              )
+            ]
+          )
+          """
+        }
+
+        // Step 5: Retry send
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 6: Fetch arrives (no-op, conflict already resolved)
+        await fetchedRecordZoneChangesCallback.notify()
+
+        await withKnownIssue("Server should win same-field conflict when it has a newer timestamp") {
+          try await userDatabase.read { db in
+            let post = try #require(try Post.find(1).fetchOne(db))
+            #expect(post.body == "Server body")
+          }
+        }
+      }
+
       // MARK: - Old tests
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
