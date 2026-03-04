@@ -571,6 +571,105 @@
         }
       }
 
+      @Test func differentNullableFieldsChange_conflictOnFetch_clientNewer() async throws {
+        // Step 1: Seed and initial sync
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            Reminder(id: 1, remindersListID: 1)
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 2: Server changes dueDate @ t=30
+        let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
+        record.setValue(Date(timeIntervalSince1970: 30), forKey: "dueDate", at: 30)
+        let fetchedRecordZoneChangesCallback = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [record]
+        )
+
+        // Step 3: Client changes priority @ t=60
+        try await withDependencies {
+          $0.currentTime.now = 60
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Reminder.find(1).update { $0.priority = #bind(3) }.execute(db)
+          }
+        }
+
+        // Step 4: Fetch arrives (conflict, merged locally)
+        await fetchedRecordZoneChangesCallback.notify()
+
+        // Step 5: Send (merged result)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertQuery(Reminder.all, database: userDatabase.database) {
+          """
+          ┌────────────────────────────────────────────┐
+          │ Reminder(                                  │
+          │   id: 1,                                   │
+          │   dueDate: Date(1970-01-01T00:00:30.000Z), │
+          │   isCompleted: false,                      │
+          │   priority: 3,                             │
+          │   title: "",                               │
+          │   remindersListID: 1                       │
+          │ )                                          │
+          └────────────────────────────────────────────┘
+          """
+        }
+        assertQuery(
+          SyncMetadata.select(\.userModificationTime),
+          database: syncEngine.metadatabase
+        ) {
+          """
+          ┌────┐
+          │ 0  │
+          │ 60 │
+          └────┘
+          """
+        }
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
+                recordType: "reminders",
+                parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                share: nil,
+                dueDate: Date(1970-01-01T00:00:30.000Z),
+                dueDate🗓️: 30,
+                id: 1,
+                id🗓️: 0,
+                isCompleted: 0,
+                isCompleted🗓️: 0,
+                priority: 3,
+                priority🗓️: 60,
+                remindersListID: 1,
+                remindersListID🗓️: 0,
+                title: "",
+                title🗓️: 0,
+                🗓️: 60
+              ),
+              [1]: CKRecord(
+                recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                recordType: "remindersLists",
+                parent: nil,
+                share: nil,
+                id: 1,
+                id🗓️: 0,
+                title: "Personal",
+                title🗓️: 0,
+                🗓️: 0
+              )
+            ]
+          )
+          """
+        }
+      }
+
       // MARK: - Same Field Change
 
       @Test func sameFieldChange_conflictOnSend_retryBeforeFetch_clientNewer() async throws {
@@ -1437,105 +1536,6 @@
           try await userDatabase.read { db in
             let post = try #require(try Post.find(1).fetchOne(db))
             #expect(post.body == "Server body")
-          }
-        }
-      }
-
-      // MARK: - Old tests
-
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func mergeWithNullableFields() async throws {
-        try await userDatabase.userWrite { db in
-          try db.seed {
-            RemindersList(id: 1, title: "Personal")
-            Reminder(id: 1, remindersListID: 1)
-          }
-        }
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-
-        try await withDependencies {
-          $0.currentTime.now += 1
-        } operation: {
-          let reminderRecord = try syncEngine.private.database.record(
-            for: Reminder.recordID(for: 1)
-          )
-          reminderRecord.setValue(
-            Date(timeIntervalSince1970: Double(30)),
-            forKey: "dueDate",
-            at: now
-          )
-          let modificationsFinished = try syncEngine.modifyRecords(
-            scope: .private,
-            saving: [reminderRecord]
-          )
-
-          try await withDependencies {
-            $0.currentTime.now += 1
-          } operation: {
-            try await userDatabase.userWrite { db in
-              try Reminder.find(1).update { $0.priority = #bind(3) }.execute(db)
-            }
-            await modificationsFinished.notify()
-            try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-          }
-
-          assertInlineSnapshot(of: container, as: .customDump) {
-            """
-            MockCloudContainer(
-              privateCloudDatabase: MockCloudDatabase(
-                databaseScope: .private,
-                storage: [
-                  [0]: CKRecord(
-                    recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
-                    recordType: "reminders",
-                    parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
-                    share: nil,
-                    dueDate: Date(1970-01-01T00:00:30.000Z),
-                    dueDate🗓️: 1,
-                    id: 1,
-                    id🗓️: 0,
-                    isCompleted: 0,
-                    isCompleted🗓️: 0,
-                    priority: 3,
-                    priority🗓️: 2,
-                    remindersListID: 1,
-                    remindersListID🗓️: 0,
-                    title: "",
-                    title🗓️: 0,
-                    🗓️: 2
-                  ),
-                  [1]: CKRecord(
-                    recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                    recordType: "remindersLists",
-                    parent: nil,
-                    share: nil,
-                    id: 1,
-                    id🗓️: 0,
-                    title: "Personal",
-                    title🗓️: 0,
-                    🗓️: 0
-                  )
-                ]
-              ),
-              sharedCloudDatabase: MockCloudDatabase(
-                databaseScope: .shared,
-                storage: []
-              )
-            )
-            """
-          }
-
-          try await userDatabase.read { db in
-            let reminder = try #require(try Reminder.find(1).fetchOne(db))
-            expectNoDifference(
-              reminder,
-              Reminder(
-                id: 1,
-                dueDate: Date(timeIntervalSince1970: 30),
-                priority: 3,
-                remindersListID: 1
-              )
-            )
           }
         }
       }
