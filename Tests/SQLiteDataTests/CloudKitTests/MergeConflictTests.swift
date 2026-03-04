@@ -11,7 +11,8 @@
 
   extension BaseCloudKitTests {
     @MainActor
-    @Suite(.printTimestamps) final class MergeConflictTests: BaseCloudKitTests, @unchecked Sendable {
+    @Suite(.attachMetadatabase, .printTimestamps)
+    final class MergeConflictTests: BaseCloudKitTests, @unchecked Sendable {
       
       // MARK: - Different Fields Change
 
@@ -96,26 +97,21 @@
         // Step 6: Fetch arrives (no-op, conflict already resolved)
         await fetchedRecordZoneChangesCallback.notify()
 
-        assertQuery(Post.all, database: userDatabase.database) {
-          """
-          ┌─────────────────────┐
-          │ Post(               │
-          │   id: 1,            │
-          │   title: "Hello",   │
-          │   body: nil,        │
-          │   isPublished: true │
-          │ )                   │
-          └─────────────────────┘
-          """
-        }
         assertQuery(
-          SyncMetadata.select(\.userModificationTime),
-          database: syncEngine.metadatabase
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select { ($0, $1.userModificationTime) },
+          database: userDatabase.database
         ) {
           """
-          ┌────┐
-          │ 60 │
-          └────┘
+          ┌─────────────────────┬────┐
+          │ Post(               │ 60 │
+          │   id: 1,            │    │
+          │   title: "Hello",   │    │
+          │   body: nil,        │    │
+          │   isPublished: true │    │
+          │ )                   │    │
+          └─────────────────────┴────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -224,26 +220,21 @@
         // Step 6: Fetch arrives (no-op, conflict already resolved)
         await fetchedRecordZoneChangesCallback.notify()
 
-        assertQuery(Post.all, database: userDatabase.database) {
-          """
-          ┌─────────────────────┐
-          │ Post(               │
-          │   id: 1,            │
-          │   title: "Hello",   │
-          │   body: nil,        │
-          │   isPublished: true │
-          │ )                   │
-          └─────────────────────┘
-          """
-        }
         assertQuery(
-          SyncMetadata.select(\.userModificationTime),
-          database: syncEngine.metadatabase
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select { ($0, $1.userModificationTime) },
+          database: userDatabase.database
         ) {
           """
-          ┌────┐
-          │ 60 │
-          └────┘
+          ┌─────────────────────┬────┐
+          │ Post(               │ 60 │
+          │   id: 1,            │    │
+          │   title: "Hello",   │    │
+          │   body: nil,        │    │
+          │   isPublished: true │    │
+          │ )                   │    │
+          └─────────────────────┴────┘
           """
         }
         // NB: t_isPublished is 60 (not 30), because all changed fields are sent with the user
@@ -375,26 +366,21 @@
         // Step 5: Send (merged record)
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        assertQuery(Post.all, database: userDatabase.database) {
-          """
-          ┌─────────────────────┐
-          │ Post(               │
-          │   id: 1,            │
-          │   title: "Hello",   │
-          │   body: nil,        │
-          │   isPublished: true │
-          │ )                   │
-          └─────────────────────┘
-          """
-        }
         assertQuery(
-          SyncMetadata.select(\.userModificationTime),
-          database: syncEngine.metadatabase
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select { ($0, $1.userModificationTime) },
+          database: userDatabase.database
         ) {
           """
-          ┌────┐
-          │ 60 │
-          └────┘
+          ┌─────────────────────┬────┐
+          │ Post(               │ 60 │
+          │   id: 1,            │    │
+          │   title: "Hello",   │    │
+          │   body: nil,        │    │
+          │   isPublished: true │    │
+          │ )                   │    │
+          └─────────────────────┴────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -524,26 +510,21 @@
         // Step 5: Send (merged record)
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        assertQuery(Post.all, database: userDatabase.database) {
-          """
-          ┌─────────────────────┐
-          │ Post(               │
-          │   id: 1,            │
-          │   title: "Hello",   │
-          │   body: nil,        │
-          │   isPublished: true │
-          │ )                   │
-          └─────────────────────┘
-          """
-        }
         assertQuery(
-          SyncMetadata.select(\.userModificationTime),
-          database: syncEngine.metadatabase
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select { ($0, $1.userModificationTime) },
+          database: userDatabase.database
         ) {
           """
-          ┌────┐
-          │ 60 │
-          └────┘
+          ┌─────────────────────┬────┐
+          │ Post(               │ 60 │
+          │   id: 1,            │    │
+          │   title: "Hello",   │    │
+          │   body: nil,        │    │
+          │   isPublished: true │    │
+          │ )                   │    │
+          └─────────────────────┴────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -604,29 +585,23 @@
         // Step 5: Send (merged result)
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        assertQuery(Reminder.all, database: userDatabase.database) {
-          """
-          ┌────────────────────────────────────────────┐
-          │ Reminder(                                  │
-          │   id: 1,                                   │
-          │   dueDate: Date(1970-01-01T00:00:30.000Z), │
-          │   isCompleted: false,                      │
-          │   priority: 3,                             │
-          │   title: "",                               │
-          │   remindersListID: 1                       │
-          │ )                                          │
-          └────────────────────────────────────────────┘
-          """
-        }
         assertQuery(
-          SyncMetadata.select(\.userModificationTime),
-          database: syncEngine.metadatabase
+          Reminder.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select { ($0, $1.userModificationTime) },
+          database: userDatabase.database
         ) {
           """
-          ┌────┐
-          │ 0  │
-          │ 60 │
-          └────┘
+          ┌────────────────────────────────────────────┬────┐
+          │ Reminder(                                  │ 60 │
+          │   id: 1,                                   │    │
+          │   dueDate: Date(1970-01-01T00:00:30.000Z), │    │
+          │   isCompleted: false,                      │    │
+          │   priority: 3,                             │    │
+          │   title: "",                               │    │
+          │   remindersListID: 1                       │    │
+          │ )                                          │    │
+          └────────────────────────────────────────────┴────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -753,26 +728,21 @@
         // Step 6: Fetch arrives (no-op, conflict already resolved)
         await fetchedRecordZoneChangesCallback.notify()
 
-        assertQuery(Post.all, database: userDatabase.database) {
-          """
-          ┌───────────────────────────────┐
-          │ Post(                         │
-          │   id: 1,                      │
-          │   title: "Hello from client", │
-          │   body: nil,                  │
-          │   isPublished: false          │
-          │ )                             │
-          └───────────────────────────────┘
-          """
-        }
         assertQuery(
-          SyncMetadata.select(\.userModificationTime),
-          database: syncEngine.metadatabase
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select { ($0, $1.userModificationTime) },
+          database: userDatabase.database
         ) {
           """
-          ┌────┐
-          │ 60 │
-          └────┘
+          ┌───────────────────────────────┬────┐
+          │ Post(                         │ 60 │
+          │   id: 1,                      │    │
+          │   title: "Hello from client", │    │
+          │   body: nil,                  │    │
+          │   isPublished: false          │    │
+          │ )                             │    │
+          └───────────────────────────────┴────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -970,26 +940,21 @@
         // Step 6: Retry send
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        assertQuery(Post.all, database: userDatabase.database) {
-          """
-          ┌───────────────────────────────┐
-          │ Post(                         │
-          │   id: 1,                      │
-          │   title: "Hello from client", │
-          │   body: nil,                  │
-          │   isPublished: false          │
-          │ )                             │
-          └───────────────────────────────┘
-          """
-        }
         assertQuery(
-          SyncMetadata.select(\.userModificationTime),
-          database: syncEngine.metadatabase
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select { ($0, $1.userModificationTime) },
+          database: userDatabase.database
         ) {
           """
-          ┌────┐
-          │ 60 │
-          └────┘
+          ┌───────────────────────────────┬────┐
+          │ Post(                         │ 60 │
+          │   id: 1,                      │    │
+          │   title: "Hello from client", │    │
+          │   body: nil,                  │    │
+          │   isPublished: false          │    │
+          │ )                             │    │
+          └───────────────────────────────┴────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -1184,26 +1149,21 @@
         // Step 5: Send (merged result)
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        assertQuery(Post.all, database: userDatabase.database) {
-          """
-          ┌───────────────────────────────┐
-          │ Post(                         │
-          │   id: 1,                      │
-          │   title: "Hello from client", │
-          │   body: nil,                  │
-          │   isPublished: false          │
-          │ )                             │
-          └───────────────────────────────┘
-          """
-        }
         assertQuery(
-          SyncMetadata.select(\.userModificationTime),
-          database: syncEngine.metadatabase
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select { ($0, $1.userModificationTime) },
+          database: userDatabase.database
         ) {
           """
-          ┌────┐
-          │ 60 │
-          └────┘
+          ┌───────────────────────────────┬────┐
+          │ Post(                         │ 60 │
+          │   id: 1,                      │    │
+          │   title: "Hello from client", │    │
+          │   body: nil,                  │    │
+          │   isPublished: false          │    │
+          │ )                             │    │
+          └───────────────────────────────┴────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -1402,26 +1362,21 @@
         // Step 6: Fetch arrives (no-op, conflict already resolved)
         await fetchedRecordZoneChangesCallback.notify()
 
-        assertQuery(Post.all, database: userDatabase.database) {
-          """
-          ┌──────────────────────┐
-          │ Post(                │
-          │   id: 1,             │
-          │   title: "Hello",    │
-          │   body: nil,         │
-          │   isPublished: false │
-          │ )                    │
-          └──────────────────────┘
-          """
-        }
         assertQuery(
-          SyncMetadata.select(\.userModificationTime),
-          database: syncEngine.metadatabase
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select { ($0, $1.userModificationTime) },
+          database: userDatabase.database
         ) {
           """
-          ┌────┐
-          │ 60 │
-          └────┘
+          ┌──────────────────────┬────┐
+          │ Post(                │ 60 │
+          │   id: 1,             │    │
+          │   title: "Hello",    │    │
+          │   body: nil,         │    │
+          │   isPublished: false │    │
+          │ )                    │    │
+          └──────────────────────┴────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
