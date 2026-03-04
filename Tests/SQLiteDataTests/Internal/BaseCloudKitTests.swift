@@ -79,6 +79,7 @@
         ModelA.self,
         ModelB.self,
         ModelC.self,
+        Post.self,
         privateTables: RemindersListPrivate.self,
         startImmediately: _StartImmediatelyTrait.startImmediately
       )

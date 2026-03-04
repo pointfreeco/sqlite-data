@@ -365,6 +365,47 @@
                   type: "TEXT"
                 )
               ]
+            ),
+            [12]: RecordType(
+              tableName: "posts",
+              schema: """
+                CREATE TABLE "posts" (
+                  "id" INT PRIMARY KEY NOT NULL,
+                  "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
+                  "body" TEXT,
+                  "isPublished" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+                ) STRICT
+                """,
+              tableInfo: [
+                [0]: TableInfo(
+                  defaultValue: nil,
+                  isPrimaryKey: false,
+                  name: "body",
+                  isNotNull: false,
+                  type: "TEXT"
+                ),
+                [1]: TableInfo(
+                  defaultValue: nil,
+                  isPrimaryKey: true,
+                  name: "id",
+                  isNotNull: true,
+                  type: "INT"
+                ),
+                [2]: TableInfo(
+                  defaultValue: "0",
+                  isPrimaryKey: false,
+                  name: "isPublished",
+                  isNotNull: true,
+                  type: "INTEGER"
+                ),
+                [3]: TableInfo(
+                  defaultValue: "\'\'",
+                  isPrimaryKey: false,
+                  name: "title",
+                  isNotNull: true,
+                  type: "TEXT"
+                )
+              ]
             )
           ]
           """#
