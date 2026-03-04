@@ -357,6 +357,51 @@
           }
         }
         await modificationCallback.notify()
+        
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                  share: nil,
+                  dueDate🗓️: 0,
+                  id: 1,
+                  id🗓️: 0,
+                  isCompleted: 0,
+                  isCompleted🗓️: 0,
+                  priority🗓️: 0,
+                  remindersListID: 1,
+                  remindersListID🗓️: 0,
+                  title: "Buy milk",
+                  title🗓️: 30,
+                  🗓️: 30
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  id🗓️: 0,
+                  title: "",
+                  title🗓️: 0,
+                  🗓️: 0
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+        
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         assertInlineSnapshot(of: container, as: .customDump) {
