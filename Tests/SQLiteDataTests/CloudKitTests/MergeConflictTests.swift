@@ -1569,6 +1569,63 @@
           }
         }
       }
+
+      @Test func sameFieldRemoval_conflictOnSend_clientNewer() async throws {
+        // Step 1: Seed with body and initial sync
+        try await userDatabase.userWrite { db in
+          try db.seed { Post(id: 1, title: "Hello", body: "Original body") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 2: Server nulls body @ t=30
+        let record = try syncEngine.private.database.record(for: Post.recordID(for: 1))
+        record.removeValue(forKey: "body", at: 30)
+        let fetchedRecordZoneChangesCallback = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [record]
+        )
+
+        // Step 3: Client nulls body @ t=60
+        try await withDependencies {
+          $0.currentTime.now = 60
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Post.find(1).update { $0.body = #bind(nil as String?) }.execute(db)
+          }
+        }
+
+        // Step 4: Send (rejected, merged locally)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 5: Retry send
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 6: Fetch arrives (no-op, conflict already resolved)
+        await fetchedRecordZoneChangesCallback.notify()
+
+        assertQuery(
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select { ($0, $1.userModificationTime) },
+          database: userDatabase.database
+        ) {
+          """
+          ┌──────────────────────┬────┐
+          │ Post(                │ 60 │
+          │   id: 1,             │    │
+          │   title: "Hello",    │    │
+          │   body: nil,         │    │
+          │   isPublished: false │    │
+          │ )                    │    │
+          └──────────────────────┴────┘
+          """
+        }
+        withKnownIssue("Per-field timestamp should reflect the newer removal") {
+          let recordID = Post.recordID(for: 1)
+          let record = try syncEngine.private.database.record(for: recordID)
+          #expect(record.encryptedValues[at: "body"] == 60)
+        }
+      }
     }
   }
 #endif
