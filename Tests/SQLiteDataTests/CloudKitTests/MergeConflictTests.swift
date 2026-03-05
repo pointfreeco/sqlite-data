@@ -102,18 +102,26 @@
         assertQuery(
           Post.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌─────────────────────┬────┐
-          │ Post(               │ 60 │
-          │   id: 1,            │    │
-          │   title: "Hello",   │    │
-          │   body: nil,        │    │
-          │   isPublished: true │    │
-          │ )                   │    │
-          └─────────────────────┴────┘
+          ┌────────────────────────────┐
+          │ SyncedRow(                 │
+          │   row: Post(               │
+          │     id: 1,                 │
+          │     title: "Hello",        │
+          │     body: nil,             │
+          │     isPublished: true      │
+          │   ),                       │
+          │   userModificationTime: 60 │
+          │ )                          │
+          └────────────────────────────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -225,18 +233,26 @@
         assertQuery(
           Post.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌─────────────────────┬────┐
-          │ Post(               │ 60 │
-          │   id: 1,            │    │
-          │   title: "Hello",   │    │
-          │   body: nil,        │    │
-          │   isPublished: true │    │
-          │ )                   │    │
-          └─────────────────────┴────┘
+          ┌────────────────────────────┐
+          │ SyncedRow(                 │
+          │   row: Post(               │
+          │     id: 1,                 │
+          │     title: "Hello",        │
+          │     body: nil,             │
+          │     isPublished: true      │
+          │   ),                       │
+          │   userModificationTime: 60 │
+          │ )                          │
+          └────────────────────────────┘
           """
         }
         // NB: t_isPublished is 60 (not 30), because all changed fields are sent with the user
@@ -371,18 +387,26 @@
         assertQuery(
           Post.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌─────────────────────┬────┐
-          │ Post(               │ 60 │
-          │   id: 1,            │    │
-          │   title: "Hello",   │    │
-          │   body: nil,        │    │
-          │   isPublished: true │    │
-          │ )                   │    │
-          └─────────────────────┴────┘
+          ┌────────────────────────────┐
+          │ SyncedRow(                 │
+          │   row: Post(               │
+          │     id: 1,                 │
+          │     title: "Hello",        │
+          │     body: nil,             │
+          │     isPublished: true      │
+          │   ),                       │
+          │   userModificationTime: 60 │
+          │ )                          │
+          └────────────────────────────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -515,18 +539,26 @@
         assertQuery(
           Post.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌─────────────────────┬────┐
-          │ Post(               │ 60 │
-          │   id: 1,            │    │
-          │   title: "Hello",   │    │
-          │   body: nil,        │    │
-          │   isPublished: true │    │
-          │ )                   │    │
-          └─────────────────────┴────┘
+          ┌────────────────────────────┐
+          │ SyncedRow(                 │
+          │   row: Post(               │
+          │     id: 1,                 │
+          │     title: "Hello",        │
+          │     body: nil,             │
+          │     isPublished: true      │
+          │   ),                       │
+          │   userModificationTime: 60 │
+          │ )                          │
+          └────────────────────────────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -590,20 +622,28 @@
         assertQuery(
           Reminder.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Reminder>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌────────────────────────────────────────────┬────┐
-          │ Reminder(                                  │ 60 │
-          │   id: 1,                                   │    │
-          │   dueDate: Date(1970-01-01T00:00:30.000Z), │    │
-          │   isCompleted: false,                      │    │
-          │   priority: 3,                             │    │
-          │   title: "",                               │    │
-          │   remindersListID: 1                       │    │
-          │ )                                          │    │
-          └────────────────────────────────────────────┴────┘
+          ┌──────────────────────────────────────────────┐
+          │ SyncedRow(                                   │
+          │   row: Reminder(                             │
+          │     id: 1,                                   │
+          │     dueDate: Date(1970-01-01T00:00:30.000Z), │
+          │     isCompleted: false,                      │
+          │     priority: 3,                             │
+          │     title: "",                               │
+          │     remindersListID: 1                       │
+          │   ),                                         │
+          │   userModificationTime: 60                   │
+          │ )                                            │
+          └──────────────────────────────────────────────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -733,18 +773,26 @@
         assertQuery(
           Post.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌───────────────────────────────┬────┐
-          │ Post(                         │ 60 │
-          │   id: 1,                      │    │
-          │   title: "Hello from client", │    │
-          │   body: nil,                  │    │
-          │   isPublished: false          │    │
-          │ )                             │    │
-          └───────────────────────────────┴────┘
+          ┌─────────────────────────────────┐
+          │ SyncedRow(                      │
+          │   row: Post(                    │
+          │     id: 1,                      │
+          │     title: "Hello from client", │
+          │     body: nil,                  │
+          │     isPublished: false          │
+          │   ),                            │
+          │   userModificationTime: 60      │
+          │ )                               │
+          └─────────────────────────────────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -945,18 +993,26 @@
         assertQuery(
           Post.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌───────────────────────────────┬────┐
-          │ Post(                         │ 60 │
-          │   id: 1,                      │    │
-          │   title: "Hello from client", │    │
-          │   body: nil,                  │    │
-          │   isPublished: false          │    │
-          │ )                             │    │
-          └───────────────────────────────┴────┘
+          ┌─────────────────────────────────┐
+          │ SyncedRow(                      │
+          │   row: Post(                    │
+          │     id: 1,                      │
+          │     title: "Hello from client", │
+          │     body: nil,                  │
+          │     isPublished: false          │
+          │   ),                            │
+          │   userModificationTime: 60      │
+          │ )                               │
+          └─────────────────────────────────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -1109,18 +1165,26 @@
         assertQuery(
           Post.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌───────────────────────────────┬────┐
-          │ Post(                         │ 60 │
-          │   id: 1,                      │    │
-          │   title: "Hello from client", │    │
-          │   body: nil,                  │    │
-          │   isPublished: false          │    │
-          │ )                             │    │
-          └───────────────────────────────┴────┘
+          ┌─────────────────────────────────┐
+          │ SyncedRow(                      │
+          │   row: Post(                    │
+          │     id: 1,                      │
+          │     title: "Hello from client", │
+          │     body: nil,                  │
+          │     isPublished: false          │
+          │   ),                            │
+          │   userModificationTime: 60      │
+          │ )                               │
+          └─────────────────────────────────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -1229,18 +1293,26 @@
         assertQuery(
           Post.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌───────────────────────────────┬────┐
-          │ Post(                         │ 60 │
-          │   id: 1,                      │    │
-          │   title: "Hello from client", │    │
-          │   body: nil,                  │    │
-          │   isPublished: false          │    │
-          │ )                             │    │
-          └───────────────────────────────┴────┘
+          ┌─────────────────────────────────┐
+          │ SyncedRow(                      │
+          │   row: Post(                    │
+          │     id: 1,                      │
+          │     title: "Hello from client", │
+          │     body: nil,                  │
+          │     isPublished: false          │
+          │   ),                            │
+          │   userModificationTime: 60      │
+          │ )                               │
+          └─────────────────────────────────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -1442,18 +1514,26 @@
         assertQuery(
           Post.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌──────────────────────┬────┐
-          │ Post(                │ 60 │
-          │   id: 1,             │    │
-          │   title: "Hello",    │    │
-          │   body: nil,         │    │
-          │   isPublished: false │    │
-          │ )                    │    │
-          └──────────────────────┴────┘
+          ┌────────────────────────────┐
+          │ SyncedRow(                 │
+          │   row: Post(               │
+          │     id: 1,                 │
+          │     title: "Hello",        │
+          │     body: nil,             │
+          │     isPublished: false     │
+          │   ),                       │
+          │   userModificationTime: 60 │
+          │ )                          │
+          └────────────────────────────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -1608,18 +1688,26 @@
         assertQuery(
           Post.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌──────────────────────┬────┐
-          │ Post(                │ 60 │
-          │   id: 1,             │    │
-          │   title: "Hello",    │    │
-          │   body: nil,         │    │
-          │   isPublished: false │    │
-          │ )                    │    │
-          └──────────────────────┴────┘
+          ┌────────────────────────────┐
+          │ SyncedRow(                 │
+          │   row: Post(               │
+          │     id: 1,                 │
+          │     title: "Hello",        │
+          │     body: nil,             │
+          │     isPublished: false     │
+          │   ),                       │
+          │   userModificationTime: 60 │
+          │ )                          │
+          └────────────────────────────┘
           """
         }
         withKnownIssue("Per-field timestamp should reflect the newer removal") {
@@ -1665,18 +1753,26 @@
         assertQuery(
           Post.find(1)
             .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
-            .select { ($0, $1.userModificationTime) },
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
           database: userDatabase.database
         ) {
           """
-          ┌──────────────────────┬────┐
-          │ Post(                │ 60 │
-          │   id: 1,             │    │
-          │   title: "Hello",    │    │
-          │   body: nil,         │    │
-          │   isPublished: false │    │
-          │ )                    │    │
-          └──────────────────────┴────┘
+          ┌────────────────────────────┐
+          │ SyncedRow(                 │
+          │   row: Post(               │
+          │     id: 1,                 │
+          │     title: "Hello",        │
+          │     body: nil,             │
+          │     isPublished: false     │
+          │   ),                       │
+          │   userModificationTime: 60 │
+          │ )                          │
+          └────────────────────────────┘
           """
         }
         assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
@@ -1704,5 +1800,10 @@
         }
       }
     }
+  }
+
+  @Selection struct SyncedRow<T: Table> where T.QueryOutput == T {
+    let row: T
+    let userModificationTime: Int64
   }
 #endif
