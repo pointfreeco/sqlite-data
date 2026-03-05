@@ -1628,6 +1628,81 @@
           #expect(record.encryptedValues[at: "body"] == 60)
         }
       }
+
+      @Test func sameFieldRemoval_conflictOnSend_serverNewer() async throws {
+        // Step 1: Seed with body and initial sync
+        try await userDatabase.userWrite { db in
+          try db.seed { Post(id: 1, title: "Hello", body: "Original body") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 2: Server nulls body @ t=60
+        let record = try syncEngine.private.database.record(for: Post.recordID(for: 1))
+        record.removeValue(forKey: "body", at: 60)
+        let fetchedRecordZoneChangesCallback = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [record]
+        )
+
+        // Step 3: Client nulls body @ t=30
+        try await withDependencies {
+          $0.currentTime.now = 30
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Post.find(1).update { $0.body = #bind(nil as String?) }.execute(db)
+          }
+        }
+
+        // Step 4: Send (rejected, merged locally)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 5: Retry send
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 6: Fetch arrives (no-op, conflict already resolved)
+        await fetchedRecordZoneChangesCallback.notify()
+
+        assertQuery(
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select { ($0, $1.userModificationTime) },
+          database: userDatabase.database
+        ) {
+          """
+          ┌──────────────────────┬────┐
+          │ Post(                │ 60 │
+          │   id: 1,             │    │
+          │   title: "Hello",    │    │
+          │   body: nil,         │    │
+          │   isPublished: false │    │
+          │ )                    │    │
+          └──────────────────────┴────┘
+          """
+        }
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                recordType: "posts",
+                parent: nil,
+                share: nil,
+                body🗓️: 60,
+                id: 1,
+                id🗓️: 0,
+                isPublished: 0,
+                isPublished🗓️: 0,
+                title: "Hello",
+                title🗓️: 0,
+                🗓️: 60
+              )
+            ]
+          )
+          """
+        }
+      }
     }
   }
 #endif
