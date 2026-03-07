@@ -31,13 +31,13 @@ let package = Package(
     .package(url: "https://github.com/groue/GRDB.swift", from: "7.6.0"),
     .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.0.0"),
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.3"),
-    .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
-    .package(url: "https://github.com/pointfreeco/swift-perception", from: "2.0.0"),
+    .package(url: "https://github.com/pointfreeco/swift-dependencies", branch: "swift-syntax-604"),
+    .package(url: "https://github.com/pointfreeco/swift-perception", branch: "swift-syntax-604"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
-    .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
+    .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", branch: "swift-syntax-604"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.31.0",
+      branch: "swift-syntax-604",
       traits: [
         .trait(name: "StructuredQueriesTagged", condition: .when(traits: ["SQLiteDataTagged"]))
       ]
