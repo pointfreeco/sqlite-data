@@ -2,12 +2,15 @@ import CloudKit
 import SQLiteData
 import SwiftUI
 
+let initialAssetSize = 10
+
 struct CountersListView: View {
   @FetchAll(
     Counter
-      .leftJoin(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+      .leftJoin(CounterAsset.all) { $0.id.eq($1.counterID) }
+      .leftJoin(SyncMetadata.all) { $0.syncMetadataID.eq($2.id) }
       .select {
-        Row.Columns(counter: $0, isShared: $1.isShared.ifnull(false))
+        Row.Columns(counter: $0, counterAsset: $1, isShared: $2.isShared.ifnull(false))
       }
   ) var rows
   @Dependency(\.defaultDatabase) var database
@@ -15,6 +18,7 @@ struct CountersListView: View {
 
   @Selection struct Row {
     let counter: Counter
+    let counterAsset: CounterAsset?
     let isShared: Bool
   }
 
@@ -39,10 +43,13 @@ struct CountersListView: View {
           Task {
             withErrorReporting {
               try database.write { db in
-                try Counter.insert {
+                let counterID = try Counter.insert {
                   Counter.Draft()
-                }
-                .execute(db)
+                }.returning(\.id)
+                  .fetchOne(db)!
+                try CounterAsset.insert {
+                  CounterAsset(counterID: counterID, assetData: Data(count: initialAssetSize))
+                }.execute(db)
               }
             }
           }
@@ -66,6 +73,7 @@ struct CountersListView: View {
 struct CounterRow: View {
   let row: CountersListView.Row
   @State var sharedRecord: SharedRecord?
+  @State var updateAssetCount = 0
   @Dependency(\.defaultDatabase) var database
   @Dependency(\.defaultSyncEngine) var syncEngine
 
@@ -83,6 +91,16 @@ struct CounterRow: View {
           incrementButtonTapped()
         }
         Spacer()
+        if let assetData = row.counterAsset?.assetData {
+          Text("Asset: \(assetData.count) bytes")
+        } else {
+          Text("<no asset>").foregroundStyle(.red)
+        }
+        Spacer()
+        Button("Update asset") {
+          updateAssetCount += 1
+          updateAssetButtonTapped()
+        }
         Button {
           shareButtonTapped()
         } label: {
@@ -121,6 +139,25 @@ struct CounterRow: View {
           $0.count += 1
         }
         .execute(db)
+      }
+    }
+  }
+  
+  func updateAssetButtonTapped() {
+    withErrorReporting {
+      let sizeInBytes = initialAssetSize + updateAssetCount
+      let assetData = Data(count: sizeInBytes)
+      try database.write { db in
+        // This delete isn't strictly necessary, but it's
+        // what causes the data loss
+        try CounterAsset
+          .where { $0.counterID.eq(row.counter.id) }
+          .delete()
+          .execute(db)
+        
+        try CounterAsset.upsert {
+          CounterAsset(counterID: row.counter.id, assetData: assetData)
+        }.execute(db)
       }
     }
   }

@@ -8,6 +8,13 @@ nonisolated struct Counter: Identifiable {
   var count = 0
 }
 
+@Table
+nonisolated struct CounterAsset: Identifiable {
+  @Column(primaryKey: true) public let counterID: Counter.ID
+  public var id: Counter.ID { counterID }
+  public var assetData: Data
+}
+
 extension DependencyValues {
   mutating func bootstrapDatabase() throws {
     var configuration = Configuration()
@@ -37,11 +44,22 @@ extension DependencyValues {
       )
       .execute(db)
     }
+    migrator.registerMigration("Add CounterAsset") { db in
+      try #sql(
+        """
+        CREATE TABLE "counterAssets" (
+          "counterID" TEXT PRIMARY KEY NOT NULL,
+          "assetData" BLOB NOT NULL DEFAULT (x'')
+        ) STRICT
+        """
+      )
+      .execute(db)
+    }
     try migrator.migrate(database)
     defaultDatabase = database
     defaultSyncEngine = try SyncEngine(
       for: defaultDatabase,
-      tables: Counter.self
+      tables: Counter.self, CounterAsset.self
     )
   }
 }
