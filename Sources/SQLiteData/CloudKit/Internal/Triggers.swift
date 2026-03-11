@@ -236,24 +236,25 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncMetadata {
-    static func callbackTriggers(for syncEngine: SyncEngine) -> [TemporaryTrigger<Self>] {
+    static func callbackTriggers(for context: FunctionContext) -> [TemporaryTrigger<Self>] {
       [
-        afterInsertTrigger(for: syncEngine),
+        afterInsertTrigger(for: context),
         afterZoneUpdateTrigger(),
-        afterUpdateTrigger(for: syncEngine),
-        afterSoftDeleteTrigger(for: syncEngine),
+        afterUpdateTrigger(for: context),
+        afterSoftDeleteTrigger(for: context),
       ]
     }
 
-    fileprivate static func afterInsertTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self>
-    {
+    fileprivate static func afterInsertTrigger(
+      for context: FunctionContext
+    ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_insert_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
         after: .insert { new in
           validate(recordName: new.recordName)
           Values(
-            syncEngine.$didUpdate(
+            context.$didUpdate(
               recordName: new.recordName,
               zoneName: new.zoneName,
               ownerName: new.ownerName,
@@ -297,8 +298,9 @@
       )
     }
 
-    fileprivate static func afterUpdateTrigger(for syncEngine: SyncEngine) -> TemporaryTrigger<Self>
-    {
+    fileprivate static func afterUpdateTrigger(
+      for context: FunctionContext
+    ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_update_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
@@ -313,7 +315,7 @@
 
           validate(recordName: new.recordName)
           Values(
-            syncEngine.$didUpdate(
+            context.$didUpdate(
               recordName: new.recordName,
               zoneName: new.zoneName,
               ownerName: new.ownerName,
@@ -329,14 +331,14 @@
     }
 
     fileprivate static func afterSoftDeleteTrigger(
-      for syncEngine: SyncEngine
+      for context: FunctionContext
     ) -> TemporaryTrigger<Self> {
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
         after: .update(of: \._isDeleted) { _, new in
           Values(
-            syncEngine.$didDelete(
+            context.$didDelete(
               recordName: new.recordName,
               record: new.lastKnownServerRecord
                 ?? rootServerRecord(recordName: new.recordName),

@@ -351,15 +351,16 @@
         )
         .execute(db)
       }
+      let context = FunctionContext(self)
       db.add(function: $currentTime)
       db.add(function: SyncEngine.$isSynchronizing)
-      db.add(function: $didUpdate)
-      db.add(function: $didDelete)
+      db.add(function: context.$didUpdate)
+      db.add(function: context.$didDelete)
       db.add(function: $hasPermission)
       db.add(function: $currentZoneName)
       db.add(function: $currentOwnerName)
 
-      for trigger in SyncMetadata.callbackTriggers(for: self) {
+      for trigger in SyncMetadata.callbackTriggers(for: context) {
         try trigger.execute(db)
       }
 
@@ -734,7 +735,7 @@
           try table.base
             .dropTriggers(defaultZone: defaultZone, privateTables: privateTables, db: db)
         }
-        for trigger in SyncMetadata.callbackTriggers(for: self).reversed() {
+        for trigger in SyncMetadata.callbackTriggers(for: FunctionContext(self)).reversed() {
           try trigger.drop().execute(db)
         }
       }
@@ -768,114 +769,6 @@
         }
       }
       try await start()
-    }
-
-    @DatabaseFunction(
-      "sqlitedata_icloud_didUpdate",
-      as: ((
-        String,
-        String,
-        String,
-        String,
-        String,
-        [String]?.JSONRepresentation
-      ) -> Void).self
-    )
-    func didUpdate(
-      recordName: String,
-      zoneName: String,
-      ownerName: String,
-      oldZoneName: String,
-      oldOwnerName: String,
-      descendantRecordNames: [String]?
-    ) {
-      var oldChanges: [CKSyncEngine.PendingRecordZoneChange] = []
-      var newChanges: [CKSyncEngine.PendingRecordZoneChange] = []
-
-      let oldZoneID = CKRecordZone.ID(zoneName: oldZoneName, ownerName: oldOwnerName)
-      let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
-
-      if oldZoneID != zoneID {
-        oldChanges.append(.deleteRecord(CKRecord.ID(recordName: recordName, zoneID: oldZoneID)))
-        for descendantRecordName in descendantRecordNames ?? [] {
-          oldChanges.append(
-            .deleteRecord(CKRecord.ID(recordName: descendantRecordName, zoneID: oldZoneID))
-          )
-        }
-        newChanges.append(.saveRecord(CKRecord.ID(recordName: recordName, zoneID: zoneID)))
-        for descendantRecordName in descendantRecordNames ?? [] {
-          newChanges.append(
-            .saveRecord(CKRecord.ID(recordName: descendantRecordName, zoneID: zoneID))
-          )
-        }
-      } else {
-        newChanges.append(
-          .saveRecord(CKRecord.ID(recordName: recordName, zoneID: zoneID))
-        )
-      }
-
-      guard isRunning else {
-        // TODO: Perform this work in a trigger instead of a task.
-        Task { [changes = oldChanges + newChanges] in
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await userDatabase.write { db in
-              try PendingRecordZoneChange
-                .insert {
-                  for change in changes {
-                    PendingRecordZoneChange(change)
-                  }
-                }
-                .execute(db)
-            }
-          }
-        }
-        return
-      }
-      let oldSyncEngine = self.syncEngines.withValue {
-        oldZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-      }
-      let syncEngine = self.syncEngines.withValue {
-        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-      }
-      oldSyncEngine?.state.add(pendingRecordZoneChanges: oldChanges)
-      syncEngine?.state.add(pendingRecordZoneChanges: newChanges)
-    }
-
-    @DatabaseFunction(
-      "sqlitedata_icloud_didDelete",
-      as: ((String, CKRecord?.SystemFieldsRepresentation, CKShare?.SystemFieldsRepresentation)
-        -> Void).self
-    )
-    func didDelete(recordName: String, record: CKRecord?, share: CKShare?) {
-      let zoneID = record?.recordID.zoneID ?? defaultZone.zoneID
-      var changes: [CKSyncEngine.PendingRecordZoneChange] = [
-        .deleteRecord(
-          CKRecord.ID(
-            recordName: recordName,
-            zoneID: zoneID
-          )
-        )
-      ]
-      if let share {
-        changes.append(.deleteRecord(share.recordID))
-      }
-      guard isRunning else {
-        Task { [changes] in
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await userDatabase.write { db in
-              try PendingRecordZoneChange
-                .insert { changes.map { PendingRecordZoneChange($0) } }
-                .execute(db)
-            }
-          }
-        }
-        return
-      }
-
-      let syncEngine = self.syncEngines.withValue {
-        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-      }
-      syncEngine?.state.add(pendingRecordZoneChanges: changes)
     }
 
     package func acceptShare(metadata: ShareMetadata) async throws {
@@ -2508,17 +2401,6 @@
   @TaskLocal package var _isSynchronizingChanges = false
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @TaskLocal package var _currentZoneID: CKRecordZone.ID?
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @DatabaseFunction("sqlitedata_icloud_currentZoneName")
-  func currentZoneName() -> String? {
-    _currentZoneID?.zoneName
-  }
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @DatabaseFunction("sqlitedata_icloud_currentOwnerName")
-  func currentOwnerName() -> String? {
-    _currentZoneID?.ownerName
-  }
-
   private struct ActivityCounts {
     var sendingChangesCount = 0
     var fetchingChangesCount = 0
@@ -2558,4 +2440,135 @@
       }
     }
   #endif
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @DatabaseFunction("sqlitedata_icloud_currentZoneName")
+  func currentZoneName() -> String? {
+    _currentZoneID?.zoneName
+  }
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  @DatabaseFunction("sqlitedata_icloud_currentOwnerName")
+  func currentOwnerName() -> String? {
+    _currentZoneID?.ownerName
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  final class FunctionContext: @unchecked Sendable {
+    private let _syncEngine = IsolatedWeakVar<SyncEngine>()
+    var syncEngine: SyncEngine? { _syncEngine.value }
+    init(_ syncEngine: SyncEngine) {
+      _syncEngine.set(syncEngine)
+    }
+
+    @DatabaseFunction(
+      "sqlitedata_icloud_didUpdate",
+      as: ((
+        String,
+        String,
+        String,
+        String,
+        String,
+        [String]?.JSONRepresentation
+      ) -> Void).self
+    )
+    func didUpdate(
+      recordName: String,
+      zoneName: String,
+      ownerName: String,
+      oldZoneName: String,
+      oldOwnerName: String,
+      descendantRecordNames: [String]?
+    ) {
+      guard let syncEngine else { return }
+      var oldChanges: [CKSyncEngine.PendingRecordZoneChange] = []
+      var newChanges: [CKSyncEngine.PendingRecordZoneChange] = []
+
+      let oldZoneID = CKRecordZone.ID(zoneName: oldZoneName, ownerName: oldOwnerName)
+      let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
+
+      if oldZoneID != zoneID {
+        oldChanges.append(.deleteRecord(CKRecord.ID(recordName: recordName, zoneID: oldZoneID)))
+        for descendantRecordName in descendantRecordNames ?? [] {
+          oldChanges.append(
+            .deleteRecord(CKRecord.ID(recordName: descendantRecordName, zoneID: oldZoneID))
+          )
+        }
+        newChanges.append(.saveRecord(CKRecord.ID(recordName: recordName, zoneID: zoneID)))
+        for descendantRecordName in descendantRecordNames ?? [] {
+          newChanges.append(
+            .saveRecord(CKRecord.ID(recordName: descendantRecordName, zoneID: zoneID))
+          )
+        }
+      } else {
+        newChanges.append(
+          .saveRecord(CKRecord.ID(recordName: recordName, zoneID: zoneID))
+        )
+      }
+
+      guard syncEngine.isRunning else {
+        // TODO: Perform this work in a trigger instead of a task.
+        Task { [changes = oldChanges + newChanges, userDatabase = syncEngine.userDatabase] in
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await userDatabase.write { db in
+              try PendingRecordZoneChange
+                .insert {
+                  for change in changes {
+                    PendingRecordZoneChange(change)
+                  }
+                }
+                .execute(db)
+            }
+          }
+        }
+        return
+      }
+      let oldSyncEngine = syncEngine.syncEngines.withValue {
+        oldZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+      }
+      let newSyncEngine = syncEngine.syncEngines.withValue {
+        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+      }
+      oldSyncEngine?.state.add(pendingRecordZoneChanges: oldChanges)
+      newSyncEngine?.state.add(pendingRecordZoneChanges: newChanges)
+    }
+
+    @DatabaseFunction(
+      "sqlitedata_icloud_didDelete",
+      as: ((String, CKRecord?.SystemFieldsRepresentation, CKShare?.SystemFieldsRepresentation)
+        -> Void).self
+    )
+    func didDelete(recordName: String, record: CKRecord?, share: CKShare?) {
+      guard let syncEngine else { return }
+      let zoneID = record?.recordID.zoneID ?? syncEngine.defaultZone.zoneID
+      var changes: [CKSyncEngine.PendingRecordZoneChange] = [
+        .deleteRecord(
+          CKRecord.ID(
+            recordName: recordName,
+            zoneID: zoneID
+          )
+        )
+      ]
+      if let share {
+        changes.append(.deleteRecord(share.recordID))
+      }
+      guard syncEngine.isRunning else {
+        Task { [changes, userDatabase = syncEngine.userDatabase] in
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await userDatabase.write { db in
+              try PendingRecordZoneChange
+                .insert { changes.map { PendingRecordZoneChange($0) } }
+                .execute(db)
+            }
+          }
+        }
+        return
+      }
+
+      let ckSyncEngine = syncEngine.syncEngines.withValue {
+        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
+      }
+      ckSyncEngine?.state.add(pendingRecordZoneChanges: changes)
+    }
+
+  }
 #endif
