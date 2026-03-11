@@ -763,6 +763,70 @@
           }
         }
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func syncEngineIsReleasedWhenReferencesAreDropped() async throws {
+        weak var weakSyncEngine: SyncEngine?
+        do {
+          let containerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
+          let userDatabase = UserDatabase(
+            database: try database(
+              containerIdentifier: containerIdentifier,
+              attachMetadatabase: false
+            )
+          )
+          let privateDatabase = MockCloudDatabase(databaseScope: .private)
+          let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+          let container = MockCloudContainer(
+            containerIdentifier: containerIdentifier,
+            privateCloudDatabase: privateDatabase,
+            sharedCloudDatabase: sharedDatabase
+          )
+          privateDatabase.set(container: container)
+          sharedDatabase.set(container: container)
+          let syncEngine = try await SyncEngine(
+            container: container,
+            userDatabase: userDatabase,
+            tables: Reminder.self, RemindersList.self,
+            startImmediately: false
+          )
+          weakSyncEngine = syncEngine
+        }
+        #expect(weakSyncEngine == nil)
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func manySyncEnginesDoNotExhaustFileDescriptors() async throws {
+        for i in 0..<100 {
+          do {
+            let containerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
+            let userDatabase = UserDatabase(
+              database: try database(
+                containerIdentifier: containerIdentifier,
+                attachMetadatabase: false
+              )
+            )
+            let privateDatabase = MockCloudDatabase(databaseScope: .private)
+            let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+            let container = MockCloudContainer(
+              containerIdentifier: containerIdentifier,
+              privateCloudDatabase: privateDatabase,
+              sharedCloudDatabase: sharedDatabase
+            )
+            privateDatabase.set(container: container)
+            sharedDatabase.set(container: container)
+            _ = try await SyncEngine(
+              container: container,
+              userDatabase: userDatabase,
+              tables: Reminder.self, RemindersList.self,
+              startImmediately: false
+            )
+          } catch {
+            Issue.record("Failed at iteration \(i): \(error)")
+            return
+          }
+        }
+      }
     }
   }
 #endif
