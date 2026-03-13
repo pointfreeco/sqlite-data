@@ -173,8 +173,15 @@
     }
 
     package func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
-      self._pendingRecordZoneChanges.withValue {
-        $0.append(contentsOf: pendingRecordZoneChanges)
+      self._pendingRecordZoneChanges.withValue { set in
+        for change in pendingRecordZoneChanges {
+          if let id = change.id,
+             let supersededIndex = set.firstIndex(where: { $0.id == id && $0 != change })
+          {
+            set.remove(at: supersededIndex)
+          }
+          set.append(change)
+        }
       }
     }
 
@@ -185,8 +192,15 @@
     }
 
     package func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
-      self._pendingDatabaseChanges.withValue {
-        $0.append(contentsOf: pendingDatabaseChanges)
+      self._pendingDatabaseChanges.withValue { set in
+        for change in pendingDatabaseChanges {
+          if let zoneID = change.zoneID,
+            let supersededIndex = set.firstIndex(where: { $0.zoneID == zoneID && $0 != change })
+          {
+            set.remove(at: supersededIndex)
+          }
+          set.append(change)
+        }
       }
     }
 

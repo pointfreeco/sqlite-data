@@ -82,6 +82,16 @@
             defaultZone: defaultZone,
             privateTables: privateTables
           )
+          SyncMetadata
+            .where {
+              $0.recordPrimaryKey.eq(#sql("\(new.primaryKey)"))
+                && $0.recordType.eq(tableName)
+                && $0._isDeleted
+            }
+            .update {
+              $0._isDeleted = false
+              $0.userModificationTime = $currentTime()
+            }
         }
       )
     }
@@ -242,6 +252,7 @@
         afterZoneUpdateTrigger(),
         afterUpdateTrigger(for: syncEngine),
         afterSoftDeleteTrigger(for: syncEngine),
+        afterUndeleteTrigger(for: syncEngine),
       ]
     }
 
@@ -345,6 +356,29 @@
           )
         } when: { old, new in
           !old._isDeleted && new._isDeleted && !SyncEngine.$isSynchronizing
+        }
+      )
+    }
+
+    fileprivate static func afterUndeleteTrigger(
+      for syncEngine: SyncEngine
+    ) -> TemporaryTrigger<Self> {
+      createTemporaryTrigger(
+        "\(String.sqliteDataCloudKitSchemaName)_after_undelete_on_sqlitedata_icloud_metadata",
+        ifNotExists: true,
+        after: .update(of: \._isDeleted) { _, new in
+          Values(
+            syncEngine.$didUpdate(
+              recordName: new.recordName,
+              zoneName: new.zoneName,
+              ownerName: new.ownerName,
+              oldZoneName: new.zoneName,
+              oldOwnerName: new.ownerName,
+              descendantRecordNames: #bind(nil)
+            )
+          )
+        } when: { old, new in
+          old._isDeleted && !new._isDeleted && !SyncEngine.$isSynchronizing
         }
       )
     }
