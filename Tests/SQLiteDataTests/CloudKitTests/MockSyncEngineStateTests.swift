@@ -47,7 +47,7 @@
       @Test func crossTypeSupersession_doesNotAffectOtherRecords() {
         state.add(pendingRecordZoneChanges: [.saveRecord(idA), .saveRecord(idB)])
         state.add(pendingRecordZoneChanges: [.deleteRecord(idA)])
-        #expect(state.pendingRecordZoneChanges == [.saveRecord(idB), .deleteRecord(idA)])
+        #expect(state.pendingRecordZoneChanges == [.deleteRecord(idA), .saveRecord(idB)])
       }
     }
 
@@ -91,7 +91,7 @@
       @Test func crossTypeSupersession_doesNotAffectOtherZones() {
         state.add(pendingDatabaseChanges: [.saveZone(zoneA), .saveZone(zoneB)])
         state.add(pendingDatabaseChanges: [.deleteZone(zoneAID)])
-        #expect(state.pendingDatabaseChanges == [.saveZone(zoneB), .deleteZone(zoneAID)])
+        #expect(state.pendingDatabaseChanges == [.deleteZone(zoneAID), .saveZone(zoneB)])
       }
     }
   }

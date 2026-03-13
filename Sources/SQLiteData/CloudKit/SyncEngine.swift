@@ -2092,20 +2092,6 @@
     }
   }
 
-  @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
-  extension CKSyncEngine.PendingDatabaseChange {
-    var zoneID: CKRecordZone.ID? {
-      switch self {
-      case .saveZone(let zone):
-        return zone.zoneID
-      case .deleteZone(let zoneID):
-        return zoneID
-      @unknown default:
-        return nil
-      }
-    }
-  }
-
   extension CKRecord.ID {
     var tableName: String? {
       guard
