@@ -314,6 +314,44 @@ struct UndoManagerDelegateAndIntegrationTests {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func syncWriteDoesNotClearRedoStack() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(for: db, tables: Item.self)
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      // 1. Make a local change
+      try await undoManager.withGroup("Add item") { db in
+        _ = try Item.insert { Item.Draft(title: "Local") }.execute(db)
+      }
+      #expect(undoManager.undoStack.count == 1)
+
+      // 2. Undo the local change — it moves to redo stack
+      try await undoManager.undo()
+      #expect(undoManager.undoStack.isEmpty)
+      #expect(undoManager.redoStack.count == 1)
+      #expect(undoManager.redoStack.first?.description == "Add item")
+
+      // 3. A sync write arrives — should NOT clear the redo stack
+      try await $_currentZoneID.withValue(zoneID) {
+        try await userDatabase.write { db in
+          _ = try Item.insert { Item.Draft(title: "Synced") }.execute(db)
+        }
+      }
+      #expect(undoManager.undoStack.count == 1)
+      #expect(undoManager.undoStack.first?.origin == .sync)
+      #expect(undoManager.redoStack.count == 1, "Sync write should not clear redo stack")
+      #expect(undoManager.redoStack.first?.description == "Add item")
+
+      // 4. Redo the local change — it should still work
+      try await undoManager.redo()
+      let titles = try await db.read { db in
+        try String.fetchAll(db, sql: "SELECT title FROM items ORDER BY id")
+      }
+      #expect(titles.contains("Local"))
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test func syncUndoPolicyDisabledAllowCrossing() async throws {
       let db = try DatabaseQueue.undoDatabase()
       let undoManager = try UndoManager(
@@ -382,6 +420,232 @@ struct UndoManagerDelegateAndIntegrationTests {
       }
       #expect(titles == ["A", "Sync"])
       #expect(undoManager.undoStack.isEmpty)
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func sentSyncWriteDoesNotCreateUndoGroup() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(for: db, tables: Item.self)
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      try await $_syncChangeKind.withValue(.sent) {
+        try await $_currentZoneID.withValue(zoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Echo") }.execute(db)
+          }
+        }
+      }
+
+      #expect(undoManager.undoStack.isEmpty)
+      let items = try await db.read { try Item.fetchAll($0) }
+      #expect(items.count == 1)
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func fetchedSyncWriteCreatesUndoGroup() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(for: db, tables: Item.self)
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      try await $_syncChangeKind.withValue(.fetched) {
+        try await $_currentZoneID.withValue(zoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+          }
+        }
+      }
+
+      #expect(undoManager.undoStack.count == 1)
+      #expect(undoManager.undoStack.first?.origin == .sync)
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func sentSyncWritePreservesRedoStack() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(for: db, tables: Item.self)
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      try await undoManager.withGroup("Add item") { db in
+        _ = try Item.insert { Item.Draft(title: "Local") }.execute(db)
+      }
+      try await undoManager.undo()
+      #expect(undoManager.redoStack.count == 1)
+
+      try await $_syncChangeKind.withValue(.sent) {
+        try await $_currentZoneID.withValue(zoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Echo") }.execute(db)
+          }
+        }
+      }
+
+      #expect(undoManager.redoStack.count == 1, "Sent sync write should not clear redo stack")
+      #expect(undoManager.undoStack.isEmpty, "Sent sync write should not create undo group")
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func syncRedoPolicyClearClearsRedoOnFetchedSync() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(
+        for: db,
+        tables: Item.self,
+        syncRedoPolicy: .clear
+      )
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      try await undoManager.withGroup("Add item") { db in
+        _ = try Item.insert { Item.Draft(title: "Local") }.execute(db)
+      }
+      try await undoManager.undo()
+      #expect(undoManager.redoStack.count == 1)
+
+      try await $_currentZoneID.withValue(zoneID) {
+        try await userDatabase.write { db in
+          _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+        }
+      }
+
+      #expect(undoManager.redoStack.isEmpty, "syncRedoPolicy .clear should clear redo stack")
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func syncRedoPolicyPreserveKeepsRedoOnFetchedSync() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(
+        for: db,
+        tables: Item.self,
+        syncRedoPolicy: .preserve
+      )
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      try await undoManager.withGroup("Add item") { db in
+        _ = try Item.insert { Item.Draft(title: "Local") }.execute(db)
+      }
+      try await undoManager.undo()
+      #expect(undoManager.redoStack.count == 1)
+
+      try await $_currentZoneID.withValue(zoneID) {
+        try await userDatabase.write { db in
+          _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+        }
+      }
+
+      #expect(undoManager.undoStack.count == 1)
+      #expect(undoManager.redoStack.count == 1, "syncRedoPolicy .preserve should keep redo stack")
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func hasSyncChangesSinceReturnsTrueAfterFetchedSync() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(
+        for: db,
+        tables: Item.self,
+        syncRedoPolicy: .preserve
+      )
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      try await withDependencies {
+        $0.date.now = Date(timeIntervalSince1970: 100)
+      } operation: {
+        try await undoManager.withGroup("Add item") { db in
+          _ = try Item.insert { Item.Draft(title: "Local") }.execute(db)
+        }
+      }
+      try await undoManager.undo()
+      let redoGroup = try #require(undoManager.redoStack.first)
+
+      try await withDependencies {
+        $0.date.now = Date(timeIntervalSince1970: 200)
+      } operation: {
+        try await $_currentZoneID.withValue(zoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+          }
+        }
+      }
+
+      #expect(undoManager.hasSyncChangesSince(redoGroup))
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func hasSyncChangesSinceReturnsFalseWhenNoSync() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(for: db, tables: Item.self)
+
+      try await undoManager.withGroup("Add item") { db in
+        _ = try Item.insert { Item.Draft(title: "Local") }.execute(db)
+      }
+      try await undoManager.undo()
+      let redoGroup = try #require(undoManager.redoStack.first)
+
+      #expect(!undoManager.hasSyncChangesSince(redoGroup))
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func delegateCanConfirmRedoAfterSyncChanges() async throws {
+      actor RedoCapture {
+        var confirmedRedo = false
+        func confirm() { confirmedRedo = true }
+        func value() -> Bool { confirmedRedo }
+      }
+      let capture = RedoCapture()
+
+      final class ConfirmRedoDelegate: UndoManagerDelegate, @unchecked Sendable {
+        let capture: RedoCapture
+        init(capture: RedoCapture) {
+          self.capture = capture
+        }
+        func undoManager(
+          _ undoManager: SQLiteData.UndoManager,
+          willPerform action: UndoAction,
+          for group: UndoGroup,
+          performAction: @Sendable () async throws -> Void
+        ) async throws {
+          if action == .redo, undoManager.hasSyncChangesSince(group) {
+            await capture.confirm()
+          }
+          try await performAction()
+        }
+      }
+
+      let db = try DatabaseQueue.undoDatabase()
+      let delegate = ConfirmRedoDelegate(capture: capture)
+      let undoManager = try UndoManager(
+        for: db,
+        tables: Item.self,
+        syncRedoPolicy: .preserve,
+        delegate: delegate
+      )
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      try await withDependencies {
+        $0.date.now = Date(timeIntervalSince1970: 100)
+      } operation: {
+        try await undoManager.withGroup("Add item") { db in
+          _ = try Item.insert { Item.Draft(title: "Local") }.execute(db)
+        }
+      }
+      try await undoManager.undo()
+
+      try await withDependencies {
+        $0.date.now = Date(timeIntervalSince1970: 200)
+      } operation: {
+        try await $_currentZoneID.withValue(zoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+          }
+        }
+      }
+
+      try await undoManager.redo()
+      #expect(await capture.value(), "Delegate should detect sync changes since redo group")
     }
   #endif
 }

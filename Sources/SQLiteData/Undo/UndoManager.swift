@@ -93,6 +93,22 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     case stopAtBoundary
   }
 
+  /// How a sync write entered the system.
+  package enum SyncChangeKind: Sendable {
+    /// Echo-back from successfully sending local changes to CloudKit.
+    case sent
+    /// Remote changes fetched from CloudKit.
+    case fetched
+  }
+
+  /// Controls redo stack behavior when remote sync changes arrive.
+  public enum SyncRedoPolicy: Sendable {
+    /// Clear the redo stack when remote sync changes are recorded.
+    case clear
+    /// Preserve the redo stack. Use the delegate to confirm redo after sync changes.
+    case preserve
+  }
+
   /// Policy controlling how sync-applied writes interact with undo history.
   public enum SyncUndoPolicy: Sendable {
     /// Record sync changes as undo groups.
@@ -112,6 +128,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   private let databaseID: ObjectIdentifier
   private let trackedTableNames: Set<String>
   private let syncUndoPolicy: SyncUndoPolicy
+  private let syncRedoPolicy: SyncRedoPolicy
   private let delegate: (any UndoManagerDelegate)?
   private let eventsContinuation: AsyncStream<UndoEvent>.Continuation
   public let events: AsyncStream<UndoEvent>
@@ -156,6 +173,12 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   /// Whether there is at least one group that can be redone.
   public var canRedo: Bool { !redoStack.isEmpty }
 
+  /// Returns `true` if any sync-origin groups exist on the undo stack with a date after the
+  /// given group's date.
+  public func hasSyncChangesSince(_ group: UndoGroup) -> Bool {
+    undoStack.contains { $0.origin == .sync && $0.date > group.date }
+  }
+
   // MARK: - Init
 
   /// Creates an undo manager and installs undo triggers on the database.
@@ -167,6 +190,8 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   ///   - tables: The names of the tables whose changes should be undoable.
   ///   - syncUndoPolicy: Controls whether sync changes are recorded as undo groups and whether
   ///     undo history can cross sync boundaries when not recorded.
+  ///   - syncRedoPolicy: Controls whether the redo stack is cleared when remote sync changes
+  ///     arrive. Defaults to `.clear` to match existing behavior.
   ///   - delegate: An optional delegate that can intercept and confirm undo/redo operations.
   public init<
     each T: PrimaryKeyedTable & _SendableMetatype
@@ -174,6 +199,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     for database: any DatabaseWriter,
     tables: repeat (each T).Type,
     syncUndoPolicy: SyncUndoPolicy = .enabled(),
+    syncRedoPolicy: SyncRedoPolicy = .preserve,
     delegate: (any UndoManagerDelegate)? = nil
   ) throws {
     var trackedTableNames = Set<String>()
@@ -184,6 +210,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     self.database = database
     self.databaseID = ObjectIdentifier(database as AnyObject)
     self.syncUndoPolicy = syncUndoPolicy
+    self.syncRedoPolicy = syncRedoPolicy
     self.delegate = delegate
     self.trackedTableNames = trackedTableNames
 
@@ -590,8 +617,16 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   }
 
   package func writeSyncChanges<T: Sendable>(
+    kind: SyncChangeKind = .fetched,
     _ updates: @Sendable (Database) throws -> T
   ) async throws -> T {
+    if kind == .sent {
+      return try await $_isUndoRecordingDisabled.withValue(true) {
+        try await database.write { db in
+          try updates(db)
+        }
+      }
+    }
     switch syncUndoPolicy {
     case .enabled(let actionName):
       return try await recordSyncChanges(actionName: actionName, updates)
@@ -610,8 +645,16 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
 
   @_disfavoredOverload
   package func writeSyncChanges<T>(
+    kind: SyncChangeKind = .fetched,
     _ updates: (Database) throws -> T
   ) throws -> T {
+    if kind == .sent {
+      return try $_isUndoRecordingDisabled.withValue(true) {
+        try database.write { db in
+          try updates(db)
+        }
+      }
+    }
     switch syncUndoPolicy {
     case .enabled(let actionName):
       return try recordSyncChanges(actionName: actionName, updates)
@@ -795,7 +838,11 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
         _state.withValue { state in
           if shouldRecord {
             state.undoEntries.append(entry)
-            state.redoEntries = []
+            if barrier.group.origin == .local {
+              state.redoEntries = []
+            } else if barrier.group.origin == .sync && syncRedoPolicy == .clear {
+              state.redoEntries = []
+            }
             state.firstLog = maxSeq + 1
           }
         }

@@ -21,7 +21,7 @@
       @Dependency(\.defaultUndoManager) var defaultUndoManager
       let undoManager = UndoManager.manager(for: database, defaultUndoManager: defaultUndoManager)
       if let undoManager {
-        return try await undoManager.writeSyncChanges { db in
+        return try await undoManager.writeSyncChanges(kind: _syncChangeKind) { db in
           try $_isSynchronizingChanges.withValue(true) {
             try updates(db)
           }
@@ -49,7 +49,7 @@
       @Dependency(\.defaultUndoManager) var defaultUndoManager
       let undoManager = UndoManager.manager(for: database, defaultUndoManager: defaultUndoManager)
       if let undoManager {
-        return try undoManager.writeSyncChanges { db in
+        return try undoManager.writeSyncChanges(kind: _syncChangeKind) { db in
           try $_isSynchronizingChanges.withValue(true) {
             try updates(db)
           }
