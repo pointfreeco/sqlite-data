@@ -1198,6 +1198,7 @@
 
           let record =
             allFields
+            ?? metadata.lastKnownServerRecord
             ?? CKRecord(
               recordType: metadata.recordType,
               recordID: recordID

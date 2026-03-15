@@ -91,6 +91,7 @@
             .update {
               $0._isDeleted = false
               $0.userModificationTime = $currentTime()
+              $0._lastKnownServerRecordAllFields = #bind(nil)
             }
         }
       )

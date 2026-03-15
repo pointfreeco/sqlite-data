@@ -70,142 +70,9 @@
           """
         }
       }
-
+      
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func deleteAndReinsertInSingleWrite_saves() async throws {
-        try await userDatabase.userWrite { db in
-          try db.seed {
-            RemindersList(id: 1, title: "Original")
-          }
-        }
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-
-        try await userDatabase.userWrite { db in
-          try RemindersList.find(1).delete().execute(db)
-          try RemindersList.insert { RemindersList(id: 1, title: "Reinserted") }.execute(db)
-        }
-
-        let pending = syncEngine.private.state.pendingRecordZoneChanges
-        #expect(pending == [.saveRecord(RemindersList.recordID(for: 1))])
-
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: nil,
-                  id: 1,
-                  title: "Reinserted"
-                )
-              ]
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
-          )
-          """
-        }
-      }
-
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func deleteAndReinsertInSeparateWrites_saves() async throws {
-        try await userDatabase.userWrite { db in
-          try db.seed {
-            RemindersList(id: 1, title: "Original")
-          }
-        }
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-
-        try await userDatabase.userWrite { db in
-          try RemindersList.find(1).delete().execute(db)
-        }
-        try await userDatabase.userWrite { db in
-          try RemindersList.insert { RemindersList(id: 1, title: "Reinserted") }.execute(db)
-        }
-
-        let pending = syncEngine.private.state.pendingRecordZoneChanges
-        #expect(pending == [.saveRecord(RemindersList.recordID(for: 1))])
-
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: nil,
-                  id: 1,
-                  title: "Reinserted"
-                )
-              ]
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
-          )
-          """
-        }
-      }
-
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func updateThenDeleteThenReinsert_saves() async throws {
-        try await userDatabase.userWrite { db in
-          try db.seed { RemindersList(id: 1, title: "Original") }
-        }
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-
-        try await userDatabase.userWrite { db in
-          try RemindersList.find(1).update { $0.title = "Updated" }.execute(db)
-          try RemindersList.find(1).delete().execute(db)
-          try RemindersList.insert { RemindersList(id: 1, title: "Reinserted") }.execute(db)
-        }
-
-        let pending = syncEngine.private.state.pendingRecordZoneChanges
-        #expect(pending == [.saveRecord(RemindersList.recordID(for: 1))])
-
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-
-        assertInlineSnapshot(of: container, as: .customDump) {
-          """
-          MockCloudContainer(
-            privateCloudDatabase: MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
-                  recordType: "remindersLists",
-                  parent: nil,
-                  share: nil,
-                  id: 1,
-                  title: "Reinserted"
-                )
-              ]
-            ),
-            sharedCloudDatabase: MockCloudDatabase(
-              databaseScope: .shared,
-              storage: []
-            )
-          )
-          """
-        }
-      }
-
-      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func deleteReinsertThenDeleteAgain_deletes() async throws {
+      @Test func deleteThenReinsertThenDelete_deletes() async throws {
         try await userDatabase.userWrite { db in
           try db.seed { RemindersList(id: 1, title: "Original") }
         }
@@ -239,7 +106,119 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.printTimestamps) func twoDeleteReinsertCyclesInSameWrite_propagatesLatestValueAndTimestamp()
+      @Test(.printTimestamps) func deleteThenReinsertInSingleWrite_savesWithUpdatedTimestamps()
+        async throws
+      {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Original")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try RemindersList.find(1).delete().execute(db)
+            try RemindersList.insert { RemindersList(id: 1, title: "Reinserted") }.execute(db)
+          }
+
+          let pending = syncEngine.private.state.pendingRecordZoneChanges
+          #expect(pending == [.saveRecord(RemindersList.recordID(for: 1))])
+
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        }
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  id🗓️: 1,
+                  title: "Reinserted",
+                  title🗓️: 1,
+                  🗓️: 1
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.printTimestamps) func deleteThenReinsertInSeparateWrites_savesWithUpdatedTimestamps()
+        async throws
+      {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Original")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try RemindersList.find(1).delete().execute(db)
+          }
+          try await withDependencies {
+            $0.currentTime.now += 1
+          } operation: {
+            try await userDatabase.userWrite { db in
+              try RemindersList.insert { RemindersList(id: 1, title: "Reinserted") }.execute(db)
+            }
+
+            let pending = syncEngine.private.state.pendingRecordZoneChanges
+            #expect(pending == [.saveRecord(RemindersList.recordID(for: 1))])
+
+            try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+          }
+        }
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  id🗓️: 2,
+                  title: "Reinserted",
+                  title🗓️: 2,
+                  🗓️: 2
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.printTimestamps) func updateThenDeleteThenReinsert_savesWithUpdatedTimestamps()
         async throws
       {
         try await userDatabase.userWrite { db in
@@ -248,7 +227,108 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.currentTime.now = 1
+          $0.currentTime.now += 1
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try RemindersList.find(1).update { $0.title = "Updated" }.execute(db)
+            try RemindersList.find(1).delete().execute(db)
+            try RemindersList.insert { RemindersList(id: 1, title: "Reinserted") }.execute(db)
+          }
+
+          let pending = syncEngine.private.state.pendingRecordZoneChanges
+          #expect(pending == [.saveRecord(RemindersList.recordID(for: 1))])
+
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        }
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  id🗓️: 1,
+                  title: "Reinserted",
+                  title🗓️: 1,
+                  🗓️: 1
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+      
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.printTimestamps) func deleteThenReinsertWithSameValue_savesWithUpdatedTimestamps()
+        async throws
+      {
+        try await userDatabase.userWrite { db in
+          try db.seed { RemindersList(id: 1, title: "Original") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try RemindersList.find(1).delete().execute(db)
+            try RemindersList.insert { RemindersList(id: 1, title: "Original") }.execute(db)
+          }
+          let pending = syncEngine.private.state.pendingRecordZoneChanges
+          #expect(pending == [.saveRecord(RemindersList.recordID(for: 1))])
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        }
+
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  id🗓️: 1,
+                  title: "Original",
+                  title🗓️: 1,
+                  🗓️: 1
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.printTimestamps) func twoDeleteReinsertCyclesInSameWrite_savesLatestWithUpdatedTimestamps()
+        async throws
+      {
+        try await userDatabase.userWrite { db in
+          try db.seed { RemindersList(id: 1, title: "Original") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await withDependencies {
+          $0.currentTime.now += 1
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).delete().execute(db)
@@ -273,7 +353,7 @@
                   parent: nil,
                   share: nil,
                   id: 1,
-                  id🗓️: 0,
+                  id🗓️: 1,
                   title: "Final",
                   title🗓️: 1,
                   🗓️: 1
@@ -290,7 +370,7 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.printTimestamps) func twoDeleteReinsertCyclesInSeparateBatches_propagatesLatestValueAndTimestamp()
+      @Test(.printTimestamps) func twoDeleteReinsertCyclesInSeparateBatches_savesLatestWithUpdatedTimestamps()
         async throws
       {
         try await userDatabase.userWrite { db in
@@ -299,7 +379,7 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         try await withDependencies {
-          $0.currentTime.now = 1
+          $0.currentTime.now += 1
         } operation: {
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).delete().execute(db)
@@ -308,18 +388,18 @@
           let pending = syncEngine.private.state.pendingRecordZoneChanges
           #expect(pending == [.saveRecord(RemindersList.recordID(for: 1))])
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        }
-
-        try await withDependencies {
-          $0.currentTime.now = 2
-        } operation: {
-          try await userDatabase.userWrite { db in
-            try RemindersList.find(1).delete().execute(db)
-            try RemindersList.insert { RemindersList(id: 1, title: "Cycle2") }.execute(db)
+          
+          try await withDependencies {
+            $0.currentTime.now += 1
+          } operation: {
+            try await userDatabase.userWrite { db in
+              try RemindersList.find(1).delete().execute(db)
+              try RemindersList.insert { RemindersList(id: 1, title: "Cycle2") }.execute(db)
+            }
+            let pending = syncEngine.private.state.pendingRecordZoneChanges
+            #expect(pending == [.saveRecord(RemindersList.recordID(for: 1))])
+            try await syncEngine.processPendingRecordZoneChanges(scope: .private)
           }
-          let pending = syncEngine.private.state.pendingRecordZoneChanges
-          #expect(pending == [.saveRecord(RemindersList.recordID(for: 1))])
-          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
         }
 
         assertInlineSnapshot(of: container, as: .customDump) {
@@ -334,7 +414,7 @@
                   parent: nil,
                   share: nil,
                   id: 1,
-                  id🗓️: 0,
+                  id🗓️: 2,
                   title: "Cycle2",
                   title🗓️: 2,
                   🗓️: 2
