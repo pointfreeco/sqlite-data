@@ -128,6 +128,8 @@ extension DependencyValues {
       Reminder.self,
       Tag.self,
       ReminderTag.self,
+      syncUndoPolicy: .enabled(actionName: {  _ in "Sync iCloud Changes" }),
+      syncRedoPolicy: .preserve,
       delegate: undoManagerDelegate
     )
     defaultSyncEngine = try SyncEngine(

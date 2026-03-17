@@ -90,9 +90,17 @@ class RemindersSyncEngineDelegate: SyncEngineDelegate {
 @MainActor
 @Observable
 final class RemindersUndoManagerDelegate: SQLiteData.UndoManagerDelegate {
+  enum ConfirmationReason {
+    /// The group itself came from syncing.
+    case syncOrigin
+    /// The group is local but remote sync changes have arrived since.
+    case syncChangesSinceRedo
+  }
+
   struct ConfirmationRequest: Identifiable {
     let action: UndoAction
     let group: UndoGroup
+    let reason: ConfirmationReason
     var id: UUID { group.id }
     var title: String {
       switch action {
@@ -101,21 +109,20 @@ final class RemindersUndoManagerDelegate: SQLiteData.UndoManagerDelegate {
       }
     }
     var message: String {
-      "This change came from \(originDescription). Are you sure you want to continue?"
+      switch reason {
+      case .syncOrigin:
+        "This change came from syncing. Are you sure you want to continue?"
+      case .syncChangesSinceRedo:
+        """
+        Changes from another device or user have been applied since this action and could \
+        potentially conflict with the changes you are trying to redo.
+        """
+      }
     }
     var confirmButtonTitle: String {
       switch action {
       case .undo: "Undo"
       case .redo: "Redo"
-      }
-    }
-
-    private var originDescription: String {
-      switch group.origin {
-      case .local:
-        return "this device"
-      case .sync:
-        return "syncing"
       }
     }
   }
@@ -129,11 +136,13 @@ final class RemindersUndoManagerDelegate: SQLiteData.UndoManagerDelegate {
     for group: UndoGroup,
     performAction: @isolated(any) @Sendable () async throws -> Void
   ) async throws {
-    guard shouldConfirm(for: group) else {
+    guard let reason = confirmationReason(
+      undoManager: undoManager, action: action, group: group
+    ) else {
       try await performAction()
       return
     }
-    if await requestConfirmation(action: action, group: group) {
+    if await requestConfirmation(action: action, group: group, reason: reason) {
       try await performAction()
     }
   }
@@ -144,17 +153,33 @@ final class RemindersUndoManagerDelegate: SQLiteData.UndoManagerDelegate {
     confirmationRequest = nil
   }
 
-  private func shouldConfirm(for group: UndoGroup) -> Bool {
-    group.origin == .sync
+  private func confirmationReason(
+    undoManager: SQLiteData.UndoManager,
+    action: UndoAction,
+    group: UndoGroup
+  ) -> ConfirmationReason? {
+    if action == .undo && group.isSharedZoneChange {
+      return .syncOrigin
+    }
+    if action == .redo && undoManager.hasSyncChangesSince(group) {
+      return .syncChangesSinceRedo
+    }
+    return nil
   }
 
-  private func requestConfirmation(action: UndoAction, group: UndoGroup) async -> Bool {
+  private func requestConfirmation(
+    action: UndoAction,
+    group: UndoGroup,
+    reason: ConfirmationReason
+  ) async -> Bool {
     if confirmationContinuation != nil {
       respondToConfirmation(confirmed: false)
     }
     return await withCheckedContinuation { continuation in
       confirmationContinuation = continuation
-      confirmationRequest = ConfirmationRequest(action: action, group: group)
+      confirmationRequest = ConfirmationRequest(
+        action: action, group: group, reason: reason
+      )
     }
   }
 }

@@ -232,6 +232,56 @@ struct UndoManagerDelegateAndIntegrationTests {
       #expect(!(await MainActor.run { foundationUndoManager.canUndo }))
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func foundationRedoPreservedWhenSyncArrivesWithPreservePolicy() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let sqliteUndoManager = try SQLiteUndoManager(
+        for: db,
+        tables: Item.self,
+        syncRedoPolicy: .preserve
+      )
+      let foundationUndoManager = await MainActor.run { Foundation.UndoManager() }
+      sqliteUndoManager.bind(to: foundationUndoManager)
+      let userDatabase = UserDatabase(database: db)
+      let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
+
+      // 1. Local change
+      try await sqliteUndoManager.withGroup("Insert") { db in
+        _ = try Item.insert { Item.Draft(title: "Local") }.execute(db)
+      }
+
+      try await waitUntil {
+        await MainActor.run { foundationUndoManager.canUndo }
+      }
+
+      // 2. Undo → redo stack has one entry
+      await MainActor.run { foundationUndoManager.undo() }
+      try await waitUntil {
+        sqliteUndoManager.canRedo
+      }
+      #expect(sqliteUndoManager.canRedo)
+      #expect(await MainActor.run { foundationUndoManager.canRedo })
+
+      // 3. Fetched sync write arrives from shared zone
+      try await $_isSharedZoneChange.withValue(true) {
+        try await $_currentZoneID.withValue(zoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+          }
+        }
+      }
+
+      // Give the Foundation bridge time to process
+      try await Task.sleep(nanoseconds: 50_000_000)
+
+      // 4. Both SQLite and Foundation redo stacks should be preserved
+      #expect(sqliteUndoManager.canRedo, "SQLite redo stack should be preserved after sync")
+      #expect(
+        await MainActor.run { foundationUndoManager.canRedo },
+        "Foundation redo stack should be preserved after sync with .preserve policy"
+      )
+    }
+
     private func waitUntil(
       _ condition: @escaping @Sendable () async throws -> Bool
     ) async throws {
@@ -253,9 +303,11 @@ struct UndoManagerDelegateAndIntegrationTests {
       let userDatabase = UserDatabase(database: db)
       let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
 
-      try await $_currentZoneID.withValue(zoneID) {
-        try await userDatabase.write { db in
-          _ = try Item.insert { Item.Draft(title: "Synced item") }.execute(db)
+      try await $_isSharedZoneChange.withValue(true) {
+        try await $_currentZoneID.withValue(zoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Synced item") }.execute(db)
+          }
         }
       }
 
@@ -302,9 +354,11 @@ struct UndoManagerDelegateAndIntegrationTests {
       let userDatabase = UserDatabase(database: db)
       let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
 
-      try await $_currentZoneID.withValue(zoneID) {
-        try await userDatabase.write { db in
-          _ = try Item.insert { Item.Draft(title: "Synced item") }.execute(db)
+      try await $_isSharedZoneChange.withValue(true) {
+        try await $_currentZoneID.withValue(zoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Synced item") }.execute(db)
+          }
         }
       }
 
@@ -332,10 +386,12 @@ struct UndoManagerDelegateAndIntegrationTests {
       #expect(undoManager.redoStack.count == 1)
       #expect(undoManager.redoStack.first?.description == "Add item")
 
-      // 3. A sync write arrives — should NOT clear the redo stack
-      try await $_currentZoneID.withValue(zoneID) {
-        try await userDatabase.write { db in
-          _ = try Item.insert { Item.Draft(title: "Synced") }.execute(db)
+      // 3. A shared-zone sync write arrives — should NOT clear the redo stack
+      try await $_isSharedZoneChange.withValue(true) {
+        try await $_currentZoneID.withValue(zoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Synced") }.execute(db)
+          }
         }
       }
       #expect(undoManager.undoStack.count == 1)
@@ -449,10 +505,12 @@ struct UndoManagerDelegateAndIntegrationTests {
       let userDatabase = UserDatabase(database: db)
       let zoneID = CKRecordZone.ID(zoneName: "shared-zone", ownerName: "collaborator-user")
 
-      try await $_syncChangeKind.withValue(.fetched) {
-        try await $_currentZoneID.withValue(zoneID) {
-          try await userDatabase.write { db in
-            _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+      try await $_isSharedZoneChange.withValue(true) {
+        try await $_syncChangeKind.withValue(.fetched) {
+          try await $_currentZoneID.withValue(zoneID) {
+            try await userDatabase.write { db in
+              _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+            }
           }
         }
       }
@@ -503,9 +561,11 @@ struct UndoManagerDelegateAndIntegrationTests {
       try await undoManager.undo()
       #expect(undoManager.redoStack.count == 1)
 
-      try await $_currentZoneID.withValue(zoneID) {
-        try await userDatabase.write { db in
-          _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+      try await $_isSharedZoneChange.withValue(true) {
+        try await $_currentZoneID.withValue(zoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+          }
         }
       }
 
@@ -529,9 +589,11 @@ struct UndoManagerDelegateAndIntegrationTests {
       try await undoManager.undo()
       #expect(undoManager.redoStack.count == 1)
 
-      try await $_currentZoneID.withValue(zoneID) {
-        try await userDatabase.write { db in
-          _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+      try await $_isSharedZoneChange.withValue(true) {
+        try await $_currentZoneID.withValue(zoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+          }
         }
       }
 
@@ -563,9 +625,11 @@ struct UndoManagerDelegateAndIntegrationTests {
       try await withDependencies {
         $0.date.now = Date(timeIntervalSince1970: 200)
       } operation: {
-        try await $_currentZoneID.withValue(zoneID) {
-          try await userDatabase.write { db in
-            _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+        try await $_isSharedZoneChange.withValue(true) {
+          try await $_currentZoneID.withValue(zoneID) {
+            try await userDatabase.write { db in
+              _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+            }
           }
         }
       }
@@ -637,15 +701,178 @@ struct UndoManagerDelegateAndIntegrationTests {
       try await withDependencies {
         $0.date.now = Date(timeIntervalSince1970: 200)
       } operation: {
-        try await $_currentZoneID.withValue(zoneID) {
-          try await userDatabase.write { db in
-            _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+        try await $_isSharedZoneChange.withValue(true) {
+          try await $_currentZoneID.withValue(zoneID) {
+            try await userDatabase.write { db in
+              _ = try Item.insert { Item.Draft(title: "Remote") }.execute(db)
+            }
           }
         }
       }
 
       try await undoManager.redo()
       #expect(await capture.value(), "Delegate should detect sync changes since redo group")
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func localDeleteUndoThenFetchedEchoBack() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(
+        for: db,
+        tables: Item.self,
+        syncRedoPolicy: .preserve
+      )
+      let userDatabase = UserDatabase(database: db)
+      let ownZoneID = CKRecordZone.ID(
+        zoneName: CKRecordZone.ID.defaultZoneName,
+        ownerName: CKCurrentUserDefaultName
+      )
+
+      // 1. Insert an item
+      try await undoManager.withGroup("Add item") { db in
+        _ = try Item.insert { Item.Draft(title: "Test") }.execute(db)
+      }
+      let itemID = try await db.read { try Item.fetchOne($0)!.id }
+
+      // 2. Delete the item locally
+      try await undoManager.withGroup("Delete item") { db in
+        try Item.find(itemID).delete().execute(db)
+      }
+      #expect(undoManager.undoStack.map(\.description) == ["Delete item", "Add item"])
+
+      // 3. Undo the delete (item restored)
+      try await undoManager.undo()
+      #expect(undoManager.redoStack.count == 1)
+      #expect(undoManager.redoStack.first?.description == "Delete item")
+      let itemAfterUndo = try await db.read { try Item.fetchOne($0) }
+      #expect(itemAfterUndo != nil)
+
+      // 4. Simulated echo-back: fetch delivers the same delete from own zone.
+      //    Own-zone fetched writes are suppressed — no sync undo group is created.
+      try await $_currentZoneID.withValue(ownZoneID) {
+        try await userDatabase.write { db in
+          try Item.find(itemID).delete().execute(db)
+        }
+      }
+
+      // The echo-back wrote data but did NOT create a sync undo group.
+      #expect(undoManager.redoStack.count == 1, "Redo stack should be preserved")
+      #expect(
+        undoManager.undoStack.filter({ $0.origin == .sync }).isEmpty,
+        "Own-zone echo-back should not create sync undo groups"
+      )
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func fetchedSyncFromSharedZoneSetsIsSharedZoneChange() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(for: db, tables: Item.self)
+      let userDatabase = UserDatabase(database: db)
+      let sharedZoneID = CKRecordZone.ID(
+        zoneName: "shared-zone", ownerName: "collaborator-user"
+      )
+
+      try await $_isSharedZoneChange.withValue(true) {
+        try await $_currentZoneID.withValue(sharedZoneID) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "From collaborator") }.execute(db)
+          }
+        }
+      }
+
+      #expect(undoManager.undoStack.count == 1)
+      let group = try #require(undoManager.undoStack.first)
+      #expect(group.origin == .sync)
+      #expect(group.isSharedZoneChange)
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func fetchedSyncFromOwnZoneDoesNotCreateUndoGroup() async throws {
+      let db = try DatabaseQueue.undoDatabase()
+      let undoManager = try UndoManager(for: db, tables: Item.self)
+      let userDatabase = UserDatabase(database: db)
+      let ownZoneID = CKRecordZone.ID(
+        zoneName: CKRecordZone.ID.defaultZoneName,
+        ownerName: CKCurrentUserDefaultName
+      )
+
+      try await $_currentZoneID.withValue(ownZoneID) {
+        try await userDatabase.write { db in
+          _ = try Item.insert { Item.Draft(title: "Echo-back") }.execute(db)
+        }
+      }
+
+      // Own-zone fetched writes are suppressed — data is written but no undo group.
+      #expect(undoManager.undoStack.isEmpty, "Own-zone fetch should not create undo group")
+      let items = try await db.read { try Item.fetchAll($0) }
+      #expect(items.count == 1, "Data should still be written")
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func delegateOnlyConfirmsUndoForSharedZoneChanges() async throws {
+      actor ConfirmCapture {
+        var confirmedGroups: [UndoGroup] = []
+        func append(_ group: UndoGroup) { confirmedGroups.append(group) }
+      }
+      let capture = ConfirmCapture()
+
+      final class SharedZoneDelegate: UndoManagerDelegate, @unchecked Sendable {
+        let capture: ConfirmCapture
+        init(capture: ConfirmCapture) { self.capture = capture }
+        func undoManager(
+          _ undoManager: SQLiteData.UndoManager,
+          willPerform action: UndoAction,
+          for group: UndoGroup,
+          performAction: @Sendable () async throws -> Void
+        ) async throws {
+          if action == .undo && group.isSharedZoneChange {
+            await capture.append(group)
+          }
+          try await performAction()
+        }
+      }
+
+      let db = try DatabaseQueue.undoDatabase()
+      let delegate = SharedZoneDelegate(capture: capture)
+      let undoManager = try UndoManager(
+        for: db,
+        tables: Item.self,
+        syncRedoPolicy: .preserve,
+        delegate: delegate
+      )
+      let userDatabase = UserDatabase(database: db)
+
+      // 1. Sync write from own zone (echo-back) — no undo group created
+      try await $_currentZoneID.withValue(
+        CKRecordZone.ID(
+          zoneName: CKRecordZone.ID.defaultZoneName,
+          ownerName: CKCurrentUserDefaultName
+        )
+      ) {
+        try await userDatabase.write { db in
+          _ = try Item.insert { Item.Draft(title: "Echo") }.execute(db)
+        }
+      }
+      #expect(undoManager.undoStack.isEmpty, "Own-zone write should not create undo group")
+
+      // 2. Sync write from shared zone — creates undo group with isSharedZoneChange
+      try await $_isSharedZoneChange.withValue(true) {
+        try await $_currentZoneID.withValue(
+          CKRecordZone.ID(zoneName: "shared-zone", ownerName: "other-user")
+        ) {
+          try await userDatabase.write { db in
+            _ = try Item.insert { Item.Draft(title: "Collaborator") }.execute(db)
+          }
+        }
+      }
+      #expect(undoManager.undoStack.count == 1)
+
+      // Undo the shared zone change — delegate should be called with confirmation
+      try await undoManager.undo()
+
+      let confirmed = await capture.confirmedGroups
+      #expect(confirmed.count == 1)
+      #expect(confirmed.first?.isSharedZoneChange == true)
     }
   #endif
 }

@@ -618,6 +618,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
 
   package func writeSyncChanges<T: Sendable>(
     kind: SyncChangeKind = .fetched,
+    isSharedZoneChange: Bool = false,
     _ updates: @Sendable (Database) throws -> T
   ) async throws -> T {
     if kind == .sent {
@@ -629,7 +630,21 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     }
     switch syncUndoPolicy {
     case .enabled(let actionName):
-      return try await recordSyncChanges(actionName: actionName, updates)
+      // Only record undo groups for shared-zone changes (other users).
+      // Own-zone fetched changes are echo-backs or same-user-other-device
+      // writes that should not appear on the undo stack.
+      if !isSharedZoneChange {
+        return try await $_isUndoRecordingDisabled.withValue(true) {
+          try await database.write { db in
+            try updates(db)
+          }
+        }
+      }
+      return try await recordSyncChanges(
+        actionName: actionName,
+        isSharedZoneChange: isSharedZoneChange,
+        updates
+      )
     case .disabled(let boundary):
       let result = try await $_isUndoRecordingDisabled.withValue(true) {
         try await database.write { db in
@@ -646,6 +661,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   @_disfavoredOverload
   package func writeSyncChanges<T>(
     kind: SyncChangeKind = .fetched,
+    isSharedZoneChange: Bool = false,
     _ updates: (Database) throws -> T
   ) throws -> T {
     if kind == .sent {
@@ -657,7 +673,21 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     }
     switch syncUndoPolicy {
     case .enabled(let actionName):
-      return try recordSyncChanges(actionName: actionName, updates)
+      // Only record undo groups for shared-zone changes (other users).
+      // Own-zone fetched changes are echo-backs or same-user-other-device
+      // writes that should not appear on the undo stack.
+      if !isSharedZoneChange {
+        return try $_isUndoRecordingDisabled.withValue(true) {
+          try database.write { db in
+            try updates(db)
+          }
+        }
+      }
+      return try recordSyncChanges(
+        actionName: actionName,
+        isSharedZoneChange: isSharedZoneChange,
+        updates
+      )
     case .disabled(let boundary):
       let result = try $_isUndoRecordingDisabled.withValue(true) {
         try database.write { db in
@@ -713,6 +743,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
 
   private func recordSyncChanges<T: Sendable>(
     actionName: @Sendable (SyncUndoSummary) -> String,
+    isSharedZoneChange: Bool,
     _ updates: @Sendable (Database) throws -> T
   ) async throws -> T {
     @Dependency(\.date.now) var now
@@ -728,7 +759,8 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
         SyncUndoSummary(affectedTables: summary.modifiedTables, changeCount: summary.changeCount)
       ),
       origin: .sync,
-      date: now
+      date: now,
+      isSharedZoneChange: isSharedZoneChange
     )
     _ = finalizeBarrier(
       OpenBarrier(group: group, firstLog: firstLog),
@@ -740,6 +772,7 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
 
   private func recordSyncChanges<T>(
     actionName: @Sendable (SyncUndoSummary) -> String,
+    isSharedZoneChange: Bool,
     _ updates: (Database) throws -> T
   ) throws -> T {
     @Dependency(\.date.now) var now
@@ -755,7 +788,8 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
         SyncUndoSummary(affectedTables: summary.modifiedTables, changeCount: summary.changeCount)
       ),
       origin: .sync,
-      date: now
+      date: now,
+      isSharedZoneChange: isSharedZoneChange
     )
     _ = finalizeBarrier(
       OpenBarrier(group: group, firstLog: firstLog),
@@ -849,7 +883,11 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
       }
     }
     if shouldRecord {
-      registerFoundationAction(.undo, group: barrier.group)
+      let skipFoundationBridge =
+        barrier.group.origin == .sync && syncRedoPolicy == .preserve
+      if !skipFoundationBridge {
+        registerFoundationAction(.undo, group: barrier.group)
+      }
       return barrier.group
     }
     return nil

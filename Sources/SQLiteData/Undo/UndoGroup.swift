@@ -18,16 +18,24 @@ public struct UndoGroup: Sendable, Identifiable, Equatable {
   public let origin: Origin
   /// The date the change was recorded.
   public let date: Date
+  /// Whether this sync change came from a zone owned by another user.
+  ///
+  /// Always `false` for `.local` origin groups. For `.sync` origin groups, `true` indicates the
+  /// change came from a shared zone (another user's data), while `false` indicates it came from
+  /// the current user's private zone (likely an echo-back of the user's own changes).
+  public let isSharedZoneChange: Bool
 
   package init(
     id: UUID = UUID(),
     description: String,
     origin: Origin,
-    date: Date
+    date: Date,
+    isSharedZoneChange: Bool = false
   ) {
     self.id = id
     self.description = description
     self.origin = origin
     self.date = date
+    self.isSharedZoneChange = isSharedZoneChange
   }
 }
