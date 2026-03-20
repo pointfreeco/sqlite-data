@@ -3,6 +3,7 @@
 /// The delegate can present a confirmation prompt, or perform any async work, before calling
 /// `performAction` to commit the operation.  If `performAction` is not called, the operation is
 /// cancelled and the undo/redo stacks remain unchanged.
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 public protocol UndoManagerDelegate: AnyObject, Sendable {
   /// Called before the undo manager performs an undo or redo operation.
   ///

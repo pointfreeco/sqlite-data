@@ -3,10 +3,7 @@ import Dependencies
 import Foundation
 import GRDB
 import IssueReporting
-import Perception
-#if canImport(Observation)
-  import Observation
-#endif
+import Observation
 #if canImport(SwiftUI)
   import SwiftUI
 #endif
@@ -39,7 +36,8 @@ import StructuredQueriesCore
 ///
 /// Changes written by a `SyncEngine` can be recorded as undo groups, including synced-origin
 /// metadata.
-public final class UndoManager: Perceptible, @unchecked Sendable {
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+public final class UndoManager: Observable, @unchecked Sendable {
   private final class WeakUndoManager: @unchecked Sendable {
     weak var value: UndoManager?
     init(_ value: UndoManager) {
@@ -136,34 +134,21 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     private weak var foundationUndoManager: Foundation.UndoManager?
   #endif
 
-  // MARK: - Observable conformance (Perception)
+  // MARK: - Observable conformance
 
-  private let _$perceptionRegistrar = PerceptionRegistrar()
-
-  nonisolated public func access<Member>(
-    keyPath: KeyPath<UndoManager, Member>
-  ) {
-    _$perceptionRegistrar.access(self, keyPath: keyPath)
-  }
-
-  nonisolated public func withMutation<Member, T>(
-    keyPath: KeyPath<UndoManager, Member>,
-    _ mutation: () throws -> T
-  ) rethrows -> T {
-    try _$perceptionRegistrar.withMutation(of: self, keyPath: keyPath, mutation)
-  }
+  private let observationRegistrar = ObservationRegistrar()
 
   // MARK: - Observable state
 
   /// The groups that can be undone, most-recent-first.
   public var undoStack: [UndoGroup] {
-    _$perceptionRegistrar.access(self, keyPath: \.undoStack)
+    observationRegistrar.access(self, keyPath: \.undoStack)
     return _state.value.undoEntries.reversed().map(\.group)
   }
 
   /// The groups that can be redone, most-recent-first.
   public var redoStack: [UndoGroup] {
-    _$perceptionRegistrar.access(self, keyPath: \.redoStack)
+    observationRegistrar.access(self, keyPath: \.redoStack)
     return _state.value.redoEntries.reversed().map(\.group)
   }
 
@@ -283,7 +268,6 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   /// Begins recording a barrier that can later be ended or cancelled.
   ///
   /// This overload accepts a localized resource so group names can participate in localization.
-  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
   @discardableResult
   public func beginBarrier(
     _ description: LocalizedStringResource,
@@ -299,7 +283,6 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     /// Begins recording a barrier that can later be ended or cancelled.
     ///
     /// This overload accepts a localized key and resolves it using the app's main bundle.
-    @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
     @_disfavoredOverload
     @discardableResult
     public func beginBarrier(
@@ -450,7 +433,6 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   ///   - body: A closure that performs database writes.  Receives a `Database` connection.
   /// - Returns: The value returned by `body`.
   #if canImport(SwiftUI)
-    @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
     @_disfavoredOverload
     @discardableResult
     public func withGroup<T: Sendable>(
@@ -478,7 +460,6 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   ///   - description: A human-readable label for the change, e.g. `"Delete reminder"`.
   ///   - body: A closure that performs database writes.  Receives a `Database` connection.
   /// - Returns: The value returned by `body`.
-  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
   @discardableResult
   public func withGroup<T: Sendable>(
     _ description: LocalizedStringResource,
@@ -529,7 +510,6 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
 
   /// Synchronous variant of ``withGroup(_:origin:_:)``.
   #if canImport(SwiftUI)
-    @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
     @_disfavoredOverload
     @discardableResult
     public func withGroup<T>(
@@ -546,7 +526,6 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   #endif
 
   /// Synchronous variant of ``withGroup(_:origin:_:)``.
-  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
   @discardableResult
   public func withGroup<T>(
     _ description: LocalizedStringResource,
@@ -838,8 +817,8 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   }
 
   private func dropHistoryAtSyncBoundary() {
-    _$perceptionRegistrar.withMutation(of: self, keyPath: \.undoStack) {
-      _$perceptionRegistrar.withMutation(of: self, keyPath: \.redoStack) {
+    observationRegistrar.withMutation(of: self, keyPath: \.undoStack) {
+      observationRegistrar.withMutation(of: self, keyPath: \.redoStack) {
         _state.withValue { state in
           state.undoEntries = []
           state.redoEntries = []
@@ -867,8 +846,8 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
     }
     let entry = UndoEntry(begin: barrier.firstLog, end: maxSeq, group: barrier.group)
     let shouldRecord = _state.withValue { $0.freezePoint < 0 }
-    _$perceptionRegistrar.withMutation(of: self, keyPath: \.undoStack) {
-      _$perceptionRegistrar.withMutation(of: self, keyPath: \.redoStack) {
+    observationRegistrar.withMutation(of: self, keyPath: \.undoStack) {
+      observationRegistrar.withMutation(of: self, keyPath: \.redoStack) {
         _state.withValue { state in
           if shouldRecord {
             state.undoEntries.append(entry)
@@ -999,8 +978,8 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
 
     let newEntry = UndoEntry(begin: firstLog, end: newEnd, group: entry.group)
 
-    _$perceptionRegistrar.withMutation(of: self, keyPath: \.undoStack) {
-      _$perceptionRegistrar.withMutation(of: self, keyPath: \.redoStack) {
+    observationRegistrar.withMutation(of: self, keyPath: \.undoStack) {
+      observationRegistrar.withMutation(of: self, keyPath: \.redoStack) {
         _state.withValue { state in
           switch action {
           case .undo:
@@ -1085,7 +1064,3 @@ public final class UndoManager: Perceptible, @unchecked Sendable {
   }
 #endif
 
-#if canImport(Observation)
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension UndoManager: Observable {}
-#endif

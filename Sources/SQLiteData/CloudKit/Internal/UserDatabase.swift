@@ -18,15 +18,17 @@
     package func write<T: Sendable>(
       _ updates: @Sendable (Database) throws -> T
     ) async throws -> T {
-      @Dependency(\.defaultUndoManager) var defaultUndoManager
-      let undoManager = UndoManager.manager(for: database, defaultUndoManager: defaultUndoManager)
-      if let undoManager {
-        return try await undoManager.writeSyncChanges(
-          kind: _syncChangeKind,
-          isSharedZoneChange: _isSharedZoneChange
-        ) { db in
-          try $_isSynchronizingChanges.withValue(true) {
-            try updates(db)
+      if #available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) {
+        @Dependency(\.defaultUndoManager) var defaultUndoManager
+        let undoManager = UndoManager.manager(for: database, defaultUndoManager: defaultUndoManager)
+        if let undoManager {
+          return try await undoManager.writeSyncChanges(
+            kind: _syncChangeKind,
+            isSharedZoneChange: _isSharedZoneChange
+          ) { db in
+            try $_isSynchronizingChanges.withValue(true) {
+              try updates(db)
+            }
           }
         }
       }
@@ -49,15 +51,17 @@
     package func write<T>(
       _ updates: (Database) throws -> T
     ) throws -> T {
-      @Dependency(\.defaultUndoManager) var defaultUndoManager
-      let undoManager = UndoManager.manager(for: database, defaultUndoManager: defaultUndoManager)
-      if let undoManager {
-        return try undoManager.writeSyncChanges(
-          kind: _syncChangeKind,
-          isSharedZoneChange: _isSharedZoneChange
-        ) { db in
-          try $_isSynchronizingChanges.withValue(true) {
-            try updates(db)
+      if #available(iOS 17, macOS 14, tvOS 17, watchOS 10, *) {
+        @Dependency(\.defaultUndoManager) var defaultUndoManager
+        let undoManager = UndoManager.manager(for: database, defaultUndoManager: defaultUndoManager)
+        if let undoManager {
+          return try undoManager.writeSyncChanges(
+            kind: _syncChangeKind,
+            isSharedZoneChange: _isSharedZoneChange
+          ) { db in
+            try $_isSynchronizingChanges.withValue(true) {
+              try updates(db)
+            }
           }
         }
       }

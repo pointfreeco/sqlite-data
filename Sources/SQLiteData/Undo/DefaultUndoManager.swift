@@ -1,5 +1,6 @@
 import Dependencies
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension DependencyValues {
   /// The default SQLiteData undo manager used by integrations when available.
   ///

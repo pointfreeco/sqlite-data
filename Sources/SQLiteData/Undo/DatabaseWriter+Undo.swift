@@ -3,9 +3,9 @@ import Foundation
   import SwiftUI
 #endif
 
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 public extension DatabaseWriter {
   #if canImport(SwiftUI)
-    @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
     func writeWithUndoGroup<T>(
       _ description: LocalizedStringKey,
       _ updates: (Database) throws -> T
@@ -19,7 +19,6 @@ public extension DatabaseWriter {
     }
   #endif
 
-  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
   @_disfavoredOverload
   func writeWithUndoGroup<T>(
     _ description: LocalizedStringResource,
@@ -47,7 +46,6 @@ public extension DatabaseWriter {
   }
 
   #if canImport(SwiftUI)
-    @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6, *)
     @_disfavoredOverload
     func writeWithUndoGroup<T: Sendable>(
       _ description: LocalizedStringKey,
@@ -62,7 +60,6 @@ public extension DatabaseWriter {
     }
   #endif
 
-  @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
   func writeWithUndoGroup<T: Sendable>(
     _ description: LocalizedStringResource,
     _ updates: @Sendable (Database) throws -> T
