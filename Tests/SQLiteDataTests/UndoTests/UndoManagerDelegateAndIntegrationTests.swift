@@ -7,7 +7,6 @@ import Testing
   import CloudKit
 #endif
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 @Suite(.dependencies { $0.date.now = Date(timeIntervalSince1970: 0) })
 struct UndoManagerDelegateAndIntegrationTests {
 

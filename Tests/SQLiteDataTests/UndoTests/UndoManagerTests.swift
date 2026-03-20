@@ -54,7 +54,6 @@ extension DatabaseWriter where Self == DatabaseQueue {
 
 // MARK: - Tests
 
-@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 @Suite(.dependencies { $0.date.now = Date(timeIntervalSince1970: 0) })
 struct UndoManagerCoreTests {
   @Test func defaultUndoManagerDependencyDefaultsToNil() {

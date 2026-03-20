@@ -2519,6 +2519,7 @@
   }
 
   @TaskLocal package var _isSynchronizingChanges = false
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @TaskLocal package var _syncChangeKind: UndoManager.SyncChangeKind = .fetched
   @TaskLocal package var _isSharedZoneChange = false
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
