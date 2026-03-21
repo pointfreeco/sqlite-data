@@ -234,7 +234,7 @@
           │     tagID: "weekend"                                                                    │
           │   ),                                                                                    │
           │   share: nil,                                                                           │
-          │   _isDeleted: false,                                                                    │
+          │   _pendingStatus: nil,                                                                  │
           │   _hasLastKnownServerRecord: true,                                                      │
           │   _isShared: false,                                                                     │
           │   userModificationTime: 0                                                               │
@@ -270,7 +270,7 @@
           │     title: "Groceries"                                                                  │
           │   ),                                                                                    │
           │   share: nil,                                                                           │
-          │   _isDeleted: false,                                                                    │
+          │   _pendingStatus: nil,                                                                  │
           │   _hasLastKnownServerRecord: true,                                                      │
           │   _isShared: false,                                                                     │
           │   userModificationTime: 0                                                               │
@@ -301,7 +301,7 @@
           │     title: "Personal"                                                                   │
           │   ),                                                                                    │
           │   share: nil,                                                                           │
-          │   _isDeleted: false,                                                                    │
+          │   _pendingStatus: nil,                                                                  │
           │   _hasLastKnownServerRecord: true,                                                      │
           │   _isShared: false,                                                                     │
           │   userModificationTime: 0                                                               │
@@ -333,7 +333,7 @@
           │     tagID: "weekend"                                                                    │
           │   ),                                                                                    │
           │   share: nil,                                                                           │
-          │   _isDeleted: false,                                                                    │
+          │   _pendingStatus: nil,                                                                  │
           │   _hasLastKnownServerRecord: true,                                                      │
           │   _isShared: false,                                                                     │
           │   userModificationTime: 0                                                               │
@@ -369,7 +369,7 @@
           │     title: "Take a walk"                                                                │
           │   ),                                                                                    │
           │   share: nil,                                                                           │
-          │   _isDeleted: false,                                                                    │
+          │   _pendingStatus: nil,                                                                  │
           │   _hasLastKnownServerRecord: true,                                                      │
           │   _isShared: false,                                                                     │
           │   userModificationTime: 0                                                               │
@@ -400,7 +400,7 @@
           │     title: "Business"                                                                   │
           │   ),                                                                                    │
           │   share: nil,                                                                           │
-          │   _isDeleted: false,                                                                    │
+          │   _pendingStatus: nil,                                                                  │
           │   _hasLastKnownServerRecord: true,                                                      │
           │   _isShared: false,                                                                     │
           │   userModificationTime: 0                                                               │
@@ -432,7 +432,7 @@
           │     tagID: "optional"                                                                   │
           │   ),                                                                                    │
           │   share: nil,                                                                           │
-          │   _isDeleted: false,                                                                    │
+          │   _pendingStatus: nil,                                                                  │
           │   _hasLastKnownServerRecord: true,                                                      │
           │   _isShared: false,                                                                     │
           │   userModificationTime: 0                                                               │
@@ -468,7 +468,7 @@
           │     title: "Call accountant"                                                            │
           │   ),                                                                                    │
           │   share: nil,                                                                           │
-          │   _isDeleted: false,                                                                    │
+          │   _pendingStatus: nil,                                                                  │
           │   _hasLastKnownServerRecord: true,                                                      │
           │   _isShared: false,                                                                     │
           │   userModificationTime: 0                                                               │
@@ -498,7 +498,7 @@
           │     title: "optional"                                                                   │
           │   ),                                                                                    │
           │   share: nil,                                                                           │
-          │   _isDeleted: false,                                                                    │
+          │   _pendingStatus: nil,                                                                  │
           │   _hasLastKnownServerRecord: true,                                                      │
           │   _isShared: false,                                                                     │
           │   userModificationTime: 0                                                               │
@@ -528,7 +528,7 @@
           │     title: "weekend"                                                                    │
           │   ),                                                                                    │
           │   share: nil,                                                                           │
-          │   _isDeleted: false,                                                                    │
+          │   _pendingStatus: nil,                                                                  │
           │   _hasLastKnownServerRecord: true,                                                      │
           │   _isShared: false,                                                                     │
           │   userModificationTime: 0                                                               │
@@ -581,7 +581,7 @@
           │                     │     title: "Personal"                                              │
           │                     │   ),                                                               │
           │                     │   share: nil,                                                      │
-          │                     │   _isDeleted: false,                                               │
+          │                     │   _pendingStatus: nil,                                             │
           │                     │   _hasLastKnownServerRecord: true,                                 │
           │                     │   _isShared: false,                                                │
           │                     │   userModificationTime: 0                                          │
@@ -612,7 +612,7 @@
           │                     │     title: "Work"                                                  │
           │                     │   ),                                                               │
           │                     │   share: nil,                                                      │
-          │                     │   _isDeleted: false,                                               │
+          │                     │   _pendingStatus: nil,                                             │
           │                     │   _hasLastKnownServerRecord: true,                                 │
           │                     │   _isShared: false,                                                │
           │                     │   userModificationTime: 0                                          │
