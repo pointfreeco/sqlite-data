@@ -87,6 +87,7 @@
         #expect(remindersLists.count == 0)
 
         await testClock.advance(by: .seconds(1))
+        try await $remindersLists.load()
         #expect(remindersLists.count == 0)
         assertInlineSnapshot(of: container, as: .customDump) {
           """
