@@ -11,12 +11,17 @@
 
     package struct State {
       private var lastRecordChangeTag = 0
+      private var lastModificationDate = 0
       package var storage: [CKRecordZone.ID: Zone] = [:]
       var assets: [AssetID: Data] = [:]
       var deletedRecords: [(CKRecord.ID, CKRecord.RecordType)] = []
       mutating func nextRecordChangeTag() -> Int {
         lastRecordChangeTag += 1
         return lastRecordChangeTag
+      }
+      mutating func nextModificationDate() -> Date {
+        lastModificationDate += 1
+        return Date(timeIntervalSinceReferenceDate: TimeInterval(lastModificationDate))
       }
     }
 
@@ -112,6 +117,7 @@
 
         switch savePolicy {
         case .ifServerRecordUnchanged:
+          let batchModificationDate = state.nextModificationDate()
           for recordToSave in recordsToSave {
             if let share = recordToSave as? CKShare {
               let isSavingRootRecord = recordsToSave.contains(where: {
@@ -189,6 +195,7 @@
               guard let copy = recordToSave.copy() as? CKRecord
               else { fatalError("Could not copy CKRecord.") }
               copy._recordChangeTag = state.nextRecordChangeTag()
+              copy._modificationDate = batchModificationDate
 
               for key in copy.allKeys() {
                 guard let assetURL = (copy[key] as? CKAsset)?.fileURL
