@@ -54,7 +54,7 @@
               $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
                 && $0.recordType.eq(tableName)
             }
-            .update { $0._isDeleted = true }
+            .update { $0._pendingStatus = #bind(.deleted) }
         } when: { old, new in
           old.primaryKey.neq(new.primaryKey)
         }
@@ -82,6 +82,16 @@
             defaultZone: defaultZone,
             privateTables: privateTables
           )
+          SyncMetadata
+            .where {
+              $0.recordPrimaryKey.eq(#sql("\(new.primaryKey)"))
+                && $0.recordType.eq(tableName)
+                && $0._pendingStatus.eq(PendingStatus.deleted)
+            }
+            .update {
+              $0._pendingStatus = #bind(.reinserted)
+              $0.userModificationTime = $currentTime()
+            }
         }
       )
     }
@@ -139,7 +149,7 @@
               $0.recordPrimaryKey.eq(#sql("\(old.primaryKey)"))
                 && $0.recordType.eq(tableName)
             }
-            .update { $0._isDeleted = true }
+            .update { $0._pendingStatus = #bind(.deleted) }
         } when: { _ in
           !SyncEngine.$isSynchronizing
         }
@@ -242,6 +252,7 @@
         afterZoneUpdateTrigger(),
         afterUpdateTrigger(for: syncEngine),
         afterSoftDeleteTrigger(for: syncEngine),
+        afterReinsertTrigger(for: syncEngine),
       ]
     }
 
@@ -323,7 +334,7 @@
             )
           )
         } when: { old, new in
-          old._isDeleted.eq(new._isDeleted) && !SyncEngine.$isSynchronizing
+          old._pendingStatus.is(new._pendingStatus) && !SyncEngine.$isSynchronizing
         }
       )
     }
@@ -334,7 +345,7 @@
       createTemporaryTrigger(
         "\(String.sqliteDataCloudKitSchemaName)_after_delete_on_sqlitedata_icloud_metadata",
         ifNotExists: true,
-        after: .update(of: \._isDeleted) { _, new in
+        after: .update(of: \._pendingStatus) { _, new in
           Values(
             syncEngine.$didDelete(
               recordName: new.recordName,
@@ -344,7 +355,34 @@
             )
           )
         } when: { old, new in
-          !old._isDeleted && new._isDeleted && !SyncEngine.$isSynchronizing
+          (old._pendingStatus.is(nil) || old._pendingStatus.neq(PendingStatus.deleted))
+            && new._pendingStatus.eq(PendingStatus.deleted)
+            && !SyncEngine.$isSynchronizing
+        }
+      )
+    }
+
+    fileprivate static func afterReinsertTrigger(
+      for syncEngine: SyncEngine
+    ) -> TemporaryTrigger<Self> {
+      createTemporaryTrigger(
+        "\(String.sqliteDataCloudKitSchemaName)_after_reinsert_on_sqlitedata_icloud_metadata",
+        ifNotExists: true,
+        after: .update(of: \._pendingStatus) { _, new in
+          Values(
+            syncEngine.$didUpdate(
+              recordName: new.recordName,
+              zoneName: new.zoneName,
+              ownerName: new.ownerName,
+              oldZoneName: new.zoneName,
+              oldOwnerName: new.ownerName,
+              descendantRecordNames: #bind(nil)
+            )
+          )
+        } when: { old, new in
+          old._pendingStatus.eq(PendingStatus.deleted)
+            && new._pendingStatus.eq(PendingStatus.reinserted)
+            && !SyncEngine.$isSynchronizing
         }
       )
     }

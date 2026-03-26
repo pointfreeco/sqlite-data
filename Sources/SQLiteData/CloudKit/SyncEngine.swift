@@ -1125,13 +1125,12 @@
 
       let batch = await syncEngine.recordZoneChangeBatch(pendingChanges: changes) { recordID in
         guard
-          let (metadata, allFields) = await withErrorReporting(
+          let metadata = await withErrorReporting(
             .sqliteDataCloudKitFailure,
             catching: {
               try await metadatabase.read { db in
                 try SyncMetadata
                   .find(recordID)
-                  .select { ($0, $0._lastKnownServerRecordAllFields) }
                   .fetchOne(db)
               }
             }
@@ -1197,7 +1196,7 @@
           }
 
           let record =
-            allFields
+            metadata.allFieldsRecord
             ?? CKRecord(
               recordType: metadata.recordType,
               recordID: recordID
@@ -1220,7 +1219,17 @@
             with: T(queryOutput: row),
             userModificationTime: metadata.userModificationTime
           )
-          await refreshLastKnownServerRecord(record)
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await userDatabase.write { db in
+              try refreshLastKnownServerRecord(record, db: db)
+              if metadata._pendingStatus == .reinserted {
+                try SyncMetadata
+                  .find(record.recordID)
+                  .update { $0._pendingStatus = #bind(nil) }
+                  .execute(db)
+              }
+            }
+          }
           sentRecord = recordID
           return record
         }
@@ -1948,9 +1957,12 @@
         func open<T>(_ table: some SynchronizableTable<T>) throws {
           var columnNames: [String] = T.TableColumns.writableColumns.map(\.name)
           if !force,
-            let allFields = metadata._lastKnownServerRecordAllFields,
+            let allFields = metadata.allFieldsRecord,
             let row = try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
           {
+            if metadata._pendingStatus == .reinserted {
+              allFields.update(with: T(queryOutput: row), userModificationTime: metadata.userModificationTime)
+            }
             serverRecord.update(
               with: allFields,
               row: T(queryOutput: row),
@@ -1970,6 +1982,12 @@
               .find(serverRecord.recordID)
               .update { $0.setLastKnownServerRecord(serverRecord) }
               .execute(db)
+            if metadata._pendingStatus == .reinserted {
+              try SyncMetadata
+                .find(serverRecord.recordID)
+                .update { $0._pendingStatus = #bind(nil) }
+                .execute(db)
+            }
           } catch {
             guard
               let error = error as? DatabaseError,
@@ -1992,22 +2010,25 @@
     private func refreshLastKnownServerRecord(_ record: CKRecord) async {
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in
-          let metadata = try SyncMetadata.find(record.recordID).fetchOne(db)
-          func updateLastKnownServerRecord() throws {
-            try SyncMetadata
-              .find(record.recordID)
-              .update { $0.setLastKnownServerRecord(record) }
-              .execute(db)
-          }
-
-          if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
-            if let recordDate = record.modificationDate, lastKnownDate < recordDate {
-              try updateLastKnownServerRecord()
-            }
-          } else {
-            try updateLastKnownServerRecord()
-          }
+          try refreshLastKnownServerRecord(record, db: db)
         }
+      }
+    }
+    
+    private func refreshLastKnownServerRecord(_ record: CKRecord, db: Database) throws {
+      let metadata = try SyncMetadata.find(record.recordID).fetchOne(db)
+      func updateLastKnownServerRecord() throws {
+        try SyncMetadata
+          .find(record.recordID)
+          .update { $0.setLastKnownServerRecord(record) }
+          .execute(db)
+      }
+      if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
+        if let recordDate = record.modificationDate, lastKnownDate < recordDate {
+          try updateLastKnownServerRecord()
+        }
+      } else {
+        try updateLastKnownServerRecord()
       }
     }
 
