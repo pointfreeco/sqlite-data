@@ -70,6 +70,12 @@ import SQLiteData
   var title = ""
   var modelBID: ModelB.ID
 }
+@Table struct Post: Equatable, Identifiable {
+  let id: Int
+  var title: String
+  var body: String?
+  var isPublished = false
+}
 @Table struct UnsyncedModel: Equatable, Identifiable {
   let id: Int
 }
@@ -217,6 +223,17 @@ func database(
         "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
         "modelBID" INTEGER NOT NULL REFERENCES "modelBs"("id") ON DELETE CASCADE
       )
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TABLE "posts" (
+        "id" INT PRIMARY KEY NOT NULL,
+        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
+        "body" TEXT,
+        "isPublished" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+      ) STRICT
       """
     )
     .execute(db)

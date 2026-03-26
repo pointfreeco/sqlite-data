@@ -130,7 +130,7 @@
 
   @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   extension CKRecordKeyValueSetting {
-    fileprivate subscript(at key: String) -> Int64 {
+    package subscript(at key: String) -> Int64 {
       get {
         self["\(CKRecord.userModificationTimeKey)_\(key)"] as? Int64 ?? -1
       }
