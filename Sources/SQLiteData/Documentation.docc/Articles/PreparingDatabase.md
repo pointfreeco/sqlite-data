@@ -290,7 +290,8 @@ It is also important to prepare the database in Xcode previews. This can be done
 }
 ```
 
-And similarly, in tests, this can be done using the `.dependency` testing trait:
+And similarly, in tests, this can be done using the `.dependency` testing trait 
+from [DependenciesTestSupport](https://github.com/pointfreeco/swift-dependencies):
 
 ```swift
 @Test(.dependency(\.defaultDatabase, try appDatabase())
