@@ -43,6 +43,7 @@ let package = Package(
         .product(name: "Sharing", package: "swift-sharing"),
         .product(name: "StructuredQueriesCore", package: "swift-structured-queries"),
         .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries"),
+        .product(name: "StructuredQueriesSQLiteCore", package: "swift-structured-queries"),
       ]
     ),
     .target(
