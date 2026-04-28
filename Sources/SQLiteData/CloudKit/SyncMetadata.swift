@@ -1,6 +1,17 @@
 #if canImport(CloudKit)
   import CloudKit
 
+  /// Represents the pending synchronization state of a record.
+  public enum PendingStatus: Int, Hashable, Sendable, QueryBindable, QueryDecodable, QueryRepresentable {
+    /// Indicates the metadata has been "soft" deleted. It will be fully deleted once the
+    /// next batch of pending changes is processed.
+    case deleted = 0
+    /// Indicates the record has been reinserted after being soft-deleted. This status
+    /// will be cleared after the next batch of pending changes is processed or server
+    /// record changes are applied.
+    case reinserted = 1
+  }
+
   /// A table that tracks metadata related to synchronized data.
   ///
   /// Each row of this table represents a synchronized record across all tables synchronized with
@@ -93,9 +104,23 @@
     @Column(as: CKShare?.SystemFieldsRepresentation.self)
     public let share: CKShare?
 
-    /// Determines if the metadata has been "soft" deleted. It will be fully deleted once the
-    /// next batch of pending changes is processed.
-    public let _isDeleted: Bool
+    /// The pending synchronization state of the record which can require special handling.
+    ///
+    /// `nil` indicates a normal record with standard sync behavior.
+    public let _pendingStatus: PendingStatus?
+
+    /// The appropriate all-fields record to use as a base when building a `CKRecord` for upload.
+    ///
+    /// For reinserted rows, returns `lastKnownServerRecord` (system fields only)
+    /// For all others, returns `_lastKnownServerRecordAllFields`.
+    var allFieldsRecord: CKRecord? {
+      switch _pendingStatus {
+      case .reinserted:
+        lastKnownServerRecord
+      case nil, .deleted:
+        _lastKnownServerRecordAllFields
+      }
+    }
 
     @Column("hasLastKnownServerRecord", generated: .virtual)
     public let _hasLastKnownServerRecord: Bool
@@ -191,7 +216,7 @@
       self._hasLastKnownServerRecord = lastKnownServerRecord != nil
       self._isShared = share != nil
       self.userModificationTime = userModificationTime
-      self._isDeleted = false
+      self._pendingStatus = nil
     }
 
     package static func find(_ recordID: CKRecord.ID) -> Where<Self> {

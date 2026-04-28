@@ -136,12 +136,12 @@
   package final class MockSyncEngineState: CKSyncEngineStateProtocol {
     package let changeTag = LockIsolated(0)
     package let _pendingRecordZoneChanges = LockIsolated<
-      OrderedSet<CKSyncEngine.PendingRecordZoneChange>
-    >([]
+      OrderedDictionary<CKRecord.ID, CKSyncEngine.PendingRecordZoneChange>
+    >([:]
     )
     package let _pendingDatabaseChanges = LockIsolated<
-      OrderedSet<CKSyncEngine.PendingDatabaseChange>
-    >([])
+      OrderedDictionary<CKRecordZone.ID, CKSyncEngine.PendingDatabaseChange>
+    >([:])
     private let fileID: StaticString
     private let filePath: StaticString
     private let line: UInt
@@ -160,11 +160,11 @@
     }
 
     package var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] {
-      _pendingRecordZoneChanges.withValue { Array($0) }
+      _pendingRecordZoneChanges.withValue { Array($0.values) }
     }
 
     package var pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] {
-      _pendingDatabaseChanges.withValue { Array($0) }
+      _pendingDatabaseChanges.withValue { Array($0.values) }
     }
 
     package func removePendingChanges() {
@@ -173,26 +173,58 @@
     }
 
     package func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
-      self._pendingRecordZoneChanges.withValue {
-        $0.append(contentsOf: pendingRecordZoneChanges)
+      self._pendingRecordZoneChanges.withValue { dict in
+        for change in pendingRecordZoneChanges {
+          switch change {
+          case .saveRecord(let id), .deleteRecord(let id):
+            dict.updateValue(change, forKey: id)
+          @unknown default:
+            fatalError("Unsupported pendingRecordZoneChange: \(change)")
+          }
+        }
       }
     }
 
     package func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
-      self._pendingRecordZoneChanges.withValue {
-        $0.subtract(pendingRecordZoneChanges)
+      self._pendingRecordZoneChanges.withValue { dict in
+        for change in pendingRecordZoneChanges {
+          switch change {
+          case .saveRecord(let id), .deleteRecord(let id):
+            if dict[id] == change { dict.removeValue(forKey: id) }
+          @unknown default:
+            fatalError("Unsupported pendingRecordZoneChange: \(change)")
+          }
+        }
       }
     }
 
     package func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
-      self._pendingDatabaseChanges.withValue {
-        $0.append(contentsOf: pendingDatabaseChanges)
+      self._pendingDatabaseChanges.withValue { dict in
+        for change in pendingDatabaseChanges {
+          switch change {
+          case .saveZone(let zone):
+            dict.updateValue(change, forKey: zone.zoneID)
+          case .deleteZone(let zoneID):
+            dict.updateValue(change, forKey: zoneID)
+          @unknown default:
+            fatalError("Unsupported pendingDatabaseChange: \(change)")
+          }
+        }
       }
     }
 
     package func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
-      self._pendingDatabaseChanges.withValue {
-        $0.subtract(pendingDatabaseChanges)
+      self._pendingDatabaseChanges.withValue { dict in
+        for change in pendingDatabaseChanges {
+          switch change {
+          case .saveZone(let zone):
+            if dict[zone.zoneID] == change { dict.removeValue(forKey: zone.zoneID) }
+          case .deleteZone(let zoneID):
+            if dict[zoneID] == change { dict.removeValue(forKey: zoneID) }
+          @unknown default:
+            fatalError("Unsupported pendingDatabaseChange: \(change)")
+          }
+        }
       }
     }
   }

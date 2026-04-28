@@ -500,7 +500,7 @@
           │     parent: nil,                                                                                    │
           │     share: nil                                                                                      │
           │   ),                                                                                                │
-          │   _isDeleted: false,                                                                                │
+          │   _pendingStatus: nil,                                                                              │
           │   _hasLastKnownServerRecord: true,                                                                  │
           │   _isShared: true,                                                                                  │
           │   userModificationTime: 0                                                                           │
@@ -583,7 +583,7 @@
           │     parent: nil,                                                                             │
           │     share: nil                                                                               │
           │   ),                                                                                         │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: true,                                                                           │
           │   userModificationTime: 0                                                                    │
@@ -618,7 +618,7 @@
           │     modelAID: 1                                                                              │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 60                                                                   │
@@ -653,7 +653,7 @@
           │     title: ""                                                                                │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 60                                                                   │
@@ -1249,7 +1249,7 @@
           │     parent: nil,                                                                                    │
           │     share: nil                                                                                      │
           │   ),                                                                                                │
-          │   _isDeleted: false,                                                                                │
+          │   _pendingStatus: nil,                                                                              │
           │   _hasLastKnownServerRecord: true,                                                                  │
           │   _isShared: true,                                                                                  │
           │   userModificationTime: 0                                                                           │
@@ -1285,7 +1285,7 @@
           │     title: "Get milk"                                                                               │
           │   ),                                                                                                │
           │   share: nil,                                                                                       │
-          │   _isDeleted: false,                                                                                │
+          │   _pendingStatus: nil,                                                                              │
           │   _hasLastKnownServerRecord: true,                                                                  │
           │   _isShared: false,                                                                                 │
           │   userModificationTime: 0                                                                           │
@@ -1932,7 +1932,7 @@
           │     id: 1                                                                                    │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 0                                                                    │
@@ -1968,7 +1968,7 @@
           │     parent: nil,                                                                             │
           │     share: nil                                                                               │
           │   ),                                                                                         │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: true,                                                                           │
           │   userModificationTime: 0                                                                    │
@@ -2003,7 +2003,7 @@
           │     modelAID: 2                                                                              │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 1                                                                    │
@@ -2038,7 +2038,7 @@
           │     title: "Blob"                                                                            │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 0                                                                    │
@@ -2237,7 +2237,7 @@
           │     id: 1                                                                                    │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 0                                                                    │
@@ -2273,7 +2273,7 @@
           │     parent: nil,                                                                             │
           │     share: nil                                                                               │
           │   ),                                                                                         │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: true,                                                                           │
           │   userModificationTime: 0                                                                    │
@@ -2308,7 +2308,7 @@
           │     modelAID: 2                                                                              │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 0                                                                    │
@@ -2343,7 +2343,7 @@
           │     title: "Blob"                                                                            │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 0                                                                    │
@@ -2542,7 +2542,7 @@
           │     id: 1                                                                                    │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 0                                                                    │
@@ -2578,7 +2578,7 @@
           │     parent: nil,                                                                             │
           │     share: nil                                                                               │
           │   ),                                                                                         │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: true,                                                                           │
           │   userModificationTime: 0                                                                    │
@@ -2613,7 +2613,7 @@
           │     modelAID: 2                                                                              │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 0                                                                    │
@@ -2648,7 +2648,7 @@
           │     title: "Blob"                                                                            │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 0                                                                    │
@@ -2827,7 +2827,7 @@
           │     id: 1                                                                                    │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 0                                                                    │
@@ -2863,7 +2863,7 @@
           │     parent: nil,                                                                             │
           │     share: nil                                                                               │
           │   ),                                                                                         │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: true,                                                                           │
           │   userModificationTime: 0                                                                    │
@@ -2898,7 +2898,7 @@
           │     modelAID: 1                                                                              │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 1                                                                    │
@@ -3070,7 +3070,7 @@
           │     id: 1                                                                                    │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 0                                                                    │
@@ -3106,7 +3106,7 @@
           │     parent: nil,                                                                             │
           │     share: nil                                                                               │
           │   ),                                                                                         │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: true,                                                                           │
           │   userModificationTime: 0                                                                    │
@@ -3141,7 +3141,7 @@
           │     modelAID: 2                                                                              │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 1                                                                    │
@@ -3176,7 +3176,7 @@
           │     title: "Blob"                                                                            │
           │   ),                                                                                         │
           │   share: nil,                                                                                │
-          │   _isDeleted: false,                                                                         │
+          │   _pendingStatus: nil,                                                                       │
           │   _hasLastKnownServerRecord: true,                                                           │
           │   _isShared: false,                                                                          │
           │   userModificationTime: 0                                                                    │
