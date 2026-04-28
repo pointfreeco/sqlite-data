@@ -1009,24 +1009,35 @@
       case .sentDatabaseChanges:
         break
       case .fetchedRecordZoneChanges(let modifications, let deletions):
-        await handleFetchedRecordZoneChanges(
-          modifications: modifications,
-          deletions: deletions,
-          syncEngine: syncEngine
-        )
+        let isShared =
+          modifications.contains {
+            $0.recordID.zoneID.ownerName != CKCurrentUserDefaultName
+          }
+          || deletions.contains {
+            $0.recordID.zoneID.ownerName != CKCurrentUserDefaultName
+          }
+        await $_isSharedZoneChange.withValue(isShared) {
+          await handleFetchedRecordZoneChanges(
+            modifications: modifications,
+            deletions: deletions,
+            syncEngine: syncEngine
+          )
+        }
       case .sentRecordZoneChanges(
         let savedRecords,
         let failedRecordSaves,
         let deletedRecordIDs,
         let failedRecordDeletes
       ):
-        await handleSentRecordZoneChanges(
-          savedRecords: savedRecords,
-          failedRecordSaves: failedRecordSaves,
-          deletedRecordIDs: deletedRecordIDs,
-          failedRecordDeletes: failedRecordDeletes,
-          syncEngine: syncEngine
-        )
+        await $_syncChangeKind.withValue(.sent) {
+          await handleSentRecordZoneChanges(
+            savedRecords: savedRecords,
+            failedRecordSaves: failedRecordSaves,
+            deletedRecordIDs: deletedRecordIDs,
+            failedRecordDeletes: failedRecordDeletes,
+            syncEngine: syncEngine
+          )
+        }
 
       case .willFetchRecordZoneChanges:
         await MainActor.run {
@@ -1840,7 +1851,9 @@
         }
         ?? false
       if enqueuedUnsyncedRecordID {
-        await handleFetchedRecordZoneChanges(syncEngine: syncEngine)
+        await $_syncChangeKind.withValue(.fetched) {
+          await handleFetchedRecordZoneChanges(syncEngine: syncEngine)
+        }
       }
     }
 
@@ -2506,6 +2519,8 @@
   }
 
   @TaskLocal package var _isSynchronizingChanges = false
+  @TaskLocal package var _syncChangeKind: UndoManager.SyncChangeKind = .fetched
+  @TaskLocal package var _isSharedZoneChange = false
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @TaskLocal package var _currentZoneID: CKRecordZone.ID?
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

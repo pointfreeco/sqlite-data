@@ -4,6 +4,10 @@ A rebuild of many of the features from Apple's [Reminders app][reminders-app-sto
 for reminders, lists and tags in a SQLite database, and uses foreign keys to express one-to-many
 and many-to-many relationships between the entities.
 
+The sample configures a default undo manager so local and synced changes can be undone/redone from
+the screen menu using Undo/Redo entries that trigger immediately. It also binds to Apple's
+`UndoManager` so system undo gestures (including shake to undo) work with the same stack.
+
 It also demonstrates how to perform very advanced queries in SQLite that would be impossible in
 SwiftData, such as using SQLite's `group_concat` function to fetch all reminders along with a 
 comma-separated list of all of its tags. SQLite is an incredibly powerful language, and one should
