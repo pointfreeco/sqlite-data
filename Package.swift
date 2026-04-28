@@ -56,7 +56,9 @@ let package = Package(
         .product(name: "OrderedCollections", package: "swift-collections"),
         .product(name: "Perception", package: "swift-perception"),
         .product(name: "Sharing", package: "swift-sharing"),
+        .product(name: "StructuredQueriesCore", package: "swift-structured-queries"),
         .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries"),
+        .product(name: "StructuredQueriesSQLiteCore", package: "swift-structured-queries"),
         .product(
           name: "Tagged",
           package: "swift-tagged",
