@@ -223,7 +223,7 @@ facilitate synchronizing to CloudKit.
 
 Foreign keys are a SQL feature that allow one to express relationships between tables. This library
 uses that information to correctly implement synchronization behavior, such as knowing what order
-to syncrhonize records (parent first, then children), and knowing what associated records to
+to synchronize records (parent first, then children), and knowing what associated records to
 share when sharing a root record.
 
 To express a foreign key relationship between tables you use the `REFERENCES` clause in the table's
