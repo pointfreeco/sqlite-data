@@ -170,7 +170,7 @@ struct FetchKey<Value: Sendable>: SharedReaderKey {
 }
 
 struct FetchKeyID: Hashable {
-  fileprivate let databaseID: ObjectIdentifier
+  fileprivate let databaseID: AnyHashable
   fileprivate let request: AnyHashableSendable
   fileprivate let requestTypeID: ObjectIdentifier
   fileprivate let scheduler: AnyHashableSendable?
@@ -180,7 +180,11 @@ struct FetchKeyID: Hashable {
     request: some FetchKeyRequest,
     scheduler: (any ValueObservationScheduler & Hashable)?
   ) {
-    self.databaseID = ObjectIdentifier(database)
+    if let identified = database as? PersistentDatabaseIdentity {
+      self.databaseID = identified.persistentIdentity
+    } else {
+      self.databaseID = AnyHashable(ObjectIdentifier(database))
+    }
     self.request = AnyHashableSendable(request)
     self.requestTypeID = ObjectIdentifier(type(of: request))
     self.scheduler = scheduler.map { AnyHashableSendable($0) }
