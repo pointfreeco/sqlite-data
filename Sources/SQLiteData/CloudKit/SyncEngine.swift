@@ -15,7 +15,7 @@
 
   /// An object that manages the synchronization of local and remote SQLite data.
   ///
-  /// See <doc:CloudKit> for more information.
+  /// See <doc:CloudKitSync> for more information.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   public final class SyncEngine: Observable, Sendable {
     package let userDatabase: UserDatabase
@@ -896,7 +896,7 @@
 
     /// Whether or not the ``SyncEngine`` is currently writing changes to the database.
     ///
-    /// See <doc:CloudKit#Updating-triggers-to-be-compatible-with-synchronization> for more info.
+    /// See <doc:CloudKitSync#Updating-triggers-to-be-compatible-with-synchronization> for more info.
     @DatabaseFunction("sqlitedata_icloud_syncEngineIsSynchronizingChanges")
     public static var isSynchronizing: Bool {
       if _isCreatingTemporaryTrigger {
@@ -2193,7 +2193,7 @@
     /// Attaches the metadatabase to an existing database connection.
     ///
     /// Invoke this method when preparing your database connection in order to allow querying the
-    /// ``SyncMetadata`` table (see <doc:CloudKit#Accessing-CloudKit-metadata> for more info):
+    /// ``SyncMetadata`` table (see <doc:CloudKitSync#Accessing-CloudKit-metadata> for more info):
     ///
     /// ```swift
     /// func appDatabase() -> any DatabaseWriter {
