@@ -117,7 +117,7 @@ This will allow you to query the ``SyncMetadata`` table, which gives you access 
 stored for each of your records, as well as the `CKShare` for any shared records.
 
 See the ``GRDB/Database/attachMetadatabase(containerIdentifier:)`` for more information, as well
-as <doc:CloudKit#Accessing-CloudKit-metadata> below.
+as <doc:CloudKitSync#Accessing-CloudKit-metadata> below.
 
 ## Designing your schema with synchronization in mind
 
@@ -538,7 +538,7 @@ exposed for you to query it in whichever way you want.
 > Important: In order to query the `SyncMetadata` table from your database connection you will need
 to attach the metadatabase to your database connection. This can be done with the
 ``GRDB/Database/attachMetadatabase(containerIdentifier:)`` method defined on `Database`. See
-<doc:CloudKit#Setting-up-a-SyncEngine> for more information on how to do this.
+<doc:CloudKitSync#Setting-up-a-SyncEngine> for more information on how to do this.
 
 With that done you can use the ``StructuredQueriesCore/PrimaryKeyedTable/syncMetadataID`` property
 to construct a SQL query for fetching the metadata associated with one of your records.
@@ -705,7 +705,7 @@ And in previews you can use it like so:
 
 If you have an existing app deployed to the app store using SQLite, then you may have to perform
 a migration on your schema to prepare it for synchronization. The most important requirement
-detailed above in <doc:CloudKit#Designing-your-schema-with-synchronization-in-mind> is that
+detailed above in <doc:CloudKitSync#Designing-your-schema-with-synchronization-in-mind> is that
 all tables _must_ have a primary key, and all primary keys must be globally unique identifiers
 such as UUID, and cannot be simple auto-incrementing integers.
 
