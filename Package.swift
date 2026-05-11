@@ -35,6 +35,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-perception", from: "2.0.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
+    .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0"..<"5.0.0"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
       from: "0.31.0",
@@ -57,6 +58,11 @@ let package = Package(
         .product(name: "Perception", package: "swift-perception"),
         .product(name: "Sharing", package: "swift-sharing"),
         .product(name: "StructuredQueriesSQLite", package: "swift-structured-queries"),
+        .product(
+          name: "Crypto",
+          package: "swift-crypto",
+          condition: .when(platforms: [.linux])
+        ),
         .product(
           name: "Tagged",
           package: "swift-tagged",
