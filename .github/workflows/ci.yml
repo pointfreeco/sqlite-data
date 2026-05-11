@@ -62,10 +62,13 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:${{ matrix.swift }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Build Dependencies
         run: |
           apt-get update
           apt-get install -y libsqlite3-dev
       - name: Build
         run: swift build
+      - name: Test
+        run: |
+          swift test
