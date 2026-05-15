@@ -476,7 +476,7 @@
         )
         remindersListAssetRecord.setValue("1", forKey: "id", at: now)
         remindersListAssetRecord.setBytes(
-          blackCoverImage,
+          [UInt8](blackCoverImage),
           forKey: "coverImage",
           at: now
         )
