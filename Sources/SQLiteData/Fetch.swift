@@ -205,7 +205,7 @@ extension Fetch: Equatable where Value: Equatable {
     public func load(
       _ request: some FetchKeyRequest<Value>,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription {
       try await sharedReader.load(.fetch(request, database: database, animation: animation))
       return FetchSubscription(sharedReader: sharedReader)
