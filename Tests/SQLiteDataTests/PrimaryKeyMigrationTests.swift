@@ -1,7 +1,6 @@
 import DependenciesTestSupport
 import Foundation
 import InlineSnapshotTesting
-import SQLite3
 import SQLiteData
 import SQLiteDataTestSupport
 import SnapshotTesting
@@ -345,6 +344,7 @@ struct PrimaryKeyMigrationTests {
     let unique: UUID
     var title = ""
   }
+
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Test func primaryKeyNamedUnique() throws {
     try database.write { db in
@@ -1210,6 +1210,7 @@ struct PrimaryKeyMigrationTests {
 
     }
   }
+
 }
 
 @DatabaseFunction private func uuid() -> UUID { DependencyValues._current.uuid() }

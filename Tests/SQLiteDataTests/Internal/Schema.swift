@@ -80,14 +80,16 @@ func database(
   attachMetadatabase: Bool
 ) throws -> DatabasePool {
   var configuration = Configuration()
-  configuration.prepareDatabase { db in
-    if attachMetadatabase {
-      try db.attachMetadatabase(containerIdentifier: containerIdentifier)
+  #if canImport(CloudKit)
+    configuration.prepareDatabase { db in
+      if attachMetadatabase {
+        try db.attachMetadatabase(containerIdentifier: containerIdentifier)
+      }
+      // db.trace {
+      //   print($0.expandedDescription)
+      // }
     }
-    // db.trace {
-    //   print($0.expandedDescription)
-    // }
-  }
+  #endif
   let url = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite")
   let database = try DatabasePool(path: url.path(), configuration: configuration)
   try database.write { db in
