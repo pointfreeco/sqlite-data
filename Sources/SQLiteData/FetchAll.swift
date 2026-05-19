@@ -531,7 +531,7 @@ extension FetchAll: Equatable where Element: Equatable {
     public func load<S: SelectStatement>(
       _ statement: S,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Element == S.From.QueryOutput,
@@ -557,7 +557,7 @@ extension FetchAll: Equatable where Element: Equatable {
     public func load<V: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Element == V.QueryOutput,
