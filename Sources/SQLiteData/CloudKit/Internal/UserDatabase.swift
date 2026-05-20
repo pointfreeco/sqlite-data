@@ -16,7 +16,7 @@
     }
 
     package func write<T: Sendable>(
-      _ updates: @Sendable (Database) throws -> T
+      _ updates: @escaping @Sendable (Database) throws -> T
     ) async throws -> T {
       try await database.write { db in
         try $_isSynchronizingChanges.withValue(true) {
@@ -26,7 +26,7 @@
     }
 
     package func read<T: Sendable>(
-      _ updates: @Sendable (Database) throws -> T
+      _ updates: @escaping @Sendable (Database) throws -> T
     ) async throws -> T {
       try await database.read { db in
         try updates(db)
