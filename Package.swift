@@ -1,5 +1,4 @@
 // swift-tools-version: 6.1
-
 import PackageDescription
 
 let package = Package(
@@ -21,6 +20,11 @@ let package = Package(
     ),
   ],
   traits: [
+    .default(enabledTraits: ["GRDB"]),
+    .trait(
+      name: "GRDB",
+      description: "Use the standard GRDB package."
+    ),
     .trait(
       name: "SQLiteDataTagged",
       description: "Introduce SQLiteData conformances to the swift-tagged package."
@@ -32,6 +36,7 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-collections", from: "1.0.0"),
+    .package(url: "https://github.com/groue/GRDB.swift", from: "7.6.0"),
     .package(
       url: "https://github.com/swift-everywhere/grdb-sqlcipher.git",
       from: "7.5.0",
@@ -62,7 +67,16 @@ let package = Package(
       dependencies: [
         .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
         .product(name: "Dependencies", package: "swift-dependencies"),
-        .product(name: "GRDB", package: "grdb-sqlcipher"),
+        .product(
+          name: "GRDB",
+          package: "GRDB.swift",
+          condition: .when(traits: ["GRDB"])
+        ),
+        .product(
+          name: "GRDB",
+          package: "grdb-sqlcipher",
+          condition: .when(traits: ["GRDBCIPHER"])
+        ),
         .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
         .product(name: "OrderedCollections", package: "swift-collections"),
         .product(name: "Perception", package: "swift-perception"),
