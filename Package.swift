@@ -121,7 +121,6 @@ let package = Package(
 )
 
 let swiftSettings: [SwiftSetting] = [
-  .define("GRDBCIPHER", .when(traits: ["GRDBCIPHER"])),
   .enableUpcomingFeature("MemberImportVisibility")
   // .unsafeFlags([
   //   "-Xfrontend",
