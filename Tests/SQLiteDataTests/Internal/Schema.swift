@@ -73,6 +73,14 @@ import SQLiteData
 @Table struct UnsyncedModel: Equatable, Identifiable {
   let id: Int
 }
+@Table struct ScopedModel: Equatable, Identifiable {
+  let id: Int
+  var title = ""
+  var isDeleted = false
+}
+extension ScopedModel {
+  static let all = Self.where { !$0.isDeleted }
+}
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 func database(
@@ -225,6 +233,16 @@ func database(
       CREATE TABLE "unsyncedModels" (
         "id" INT PRIMARY KEY NOT NULL
       )
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TABLE "scopedModels" (
+        "id" INT PRIMARY KEY NOT NULL,
+        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
+        "isDeleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+      ) STRICT
       """
     )
     .execute(db)
