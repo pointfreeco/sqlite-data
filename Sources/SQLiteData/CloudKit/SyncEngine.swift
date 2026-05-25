@@ -1181,6 +1181,7 @@
               try await userDatabase.read { db in
                 result =
                   try T
+                  .unscoped
                   .where {
                     #sql("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
                   }
@@ -1427,7 +1428,7 @@
           else { continue }
           func open<T: PrimaryKeyedTable>(_: some SynchronizableTable<T>) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
-              try T.where { #sql("\($0.primaryKey)").in(primaryKeys) }.delete().execute(db)
+              try T.unscoped.where { #sql("\($0.primaryKey)").in(primaryKeys) }.delete().execute(db)
             }
           }
           open(table)
@@ -1449,7 +1450,7 @@
           func open<T>(_: some SynchronizableTable<T>) {
             withErrorReporting(.sqliteDataCloudKitFailure) {
               pendingRecordZoneChanges.append(
-                contentsOf: try T.select(\._recordName).fetchAll(db).map {
+                contentsOf: try T.unscoped.select(\._recordName).fetchAll(db).map {
                   .saveRecord(CKRecord.ID(recordName: $0, zoneID: zoneID))
                 }
               )
@@ -1483,6 +1484,7 @@
             await withErrorReporting(.sqliteDataCloudKitFailure) {
               try await userDatabase.write { db in
                 try T
+                  .unscoped
                   .where {
                     #sql("\($0.primaryKey)").in(
                       SyncMetadata.findAll(recordIDs)
@@ -1708,6 +1710,7 @@
                 switch foreignKey.onDelete {
                 case .cascade:
                   try T
+                    .unscoped
                     .where { #sql("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
                     .delete()
                     .execute(db)
@@ -1767,6 +1770,7 @@
             } catch let error as CKError where error.code == .unknownItem {
               try await userDatabase.write { db in
                 try T
+                  .unscoped
                   .where { #sql("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
                   .delete()
                   .execute(db)
@@ -1949,7 +1953,7 @@
           var columnNames: [String] = T.TableColumns.writableColumns.map(\.name)
           if !force,
             let allFields = metadata._lastKnownServerRecordAllFields,
-            let row = try T.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
+            let row = try T.unscoped.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
           {
             serverRecord.update(
               with: allFields,
