@@ -338,6 +338,35 @@
               END
               """,
               [22]: """
+              CREATE TRIGGER "sqlitedata_icloud_after_delete_on_scopedModels_from_sync_engine"
+              AFTER DELETE ON "scopedModels"
+              FOR EACH ROW WHEN "sqlitedata_icloud_syncEngineIsSynchronizingChanges"() BEGIN
+                DELETE FROM "sqlitedata_icloud_metadata"
+                WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('scopedModels')));
+              END
+              """,
+              [23]: """
+              CREATE TRIGGER "sqlitedata_icloud_after_delete_on_scopedModels_from_user"
+              AFTER DELETE ON "scopedModels"
+              FOR EACH ROW WHEN NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) BEGIN
+                WITH "rootShares" AS (
+                  SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                  FROM "sqlitedata_icloud_metadata"
+                  WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") IS (NULL)) AND (("sqlitedata_icloud_metadata"."recordType") IS (NULL)))
+                    UNION ALL
+                  SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                  FROM "sqlitedata_icloud_metadata"
+                  JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName") IS ("rootShares"."parentRecordName")
+                )
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
+                FROM "rootShares"
+                WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_isDeleted" = 1
+                WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('scopedModels')));
+              END
+              """,
+              [24]: """
               CREATE TRIGGER "sqlitedata_icloud_after_delete_on_sqlitedata_icloud_metadata"
               AFTER UPDATE OF "_isDeleted" ON "sqlitedata_icloud_metadata"
               FOR EACH ROW WHEN ((NOT ("old"."_isDeleted")) AND ("new"."_isDeleted")) AND (NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) BEGIN
@@ -357,7 +386,7 @@
                 )), "new"."share");
               END
               """,
-              [23]: """
+              [25]: """
               CREATE TRIGGER "sqlitedata_icloud_after_delete_on_tags_from_sync_engine"
               AFTER DELETE ON "tags"
               FOR EACH ROW WHEN "sqlitedata_icloud_syncEngineIsSynchronizingChanges"() BEGIN
@@ -365,7 +394,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."title")) AND (("sqlitedata_icloud_metadata"."recordType") = ('tags')));
               END
               """,
-              [24]: """
+              [26]: """
               CREATE TRIGGER "sqlitedata_icloud_after_delete_on_tags_from_user"
               AFTER DELETE ON "tags"
               FOR EACH ROW WHEN NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) BEGIN
@@ -386,7 +415,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."title")) AND (("sqlitedata_icloud_metadata"."recordType") = ('tags')));
               END
               """,
-              [25]: """
+              [27]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_childWithOnDeleteSetDefaults"
               AFTER INSERT ON "childWithOnDeleteSetDefaults"
               FOR EACH ROW BEGIN
@@ -412,7 +441,7 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [26]: """
+              [28]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_childWithOnDeleteSetNulls"
               AFTER INSERT ON "childWithOnDeleteSetNulls"
               FOR EACH ROW BEGIN
@@ -438,7 +467,7 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [27]: """
+              [29]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_modelAs"
               AFTER INSERT ON "modelAs"
               FOR EACH ROW BEGIN
@@ -460,7 +489,7 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [28]: """
+              [30]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_modelBs"
               AFTER INSERT ON "modelBs"
               FOR EACH ROW BEGIN
@@ -486,7 +515,7 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [29]: """
+              [31]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_modelCs"
               AFTER INSERT ON "modelCs"
               FOR EACH ROW BEGIN
@@ -512,7 +541,7 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [30]: """
+              [32]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_parents"
               AFTER INSERT ON "parents"
               FOR EACH ROW BEGIN
@@ -534,7 +563,7 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [31]: """
+              [33]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_reminderTags"
               AFTER INSERT ON "reminderTags"
               FOR EACH ROW BEGIN
@@ -556,7 +585,7 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [32]: """
+              [34]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_reminders"
               AFTER INSERT ON "reminders"
               FOR EACH ROW BEGIN
@@ -582,7 +611,7 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [33]: """
+              [35]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_remindersListAssets"
               AFTER INSERT ON "remindersListAssets"
               FOR EACH ROW BEGIN
@@ -608,7 +637,7 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [34]: """
+              [36]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_remindersListPrivates"
               AFTER INSERT ON "remindersListPrivates"
               FOR EACH ROW BEGIN
@@ -634,7 +663,7 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [35]: """
+              [37]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_remindersLists"
               AFTER INSERT ON "remindersLists"
               FOR EACH ROW BEGIN
@@ -656,7 +685,29 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [36]: """
+              [38]: """
+              CREATE TRIGGER "sqlitedata_icloud_after_insert_on_scopedModels"
+              AFTER INSERT ON "scopedModels"
+              FOR EACH ROW BEGIN
+                WITH "rootShares" AS (
+                  SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                  FROM "sqlitedata_icloud_metadata"
+                  WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") IS (NULL)) AND (("sqlitedata_icloud_metadata"."recordType") IS (NULL)))
+                    UNION ALL
+                  SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                  FROM "sqlitedata_icloud_metadata"
+                  JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName") IS ("rootShares"."parentRecordName")
+                )
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
+                FROM "rootShares"
+                WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
+                INSERT INTO "sqlitedata_icloud_metadata"
+                ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
+                SELECT "new"."id", 'scopedModels', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
+                ON CONFLICT DO NOTHING;
+              END
+              """,
+              [39]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_sqlitedata_icloud_metadata"
               AFTER INSERT ON "sqlitedata_icloud_metadata"
               FOR EACH ROW WHEN NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"()) BEGIN
@@ -665,7 +716,7 @@
                 SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", "new"."zoneName", "new"."ownerName", "new"."zoneName", "new"."ownerName", NULL);
               END
               """,
-              [37]: """
+              [40]: """
               CREATE TRIGGER "sqlitedata_icloud_after_insert_on_tags"
               AFTER INSERT ON "tags"
               FOR EACH ROW BEGIN
@@ -687,7 +738,7 @@
                 ON CONFLICT DO NOTHING;
               END
               """,
-              [38]: """
+              [41]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_childWithOnDeleteSetDefaults"
               AFTER UPDATE OF "id" ON "childWithOnDeleteSetDefaults"
               FOR EACH ROW WHEN ("old"."id") <> ("new"."id") BEGIN
@@ -708,7 +759,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetDefaults')));
               END
               """,
-              [39]: """
+              [42]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_childWithOnDeleteSetNulls"
               AFTER UPDATE OF "id" ON "childWithOnDeleteSetNulls"
               FOR EACH ROW WHEN ("old"."id") <> ("new"."id") BEGIN
@@ -729,7 +780,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetNulls')));
               END
               """,
-              [40]: """
+              [43]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_modelAs"
               AFTER UPDATE OF "id" ON "modelAs"
               FOR EACH ROW WHEN ("old"."id") <> ("new"."id") BEGIN
@@ -750,7 +801,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelAs')));
               END
               """,
-              [41]: """
+              [44]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_modelBs"
               AFTER UPDATE OF "id" ON "modelBs"
               FOR EACH ROW WHEN ("old"."id") <> ("new"."id") BEGIN
@@ -771,7 +822,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelBs')));
               END
               """,
-              [42]: """
+              [45]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_modelCs"
               AFTER UPDATE OF "id" ON "modelCs"
               FOR EACH ROW WHEN ("old"."id") <> ("new"."id") BEGIN
@@ -792,7 +843,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelCs')));
               END
               """,
-              [43]: """
+              [46]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_parents"
               AFTER UPDATE OF "id" ON "parents"
               FOR EACH ROW WHEN ("old"."id") <> ("new"."id") BEGIN
@@ -813,7 +864,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('parents')));
               END
               """,
-              [44]: """
+              [47]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_reminderTags"
               AFTER UPDATE OF "id" ON "reminderTags"
               FOR EACH ROW WHEN ("old"."id") <> ("new"."id") BEGIN
@@ -834,7 +885,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminderTags')));
               END
               """,
-              [45]: """
+              [48]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_reminders"
               AFTER UPDATE OF "id" ON "reminders"
               FOR EACH ROW WHEN ("old"."id") <> ("new"."id") BEGIN
@@ -855,7 +906,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminders')));
               END
               """,
-              [46]: """
+              [49]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_remindersListAssets"
               AFTER UPDATE OF "remindersListID" ON "remindersListAssets"
               FOR EACH ROW WHEN ("old"."remindersListID") <> ("new"."remindersListID") BEGIN
@@ -876,7 +927,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListAssets')));
               END
               """,
-              [47]: """
+              [50]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_remindersListPrivates"
               AFTER UPDATE OF "remindersListID" ON "remindersListPrivates"
               FOR EACH ROW WHEN ("old"."remindersListID") <> ("new"."remindersListID") BEGIN
@@ -897,7 +948,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListPrivates')));
               END
               """,
-              [48]: """
+              [51]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_remindersLists"
               AFTER UPDATE OF "id" ON "remindersLists"
               FOR EACH ROW WHEN ("old"."id") <> ("new"."id") BEGIN
@@ -918,7 +969,28 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersLists')));
               END
               """,
-              [49]: """
+              [52]: """
+              CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_scopedModels"
+              AFTER UPDATE OF "id" ON "scopedModels"
+              FOR EACH ROW WHEN ("old"."id") <> ("new"."id") BEGIN
+                WITH "rootShares" AS (
+                  SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                  FROM "sqlitedata_icloud_metadata"
+                  WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") IS (NULL)) AND (("sqlitedata_icloud_metadata"."recordType") IS (NULL)))
+                    UNION ALL
+                  SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                  FROM "sqlitedata_icloud_metadata"
+                  JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName") IS ("rootShares"."parentRecordName")
+                )
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
+                FROM "rootShares"
+                WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_isDeleted" = 1
+                WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('scopedModels')));
+              END
+              """,
+              [53]: """
               CREATE TRIGGER "sqlitedata_icloud_after_primary_key_change_on_tags"
               AFTER UPDATE OF "title" ON "tags"
               FOR EACH ROW WHEN ("old"."title") <> ("new"."title") BEGIN
@@ -939,7 +1011,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."title")) AND (("sqlitedata_icloud_metadata"."recordType") = ('tags')));
               END
               """,
-              [50]: """
+              [54]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_childWithOnDeleteSetDefaults"
               AFTER UPDATE ON "childWithOnDeleteSetDefaults"
               FOR EACH ROW BEGIN
@@ -972,7 +1044,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetDefaults')));
               END
               """,
-              [51]: """
+              [55]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_childWithOnDeleteSetNulls"
               AFTER UPDATE ON "childWithOnDeleteSetNulls"
               FOR EACH ROW BEGIN
@@ -1005,7 +1077,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetNulls')));
               END
               """,
-              [52]: """
+              [56]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelAs"
               AFTER UPDATE ON "modelAs"
               FOR EACH ROW BEGIN
@@ -1030,7 +1102,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelAs')));
               END
               """,
-              [53]: """
+              [57]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelBs"
               AFTER UPDATE ON "modelBs"
               FOR EACH ROW BEGIN
@@ -1063,7 +1135,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelBs')));
               END
               """,
-              [54]: """
+              [58]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelCs"
               AFTER UPDATE ON "modelCs"
               FOR EACH ROW BEGIN
@@ -1096,7 +1168,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelCs')));
               END
               """,
-              [55]: """
+              [59]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_parents"
               AFTER UPDATE ON "parents"
               FOR EACH ROW BEGIN
@@ -1121,7 +1193,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('parents')));
               END
               """,
-              [56]: """
+              [60]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_reminderTags"
               AFTER UPDATE ON "reminderTags"
               FOR EACH ROW BEGIN
@@ -1146,7 +1218,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminderTags')));
               END
               """,
-              [57]: """
+              [61]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_reminders"
               AFTER UPDATE ON "reminders"
               FOR EACH ROW BEGIN
@@ -1179,7 +1251,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminders')));
               END
               """,
-              [58]: """
+              [62]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersListAssets"
               AFTER UPDATE ON "remindersListAssets"
               FOR EACH ROW BEGIN
@@ -1212,7 +1284,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListAssets')));
               END
               """,
-              [59]: """
+              [63]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersListPrivates"
               AFTER UPDATE ON "remindersListPrivates"
               FOR EACH ROW BEGIN
@@ -1245,7 +1317,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListPrivates')));
               END
               """,
-              [60]: """
+              [64]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersLists"
               AFTER UPDATE ON "remindersLists"
               FOR EACH ROW BEGIN
@@ -1270,7 +1342,32 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersLists')));
               END
               """,
-              [61]: """
+              [65]: """
+              CREATE TRIGGER "sqlitedata_icloud_after_update_on_scopedModels"
+              AFTER UPDATE ON "scopedModels"
+              FOR EACH ROW BEGIN
+                WITH "rootShares" AS (
+                  SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                  FROM "sqlitedata_icloud_metadata"
+                  WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") IS (NULL)) AND (("sqlitedata_icloud_metadata"."recordType") IS (NULL)))
+                    UNION ALL
+                  SELECT "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."share" AS "share"
+                  FROM "sqlitedata_icloud_metadata"
+                  JOIN "rootShares" ON ("sqlitedata_icloud_metadata"."recordName") IS ("rootShares"."parentRecordName")
+                )
+                SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.write-permission-error')
+                FROM "rootShares"
+                WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
+                INSERT INTO "sqlitedata_icloud_metadata"
+                ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
+                SELECT "new"."id", 'scopedModels', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
+                ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "zoneName" = coalesce("sqlitedata_icloud_currentZoneName"(), "sqlitedata_icloud_metadata"."zoneName"), "ownerName" = coalesce("sqlitedata_icloud_currentOwnerName"(), "sqlitedata_icloud_metadata"."ownerName"), "parentRecordPrimaryKey" = NULL, "parentRecordType" = NULL, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('scopedModels')));
+              END
+              """,
+              [66]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_sqlitedata_icloud_metadata"
               AFTER UPDATE ON "sqlitedata_icloud_metadata"
               FOR EACH ROW WHEN (("old"."_isDeleted") = ("new"."_isDeleted")) AND (NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) BEGIN
@@ -1292,7 +1389,7 @@
                 ) END);
               END
               """,
-              [62]: """
+              [67]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_tags"
               AFTER UPDATE ON "tags"
               FOR EACH ROW BEGIN
@@ -1317,7 +1414,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."title")) AND (("sqlitedata_icloud_metadata"."recordType") = ('tags')));
               END
               """,
-              [63]: """
+              [68]: """
               CREATE TRIGGER "sqlitedata_icloud_after_zone_update_on_sqlitedata_icloud_metadata"
               AFTER UPDATE OF "zoneName", "ownerName" ON "sqlitedata_icloud_metadata"
               FOR EACH ROW WHEN (("new"."zoneName") <> ("old"."zoneName")) OR (("new"."ownerName") <> ("old"."ownerName")) BEGIN
