@@ -1,11 +1,13 @@
 #if canImport(CloudKit)
   import Clocks
   import CloudKit
+  import ConcurrencyExtrasTestSupport
   import DependenciesTestSupport
   import OrderedCollections
   import SQLiteData
   import SnapshotTesting
   import Testing
+import TestLocals
   import os
 
   @Suite(
@@ -15,7 +17,7 @@
       $0.continuousClock = TestClock<Duration>()
       $0.dataManager = InMemoryDataManager()
     },
-    .attachMetadatabase(false)
+    $attachMetadatabase.set(false)
   )
   class BaseCloudKitTests: @unchecked Sendable {
     let userDatabase: UserDatabase
@@ -49,14 +51,14 @@
       self.userDatabase = UserDatabase(
         database: try SQLiteDataTests.database(
           containerIdentifier: testContainerIdentifier,
-          attachMetadatabase: _AttachMetadatabaseTrait.attachMetadatabase
+          attachMetadatabase: attachMetadatabase
         )
       )
-      try await _PrepareDatabaseTrait.prepareDatabase(userDatabase)
+      try await prepareDatabase(userDatabase)
       let privateDatabase = MockCloudDatabase(databaseScope: .private)
       let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
       let container = MockCloudContainer(
-        accountStatus: _AccountStatusScope.accountStatus,
+        accountStatus: accountStatus,
         containerIdentifier: testContainerIdentifier,
         privateCloudDatabase: privateDatabase,
         sharedCloudDatabase: sharedDatabase
@@ -67,7 +69,7 @@
       _syncEngine = try await SyncEngine(
         container: container,
         userDatabase: self.userDatabase,
-        delegate: _SyncEngineDelegateTrait.syncEngineDelegate,
+        delegate: syncEngineDelegate,
         tables: Reminder.self,
         RemindersList.self,
         RemindersListAsset.self,
@@ -81,11 +83,9 @@
         ModelC.self,
         ScopedModel.self,
         privateTables: RemindersListPrivate.self,
-        startImmediately: _StartImmediatelyTrait.startImmediately
+        startImmediately: startImmediately
       )
-      if _StartImmediatelyTrait.startImmediately,
-        _AccountStatusScope.accountStatus == .available
-      {
+      if startImmediately, accountStatus == .available {
         await syncEngine.handleEvent(
           .accountChange(changeType: .signIn(currentUser: currentUserRecordID)),
           syncEngine: syncEngine.private

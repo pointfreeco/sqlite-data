@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
+  import ConcurrencyExtrasTestSupport
   import DependenciesTestSupport
   import InlineSnapshotTesting
   import SQLiteDataTestSupport
@@ -8,6 +9,7 @@
   import SnapshotTesting
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
   import os
 
   extension BaseCloudKitTests {
@@ -16,8 +18,7 @@
       @MainActor
       @Suite
       final class SyncEngineLifecycleTests_ImmediatelyStarted: BaseCloudKitTests,
-        @unchecked
-        Sendable
+        @unchecked Sendable
       {
         @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
         @Test func stopAndReStart() async throws {
@@ -581,7 +582,8 @@
         // * Start sync engine
         // * Verify that data is sent to CloudKit database and cached locally.
         @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-        @Test(.startImmediately(false)) func writeAndThenStart() async throws {
+        @Test($startImmediately.set(false))
+        func writeAndThenStart() async throws {
           try await userDatabase.userWrite { db in
             try db.seed {
               RemindersList(id: 1, title: "Personal")

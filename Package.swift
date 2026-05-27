@@ -29,7 +29,7 @@ let package = Package(
   dependencies: [
     .package(url: "https://github.com/apple/swift-collections", from: "1.0.0"),
     .package(url: "https://github.com/groue/GRDB.swift", from: "7.6.0"),
-    .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.0.0"),
+    .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.4.0"),
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.3"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
     .package(url: "https://github.com/pointfreeco/swift-perception", from: "2.0.0"),
@@ -69,6 +69,7 @@ let package = Package(
       dependencies: [
         "SQLiteData",
         .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
+        .product(name: "ConcurrencyExtrasTestSupport", package: "swift-concurrency-extras"),
         .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
@@ -80,12 +81,17 @@ let package = Package(
       dependencies: [
         "SQLiteData",
         "SQLiteDataTestSupport",
+        "TestLocals",
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
         .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
         .product(name: "SnapshotTestingCustomDump", package: "swift-snapshot-testing"),
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
       ]
     ),
+    .target(
+      name: "TestLocals",
+      dependencies: ["SQLiteData"]
+    )
   ],
   swiftLanguageModes: [.v6]
 )

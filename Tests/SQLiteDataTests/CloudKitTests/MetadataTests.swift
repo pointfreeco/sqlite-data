@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
+  import ConcurrencyExtrasTestSupport
   import CustomDump
   import SQLiteDataTestSupport
   import Foundation
@@ -8,6 +9,7 @@
   import SQLiteData
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
 
   extension BaseCloudKitTests {
     @MainActor
@@ -623,7 +625,7 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.attachMetadatabase(true))
+      @Test($attachMetadatabase.set(true))
       func observation() async throws {
         let remindersList = RemindersList(id: 1, title: "Personal")
         try await userDatabase.userWrite { db in
@@ -652,7 +654,7 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.attachMetadatabase(true))
+      @Test($attachMetadatabase.set(true))
       func observation_GeneratedColumn() async throws {
         let remindersList = RemindersList(id: 1, title: "Personal")
         try await userDatabase.userWrite { db in
