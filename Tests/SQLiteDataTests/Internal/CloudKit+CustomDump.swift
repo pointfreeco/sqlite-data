@@ -19,8 +19,14 @@
   }
 
   extension CKRecord {
-    @TaskLocal static var printTimestamps = false
-    @TaskLocal static var printRecordChangeTag = false
+    static let _$printTimestamps = TaskLocal(wrappedValue: false)
+    static let _$printRecordChangeTag = TaskLocal(wrappedValue: false)
+    static var printTimestamps: Bool {
+      _$printTimestamps.get()
+    }
+    static var printRecordChangeTag: Bool {
+      _$printRecordChangeTag.get()
+    }
   }
 
   @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)

@@ -1,4 +1,5 @@
 #if canImport(CloudKit)
+  import ConcurrencyExtrasTestSupport
   import CloudKit
   import CustomDump
   import Foundation
@@ -38,7 +39,8 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.accountStatus(.noAccount)) func signInUploadsLocalRecordsToCloudKit() async throws {
+      @Test(.taskLocal(_$accountStatus, .noAccount))
+      func signInUploadsLocalRecordsToCloudKit() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")
@@ -367,7 +369,8 @@
       _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, remindersListRecord])
       let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
       let freshRemindersListRecord = try syncEngine.shared.database.record(
-        for: remindersListRecord.recordID)
+        for: remindersListRecord.recordID
+      )
 
       try await syncEngine
         .acceptShare(
@@ -604,8 +607,8 @@
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test(
-      .accountStatus(.noAccount),
-      .prepareDatabase { userDatabase in
+      .taskLocal(_$accountStatus, .noAccount),
+      .taskLocal(_$prepareDatabase) { userDatabase in
         try await userDatabase.write { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")

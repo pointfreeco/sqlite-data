@@ -1,6 +1,7 @@
 #if canImport(CloudKit)
   import CloudKit
   import ConcurrencyExtras
+  import ConcurrencyExtrasTestSupport
   import CustomDump
   import InlineSnapshotTesting
   import OrderedCollections
@@ -11,7 +12,7 @@
 
   extension BaseCloudKitTests {
     @MainActor
-    @Suite(.attachMetadatabase(true))
+    @Suite(.taskLocal(_$attachMetadatabase, false))
     final class AttachedMetadatabaseTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func basics() async throws {

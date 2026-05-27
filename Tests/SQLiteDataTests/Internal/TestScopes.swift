@@ -3,176 +3,30 @@
   import Testing
   import SQLiteData
 
-  struct _PrepareDatabaseTrait: SuiteTrait, TestScoping, TestTrait {
-    @TaskLocal static var prepareDatabase: @Sendable (UserDatabase) async throws -> Void =
-      { _ in }
-    let prepareDatabase: @Sendable (UserDatabase) async throws -> Void
-    init(prepareDatabase: @escaping @Sendable (UserDatabase) async throws -> Void = { _ in }) {
-      self.prepareDatabase = prepareDatabase
-    }
-    func provideScope(
-      for test: Test,
-      testCase: Test.Case?,
-      performing function: () async throws -> Void
-    ) async throws {
-      try await Self.$prepareDatabase.withValue(prepareDatabase) {
-        try await function()
-      }
-    }
+  var prepareDatabase: @Sendable (UserDatabase) async throws -> Void {
+    _$prepareDatabase.get()
   }
+  let _$prepareDatabase = TaskLocal<@Sendable (UserDatabase) async throws -> Void>(
+    wrappedValue: { _ in }
+  )
 
-  extension Trait where Self == _PrepareDatabaseTrait {
-    static func prepareDatabase(
-      _ prepareDatabase: @escaping @Sendable (UserDatabase) async throws -> Void
-    ) -> Self {
-      Self(prepareDatabase: prepareDatabase)
-    }
+  var startImmediately: Bool {
+    _$startImmediately.get()
   }
+  let _$startImmediately = TaskLocal(wrappedValue: true)
 
-  struct _StartImmediatelyTrait: SuiteTrait, TestScoping, TestTrait {
-    @TaskLocal static var startImmediately = true
-    let startImmediately: Bool
-    init(startImmediately: Bool = true) {
-      self.startImmediately = startImmediately
-    }
-    func provideScope(
-      for test: Test,
-      testCase: Test.Case?,
-      performing function: () async throws -> Void
-    ) async throws {
-      try await Self.$startImmediately.withValue(startImmediately) {
-        try await function()
-      }
-    }
+  var attachMetadatabase: Bool {
+    _$attachMetadatabase.get()
   }
+  let _$attachMetadatabase = TaskLocal(wrappedValue: false)
 
-  extension Trait where Self == _StartImmediatelyTrait {
-    static func startImmediately(_ startImmediately: Bool) -> Self {
-      Self(startImmediately: startImmediately)
-    }
+  var accountStatus: CKAccountStatus {
+    _$accountStatus.get()
   }
+  let _$accountStatus = TaskLocal(wrappedValue: CKAccountStatus.available)
 
-  struct _AttachMetadatabaseTrait: SuiteTrait, TestScoping, TestTrait {
-    @TaskLocal static var attachMetadatabase = false
-    let attachMetadatabase: Bool
-    init(attachMetadatabase: Bool = false) {
-      self.attachMetadatabase = attachMetadatabase
-    }
-    func provideScope(
-      for test: Test,
-      testCase: Test.Case?,
-      performing function: () async throws -> Void
-    ) async throws {
-      try await Self.$attachMetadatabase.withValue(attachMetadatabase) {
-        try await function()
-      }
-    }
+  var syncEngineDelegate: (any SyncEngineDelegate)? {
+    _$syncEngineDelegate.get()
   }
-
-  extension Trait where Self == _AttachMetadatabaseTrait {
-    static var attachMetadatabase: Self { Self(attachMetadatabase: true) }
-    static func attachMetadatabase(_ attachMetadatabase: Bool) -> Self {
-      Self(attachMetadatabase: attachMetadatabase)
-    }
-  }
-
-  struct _AccountStatusScope: SuiteTrait, TestScoping, TestTrait {
-    @TaskLocal static var accountStatus = CKAccountStatus.available
-
-    let accountStatus: CKAccountStatus
-    init(_ accountStatus: CKAccountStatus = .available) {
-      self.accountStatus = accountStatus
-    }
-
-    func provideScope(
-      for test: Test,
-      testCase: Test.Case?,
-      performing function: @Sendable () async throws -> Void
-    ) async throws {
-      try await Self.$accountStatus.withValue(accountStatus) {
-        try await function()
-      }
-    }
-  }
-
-  extension Trait where Self == _AccountStatusScope {
-    static var accountStatus: Self { Self() }
-    static func accountStatus(_ accountStatus: CKAccountStatus) -> Self {
-      Self(accountStatus)
-    }
-  }
-
-  struct _SyncEngineDelegateTrait: SuiteTrait, TestScoping, TestTrait {
-    @TaskLocal static var syncEngineDelegate: (any SyncEngineDelegate)?
-    let syncEngineDelegate: (any SyncEngineDelegate)?
-    init(syncEngineDelegate: (any SyncEngineDelegate)?) {
-      self.syncEngineDelegate = syncEngineDelegate
-    }
-    func provideScope(
-      for test: Test,
-      testCase: Test.Case?,
-      performing function: () async throws -> Void
-    ) async throws {
-      try await Self.$syncEngineDelegate.withValue(syncEngineDelegate) {
-        try await function()
-      }
-    }
-  }
-
-  extension Trait where Self == _SyncEngineDelegateTrait {
-    static func syncEngineDelegate(
-      _ syncEngineDelegate: (any SyncEngineDelegate)?
-    ) -> Self {
-      Self(syncEngineDelegate: syncEngineDelegate)
-    }
-  }
-
-  struct _PrintRecordChangeTag: SuiteTrait, TestScoping, TestTrait {
-    let printRecordChangeTag: Bool
-    init(_ printRecordChangeTag: Bool = true) {
-      self.printRecordChangeTag = printRecordChangeTag
-    }
-
-    func provideScope(
-      for test: Test,
-      testCase: Test.Case?,
-      performing function: @Sendable () async throws -> Void
-    ) async throws {
-      try await CKRecord.$printRecordChangeTag.withValue(true) {
-        try await function()
-      }
-    }
-  }
-
-  extension Trait where Self == _PrintRecordChangeTag {
-    static var printRecordChangeTag: Self { Self() }
-    static func printRecordChangeTag(_ printRecordChangeTag: Bool) -> Self {
-      Self(printRecordChangeTag)
-    }
-  }
-
-  struct _PrintTimestampsScope: SuiteTrait, TestScoping, TestTrait {
-    let printTimestamps: Bool
-    init(_ printTimestamps: Bool = true) {
-      self.printTimestamps = printTimestamps
-    }
-
-    func provideScope(
-      for test: Test,
-      testCase: Test.Case?,
-      performing function: @Sendable () async throws -> Void
-    ) async throws {
-      try await CKRecord.$printTimestamps.withValue(true) {
-        try await function()
-      }
-    }
-  }
-
-  extension Trait where Self == _PrintTimestampsScope {
-    static var printTimestamps: Self { Self() }
-    static func printTimestamps(_ printTimestamps: Bool) -> Self {
-      Self(printTimestamps)
-    }
-  }
-
+  let _$syncEngineDelegate = TaskLocal<(any SyncEngineDelegate)?>(wrappedValue: nil)
 #endif
