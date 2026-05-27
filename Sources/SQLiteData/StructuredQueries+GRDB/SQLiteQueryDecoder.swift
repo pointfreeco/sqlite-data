@@ -1,5 +1,9 @@
 import Foundation
+#if GRDBCIPHER
+import SQLCipher
+#else
 import GRDBSQLite
+#endif
 import StructuredQueriesCore
 
 @usableFromInline

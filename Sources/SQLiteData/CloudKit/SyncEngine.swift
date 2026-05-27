@@ -756,7 +756,7 @@
       try tearDownSyncEngine()
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in
-          for table in tables {
+          for table in self.tables {
             func open<T>(_: some SynchronizableTable<T>) {
               withErrorReporting(.sqliteDataCloudKitFailure) {
                 try T.delete().execute(db)
@@ -764,7 +764,7 @@
             }
             open(table)
           }
-          try setUpSyncEngine(writableDB: db)
+          try self.setUpSyncEngine(writableDB: db)
         }
       }
       try await start()
@@ -1593,7 +1593,7 @@
               if let share = record as? CKShare {
                 shares.append(.share(share))
               } else {
-                upsertFromServerRecord(record, db: db)
+                self.upsertFromServerRecord(record, db: db)
                 if let shareReference = record.share {
                   shares.append(.reference(shareReference))
                 }
@@ -1897,7 +1897,7 @@
     ) async {
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in
-          upsertFromServerRecord(serverRecord, force: force, db: db)
+          self.upsertFromServerRecord(serverRecord, force: force, db: db)
         }
       }
     }

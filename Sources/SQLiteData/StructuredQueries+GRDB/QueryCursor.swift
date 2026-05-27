@@ -1,6 +1,10 @@
 import Foundation
 import GRDB
+#if GRDBCIPHER
+import SQLCipher
+#else
 import GRDBSQLite
+#endif
 import StructuredQueriesCore
 
 /// A cursor of a structured query.
