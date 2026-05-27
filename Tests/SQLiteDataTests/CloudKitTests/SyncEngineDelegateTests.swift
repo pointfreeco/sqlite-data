@@ -9,13 +9,14 @@
   import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
 
   extension BaseCloudKitTests {
     @MainActor
     final class SyncEngineDelegateTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 
-      @Test(.taskLocal(_$syncEngineDelegate, MyDelegate()))
+      @Test($syncEngineDelegate.set(MyDelegate()))
       func accountChanged() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
@@ -174,7 +175,7 @@
         try await syncEngine.processPendingDatabaseChanges(scope: .private)
       }
 
-      @Test(.taskLocal(_$syncEngineDelegate, DefaultImplementationDelegate()))
+      @Test($syncEngineDelegate.set(DefaultImplementationDelegate()))
       func accountChanged_DefaultImplementation() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {

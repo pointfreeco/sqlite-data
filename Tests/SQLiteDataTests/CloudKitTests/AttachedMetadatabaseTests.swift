@@ -9,10 +9,11 @@
   import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
 
   extension BaseCloudKitTests {
     @MainActor
-    @Suite(.taskLocal(_$attachMetadatabase, false))
+    @Suite($attachMetadatabase.set(false))
     final class AttachedMetadatabaseTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func basics() async throws {

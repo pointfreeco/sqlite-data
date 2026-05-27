@@ -7,6 +7,7 @@
   import SQLiteData
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
   import SQLiteDataTestSupport
 
   extension BaseCloudKitTests {
@@ -39,7 +40,7 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.taskLocal(_$accountStatus, .noAccount))
+      @Test($accountStatus.set(.noAccount))
       func signInUploadsLocalRecordsToCloudKit() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
@@ -607,8 +608,8 @@
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @Test(
-      .taskLocal(_$accountStatus, .noAccount),
-      .taskLocal(_$prepareDatabase) { userDatabase in
+      $accountStatus.set(.noAccount),
+      $prepareDatabase.set { userDatabase in
         try await userDatabase.write { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")
