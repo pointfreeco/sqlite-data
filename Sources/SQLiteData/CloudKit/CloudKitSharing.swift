@@ -1,7 +1,7 @@
 #if canImport(CloudKit)
   public import CloudKit
   import Dependencies
-  import SwiftUI
+  public import SwiftUI
 
   #if canImport(UIKit)
     import UIKit

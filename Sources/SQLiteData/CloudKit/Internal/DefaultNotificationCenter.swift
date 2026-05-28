@@ -1,5 +1,5 @@
 #if canImport(CloudKit) && canImport(UIKit)
-  import UIKit
+  public import UIKit
 
   private enum DefaultNotificationCenterKey: DependencyKey {
     static let liveValue = NotificationCenter.default
