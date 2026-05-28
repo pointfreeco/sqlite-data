@@ -69,7 +69,7 @@
     ///   [Apple's documentation](https://developer.apple.com/documentation/cloudkit/ckshare/systemfieldkey)
     ///   for more info on what can be configured.
     public func share<T: PrimaryKeyedTable>(
-      record: sending T,
+      record: T,
       configure: @Sendable (CKShare) -> Void
     ) async throws -> SharedRecord
     where T.TableColumns.PrimaryKey.QueryOutput: IdentifierStringConvertible {
@@ -118,7 +118,7 @@
         )
       }
       let recordName = record.recordName
-      let lastKnownServerRecord = try await {
+      let lastKnownServerRecord = try await { [rawIdentifier = record.primaryKey.rawIdentifier] in
         let lastKnownServerRecord =
           try await metadatabase.read { db in
             try SyncMetadata
@@ -130,7 +130,7 @@
         else {
           throw SharingError(
             recordTableName: T.tableName,
-            recordPrimaryKey: record.primaryKey.rawIdentifier,
+            recordPrimaryKey: rawIdentifier,
             reason: .recordMetadataNotFound,
             debugDescription: """
               No sync metadata found for record. Has the record been saved to the database \
