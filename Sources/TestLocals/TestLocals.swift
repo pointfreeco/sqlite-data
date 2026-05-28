@@ -1,7 +1,7 @@
 #if canImport(CloudKit)
-  import CloudKit
+  package import CloudKit
+  package import SQLiteData
   import Testing
-  import SQLiteData
 
   @TaskLocal package var prepareDatabase: @Sendable (UserDatabase) async throws -> Void = { _ in }
   @TaskLocal package var startImmediately = true

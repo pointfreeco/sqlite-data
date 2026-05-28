@@ -1,5 +1,5 @@
 #if canImport(CloudKit)
-  import CloudKit
+  public import CloudKit
   import Dependencies
   import SwiftUI
 
@@ -69,7 +69,7 @@
     ///   [Apple's documentation](https://developer.apple.com/documentation/cloudkit/ckshare/systemfieldkey)
     ///   for more info on what can be configured.
     public func share<T: PrimaryKeyedTable>(
-      record: T,
+      record: sending T,
       configure: @Sendable (CKShare) -> Void
     ) async throws -> SharedRecord
     where T.TableColumns.PrimaryKey.QueryOutput: IdentifierStringConvertible {

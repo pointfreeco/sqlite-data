@@ -1,5 +1,5 @@
 #if canImport(CloudKit)
-  import CloudKit
+  public import CloudKit
   import CryptoKit
   import StructuredQueriesCore
 

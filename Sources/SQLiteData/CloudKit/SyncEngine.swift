@@ -1,9 +1,9 @@
 #if canImport(CloudKit)
-  import CloudKit
+  public import CloudKit
   import ConcurrencyExtras
   import Dependencies
   import OrderedCollections
-  import OSLog
+  public import OSLog
   import Observation
   import StructuredQueriesCore
   import SwiftData

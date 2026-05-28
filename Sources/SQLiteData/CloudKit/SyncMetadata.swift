@@ -1,5 +1,5 @@
 #if canImport(CloudKit)
-  import CloudKit
+  public import CloudKit
 
   /// A table that tracks metadata related to synchronized data.
   ///

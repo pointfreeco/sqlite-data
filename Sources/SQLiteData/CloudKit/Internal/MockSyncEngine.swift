@@ -1,7 +1,7 @@
 #if canImport(CloudKit)
-  import CloudKit
+  package import CloudKit
   import IssueReporting
-  import OrderedCollections
+  package import OrderedCollections
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockSyncEngine: SyncEngineProtocol {

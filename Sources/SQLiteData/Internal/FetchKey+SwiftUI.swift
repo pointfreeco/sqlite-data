@@ -1,6 +1,6 @@
 #if canImport(SwiftUI)
   import Sharing
-  import SwiftUI
+  package import SwiftUI
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SharedReaderKey {

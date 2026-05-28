@@ -4,10 +4,10 @@
   import ConcurrencyExtrasTestSupport
   import DependenciesTestSupport
   import OrderedCollections
-  import SQLiteData
+  public import SQLiteData
   import SnapshotTesting
   import Testing
-import TestLocals
+  import TestLocals
   import os
 
   @Suite(

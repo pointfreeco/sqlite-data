@@ -2,7 +2,7 @@ import CustomDump
 import Dependencies
 import Foundation
 import InlineSnapshotTesting
-import SQLiteData
+public import SQLiteData
 import StructuredQueriesCore
 import StructuredQueriesTestSupport
 

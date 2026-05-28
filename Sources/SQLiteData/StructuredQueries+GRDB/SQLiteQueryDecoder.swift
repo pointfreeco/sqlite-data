@@ -1,5 +1,5 @@
-import Foundation
-import GRDBSQLite
+public import Foundation
+public import GRDBSQLite
 import StructuredQueriesCore
 
 @usableFromInline

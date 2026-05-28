@@ -1,5 +1,5 @@
 #if canImport(CloudKit)
-  import CloudKit
+  package import CloudKit
   import StructuredQueriesCore
 
   @Table("sqlitedata_icloud_unsyncedRecordIDs")

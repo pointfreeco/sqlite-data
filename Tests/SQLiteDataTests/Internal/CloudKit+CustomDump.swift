@@ -1,6 +1,6 @@
 #if canImport(CloudKit)
-  import CustomDump
-  import CloudKit
+  public import CustomDump
+  public import CloudKit
   import SQLiteData
 
   extension CKDatabase.Scope: @retroactive CustomDumpStringConvertible {
