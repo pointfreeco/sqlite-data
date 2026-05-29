@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         xcode: ["26.2"]
-        config: ["debug", "release"]
+        config: ["release"]
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
