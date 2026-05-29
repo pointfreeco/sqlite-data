@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   import StructuredQueries
+  public import StructuredQueriesCore
 
   @Table
   struct PragmaDatabaseList {
