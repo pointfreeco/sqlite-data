@@ -1,4 +1,5 @@
 #if canImport(CloudKit) && canImport(UIKit)
+  import Dependencies
   package import UIKit
 
   private enum DefaultNotificationCenterKey: DependencyKey {

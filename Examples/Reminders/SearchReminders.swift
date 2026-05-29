@@ -1,3 +1,4 @@
+import GRDB
 import IssueReporting
 import SQLiteData
 import SwiftUI

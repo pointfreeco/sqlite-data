@@ -1,8 +1,8 @@
 #if canImport(CloudKit)
   public import CloudKit
-  import Dependencies
+  public import Dependencies
   import GRDB
-  import SwiftUI
+  public import SwiftUI
   public import StructuredQueries
 
   #if canImport(UIKit)

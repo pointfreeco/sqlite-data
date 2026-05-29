@@ -21,8 +21,10 @@ jobs:
       - uses: actions/checkout@v5
       - name: Select Xcode ${{ matrix.xcode }}
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
+      - name: Build ${{ matrix.config }} without exports
+        run: swift build -c ${{ matrix.config }} -Xswiftc -D -Xswiftc EXCLUDE_EXPORTS
       - name: Run ${{ matrix.config }} tests
-        run: swift test -c ${{ matrix.config }} -Xswiftc -D -Xswiftc EXCLUDE_EXPORTS
+        run: swift test -c ${{ matrix.config }}
 
   examples:
     name: Examples
