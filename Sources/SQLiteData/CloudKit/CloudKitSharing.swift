@@ -2,11 +2,11 @@
   public import CloudKit
   import Dependencies
   import GRDB
-  import SwiftUI
+  public import SwiftUI
   public import StructuredQueries
 
   #if canImport(UIKit)
-    import UIKit
+    public import UIKit
   #endif
 
   /// A shared record that can be used to present a ``CloudSharingView``.
