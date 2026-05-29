@@ -63,7 +63,9 @@ class RemindersSyncEngineDelegate: SyncEngineDelegate {
     case .signIn:
       break
     case .signOut, .switchAccounts:
-      isDeleteLocalDataAlertPresented = true
+      await MainActor.run {
+        isDeleteLocalDataAlertPresented = true
+      }
     @unknown default:
       break
     }
