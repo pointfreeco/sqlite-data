@@ -104,7 +104,6 @@ for target in package.targets {
     .enableUpcomingFeature("InferIsolatedConformances"),
     .enableUpcomingFeature("InternalImportsByDefault"),
     .enableUpcomingFeature("MemberImportVisibility"),
-    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
   ])
   #if compiler(>=6.4)
     target.swiftSettings?.append(contentsOf: [
