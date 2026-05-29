@@ -3,7 +3,7 @@ import Dependencies
 import Foundation
 public import GRDB
 import InlineSnapshotTesting
-public import SQLiteData
+import SQLiteData
 public import StructuredQueriesCore
 import StructuredQueriesTestSupport
 

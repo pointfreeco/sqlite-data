@@ -2,7 +2,7 @@
   public import CloudKit
   import Dependencies
   import GRDB
-  public import SwiftUI
+  import SwiftUI
   public import StructuredQueries
 
   #if canImport(UIKit)
@@ -264,7 +264,7 @@
     public struct CloudSharingView: View {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
-      let didFinish: (Result<Void, Error>) -> Void
+      let didFinish: (Result<Void, any Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
       @Dependency(\.context) var context
@@ -272,7 +272,7 @@
       public init(
         sharedRecord: SharedRecord,
         availablePermissions: UICloudSharingController.PermissionOptions = [],
-        didFinish: @escaping (Result<Void, Error>) -> Void = { _ in },
+        didFinish: @escaping (Result<Void, any Error>) -> Void = { _ in },
         didStopSharing: @escaping () -> Void = {},
         syncEngine: SyncEngine = {
           @Dependency(\.defaultSyncEngine) var defaultSyncEngine
@@ -383,13 +383,13 @@
     private struct CloudSharingViewRepresentable: UIViewControllerRepresentable {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
-      let didFinish: (Result<Void, Error>) -> Void
+      let didFinish: (Result<Void, any Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
       public init(
         sharedRecord: SharedRecord,
         availablePermissions: UICloudSharingController.PermissionOptions = [],
-        didFinish: @escaping (Result<Void, Error>) -> Void = { _ in },
+        didFinish: @escaping (Result<Void, any Error>) -> Void = { _ in },
         didStopSharing: @escaping () -> Void = {},
         syncEngine: SyncEngine = {
           @Dependency(\.defaultSyncEngine) var defaultSyncEngine
@@ -432,12 +432,12 @@
     @available(iOS 17, macOS 14, tvOS 17, *)
     public final class _CloudSharingDelegate: NSObject, UICloudSharingControllerDelegate {
       let share: CKShare
-      let didFinish: (Result<Void, Error>) -> Void
+      let didFinish: (Result<Void, any Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
       init(
         share: CKShare,
-        didFinish: @escaping (Result<Void, Error>) -> Void,
+        didFinish: @escaping (Result<Void, any Error>) -> Void,
         didStopSharing: @escaping () -> Void,
         syncEngine: SyncEngine
       ) {

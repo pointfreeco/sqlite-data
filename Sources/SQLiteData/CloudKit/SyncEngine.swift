@@ -8,7 +8,7 @@
   public import OSLog
   import Observation
   public import StructuredQueries
-  public import StructuredQueriesSQLite
+  import StructuredQueriesSQLite
   import SwiftData
   import TabularData
 

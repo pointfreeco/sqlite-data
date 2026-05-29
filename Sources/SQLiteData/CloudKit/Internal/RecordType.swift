@@ -1,5 +1,5 @@
 #if canImport(CloudKit)
-  public import StructuredQueries
+  import StructuredQueries
 
   @Table("sqlitedata_icloud_recordTypes")
   package struct RecordType: Hashable {
