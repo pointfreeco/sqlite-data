@@ -7,6 +7,7 @@
   import InlineSnapshotTesting
   import SQLiteData
   import SnapshotTestingCustomDump
+  import StructuredQueries
   import Testing
   import TestLocals
 

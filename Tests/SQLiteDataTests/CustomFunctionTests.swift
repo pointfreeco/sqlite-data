@@ -1,5 +1,8 @@
 import Foundation
+import GRDB
 import SQLiteData
+import StructuredQueries
+import StructuredQueriesSQLite
 import Testing
 
 @Suite struct CustomFunctionsTests {

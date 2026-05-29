@@ -1,11 +1,14 @@
 #if canImport(CloudKit)
   public import CloudKit
-  import ConcurrencyExtras
+  package import ConcurrencyExtras
   import Dependencies
+  public import GRDB
+  public import IssueReporting
   import OrderedCollections
   public import OSLog
   import Observation
-  import StructuredQueriesCore
+  public import StructuredQueries
+  public import StructuredQueriesSQLite
   import SwiftData
   import TabularData
 

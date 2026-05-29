@@ -1,5 +1,7 @@
 import Foundation
+import GRDB
 import SQLiteData
+import StructuredQueries
 import Testing
 
 @Suite struct MigrationTests {

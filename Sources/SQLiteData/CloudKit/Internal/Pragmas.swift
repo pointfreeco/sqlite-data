@@ -1,4 +1,6 @@
 #if canImport(CloudKit)
+  package import StructuredQueries
+
   @Table
   struct PragmaDatabaseList {
     static var tableAlias: String? { "databases" }

@@ -1,6 +1,9 @@
 #if canImport(CloudKit)
+  import Dependencies
   import Foundation
+  import GRDB
   import SQLiteData
+  import StructuredQueries
   import Testing
 
   @Suite struct UserlandTests {

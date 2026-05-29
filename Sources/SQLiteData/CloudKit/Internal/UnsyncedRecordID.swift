@@ -1,6 +1,6 @@
 #if canImport(CloudKit)
   package import CloudKit
-  import StructuredQueriesCore
+  package import StructuredQueries
 
   @Table("sqlitedata_icloud_unsyncedRecordIDs")
   package struct UnsyncedRecordID: Equatable {

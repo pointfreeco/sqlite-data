@@ -1,6 +1,9 @@
+import Dependencies
 import DependenciesTestSupport
 import Foundation
+import GRDB
 import SQLiteData
+import StructuredQueries
 import Testing
 
 #if canImport(SwiftUI)

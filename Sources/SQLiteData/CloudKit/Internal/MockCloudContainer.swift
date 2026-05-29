@@ -1,5 +1,7 @@
 #if canImport(CloudKit)
+  package import ConcurrencyExtras
   package import CloudKit
+  import Dependencies
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockCloudContainer: CloudContainer {

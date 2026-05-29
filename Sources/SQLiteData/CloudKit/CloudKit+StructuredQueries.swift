@@ -1,7 +1,9 @@
 #if canImport(CloudKit)
   public import CloudKit
   import CryptoKit
-  import StructuredQueriesCore
+  import Dependencies
+  import IssueReporting
+  public import StructuredQueriesCore
 
   extension CKRecord {
     public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<CKRecord>

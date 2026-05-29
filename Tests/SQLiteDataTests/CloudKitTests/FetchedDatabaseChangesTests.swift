@@ -6,6 +6,7 @@
   import OrderedCollections
   import SQLiteData
   import SnapshotTestingCustomDump
+  import StructuredQueries
   import Testing
 
   extension BaseCloudKitTests {

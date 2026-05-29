@@ -1,9 +1,10 @@
 import CustomDump
 import Dependencies
 import Foundation
+public import GRDB
 import InlineSnapshotTesting
 public import SQLiteData
-import StructuredQueriesCore
+public import StructuredQueriesCore
 import StructuredQueriesTestSupport
 
 /// An end-to-end snapshot testing helper for database content.

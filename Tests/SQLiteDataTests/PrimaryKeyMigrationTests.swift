@@ -1,11 +1,15 @@
+import Dependencies
 import DependenciesTestSupport
 import Foundation
+import GRDB
 import InlineSnapshotTesting
 import SQLite3
 import SQLiteData
 import SQLiteDataTestSupport
 import SnapshotTesting
 import SnapshotTestingCustomDump
+import StructuredQueries
+import StructuredQueriesSQLite
 import Testing
 
 @MainActor

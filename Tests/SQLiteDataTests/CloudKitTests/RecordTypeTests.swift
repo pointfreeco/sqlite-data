@@ -2,9 +2,12 @@
   import CloudKit
   import ConcurrencyExtras
   import CustomDump
+  import Dependencies
+  import GRDB 
   import InlineSnapshotTesting
   import SQLiteData
   import SnapshotTestingCustomDump
+  import StructuredQueries
   import Testing
 
   extension BaseCloudKitTests {

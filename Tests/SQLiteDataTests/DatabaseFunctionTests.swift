@@ -1,7 +1,9 @@
 import DependenciesTestSupport
 import Foundation
+import GRDB
 import SQLiteData
 import SQLiteDataTestSupport
+import StructuredQueriesSQLite
 import Testing
 
 struct DatabaseFunctionTests {

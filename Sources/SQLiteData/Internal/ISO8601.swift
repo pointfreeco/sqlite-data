@@ -1,4 +1,5 @@
 public import Foundation
+import StructuredQueriesCore
 
 extension Date {
   @usableFromInline

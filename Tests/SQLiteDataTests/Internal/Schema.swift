@@ -1,4 +1,6 @@
 import Foundation
+import GRDB
+import StructuredQueries
 import SQLiteData
 
 // NB: The IDs in this schema are integers for ease of testing. You should _not_ use integer IDs

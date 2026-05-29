@@ -1,3 +1,6 @@
+public import GRDB
+public import Sharing
+public import StructuredQueriesCore
 public import Sharing
 
 #if canImport(Combine)

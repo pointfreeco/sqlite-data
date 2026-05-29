@@ -1,4 +1,5 @@
 #if canImport(CloudKit)
+  package import ConcurrencyExtras
   package import CloudKit
   import IssueReporting
   package import OrderedCollections

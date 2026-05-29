@@ -1,4 +1,5 @@
 #if canImport(CloudKit) && canImport(CryptoKit)
+  package import ConcurrencyExtras
   import CryptoKit
   import Dependencies
   package import Foundation

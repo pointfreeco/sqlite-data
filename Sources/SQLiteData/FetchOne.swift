@@ -1,4 +1,6 @@
+public import GRDB
 public import Sharing
+public import StructuredQueriesCore
 
 #if canImport(Combine)
   public import Combine
@@ -82,13 +84,13 @@ public struct FetchOne<Value: Sendable>: Sendable {
   /// Initializes this property with a wrapped value.
   ///
   /// - Parameter wrappedValue: A default value to associate with this property.
-  public init(wrappedValue: sending Value)
-  where
-    Value: _Selection,
-    Value.QueryOutput == Value
-  {
-    sharedReader = SharedReader(value: wrappedValue)
-  }
+//  public init(wrappedValue: sending Value)
+//  where
+//    Value: _Selection,
+//    Value.QueryOutput == Value
+//  {
+//    sharedReader = SharedReader(value: wrappedValue)
+//  }
 
   /// Initializes this property with a query that fetches the first row from a table.
   ///

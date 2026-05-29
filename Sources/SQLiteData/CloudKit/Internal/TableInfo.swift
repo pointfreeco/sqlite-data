@@ -1,5 +1,5 @@
 #if canImport(CloudKit)
-  import StructuredQueriesCore
+  package import StructuredQueries
 
   @Table
   package struct TableInfo: Codable, Hashable {

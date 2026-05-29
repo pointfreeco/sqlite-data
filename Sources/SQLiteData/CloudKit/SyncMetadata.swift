@@ -1,5 +1,7 @@
 #if canImport(CloudKit)
   public import CloudKit
+  import StructuredQueries
+  public import StructuredQueriesCore
 
   /// A table that tracks metadata related to synchronized data.
   ///
