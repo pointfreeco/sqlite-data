@@ -13,11 +13,12 @@
       open "\(url.path(percentEncoded: false))"
       """
     )
-    try FileManager.default.createDirectory(
-      at: .applicationSupportDirectory,
-      withIntermediateDirectories: true
-    )
-
+    #if !os(tvOS)
+      try FileManager.default.createDirectory(
+        at: .applicationSupportDirectory,
+        withIntermediateDirectories: true
+      )
+    #endif
     @Dependency(\.context) var context
     guard !url.isInMemory || context != .live
     else {
