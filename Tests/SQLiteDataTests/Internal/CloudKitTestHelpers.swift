@@ -77,7 +77,7 @@ extension SyncEngine {
     let recordsToDeleteByID = Dictionary(
       grouping: syncEngine.database.state.withValue { state in
         recordIDsToDelete.compactMap {
-          recordID in state.storage[recordID.zoneID]?.records[recordID]
+          recordID in state.storage[recordID.zoneID]?.entries[recordID]?.record
         }
       },
       by: \.recordID
