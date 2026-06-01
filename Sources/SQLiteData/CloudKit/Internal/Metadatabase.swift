@@ -141,13 +141,6 @@
         """
       )
       .execute(db)
-      try #sql(
-        """
-        ALTER TABLE "\(raw: .sqliteDataCloudKitSchemaName)_metadata"
-        DROP COLUMN "_isDeleted"
-        """
-      )
-      .execute(db)
     }
     #if DEBUG
       try metadatabase.read { db in
