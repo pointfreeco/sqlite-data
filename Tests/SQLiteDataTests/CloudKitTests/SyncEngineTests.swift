@@ -1,15 +1,11 @@
 #if canImport(CloudKit)
   import CloudKit
   import CustomDump
-  import Dependencies
   import DependenciesTestSupport
   import Foundation
-  import GRDB
   import InlineSnapshotTesting
   import SQLiteData
   import SnapshotTestingCustomDump
-  import StructuredQueries
-  import StructuredQueriesSQLite
   import Testing
 
   extension BaseCloudKitTests {

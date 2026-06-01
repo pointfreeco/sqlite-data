@@ -1,6 +1,4 @@
 import SQLiteData
-import StructuredQueries
-import StructuredQueriesSQLite
 
 #if canImport(CloudKit)
   import CloudKit

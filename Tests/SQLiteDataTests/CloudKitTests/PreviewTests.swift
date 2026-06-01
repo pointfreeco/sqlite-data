@@ -1,10 +1,8 @@
 #if DEBUG && canImport(DeveloperToolsSupport) && canImport(CloudKit)
-  import Dependencies
   import DependenciesTestSupport
   import InlineSnapshotTesting
   import SnapshotTestingCustomDump
   import SQLiteData
-  import StructuredQueries
   import Testing
 
   extension BaseCloudKitTests {

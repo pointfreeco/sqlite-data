@@ -1,9 +1,8 @@
-package import CloudKit
+import CloudKit
 import ConcurrencyExtras
 import CustomDump
-package import OrderedCollections
-package import SQLiteData
-import StructuredQueries
+import OrderedCollections
+import SQLiteData
 import Testing
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

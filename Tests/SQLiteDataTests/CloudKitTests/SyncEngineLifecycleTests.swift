@@ -1,7 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
   import ConcurrencyExtrasTestSupport
-  import Dependencies
   import DependenciesTestSupport
   import InlineSnapshotTesting
   import SQLiteDataTestSupport
@@ -9,7 +8,6 @@
   import SQLiteData
   import SnapshotTesting
   import SnapshotTestingCustomDump
-  import StructuredQueries
   import Testing
   import TestLocals
   import os

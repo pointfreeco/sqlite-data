@@ -2,14 +2,12 @@
   import CloudKit
   import ConcurrencyExtrasTestSupport
   import CustomDump
-  import Dependencies
   import SQLiteDataTestSupport
   import Foundation
   import InlineSnapshotTesting
   import OrderedCollections
   import SQLiteData
   import SnapshotTestingCustomDump
-  import StructuredQueries
   import Testing
   import TestLocals
 

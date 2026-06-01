@@ -1,6 +1,4 @@
-import GRDB
 import SQLiteData
-import StructuredQueries
 import Testing
 
 @Suite struct QueryCursorTests {

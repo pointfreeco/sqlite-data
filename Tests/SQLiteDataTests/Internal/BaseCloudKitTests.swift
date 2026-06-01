@@ -2,15 +2,12 @@
   import Clocks
   import CloudKit
   import ConcurrencyExtrasTestSupport
-  import Dependencies
   import DependenciesTestSupport
-  import GRDB
   import OrderedCollections
-  public import SQLiteData
+  import SQLiteData
   import SnapshotTesting
-  import StructuredQueries
   import Testing
-  import TestLocals
+import TestLocals
   import os
 
   @Suite(
