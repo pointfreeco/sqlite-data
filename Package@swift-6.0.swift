@@ -76,9 +76,13 @@ for target in package.targets {
     .enableUpcomingFeature("ExistentialAny"),
     .enableUpcomingFeature("ImmutableWeakCaptures"),
     .enableUpcomingFeature("InferIsolatedConformances"),
-    .enableUpcomingFeature("InternalImportsByDefault"),
-    .enableUpcomingFeature("MemberImportVisibility"),
   ])
+  if target.type != .test {
+    target.swiftSettings?.append(contentsOf: [
+      .enableUpcomingFeature("InternalImportsByDefault"),
+      .enableUpcomingFeature("MemberImportVisibility"),
+    ])
+  }
   #if compiler(>=6.4)
     target.swiftSettings?.append(contentsOf: [
       .treatAllWarnings(as: .error)
