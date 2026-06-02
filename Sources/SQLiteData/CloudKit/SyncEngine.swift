@@ -2243,10 +2243,6 @@
         containerIdentifier: containerIdentifier
       )
       let path = url.isInMemory ? url.absoluteString : url.path(percentEncoded: false)
-      try FileManager.default.createDirectory(
-        at: .applicationSupportDirectory,
-        withIntermediateDirectories: true
-      )
       let database: any DatabaseWriter =
         url.isInMemory
         ? try DatabaseQueue(path: path)
