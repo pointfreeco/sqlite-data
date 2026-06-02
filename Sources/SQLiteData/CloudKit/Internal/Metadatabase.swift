@@ -1,6 +1,9 @@
 #if canImport(CloudKit)
+  import Dependencies
+  import GRDB
   import Foundation
   import os
+  import StructuredQueries
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   func defaultMetadatabase(

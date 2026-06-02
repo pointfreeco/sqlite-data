@@ -1,6 +1,9 @@
 #if canImport(CloudKit) && canImport(CryptoKit)
   import CryptoKit
-  import Foundation
+  public import Foundation
+  public import class GRDB.Database
+  public import StructuredQueriesCore
+  public import StructuredQueriesSQLite
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {

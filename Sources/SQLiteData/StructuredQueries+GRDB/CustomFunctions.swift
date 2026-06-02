@@ -1,5 +1,7 @@
 import Foundation
+public import class GRDB.Database
 import GRDBSQLite
+public import StructuredQueriesSQLiteCore
 
 extension Database {
   /// Adds a user-defined scalar `@DatabaseFunction` to a connection.

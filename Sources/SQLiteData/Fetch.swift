@@ -1,10 +1,13 @@
-import Sharing
+public import GRDB
+public import Sharing
+import StructuredQueriesCore
+public import Sharing
 
 #if canImport(Combine)
-  import Combine
+  public import Combine
 #endif
 #if canImport(SwiftUI)
-  import SwiftUI
+  public import SwiftUI
 #endif
 
 /// A property that can query for data in a SQLite database.

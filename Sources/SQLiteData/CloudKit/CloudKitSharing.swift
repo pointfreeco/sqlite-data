@@ -1,10 +1,12 @@
 #if canImport(CloudKit)
-  import CloudKit
-  import Dependencies
-  import SwiftUI
+  public import CloudKit
+  public import Dependencies
+  import GRDB
+  public import SwiftUI
+  public import StructuredQueries
 
   #if canImport(UIKit)
-    import UIKit
+    public import UIKit
   #endif
 
   /// A shared record that can be used to present a ``CloudSharingView``.
@@ -118,7 +120,7 @@
         )
       }
       let recordName = record.recordName
-      let lastKnownServerRecord = try await {
+      let lastKnownServerRecord = try await { [rawIdentifier = record.primaryKey.rawIdentifier] in
         let lastKnownServerRecord =
           try await metadatabase.read { db in
             try SyncMetadata
@@ -130,7 +132,7 @@
         else {
           throw SharingError(
             recordTableName: T.tableName,
-            recordPrimaryKey: record.primaryKey.rawIdentifier,
+            recordPrimaryKey: rawIdentifier,
             reason: .recordMetadataNotFound,
             debugDescription: """
               No sync metadata found for record. Has the record been saved to the database \
@@ -262,7 +264,7 @@
     public struct CloudSharingView: View {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
-      let didFinish: (Result<Void, Error>) -> Void
+      let didFinish: (Result<Void, any Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
       @Dependency(\.context) var context
@@ -270,7 +272,7 @@
       public init(
         sharedRecord: SharedRecord,
         availablePermissions: UICloudSharingController.PermissionOptions = [],
-        didFinish: @escaping (Result<Void, Error>) -> Void = { _ in },
+        didFinish: @escaping (Result<Void, any Error>) -> Void = { _ in },
         didStopSharing: @escaping () -> Void = {},
         syncEngine: SyncEngine = {
           @Dependency(\.defaultSyncEngine) var defaultSyncEngine
@@ -381,13 +383,13 @@
     private struct CloudSharingViewRepresentable: UIViewControllerRepresentable {
       let sharedRecord: SharedRecord
       let availablePermissions: UICloudSharingController.PermissionOptions
-      let didFinish: (Result<Void, Error>) -> Void
+      let didFinish: (Result<Void, any Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
       public init(
         sharedRecord: SharedRecord,
         availablePermissions: UICloudSharingController.PermissionOptions = [],
-        didFinish: @escaping (Result<Void, Error>) -> Void = { _ in },
+        didFinish: @escaping (Result<Void, any Error>) -> Void = { _ in },
         didStopSharing: @escaping () -> Void = {},
         syncEngine: SyncEngine = {
           @Dependency(\.defaultSyncEngine) var defaultSyncEngine
@@ -430,12 +432,12 @@
     @available(iOS 17, macOS 14, tvOS 17, *)
     public final class _CloudSharingDelegate: NSObject, UICloudSharingControllerDelegate {
       let share: CKShare
-      let didFinish: (Result<Void, Error>) -> Void
+      let didFinish: (Result<Void, any Error>) -> Void
       let didStopSharing: () -> Void
       let syncEngine: SyncEngine
       init(
         share: CKShare,
-        didFinish: @escaping (Result<Void, Error>) -> Void,
+        didFinish: @escaping (Result<Void, any Error>) -> Void,
         didStopSharing: @escaping () -> Void,
         syncEngine: SyncEngine
       ) {

@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   import Dependencies
+  package import GRDB
 
   package struct UserDatabase {
     package let database: any DatabaseWriter

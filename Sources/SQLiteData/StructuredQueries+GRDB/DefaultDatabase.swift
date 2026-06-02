@@ -1,4 +1,5 @@
-import Dependencies
+public import Dependencies
+public import GRDB
 import Foundation
 
 /// Prepares a context-sensitive database writer.
