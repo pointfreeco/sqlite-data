@@ -931,17 +931,17 @@ SQLiteData has only one of these limitations:
 * Unique constraints on columns (except for the primary key) cannot be upheld on a distributed
 schema. For example, if you have a `Tag` table with a unique `title` column, then what
 are you to do if two different devices create a tag with the title "family" at the same time?
-See <doc:CloudKit#Uniqueness-constraints> for more information.
+See <doc:CloudKitSync#Uniqueness-constraints> for more information.
 * Columns on freshly created tables do not need to have default values or be nullable. Only
 newly added columns to existing tables need to either be nullable or have a default. See
-<doc:CloudKit#Adding-columns> for more info.
+<doc:CloudKitSync#Adding-columns> for more info.
 * Relationships on freshly created do not need to be nullable. Only newly added columns to
-existing tables need to be nullable. See <doc:CloudKit#Adding-columns> for more info.
+existing tables need to be nullable. See <doc:CloudKitSync#Adding-columns> for more info.
 
 For more information about requirements of your schema in order to use CloudKit synchronization,
-see <doc:CloudKit#Designing-your-schema-with-synchronization-in-mind> and
-<doc:CloudKit#Backwards-compatible-migrations>, and for more general
-information about CloudKit synchronization, see <doc:CloudKit>.
+see <doc:CloudKitSync#Designing-your-schema-with-synchronization-in-mind> and
+<doc:CloudKitSync#Backwards-compatible-migrations>, and for more general
+information about CloudKit synchronization, see <doc:CloudKitSync>.
 
 ### Supported Apple platforms
 

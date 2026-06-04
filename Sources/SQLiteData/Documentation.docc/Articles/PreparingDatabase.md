@@ -303,4 +303,4 @@ func feature() {
 
 If you plan on synchronizing your local database to CloudKit so that your user's data is available
 on all of their devices, there is an additional step you must take. See
-<doc:CloudKit> for more information.
+<doc:CloudKitSync> for more information.

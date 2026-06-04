@@ -8,7 +8,7 @@ Learn how to add SQLiteData to an existing app that uses GRDB.
 to interact with SQLite under the hood, such as performing queries and observing changes to the
 database. If you have an existing application using GRDB, and would like to use the tools of this
 library, such as [`@FetchAll`](<doc:FetchAll>), the SQL query builder, and
-[CloudKit synchronization](<doc:CloudKit>), then there are a few steps you must take.
+[CloudKit synchronization](<doc:CloudKitSync>), then there are a few steps you must take.
 
 ## Replace PersistableRecord and FetchableRecord with @Table
 
@@ -169,7 +169,7 @@ try Reminder.insert {
 
 ## CloudKit synchronization
 
-The library's [CloudKit](<doc:CloudKit>) synchronization tools require that the tables being
+The library's [CloudKit](<doc:CloudKitSync>) synchronization tools require that the tables being
 synchronized have a primary key, and this is enforced through the `PrimaryKeyedTable` protocol.
 The `@Table` macro automatically applies this protocol for you when your type has an `id` field,
 but if you use a different name for your primary key you will need to use the `@Column` macro
@@ -186,6 +186,6 @@ to specify that:
 The library further requires your tables use globally unique identifiers (such as UUID) for their
 primary keys, and in particular auto-incrementing integer IDs do _not_ work. You will need to
 migrate your tables to use UUIDs, see
-<doc:CloudKit#Preparing-an-existing-schema-for-synchronization> for more information.
+<doc:CloudKitSync#Preparing-an-existing-schema-for-synchronization> for more information.
 
 [GRDB]: http://github.com/groue/GRDB.swift
