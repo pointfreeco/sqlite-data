@@ -16,10 +16,6 @@
       open "\(url.path(percentEncoded: false))"
       """
     )
-    try FileManager.default.createDirectory(
-      at: .applicationSupportDirectory,
-      withIntermediateDirectories: true
-    )
 
     @Dependency(\.context) var context
     guard !url.isInMemory || context != .live
