@@ -1,5 +1,5 @@
 import Foundation
-public import class GRDB.Database
+@_exported import class GRDB.Database
 import GRDBSQLite
 public import StructuredQueriesSQLiteCore
 

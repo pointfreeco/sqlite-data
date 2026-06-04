@@ -1,7 +1,7 @@
 #if canImport(CloudKit) && canImport(CryptoKit)
   import CryptoKit
   public import Foundation
-  public import class GRDB.Database
+  @_exported import class GRDB.Database
   public import StructuredQueriesCore
   public import StructuredQueriesSQLite
 
