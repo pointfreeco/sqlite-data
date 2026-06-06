@@ -24,7 +24,7 @@ jobs:
       - name: Build ${{ matrix.config }} without exports
         run: swift build -c ${{ matrix.config }} -Xswiftc -D -Xswiftc EXCLUDE_EXPORTS
       - name: Run ${{ matrix.config }} tests
-        run: swift test -c ${{ matrix.config }}
+        run: swift test -c ${{ matrix.config }} --traits SQLiteDataTagged
 
   examples:
     name: Examples
