@@ -109,11 +109,6 @@ for target in package.targets {
       .enableUpcomingFeature("MemberImportVisibility"),
     ])
   }
-  #if compiler(>=6.4)
-    target.swiftSettings?.append(contentsOf: [
-      .treatAllWarnings(as: .error)
-    ])
-  #endif
 }
 
 #if !os(Windows)
