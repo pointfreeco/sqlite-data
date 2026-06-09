@@ -286,7 +286,7 @@
             object: nil,
             queue: nil
           ) { [syncEngines] _ in
-            Task { @MainActor in
+            _ = Task { @MainActor in
               let taskIdentifier = UIApplication.shared.beginBackgroundTask()
               defer { UIApplication.shared.endBackgroundTask(taskIdentifier) }
               let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {

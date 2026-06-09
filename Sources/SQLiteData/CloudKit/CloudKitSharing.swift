@@ -348,7 +348,7 @@
               }
 
               Button("Stop Sharing", role: .destructive) {
-                Task {
+                _ = Task {
                   try await syncEngine.unshare(share: sharedRecord.share)
                   try await syncEngine.fetchChanges()
                   dismiss()
