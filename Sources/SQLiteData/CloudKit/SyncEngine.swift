@@ -9,7 +9,7 @@
   import Observation
   public import StructuredQueries
   import StructuredQueriesSQLite
-  public import StructuredQueriesSQLiteCore
+  import StructuredQueriesSQLiteCore
   import SwiftData
   import TabularData
 

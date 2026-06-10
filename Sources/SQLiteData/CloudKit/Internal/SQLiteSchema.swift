@@ -1,6 +1,6 @@
 #if canImport(CloudKit)
   import StructuredQueries
-  package import StructuredQueriesCore
+  import StructuredQueriesCore
 
   @Table("sqlite_schema")
   package struct SQLiteSchema {

@@ -1,7 +1,7 @@
 #if canImport(CloudKit)
   import Foundation
   import StructuredQueries
-  public import StructuredQueriesCore
+  import StructuredQueriesCore
 
   @Table
   package struct ForeignKey {
