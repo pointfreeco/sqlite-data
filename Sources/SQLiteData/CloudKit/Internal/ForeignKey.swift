@@ -3,8 +3,6 @@
   import StructuredQueries
   #if EXCLUDE_EXPORTS
     public import StructuredQueriesCore
-  #else
-    import StructuredQueriesCore
   #endif
 
   @Table
