@@ -1,11 +1,13 @@
 #if canImport(CloudKit)
   public import CloudKit
-  import Dependencies
+  import ConcurrencyExtras
   import GRDB
-  import SwiftUI
+  import IssueReporting
   public import StructuredQueries
 
-  #if canImport(UIKit)
+  #if canImport(SwiftUI) && canImport(UIKit) && !os(tvOS) && !os(watchOS)
+    public import Dependencies
+    public import SwiftUI
     public import UIKit
   #endif
 
@@ -255,7 +257,7 @@
     }
   }
 
-  #if canImport(UIKit) && !os(tvOS) && !os(watchOS)
+  #if canImport(SwiftUI) && canImport(UIKit) && !os(tvOS) && !os(watchOS)
     /// A view that presents standard screens for adding and removing people from a CloudKit share \
     /// record.
     ///

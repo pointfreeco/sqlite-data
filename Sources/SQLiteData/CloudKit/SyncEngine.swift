@@ -9,7 +9,9 @@
   import Observation
   public import StructuredQueries
   import StructuredQueriesSQLite
-  import StructuredQueriesSQLiteCore
+  #if EXCLUDE_EXPORTS
+    public import StructuredQueriesSQLiteCore
+  #endif
   import SwiftData
   import TabularData
 

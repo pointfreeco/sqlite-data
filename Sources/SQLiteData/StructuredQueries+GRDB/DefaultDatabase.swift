@@ -1,6 +1,7 @@
 public import Dependencies
-public import GRDB
 import Foundation
+public import GRDB
+import IssueReporting
 
 /// Prepares a context-sensitive database writer.
 ///

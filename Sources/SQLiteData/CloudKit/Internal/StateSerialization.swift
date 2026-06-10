@@ -1,6 +1,8 @@
 #if canImport(CloudKit)
   package import CloudKit
-  import StructuredQueries
+#if EXCLUDE_EXPORTS
+  package import StructuredQueries
+#endif
 
   @Table("sqlitedata_icloud_stateSerialization")
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
