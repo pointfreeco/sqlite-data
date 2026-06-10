@@ -9,7 +9,9 @@
   import Observation
   public import StructuredQueries
   import StructuredQueriesSQLite
-  public import StructuredQueriesSQLiteCore
+  #if EXCLUDE_EXPORTS
+    public import StructuredQueriesSQLiteCore
+  #endif
   import SwiftData
   import TabularData
 
@@ -286,7 +288,7 @@
             object: nil,
             queue: nil
           ) { [syncEngines] _ in
-            Task { @MainActor in
+            _ = Task { @MainActor in
               let taskIdentifier = UIApplication.shared.beginBackgroundTask()
               defer { UIApplication.shared.endBackgroundTask(taskIdentifier) }
               let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {

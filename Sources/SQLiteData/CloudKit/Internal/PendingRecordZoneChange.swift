@@ -1,7 +1,9 @@
 #if canImport(CloudKit)
   package import CloudKit
   import StructuredQueries
-  public import StructuredQueriesCore
+  #if EXCLUDE_EXPORTS
+    public import StructuredQueriesCore
+  #endif
 
   @Table("sqlitedata_icloud_pendingRecordZoneChanges")
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
