@@ -1,15 +1,14 @@
 #if !EXCLUDE_EXPORTS
   @_exported import Dependencies
   @_exported import StructuredQueriesSQLite
-#endif
 
-public import GRDB
-public typealias Configuration = GRDB.Configuration
-public typealias Database = GRDB.Database
-public typealias DatabaseError = GRDB.DatabaseError
-public typealias DatabaseMigrator = GRDB.DatabaseMigrator
-public typealias DatabasePool = GRDB.DatabasePool
-public typealias DatabaseQueue = GRDB.DatabaseQueue
-public typealias DatabaseReader = GRDB.DatabaseReader
-public typealias DatabaseWriter = GRDB.DatabaseWriter
-public typealias ValueObservationScheduler = GRDB.ValueObservationScheduler
+  @_exported import struct GRDB.Configuration
+  @_exported import class GRDB.Database
+  @_exported import struct GRDB.DatabaseError
+  @_exported import struct GRDB.DatabaseMigrator
+  @_exported import class GRDB.DatabasePool
+  @_exported import class GRDB.DatabaseQueue
+  @_exported import protocol GRDB.DatabaseReader
+  @_exported import protocol GRDB.DatabaseWriter
+  @_exported import protocol GRDB.ValueObservationScheduler
+#endif
