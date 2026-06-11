@@ -545,7 +545,7 @@
           │     title: "tag"                                           │
           │   ),                                                       │
           │   share: nil,                                              │
-          │   _isDeleted: false,                                       │
+          │   _pendingStatus: nil,                                     │
           │   _hasLastKnownServerRecord: true,                         │
           │   _isShared: false,                                        │
           │   userModificationTime: 0                                  │
@@ -628,7 +628,7 @@
           │     title: "tag"                                           │
           │   ),                                                       │
           │   share: nil,                                              │
-          │   _isDeleted: false,                                       │
+          │   _pendingStatus: nil,                                     │
           │   _hasLastKnownServerRecord: true,                         │
           │   _isShared: false,                                        │
           │   userModificationTime: 0                                  │
@@ -698,7 +698,7 @@
           │     title: "weekend"                                           │
           │   ),                                                           │
           │   share: nil,                                                  │
-          │   _isDeleted: false,                                           │
+          │   _pendingStatus: nil,                                         │
           │   _hasLastKnownServerRecord: true,                             │
           │   _isShared: false,                                            │
           │   userModificationTime: 0                                      │
