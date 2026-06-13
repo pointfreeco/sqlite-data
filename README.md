@@ -280,6 +280,47 @@ struct MyApp: App {
 > For more information on synchronizing the database to CloudKit and sharing records with iCloud
 > users, see [CloudKit Synchronization].
 
+### Undo support
+
+SQLiteData also supports undo/redo groups:
+
+```swift
+let undoManager = try UndoManager(for: database, tables: Item.self)
+
+try await undoManager.withGroup("Add items", origin: .local) { db in
+  _ = try Item.insert { Item.Draft(title: "A") }.execute(db)
+  _ = try Item.insert { Item.Draft(title: "B") }.execute(db)
+}
+
+// Undo a specific group from the stack.
+if let group = undoManager.undoStack.dropFirst().first {
+  try await undoManager.undo(to: group)
+}
+```
+
+Each `UndoGroup` records an `origin` (`.local` or `.sync`) so UIs can distinguish local edits
+from synced changes.
+
+You can also control how synced writes interact with undo history:
+
+```swift
+let undoManager = try UndoManager(
+  for: database,
+  tables: Item.self,
+  syncUndoPolicy: .disabled(boundary: .stopAtBoundary)
+)
+```
+
+When you need writes that should not participate in undo logging at all, use:
+
+```swift
+try await database.writeWithoutUndoGroup {
+  try await database.write { db in
+    // Seed or maintenance writes
+  }
+}
+```
+
 This is all you need to know to get started with SQLiteData, but there's much more to learn. Read
 the [articles][articles] below to learn how to best utilize this library:
 
