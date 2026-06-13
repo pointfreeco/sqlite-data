@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
+  import ConcurrencyExtrasTestSupport
   import CustomDump
   import Foundation
   import InlineSnapshotTesting
@@ -264,7 +265,10 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.printTimestamps(true), .printRecordChangeTag)
+      @Test(
+        .taskLocal(CKRecord._$printRecordChangeTag, true),
+        .taskLocal(CKRecord._$printTimestamps, true)
+      )
       func editBetweenBatchAndSentRecordZoneChanges() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {

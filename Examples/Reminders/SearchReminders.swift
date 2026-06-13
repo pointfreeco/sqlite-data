@@ -226,7 +226,7 @@ struct SearchRemindersView: View {
         }
         Spacer()
         Button(model.showCompletedInSearchResults ? "Hide" : "Show") {
-          Task { try await model.showCompletedButtonTapped() }
+          _ = Task { try await model.showCompletedButtonTapped() }
         }
       }
     }

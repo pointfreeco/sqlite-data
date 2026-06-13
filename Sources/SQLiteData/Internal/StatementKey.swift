@@ -1,3 +1,5 @@
+import StructuredQueriesCore
+
 protocol StatementKeyRequest<QueryValue>: FetchKeyRequest {
   associatedtype QueryValue
   var statement: SQLQueryExpression<QueryValue> { get }

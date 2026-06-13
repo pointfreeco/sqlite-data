@@ -716,7 +716,7 @@
           let personalListRecord = try syncEngine.private.database.record(
             for: RemindersList.recordID(for: 1)
           )
-          personalListRecord.setValue(Array("image".utf8), forKey: "image", at: now)
+          personalListRecord.setBytes(Array("image".utf8), forKey: "image", at: now)
 
           try await syncEngine.modifyRecords(
             scope: .private,
@@ -775,15 +775,15 @@
           let personalListRecord = try syncEngine.private.database.record(
             for: RemindersList.recordID(for: 1)
           )
-          personalListRecord.setValue(Array("personal-image".utf8), forKey: "image", at: now)
+          personalListRecord.setBytes(Array("personal-image".utf8), forKey: "image", at: now)
           let businessListRecord = try syncEngine.private.database.record(
             for: RemindersList.recordID(for: 2)
           )
-          businessListRecord.setValue(Array("business-image".utf8), forKey: "image", at: now)
+          businessListRecord.setBytes(Array("business-image".utf8), forKey: "image", at: now)
           let secretListRecord = try syncEngine.private.database.record(
             for: RemindersList.recordID(for: 3)
           )
-          secretListRecord.setValue(Array("secret-image".utf8), forKey: "image", at: now)
+          secretListRecord.setBytes(Array("secret-image".utf8), forKey: "image", at: now)
 
           try await syncEngine.modifyRecords(
             scope: .private,

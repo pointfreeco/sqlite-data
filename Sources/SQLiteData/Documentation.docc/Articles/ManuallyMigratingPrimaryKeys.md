@@ -128,7 +128,7 @@ struct ReminderTag {
 ```
 
 And a migration must be run to add that column to the table. However, you must perform a multi-step
-migration similar to what is described above in <doc:CloudKit#Convert-Int-primary-keys-to-UUID>.
+migration similar to what is described above in <doc:CloudKitSync#Convert-Int-primary-keys-to-UUID>.
 You must 1) create a new table with the new primary key column, 2) copy data from the old table
 to the new table, 3) delete the old table, and finally 4) rename the new table.
 

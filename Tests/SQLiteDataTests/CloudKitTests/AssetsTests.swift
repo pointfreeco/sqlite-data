@@ -285,7 +285,7 @@
           recordID: RemindersListAsset.recordID(for: 1)
         )
         remindersListAssetRecord.setValue("1", forKey: "id", at: now)
-        remindersListAssetRecord.setValue(
+        remindersListAssetRecord.setBytes(
           Array("image".utf8),
           forKey: "coverImage",
           at: now

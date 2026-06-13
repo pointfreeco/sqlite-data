@@ -1,5 +1,5 @@
 #if SQLiteDataTagged
-  import Tagged
+  public import Tagged
 
   extension Tagged: IdentifierStringConvertible where RawValue: IdentifierStringConvertible {
     public init?(rawIdentifier: String) {
