@@ -1,5 +1,6 @@
 import DependenciesTestSupport
 import Foundation
+import GRDB
 import InlineSnapshotTesting
 import SQLite3
 import SQLiteData

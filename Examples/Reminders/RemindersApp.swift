@@ -34,7 +34,7 @@ struct RemindersApp: App {
           isPresented: $syncEngineDelegate.isDeleteLocalDataAlertPresented
         ) {
           Button("Reset", role: .destructive) {
-            Task {
+            _ = Task {
               try await syncEngine.deleteLocalData()
             }
           }
@@ -100,7 +100,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     _ windowScene: UIWindowScene,
     userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
   ) {
-    Task {
+    _ = Task {
       try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
     }
   }
@@ -114,7 +114,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     else {
       return
     }
-    Task {
+    _ = Task {
       try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
     }
   }

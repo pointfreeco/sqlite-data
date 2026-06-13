@@ -1,6 +1,8 @@
 #if canImport(CloudKit)
   import CloudKit
+  import Dependencies
   import Foundation
+  import StructuredQueriesSQLite
 
   @DatabaseFunction("sqlitedata_icloud_currentTime")
   func currentTime() -> Int64 {

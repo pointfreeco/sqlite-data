@@ -1,4 +1,5 @@
-import StructuredQueriesCore
+public import GRDB
+public import StructuredQueriesCore
 
 extension StructuredQueriesCore.Statement {
   /// Executes a structured query on the given database connection.

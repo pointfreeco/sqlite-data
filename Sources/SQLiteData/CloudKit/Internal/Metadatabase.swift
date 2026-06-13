@@ -1,6 +1,9 @@
 #if canImport(CloudKit)
+  import Dependencies
+  import GRDB
   import Foundation
   import os
+  import StructuredQueries
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   func defaultMetadatabase(
@@ -12,10 +15,6 @@
       Metadatabase connection:
       open "\(url.path(percentEncoded: false))"
       """
-    )
-    try FileManager.default.createDirectory(
-      at: .applicationSupportDirectory,
-      withIntermediateDirectories: true
     )
 
     @Dependency(\.context) var context

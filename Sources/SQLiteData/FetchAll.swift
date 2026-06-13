@@ -1,10 +1,13 @@
-import Sharing
+public import GRDB
+public import Sharing
+public import StructuredQueriesCore
+public import Sharing
 
 #if canImport(Combine)
-  import Combine
+  public import Combine
 #endif
 #if canImport(SwiftUI)
-  import SwiftUI
+  public import SwiftUI
 #endif
 
 /// A property that can query for a collection of data in a SQLite database.
@@ -531,7 +534,7 @@ extension FetchAll: Equatable where Element: Equatable {
     public func load<S: SelectStatement>(
       _ statement: S,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Element == S.From.QueryOutput,
@@ -557,7 +560,7 @@ extension FetchAll: Equatable where Element: Equatable {
     public func load<V: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Element == V.QueryOutput,

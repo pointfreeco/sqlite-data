@@ -1,5 +1,5 @@
 #if canImport(CloudKit)
-  import CloudKit
+  public import CloudKit
 
   @available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
   package protocol CloudContainer<Database>: AnyObject, Equatable, Hashable, Sendable {
