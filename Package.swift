@@ -22,9 +22,18 @@ let package = Package(
   ],
   traits: [
     .trait(
-      name: "SQLiteDataTagged",
+      name: "CasePaths",
+      description: "Introduce support for enum tables."
+    ),
+    .trait(
+      name: "Tagged",
       description: "Introduce SQLiteData conformances to the swift-tagged package."
-    )
+    ),
+    .trait(
+      name: "SQLiteDataTagged",
+      description: "A deprecated alias for the 'Tagged' trait.",
+      enabledTraits: ["Tagged"]
+    ),
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-collections", from: "1.0.0"),
@@ -37,9 +46,10 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.31.0",
+      from: "0.32.0",
       traits: [
-        .trait(name: "StructuredQueriesTagged", condition: .when(traits: ["SQLiteDataTagged"]))
+        .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
+        .trait(name: "Tagged", condition: .when(traits: ["Tagged"])),
       ]
     ),
     .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
@@ -60,7 +70,7 @@ let package = Package(
         .product(
           name: "Tagged",
           package: "swift-tagged",
-          condition: .when(traits: ["SQLiteDataTagged"])
+          condition: .when(traits: ["Tagged"])
         ),
       ]
     ),
