@@ -1,4 +1,4 @@
-#if SQLiteDataTagged
+#if Tagged
   public import Tagged
 
   extension Tagged: IdentifierStringConvertible where RawValue: IdentifierStringConvertible {
