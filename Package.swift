@@ -1,5 +1,6 @@
 // swift-tools-version: 6.1
 
+import Foundation
 import PackageDescription
 
 let package = Package(
@@ -118,6 +119,9 @@ for target in package.targets {
       .enableUpcomingFeature("InternalImportsByDefault"),
       .enableUpcomingFeature("MemberImportVisibility"),
     ])
+    if ProcessInfo.processInfo.environment.keys.contains("EXCLUDE_EXPORTS") {
+      target.swiftSettings?.append(.define("EXCLUDE_EXPORTS"))
+    }
   }
 }
 
