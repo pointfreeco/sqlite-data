@@ -63,7 +63,7 @@ import Testing
     @FetchAll var records2: [Record]
     #expect(records2.count == 0)
     await withUnsafeContinuation { continuation in
-      Task { [$records2] in
+      _ = Task { [$records2] in
         let subscription = try await $records2.load(Record.all)
         continuation.resume()
         try await subscription.task

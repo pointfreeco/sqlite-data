@@ -1159,6 +1159,8 @@
 		CA2BDE282E71C469000974D3 /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ..;
+			traits = (
+			);
 		};
 /* End XCLocalSwiftPackageReference section */
 
