@@ -1,3 +1,4 @@
+import ConcurrencyExtras
 public import GRDB
 public import Sharing
 public import StructuredQueriesCore
@@ -26,7 +27,12 @@ public struct FetchAll<Element: Sendable>: Sendable {
   ///
   /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing) package,
   /// a general solution to observing and persisting changes to external data sources.
-  public var sharedReader: SharedReader<[Element]> = SharedReader(value: [])
+  public internal(set) var sharedReader: SharedReader<[Element]> = SharedReader(value: [])
+
+  var sectionedReader: SharedReader<ResultsSectionCollection<Element, String>> =
+    SharedReader(value: ResultsSectionCollection())
+
+  let sectionedBy = LockIsolated<SectionBy<Element>?>(nil)
 
   /// A collection of data associated with the underlying query.
   public var wrappedValue: [Element] {
@@ -39,7 +45,11 @@ public struct FetchAll<Element: Sendable>: Sendable {
   /// ``isLoading``, and ``publisher``.
   public var projectedValue: Self {
     get { self }
-    nonmutating set { sharedReader.projectedValue = newValue.sharedReader.projectedValue }
+    nonmutating set {
+      sharedReader.projectedValue = newValue.sharedReader.projectedValue
+      sectionedReader.projectedValue = newValue.sectionedReader.projectedValue
+      sectionedBy.setValue(newValue.sectionedBy.value)
+    }
   }
 
   /// Returns a ``sharedReader`` for the given key path.
@@ -211,6 +221,14 @@ public struct FetchAll<Element: Sendable>: Sendable {
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
   {
+    if let sectionBy = sectionedBy.value {
+      return try await loadSections(
+        statement: statement,
+        sectionBy: sectionBy,
+        database: database,
+        scheduler: nil
+      )
+    }
     try await sharedReader.load(
       .fetch(
         FetchAllStatementValueRequest(statement: statement),
@@ -377,6 +395,14 @@ extension FetchAll {
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
   {
+    if let sectionBy = sectionedBy.value {
+      return try await loadSections(
+        statement: statement,
+        sectionBy: sectionBy,
+        database: database,
+        scheduler: scheduler
+      )
+    }
     try await sharedReader.load(
       .fetch(
         FetchAllStatementValueRequest(statement: statement),
@@ -396,7 +422,7 @@ extension FetchAll: CustomReflectable {
 
 extension FetchAll: Equatable where Element: Equatable {
   public static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.sharedReader == rhs.sharedReader
+    lhs.sharedReader == rhs.sharedReader && lhs.sectionedBy.value == rhs.sectionedBy.value
   }
 }
 
@@ -404,6 +430,7 @@ extension FetchAll: Equatable where Element: Equatable {
   extension FetchAll: DynamicProperty {
     public func update() {
       sharedReader.update()
+      sectionedReader.update()
     }
 
     @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
@@ -566,6 +593,14 @@ extension FetchAll: Equatable where Element: Equatable {
       Element == V.QueryOutput,
       V.QueryOutput: Sendable
     {
+      if let sectionBy = sectionedBy.value {
+        return try await loadSections(
+          statement: statement,
+          sectionBy: sectionBy,
+          database: database,
+          scheduler: AnimatedScheduler(animation: animation)
+        )
+      }
       try await sharedReader.load(
         .fetch(
           FetchAllStatementValueRequest(statement: statement),
@@ -578,7 +613,7 @@ extension FetchAll: Equatable where Element: Equatable {
   }
 #endif
 
-private struct FetchAllStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
+struct FetchAllStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
   let statement: SQLQueryExpression<Value>
   init(statement: some StructuredQueriesCore.Statement<Value>) {
     self.statement = SQLQueryExpression(statement)

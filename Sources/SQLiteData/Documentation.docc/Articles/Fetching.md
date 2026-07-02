@@ -145,6 +145,36 @@ This is a very efficient query that selects only the bare essentials of data tha
 needs to do its job. This kind of query is a lot more cumbersome to perform in SwiftData because
 you must construct a dedicated `FetchDescriptor` value and set its `propertiesToFetch`.
 
+It is also possible to group the results of a query into sections by providing a `sectionBy:` key
+path, similar to SwiftData's `@Query(sectionBy:)`. For example, given a `Reminder` table with a
+string `category` column:
+
+```swift
+@FetchAll(Reminder.order(by: \.category), sectionBy: \.category)
+var reminders
+```
+
+The flat results are still available from the property itself, and the projected value's
+``FetchAll/sections`` property groups them into a ``ResultsSectionCollection``, which is perfect
+for driving a sectioned list:
+
+```swift
+List {
+  ForEach($reminders.sections) { section in
+    Section(section.name) {
+      ForEach(section) { reminder in
+        Text(reminder.title)
+      }
+    }
+  }
+}
+```
+
+Results are grouped into a section for each distinct value at the key path. Sections are ordered
+by the position of their first element in the query's results, and elements within a section
+follow the query's order, so you can control the order of sections by ordering the query by the
+sectioned column.
+
 [sq-safe-sql-strings]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore/safesqlstrings
 [structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
 [structured-queries-docs]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/main/documentation/structuredqueriescore/
