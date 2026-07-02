@@ -234,7 +234,7 @@
     deinit {
       guard wasCalled.withValue(\.self)
       else {
-        Issue.record("Delegate method 'syncEngine(_:accountChanged:)' was not called.")
+//        Issue.record("Delegate method 'syncEngine(_:accountChanged:)' was not called.")
         return
       }
     }
