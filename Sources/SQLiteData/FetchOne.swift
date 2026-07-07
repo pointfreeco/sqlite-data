@@ -478,7 +478,13 @@ public struct FetchOne<Value: Sendable>: Sendable {
 }
 
 extension FetchOne {
-  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  @available(
+    *,
+    deprecated,
+    message: """
+      '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+      """
+  )
   public init(
     wrappedValue: sending Value,
     database: (any DatabaseReader)? = nil,
@@ -491,7 +497,13 @@ extension FetchOne {
     sharedReader = SharedReader(value: wrappedValue)
   }
 
-  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  @available(
+    *,
+    deprecated,
+    message: """
+      '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+      """
+  )
   public init(
     wrappedValue: sending Value = Value._none,
     database: (any DatabaseReader)? = nil,
@@ -943,7 +955,13 @@ extension FetchOne: Equatable where Value: Equatable {
       persisted.subscribe(generation: generation)
     }
 
-    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    @available(
+      *,
+      deprecated,
+      message: """
+        '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+        """
+    )
     public init(
       wrappedValue: sending Value,
       database: (any DatabaseReader)? = nil,
@@ -956,7 +974,13 @@ extension FetchOne: Equatable where Value: Equatable {
       sharedReader = SharedReader(value: wrappedValue)
     }
 
-    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    @available(
+      *,
+      deprecated,
+      message: """
+        '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+        """
+    )
     public init(
       wrappedValue: sending Value = Value._none,
       database: (any DatabaseReader)? = nil,

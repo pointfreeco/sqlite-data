@@ -40,11 +40,8 @@
           reportIssue(
             """
             A '\(propertyName)' property was re-initialized without a query, but was previously \
-            initialized with one. This re-initialization is ignored, and the property continues \
-            to observe its current query.
-
-            To change the query associated with this property, invoke 'load' on its projected \
-            value, or reset the enclosing view's identity with 'View.id'.
+            initialized with one; this re-initialization will be ignored, and the property \
+            will continue to observe the existing query
             """
           )
         #endif

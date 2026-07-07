@@ -253,7 +253,13 @@ public struct FetchAll<Element: Sendable>: Sendable {
 }
 
 extension FetchAll {
-  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  @available(
+    *,
+    deprecated,
+    message: """
+      '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+      """
+  )
   public init(
     wrappedValue: [Element] = [],
     database: (any DatabaseReader)? = nil,
@@ -437,7 +443,13 @@ extension FetchAll: Equatable where Element: Equatable {
       persisted.subscribe(generation: generation)
     }
 
-    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    @available(
+      *,
+      deprecated,
+      message: """
+        '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+        """
+    )
     public init(
       wrappedValue: [Element] = [],
       database: (any DatabaseReader)? = nil,
