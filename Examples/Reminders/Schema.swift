@@ -36,6 +36,7 @@ nonisolated struct Reminder: Hashable, Identifiable {
   var notes = ""
   var position = 0
   var priority: Priority?
+  @Column(lazyInitializable: false)
   var remindersListID: RemindersList.ID
   var status: Status = .incomplete
   var title = ""

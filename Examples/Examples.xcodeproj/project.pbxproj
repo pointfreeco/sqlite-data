@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 100;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -1100,6 +1100,8 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ..;
 			traits = (
+				LazyInitializableByDefault,
+				StrictDecoding,
 			);
 		};
 /* End XCLocalSwiftPackageReference section */
