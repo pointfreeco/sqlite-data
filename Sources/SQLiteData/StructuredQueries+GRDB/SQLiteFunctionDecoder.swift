@@ -3,6 +3,7 @@ public import GRDBSQLite
 public import StructuredQueriesCore
 
 #if !StrictDecoding
+  import ConcurrencyExtras
   import IssueReporting
 #endif
 
