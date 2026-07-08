@@ -837,7 +837,7 @@
             recordType: "images",
             recordID: Image.recordID(for: 1)
           )
-          imageRecord.setValue("1", forKey: "id", at: now)
+          imageRecord.setValue(1, forKey: "id", at: now)
           imageRecord.setValue("A good image", forKey: "caption", at: now)
           imageRecord.setValue(Data("image".utf8), forKey: "image", at: now)
 
@@ -854,7 +854,7 @@
             try #sql(
               """
               CREATE TABLE "images" (
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT,
                 "caption" TEXT NOT NULL,
                 "image" BLOB NOT NULL
               )
@@ -892,7 +892,7 @@
                     parent: nil,
                     share: nil,
                     caption: "A good image",
-                    id: "1",
+                    id: 1,
                     image: Data(5 bytes)
                   )
                 ]

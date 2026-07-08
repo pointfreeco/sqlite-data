@@ -23,6 +23,13 @@ let package = Package(
   ],
   traits: [
     .trait(
+      name: "StrictDecoding",
+      description: """
+        Throw an error, rather than coerce, when decoding a column whose storage type does not \
+        match the expected type.
+        """
+    ),
+    .trait(
       name: "CasePaths",
       description: "Introduce support for enum tables."
     ),
@@ -47,7 +54,8 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.32.0",
+      branch: "strict-decoding",
+//      from: "0.32.0",
       traits: [
         .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
         .trait(name: "Tagged", condition: .when(traits: ["Tagged"])),

@@ -2,6 +2,11 @@ public import Foundation
 public import GRDBSQLite
 public import StructuredQueriesCore
 
+#if !StrictDecoding
+  import ConcurrencyExtras
+  import IssueReporting
+#endif
+
 @usableFromInline
 struct SQLiteQueryDecoder: QueryDecoder {
   @usableFromInline
@@ -22,8 +27,16 @@ struct SQLiteQueryDecoder: QueryDecoder {
 
   @inlinable
   mutating func decode(_ columnType: [UInt8].Type) throws -> [UInt8]? {
+    switch sqlite3_column_type(statement, currentIndex) {
+    case SQLITE_NULL:
+      currentIndex += 1
+      return nil
+    case SQLITE_BLOB:
+      break
+    default:
+      try reportTypeMismatch([UInt8].self)
+    }
     defer { currentIndex += 1 }
-    guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
     return [UInt8](
       UnsafeRawBufferPointer(
         start: sqlite3_column_blob(statement, currentIndex),
@@ -44,8 +57,16 @@ struct SQLiteQueryDecoder: QueryDecoder {
 
   @inlinable
   mutating func decode(_ columnType: Double.Type) throws -> Double? {
+    switch sqlite3_column_type(statement, currentIndex) {
+    case SQLITE_NULL:
+      currentIndex += 1
+      return nil
+    case SQLITE_FLOAT:
+      break
+    default:
+      try reportTypeMismatch(Double.self)
+    }
     defer { currentIndex += 1 }
-    guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
     return sqlite3_column_double(statement, currentIndex)
   }
 
@@ -56,15 +77,31 @@ struct SQLiteQueryDecoder: QueryDecoder {
 
   @inlinable
   mutating func decode(_ columnType: Int64.Type) throws -> Int64? {
+    switch sqlite3_column_type(statement, currentIndex) {
+    case SQLITE_NULL:
+      currentIndex += 1
+      return nil
+    case SQLITE_INTEGER:
+      break
+    default:
+      try reportTypeMismatch(Int64.self)
+    }
     defer { currentIndex += 1 }
-    guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
     return sqlite3_column_int64(statement, currentIndex)
   }
 
   @inlinable
   mutating func decode(_ columnType: String.Type) throws -> String? {
+    switch sqlite3_column_type(statement, currentIndex) {
+    case SQLITE_NULL:
+      currentIndex += 1
+      return nil
+    case SQLITE_TEXT:
+      break
+    default:
+      try reportTypeMismatch(String.self)
+    }
     defer { currentIndex += 1 }
-    guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
     return String(cString: sqlite3_column_text(statement, currentIndex))
   }
 
@@ -80,6 +117,44 @@ struct SQLiteQueryDecoder: QueryDecoder {
     guard let uuidString = try decode(String.self) else { return nil }
     guard let uuid = UUID(uuidString: uuidString) else { throw InvalidUUID() }
     return uuid
+  }
+
+  @usableFromInline
+  func reportTypeMismatch(_ columnType: Any.Type) throws {
+    #if StrictDecoding
+      throw QueryDecodingError.typeMismatch(columnType)
+    #else
+      let sql = sqlite3_sql(statement).map { String(cString: $0) } ?? ""
+      let key = "\(currentIndex)|\(sql)"
+      guard reportedTypeMismatches.withValue({ $0.insert(key).inserted })
+      else { return }
+      let columnName = sqlite3_column_name(statement, currentIndex).map { String(cString: $0) }
+      reportIssue(
+        """
+        Expected column \(currentIndex) (\((columnName ?? "").debugDescription)) to decode \
+        \(columnType), but found \
+        \(storageClassName(sqlite3_column_type(statement, currentIndex))): ...
+
+        \(sql)
+        """
+      )
+    #endif
+  }
+}
+
+#if !StrictDecoding
+  let reportedTypeMismatches = LockIsolated<Set<String>>([])
+#endif
+
+@usableFromInline
+func storageClassName(_ type: Int32) -> String {
+  switch type {
+  case SQLITE_BLOB: "BLOB"
+  case SQLITE_FLOAT: "REAL"
+  case SQLITE_INTEGER: "INTEGER"
+  case SQLITE_TEXT: "TEXT"
+  case SQLITE_NULL: "NULL"
+  default: "unknown storage class \(type)"
   }
 }
 
