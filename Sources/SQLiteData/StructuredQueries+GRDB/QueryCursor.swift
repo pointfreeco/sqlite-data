@@ -30,23 +30,50 @@ public class QueryCursor<Element>: DatabaseCursor {
   struct DecodingError: Error, CustomStringConvertible {
     let columnIndex: Int
     let columnName: String
+    let reason: String
     let sql: String
 
     @usableFromInline
-    init(columnIndex: Int, columnName: String, sql: String) {
+    init(columnIndex: Int, columnName: String, reason: String, sql: String) {
       self.columnIndex = columnIndex
       self.columnName = columnName
+      self.reason = reason
       self.sql = sql
     }
 
     @usableFromInline
     var description: String {
       """
-      Expected column \(columnIndex) (\(columnName.debugDescription)) to not be NULL: …
+      Expected column \(columnIndex) (\(columnName.debugDescription)) \(reason): ...
 
       \(sql)
       """
     }
+  }
+
+  @usableFromInline
+  func missingRequiredColumnError() -> DecodingError {
+    let columnIndex = Int(decoder.currentIndex) - 1
+    return DecodingError(
+      columnIndex: columnIndex,
+      columnName: _statement.columnNames[columnIndex],
+      reason: "to not be NULL",
+      sql: _statement.sql
+    )
+  }
+
+  @usableFromInline
+  func typeMismatchError(_ columnType: Any.Type) -> DecodingError {
+    let columnIndex = Int(decoder.currentIndex)
+    let storageClass = storageClassName(
+      sqlite3_column_type(_statement.sqliteStatement, Int32(columnIndex))
+    )
+    return DecodingError(
+      columnIndex: columnIndex,
+      columnName: _statement.columnNames[columnIndex],
+      reason: "to decode \(columnType), but found \(storageClass)",
+      sql: _statement.sql
+    )
   }
 }
 
@@ -68,12 +95,9 @@ final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryV
       decoder.next()
       return element
     } catch QueryDecodingError.missingRequiredColumn {
-      let columnIndex = Int(decoder.currentIndex) - 1
-      throw DecodingError(
-        columnIndex: columnIndex,
-        columnName: _statement.columnNames[columnIndex],
-        sql: _statement.sql
-      )
+      throw missingRequiredColumnError()
+    } catch QueryDecodingError.typeMismatch(let columnType) {
+      throw typeMismatchError(columnType)
     }
   }
 }
@@ -99,12 +123,9 @@ final class QueryPackCursor<
       decoder.next()
       return element
     } catch QueryDecodingError.missingRequiredColumn {
-      let columnIndex = Int(decoder.currentIndex) - 1
-      throw DecodingError(
-        columnIndex: columnIndex,
-        columnName: _statement.columnNames[columnIndex],
-        sql: _statement.sql
-      )
+      throw missingRequiredColumnError()
+    } catch QueryDecodingError.typeMismatch(let columnType) {
+      throw typeMismatchError(columnType)
     }
   }
 }

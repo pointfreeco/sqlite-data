@@ -20,11 +20,16 @@ extension Database {
       Unmanaged.passRetained(ScalarDatabaseFunctionDefinition(function)).toOpaque(),
       { context, argumentCount, arguments in
         do {
-          var decoder = SQLiteFunctionDecoder(argumentCount: argumentCount, arguments: arguments)
-          try Unmanaged<ScalarDatabaseFunctionDefinition>
+          let function = Unmanaged<ScalarDatabaseFunctionDefinition>
             .fromOpaque(sqlite3_user_data(context))
             .takeUnretainedValue()
             .function
+          var decoder = SQLiteFunctionDecoder(
+            name: function.name,
+            argumentCount: argumentCount,
+            arguments: arguments
+          )
+          try function
             .invoke(&decoder)
             .result(db: context)
         } catch {
@@ -53,8 +58,12 @@ extension Database {
       body,
       nil,
       { context, argumentCount, arguments in
-        var decoder = SQLiteFunctionDecoder(argumentCount: argumentCount, arguments: arguments)
         let function = AggregateDatabaseFunctionContext[context].takeUnretainedValue()
+        var decoder = SQLiteFunctionDecoder(
+          name: function.iterator.body.name,
+          argumentCount: argumentCount,
+          arguments: arguments
+        )
         do {
           try function.iterator.step(&decoder)
         } catch {

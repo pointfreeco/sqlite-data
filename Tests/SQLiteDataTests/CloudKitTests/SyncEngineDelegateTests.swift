@@ -232,7 +232,7 @@
       wasCalled.withValue { $0 = true }
     }
     deinit {
-      guard wasCalled.withValue(\.self)
+      guard wasCalled.withValue(\.self) || Test.current == nil
       else {
         Issue.record("Delegate method 'syncEngine(_:accountChanged:)' was not called.")
         return
