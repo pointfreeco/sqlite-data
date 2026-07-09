@@ -1100,6 +1100,8 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ..;
 			traits = (
+				LazyInitializableByDefault,
+				StrictDecoding,
 			);
 		};
 /* End XCLocalSwiftPackageReference section */

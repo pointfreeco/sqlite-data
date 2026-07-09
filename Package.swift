@@ -23,6 +23,10 @@ let package = Package(
   ],
   traits: [
     .trait(
+      name: "LazyInitializableByDefault",
+      description: "Optionalize draft properties that have no default."
+    ),
+    .trait(
       name: "StrictDecoding",
       description: """
         Throw an error, rather than coerce, when decoding a column whose storage type does not \
@@ -57,6 +61,10 @@ let package = Package(
       branch: "strict-decoding",
 //      from: "0.32.0",
       traits: [
+        .trait(
+          name: "LazyInitializableByDefault",
+          condition: .when(traits: ["LazyInitializableByDefault"])
+        ),
         .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
         .trait(name: "Tagged", condition: .when(traits: ["Tagged"])),
       ]
