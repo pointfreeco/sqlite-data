@@ -5,66 +5,65 @@
   import Sharing
   import SwiftUI
 
-  final class FetchBox<Value: Sendable>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var storage: Storage
+  final class FetchBox<Value: Sendable>: Sendable {
+    private let storage: LockIsolated<Storage>
 
     init(sharedReader: SharedReader<Value>) {
-      storage = Storage(sharedReader: sharedReader)
+      storage = LockIsolated(Storage(sharedReader: sharedReader))
     }
 
     var sharedReader: SharedReader<Value> {
-      get { lock.withLock { storage.sharedReader } }
-      set { lock.withLock { storage.sharedReader = newValue } }
+      get { storage.withLock { $0.sharedReader } }
+      set { storage.withLock { $0.sharedReader = newValue } }
     }
 
     var fetchKeyID: FetchKeyID? {
-      get { lock.withLock { storage.fetchKeyID } }
-      set { lock.withLock { storage.fetchKeyID = newValue } }
+      get { storage.withLock { $0.fetchKeyID } }
+      set { storage.withLock { $0.fetchKeyID = newValue } }
     }
 
     func reconcile(from fresh: FetchBox, propertyName: String) {
-      let freshSnapshot = fresh.lock.withLock { fresh.storage }
-      let snapshot = lock.withLock { storage }
-      if let freshFetchKeyID = freshSnapshot.fetchKeyID {
-        if freshFetchKeyID != snapshot.fetchKeyID {
-          update(from: freshSnapshot)
-        }
-      } else if snapshot.fetchKeyID != nil {
-        #if DEBUG
-          let hasReported = lock.withLock {
-            defer { storage.hasReportedIgnoredReinitialization = true }
-            return storage.hasReportedIgnoredReinitialization
+      fresh.storage.withLock { freshSnapshot in
+        storage.withLock { snapshot in
+          if let freshFetchKeyID = freshSnapshot.fetchKeyID {
+            if freshFetchKeyID != snapshot.fetchKeyID {
+              update(from: freshSnapshot)
+            }
+          } else if snapshot.fetchKeyID != nil {
+            #if DEBUG
+              defer { snapshot.hasReportedIgnoredReinitialization = true }
+              guard !snapshot.hasReportedIgnoredReinitialization else { return }
+              reportIssue(
+                """
+                A '\(propertyName)' property was re-initialized without a query, but was previously \
+                initialized with one; this re-initialization will be ignored, and the property \
+                will continue to observe the existing query
+                """
+              )
+            #endif
+          } else if isEqual(freshSnapshot.initialValue, snapshot.initialValue) == false {
+            update(from: freshSnapshot)
           }
-          guard !hasReported else { return }
-          reportIssue(
-            """
-            A '\(propertyName)' property was re-initialized without a query, but was previously \
-            initialized with one; this re-initialization will be ignored, and the property \
-            will continue to observe the existing query
-            """
-          )
-        #endif
-      } else if isEqual(freshSnapshot.initialValue, snapshot.initialValue) == false {
-        update(from: freshSnapshot)
+        }
       }
     }
 
     private func update(from other: Storage) {
-      lock.withLock {
-        storage.sharedReader = other.sharedReader
-        storage.fetchKeyID = other.fetchKeyID
-        storage.initialValue = other.initialValue
+      storage.withLock {
+        $0.sharedReader = other.sharedReader
+        $0.fetchKeyID = other.fetchKeyID
+        $0.initialValue = other.initialValue
       }
     }
 
     func subscribe(generation: SwiftUI.State<Int>) {
       guard #unavailable(iOS 17, macOS 14, tvOS 17, watchOS 10) else { return }
       _ = generation.wrappedValue
-      let cancellable = sharedReader.publisher
-        .dropFirst()
-        .sink { _ in generation.wrappedValue &+= 1 }
-      lock.withLock { storage.swiftUICancellable = cancellable }
+      storage.withLock {
+        $0.swiftUICancellable = $0.sharedReader.publisher
+          .dropFirst()
+          .sink { _ in generation.wrappedValue &+= 1 }
+      }
     }
 
     private struct Storage {

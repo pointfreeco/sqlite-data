@@ -1,4 +1,3 @@
-import ConcurrencyExtras
 import Perception
 import Sharing
 
@@ -35,13 +34,13 @@ public struct FetchSubscription: Sendable {
           onCancel()
         }
       }
-      cancellable.withValue { $0 = task }
+      cancellable.withLock { $0 = task }
       try await task.cancellableValue
     }
   }
 
   /// Cancels the database observation of the associated ``FetchAll``, ``FetchOne``, or ``Fetch``.
   public func cancel() {
-    cancellable.value?.cancel()
+    cancellable.withLock { $0?.cancel() }
   }
 }

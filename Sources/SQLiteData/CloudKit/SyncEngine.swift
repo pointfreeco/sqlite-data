@@ -1,6 +1,5 @@
 #if canImport(CloudKit)
   public import CloudKit
-  package import ConcurrencyExtras
   import Dependencies
   public import GRDB
   public import IssueReporting
@@ -282,7 +281,7 @@
       )
       #if os(iOS)
         @Dependency(\.defaultNotificationCenter) var defaultNotificationCenter
-        notificationsObserver.withValue {
+        notificationsObserver.withLock {
           $0 = defaultNotificationCenter.addObserver(
             forName: UIApplication.willResignActiveNotification,
             object: nil,
@@ -291,7 +290,7 @@
             _ = Task { @MainActor in
               let taskIdentifier = UIApplication.shared.beginBackgroundTask()
               defer { UIApplication.shared.endBackgroundTask(taskIdentifier) }
-              let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
+              let (privateSyncEngine, sharedSyncEngine) = syncEngines.withLock {
                 ($0.private, $0.shared)
               }
               try await privateSyncEngine?.sendChanges(CKSyncEngine.SendChangesOptions())
@@ -304,7 +303,7 @@
     }
 
     deinit {
-      notificationsObserver.withValue {
+      notificationsObserver.withLock {
         guard let observer = $0
         else { return }
         NotificationCenter.default.removeObserver(observer)
@@ -430,13 +429,13 @@
     public func stop() {
       guard isRunning else { return }
       #if DEBUG && canImport(DeveloperToolsSupport)
-        previewTimerTask.withValue {
+        previewTimerTask.withLock {
           $0?.cancel()
           $0 = nil
         }
       #endif
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
-        syncEngines.withValue {
+        syncEngines.withLock {
           $0 = SyncEngines()
         }
       }
@@ -445,7 +444,7 @@
     /// Determines if the sync engine is currently running or not.
     public var isRunning: Bool {
       observationRegistrar.access(self, keyPath: \.isRunning)
-      return syncEngines.withValue {
+      return syncEngines.withLock {
         $0.isRunning
       }
     }
@@ -453,7 +452,7 @@
     private func start() throws -> Task<Void, Never> {
       guard !isRunning else { return Task {} }
       observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
-        syncEngines.withValue {
+        syncEngines.withLock {
           let (privateSyncEngine, sharedSyncEngine) = defaultSyncEngines(metadatabase, self)
           $0 = SyncEngines(
             private: privateSyncEngine,
@@ -513,7 +512,7 @@
         @Dependency(\.context) var context
         @Dependency(\.continuousClock) var clock
         if context == .preview {
-          previewTimerTask.withValue {
+          previewTimerTask.withLock {
             $0?.cancel()
             $0 = Task { @Sendable [weak self] in
               await withErrorReporting {
@@ -531,7 +530,7 @@
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           guard try await container.accountStatus() == .available
           else { return }
-          syncEngines.withValue {
+          syncEngines.withLock {
             $0.private?.state.add(pendingDatabaseChanges: [.saveZone(defaultZone)])
           }
           try await uploadRecordsToCloudKit(
@@ -545,7 +544,7 @@
           try await cacheUserTables(recordTypes: currentRecordTypes)
         }
       }
-      self.startTask.withValue {
+      self.startTask.withLock {
         $0?.cancel()
         $0 = startTask
       }
@@ -563,8 +562,8 @@
     public func fetchChanges(
       _ options: CKSyncEngine.FetchChangesOptions = CKSyncEngine.FetchChangesOptions()
     ) async throws {
-      await startTask.withValue(\.self)?.value
-      let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
+      await startTask.withLock(\.self)?.value
+      let (privateSyncEngine, sharedSyncEngine) = syncEngines.withLock {
         ($0.private, $0.shared)
       }
       guard let privateSyncEngine, let sharedSyncEngine
@@ -585,8 +584,8 @@
     public func sendChanges(
       _ options: CKSyncEngine.SendChangesOptions = CKSyncEngine.SendChangesOptions()
     ) async throws {
-      await startTask.withValue(\.self)?.value
-      let (privateSyncEngine, sharedSyncEngine) = syncEngines.withValue {
+      await startTask.withLock(\.self)?.value
+      let (privateSyncEngine, sharedSyncEngine) = syncEngines.withLock {
         ($0.private, $0.shared)
       }
       guard let privateSyncEngine, let sharedSyncEngine
@@ -656,7 +655,7 @@
           false
         }
       }
-      syncEngines.withValue {
+      syncEngines.withLock {
         $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
         $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
       }
@@ -837,10 +836,10 @@
         }
         return
       }
-      let oldSyncEngine = self.syncEngines.withValue {
+      let oldSyncEngine = self.syncEngines.withLock {
         oldZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
-      let syncEngine = self.syncEngines.withValue {
+      let syncEngine = self.syncEngines.withLock {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
       oldSyncEngine?.state.add(pendingRecordZoneChanges: oldChanges)
@@ -878,7 +877,7 @@
         return
       }
 
-      let syncEngine = self.syncEngines.withValue {
+      let syncEngine = self.syncEngines.withLock {
         zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
       }
       syncEngine?.state.add(pendingRecordZoneChanges: changes)
@@ -892,7 +891,7 @@
       }
       let container = type(of: container).createContainer(identifier: metadata.containerIdentifier)
       _ = try await container.accept(metadata)
-      try await syncEngines.shared?.fetchChanges(
+      try await syncEngines.withLock(\.shared)?.fetchChanges(
         CKSyncEngine.FetchChangesOptions(
           scope: .zoneIDs([rootRecordID.zoneID]),
           operationGroup: nil
@@ -924,22 +923,22 @@
     private var sendingChangesCount: Int {
       get {
         observationRegistrar.access(self, keyPath: \.isSendingChanges)
-        return activityCounts.withValue(\.sendingChangesCount)
+        return activityCounts.withLock(\.sendingChangesCount)
       }
       set {
         observationRegistrar.withMutation(of: self, keyPath: \.isSendingChanges) {
-          activityCounts.withValue { $0.sendingChangesCount = newValue }
+          activityCounts.withLock { $0.sendingChangesCount = newValue }
         }
       }
     }
     private var fetchingChangesCount: Int {
       get {
         observationRegistrar.access(self, keyPath: \.isFetchingChanges)
-        return activityCounts.withValue(\.fetchingChangesCount)
+        return activityCounts.withLock(\.fetchingChangesCount)
       }
       set {
         observationRegistrar.withMutation(of: self, keyPath: \.isFetchingChanges) {
-          activityCounts.withValue { $0.fetchingChangesCount = newValue }
+          activityCounts.withLock { $0.fetchingChangesCount = newValue }
         }
       }
     }
@@ -1116,7 +1115,7 @@
       #if DEBUG
         let state = LockIsolated(NextRecordZoneChangeBatchLoggingState())
         defer {
-          let state = state.withValue(\.self)
+          let state = state.withLock(\.self)
           if let tabularDescription = state.tabularDescription {
             logger.debug(
               """
@@ -1153,7 +1152,7 @@
         var sentRecord: CKRecord.ID?
         #if DEBUG
           defer {
-            state.withValue { [missingTable, missingRecord, sentRecord] in
+            state.withLock { [missingTable, missingRecord, sentRecord] in
               if let missingTable {
                 $0.events.append("⚠️ Missing table")
                 $0.recordTypes.append(metadata.recordType)
@@ -1345,7 +1344,7 @@
       changeType: CKSyncEngine.Event.AccountChange.ChangeType,
       syncEngine: any SyncEngineProtocol
     ) async {
-      guard syncEngine === syncEngines.private
+      guard syncEngine === syncEngines.withLock(\.private)
       else { return }
 
       switch changeType {

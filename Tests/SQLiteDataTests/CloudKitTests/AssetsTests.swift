@@ -1,6 +1,5 @@
 #if canImport(CloudKit)
   import CloudKit
-  import ConcurrencyExtras
   import CustomDump
   import InlineSnapshotTesting
   import OrderedCollections
@@ -59,7 +58,7 @@
           """
         }
 
-        inMemoryDataManager.storage.withValue { storage in
+        inMemoryDataManager.storage.withLock { storage in
           let url = URL(
             string: "file:///tmp/6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d"
           )!
@@ -115,7 +114,7 @@
           """
         }
 
-        inMemoryDataManager.storage.withValue { storage in
+        inMemoryDataManager.storage.withLock { storage in
           let url = URL(
             string: "file:///tmp/97e67a5645969953f1a4cfe2ea75649864ff99789189cdd3f6db03e59f8a8ebf"
           )!

@@ -1,6 +1,5 @@
 #if canImport(CloudKit)
   import CloudKit
-  import ConcurrencyExtras
   import CustomDump
   import InlineSnapshotTesting
   import OrderedCollections
@@ -321,7 +320,7 @@
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func accountTemporarilyAvailable() async throws {
-        container._accountStatus.withValue { $0 = .temporarilyUnavailable }
+        container._accountStatus.withLock { $0 = .temporarilyUnavailable }
         var error = #expect(throws: CKError.self) {
           _ = try self.syncEngine.private.database.modifyRecordZones()
         }
@@ -344,7 +343,7 @@
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func noAccount() async throws {
-        container._accountStatus.withValue { $0 = .noAccount }
+        container._accountStatus.withLock { $0 = .noAccount }
         var error = #expect(throws: CKError.self) {
           _ = try self.syncEngine.private.database.modifyRecordZones()
         }
@@ -367,7 +366,7 @@
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func accountNotDetermined() async throws {
-        container._accountStatus.withValue { $0 = .couldNotDetermine }
+        container._accountStatus.withLock { $0 = .couldNotDetermine }
         var error = #expect(throws: CKError.self) {
           _ = try self.syncEngine.private.database.modifyRecordZones()
         }
@@ -390,7 +389,7 @@
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func restrictedAccount() async throws {
-        container._accountStatus.withValue { $0 = .restricted }
+        container._accountStatus.withLock { $0 = .restricted }
         var error = #expect(throws: CKError.self) {
           _ = try self.syncEngine.private.database.modifyRecordZones()
         }
