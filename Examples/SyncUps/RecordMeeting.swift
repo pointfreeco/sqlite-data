@@ -316,7 +316,7 @@ struct MeetingTimerView: View {
   }
 }
 
-struct SpeakerArc: Shape {
+nonisolated struct SpeakerArc: Shape {
   let totalSpeakers: Int
   let speakerIndex: Int
 

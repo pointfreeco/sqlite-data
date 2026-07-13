@@ -49,7 +49,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     _ windowScene: UIWindowScene,
     userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
   ) {
-    Task {
+    _ = Task {
       try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
     }
   }
@@ -61,7 +61,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   ) {
     guard let cloudKitShareMetadata = connectionOptions.cloudKitShareMetadata
     else { return }
-    Task {
+    _ = Task {
       try await syncEngine.acceptShare(metadata: cloudKitShareMetadata)
     }
   }
