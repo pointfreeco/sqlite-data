@@ -44,7 +44,7 @@ final class SyncUpDetailModel: HashableObject {
     withErrorReporting {
       try database.write { db in
         let ids = indices.map { meetings[$0].id }
-        try Meeting.where { ids.contains($0.id) }.delete().execute(db)
+        try Meeting.Meeting.where { $0.id.in(ids) }.delete().execute(db)
       }
     }
   }
