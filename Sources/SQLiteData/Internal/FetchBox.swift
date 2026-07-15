@@ -25,12 +25,11 @@
 
     func reconcile(from fresh: FetchBox, propertyName: String) {
       let freshSnapshot = fresh.lock.withLock { fresh.storage }
-      let snapshot = lock.withLock { storage }
       if let freshFetchKeyID = freshSnapshot.fetchKeyID {
-        if freshFetchKeyID != snapshot.fetchKeyID {
+        if freshFetchKeyID != fetchKeyID {
           update(from: freshSnapshot)
         }
-      } else if snapshot.fetchKeyID != nil {
+      } else if fetchKeyID != nil {
         #if DEBUG
           let hasReported = lock.withLock {
             defer { storage.hasReportedIgnoredReinitialization = true }
@@ -45,8 +44,6 @@
             """
           )
         #endif
-      } else if isEqual(freshSnapshot.initialValue, snapshot.initialValue) == false {
-        update(from: freshSnapshot)
       }
     }
 
@@ -54,7 +51,6 @@
       lock.withLock {
         storage.sharedReader = other.sharedReader
         storage.fetchKeyID = other.fetchKeyID
-        storage.initialValue = other.initialValue
       }
     }
 
@@ -70,24 +66,10 @@
     private struct Storage {
       var sharedReader: SharedReader<Value>
       var fetchKeyID: FetchKeyID?
-      var initialValue: Value
       var swiftUICancellable: AnyCancellable?
       #if DEBUG
         var hasReportedIgnoredReinitialization = false
       #endif
-
-      init(sharedReader: SharedReader<Value>) {
-        self.sharedReader = sharedReader
-        self.initialValue = sharedReader.wrappedValue
-      }
     }
-  }
-
-  private func isEqual<T>(_ lhs: T, _ rhs: T) -> Bool? {
-    func open<U: Equatable>(_ lhs: U) -> Bool {
-      lhs == rhs as? U
-    }
-    guard let lhs = lhs as? any Equatable else { return nil }
-    return open(lhs)
   }
 #endif

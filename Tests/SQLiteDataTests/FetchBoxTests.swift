@@ -31,28 +31,20 @@
       #expect(persisted.sharedReader.wrappedValue == 1)
     }
 
-    @Test func keylessReinitializationWithSameDefaultIsIgnored() {
+    @Test func keylessReinitializationIsIgnored() {
       let persisted = FetchBox(sharedReader: SharedReader(value: 1))
-      let fresh = FetchBox(sharedReader: SharedReader(value: 1))
+      let fresh = FetchBox(sharedReader: SharedReader(value: 2))
       persisted.reconcile(from: fresh, propertyName: "@Fetch")
       #expect(persisted.sharedReader.wrappedValue == 1)
     }
 
-    @Test func keylessReinitializationWithDifferentDefaultIsAdopted() {
+    @Test func keylessToKeyedReinitializationIsAdopted() {
       let persisted = FetchBox(sharedReader: SharedReader(value: 1))
       let fresh = FetchBox(sharedReader: SharedReader(value: 2))
+      fresh.fetchKeyID = fetchKeyID(TestRequest(id: 2))
       persisted.reconcile(from: fresh, propertyName: "@Fetch")
       #expect(persisted.sharedReader.wrappedValue == 2)
-    }
-
-    @Test func keylessAdoptionCarriesSeedForward() {
-      let persisted = FetchBox(sharedReader: SharedReader(value: 1))
-      let fresh = FetchBox(sharedReader: SharedReader(value: 2))
-      persisted.reconcile(from: fresh, propertyName: "@Fetch")
-      persisted.sharedReader = SharedReader(value: 99)
-      let refresh = FetchBox(sharedReader: SharedReader(value: 2))
-      persisted.reconcile(from: refresh, propertyName: "@Fetch")
-      #expect(persisted.sharedReader.wrappedValue == 99)
+      #expect(persisted.fetchKeyID == fresh.fetchKeyID)
     }
 
     @Test func keylessReinitializationAfterLocalLoadIsIgnored() {
@@ -61,16 +53,6 @@
       let fresh = FetchBox(sharedReader: SharedReader(value: [Int]()))
       persisted.reconcile(from: fresh, propertyName: "@FetchAll")
       #expect(persisted.sharedReader.wrappedValue == [1, 2, 3])
-    }
-
-    @Test func keylessReinitializationWithNonEquatableDefaultIsIgnored() {
-      struct Opaque: Sendable {
-        let n: Int
-      }
-      let persisted = FetchBox(sharedReader: SharedReader(value: Opaque(n: 1)))
-      let fresh = FetchBox(sharedReader: SharedReader(value: Opaque(n: 2)))
-      persisted.reconcile(from: fresh, propertyName: "@Fetch")
-      #expect(persisted.sharedReader.wrappedValue.n == 1)
     }
 
     @Test func keyedToKeylessReinitializationReportsIssue() {
