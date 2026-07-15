@@ -77,7 +77,7 @@
       let persisted = FetchBox(sharedReader: SharedReader(value: 1))
       persisted.fetchKeyID = fetchKeyID(TestRequest(id: 1))
       let fresh = FetchBox(sharedReader: SharedReader(value: 1))
-      withKnownIssue {
+      withKnownIssue(isIntermittent: true) {
         persisted.reconcile(from: fresh, propertyName: "@Fetch")
       }
       #expect(persisted.sharedReader.wrappedValue == 1)
