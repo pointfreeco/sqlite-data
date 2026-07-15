@@ -11,14 +11,14 @@ nonisolated struct SoundEffectClient: DependencyKey {
     let player = LockIsolated(AVPlayer())
     return Self(
       load: { fileName in
-        player.withLock {
+        player.withValue {
           guard let url = Bundle.main.url(forResource: fileName, withExtension: "")
           else { return }
           $0.replaceCurrentItem(with: AVPlayerItem(url: url))
         }
       },
       play: {
-        player.withLock {
+        player.withValue {
           $0.seek(to: .zero)
           $0.play()
         }
