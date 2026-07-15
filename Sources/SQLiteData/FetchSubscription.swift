@@ -35,7 +35,7 @@ public struct FetchSubscription: Sendable {
         }
       }
       cancellable.withLock { $0 = task }
-      try await task.cancellableValue
+      try await task.value
     }
   }
 
