@@ -1122,9 +1122,6 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.7.0;
 			};
-			traits = (
-				Clocks,
-			);
 		};
 		DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -1141,10 +1138,6 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.2.3;
 			};
-			traits = (
-				CasePaths,
-				IssueReporting,
-			);
 		};
 /* End XCRemoteSwiftPackageReference section */
 
