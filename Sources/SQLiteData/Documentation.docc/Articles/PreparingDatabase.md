@@ -294,6 +294,10 @@ And similarly, in tests, this can be done using the `.dependency` testing trait
 from [DependenciesTestSupport](https://github.com/pointfreeco/swift-dependencies):
 
 ```swift
+import DependenciesTestSupport
+import SQLiteData
+import Testing
+
 @Test(.dependency(\.defaultDatabase, try appDatabase())
 func feature() {
   // ...
