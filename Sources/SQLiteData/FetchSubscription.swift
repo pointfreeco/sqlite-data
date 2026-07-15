@@ -29,7 +29,9 @@ public struct FetchSubscription: Sendable {
     get async throws {
       let task = Task {
         try await withTaskCancellationHandler {
-          try await Task.never()
+          let never = AsyncStream<Never> { _ in }
+          for await _ in never {}
+          throw CancellationError()
         } onCancel: {
           onCancel()
         }
