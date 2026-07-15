@@ -1100,6 +1100,7 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ..;
 			traits = (
+				CasePaths,
 				LazyInitializableByDefault,
 			);
 		};
@@ -1141,6 +1142,8 @@
 				minimumVersion = 2.2.3;
 			};
 			traits = (
+				CasePaths,
+				IssueReporting,
 			);
 		};
 /* End XCRemoteSwiftPackageReference section */
