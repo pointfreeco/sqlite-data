@@ -19,6 +19,19 @@
     import UIKit
   #endif
 
+  /// Counts of changes waiting to be sent to CloudKit.
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public struct PendingChangeCounts: Equatable, Sendable {
+    /// The number of records waiting to be saved.
+    public let recordSaveCount: Int
+
+    /// The number of records waiting to be deleted.
+    public let recordDeleteCount: Int
+
+    /// The number of database changes waiting to be sent.
+    public let databaseChangeCount: Int
+  }
+
   /// An object that manages the synchronization of local and remote SQLite data.
   ///
   /// See <doc:CloudKitSync> for more information.
@@ -423,6 +436,41 @@
       isSendingChanges || isFetchingChanges
     }
 
+    /// Counts of changes waiting to be sent to CloudKit.
+    ///
+    /// This value is `nil` when the sync engine is not running. It is observable, and so accessing
+    /// it from a SwiftUI view will cause the view to update as the pending changes change.
+    public var pendingChangeCounts: PendingChangeCounts? {
+      observationRegistrar.access(self, keyPath: \.pendingChangeCounts)
+      return syncEngines.withValue { syncEngines in
+        guard let privateSyncEngine = syncEngines.private,
+          let sharedSyncEngine = syncEngines.shared
+        else { return nil }
+
+        var recordSaveCount = 0
+        var recordDeleteCount = 0
+        var databaseChangeCount = 0
+        for syncEngine in [privateSyncEngine, sharedSyncEngine] {
+          for change in syncEngine.state.pendingRecordZoneChanges {
+            switch change {
+            case .saveRecord:
+              recordSaveCount += 1
+            case .deleteRecord:
+              recordDeleteCount += 1
+            @unknown default:
+              break
+            }
+          }
+          databaseChangeCount += syncEngine.state.pendingDatabaseChanges.count
+        }
+        return PendingChangeCounts(
+          recordSaveCount: recordSaveCount,
+          recordDeleteCount: recordDeleteCount,
+          databaseChangeCount: databaseChangeCount
+        )
+      }
+    }
+
     /// Stops the sync engine if it is running.
     ///
     /// All edits made after stopping the sync engine will not be synchronized to CloudKit.
@@ -440,6 +488,7 @@
           $0 = SyncEngines()
         }
       }
+      pendingChangeCountsDidChange()
     }
 
     /// Determines if the sync engine is currently running or not.
@@ -461,6 +510,7 @@
           )
         }
       }
+      pendingChangeCountsDidChange()
 
       let previousRecordTypes = try metadatabase.read { db in
         try RecordType.all.fetchAll(db)
@@ -943,6 +993,10 @@
         }
       }
     }
+
+    private func pendingChangeCountsDidChange() {
+      observationRegistrar.withMutation(of: self, keyPath: \.pendingChangeCounts) {}
+    }
   }
 
   extension PrimaryKeyedTable {
@@ -1005,6 +1059,7 @@
       case .accountChange(let changeType):
         await handleAccountChange(changeType: changeType, syncEngine: syncEngine)
       case .stateUpdate(let stateSerialization):
+        pendingChangeCountsDidChange()
         await handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
       case .fetchedDatabaseChanges(let modifications, let deletions):
         await handleFetchedDatabaseChanges(
