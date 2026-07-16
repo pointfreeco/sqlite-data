@@ -175,13 +175,13 @@
         children: [
           (
             "pendingRecordZoneChanges",
-            _pendingRecordZoneChanges.withLock(\.self)
+            _pendingRecordZoneChanges.withValue(\.self)
               .sorted(by: comparePendingRecordZoneChange)
               as Any
           ),
           (
             "pendingDatabaseChanges",
-            _pendingDatabaseChanges.withLock(\.self)
+            _pendingDatabaseChanges.withValue(\.self)
               .sorted(by: comparePendingDatabaseChange) as Any
           ),
         ],
@@ -249,12 +249,11 @@
         children: [
           "databaseScope": databaseScope,
           "storage": state
-            .withLock {
-              $0.storage
-                .flatMap { _, value in value.records.values }
-                .sorted {
-                  ($0.recordType, $0.recordID.recordName) < ($1.recordType, $1.recordID.recordName)
-                }
+            .value
+            .storage
+            .flatMap { _, value in value.records.values }
+            .sorted {
+              ($0.recordType, $0.recordID.recordName) < ($1.recordType, $1.recordID.recordName)
             },
         ],
         displayStyle: .struct

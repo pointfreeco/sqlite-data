@@ -791,7 +791,7 @@
           )
           .notify()
 
-          inMemoryDataManager.storage.withLock { $0.removeAll() }
+          inMemoryDataManager.storage.withValue { $0.removeAll() }
 
           try await userDatabase.userWrite { db in
             try #sql(
@@ -848,7 +848,7 @@
           .notify()
           syncEngine.stop()
 
-          inMemoryDataManager.storage.withLock { $0.removeAll() }
+          inMemoryDataManager.storage.withValue { $0.removeAll() }
 
           try await userDatabase.userWrite { db in
             try #sql(

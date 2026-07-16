@@ -31,7 +31,7 @@ import Testing
   @Test func completeWhenTaskExplicitlyCancelled() async throws {
     @FetchAll var records: [Record]
     #expect(records.count == 0)
-    nonisolated(unsafe) var didComplete = false
+    let didComplete = LockIsolated(false)
 
     try await database.write { db in
       try Record.insert { Record.Draft() }.execute(db)
@@ -43,14 +43,14 @@ import Testing
 
     let task = Task {
       try? await subscription.task
-      didComplete = true
+      didComplete.withValue { $0 = true }
     }
 
     try await Task.sleep(for: .seconds(1))
 
     subscription.cancel()
     await task.value
-    #expect(didComplete)
+    #expect(didComplete.value)
   }
 
   @Test func cancellingOneFetchDoesNotCancelAnother() async throws {

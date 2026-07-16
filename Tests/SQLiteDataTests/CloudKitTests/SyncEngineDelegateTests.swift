@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
+  import ConcurrencyExtrasTestSupport
   import CustomDump
   import DependenciesTestSupport
   import Foundation
@@ -228,10 +229,10 @@
       _ syncEngine: SQLiteData.SyncEngine,
       accountChanged changeType: CKSyncEngine.Event.AccountChange.ChangeType
     ) async {
-      wasCalled.withLock { $0 = true }
+      wasCalled.withValue { $0 = true }
     }
     deinit {
-      guard wasCalled.withLock(\.self)
+      guard wasCalled.withValue(\.self)
       else {
         Issue.record("Delegate method 'syncEngine(_:accountChanged:)' was not called.")
         return
