@@ -37,8 +37,8 @@ public struct FetchOne<Value: Sendable>: Sendable {
       nonmutating set { state.wrappedValue.sharedReader = newValue }
     }
 
-    private let box: FetchBox<Value>
-    private let state: SwiftUI.State<FetchBox<Value>>
+    private let box: FetchBox<Value, Void>
+    private let state: SwiftUI.State<FetchBox<Value, Void>>
     private let generation = SwiftUI.State(wrappedValue: 0)
   #else
     /// The underlying shared reader powering the property wrapper.

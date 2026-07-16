@@ -4,11 +4,11 @@
   import Sharing
   import SwiftUI
 
-  final class FetchBox<Value: Sendable>: @unchecked Sendable {
+  final class FetchBox<Value: Sendable, Extra: Sendable>: @unchecked Sendable {
     private let storage: LockIsolated<Storage>
 
-    init(sharedReader: SharedReader<Value>) {
-      storage = LockIsolated(Storage(sharedReader: sharedReader))
+    init(sharedReader: SharedReader<Value>, extra: Extra) {
+      storage = LockIsolated(Storage(sharedReader: sharedReader, extra: extra))
     }
 
     var sharedReader: SharedReader<Value> {
@@ -21,6 +21,11 @@
       set { storage.withLock { $0.fetchKeyID = newValue } }
     }
 
+    var extra: Extra {
+      get { storage.withLock(\.extra) }
+      set { storage.withLock { $0.extra = newValue } }
+    }
+
     func update(from other: FetchBox) {
       guard
         let otherFetchKeyID = other.storage.withLock(\.fetchKeyID),
@@ -29,6 +34,7 @@
       storage.withLock {
         $0.sharedReader = other.sharedReader
         $0.fetchKeyID = other.fetchKeyID
+        $0.extra = other.extra
       }
     }
 
@@ -45,7 +51,14 @@
     private struct Storage {
       var sharedReader: SharedReader<Value>
       var fetchKeyID: FetchKeyID?
+      var extra: Extra
       var swiftUICancellable: AnyCancellable?
+    }
+  }
+
+  extension FetchBox where Extra == Void {
+    convenience init(sharedReader: SharedReader<Value>) {
+      self.init(sharedReader: sharedReader, extra: ())
     }
   }
 #endif
