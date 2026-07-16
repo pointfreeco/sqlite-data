@@ -14,7 +14,7 @@ jobs:
     name: macOS
     strategy:
       matrix:
-        xcode: ["26.2"]
+        xcode: ["26.5"]
         config: ["debug", "release"]
     runs-on: macos-26
     steps:
