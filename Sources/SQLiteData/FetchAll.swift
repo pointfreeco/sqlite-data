@@ -27,18 +27,15 @@ public struct FetchAll<Element: Sendable>: Sendable {
     /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
     /// package, a general solution to observing and persisting changes to external data sources.
     public private(set) var sharedReader: SharedReader<[Element]> {
-      @storageRestrictions(initializes: box, state)
+      @storageRestrictions(initializes: state)
       init(initialValue) {
-        let box = FetchBox(sharedReader: initialValue)
-        self.box = box
-        state = SwiftUI.State(wrappedValue: box)
+        state = SwiftUI.State(wrappedValue: initialValue)
       }
-      get { state.wrappedValue.sharedReader }
-      nonmutating set { state.wrappedValue.sharedReader = newValue }
+      get { state.wrappedValue }
+      nonmutating set { state.wrappedValue = newValue }
     }
 
-    private let box: FetchBox<[Element]>
-    private let state: SwiftUI.State<FetchBox<[Element]>>
+    private let state: SwiftUI.State<SharedReader<[Element]>>
     private let generation = SwiftUI.State(wrappedValue: 0)
   #else
     /// The underlying shared reader powering the property wrapper.
@@ -247,7 +244,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
     scheduler: (any ValueObservationScheduler & Hashable)?
   ) {
     #if canImport(SwiftUI)
-      box.fetchKeyID = FetchKey(request: request, database: database, scheduler: scheduler).id
+//      box.fetchKeyID = FetchKey(request: request, database: database, scheduler: scheduler).id
     #endif
   }
 }
@@ -436,11 +433,11 @@ extension FetchAll: Equatable where Element: Equatable {
 #if canImport(SwiftUI)
   extension FetchAll: DynamicProperty {
     public func update() {
-      let persisted = state.wrappedValue
-      if persisted !== box {
-        persisted.update(from: box)
-      }
-      persisted.subscribe(generation: generation)
+//      let persisted = state.wrappedValue
+//      if persisted !== box {
+//        persisted.update(from: box)
+//      }
+//      persisted.subscribe(generation: generation)
     }
 
     @available(
