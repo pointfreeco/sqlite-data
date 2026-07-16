@@ -1,5 +1,4 @@
 #if canImport(CloudKit)
-  package import ConcurrencyExtras
   package import CloudKit
   import Dependencies
 
@@ -23,13 +22,13 @@
 
       guard let containerIdentifier else { return }
       @Dependency(\.mockCloudContainers) var mockCloudContainers
-      mockCloudContainers.withValue { storage in
+      mockCloudContainers.withLock { storage in
         storage[containerIdentifier] = self
       }
     }
 
     package func accountStatus() -> CKAccountStatus {
-      _accountStatus.withValue(\.self)
+      _accountStatus.withLock(\.self)
     }
 
     package var rawValue: CKContainer {
@@ -37,7 +36,7 @@
     }
 
     package func accountStatus() async throws -> CKAccountStatus {
-      _accountStatus.withValue { $0 }
+      _accountStatus.withLock { $0 }
     }
 
     package func shareMetadata(
@@ -49,7 +48,7 @@
         ? privateCloudDatabase
         : sharedCloudDatabase
 
-      let rootRecord: CKRecord? = database.state.withValue {
+      let rootRecord: CKRecord? = database.state.withLock {
         $0.storage[share.recordID.zoneID]?.records.values.first { record in
           record.share?.recordID == share.recordID
         }
@@ -80,7 +79,7 @@
       -> MockCloudContainer
     {
       @Dependency(\.mockCloudContainers) var mockCloudContainers
-      return mockCloudContainers.withValue { storage in
+      return mockCloudContainers.withLock { storage in
         let container: MockCloudContainer
         if let existingContainer = storage[containerIdentifier] {
           return existingContainer

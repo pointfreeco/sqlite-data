@@ -206,7 +206,7 @@ extension Fetch: Equatable where Value: Equatable {
     public func update() {
       let persisted = state.wrappedValue
       if persisted !== box {
-        persisted.reconcile(from: box, propertyName: "@Fetch")
+        persisted.update(from: box)
       }
       persisted.subscribe(generation: generation)
     }

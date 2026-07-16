@@ -1,7 +1,6 @@
 #if canImport(CloudKit)
   import Clocks
   import CloudKit
-  import ConcurrencyExtrasTestSupport
   import DependenciesTestSupport
   import OrderedCollections
   import SQLiteData
@@ -100,7 +99,7 @@ import TestLocals
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     func signOut() async {
-      container._accountStatus.withValue { $0 = .noAccount }
+      container._accountStatus.withLock { $0 = .noAccount }
       await syncEngine.handleEvent(
         .accountChange(changeType: .signOut(previousUser: previousUserRecordID)),
         syncEngine: syncEngine.private
@@ -113,12 +112,12 @@ import TestLocals
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     func softSignOut() async {
-      container._accountStatus.withValue { $0 = .temporarilyUnavailable }
+      container._accountStatus.withLock { $0 = .temporarilyUnavailable }
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     func signIn() async {
-      container._accountStatus.withValue { $0 = .available }
+      container._accountStatus.withLock { $0 = .available }
       // NB: Emulates what CKSyncEngine does when signing in
       syncEngine.private.state.removePendingChanges()
       syncEngine.shared.state.removePendingChanges()
@@ -158,10 +157,10 @@ import TestLocals
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
     var `private`: MockSyncEngine {
-      syncEngines.private as! MockSyncEngine
+      syncEngines.withLock(\.private) as! MockSyncEngine
     }
     var shared: MockSyncEngine {
-      syncEngines.shared as! MockSyncEngine
+      syncEngines.withLock(\.shared) as! MockSyncEngine
     }
     static nonisolated let defaultTestZone = CKRecordZone(
       zoneName: "zone"

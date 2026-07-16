@@ -950,7 +950,7 @@ extension FetchOne: Equatable where Value: Equatable {
     public func update() {
       let persisted = state.wrappedValue
       if persisted !== box {
-        persisted.reconcile(from: box, propertyName: "@FetchOne")
+        persisted.update(from: box)
       }
       persisted.subscribe(generation: generation)
     }
