@@ -35,7 +35,6 @@ let package = Package(
     .target(
       name: "SQLiteData",
       dependencies: [
-        .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "GRDB", package: "GRDB.swift"),
         .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
@@ -48,7 +47,6 @@ let package = Package(
       name: "SQLiteDataTestSupport",
       dependencies: [
         "SQLiteData",
-        .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
         .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),

@@ -21,11 +21,32 @@ public import StructuredQueriesCore
 @dynamicMemberLookup
 @propertyWrapper
 public struct FetchOne<Value: Sendable>: Sendable {
-  /// The underlying shared reader powering the property wrapper.
-  ///
-  /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing) package,
-  /// a general solution to observing and persisting changes to external data sources.
-  public var sharedReader: SharedReader<Value>
+  #if canImport(SwiftUI)
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public private(set) var sharedReader: SharedReader<Value> {
+      @storageRestrictions(initializes: box, state)
+      init(initialValue) {
+        let box = FetchBox(sharedReader: initialValue)
+        self.box = box
+        state = SwiftUI.State(wrappedValue: box)
+      }
+      get { state.wrappedValue.sharedReader }
+      nonmutating set { state.wrappedValue.sharedReader = newValue }
+    }
+
+    private let box: FetchBox<Value>
+    private let state: SwiftUI.State<FetchBox<Value>>
+    private let generation = SwiftUI.State(wrappedValue: 0)
+  #else
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public private(set) var sharedReader: SharedReader<Value>
+  #endif
 
   /// A value associated with the underlying query.
   public var wrappedValue: Value {
@@ -106,10 +127,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
     Value: StructuredQueriesCore.Table & QueryRepresentable, Value.QueryOutput == Value
   {
     let statement = Value.all.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query that fetches the first row from a table.
@@ -128,10 +151,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
     Value.QueryOutput == Value
   {
     let statement = Value.all.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -170,10 +195,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
   where
     Value == V.QueryOutput
   {
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -191,10 +218,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
   where
     Value == V.QueryOutput?
   {
+    let request = FetchOneStatementOptionalValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -213,10 +242,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
     Value: QueryRepresentable,
     Value == S.QueryValue.QueryOutput
   {
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -238,10 +269,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementOptionalValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -262,13 +295,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
     S.QueryValue: StructuredQueriesCore._OptionalProtocol,
     Value == S.QueryValue.QueryOutput
   {
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementOptionalProtocolRequest(statement: statement),
-        database: database
-      )
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -288,10 +320,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
     Value: StructuredQueriesCore._OptionalProtocol,
     Value.QueryOutput == Value
   {
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -428,10 +462,29 @@ public struct FetchOne<Value: Sendable>: Sendable {
     )
     return FetchSubscription(sharedReader: sharedReader)
   }
+
+  #if !canImport(SwiftUI)
+    @_transparent
+  #endif
+  private func setFetchKeyID<V: Sendable>(
+    for request: some FetchKeyRequest<V>,
+    database: (any DatabaseReader)?,
+    scheduler: (any ValueObservationScheduler & Hashable)?
+  ) {
+    #if canImport(SwiftUI)
+      box.fetchKeyID = FetchKey(request: request, database: database, scheduler: scheduler).id
+    #endif
+  }
 }
 
 extension FetchOne {
-  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  @available(
+    *,
+    deprecated,
+    message: """
+      '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+      """
+  )
   public init(
     wrappedValue: sending Value,
     database: (any DatabaseReader)? = nil,
@@ -444,7 +497,13 @@ extension FetchOne {
     sharedReader = SharedReader(value: wrappedValue)
   }
 
-  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  @available(
+    *,
+    deprecated,
+    message: """
+      '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+      """
+  )
   public init(
     wrappedValue: sending Value = Value._none,
     database: (any DatabaseReader)? = nil,
@@ -475,14 +534,12 @@ extension FetchOne {
     Value: StructuredQueriesCore.Table & QueryRepresentable, Value.QueryOutput == Value
   {
     let statement = Value.all.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query that fetches the first row from a table.
@@ -504,14 +561,12 @@ extension FetchOne {
     Value.QueryOutput == Value
   {
     let statement = Value.all.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementOptionalProtocolRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -556,14 +611,12 @@ extension FetchOne {
   where
     Value == V.QueryOutput
   {
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -584,14 +637,12 @@ extension FetchOne {
   where
     Value == V.QueryOutput?
   {
+    let request = FetchOneStatementOptionalValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementOptionalValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -613,14 +664,12 @@ extension FetchOne {
     Value: QueryRepresentable,
     Value == S.QueryValue.QueryOutput
   {
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -645,14 +694,12 @@ extension FetchOne {
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementOptionalValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementOptionalValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -676,14 +723,12 @@ extension FetchOne {
     S.QueryValue: StructuredQueriesCore._OptionalProtocol,
     Value == S.QueryValue.QueryOutput
   {
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementOptionalProtocolRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -706,14 +751,12 @@ extension FetchOne {
     Value: StructuredQueriesCore._OptionalProtocol,
     Value.QueryOutput == Value
   {
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementOptionalProtocolRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -905,10 +948,20 @@ extension FetchOne: Equatable where Value: Equatable {
 #if canImport(SwiftUI)
   extension FetchOne: DynamicProperty {
     public func update() {
-      sharedReader.update()
+      let persisted = state.wrappedValue
+      if persisted !== box {
+        persisted.update(from: box)
+      }
+      persisted.subscribe(generation: generation)
     }
 
-    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    @available(
+      *,
+      deprecated,
+      message: """
+        '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+        """
+    )
     public init(
       wrappedValue: sending Value,
       database: (any DatabaseReader)? = nil,
@@ -921,7 +974,13 @@ extension FetchOne: Equatable where Value: Equatable {
       sharedReader = SharedReader(value: wrappedValue)
     }
 
-    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    @available(
+      *,
+      deprecated,
+      message: """
+        '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+        """
+    )
     public init(
       wrappedValue: sending Value = Value._none,
       database: (any DatabaseReader)? = nil,

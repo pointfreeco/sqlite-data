@@ -1,6 +1,5 @@
 #if canImport(CloudKit)
   public import CloudKit
-  import ConcurrencyExtras
   import GRDB
   import IssueReporting
   public import StructuredQueries
@@ -241,7 +240,7 @@
     }
 
     func unshare(share: CKShare) async throws {
-      let result = try await syncEngines.private?.database.modifyRecords(
+      let result = try await syncEngines.withLock(\.private)?.database.modifyRecords(
         saving: [],
         deleting: [share.recordID]
       )

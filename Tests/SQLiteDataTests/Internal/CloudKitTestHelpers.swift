@@ -1,5 +1,4 @@
 import CloudKit
-import ConcurrencyExtras
 import CustomDump
 import OrderedCollections
 import SQLiteData
@@ -75,7 +74,7 @@ extension SyncEngine {
   > {
     let syncEngine = syncEngine(for: scope)
     let recordsToDeleteByID = Dictionary(
-      grouping: syncEngine.database.state.withValue { state in
+      grouping: syncEngine.database.state.withLock { state in
         recordIDsToDelete.compactMap {
           recordID in state.storage[recordID.zoneID]?.records[recordID]
         }
@@ -118,7 +117,7 @@ extension MockSyncEngine {
     line: UInt = #line,
     column: UInt = #column
   ) {
-    _fetchChangesScopes.withValue {
+    _fetchChangesScopes.withLock {
       expectNoDifference(
         scopes,
         $0,
@@ -138,7 +137,7 @@ extension MockSyncEngine {
     line: UInt = #line,
     column: UInt = #column
   ) {
-    _acceptedShareMetadata.withValue {
+    _acceptedShareMetadata.withLock {
       expectNoDifference(
         sharedMetadata,
         $0,
@@ -161,7 +160,7 @@ extension MockSyncEngineState {
     line: UInt = #line,
     column: UInt = #column
   ) {
-    _pendingRecordZoneChanges.withValue {
+    _pendingRecordZoneChanges.withLock {
       expectNoDifference(
         Set(changes),
         Set($0),
@@ -181,7 +180,7 @@ extension MockSyncEngineState {
     line: UInt = #line,
     column: UInt = #column
   ) {
-    _pendingDatabaseChanges.withValue {
+    _pendingDatabaseChanges.withLock {
       expectNoDifference(
         Set(changes),
         Set($0),
