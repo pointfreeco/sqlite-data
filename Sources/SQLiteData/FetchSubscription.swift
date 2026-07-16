@@ -14,7 +14,7 @@ import Sharing
 /// }
 /// ```
 public struct FetchSubscription: Sendable {
-  let cancellable = LockIsolated<Task<Void, any Error>?>(nil)
+  let cancellable = LockIsolated<AsyncStream<Never>.Continuation?>(nil)
   let onCancel: @Sendable () -> Void
 
   init<Value>(sharedReader: SharedReader<Value>) {
@@ -27,22 +27,17 @@ public struct FetchSubscription: Sendable {
   /// the observation of the associated ``FetchAll``, ``FetchOne``, or ``Fetch``.
   public var task: Void {
     get async throws {
-      let task = Task {
-        try await withTaskCancellationHandler {
-          let never = AsyncStream<Never> { _ in }
-          for await _ in never {}
-          throw CancellationError()
-        } onCancel: {
-          onCancel()
-        }
+      let never = AsyncStream<Never> { continuation in
+        cancellable.withLock { $0 = continuation }
       }
-      cancellable.withLock { $0 = task }
-      try await task.value
+      for await _ in never {}
+      onCancel()
+      throw CancellationError()
     }
   }
 
   /// Cancels the database observation of the associated ``FetchAll``, ``FetchOne``, or ``Fetch``.
   public func cancel() {
-    cancellable.withLock { $0?.cancel() }
+    cancellable.withLock { $0?.finish() }
   }
 }
