@@ -1,4 +1,5 @@
 #if canImport(CloudKit)
+  package import ConcurrencyExtras
   package import CloudKit
   import IssueReporting
   package import OrderedCollections
@@ -26,7 +27,7 @@
     }
 
     package func acceptShare(metadata: ShareMetadata) {
-      _ = _acceptedShareMetadata.withLock { $0.insert(metadata) }
+      _ = _acceptedShareMetadata.withValue { $0.insert(metadata) }
     }
 
     package func fetchChanges(_ options: CKSyncEngine.FetchChangesOptions) async throws {
@@ -34,16 +35,16 @@
       let zoneIDs: [CKRecordZone.ID]
       switch options.scope {
       case .all:
-        zoneIDs = Array(database.state.withLock(\.storage.keys))
+        zoneIDs = Array(database.state.storage.keys)
       case .allExcluding(let excludedZoneIDs):
-        zoneIDs = Array(Set(database.state.withLock(\.storage.keys)).subtracting(excludedZoneIDs))
+        zoneIDs = Array(Set(database.state.storage.keys).subtracting(excludedZoneIDs))
       case .zoneIDs(let includedZoneIDs):
         zoneIDs = includedZoneIDs
       @unknown default:
         fatalError()
       }
 
-      modifications = database.state.withLock { state in
+      modifications = database.state.withValue { state in
         zoneIDs.reduce(into: [CKRecord]()) {
           accum,
           zoneID in
@@ -53,12 +54,12 @@
                 $0._recordChangeTag != nil,
                 "Records stored in database should have their 'recordChangeTag' assigned."
               )
-              return $0._recordChangeTag! > self.state.changeTag.withLock(\.self)
+              return $0._recordChangeTag! > self.state.changeTag.value
             }
         }
       }
 
-      let deletions = database.state.withLock {
+      let deletions = database.state.withValue {
         let records = $0.deletedRecords.filter { recordID, _ in
           zoneIDs.contains(recordID.zoneID)
         }
@@ -71,7 +72,7 @@
       guard !modifications.isEmpty || !deletions.isEmpty
       else { return }
 
-      state.changeTag.withLock { changeTag in
+      state.changeTag.withValue { changeTag in
         changeTag = modifications.compactMap(\._recordChangeTag).max() ?? changeTag
       }
 
@@ -160,38 +161,38 @@
     }
 
     package var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] {
-      _pendingRecordZoneChanges.withLock { Array($0) }
+      _pendingRecordZoneChanges.withValue { Array($0) }
     }
 
     package var pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] {
-      _pendingDatabaseChanges.withLock { Array($0) }
+      _pendingDatabaseChanges.withValue { Array($0) }
     }
 
     package func removePendingChanges() {
-      _pendingDatabaseChanges.withLock { $0.removeAll() }
-      _pendingRecordZoneChanges.withLock { $0.removeAll() }
+      _pendingDatabaseChanges.withValue { $0.removeAll() }
+      _pendingRecordZoneChanges.withValue { $0.removeAll() }
     }
 
     package func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
-      self._pendingRecordZoneChanges.withLock {
+      self._pendingRecordZoneChanges.withValue {
         $0.append(contentsOf: pendingRecordZoneChanges)
       }
     }
 
     package func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
-      self._pendingRecordZoneChanges.withLock {
+      self._pendingRecordZoneChanges.withValue {
         $0.subtract(pendingRecordZoneChanges)
       }
     }
 
     package func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
-      self._pendingDatabaseChanges.withLock {
+      self._pendingDatabaseChanges.withValue {
         $0.append(contentsOf: pendingDatabaseChanges)
       }
     }
 
     package func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
-      self._pendingDatabaseChanges.withLock {
+      self._pendingDatabaseChanges.withValue {
         $0.subtract(pendingDatabaseChanges)
       }
     }
@@ -438,10 +439,10 @@
     }
 
     package var `private`: MockSyncEngine {
-      syncEngines.withLock(\.private) as! MockSyncEngine
+      syncEngines.private as! MockSyncEngine
     }
     package var shared: MockSyncEngine {
-      syncEngines.withLock(\.shared) as! MockSyncEngine
+      syncEngines.shared as! MockSyncEngine
     }
 
     package func syncEngine(for scope: CKDatabase.Scope) -> MockSyncEngine {

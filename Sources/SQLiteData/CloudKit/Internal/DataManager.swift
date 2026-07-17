@@ -1,4 +1,5 @@
 #if canImport(CloudKit) && canImport(CryptoKit)
+  package import ConcurrencyExtras
   import CryptoKit
   import Dependencies
   package import Foundation
@@ -54,7 +55,7 @@
     package init() {}
 
     package func load(_ url: URL) throws -> Data {
-      try storage.withLock { storage in
+      try storage.withValue { storage in
         guard let data = storage[url]
         else {
           struct FileNotFound: Error {}
@@ -65,11 +66,11 @@
     }
 
     package func save(_ data: Data, to url: URL) throws {
-      storage.withLock { $0[url] = data }
+      storage.withValue { $0[url] = data }
     }
 
     package func sha256(of fileURL: URL) -> Data? {
-      storage.withLock {
+      storage.withValue {
         $0[fileURL].map {
           Data(SHA256.hash(data: $0))
         }

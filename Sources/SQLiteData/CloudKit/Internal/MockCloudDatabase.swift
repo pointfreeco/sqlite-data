@@ -1,4 +1,5 @@
 #if canImport(CloudKit)
+  package import ConcurrencyExtras
   package import CloudKit
   import Dependencies
   import IssueReporting
@@ -47,7 +48,7 @@
       let accountStatus = container.accountStatus()
       guard accountStatus == .available
       else { throw ckError(forAccountStatus: accountStatus) }
-      let record = try state.withLock { state in
+      let record = try state.withValue { state in
         guard let zone = state.storage[recordID.zoneID]
         else { throw CKError(.zoneNotFound) }
         guard let record = zone.records[recordID]
@@ -57,7 +58,7 @@
         return record
       }
 
-      try state.withLock { state in
+      try state.withValue { state in
         for key in record.allKeys() {
           guard let assetData = state.assets[AssetID(recordID: record.recordID, key: key)]
           else { continue }
@@ -106,7 +107,7 @@
         throw CKError(.limitExceeded)
       }
 
-      return state.withLock { state in
+      return state.withValue { state in
         let previousStorage = state.storage
         var saveResults: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
         var deleteResults: [CKRecord.ID: Result<Void, any Error>] = [:]
@@ -366,7 +367,7 @@
       guard accountStatus == .available
       else { throw ckError(forAccountStatus: accountStatus) }
 
-      return state.withLock { state in
+      return state.withValue { state in
         var saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>] = [:]
         var deleteResults: [CKRecordZone.ID: Result<Void, any Error>] = [:]
 

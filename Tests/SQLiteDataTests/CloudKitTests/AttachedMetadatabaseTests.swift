@@ -1,5 +1,7 @@
 #if canImport(CloudKit)
   import CloudKit
+  import ConcurrencyExtras
+  import ConcurrencyExtrasTestSupport
   import CustomDump
   import InlineSnapshotTesting
   import OrderedCollections
