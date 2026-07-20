@@ -78,7 +78,7 @@ extension FetchAll {
   ///     (`@Dependency(\.defaultDatabase)`).
   public init(
     wrappedValue: [Element] = [],
-    @SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _SectionBy?,
+    @_SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil
   )
   where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
@@ -130,7 +130,7 @@ extension FetchAll {
   public init<S: SelectStatement>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
+    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -166,7 +166,7 @@ extension FetchAll {
   ///     asynchronously on the main queue.
   public init(
     wrappedValue: [Element] = [],
-    @SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _SectionBy?,
+    @_SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -200,7 +200,7 @@ extension FetchAll {
   public init<S: SelectStatement>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
+    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -241,7 +241,7 @@ extension FetchAll {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init(
       wrappedValue: [Element] = [],
-      @SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _SectionBy?,
+      @_SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _SectionBy?,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -270,7 +270,7 @@ extension FetchAll {
     public init<S: SelectStatement>(
       wrappedValue: [Element] = [],
       _ statement: S,
-      @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
+      @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -307,7 +307,7 @@ extension FetchAll {
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
-    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
+    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil
   ) async throws -> FetchSubscription
   where
@@ -342,7 +342,7 @@ extension FetchAll {
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
-    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
+    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws -> FetchSubscription
@@ -421,7 +421,7 @@ extension FetchAll {
     @discardableResult
     public func load<S: SelectStatement>(
       _ statement: S,
-      @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
+      @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
       database: (any DatabaseReader)? = nil,
       animation: Animation?
     ) async throws -> FetchSubscription
@@ -748,7 +748,7 @@ public struct _SectionBy: Hashable, Sendable {
 }
 
 @resultBuilder
-public enum SectionBuilder {
+public enum _SectionBuilder {
   public static func buildExpression(
     _ expression: some QueryExpression<some _OptionalPromotable<String?>>
   ) -> _SectionBy {
