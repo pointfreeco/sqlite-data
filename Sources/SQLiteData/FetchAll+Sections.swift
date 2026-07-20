@@ -732,36 +732,21 @@ extension FetchAll {
   }
 #endif
 
-/// A value that describes how a ``FetchAll`` query is grouped into sections.
-///
-/// You do not create this type directly. Instead, pass a `sectionBy:` closure to a ``FetchAll``
-/// initializer or `load` method, which builds this value from a string expression or an ordering
-/// of one.
 public struct SectionBy: Hashable, Sendable {
   let select: QueryFragment
   let order: QueryFragment
 
-  /// Creates a sectioning from a string expression.
-  ///
-  /// - Parameter expression: An expression to group results by.
   public init(_ expression: some QueryExpression<some _OptionalPromotable<String?>>) {
     self.select = expression.queryFragment
     self.order = expression.queryFragment
   }
 
-  /// Creates a sectioning from an ordering of a string expression.
-  ///
-  /// - Parameter orderingTerm: An ordering of an expression to group results by.
   public init(_ orderingTerm: OrderingTerm<some _OptionalPromotable<String?>>) {
     self.select = orderingTerm.base
     self.order = orderingTerm.queryFragment
   }
 }
 
-/// A result builder for the `sectionBy:` parameter of ``FetchAll``.
-///
-/// This builder accepts a single string expression, or an ordering of one, to group query results
-/// into sections, and supports `if` statements for dynamic sectioning.
 @resultBuilder
 public enum SectionBuilder {
   public static func buildExpression(
