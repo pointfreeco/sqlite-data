@@ -56,6 +56,9 @@
     private let observationRegistrar = ObservationRegistrar()
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
+    private let lastPendingChangeCounts = LockIsolated(
+      PendingChangeCounts(recordSaveCount: 0, recordDeleteCount: 0, databaseChangeCount: 0)
+    )
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
     #if DEBUG && canImport(DeveloperToolsSupport)
       private let previewTimerTask = LockIsolated<Task<Void, Never>?>(nil)
@@ -438,14 +441,15 @@
 
     /// Counts of changes waiting to be sent to CloudKit.
     ///
-    /// This value is `nil` when the sync engine is not running. It is observable, and so accessing
-    /// it from a SwiftUI view will cause the view to update as the pending changes change.
-    public var pendingChangeCounts: PendingChangeCounts? {
+    /// When the sync engine is not running, this value reflects the pending changes captured when
+    /// the engine was stopped. It is observable, and so accessing it from a SwiftUI view will cause
+    /// the view to update as the pending changes change.
+    public var pendingChangeCounts: PendingChangeCounts {
       observationRegistrar.access(self, keyPath: \.pendingChangeCounts)
       return syncEngines.withValue { syncEngines in
         guard let privateSyncEngine = syncEngines.private,
           let sharedSyncEngine = syncEngines.shared
-        else { return nil }
+        else { return lastPendingChangeCounts.withValue(\.self) }
 
         var recordSaveCount = 0
         var recordDeleteCount = 0
@@ -477,6 +481,8 @@
     /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
       guard isRunning else { return }
+      let pendingChangeCounts = pendingChangeCounts
+      lastPendingChangeCounts.withValue { $0 = pendingChangeCounts }
       #if DEBUG && canImport(DeveloperToolsSupport)
         previewTimerTask.withValue {
           $0?.cancel()
