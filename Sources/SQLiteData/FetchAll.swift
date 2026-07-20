@@ -32,7 +32,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   var sectionedReader: SharedReader<ResultsSectionCollection<Element, String>> =
     SharedReader(value: ResultsSectionCollection())
 
-  let sectionedBy = LockIsolated<QueryFragment?>(nil)
+  let sectionedBy = LockIsolated<SectionBy?>(nil)
 
   /// A collection of data associated with the underlying query.
   public var wrappedValue: [Element] {

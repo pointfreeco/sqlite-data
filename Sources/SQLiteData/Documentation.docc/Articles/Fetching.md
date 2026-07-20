@@ -172,12 +172,25 @@ List {
 
 The section expression is prepended to the query's `ORDER BY` clause and evaluated by the
 database, which groups results into a section for each of its distinct values. Sections are
-ordered by the expression, ascending, and elements within a section follow the query's order. The
-expression is not limited to key paths, either: any SQL expression can be used to section a query,
-and its value, formatted as text, names each section:
+ordered by the expression, and elements within a section follow the query's order. Sections are
+ordered ascending by default, and the expression can be ordered explicitly to control the
+direction and `NULL` ordering of sections:
 
 ```swift
-@FetchAll(Reminder.order(by: \.title), sectionBy: { $0.dueDate.isNot(nil) })
+@FetchAll(Reminder.order(by: \.title), sectionBy: { $0.category.desc() })
+var reminders
+```
+
+The expression is not limited to columns, either: any string SQL expression can be used to
+section a query, and its value names each section:
+
+```swift
+@FetchAll(
+  Reminder.order(by: \.title),
+  sectionBy: {
+    Case().when($0.dueDate.isNot(nil), then: "Scheduled").else("Unscheduled")
+  }
+)
 var reminders
 ```
 

@@ -51,6 +51,60 @@ struct FetchAllSectionsTests {
     #expect($reminders.sections[sectionName: "Rest"]?.map(\.id) == [3, 4, 5])
   }
 
+  @Test func descendingSections() async throws {
+    @FetchAll(SectionedReminder.order(by: \.id), sectionBy: { $0.category.desc() }) var reminders
+    try await $reminders.load()
+
+    #expect(reminders.map(\.id) == [2, 5, 1, 4, 3])
+    #expect($reminders.sections.sectionNames == ["Work", "Home", "Errands"])
+    #expect($reminders.sections[0].map(\.title) == ["Standup", "Review"])
+
+    try await $reminders.load(
+      SectionedReminder.order(by: \.id),
+      sectionBy: { $0.priority.desc(nulls: .last) }
+    )
+    #expect($reminders.sections.sectionNames == ["low", "high", ""])
+    #expect($reminders.sections[sectionName: ""]?.map(\.title) == ["Laundry", "Review"])
+  }
+
+  @Test(arguments: [true, false]) func dynamicSectionBy(isSectioned: Bool) async throws {
+    @FetchAll(
+      SectionedReminder.order(by: \.id),
+      sectionBy: {
+        if isSectioned {
+          $0.category
+        }
+      }
+    )
+    var reminders
+    try await $reminders.load()
+
+    #expect(reminders.count == 5)
+    #expect(
+      $reminders.sections.sectionNames == (isSectioned ? ["Errands", "Home", "Work"] : [""])
+    )
+  }
+
+  @Test(arguments: [true, false]) func ifElseSectionBy(byCategory: Bool) async throws {
+    @FetchAll(
+      SectionedReminder.order(by: \.id),
+      sectionBy: {
+        if byCategory {
+          $0.category
+        } else {
+          $0.priority.desc(nulls: .last)
+        }
+      }
+    )
+    var reminders
+    try await $reminders.load()
+
+    #expect(
+      $reminders.sections.sectionNames
+        == (byCategory ? ["Errands", "Home", "Work"] : ["low", "high", ""])
+    )
+  }
+
   @Test func keyPathSectionBy() async throws {
     @FetchAll(SectionedReminder.order(by: \.id), sectionBy: \.category) var reminders
     try await $reminders.load()
@@ -59,6 +113,22 @@ struct FetchAllSectionsTests {
 
     try await $reminders.load(SectionedReminder.order(by: \.id), sectionBy: \.priority)
     #expect($reminders.sections.sectionNames == ["", "high", "low"])
+  }
+
+  @Test func keyPathSectionByWholeTable() async throws {
+    @FetchAll(sectionBy: \.category) var reminders: [SectionedReminder]
+    try await $reminders.load()
+
+    #expect(reminders.count == 5)
+    #expect($reminders.sections.sectionNames == ["Errands", "Home", "Work"])
+  }
+
+  @Test func storedSectioning() async throws {
+    let sectioning: (SectionedReminder.TableColumns) -> SectionBy? = { SectionBy($0.category) }
+    @FetchAll(SectionedReminder.order(by: \.id), sectionBy: sectioning) var reminders
+    try await $reminders.load()
+
+    #expect($reminders.sections.sectionNames == ["Errands", "Home", "Work"])
   }
 
   @Test func sectionLookup() async throws {
@@ -170,7 +240,7 @@ struct FetchAllSectionsTests {
   }
 
   @Test func nilSectionBy() async throws {
-    let sectioning: ((SectionedReminder.TableColumns) -> SQLQueryExpression<String>)? = nil
+    let sectioning: (SectionedReminder.TableColumns) -> SectionBy? = { _ in nil }
     @FetchAll(SectionedReminder.order(by: \.id), sectionBy: sectioning) var reminders
     try await $reminders.load()
 
@@ -179,9 +249,26 @@ struct FetchAllSectionsTests {
     #expect($reminders.sections[0].map(\.id) == [1, 2, 3, 4, 5])
   }
 
+  @Test func nilSectionBy2() async throws {
+    let isSectioned = false
+    @FetchAll(
+      SectionedReminder.order(by: \.id),
+      sectionBy: {
+        if isSectioned {
+          $0.title
+        }
+      }
+    ) var reminders
+    try await $reminders.load()
+
+    #expect(reminders.map(\.id) == [1, 2, 3, 4, 5])
+    #expect($reminders.sections.sectionNames == [""])
+    #expect($reminders.sections[0].map(\.id) == [1, 2, 3, 4, 5])
+  }
+
   @Test func nilSectionByWholeTable() async throws {
-    @FetchAll(sectionBy: nil as ((SectionedReminder.TableColumns) -> SQLQueryExpression<String>)?)
-    var reminders: [SectionedReminder]
+    let sectioning: (SectionedReminder.TableColumns) -> SectionBy? = { _ in nil }
+    @FetchAll(sectionBy: sectioning) var reminders: [SectionedReminder]
     try await $reminders.load()
 
     #expect(reminders.count == 5)
@@ -193,10 +280,8 @@ struct FetchAllSectionsTests {
     try await $reminders.load()
     #expect($reminders.sections.sectionNames == ["Errands", "Home", "Work"])
 
-    try await $reminders.load(
-      SectionedReminder.order(by: \.id),
-      sectionBy: nil as ((SectionedReminder.TableColumns) -> SQLQueryExpression<String>)?
-    )
+    let sectioning: (SectionedReminder.TableColumns) -> SectionBy? = { _ in nil }
+    try await $reminders.load(SectionedReminder.order(by: \.id), sectionBy: sectioning)
     #expect(reminders.map(\.id) == [1, 2, 3, 4, 5])
     #expect($reminders.sections.sectionNames == [""])
 
@@ -214,7 +299,7 @@ struct FetchAllSectionsTests {
     #expect(reminders.count == 5)
     #expect($reminders.sections.sectionNames == ["Errands", "Home", "Work"])
 
-    try await $reminders.load(SectionedReminder.order(by: \.id), sectionBy: { $0.priority })
+    try await $reminders.load(SectionedReminder.order(by: \.id), sectionBy: \.priority)
     #expect($reminders.sections.sectionNames == ["", "high", "low"])
 
     try await $reminders.load(SectionedReminder.where { $0.id <= 2 }.order(by: \.id))
