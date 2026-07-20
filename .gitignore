@@ -8,3 +8,4 @@ DerivedData/
 *.orig
 *.sqlite
 *.xcresult
+Package.resolved
