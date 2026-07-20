@@ -145,6 +145,8 @@ This is a very efficient query that selects only the bare essentials of data tha
 needs to do its job. This kind of query is a lot more cumbersome to perform in SwiftData because
 you must construct a dedicated `FetchDescriptor` value and set its `propertiesToFetch`.
 
+#### Sectioning
+
 It is also possible to group the results of a query into sections by providing a `sectionBy:`
 expression, similar to SwiftData's `@Query(sectionBy:)`. For example, given a `Reminder` table
 with a string `category` column:
@@ -154,9 +156,8 @@ with a string `category` column:
 var reminders
 ```
 
-The flat results are still available from the property itself, and the projected value's
-``FetchAll/sections`` property groups them into a ``ResultsSectionCollection``, which is perfect
-for driving a sectioned list:
+The projected value's ``FetchAll/sections`` property groups results into a
+``ResultsSectionCollection``, which can be used to drive a sectioned list:
 
 ```swift
 List {
@@ -170,25 +171,24 @@ List {
 }
 ```
 
-The section expression is prepended to the query's `ORDER BY` clause and evaluated by the
-database, which groups results into a section for each of its distinct values. Sections are
-ordered by the expression, and elements within a section follow the query's order. Sections are
-ordered ascending by default, and the expression can be ordered explicitly to control the
-direction and `NULL` ordering of sections:
+The section expression is prepended to the query's `ORDER BY` clause and evaluated by the database,
+which groups results into a section for each of its distinct values. Sections are ordered by the
+expression, and elements within a section follow the query's order. The expression can be ordered
+explicitly to control the direction and `NULL` ordering of sections:
 
 ```swift
 @FetchAll(Reminder.order(by: \.title), sectionBy: { $0.category.desc() })
 var reminders
 ```
 
-The expression is not limited to columns, either: any string SQL expression can be used to
-section a query, and its value names each section:
+The expression is not limited to columns: any string SQL expression can be used to section a query,
+and its value names each section:
 
 ```swift
 @FetchAll(
   Reminder.order(by: \.title),
   sectionBy: {
-    Case().when($0.dueDate.isNot(nil), then: "Scheduled").else("Unscheduled")
+    Case().when($0.dueDate.isNot(nil), then: "Scheduled").else("Unscheduled").desc()
   }
 )
 var reminders

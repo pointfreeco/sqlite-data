@@ -24,9 +24,9 @@ import OrderedCollections
 /// }
 /// ```
 ///
-/// Results are grouped into a section for each distinct value of the expression, which is
-/// evaluated by the database. Sections are ordered by the expression, ascending, and elements
-/// within a section follow the query's order.
+/// Results are grouped into a section for each distinct value of the expression, which is evaluated
+/// by the database. Sections are ordered by the expression, and elements within a section follow
+/// the query's order.
 public struct ResultsSectionCollection<Element, SectionName: Hashable> {
   let elements: [Element]
   private let elementIndicesBySectionName: OrderedDictionary<SectionName, [Int]>
