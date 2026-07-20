@@ -72,13 +72,13 @@ extension FetchAll {
   ///
   /// - Parameters:
   ///   - wrappedValue: A default collection to associate with this property.
-  ///   - sectioning: A closure that returns an expression to group results by, or `nil` for no
+  ///   - sectioning: A closure that returns a string expression to group results by, or `nil` for no
   ///     grouping.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public init(
     wrappedValue: [Element] = [],
-    sectionBy sectioning: ((Element.TableColumns) -> any QueryExpression)?,
+    sectionBy sectioning: ((Element.TableColumns) -> some QueryExpression<some _OptionalPromotable<String?>>)?,
     database: (any DatabaseReader)? = nil
   )
   where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
@@ -115,14 +115,14 @@ extension FetchAll {
   /// - Parameters:
   ///   - wrappedValue: A default collection to associate with this property.
   ///   - statement: A query associated with the wrapped value.
-  ///   - sectioning: A closure that returns an expression to group results by, or `nil` for no
+  ///   - sectioning: A closure that returns a string expression to group results by, or `nil` for no
   ///     grouping.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public init<S: SelectStatement>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    sectionBy sectioning: ((S.From.TableColumns) -> any QueryExpression)?,
+    sectionBy sectioning: ((S.From.TableColumns) -> some QueryExpression<some _OptionalPromotable<String?>>)?,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -150,7 +150,7 @@ extension FetchAll {
   ///
   /// - Parameters:
   ///   - wrappedValue: A default collection to associate with this property.
-  ///   - sectioning: A closure that returns an expression to group results by, or `nil` for no
+  ///   - sectioning: A closure that returns a string expression to group results by, or `nil` for no
   ///     grouping.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
@@ -158,7 +158,7 @@ extension FetchAll {
   ///     asynchronously on the main queue.
   public init(
     wrappedValue: [Element] = [],
-    sectionBy sectioning: ((Element.TableColumns) -> any QueryExpression)?,
+    sectionBy sectioning: ((Element.TableColumns) -> some QueryExpression<some _OptionalPromotable<String?>>)?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -183,7 +183,7 @@ extension FetchAll {
   /// - Parameters:
   ///   - wrappedValue: A default collection to associate with this property.
   ///   - statement: A query associated with the wrapped value.
-  ///   - sectioning: A closure that returns an expression to group results by, or `nil` for no
+  ///   - sectioning: A closure that returns a string expression to group results by, or `nil` for no
   ///     grouping.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
@@ -192,7 +192,7 @@ extension FetchAll {
   public init<S: SelectStatement>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    sectionBy sectioning: ((S.From.TableColumns) -> any QueryExpression)?,
+    sectionBy sectioning: ((S.From.TableColumns) -> some QueryExpression<some _OptionalPromotable<String?>>)?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -224,7 +224,7 @@ extension FetchAll {
     ///
     /// - Parameters:
     ///   - wrappedValue: A default collection to associate with this property.
-    ///   - sectioning: A closure that returns an expression to group results by, or `nil`
+    ///   - sectioning: A closure that returns a string expression to group results by, or `nil`
     ///     for no grouping.
     ///   - database: The database to read from. A value of `nil` will use the default database
     ///     (`@Dependency(\.defaultDatabase)`).
@@ -233,7 +233,7 @@ extension FetchAll {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init(
       wrappedValue: [Element] = [],
-      sectionBy sectioning: ((Element.TableColumns) -> any QueryExpression)?,
+      sectionBy sectioning: ((Element.TableColumns) -> some QueryExpression<some _OptionalPromotable<String?>>)?,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -252,7 +252,7 @@ extension FetchAll {
     /// - Parameters:
     ///   - wrappedValue: A default collection to associate with this property.
     ///   - statement: A query associated with the wrapped value.
-    ///   - sectioning: A closure that returns an expression to group results by, or `nil`
+    ///   - sectioning: A closure that returns a string expression to group results by, or `nil`
     ///     for no grouping.
     ///   - database: The database to read from. A value of `nil` will use the default database
     ///     (`@Dependency(\.defaultDatabase)`).
@@ -262,7 +262,7 @@ extension FetchAll {
     public init<S: SelectStatement>(
       wrappedValue: [Element] = [],
       _ statement: S,
-      sectionBy sectioning: ((S.From.TableColumns) -> any QueryExpression)?,
+      sectionBy sectioning: ((S.From.TableColumns) -> some QueryExpression<some _OptionalPromotable<String?>>)?,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -291,7 +291,7 @@ extension FetchAll {
   ///
   /// - Parameters:
   ///   - statement: A query associated with the wrapped value.
-  ///   - sectioning: A closure that returns an expression to group results by, or `nil` for no
+  ///   - sectioning: A closure that returns a string expression to group results by, or `nil` for no
   ///     grouping.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
@@ -299,7 +299,7 @@ extension FetchAll {
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
-    sectionBy sectioning: ((S.From.TableColumns) -> any QueryExpression)?,
+    sectionBy sectioning: ((S.From.TableColumns) -> some QueryExpression<some _OptionalPromotable<String?>>)?,
     database: (any DatabaseReader)? = nil
   ) async throws -> FetchSubscription
   where
@@ -324,7 +324,7 @@ extension FetchAll {
   ///
   /// - Parameters:
   ///   - statement: A query associated with the wrapped value.
-  ///   - sectioning: A closure that returns an expression to group results by, or `nil` for no
+  ///   - sectioning: A closure that returns a string expression to group results by, or `nil` for no
   ///     grouping.
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
@@ -334,7 +334,7 @@ extension FetchAll {
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
-    sectionBy sectioning: ((S.From.TableColumns) -> any QueryExpression)?,
+    sectionBy sectioning: ((S.From.TableColumns) -> some QueryExpression<some _OptionalPromotable<String?>>)?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws -> FetchSubscription
@@ -402,7 +402,7 @@ extension FetchAll {
     ///
     /// - Parameters:
     ///   - statement: A query associated with the wrapped value.
-    ///   - sectioning: A closure that returns an expression to group results by, or `nil`
+    ///   - sectioning: A closure that returns a string expression to group results by, or `nil`
     ///     for no grouping.
     ///   - database: The database to read from. A value of `nil` will use the default database
     ///     (`@Dependency(\.defaultDatabase)`).
@@ -413,7 +413,7 @@ extension FetchAll {
     @discardableResult
     public func load<S: SelectStatement>(
       _ statement: S,
-      sectionBy sectioning: ((S.From.TableColumns) -> any QueryExpression)?,
+      sectionBy sectioning: ((S.From.TableColumns) -> some QueryExpression<some _OptionalPromotable<String?>>)?,
       database: (any DatabaseReader)? = nil,
       animation: Animation?
     ) async throws -> FetchSubscription
