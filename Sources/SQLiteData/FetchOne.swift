@@ -21,11 +21,28 @@ public import StructuredQueriesCore
 @dynamicMemberLookup
 @propertyWrapper
 public struct FetchOne<Value: Sendable>: Sendable {
-  /// The underlying shared reader powering the property wrapper.
-  ///
-  /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing) package,
-  /// a general solution to observing and persisting changes to external data sources.
-  public var sharedReader: SharedReader<Value>
+  #if canImport(SwiftUI)
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public var sharedReader: SharedReader<Value> {
+      @storageRestrictions(initializes: state)
+      init(initialValue) {
+        state = SwiftUI.State(wrappedValue: initialValue)
+      }
+      get { state.wrappedValue }
+      nonmutating set { state.wrappedValue = newValue }
+    }
+
+    private let state: SwiftUI.State<SharedReader<Value>>
+  #else
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public var sharedReader: SharedReader<Value>
+  #endif
 
   /// A value associated with the underlying query.
   public var wrappedValue: Value {

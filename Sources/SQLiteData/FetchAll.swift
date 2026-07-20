@@ -22,11 +22,28 @@ public import Sharing
 @dynamicMemberLookup
 @propertyWrapper
 public struct FetchAll<Element: Sendable>: Sendable {
-  /// The underlying shared reader powering the property wrapper.
-  ///
-  /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing) package,
-  /// a general solution to observing and persisting changes to external data sources.
-  public var sharedReader: SharedReader<[Element]> = SharedReader(value: [])
+  #if canImport(SwiftUI)
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public var sharedReader: SharedReader<[Element]> {
+      @storageRestrictions(initializes: state)
+      init(initialValue) {
+        state = SwiftUI.State(wrappedValue: initialValue)
+      }
+      get { state.wrappedValue }
+      nonmutating set { state.wrappedValue = newValue }
+    }
+
+    private let state: SwiftUI.State<SharedReader<[Element]>>
+  #else
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public var sharedReader: SharedReader<[Element]> = SharedReader(value: [])
+  #endif
 
   /// A collection of data associated with the underlying query.
   public var wrappedValue: [Element] {
