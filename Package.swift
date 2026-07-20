@@ -23,6 +23,10 @@ let package = Package(
   ],
   traits: [
     .trait(
+      name: "LazyInitializableByDefault",
+      description: "Optionalize draft properties that have no default."
+    ),
+    .trait(
       name: "CasePaths",
       description: "Introduce support for enum tables."
     ),
@@ -47,8 +51,12 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.32.0",
+      from: "0.33.0",
       traits: [
+        .trait(
+          name: "LazyInitializableByDefault",
+          condition: .when(traits: ["LazyInitializableByDefault"])
+        ),
         .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
         .trait(name: "Tagged", condition: .when(traits: ["Tagged"])),
       ]
