@@ -124,7 +124,7 @@ struct FetchAllSectionsTests {
   }
 
   @Test func storedSectioning() async throws {
-    let sectioning: (SectionedReminder.TableColumns) -> SectionBy? = { SectionBy($0.category) }
+    let sectioning: (SectionedReminder.TableColumns) -> _SectionBy? = { _SectionBy($0.category) }
     @FetchAll(SectionedReminder.order(by: \.id), sectionBy: sectioning) var reminders
     try await $reminders.load()
 
@@ -240,7 +240,7 @@ struct FetchAllSectionsTests {
   }
 
   @Test func nilSectionBy() async throws {
-    let sectioning: (SectionedReminder.TableColumns) -> SectionBy? = { _ in nil }
+    let sectioning: (SectionedReminder.TableColumns) -> _SectionBy? = { _ in nil }
     @FetchAll(SectionedReminder.order(by: \.id), sectionBy: sectioning) var reminders
     try await $reminders.load()
 
@@ -267,7 +267,7 @@ struct FetchAllSectionsTests {
   }
 
   @Test func nilSectionByWholeTable() async throws {
-    let sectioning: (SectionedReminder.TableColumns) -> SectionBy? = { _ in nil }
+    let sectioning: (SectionedReminder.TableColumns) -> _SectionBy? = { _ in nil }
     @FetchAll(sectionBy: sectioning) var reminders: [SectionedReminder]
     try await $reminders.load()
 
@@ -280,7 +280,7 @@ struct FetchAllSectionsTests {
     try await $reminders.load()
     #expect($reminders.sections.sectionNames == ["Errands", "Home", "Work"])
 
-    let sectioning: (SectionedReminder.TableColumns) -> SectionBy? = { _ in nil }
+    let sectioning: (SectionedReminder.TableColumns) -> _SectionBy? = { _ in nil }
     try await $reminders.load(SectionedReminder.order(by: \.id), sectionBy: sectioning)
     #expect(reminders.map(\.id) == [1, 2, 3, 4, 5])
     #expect($reminders.sections.sectionNames == [""])

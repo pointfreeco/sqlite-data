@@ -39,7 +39,7 @@ extension FetchAll {
   fileprivate init<From: StructuredQueriesCore.Table>(
     wrappedValue: [Element],
     statement: Select<(), From, ()>,
-    sectionBy: SectionBy,
+    sectionBy: _SectionBy,
     database: (any DatabaseReader)?,
     scheduler: (any ValueObservationScheduler & Hashable)?
   )
@@ -78,7 +78,7 @@ extension FetchAll {
   ///     (`@Dependency(\.defaultDatabase)`).
   public init(
     wrappedValue: [Element] = [],
-    @SectionBuilder sectionBy sectioning: (Element.TableColumns) -> SectionBy?,
+    @SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil
   )
   where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
@@ -130,7 +130,7 @@ extension FetchAll {
   public init<S: SelectStatement>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> SectionBy?,
+    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -166,7 +166,7 @@ extension FetchAll {
   ///     asynchronously on the main queue.
   public init(
     wrappedValue: [Element] = [],
-    @SectionBuilder sectionBy sectioning: (Element.TableColumns) -> SectionBy?,
+    @SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -200,7 +200,7 @@ extension FetchAll {
   public init<S: SelectStatement>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> SectionBy?,
+    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -241,7 +241,7 @@ extension FetchAll {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init(
       wrappedValue: [Element] = [],
-      @SectionBuilder sectionBy sectioning: (Element.TableColumns) -> SectionBy?,
+      @SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _SectionBy?,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -270,7 +270,7 @@ extension FetchAll {
     public init<S: SelectStatement>(
       wrappedValue: [Element] = [],
       _ statement: S,
-      @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> SectionBy?,
+      @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -307,7 +307,7 @@ extension FetchAll {
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
-    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> SectionBy?,
+    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil
   ) async throws -> FetchSubscription
   where
@@ -342,7 +342,7 @@ extension FetchAll {
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
-    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> SectionBy?,
+    @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws -> FetchSubscription
@@ -363,7 +363,7 @@ extension FetchAll {
 
   func loadSections<From: StructuredQueriesCore.Table>(
     statement: Select<(), From, ()>,
-    sectionBy sectioning: SectionBy?,
+    sectionBy sectioning: _SectionBy?,
     database: (any DatabaseReader)?,
     scheduler: (any ValueObservationScheduler & Hashable)?
   ) async throws -> FetchSubscription
@@ -421,7 +421,7 @@ extension FetchAll {
     @discardableResult
     public func load<S: SelectStatement>(
       _ statement: S,
-      @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> SectionBy?,
+      @SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _SectionBy?,
       database: (any DatabaseReader)? = nil,
       animation: Animation?
     ) async throws -> FetchSubscription
@@ -732,16 +732,16 @@ extension FetchAll {
   }
 #endif
 
-public struct SectionBy: Hashable, Sendable {
+public struct _SectionBy: Hashable, Sendable {
   let select: QueryFragment
   let order: QueryFragment
 
-  public init(_ expression: some QueryExpression<some _OptionalPromotable<String?>>) {
+  package init(_ expression: some QueryExpression<some _OptionalPromotable<String?>>) {
     self.select = expression.queryFragment
     self.order = expression.queryFragment
   }
 
-  public init(_ orderingTerm: OrderingTerm<some _OptionalPromotable<String?>>) {
+  package init(_ orderingTerm: _OrderingTerm<some _OptionalPromotable<String?>>) {
     self.select = orderingTerm.base
     self.order = orderingTerm.queryFragment
   }
@@ -751,33 +751,33 @@ public struct SectionBy: Hashable, Sendable {
 public enum SectionBuilder {
   public static func buildExpression(
     _ expression: some QueryExpression<some _OptionalPromotable<String?>>
-  ) -> SectionBy {
-    SectionBy(expression)
+  ) -> _SectionBy {
+    _SectionBy(expression)
   }
 
   public static func buildExpression(
-    _ orderingTerm: OrderingTerm<some _OptionalPromotable<String?>>
-  ) -> SectionBy {
-    SectionBy(orderingTerm)
+    _ orderingTerm: _OrderingTerm<some _OptionalPromotable<String?>>
+  ) -> _SectionBy {
+    _SectionBy(orderingTerm)
   }
 
-  public static func buildBlock(_ component: SectionBy) -> SectionBy {
+  public static func buildBlock(_ component: _SectionBy) -> _SectionBy {
     component
   }
 
-  public static func buildBlock(_ component: SectionBy?) -> SectionBy? {
+  public static func buildBlock(_ component: _SectionBy?) -> _SectionBy? {
     component
   }
 
-  public static func buildOptional(_ component: SectionBy?) -> SectionBy? {
+  public static func buildOptional(_ component: _SectionBy?) -> _SectionBy? {
     component
   }
 
-  public static func buildEither(first component: SectionBy) -> SectionBy {
+  public static func buildEither(first component: _SectionBy) -> _SectionBy {
     component
   }
 
-  public static func buildEither(second component: SectionBy) -> SectionBy {
+  public static func buildEither(second component: _SectionBy) -> _SectionBy {
     component
   }
 }
@@ -788,7 +788,7 @@ where From.QueryOutput: Sendable {
 
   init(
     statement: Select<(), From, ()>,
-    sectionBy: SectionBy
+    sectionBy: _SectionBy
   ) {
     let prefix: Select<(), From, ()> = From.unscoped.asSelect()
       .order { _ in SQLQueryExpression(sectionBy.order) }
