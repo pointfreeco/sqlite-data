@@ -78,6 +78,37 @@ final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryV
   }
 }
 
+@usableFromInline
+final class QuerySectionedValueCursor<QueryValue: QueryRepresentable>: QueryCursor<
+  (QueryValue.QueryOutput, String?)
+> {
+  public typealias Element = (QueryValue.QueryOutput, String?)
+
+  // NB: Required to workaround a "Legacy previews execution" bug
+  //     https://github.com/pointfreeco/sqlite-data/pull/60
+  @usableFromInline
+  override init(db: Database, query: QueryFragment) throws {
+    try super.init(db: db, query: query)
+  }
+
+  @inlinable
+  public override func _element(sqliteStatement _: SQLiteStatement) throws -> Element {
+    do {
+      let element = try QueryValue(decoder: &decoder).queryOutput
+      let sectionName = try String?(decoder: &decoder)
+      decoder.next()
+      return (element, sectionName)
+    } catch QueryDecodingError.missingRequiredColumn {
+      let columnIndex = Int(decoder.currentIndex) - 1
+      throw DecodingError(
+        columnIndex: columnIndex,
+        columnName: _statement.columnNames[columnIndex],
+        sql: _statement.sql
+      )
+    }
+  }
+}
+
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 @usableFromInline
 final class QueryPackCursor<

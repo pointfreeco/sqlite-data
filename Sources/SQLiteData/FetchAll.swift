@@ -32,7 +32,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   var sectionedReader: SharedReader<ResultsSectionCollection<Element, String>> =
     SharedReader(value: ResultsSectionCollection())
 
-  let sectionedBy = LockIsolated<SectionBy<Element>?>(nil)
+  let sectionedBy = LockIsolated<QueryFragment?>(nil)
 
   /// A collection of data associated with the underlying query.
   public var wrappedValue: [Element] {
@@ -201,7 +201,16 @@ public struct FetchAll<Element: Sendable>: Sendable {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar()
+    if let sectionBy = sectionedBy.value {
+      let statement: Select<(), S.From, ()> = statement.asSelect()
+      return try await loadSections(
+        statement: statement,
+        sectionBy: sectionBy,
+        database: database,
+        scheduler: nil
+      )
+    }
+    let statement: Select<S.From, S.From, ()> = statement.selectStar()
     return try await load(statement, database: database)
   }
 
@@ -221,14 +230,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
   {
-    if let sectionBy = sectionedBy.value {
-      return try await loadSections(
-        statement: statement,
-        sectionBy: sectionBy,
-        database: database,
-        scheduler: nil
-      )
-    }
+    removeSections()
     try await sharedReader.load(
       .fetch(
         FetchAllStatementValueRequest(statement: statement),
@@ -236,6 +238,12 @@ public struct FetchAll<Element: Sendable>: Sendable {
       )
     )
     return FetchSubscription(sharedReader: sharedReader)
+  }
+
+  func removeSections() {
+    guard sectionedBy.value != nil else { return }
+    sectionedBy.setValue(nil)
+    sectionedReader.projectedValue = SharedReader(value: ResultsSectionCollection())
   }
 }
 
@@ -372,7 +380,16 @@ extension FetchAll {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar()
+    if let sectionBy = sectionedBy.value {
+      let statement: Select<(), S.From, ()> = statement.asSelect()
+      return try await loadSections(
+        statement: statement,
+        sectionBy: sectionBy,
+        database: database,
+        scheduler: scheduler
+      )
+    }
+    let statement: Select<S.From, S.From, ()> = statement.selectStar()
     return try await load(statement, database: database, scheduler: scheduler)
   }
 
@@ -395,14 +412,7 @@ extension FetchAll {
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
   {
-    if let sectionBy = sectionedBy.value {
-      return try await loadSections(
-        statement: statement,
-        sectionBy: sectionBy,
-        database: database,
-        scheduler: scheduler
-      )
-    }
+    removeSections()
     try await sharedReader.load(
       .fetch(
         FetchAllStatementValueRequest(statement: statement),
@@ -569,7 +579,16 @@ extension FetchAll: Equatable where Element: Equatable {
       S.From.QueryOutput: Sendable,
       S.Joins == ()
     {
-      let statement = statement.selectStar()
+      if let sectionBy = sectionedBy.value {
+        let statement: Select<(), S.From, ()> = statement.asSelect()
+        return try await loadSections(
+          statement: statement,
+          sectionBy: sectionBy,
+          database: database,
+          scheduler: AnimatedScheduler(animation: animation)
+        )
+      }
+      let statement: Select<S.From, S.From, ()> = statement.selectStar()
       return try await load(statement, database: database, animation: animation)
     }
 
@@ -593,14 +612,7 @@ extension FetchAll: Equatable where Element: Equatable {
       Element == V.QueryOutput,
       V.QueryOutput: Sendable
     {
-      if let sectionBy = sectionedBy.value {
-        return try await loadSections(
-          statement: statement,
-          sectionBy: sectionBy,
-          database: database,
-          scheduler: AnimatedScheduler(animation: animation)
-        )
-      }
+      removeSections()
       try await sharedReader.load(
         .fetch(
           FetchAllStatementValueRequest(statement: statement),

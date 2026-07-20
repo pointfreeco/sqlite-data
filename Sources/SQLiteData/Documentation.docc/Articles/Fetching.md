@@ -145,12 +145,12 @@ This is a very efficient query that selects only the bare essentials of data tha
 needs to do its job. This kind of query is a lot more cumbersome to perform in SwiftData because
 you must construct a dedicated `FetchDescriptor` value and set its `propertiesToFetch`.
 
-It is also possible to group the results of a query into sections by providing a `sectionBy:` key
-path, similar to SwiftData's `@Query(sectionBy:)`. For example, given a `Reminder` table with a
-string `category` column:
+It is also possible to group the results of a query into sections by providing a `sectionBy:`
+expression, similar to SwiftData's `@Query(sectionBy:)`. For example, given a `Reminder` table
+with a string `category` column:
 
 ```swift
-@FetchAll(Reminder.order(by: \.category), sectionBy: \.category)
+@FetchAll(Reminder.order(by: \.title), sectionBy: \.category)
 var reminders
 ```
 
@@ -170,10 +170,16 @@ List {
 }
 ```
 
-Results are grouped into a section for each distinct value at the key path. Sections are ordered
-by the position of their first element in the query's results, and elements within a section
-follow the query's order, so you can control the order of sections by ordering the query by the
-sectioned column.
+The section expression is prepended to the query's `ORDER BY` clause and evaluated by the
+database, which groups results into a section for each of its distinct values. Sections are
+ordered by the expression, ascending, and elements within a section follow the query's order. The
+expression is not limited to key paths, either: any SQL expression can be used to section a query,
+and its value, formatted as text, names each section:
+
+```swift
+@FetchAll(Reminder.order(by: \.title), sectionBy: { $0.dueDate.isNot(nil) })
+var reminders
+```
 
 [sq-safe-sql-strings]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore/safesqlstrings
 [structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries
