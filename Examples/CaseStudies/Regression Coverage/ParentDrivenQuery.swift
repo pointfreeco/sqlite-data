@@ -4,11 +4,11 @@ import SwiftUI
 struct ParentDrivenQueryCaseStudy: SwiftUICaseStudy {
   let readMe = """
     This demonstrates how to drive a child view's query from parent state by constructing the \
-    `@FetchAll` in the child's initializer, analogous to constructing a SwiftData `@Query` with \
-    a dynamic predicate in a view's initializer.
+    `@FetchAll` in the child's initializer, analogous to constructing a SwiftData `@Query` with a \
+    dynamic predicate in a view's initializer.
 
-    Toggling "Favorites only" re-initializes the child view with a different query, and the \
-    child should immediately display the results of the new query. Tapping "Re-render parent" \
+    Toggling "Favorites only" re-initializes the child view with a different query, and the child \
+    should immediately display the results of the new query. Tapping "Re-render parent" \
     re-initializes the child with the same query, which should have no effect.
     """
   let caseStudyTitle = "Parent-driven queries"

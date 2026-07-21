@@ -40,7 +40,7 @@ private struct FactsView: View {
       }
     }
     .task {
-      try? await $facts.load(Facts())
+      _ = try? await $facts.load(Facts())
     }
   }
 

@@ -58,7 +58,7 @@
 
     @Test func keylessReinitializationAfterLocalLoadIsIgnored() {
       let persisted = FetchBox(sharedReader: SharedReader(value: [Int]()))
-      persisted.sharedReader = SharedReader(value: [1, 2, 3])
+      persisted.sharedReader.projectedValue = SharedReader(value: [1, 2, 3]).projectedValue
       let fresh = FetchBox(sharedReader: SharedReader(value: [Int]()))
       persisted.update(from: fresh)
       #expect(persisted.sharedReader.wrappedValue == [1, 2, 3])

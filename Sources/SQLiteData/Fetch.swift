@@ -26,7 +26,7 @@ public struct Fetch<Value: Sendable>: Sendable {
     ///
     /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
     /// package, a general solution to observing and persisting changes to external data sources.
-    public private(set) var sharedReader: SharedReader<Value> {
+    public var sharedReader: SharedReader<Value> {
       @storageRestrictions(initializes: box, state)
       init(initialValue) {
         let box = FetchBox(sharedReader: initialValue)
@@ -34,7 +34,6 @@ public struct Fetch<Value: Sendable>: Sendable {
         state = SwiftUI.State(wrappedValue: box)
       }
       get { state.wrappedValue.sharedReader }
-      nonmutating set { state.wrappedValue.sharedReader = newValue }
     }
 
     private let box: FetchBox<Value>
@@ -45,7 +44,7 @@ public struct Fetch<Value: Sendable>: Sendable {
     ///
     /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
     /// package, a general solution to observing and persisting changes to external data sources.
-    public private(set) var sharedReader: SharedReader<Value>
+    public let sharedReader: SharedReader<Value>
   #endif
 
   /// Data associated with the underlying query.
