@@ -31,7 +31,7 @@ extension FetchAll {
   /// See ``ResultsSectionCollection`` for more information.
   public var sections: ResultsSectionCollection<Element, String?> {
     guard sectioning.value != nil else {
-      return ResultsSectionCollection(elements: sharedReader.wrappedValue, sectionName: "")
+      return ResultsSectionCollection(elements: sharedReader.wrappedValue, sectionName: nil)
     }
     return sectionedReader.wrappedValue
   }
@@ -68,7 +68,7 @@ extension FetchAll {
     Value.QueryOutput: Sendable
   {
     let sectionedReader = SharedReader(
-      wrappedValue: ResultsSectionCollection(elements: wrappedValue, sectionName: ""),
+      wrappedValue: ResultsSectionCollection(elements: wrappedValue, sectionName: nil),
       FetchKey(
         request: request,
         database: database,

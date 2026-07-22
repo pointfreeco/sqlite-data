@@ -11,6 +11,7 @@ rows, or fetch a single row (_e.g._, an aggregate computation), or if you want t
 queries in a single transaction.
 
   * [`@FetchAll`](#FetchAll)
+    * [Sectioning](#Sectioning)
   * [`@FetchOne`](#FetchOne)
   * [`@Fetch`](#Fetch)
 
@@ -162,7 +163,7 @@ The projected value's ``FetchAll/sections`` property groups results into a
 ```swift
 List {
   ForEach($reminders.sections) { section in
-    Section(section.name) {
+    Section(section.name ?? "Uncategorized") {
       ForEach(section) { reminder in
         Text(reminder.title)
       }

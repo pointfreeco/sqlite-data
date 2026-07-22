@@ -131,7 +131,7 @@ struct FetchAllSectionsTests {
 
     #expect(reminders.count == 5)
     #expect(
-      $reminders.sections.sectionNames == (isSectioned ? ["Errands", "Home", "Work"] : [""])
+      $reminders.sections.sectionNames == (isSectioned ? ["Errands", "Home", "Work"] : [nil])
     )
   }
 
@@ -227,7 +227,7 @@ struct FetchAllSectionsTests {
     try await $reminders.load(SectionedReminder.where { $0.category.neq("Work") }.order(by: \.id))
 
     #expect(reminders.map(\.title) == ["Dishes", "Groceries", "Laundry"])
-    #expect($reminders.sections.sectionNames == [""])
+    #expect($reminders.sections.sectionNames == [nil])
     #expect($reminders.sections[0].map(\.title) == ["Dishes", "Groceries", "Laundry"])
   }
 
@@ -256,7 +256,7 @@ struct FetchAllSectionsTests {
 
     #expect($reminders.loadError != nil)
     #expect(reminders == defaults)
-    #expect($reminders.sections.sectionNames == [""])
+    #expect($reminders.sections.sectionNames == [nil])
     #expect($reminders.sections[0].map(\.title) == ["A", "B", "C"])
   }
 
@@ -285,7 +285,7 @@ struct FetchAllSectionsTests {
     $reminders = FetchAll(SectionedReminder.order(by: \.title))
     try await $reminders.load()
     #expect(reminders.map(\.title) == ["Dishes", "Groceries", "Laundry", "Review", "Standup"])
-    #expect($reminders.sections.sectionNames == [""])
+    #expect($reminders.sections.sectionNames == [nil])
     #expect($reminders.sections[0].count == 5)
   }
 
@@ -311,7 +311,7 @@ struct FetchAllSectionsTests {
     try await $reminders.load()
 
     #expect(reminders.map(\.id) == [1, 2, 3, 4, 5])
-    #expect($reminders.sections.sectionNames == [""])
+    #expect($reminders.sections.sectionNames == [nil])
     #expect($reminders.sections[0].map(\.id) == [1, 2, 3, 4, 5])
   }
 
@@ -334,13 +334,13 @@ struct FetchAllSectionsTests {
 
     try await $reminders.load(SectionedReminder.where { $0.id <= 2 }.order(by: \.id))
     #expect(reminders.map(\.title) == ["Dishes", "Standup"])
-    #expect($reminders.sections.sectionNames == [""])
+    #expect($reminders.sections.sectionNames == [nil])
   }
 
   @Test func loadSectionBy() async throws {
     @FetchAll(SectionedReminder.order(by: \.id)) var reminders
     try await $reminders.load()
-    #expect($reminders.sections.sectionNames == [""])
+    #expect($reminders.sections.sectionNames == [nil])
 
     try await $reminders.load(SectionedReminder.order(by: \.id), sectionBy: \.category)
     #expect(reminders.count == 5)
@@ -351,7 +351,7 @@ struct FetchAllSectionsTests {
 
     try await $reminders.load(SectionedReminder.where { $0.id <= 2 }.order(by: \.id))
     #expect(reminders.map(\.title) == ["Dishes", "Standup"])
-    #expect($reminders.sections.sectionNames == [""])
+    #expect($reminders.sections.sectionNames == [nil])
   }
 
   @Test func equatable() async throws {
@@ -418,7 +418,7 @@ struct FetchAllSectionsTests {
       .select { SectionedRow.Columns(title: $0.title, label: $1.label) }
     @FetchAll(statement) var rows
     try await $rows.load()
-    #expect($rows.sections.sectionNames == [""])
+    #expect($rows.sections.sectionNames == [nil])
 
     try await $rows.load(statement, sectionBy: { $1.label })
     #expect(rows.map(\.title) == ["Dishes", "Laundry", "Standup", "Review", "Groceries"])
@@ -445,7 +445,7 @@ struct FetchAllSectionsTests {
     #expect(rows.count == 5)
     #expect(
       $rows.sections.sectionNames
-        == (isSectioned ? ["At Home", "At Work", "Out & About"] : [""])
+        == (isSectioned ? ["At Home", "At Work", "Out & About"] : [nil])
     )
   }
 
@@ -490,8 +490,8 @@ struct FetchAllSectionsTests {
 
     #expect(!reminders.isEmpty)
     #expect($reminders.sections.count == 1)
-    #expect($reminders.sections.sectionNames == [""])
-    #expect($reminders.sections[sectionName: ""]?.map(\.id) == reminders.map(\.id))
+    #expect($reminders.sections.sectionNames == [nil])
+    #expect($reminders.sections[sectionName: nil]?.map(\.id) == reminders.map(\.id))
   }
 
   @Test func sectionsAccessWithoutSectionByEmptyResults() async throws {
