@@ -1,3 +1,4 @@
+import ConcurrencyExtras
 public import GRDB
 import Sharing
 public import StructuredQueriesCore
