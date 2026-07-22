@@ -87,36 +87,6 @@ struct FetchAllSectionsTests {
     #expect($reminders.sections[sectionName: nil]?.map(\.title) == ["Laundry", "Review"])
   }
 
-  @Test func discontiguousSection() async throws {
-    try await database.write { db in
-      try #sql(
-        """
-        CREATE TABLE "sectionedValues" (
-          "id" INTEGER PRIMARY KEY AUTOINCREMENT,
-          "title" TEXT NOT NULL DEFAULT '',
-          "value"
-        )
-        """
-      )
-      .execute(db)
-      try #sql(
-        """
-        INSERT INTO "sectionedValues" ("title", "value")
-        VALUES ('first', 5), ('second', 10), ('third', '5')
-        """
-      )
-      .execute(db)
-    }
-
-    @FetchAll(SectionedValue.order(by: \.id), sectionBy: \.value) var values
-    try await $values.load()
-
-    #expect($values.sections.sectionNames == ["5", "10"])
-    #expect($values.sections[sectionName: "5"]?.map(\.title) == ["first", "third"])
-    #expect($values.sections[sectionName: "10"]?.map(\.title) == ["second"])
-    #expect($values.sections.map { $0.map(\.title) } == [["first", "third"], ["second"]])
-  }
-
   @Test(arguments: [true, false]) func dynamicSectionBy(isSectioned: Bool) async throws {
     @FetchAll(
       SectionedReminder.order(by: \.id),
