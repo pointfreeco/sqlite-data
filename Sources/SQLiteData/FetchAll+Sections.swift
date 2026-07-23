@@ -76,9 +76,10 @@ extension FetchAll {
         scheduler: scheduler
       )
     )
-    self.sectionedReader = sectionedReader
-    self.sharedReader = sectionedReader.elements
-    self.sectioning.setValue(sectionBy)
+    sharedReader = sectionedReader.elements
+    self.sectionedReader.projectedValue = sectionedReader.projectedValue
+    sectioning.setValue(sectionBy)
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 }
 
