@@ -705,6 +705,31 @@
         #expect(error?.code == .limitExceeded)
       }
 
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func modificationDateIncreasesOnSubsequentSaves() throws {
+        let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "A"))
+
+        let (results1, _) = try syncEngine.private.database.modifyRecords(saving: [record])
+        let saved1 = try #require(try results1[record.recordID]?.get())
+        #expect(saved1.modificationDate == Date(timeIntervalSinceReferenceDate: 1))
+
+        let (results2, _) = try syncEngine.private.database.modifyRecords(saving: [saved1])
+        let saved2 = try #require(try results2[record.recordID]?.get())
+        #expect(saved2.modificationDate == Date(timeIntervalSinceReferenceDate: 2))
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func modificationDateIsSharedWithinBatch() throws {
+        let recordA = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "A"))
+        let recordB = CKRecord(recordType: "B", recordID: CKRecord.ID(recordName: "B"))
+
+        let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [recordA, recordB])
+        let savedA = try #require(try saveResults[recordA.recordID]?.get())
+        let savedB = try #require(try saveResults[recordB.recordID]?.get())
+
+        #expect(savedA.modificationDate == savedB.modificationDate)
+      }
+
       @Test func records_limitExceeded() async throws {
         let remindersListRecord = CKRecord(
           recordType: RemindersList.tableName,
