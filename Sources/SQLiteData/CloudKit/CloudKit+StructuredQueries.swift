@@ -156,10 +156,13 @@
     package func setValue(
       _ newValue: some CKRecordValueProtocol & Equatable,
       forKey key: CKRecord.FieldKey,
-      at userModificationTime: Int64
+      at userModificationTime: Int64,
+      requireStrictlyNewer: Bool = false
     ) -> Bool {
       guard
-        encryptedValues[at: key] <= userModificationTime,
+        requireStrictlyNewer
+          ? encryptedValues[at: key] < userModificationTime
+          : encryptedValues[at: key] <= userModificationTime,
         encryptedValues[key] != newValue
       else { return false }
       encryptedValues[key] = newValue
@@ -172,7 +175,8 @@
     package func setAsset(
       _ newValue: CKAsset,
       forKey key: CKRecord.FieldKey,
-      at userModificationTime: Int64
+      at userModificationTime: Int64,
+      requireStrictlyNewer: Bool = false
     ) -> Bool {
       @Dependency(\.dataManager) var dataManager
       guard
@@ -180,7 +184,9 @@
         let hash = dataManager.sha256(of: fileURL)
       else { return false }
       guard
-        encryptedValues[at: key] <= userModificationTime,
+        requireStrictlyNewer
+          ? encryptedValues[at: key] < userModificationTime
+          : encryptedValues[at: key] <= userModificationTime,
         encryptedValues[hash: key] != hash
       else { return false }
 
@@ -223,9 +229,13 @@
     @discardableResult
     package func removeValue(
       forKey key: CKRecord.FieldKey,
-      at userModificationTime: Int64
+      at userModificationTime: Int64,
+      requireStrictlyNewer: Bool = false
     ) -> Bool {
-      guard encryptedValues[at: key] <= userModificationTime
+      guard
+        requireStrictlyNewer
+          ? encryptedValues[at: key] < userModificationTime
+          : encryptedValues[at: key] <= userModificationTime
       else {
         return false
       }
@@ -283,26 +293,42 @@
       }
     }
 
+    @discardableResult
     func update<T: PrimaryKeyedTable>(
       with other: CKRecord,
       row: T,
       columnNames: inout [String],
       parentForeignKey: ForeignKey?
-    ) {
+    ) -> Bool {
       typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
 
       self.userModificationTime = other.userModificationTime
+      var didPreserveLocalValues = false
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
           let key = column.name
           let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
           let didSet: Bool
           if let value = other[key] as? CKAsset {
-            didSet = setAsset(value, forKey: key, at: other.encryptedValues[at: key])
+            didSet = setAsset(
+              value,
+              forKey: key,
+              at: other.encryptedValues[at: key],
+              requireStrictlyNewer: true
+            )
           } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
-            didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
+            didSet = setValue(
+              value,
+              forKey: key,
+              at: other.encryptedValues[at: key],
+              requireStrictlyNewer: true
+            )
           } else if other.encryptedValues[key] == nil {
-            didSet = removeValue(forKey: key, at: other.encryptedValues[at: key])
+            didSet = removeValue(
+              forKey: key,
+              at: other.encryptedValues[at: key],
+              requireStrictlyNewer: true
+            )
           } else {
             didSet = false
           }
@@ -334,13 +360,17 @@
           }
           if didSet || isRowValueModified {
             columnNames.removeAll(where: { $0 == key })
-            if didSet, let parentForeignKey, key == parentForeignKey.from {
-              self.parent = other.parent
+            if didSet {
+              didPreserveLocalValues = true
+              if let parentForeignKey, key == parentForeignKey.from {
+                self.parent = other.parent
+              }
             }
           }
         }
         open(column)
       }
+      return didPreserveLocalValues
     }
 
     package var userModificationTime: Int64 {

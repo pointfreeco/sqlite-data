@@ -638,6 +638,170 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func equalTimestampConflictConvergesToServerValue() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "")
+            Reminder(id: 1, title: "", remindersListID: 1)
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await withDependencies {
+          $0.currentTime.now += 30
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Reminder.find(1).update { $0.title = "Mine" }.execute(db)
+          }
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+          let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
+          record.setValue("Theirs", forKey: "title", at: now)
+          let modificationCallback = try {
+            try syncEngine.modifyRecords(scope: .private, saving: [record])
+          }()
+          await modificationCallback.notify()
+        }
+
+        assertQuery(Reminder.select(\.title), database: userDatabase.database) {
+          """
+          ┌──────────┐
+          │ "Theirs" │
+          └──────────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                  share: nil,
+                  dueDate🗓️: 0,
+                  id: 1,
+                  id🗓️: 0,
+                  isCompleted: 0,
+                  isCompleted🗓️: 0,
+                  priority🗓️: 0,
+                  remindersListID: 1,
+                  remindersListID🗓️: 0,
+                  title: "Theirs",
+                  title🗓️: 30,
+                  🗓️: 30
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  id🗓️: 0,
+                  title: "",
+                  title🗓️: 0,
+                  🗓️: 0
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func olderTimestampFetchReassertsLocalWinToServer() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "")
+            Reminder(id: 1, title: "", remindersListID: 1)
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await withDependencies {
+          $0.currentTime.now += 100
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Reminder.find(1).update { $0.title = "Fast" }.execute(db)
+          }
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+          let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
+          record.encryptedValues["title"] = "Slow"
+          record.encryptedValues["\(CKRecord.userModificationTimeKey)_title"] = Int64(50)
+          let modificationCallback = try {
+            try syncEngine.modifyRecords(scope: .private, saving: [record])
+          }()
+          await modificationCallback.notify()
+          syncEngine.private.state.assertPendingRecordZoneChanges([
+            .saveRecord(Reminder.recordID(for: 1))
+          ])
+          syncEngine.private.state.add(
+            pendingRecordZoneChanges: [.saveRecord(Reminder.recordID(for: 1))]
+          )
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        }
+
+        assertQuery(Reminder.select(\.title), database: userDatabase.database) {
+          """
+          ┌────────┐
+          │ "Fast" │
+          └────────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                  share: nil,
+                  dueDate🗓️: 0,
+                  id: 1,
+                  id🗓️: 0,
+                  isCompleted: 0,
+                  isCompleted🗓️: 0,
+                  priority🗓️: 0,
+                  remindersListID: 1,
+                  remindersListID🗓️: 0,
+                  title: "Fast",
+                  title🗓️: 100,
+                  🗓️: 100
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  id🗓️: 0,
+                  title: "",
+                  title🗓️: 0,
+                  🗓️: 0
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func mergeWithNullableFields() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {

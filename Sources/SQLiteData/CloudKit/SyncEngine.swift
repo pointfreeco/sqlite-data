@@ -1591,24 +1591,33 @@
         case share(CKShare)
         case reference(CKShare.Reference)
       }
-      let shares: [ShareOrReference] =
+      let (shares, preservedRecordIDs): ([ShareOrReference], [CKRecord.ID]) =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.write { db in
             var shares: [ShareOrReference] = []
+            var preservedRecordIDs: [CKRecord.ID] = []
             for record in modifications {
               if let share = record as? CKShare {
                 shares.append(.share(share))
               } else {
-                upsertFromServerRecord(record, db: db)
+                if upsertFromServerRecord(record, db: db) {
+                  preservedRecordIDs.append(record.recordID)
+                }
                 if let shareReference = record.share {
                   shares.append(.reference(shareReference))
                 }
               }
             }
-            return shares
+            return (shares, preservedRecordIDs)
           }
         }
-        ?? []
+        ?? ([], [])
+
+      if !preservedRecordIDs.isEmpty {
+        syncEngine.state.add(
+          pendingRecordZoneChanges: preservedRecordIDs.map { .saveRecord($0) }
+        )
+      }
 
       await withTaskGroup(of: Void.self) { group in
         for share in shares {
@@ -1897,28 +1906,31 @@
       }
     }
 
+    @discardableResult
     private func upsertFromServerRecord(
       _ serverRecord: CKRecord,
       force: Bool = false
-    ) async {
+    ) async -> Bool {
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in
           upsertFromServerRecord(serverRecord, force: force, db: db)
         }
       }
+        ?? false
     }
 
+    @discardableResult
     private func upsertFromServerRecord(
       _ serverRecord: CKRecord,
       force: Bool = false,
       db: Database
-    ) {
+    ) -> Bool {
       withErrorReporting(.sqliteDataCloudKitFailure) {
         guard
           let recordPrimaryKey = serverRecord.recordID.recordPrimaryKey,
           serverRecord.encryptedValues[CKRecord.userModificationTimeKey] != nil
         else {
-          return
+          return false
         }
 
         try SyncMetadata.insert {
@@ -1950,18 +1962,19 @@
           let metadata = try SyncMetadata.find(serverRecord.recordID).fetchOne(db),
           let table = tablesByName[serverRecord.recordType]
         else {
-          return
+          return false
         }
 
         serverRecord.userModificationTime = metadata.userModificationTime
 
-        func open<T>(_ table: some SynchronizableTable<T>) throws {
+        func open<T>(_ table: some SynchronizableTable<T>) throws -> Bool {
           var columnNames: [String] = T.TableColumns.writableColumns.map(\.name)
+          var didPreserveLocalValues = false
           if !force,
             let allFields = metadata._lastKnownServerRecordAllFields,
             let row = try T.unscoped.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
           {
-            serverRecord.update(
+            didPreserveLocalValues = serverRecord.update(
               with: allFields,
               row: T(queryOutput: row),
               columnNames: &columnNames,
@@ -1994,9 +2007,25 @@
             }
             .execute(db)
           }
+          if didPreserveLocalValues, let lastKnownServerRecord = metadata.lastKnownServerRecord {
+            if let lastKnownDate = lastKnownServerRecord.modificationDate,
+              let serverDate = serverRecord.modificationDate
+            {
+              if serverDate < lastKnownDate {
+                didPreserveLocalValues = false
+              }
+            } else if let lastKnownTag = lastKnownServerRecord._recordChangeTag,
+              let serverTag = serverRecord._recordChangeTag,
+              serverTag < lastKnownTag
+            {
+              didPreserveLocalValues = false
+            }
+          }
+          return didPreserveLocalValues
         }
-        try open(table)
+        return try open(table)
       }
+        ?? false
     }
 
     private func refreshLastKnownServerRecord(_ record: CKRecord) async {
