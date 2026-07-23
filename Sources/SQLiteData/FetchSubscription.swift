@@ -22,6 +22,17 @@ public struct FetchSubscription: Sendable {
     onCancel = { sharedReader.projectedValue = SharedReader(value: sharedReader.wrappedValue) }
   }
 
+  init<Element: Sendable>(
+    sharedReader: SharedReader<[Element]>,
+    sectionedReader: SharedReader<ResultsSectionCollection<Element, String?>>
+  ) {
+    onCancel = {
+      let sections = sectionedReader.wrappedValue
+      sectionedReader.projectedValue = SharedReader(value: sections)
+      sharedReader.projectedValue = SharedReader(value: sections.elements)
+    }
+  }
+
   /// An async handle to the given fetch observation.
   ///
   /// This handle will suspend until the current task is cancelled, at which point it will terminate
