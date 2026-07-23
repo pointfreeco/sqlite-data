@@ -19,6 +19,19 @@
     import UIKit
   #endif
 
+  /// Counts of changes waiting to be sent to CloudKit.
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  public struct PendingChangeCounts: Equatable, Sendable {
+    /// The number of records waiting to be saved.
+    public let recordSaveCount: Int
+
+    /// The number of records waiting to be deleted.
+    public let recordDeleteCount: Int
+
+    /// The number of database changes waiting to be sent.
+    public let databaseChangeCount: Int
+  }
+
   /// An object that manages the synchronization of local and remote SQLite data.
   ///
   /// See <doc:CloudKitSync> for more information.
@@ -43,6 +56,9 @@
     private let observationRegistrar = ObservationRegistrar()
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
+    private let lastPendingChangeCounts = LockIsolated(
+      PendingChangeCounts(recordSaveCount: 0, recordDeleteCount: 0, databaseChangeCount: 0)
+    )
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
     #if DEBUG && canImport(DeveloperToolsSupport)
       private let previewTimerTask = LockIsolated<Task<Void, Never>?>(nil)
@@ -423,12 +439,50 @@
       isSendingChanges || isFetchingChanges
     }
 
+    /// Counts of changes waiting to be sent to CloudKit.
+    ///
+    /// When the sync engine is not running, this value reflects the pending changes captured when
+    /// the engine was stopped. It is observable, and so accessing it from a SwiftUI view will cause
+    /// the view to update as the pending changes change.
+    public var pendingChangeCounts: PendingChangeCounts {
+      observationRegistrar.access(self, keyPath: \.pendingChangeCounts)
+      return syncEngines.withValue { syncEngines in
+        guard let privateSyncEngine = syncEngines.private,
+          let sharedSyncEngine = syncEngines.shared
+        else { return lastPendingChangeCounts.withValue(\.self) }
+
+        var recordSaveCount = 0
+        var recordDeleteCount = 0
+        var databaseChangeCount = 0
+        for syncEngine in [privateSyncEngine, sharedSyncEngine] {
+          for change in syncEngine.state.pendingRecordZoneChanges {
+            switch change {
+            case .saveRecord:
+              recordSaveCount += 1
+            case .deleteRecord:
+              recordDeleteCount += 1
+            @unknown default:
+              break
+            }
+          }
+          databaseChangeCount += syncEngine.state.pendingDatabaseChanges.count
+        }
+        return PendingChangeCounts(
+          recordSaveCount: recordSaveCount,
+          recordDeleteCount: recordDeleteCount,
+          databaseChangeCount: databaseChangeCount
+        )
+      }
+    }
+
     /// Stops the sync engine if it is running.
     ///
     /// All edits made after stopping the sync engine will not be synchronized to CloudKit.
     /// You must start the sync engine again using ``start()`` to synchronize the changes.
     public func stop() {
       guard isRunning else { return }
+      let pendingChangeCounts = pendingChangeCounts
+      lastPendingChangeCounts.withValue { $0 = pendingChangeCounts }
       #if DEBUG && canImport(DeveloperToolsSupport)
         previewTimerTask.withValue {
           $0?.cancel()
@@ -440,6 +494,7 @@
           $0 = SyncEngines()
         }
       }
+      pendingChangeCountsDidChange()
     }
 
     /// Determines if the sync engine is currently running or not.
@@ -461,6 +516,7 @@
           )
         }
       }
+      pendingChangeCountsDidChange()
 
       let previousRecordTypes = try metadatabase.read { db in
         try RecordType.all.fetchAll(db)
@@ -943,6 +999,10 @@
         }
       }
     }
+
+    private func pendingChangeCountsDidChange() {
+      observationRegistrar.withMutation(of: self, keyPath: \.pendingChangeCounts) {}
+    }
   }
 
   extension PrimaryKeyedTable {
@@ -1005,6 +1065,7 @@
       case .accountChange(let changeType):
         await handleAccountChange(changeType: changeType, syncEngine: syncEngine)
       case .stateUpdate(let stateSerialization):
+        pendingChangeCountsDidChange()
         await handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
       case .fetchedDatabaseChanges(let modifications, let deletions):
         await handleFetchedDatabaseChanges(
