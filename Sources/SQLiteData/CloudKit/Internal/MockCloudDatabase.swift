@@ -352,7 +352,9 @@
           // All storage changes are reverted in zone.
           state.storage[zoneID]?.records = previousStorage[zoneID]?.records ?? [:]
         }
-        return (saveResults: saveResults, deleteResults: deleteResults)
+        return (
+          saveResults: saveResults.mapValues { $0.map { $0.copy() as! CKRecord } },
+          deleteResults: deleteResults)
       }
     }
 

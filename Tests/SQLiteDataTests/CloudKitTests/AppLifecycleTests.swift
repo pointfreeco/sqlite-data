@@ -5,6 +5,7 @@
   import InlineSnapshotTesting
   import SQLiteData
   import SnapshotTestingCustomDump
+  import TestLocals
   import Testing
   import SQLiteDataTestSupport
 
@@ -24,7 +25,9 @@
           }
         }
         defaultNotificationCenter.post(
-          name: UIApplication.willResignActiveNotification, object: nil)
+          name: UIApplication.willResignActiveNotification,
+          object: nil
+        )
         try await Task.sleep(for: .seconds(1))
         assertInlineSnapshot(of: container, as: .customDump) {
           """
@@ -52,10 +55,12 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.startImmediately(false))
+      @Test(.taskLocal($startImmediately, false))
       func background_whileNotRunning() async throws {
         defaultNotificationCenter.post(
-          name: UIApplication.willResignActiveNotification, object: nil)
+          name: UIApplication.willResignActiveNotification,
+          object: nil
+        )
         try await Task.sleep(for: .seconds(1))
         // NB: Not runtime warnings emitted.
       }
@@ -101,7 +106,9 @@
         }
 
         defaultNotificationCenter.post(
-          name: UIApplication.willResignActiveNotification, object: nil)
+          name: UIApplication.willResignActiveNotification,
+          object: nil
+        )
         try await Task.sleep(for: .seconds(1))
         assertInlineSnapshot(of: container, as: .customDump) {
           """
