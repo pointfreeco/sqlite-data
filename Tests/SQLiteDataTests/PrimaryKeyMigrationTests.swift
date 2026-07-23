@@ -1219,6 +1219,6 @@ struct PrimaryKeyMigrationTests {
 extension SQLiteSchema {
   static let `default` =
     Self
-    .where { !$0.name.hasPrefix("sqlite_") }
+    .where { !$0.name.like("sqlite_%") }
     .order(by: \.name)
 }
