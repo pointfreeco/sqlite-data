@@ -1107,9 +1107,9 @@ public struct _Sectioning: Hashable, Sendable {
 @resultBuilder
 public enum _SectionBuilder {
   public static func buildExpression(
-    _ expression: String?
-  ) -> _Sectioning {
-    _Sectioning(expression)
+    _ expression: Never?
+  ) -> _Sectioning? {
+    nil
   }
 
   public static func buildExpression(
@@ -1128,6 +1128,7 @@ public enum _SectionBuilder {
     component
   }
 
+  @_disfavoredOverload
   public static func buildBlock(_ component: _Sectioning?) -> _Sectioning? {
     component
   }
