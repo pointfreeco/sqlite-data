@@ -741,6 +741,49 @@
         }
         #expect(error?.code == .limitExceeded)
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func `mutating record returned from modifyRecords does not mutate database`() async throws {
+        let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
+        record["title"] = "original"
+        let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [record])
+        let savedRecord = try #require(try saveResults[record.recordID]?.get())
+        savedRecord["title"] = "mutated"
+
+        let storedRecord = try syncEngine.private.database.record(for: record.recordID)
+        #expect(storedRecord["title"] as? String == "original")
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func `mutating record returned from non-atomic modifyRecords does not mutate database`() async throws {
+        let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
+        record["title"] = "original"
+        let (saveResults, _) = try syncEngine.private.database.modifyRecords(
+          saving: [record],
+          atomically: false
+        )
+        let savedRecord = try #require(try saveResults[record.recordID]?.get())
+        savedRecord["title"] = "mutated"
+
+        let storedRecord = try syncEngine.private.database.record(for: record.recordID)
+        #expect(storedRecord["title"] as? String == "original")
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func `mutating record returned from shareMetadata does not mutate database`() async throws {
+        let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "1"))
+        record["title"] = "original"
+        let share = CKShare(rootRecord: record, shareID: CKRecord.ID(recordName: "share"))
+        _ = try syncEngine.private.database.modifyRecords(saving: [share, record])
+
+        let metadata = try await container.shareMetadata(for: share, shouldFetchRootRecord: true)
+        let rootRecord = try #require(metadata.rootRecord)
+        rootRecord["title"] = "mutated"
+
+        let storedRecord = try syncEngine.private.database.record(for: record.recordID)
+        #expect(storedRecord["title"] as? String == "original")
+      }
+
     }
   }
 #endif
