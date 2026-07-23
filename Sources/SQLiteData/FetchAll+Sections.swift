@@ -1066,7 +1066,7 @@ private func sectionedColumns<From: StructuredQueriesCore.Table>(
   of _: From.Type,
   _ sectionBy: _Sectioning
 ) -> Select<(From, String?), From, ()> {
-  From.unscoped.asSelect()
+  From.unscoped
     .select { ($0, SQLQueryExpression(sectionBy.select, as: String?.self)) }
     .order { _ in SQLQueryExpression(sectionBy.order) }
 }
