@@ -674,6 +674,75 @@
         }
       }
 
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func serverRecordChangedIncludesAncestorRecord() async throws {
+        let recordID = CKRecord.ID(recordName: "1")
+        let record = CKRecord(recordType: "A", recordID: recordID)
+        record["value"] = 1
+
+        let (saveResults, _) = try syncEngine.private.database.modifyRecords(saving: [record])
+        #expect(saveResults.values.count(where: { (try? $0.get()) != nil }) == 1)
+
+        let clientRecord = try syncEngine.private.database.record(for: recordID)
+
+        let serverRecord = try syncEngine.private.database.record(for: recordID)
+        serverRecord["value"] = 2
+        _ = try syncEngine.private.database.modifyRecords(saving: [serverRecord])
+
+        clientRecord["value"] = 3
+        let (conflictResults, _) = try syncEngine.private.database.modifyRecords(
+          saving: [clientRecord]
+        )
+        let error = #expect(throws: CKError.self) {
+          try conflictResults[recordID]?.get()
+        }
+        #expect(error?.code == .serverRecordChanged)
+
+        let ancestor = error?.userInfo[CKRecordChangedErrorAncestorRecordKey] as? CKRecord
+        let server = error?.userInfo[CKRecordChangedErrorServerRecordKey] as? CKRecord
+        let client = error?.userInfo[CKRecordChangedErrorClientRecordKey] as? CKRecord
+        #expect(ancestor?["value"] as? Int == 1)
+        #expect(server?["value"] as? Int == 2)
+        #expect(client?["value"] as? Int == 3)
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func serverRecordChangedUsesChangeTagAncestor() async throws {
+        let recordID = CKRecord.ID(recordName: "1")
+        let record = CKRecord(recordType: "A", recordID: recordID)
+        record["value"] = 1
+
+        _ = try syncEngine.private.database.modifyRecords(saving: [record])
+
+        let clientRecord = try syncEngine.private.database.record(for: recordID)
+        let clientChangeTag = clientRecord._recordChangeTag
+
+        let serverRecordV2 = try syncEngine.private.database.record(for: recordID)
+        serverRecordV2["value"] = 2
+        _ = try syncEngine.private.database.modifyRecords(saving: [serverRecordV2])
+
+        let serverRecordV3 = try syncEngine.private.database.record(for: recordID)
+        serverRecordV3["value"] = 3
+        _ = try syncEngine.private.database.modifyRecords(saving: [serverRecordV3])
+
+        clientRecord["value"] = 99
+        let (conflictResults, _) = try syncEngine.private.database.modifyRecords(
+          saving: [clientRecord]
+        )
+        let error = #expect(throws: CKError.self) {
+          try conflictResults[recordID]?.get()
+        }
+        #expect(error?.code == .serverRecordChanged)
+
+        let ancestor = error?.userInfo[CKRecordChangedErrorAncestorRecordKey] as? CKRecord
+        let server = error?.userInfo[CKRecordChangedErrorServerRecordKey] as? CKRecord
+        let client = error?.userInfo[CKRecordChangedErrorClientRecordKey] as? CKRecord
+        #expect(ancestor?._recordChangeTag == clientChangeTag)
+        #expect(ancestor?["value"] as? Int == 1)
+        #expect(server?["value"] as? Int == 3)
+        #expect(client?["value"] as? Int == 99)
+      }
+
       @Test func limitExceeded_modifyRecords() async throws {
         let remindersListRecord = CKRecord(
           recordType: RemindersList.tableName,
