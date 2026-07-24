@@ -341,11 +341,13 @@ struct FetchAllSectionsTests {
   }
 
   @Test func selectionSectionBy() async throws {
-    let statement =
+    @FetchAll(
       SectionedReminder
-      .order(by: \.id)
-      .select { SectionedRow.Columns(title: $0.title, label: $0.category) }
-    @FetchAll(statement, sectionBy: { $0.category }) var rows
+        .order(by: \.id)
+        .select { SectionedRow.Columns(title: $0.title, label: $0.category) },
+      sectionBy: { $0.category }
+    )
+    var rows
     try await $rows.load()
 
     #expect(rows.map(\.title) == ["Groceries", "Dishes", "Laundry", "Standup", "Review"])
@@ -354,12 +356,14 @@ struct FetchAllSectionsTests {
   }
 
   @Test func joinedSectionBy() async throws {
-    let statement =
+    @FetchAll(
       SectionedReminder
-      .order(by: \.id)
-      .join(SectionedCategory.all) { $0.category.eq($1.name) }
-      .select { SectionedRow.Columns(title: $0.title, label: $1.label) }
-    @FetchAll(statement, sectionBy: { $1.label }) var rows
+        .order(by: \.id)
+        .join(SectionedCategory.all) { $0.category.eq($1.name) }
+        .select { SectionedRow.Columns(title: $0.title, label: $1.label) },
+      sectionBy: { $1.label }
+    )
+    var rows
     try await $rows.load()
 
     #expect(rows.map(\.title) == ["Dishes", "Laundry", "Standup", "Review", "Groceries"])
@@ -369,40 +373,47 @@ struct FetchAllSectionsTests {
   }
 
   @Test func joinedDescendingSectionBy() async throws {
-    let statement =
+    @FetchAll(
       SectionedReminder
-      .order(by: \.id)
-      .join(SectionedCategory.all) { $0.category.eq($1.name) }
-      .select { SectionedRow.Columns(title: $0.title, label: $1.label) }
-    @FetchAll(statement, sectionBy: { $1.label.desc() }) var rows
+        .order(by: \.id)
+        .join(SectionedCategory.all) { $0.category.eq($1.name) }
+        .select { SectionedRow.Columns(title: $0.title, label: $1.label) },
+      sectionBy: { $1.label.desc() }
+    )
+    var rows
     try await $rows.load()
 
     #expect($rows.sections.sectionNames == ["Out & About", "At Work", "At Home"])
   }
 
   @Test func loadJoinedSectionBy() async throws {
-    let statement =
+    @FetchAll(
       SectionedReminder
-      .order(by: \.id)
-      .join(SectionedCategory.all) { $0.category.eq($1.name) }
-      .select { SectionedRow.Columns(title: $0.title, label: $1.label) }
-    @FetchAll(statement) var rows
+        .order(by: \.id)
+        .join(SectionedCategory.all) { $0.category.eq($1.name) }
+        .select { SectionedRow.Columns(title: $0.title, label: $1.label) }
+    )
+    var rows
     try await $rows.load()
     #expect($rows.sections.sectionNames == [nil])
 
-    try await $rows.load(statement, sectionBy: { $1.label })
+    try await $rows.load(
+      SectionedReminder
+        .order(by: \.id)
+        .join(SectionedCategory.all) { $0.category.eq($1.name) }
+        .select { SectionedRow.Columns(title: $0.title, label: $1.label) },
+      sectionBy: { $1.label }
+    )
     #expect(rows.map(\.title) == ["Dishes", "Laundry", "Standup", "Review", "Groceries"])
     #expect($rows.sections.sectionNames == ["At Home", "At Work", "Out & About"])
   }
 
   @Test(arguments: [true, false]) func dynamicJoinedSectionBy(isSectioned: Bool) async throws {
-    let statement =
-      SectionedReminder
-      .order(by: \.id)
-      .join(SectionedCategory.all) { $0.category.eq($1.name) }
-      .select { SectionedRow.Columns(title: $0.title, label: $1.label) }
     @FetchAll(
-      statement,
+      SectionedReminder
+        .order(by: \.id)
+        .join(SectionedCategory.all) { $0.category.eq($1.name) }
+        .select { SectionedRow.Columns(title: $0.title, label: $1.label) },
       sectionBy: {
         if isSectioned {
           $1.label
@@ -420,13 +431,16 @@ struct FetchAllSectionsTests {
   }
 
   @Test func twoJoinsSectionBy() async throws {
-    let statement =
+    @FetchAll(
       SectionedReminder
-      .order(by: \.id)
-      .join(SectionedCategory.all) { $0.category.eq($1.name) }
-      .join(SectionedPriority.all) { reminder, _, priority in reminder.priority.eq(priority.name) }
-      .select { SectionedRow.Columns(title: $0.title, label: $2.label) }
-    @FetchAll(statement, sectionBy: { $2.label }) var rows
+        .order(by: \.id)
+        .join(SectionedCategory.all) { $0.category.eq($1.name) }
+        .join(SectionedPriority.all) { reminder, _, priority in reminder.priority.eq(priority.name)
+        }
+        .select { SectionedRow.Columns(title: $0.title, label: $2.label) },
+      sectionBy: { $2.label }
+    )
+    var rows
     try await $rows.load()
 
     #expect(rows.map(\.title) == ["Dishes", "Standup", "Groceries"])
@@ -436,16 +450,19 @@ struct FetchAllSectionsTests {
   }
 
   @Test func threeJoinsSectionBy() async throws {
-    let statement =
+    @FetchAll(
       SectionedReminder
-      .order(by: \.id)
-      .join(SectionedCategory.all) { $0.category.eq($1.name) }
-      .join(SectionedPriority.all) { reminder, _, priority in reminder.priority.eq(priority.name) }
-      .join(SectionedUrgency.all) { reminder, _, _, urgency in
-        reminder.priority.eq(urgency.name)
-      }
-      .select { SectionedRow.Columns(title: $0.title, label: $3.label) }
-    @FetchAll(statement, sectionBy: { $3.label }) var rows
+        .order(by: \.id)
+        .join(SectionedCategory.all) { $0.category.eq($1.name) }
+        .join(SectionedPriority.all) { reminder, _, priority in reminder.priority.eq(priority.name)
+        }
+        .join(SectionedUrgency.all) { reminder, _, _, urgency in
+          reminder.priority.eq(urgency.name)
+        }
+        .select { SectionedRow.Columns(title: $0.title, label: $3.label) },
+      sectionBy: { $3.label }
+    )
+    var rows
     try await $rows.load()
 
     #expect(rows.map(\.title) == ["Groceries", "Dishes", "Standup"])
