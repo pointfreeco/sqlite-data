@@ -164,7 +164,7 @@ extension MockSyncEngineState {
     _pendingRecordZoneChanges.withValue {
       expectNoDifference(
         Set(changes),
-        Set($0),
+        Set($0.values),
         fileID: fileID,
         filePath: filePath,
         line: line,
@@ -184,7 +184,7 @@ extension MockSyncEngineState {
     _pendingDatabaseChanges.withValue {
       expectNoDifference(
         Set(changes),
-        Set($0),
+        Set($0.values),
         fileID: fileID,
         filePath: filePath,
         line: line,
