@@ -79,19 +79,24 @@ extension SyncEngine {
     )
 
     return ModifyRecordsCallback {
+      let savedRecordIDs = saveResults.compactMap { recordID, result in
+        (try? result.get()) != nil ? recordID : nil
+      }
+      let deletedRecordIDs = deleteResults.compactMap { recordID, result in
+        (try? result.get()) != nil ? recordID : nil
+      }
+      let freshRecords =
+        (try? syncEngine.database.records(
+          for: savedRecordIDs + deletedRecordIDs,
+          desiredKeys: nil
+        )) ?? [:]
       await syncEngine.parentSyncEngine.handleEvent(
         .fetchedRecordZoneChanges(
-          modifications: saveResults.compactMap { recordID, result in
-            guard case .success = result else { return nil }
-            // NB: Read the latest version from the database in case the record has been
-            //     modified between the original save and when this callback is invoked.
-            return try? syncEngine.database.record(for: recordID)
+          modifications: savedRecordIDs.compactMap { recordID in
+            try? freshRecords[recordID]?.get()
           },
-          deletions: deleteResults.compactMap { recordID, result in
-            guard case .success = result else { return nil }
-            // NB: Skip if the record has been re-saved between the original delete and
-            //     when this callback is invoked.
-            guard (try? syncEngine.database.record(for: recordID)) == nil else { return nil }
+          deletions: deletedRecordIDs.compactMap { recordID in
+            guard (try? freshRecords[recordID]?.get()) == nil else { return nil }
             guard let record = recordsToDeleteByID[recordID] else { return nil }
             return (recordID, record.recordType)
           }
