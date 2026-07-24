@@ -4,11 +4,7 @@ import Testing
 @Suite struct QueryCursorTests {
   let database: DatabaseQueue
   init() throws {
-    var configuration = Configuration()
-    configuration.prepareDatabase {
-      $0.trace { print($0) }
-    }
-    database = try DatabaseQueue(configuration: configuration)
+    database = try DatabaseQueue()
     try database.write { db in
       try #sql(#"CREATE TABLE "numbers" ("value" INTEGER NOT NULL)"#)
         .execute(db)

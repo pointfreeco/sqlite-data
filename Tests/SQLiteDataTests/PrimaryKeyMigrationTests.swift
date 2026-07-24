@@ -43,7 +43,6 @@ struct PrimaryKeyMigrationTests {
       configuration.prepareDatabase { db in
         db.add(function: $uuid)
         db.add(function: $customUUID)
-        db.trace { print($0.expandedDescription) }
       }
       return configuration
     }()
