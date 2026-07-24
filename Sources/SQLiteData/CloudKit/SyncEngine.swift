@@ -34,7 +34,7 @@
     let foreignKeysByTableName: [String: [ForeignKey]]
     package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
     package let defaultZone: CKRecordZone
-    let delegate: (any SyncEngineDelegate)?
+    weak let delegate: (any SyncEngineDelegate)?
     let defaultSyncEngines:
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)

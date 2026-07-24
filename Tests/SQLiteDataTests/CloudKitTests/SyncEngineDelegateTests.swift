@@ -15,7 +15,6 @@
     @MainActor
     final class SyncEngineDelegateTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-
       @Test($syncEngineDelegate.set(MyDelegate()))
       func accountChanged() async throws {
         try await userDatabase.userWrite { db in
