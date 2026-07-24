@@ -34,7 +34,11 @@
     let foreignKeysByTableName: [String: [ForeignKey]]
     package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
     package let defaultZone: CKRecordZone
-    let delegate: (any SyncEngineDelegate)?
+    #if compiler(<6.2.3)
+      weak var delegate: (any SyncEngineDelegate)?
+    #else
+      weak let delegate: (any SyncEngineDelegate)?
+    #endif
     let defaultSyncEngines:
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
@@ -944,6 +948,14 @@
       }
     }
   }
+
+  #if compiler(<6.2.3)
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    extension SyncEngine: @unchecked Sendable {}
+  #else
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    extension SyncEngine: Sendable {}
+  #endif
 
   extension PrimaryKeyedTable {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
