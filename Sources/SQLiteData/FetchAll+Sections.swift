@@ -37,52 +37,6 @@ extension FetchAll {
     return sectionedReader.wrappedValue
   }
 
-  fileprivate init<From: StructuredQueriesCore.Table>(
-    wrappedValue: [Element],
-    statement: Select<(), From, ()>,
-    sectionBy: _Sectioning,
-    database: (any DatabaseReader)?,
-    scheduler: (any ValueObservationScheduler & Hashable)?
-  )
-  where
-    Element == From.QueryOutput,
-    From.QueryOutput: Sendable
-  {
-    self.init(
-      wrappedValue: wrappedValue,
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectionBy),
-      sectionBy: sectionBy,
-      database: database,
-      scheduler: scheduler
-    )
-  }
-
-  fileprivate init<Value: QueryRepresentable>(
-    wrappedValue: [Element],
-    request: FetchAllSectionedStatementValueRequest<Value>,
-    sectionBy: _Sectioning,
-    database: (any DatabaseReader)?,
-    scheduler: (any ValueObservationScheduler & Hashable)?
-  )
-  where
-    Element == Value.QueryOutput,
-    Value.QueryOutput: Sendable
-  {
-    let sectionedReader = SharedReader(
-      wrappedValue: ResultsSectionCollection(elements: wrappedValue, sectionName: nil),
-      FetchKey(
-        request: request,
-        database: database,
-        scheduler: scheduler
-      )
-    )
-    self.sectionedReader = sectionedReader
-    self.sharedReader = sectionedReader.elements
-    self.sectioning.setValue(sectionBy)
-  }
-}
-
-extension FetchAll {
   /// Initializes this property with a query that fetches every row from a table, grouping results
   /// into sections.
   ///
@@ -179,6 +133,373 @@ extension FetchAll {
   ///
   /// - Parameters:
   ///   - wrappedValue: A default collection to associate with this property.
+  ///   - sectionKeyPath: A key path to a string column to group results by.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public init(
+    wrappedValue: [Element] = [],
+    sectionBy sectionKeyPath: KeyPath<
+      Element.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
+    >,
+    database: (any DatabaseReader)? = nil
+  )
+  where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
+    self.init(
+      wrappedValue: wrappedValue,
+      sectionBy: { $0[keyPath: sectionKeyPath] },
+      database: database
+    )
+  }
+
+  /// Initializes this property with a query associated with the wrapped value, grouping results
+  /// into sections.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectionKeyPath: A key path to a string column to group results by.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public init<S: SelectStatement>(
+    wrappedValue: [Element] = [],
+    _ statement: S,
+    sectionBy sectionKeyPath: KeyPath<
+      S.From.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
+    >,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+    Element == S.From.QueryOutput,
+    S.QueryValue == (),
+    S.From.QueryOutput: Sendable,
+    S.Joins == ()
+  {
+    self.init(
+      wrappedValue: wrappedValue,
+      statement,
+      sectionBy: { $0[keyPath: sectionKeyPath] },
+      database: database
+    )
+  }
+
+  public init<
+    V: QueryRepresentable, From: StructuredQueriesCore.Table
+  >(
+    wrappedValue: [Element] = [],
+    _ statement: Select<V, From, ()>,
+    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns) else {
+      self.init(wrappedValue: wrappedValue, statement, database: database)
+      return
+    }
+    self.init(
+      wrappedValue: wrappedValue,
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: nil
+    )
+  }
+
+  public init<
+    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
+  >(
+    wrappedValue: [Element] = [],
+    _ statement: Select<V, From, J>,
+    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns, J.columns) else {
+      self.init(wrappedValue: wrappedValue, statement, database: database)
+      return
+    }
+    self.init(
+      wrappedValue: wrappedValue,
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: nil
+    )
+  }
+
+  public init<
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table,
+    J1: StructuredQueriesCore.Table,
+    each J2: StructuredQueriesCore.Table
+  >(
+    wrappedValue: [Element] = [],
+    _ statement: Select<V, From, (J1, repeat each J2)>,
+    @_SectionBuilder sectionBy sectioning: (
+      From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
+    ) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns, J1.columns, repeat (each J2).columns) else {
+      self.init(wrappedValue: wrappedValue, statement, database: database)
+      return
+    }
+    self.init(
+      wrappedValue: wrappedValue,
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: nil
+    )
+  }
+
+  /// Replaces the wrapped value with data from the given query, grouping results into sections.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  /// - Returns: A subscription associated with the observation.
+  @discardableResult
+  public func load<S: SelectStatement>(
+    _ statement: S,
+    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil
+  ) async throws -> FetchSubscription
+  where
+    Element == S.From.QueryOutput,
+    S.QueryValue == (),
+    S.From.QueryOutput: Sendable,
+    S.Joins == ()
+  {
+    let statement: Select<(), S.From, ()> = statement.asSelect()
+    return try await loadSections(
+      statement: statement,
+      sectionBy: sectioning(S.From.columns),
+      database: database,
+      scheduler: nil
+    )
+  }
+
+  /// Replaces the wrapped value with data from the given query, grouping results into sections.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectionKeyPath: A key path to a string column to group results by.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  /// - Returns: A subscription associated with the observation.
+  @discardableResult
+  public func load<S: SelectStatement>(
+    _ statement: S,
+    sectionBy sectionKeyPath: KeyPath<
+      S.From.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
+    >,
+    database: (any DatabaseReader)? = nil
+  ) async throws -> FetchSubscription
+  where
+    Element == S.From.QueryOutput,
+    S.QueryValue == (),
+    S.From.QueryOutput: Sendable,
+    S.Joins == ()
+  {
+    try await load(
+      statement,
+      sectionBy: { $0[keyPath: sectionKeyPath] },
+      database: database
+    )
+  }
+
+  @discardableResult
+  public func load<
+    V: QueryRepresentable, From: StructuredQueriesCore.Table
+  >(
+    _ statement: Select<V, From, ()>,
+    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil
+  ) async throws -> FetchSubscription
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns) else {
+      return try await load(statement, database: database)
+    }
+    return try await loadSections(
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: nil
+    )
+  }
+
+  @discardableResult
+  public func load<
+    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
+  >(
+    _ statement: Select<V, From, J>,
+    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil
+  ) async throws -> FetchSubscription
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns, J.columns) else {
+      return try await load(statement, database: database)
+    }
+    return try await loadSections(
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: nil
+    )
+  }
+
+  @discardableResult
+  public func load<
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table,
+    J1: StructuredQueriesCore.Table,
+    each J2: StructuredQueriesCore.Table
+  >(
+    _ statement: Select<V, From, (J1, repeat each J2)>,
+    @_SectionBuilder sectionBy sectioning: (
+      From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
+    ) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil
+  ) async throws -> FetchSubscription
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns, J1.columns, repeat (each J2).columns) else {
+      return try await load(statement, database: database)
+    }
+    return try await loadSections(
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: nil
+    )
+  }
+
+  fileprivate init<From: StructuredQueriesCore.Table>(
+    wrappedValue: [Element],
+    statement: Select<(), From, ()>,
+    sectionBy: _Sectioning,
+    database: (any DatabaseReader)?,
+    scheduler: (any ValueObservationScheduler & Hashable)?
+  )
+  where
+    Element == From.QueryOutput,
+    From.QueryOutput: Sendable
+  {
+    self.init(
+      wrappedValue: wrappedValue,
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectionBy),
+      sectionBy: sectionBy,
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  fileprivate init<Value: QueryRepresentable>(
+    wrappedValue: [Element],
+    request: FetchAllSectionedStatementValueRequest<Value>,
+    sectionBy: _Sectioning,
+    database: (any DatabaseReader)?,
+    scheduler: (any ValueObservationScheduler & Hashable)?
+  )
+  where
+    Element == Value.QueryOutput,
+    Value.QueryOutput: Sendable
+  {
+    let sectionedReader = SharedReader(
+      wrappedValue: ResultsSectionCollection(elements: wrappedValue, sectionName: nil),
+      FetchKey(
+        request: request,
+        database: database,
+        scheduler: scheduler
+      )
+    )
+    self.sectionedReader = sectionedReader
+    self.sharedReader = sectionedReader.elements
+    self.sectioning.setValue(sectionBy)
+  }
+
+  func loadSections<From: StructuredQueriesCore.Table>(
+    statement: Select<(), From, ()>,
+    sectionBy sectioning: _Sectioning?,
+    database: (any DatabaseReader)?,
+    scheduler: (any ValueObservationScheduler & Hashable)?
+  ) async throws -> FetchSubscription
+  where
+    Element == From.QueryOutput,
+    From.QueryOutput: Sendable
+  {
+    guard let sectioning else {
+      removeSections()
+      let statement: Select<From, From, ()> = statement.selectStar()
+      try await sharedReader.load(
+        FetchKey(
+          request: FetchAllStatementValueRequest(statement: statement),
+          database: database,
+          scheduler: scheduler
+        )
+      )
+      return FetchSubscription(sharedReader: sharedReader)
+    }
+    return try await loadSections(
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  private func loadSections<Value: QueryRepresentable>(
+    request: FetchAllSectionedStatementValueRequest<Value>,
+    sectionBy sectioning: _Sectioning,
+    database: (any DatabaseReader)?,
+    scheduler: (any ValueObservationScheduler & Hashable)?
+  ) async throws -> FetchSubscription
+  where
+    Element == Value.QueryOutput,
+    Value.QueryOutput: Sendable
+  {
+    self.sectioning.setValue(sectioning)
+    defer {
+      sharedReader.projectedValue = sectionedReader.elements.projectedValue
+    }
+    try await sectionedReader.load(
+      FetchKey(
+        request: request,
+        database: database,
+        scheduler: scheduler
+      )
+    )
+    return FetchSubscription(sharedReader: sharedReader, sectionedReader: sectionedReader)
+  }
+}
+
+extension FetchAll {
+  /// Initializes this property with a query that fetches every row from a table, grouping results
+  /// into sections.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
   ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
   ///     results by, or `nil` for no grouping.
   ///   - database: The database to read from. A value of `nil` will use the default database
@@ -239,6 +560,294 @@ extension FetchAll {
     self.init(
       wrappedValue: wrappedValue,
       statement: statement,
+      sectionBy: sectioning,
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  /// Initializes this property with a query that fetches every row from a table, grouping results
+  /// into sections.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
+  ///   - sectionKeyPath: A key path to a string column to group results by.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  public init(
+    wrappedValue: [Element] = [],
+    sectionBy sectionKeyPath: KeyPath<
+      Element.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
+    >,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
+    self.init(
+      wrappedValue: wrappedValue,
+      sectionBy: { $0[keyPath: sectionKeyPath] },
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  /// Initializes this property with a query associated with the wrapped value, grouping results
+  /// into sections.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectionKeyPath: A key path to a string column to group results by.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  public init<S: SelectStatement>(
+    wrappedValue: [Element] = [],
+    _ statement: S,
+    sectionBy sectionKeyPath: KeyPath<
+      S.From.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
+    >,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Element == S.From.QueryOutput,
+    S.QueryValue == (),
+    S.From.QueryOutput: Sendable,
+    S.Joins == ()
+  {
+    self.init(
+      wrappedValue: wrappedValue,
+      statement,
+      sectionBy: { $0[keyPath: sectionKeyPath] },
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  public init<
+    V: QueryRepresentable, From: StructuredQueriesCore.Table
+  >(
+    wrappedValue: [Element] = [],
+    _ statement: Select<V, From, ()>,
+    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns) else {
+      self.init(wrappedValue: wrappedValue, statement, database: database, scheduler: scheduler)
+      return
+    }
+    self.init(
+      wrappedValue: wrappedValue,
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  public init<
+    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
+  >(
+    wrappedValue: [Element] = [],
+    _ statement: Select<V, From, J>,
+    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns, J.columns) else {
+      self.init(wrappedValue: wrappedValue, statement, database: database, scheduler: scheduler)
+      return
+    }
+    self.init(
+      wrappedValue: wrappedValue,
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  public init<
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table,
+    J1: StructuredQueriesCore.Table,
+    each J2: StructuredQueriesCore.Table
+  >(
+    wrappedValue: [Element] = [],
+    _ statement: Select<V, From, (J1, repeat each J2)>,
+    @_SectionBuilder sectionBy sectioning: (
+      From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
+    ) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns, J1.columns, repeat (each J2).columns) else {
+      self.init(wrappedValue: wrappedValue, statement, database: database, scheduler: scheduler)
+      return
+    }
+    self.init(
+      wrappedValue: wrappedValue,
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  /// Replaces the wrapped value with data from the given query, grouping results into sections.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  /// - Returns: A subscription associated with the observation.
+  @discardableResult
+  public func load<S: SelectStatement>(
+    _ statement: S,
+    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  ) async throws -> FetchSubscription
+  where
+    Element == S.From.QueryOutput,
+    S.QueryValue == (),
+    S.From.QueryOutput: Sendable,
+    S.Joins == ()
+  {
+    let statement: Select<(), S.From, ()> = statement.asSelect()
+    return try await loadSections(
+      statement: statement,
+      sectionBy: sectioning(S.From.columns),
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  /// Replaces the wrapped value with data from the given query, grouping results into sections.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectionKeyPath: A key path to a string column to group results by.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  /// - Returns: A subscription associated with the observation.
+  @discardableResult
+  public func load<S: SelectStatement>(
+    _ statement: S,
+    sectionBy sectionKeyPath: KeyPath<
+      S.From.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
+    >,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  ) async throws -> FetchSubscription
+  where
+    Element == S.From.QueryOutput,
+    S.QueryValue == (),
+    S.From.QueryOutput: Sendable,
+    S.Joins == ()
+  {
+    try await load(
+      statement,
+      sectionBy: { $0[keyPath: sectionKeyPath] },
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  @discardableResult
+  public func load<
+    V: QueryRepresentable, From: StructuredQueriesCore.Table
+  >(
+    _ statement: Select<V, From, ()>,
+    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  ) async throws -> FetchSubscription
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns) else {
+      return try await load(statement, database: database, scheduler: scheduler)
+    }
+    return try await loadSections(
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  @discardableResult
+  public func load<
+    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
+  >(
+    _ statement: Select<V, From, J>,
+    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  ) async throws -> FetchSubscription
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns, J.columns) else {
+      return try await load(statement, database: database, scheduler: scheduler)
+    }
+    return try await loadSections(
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
+      sectionBy: sectioning,
+      database: database,
+      scheduler: scheduler
+    )
+  }
+
+  @discardableResult
+  public func load<
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table,
+    J1: StructuredQueriesCore.Table,
+    each J2: StructuredQueriesCore.Table
+  >(
+    _ statement: Select<V, From, (J1, repeat each J2)>,
+    @_SectionBuilder sectionBy sectioning: (
+      From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
+    ) -> _Sectioning?,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  ) async throws -> FetchSubscription
+  where
+    Element == V.QueryOutput,
+    V.QueryOutput: Sendable
+  {
+    guard let sectioning = sectioning(From.columns, J1.columns, repeat (each J2).columns) else {
+      return try await load(statement, database: database, scheduler: scheduler)
+    }
+    return try await loadSections(
+      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
       sectionBy: sectioning,
       database: database,
       scheduler: scheduler
@@ -309,347 +918,7 @@ extension FetchAll {
         scheduler: .animation(animation)
       )
     }
-  }
-#endif
 
-extension FetchAll {
-  /// Replaces the wrapped value with data from the given query, grouping results into sections.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
-  ///     results by, or `nil` for no grouping.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  /// - Returns: A subscription associated with the observation.
-  @discardableResult
-  public func load<S: SelectStatement>(
-    _ statement: S,
-    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription
-  where
-    Element == S.From.QueryOutput,
-    S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == ()
-  {
-    let statement: Select<(), S.From, ()> = statement.asSelect()
-    return try await loadSections(
-      statement: statement,
-      sectionBy: sectioning(S.From.columns),
-      database: database,
-      scheduler: nil
-    )
-  }
-
-  /// Replaces the wrapped value with data from the given query, grouping results into sections.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
-  ///     results by, or `nil` for no grouping.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
-  ///     asynchronously on the main queue.
-  /// - Returns: A subscription associated with the observation.
-  @discardableResult
-  public func load<S: SelectStatement>(
-    _ statement: S,
-    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription
-  where
-    Element == S.From.QueryOutput,
-    S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == ()
-  {
-    let statement: Select<(), S.From, ()> = statement.asSelect()
-    return try await loadSections(
-      statement: statement,
-      sectionBy: sectioning(S.From.columns),
-      database: database,
-      scheduler: scheduler
-    )
-  }
-
-  func loadSections<From: StructuredQueriesCore.Table>(
-    statement: Select<(), From, ()>,
-    sectionBy sectioning: _Sectioning?,
-    database: (any DatabaseReader)?,
-    scheduler: (any ValueObservationScheduler & Hashable)?
-  ) async throws -> FetchSubscription
-  where
-    Element == From.QueryOutput,
-    From.QueryOutput: Sendable
-  {
-    guard let sectioning else {
-      removeSections()
-      let statement: Select<From, From, ()> = statement.selectStar()
-      try await sharedReader.load(
-        FetchKey(
-          request: FetchAllStatementValueRequest(statement: statement),
-          database: database,
-          scheduler: scheduler
-        )
-      )
-      return FetchSubscription(sharedReader: sharedReader)
-    }
-    return try await loadSections(
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: scheduler
-    )
-  }
-
-  private func loadSections<Value: QueryRepresentable>(
-    request: FetchAllSectionedStatementValueRequest<Value>,
-    sectionBy sectioning: _Sectioning,
-    database: (any DatabaseReader)?,
-    scheduler: (any ValueObservationScheduler & Hashable)?
-  ) async throws -> FetchSubscription
-  where
-    Element == Value.QueryOutput,
-    Value.QueryOutput: Sendable
-  {
-    self.sectioning.setValue(sectioning)
-    defer {
-      sharedReader.projectedValue = sectionedReader.elements.projectedValue
-    }
-    try await sectionedReader.load(
-      FetchKey(
-        request: request,
-        database: database,
-        scheduler: scheduler
-      )
-    )
-    return FetchSubscription(sharedReader: sharedReader, sectionedReader: sectionedReader)
-  }
-}
-
-#if canImport(SwiftUI)
-  extension FetchAll {
-    /// Replaces the wrapped value with data from the given query, grouping results into sections.
-    ///
-    /// - Parameters:
-    ///   - statement: A query associated with the wrapped value.
-    ///   - sectioning: A closure that returns a string expression, or an ordering of one, to
-    ///     group results by, or `nil` for no grouping.
-    ///   - database: The database to read from. A value of `nil` will use the default database
-    ///     (`@Dependency(\.defaultDatabase)`).
-    ///   - animation: The animation to use for user interface changes that result from changes to
-    ///     the fetched results.
-    /// - Returns: A subscription associated with the observation.
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    @discardableResult
-    public func load<S: SelectStatement>(
-      _ statement: S,
-      @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
-      database: (any DatabaseReader)? = nil,
-      animation: Animation?
-    ) async throws -> FetchSubscription
-    where
-      Element == S.From.QueryOutput,
-      S.QueryValue == (),
-      S.From.QueryOutput: Sendable,
-      S.Joins == ()
-    {
-      try await load(
-        statement,
-        sectionBy: sectioning,
-        database: database,
-        scheduler: .animation(animation)
-      )
-    }
-  }
-#endif
-
-extension FetchAll {
-  /// Initializes this property with a query that fetches every row from a table, grouping results
-  /// into sections.
-  ///
-  /// - Parameters:
-  ///   - wrappedValue: A default collection to associate with this property.
-  ///   - sectionKeyPath: A key path to a string column to group results by.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  public init(
-    wrappedValue: [Element] = [],
-    sectionBy sectionKeyPath: KeyPath<
-      Element.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
-    >,
-    database: (any DatabaseReader)? = nil
-  )
-  where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
-    self.init(
-      wrappedValue: wrappedValue,
-      sectionBy: { $0[keyPath: sectionKeyPath] },
-      database: database
-    )
-  }
-
-  /// Initializes this property with a query associated with the wrapped value, grouping results
-  /// into sections.
-  ///
-  /// - Parameters:
-  ///   - wrappedValue: A default collection to associate with this property.
-  ///   - statement: A query associated with the wrapped value.
-  ///   - sectionKeyPath: A key path to a string column to group results by.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  public init<S: SelectStatement>(
-    wrappedValue: [Element] = [],
-    _ statement: S,
-    sectionBy sectionKeyPath: KeyPath<
-      S.From.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
-    >,
-    database: (any DatabaseReader)? = nil
-  )
-  where
-    Element == S.From.QueryOutput,
-    S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == ()
-  {
-    self.init(
-      wrappedValue: wrappedValue,
-      statement,
-      sectionBy: { $0[keyPath: sectionKeyPath] },
-      database: database
-    )
-  }
-
-  /// Initializes this property with a query that fetches every row from a table, grouping results
-  /// into sections.
-  ///
-  /// - Parameters:
-  ///   - wrappedValue: A default collection to associate with this property.
-  ///   - sectionKeyPath: A key path to a string column to group results by.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
-  ///     asynchronously on the main queue.
-  public init(
-    wrappedValue: [Element] = [],
-    sectionBy sectionKeyPath: KeyPath<
-      Element.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
-    >,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  )
-  where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
-    self.init(
-      wrappedValue: wrappedValue,
-      sectionBy: { $0[keyPath: sectionKeyPath] },
-      database: database,
-      scheduler: scheduler
-    )
-  }
-
-  /// Initializes this property with a query associated with the wrapped value, grouping results
-  /// into sections.
-  ///
-  /// - Parameters:
-  ///   - wrappedValue: A default collection to associate with this property.
-  ///   - statement: A query associated with the wrapped value.
-  ///   - sectionKeyPath: A key path to a string column to group results by.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
-  ///     asynchronously on the main queue.
-  public init<S: SelectStatement>(
-    wrappedValue: [Element] = [],
-    _ statement: S,
-    sectionBy sectionKeyPath: KeyPath<
-      S.From.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
-    >,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  )
-  where
-    Element == S.From.QueryOutput,
-    S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == ()
-  {
-    self.init(
-      wrappedValue: wrappedValue,
-      statement,
-      sectionBy: { $0[keyPath: sectionKeyPath] },
-      database: database,
-      scheduler: scheduler
-    )
-  }
-
-  /// Replaces the wrapped value with data from the given query, grouping results into sections.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - sectionKeyPath: A key path to a string column to group results by.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  /// - Returns: A subscription associated with the observation.
-  @discardableResult
-  public func load<S: SelectStatement>(
-    _ statement: S,
-    sectionBy sectionKeyPath: KeyPath<
-      S.From.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
-    >,
-    database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription
-  where
-    Element == S.From.QueryOutput,
-    S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == ()
-  {
-    try await load(
-      statement,
-      sectionBy: { $0[keyPath: sectionKeyPath] },
-      database: database
-    )
-  }
-
-  /// Replaces the wrapped value with data from the given query, grouping results into sections.
-  ///
-  /// - Parameters:
-  ///   - statement: A query associated with the wrapped value.
-  ///   - sectionKeyPath: A key path to a string column to group results by.
-  ///   - database: The database to read from. A value of `nil` will use the default database
-  ///     (`@Dependency(\.defaultDatabase)`).
-  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
-  ///     asynchronously on the main queue.
-  /// - Returns: A subscription associated with the observation.
-  @discardableResult
-  public func load<S: SelectStatement>(
-    _ statement: S,
-    sectionBy sectionKeyPath: KeyPath<
-      S.From.TableColumns, some QueryExpression<some _OptionalPromotable<String?>>
-    >,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription
-  where
-    Element == S.From.QueryOutput,
-    S.QueryValue == (),
-    S.From.QueryOutput: Sendable,
-    S.Joins == ()
-  {
-    try await load(
-      statement,
-      sectionBy: { $0[keyPath: sectionKeyPath] },
-      database: database,
-      scheduler: scheduler
-    )
-  }
-}
-
-#if canImport(SwiftUI)
-  extension FetchAll {
     /// Initializes this property with a query that fetches every row from a table, grouping
     /// results into sections.
     ///
@@ -714,6 +983,113 @@ extension FetchAll {
       )
     }
 
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    public init<
+      V: QueryRepresentable, From: StructuredQueriesCore.Table
+    >(
+      wrappedValue: [Element] = [],
+      _ statement: Select<V, From, ()>,
+      @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+      Element == V.QueryOutput,
+      V.QueryOutput: Sendable
+    {
+      self.init(
+        wrappedValue: wrappedValue,
+        statement,
+        sectionBy: sectioning,
+        database: database,
+        scheduler: .animation(animation)
+      )
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    public init<
+      V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
+    >(
+      wrappedValue: [Element] = [],
+      _ statement: Select<V, From, J>,
+      @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+      Element == V.QueryOutput,
+      V.QueryOutput: Sendable
+    {
+      self.init(
+        wrappedValue: wrappedValue,
+        statement,
+        sectionBy: sectioning,
+        database: database,
+        scheduler: .animation(animation)
+      )
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    public init<
+      V: QueryRepresentable,
+      From: StructuredQueriesCore.Table,
+      J1: StructuredQueriesCore.Table,
+      each J2: StructuredQueriesCore.Table
+    >(
+      wrappedValue: [Element] = [],
+      _ statement: Select<V, From, (J1, repeat each J2)>,
+      @_SectionBuilder sectionBy sectioning: (
+        From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
+      ) -> _Sectioning?,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+      Element == V.QueryOutput,
+      V.QueryOutput: Sendable
+    {
+      self.init(
+        wrappedValue: wrappedValue,
+        statement,
+        sectionBy: sectioning,
+        database: database,
+        scheduler: .animation(animation)
+      )
+    }
+
+    /// Replaces the wrapped value with data from the given query, grouping results into sections.
+    ///
+    /// - Parameters:
+    ///   - statement: A query associated with the wrapped value.
+    ///   - sectioning: A closure that returns a string expression, or an ordering of one, to
+    ///     group results by, or `nil` for no grouping.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    /// - Returns: A subscription associated with the observation.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @discardableResult
+    public func load<S: SelectStatement>(
+      _ statement: S,
+      @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation?
+    ) async throws -> FetchSubscription
+    where
+      Element == S.From.QueryOutput,
+      S.QueryValue == (),
+      S.From.QueryOutput: Sendable,
+      S.Joins == ()
+    {
+      try await load(
+        statement,
+        sectionBy: sectioning,
+        database: database,
+        scheduler: .animation(animation)
+      )
+    }
+
     /// Replaces the wrapped value with data from the given query, grouping results into sections.
     ///
     /// - Parameters:
@@ -747,353 +1123,6 @@ extension FetchAll {
         animation: animation
       )
     }
-  }
-#endif
-
-extension FetchAll {
-  public init<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table
-  >(
-    wrappedValue: [Element] = [],
-    _ statement: Select<V, From, ()>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil
-  )
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns) else {
-      self.init(wrappedValue: wrappedValue, statement, database: database)
-      return
-    }
-    self.init(
-      wrappedValue: wrappedValue,
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: nil
-    )
-  }
-
-  public init<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table
-  >(
-    wrappedValue: [Element] = [],
-    _ statement: Select<V, From, ()>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  )
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns) else {
-      self.init(wrappedValue: wrappedValue, statement, database: database, scheduler: scheduler)
-      return
-    }
-    self.init(
-      wrappedValue: wrappedValue,
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: scheduler
-    )
-  }
-
-  @discardableResult
-  public func load<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table
-  >(
-    _ statement: Select<V, From, ()>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns) else {
-      return try await load(statement, database: database)
-    }
-    return try await loadSections(
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: nil
-    )
-  }
-
-  @discardableResult
-  public func load<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table
-  >(
-    _ statement: Select<V, From, ()>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns) else {
-      return try await load(statement, database: database, scheduler: scheduler)
-    }
-    return try await loadSections(
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: scheduler
-    )
-  }
-}
-
-extension FetchAll {
-  public init<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
-  >(
-    wrappedValue: [Element] = [],
-    _ statement: Select<V, From, J>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil
-  )
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns, J.columns) else {
-      self.init(wrappedValue: wrappedValue, statement, database: database)
-      return
-    }
-    self.init(
-      wrappedValue: wrappedValue,
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: nil
-    )
-  }
-
-  public init<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
-  >(
-    wrappedValue: [Element] = [],
-    _ statement: Select<V, From, J>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  )
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns, J.columns) else {
-      self.init(wrappedValue: wrappedValue, statement, database: database, scheduler: scheduler)
-      return
-    }
-    self.init(
-      wrappedValue: wrappedValue,
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: scheduler
-    )
-  }
-
-  @discardableResult
-  public func load<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
-  >(
-    _ statement: Select<V, From, J>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns, J.columns) else {
-      return try await load(statement, database: database)
-    }
-    return try await loadSections(
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: nil
-    )
-  }
-
-  @discardableResult
-  public func load<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
-  >(
-    _ statement: Select<V, From, J>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns, J.columns) else {
-      return try await load(statement, database: database, scheduler: scheduler)
-    }
-    return try await loadSections(
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: scheduler
-    )
-  }
-}
-
-extension FetchAll {
-  public init<
-    V: QueryRepresentable,
-    From: StructuredQueriesCore.Table,
-    J1: StructuredQueriesCore.Table,
-    each J2: StructuredQueriesCore.Table
-  >(
-    wrappedValue: [Element] = [],
-    _ statement: Select<V, From, (J1, repeat each J2)>,
-    @_SectionBuilder sectionBy sectioning: (
-      From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
-    ) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil
-  )
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns, J1.columns, repeat (each J2).columns) else {
-      self.init(wrappedValue: wrappedValue, statement, database: database)
-      return
-    }
-    self.init(
-      wrappedValue: wrappedValue,
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: nil
-    )
-  }
-
-  public init<
-    V: QueryRepresentable,
-    From: StructuredQueriesCore.Table,
-    J1: StructuredQueriesCore.Table,
-    each J2: StructuredQueriesCore.Table
-  >(
-    wrappedValue: [Element] = [],
-    _ statement: Select<V, From, (J1, repeat each J2)>,
-    @_SectionBuilder sectionBy sectioning: (
-      From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
-    ) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  )
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns, J1.columns, repeat (each J2).columns) else {
-      self.init(wrappedValue: wrappedValue, statement, database: database, scheduler: scheduler)
-      return
-    }
-    self.init(
-      wrappedValue: wrappedValue,
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: scheduler
-    )
-  }
-
-  @discardableResult
-  public func load<
-    V: QueryRepresentable,
-    From: StructuredQueriesCore.Table,
-    J1: StructuredQueriesCore.Table,
-    each J2: StructuredQueriesCore.Table
-  >(
-    _ statement: Select<V, From, (J1, repeat each J2)>,
-    @_SectionBuilder sectionBy sectioning: (
-      From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
-    ) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil
-  ) async throws -> FetchSubscription
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns, J1.columns, repeat (each J2).columns) else {
-      return try await load(statement, database: database)
-    }
-    return try await loadSections(
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: nil
-    )
-  }
-
-  @discardableResult
-  public func load<
-    V: QueryRepresentable,
-    From: StructuredQueriesCore.Table,
-    J1: StructuredQueriesCore.Table,
-    each J2: StructuredQueriesCore.Table
-  >(
-    _ statement: Select<V, From, (J1, repeat each J2)>,
-    @_SectionBuilder sectionBy sectioning: (
-      From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
-    ) -> _Sectioning?,
-    database: (any DatabaseReader)? = nil,
-    scheduler: some ValueObservationScheduler & Hashable
-  ) async throws -> FetchSubscription
-  where
-    Element == V.QueryOutput,
-    V.QueryOutput: Sendable
-  {
-    guard let sectioning = sectioning(From.columns, J1.columns, repeat (each J2).columns) else {
-      return try await load(statement, database: database, scheduler: scheduler)
-    }
-    return try await loadSections(
-      request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
-      sectionBy: sectioning,
-      database: database,
-      scheduler: scheduler
-    )
-  }
-}
-
-#if canImport(SwiftUI)
-  extension FetchAll {
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    public init<
-      V: QueryRepresentable, From: StructuredQueriesCore.Table
-    >(
-      wrappedValue: [Element] = [],
-      _ statement: Select<V, From, ()>,
-      @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
-      database: (any DatabaseReader)? = nil,
-      animation: Animation
-    )
-    where
-      Element == V.QueryOutput,
-      V.QueryOutput: Sendable
-    {
-      self.init(
-        wrappedValue: wrappedValue,
-        statement,
-        sectionBy: sectioning,
-        database: database,
-        scheduler: .animation(animation)
-      )
-    }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
@@ -1118,29 +1147,6 @@ extension FetchAll {
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    public init<
-      V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
-    >(
-      wrappedValue: [Element] = [],
-      _ statement: Select<V, From, J>,
-      @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
-      database: (any DatabaseReader)? = nil,
-      animation: Animation
-    )
-    where
-      Element == V.QueryOutput,
-      V.QueryOutput: Sendable
-    {
-      self.init(
-        wrappedValue: wrappedValue,
-        statement,
-        sectionBy: sectioning,
-        database: database,
-        scheduler: .animation(animation)
-      )
-    }
-
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load<
       V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
@@ -1155,34 +1161,6 @@ extension FetchAll {
       V.QueryOutput: Sendable
     {
       try await load(
-        statement,
-        sectionBy: sectioning,
-        database: database,
-        scheduler: .animation(animation)
-      )
-    }
-
-    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    public init<
-      V: QueryRepresentable,
-      From: StructuredQueriesCore.Table,
-      J1: StructuredQueriesCore.Table,
-      each J2: StructuredQueriesCore.Table
-    >(
-      wrappedValue: [Element] = [],
-      _ statement: Select<V, From, (J1, repeat each J2)>,
-      @_SectionBuilder sectionBy sectioning: (
-        From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
-      ) -> _Sectioning?,
-      database: (any DatabaseReader)? = nil,
-      animation: Animation
-    )
-    where
-      Element == V.QueryOutput,
-      V.QueryOutput: Sendable
-    {
-      self.init(
-        wrappedValue: wrappedValue,
         statement,
         sectionBy: sectioning,
         database: database,
