@@ -53,7 +53,7 @@ extension FetchAll {
   ///     (`@Dependency(\.defaultDatabase)`).
   public init(
     wrappedValue: [Element] = [],
-    @_SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (Element.TableColumns) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil
   )
   where Element: StructuredQueriesCore.Table, Element.QueryOutput == Element {
@@ -105,7 +105,7 @@ extension FetchAll {
   public init<S: SelectStatement>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (S.From.TableColumns) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -187,7 +187,7 @@ extension FetchAll {
   >(
     wrappedValue: [Element] = [],
     _ statement: Select<V, From, ()>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -212,7 +212,8 @@ extension FetchAll {
   >(
     wrappedValue: [Element] = [],
     _ statement: Select<V, From, J>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns, J.TableColumns) ->
+      _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -240,9 +241,9 @@ extension FetchAll {
   >(
     wrappedValue: [Element] = [],
     _ statement: Select<V, From, (J1, repeat each J2)>,
-    @_SectionBuilder sectionBy sectioning: (
+    @_SectionBuilder<String?> sectionBy sectioning: (
       From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
-    ) -> _Sectioning?,
+    ) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil
   )
   where
@@ -274,7 +275,7 @@ extension FetchAll {
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
-    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (S.From.TableColumns) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil
   ) async throws -> FetchSubscription
   where
@@ -326,7 +327,7 @@ extension FetchAll {
     V: QueryRepresentable, From: StructuredQueriesCore.Table
   >(
     _ statement: Select<V, From, ()>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil
   ) async throws -> FetchSubscription
   where
@@ -349,7 +350,8 @@ extension FetchAll {
     V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
   >(
     _ statement: Select<V, From, J>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns, J.TableColumns) ->
+      _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil
   ) async throws -> FetchSubscription
   where
@@ -375,9 +377,9 @@ extension FetchAll {
     each J2: StructuredQueriesCore.Table
   >(
     _ statement: Select<V, From, (J1, repeat each J2)>,
-    @_SectionBuilder sectionBy sectioning: (
+    @_SectionBuilder<String?> sectionBy sectioning: (
       From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
-    ) -> _Sectioning?,
+    ) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil
   ) async throws -> FetchSubscription
   where
@@ -398,7 +400,7 @@ extension FetchAll {
   fileprivate init<From: StructuredQueriesCore.Table>(
     wrappedValue: [Element],
     statement: Select<(), From, ()>,
-    sectionBy: _Sectioning,
+    sectionBy: _Sectioning<String?>,
     database: (any DatabaseReader)?,
     scheduler: (any ValueObservationScheduler & Hashable)?
   )
@@ -417,8 +419,8 @@ extension FetchAll {
 
   fileprivate init<Value: QueryRepresentable>(
     wrappedValue: [Element],
-    request: FetchAllSectionedStatementValueRequest<Value>,
-    sectionBy: _Sectioning,
+    request: FetchAllSectionedStatementValueRequest<Value, String?>,
+    sectionBy: _Sectioning<String?>,
     database: (any DatabaseReader)?,
     scheduler: (any ValueObservationScheduler & Hashable)?
   )
@@ -441,7 +443,7 @@ extension FetchAll {
 
   func loadSections<From: StructuredQueriesCore.Table>(
     statement: Select<(), From, ()>,
-    sectionBy sectioning: _Sectioning?,
+    sectionBy sectioning: _Sectioning<String?>?,
     database: (any DatabaseReader)?,
     scheduler: (any ValueObservationScheduler & Hashable)?
   ) async throws -> FetchSubscription
@@ -470,8 +472,8 @@ extension FetchAll {
   }
 
   private func loadSections<Value: QueryRepresentable>(
-    request: FetchAllSectionedStatementValueRequest<Value>,
-    sectionBy sectioning: _Sectioning,
+    request: FetchAllSectionedStatementValueRequest<Value, String?>,
+    sectionBy sectioning: _Sectioning<String?>,
     database: (any DatabaseReader)?,
     scheduler: (any ValueObservationScheduler & Hashable)?
   ) async throws -> FetchSubscription
@@ -508,7 +510,7 @@ extension FetchAll {
   ///     asynchronously on the main queue.
   public init(
     wrappedValue: [Element] = [],
-    @_SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (Element.TableColumns) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -542,7 +544,7 @@ extension FetchAll {
   public init<S: SelectStatement>(
     wrappedValue: [Element] = [],
     _ statement: S,
-    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (S.From.TableColumns) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -633,7 +635,7 @@ extension FetchAll {
   >(
     wrappedValue: [Element] = [],
     _ statement: Select<V, From, ()>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -659,7 +661,8 @@ extension FetchAll {
   >(
     wrappedValue: [Element] = [],
     _ statement: Select<V, From, J>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns, J.TableColumns) ->
+      _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -688,9 +691,9 @@ extension FetchAll {
   >(
     wrappedValue: [Element] = [],
     _ statement: Select<V, From, (J1, repeat each J2)>,
-    @_SectionBuilder sectionBy sectioning: (
+    @_SectionBuilder<String?> sectionBy sectioning: (
       From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
-    ) -> _Sectioning?,
+    ) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   )
@@ -725,7 +728,7 @@ extension FetchAll {
   @discardableResult
   public func load<S: SelectStatement>(
     _ statement: S,
-    @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (S.From.TableColumns) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws -> FetchSubscription
@@ -782,7 +785,7 @@ extension FetchAll {
     V: QueryRepresentable, From: StructuredQueriesCore.Table
   >(
     _ statement: Select<V, From, ()>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws -> FetchSubscription
@@ -806,7 +809,8 @@ extension FetchAll {
     V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
   >(
     _ statement: Select<V, From, J>,
-    @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
+    @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns, J.TableColumns) ->
+      _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws -> FetchSubscription
@@ -833,9 +837,9 @@ extension FetchAll {
     each J2: StructuredQueriesCore.Table
   >(
     _ statement: Select<V, From, (J1, repeat each J2)>,
-    @_SectionBuilder sectionBy sectioning: (
+    @_SectionBuilder<String?> sectionBy sectioning: (
       From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
-    ) -> _Sectioning?,
+    ) -> _Sectioning<String?>?,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws -> FetchSubscription
@@ -871,7 +875,9 @@ extension FetchAll {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init(
       wrappedValue: [Element] = [],
-      @_SectionBuilder sectionBy sectioning: (Element.TableColumns) -> _Sectioning?,
+      @_SectionBuilder<String?> sectionBy sectioning: (Element.TableColumns) -> _Sectioning<
+        String?
+      >?,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -900,7 +906,9 @@ extension FetchAll {
     public init<S: SelectStatement>(
       wrappedValue: [Element] = [],
       _ statement: S,
-      @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
+      @_SectionBuilder<String?> sectionBy sectioning: (S.From.TableColumns) -> _Sectioning<
+        String?
+      >?,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -989,7 +997,7 @@ extension FetchAll {
     >(
       wrappedValue: [Element] = [],
       _ statement: Select<V, From, ()>,
-      @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
+      @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> _Sectioning<String?>?,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -1012,7 +1020,8 @@ extension FetchAll {
     >(
       wrappedValue: [Element] = [],
       _ statement: Select<V, From, J>,
-      @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
+      @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns, J.TableColumns) ->
+        _Sectioning<String?>?,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -1038,9 +1047,9 @@ extension FetchAll {
     >(
       wrappedValue: [Element] = [],
       _ statement: Select<V, From, (J1, repeat each J2)>,
-      @_SectionBuilder sectionBy sectioning: (
+      @_SectionBuilder<String?> sectionBy sectioning: (
         From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
-      ) -> _Sectioning?,
+      ) -> _Sectioning<String?>?,
       database: (any DatabaseReader)? = nil,
       animation: Animation
     )
@@ -1072,7 +1081,9 @@ extension FetchAll {
     @discardableResult
     public func load<S: SelectStatement>(
       _ statement: S,
-      @_SectionBuilder sectionBy sectioning: (S.From.TableColumns) -> _Sectioning?,
+      @_SectionBuilder<String?> sectionBy sectioning: (S.From.TableColumns) -> _Sectioning<
+        String?
+      >?,
       database: (any DatabaseReader)? = nil,
       animation: Animation?
     ) async throws -> FetchSubscription
@@ -1130,7 +1141,7 @@ extension FetchAll {
       V: QueryRepresentable, From: StructuredQueriesCore.Table
     >(
       _ statement: Select<V, From, ()>,
-      @_SectionBuilder sectionBy sectioning: (From.TableColumns) -> _Sectioning?,
+      @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> _Sectioning<String?>?,
       database: (any DatabaseReader)? = nil,
       animation: Animation?
     ) async throws -> FetchSubscription
@@ -1152,7 +1163,8 @@ extension FetchAll {
       V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
     >(
       _ statement: Select<V, From, J>,
-      @_SectionBuilder sectionBy sectioning: (From.TableColumns, J.TableColumns) -> _Sectioning?,
+      @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns, J.TableColumns) ->
+        _Sectioning<String?>?,
       database: (any DatabaseReader)? = nil,
       animation: Animation?
     ) async throws -> FetchSubscription
@@ -1177,9 +1189,9 @@ extension FetchAll {
       each J2: StructuredQueriesCore.Table
     >(
       _ statement: Select<V, From, (J1, repeat each J2)>,
-      @_SectionBuilder sectionBy sectioning: (
+      @_SectionBuilder<String?> sectionBy sectioning: (
         From.TableColumns, J1.TableColumns, repeat (each J2).TableColumns
-      ) -> _Sectioning?,
+      ) -> _Sectioning<String?>?,
       database: (any DatabaseReader)? = nil,
       animation: Animation?
     ) async throws -> FetchSubscription
@@ -1197,115 +1209,120 @@ extension FetchAll {
   }
 #endif
 
-private func sectionedColumns<From: StructuredQueriesCore.Table>(
+func sectionedColumns<From: StructuredQueriesCore.Table, Key: QueryRepresentable>(
   of _: From.Type,
-  _ sectionBy: _Sectioning
-) -> Select<(From, String?), From, ()> {
+  _ sectionBy: _Sectioning<Key>
+) -> Select<(From, Key), From, ()> {
   From.unscoped
-    .select { ($0, SQLQueryExpression(sectionBy.select, as: String?.self)) }
+    .select { ($0, SQLQueryExpression(sectionBy.select, as: Key.self)) }
     .order { _ in SQLQueryExpression(sectionBy.order) }
 }
 
-private func sectionedColumn<From: StructuredQueriesCore.Table>(
+func sectionedColumn<From: StructuredQueriesCore.Table, Key: QueryRepresentable>(
   of _: From.Type,
-  _ sectionBy: _Sectioning
-) -> Select<String?, From, ()> {
+  _ sectionBy: _Sectioning<Key>
+) -> Select<Key, From, ()> {
   From.unscoped.asSelect()
-    .select { _ in SQLQueryExpression(sectionBy.select, as: String?.self) }
+    .select { _ in SQLQueryExpression(sectionBy.select, as: Key.self) }
 }
 
-private func sectionedOrder<From: StructuredQueriesCore.Table>(
+func sectionedOrder<From: StructuredQueriesCore.Table, Key>(
   of _: From.Type,
-  _ sectionBy: _Sectioning
+  _ sectionBy: _Sectioning<Key>
 ) -> Select<(), From, ()> {
   From.unscoped.asSelect()
     .order { _ in SQLQueryExpression(sectionBy.order) }
 }
 
-public struct _Sectioning: Hashable, Sendable {
+public struct _Sectioning<Key>: Hashable, Sendable {
   let select: QueryFragment
   let order: QueryFragment
 
-  package init(_ expression: some QueryExpression<some _OptionalPromotable<String?>>) {
+  package init(_ expression: some QueryExpression<some _OptionalPromotable<Key>>) {
     self.select = expression.queryFragment
     self.order = expression.queryFragment
   }
 
-  package init(_ orderingTerm: _OrderingTerm<some _OptionalPromotable<String?>>) {
+  package init(_ orderingTerm: _OrderingTerm<some _OptionalPromotable<Key>>) {
     self.select = orderingTerm.baseQueryFragment
     self.order = orderingTerm.queryFragment
   }
 }
 
 @resultBuilder
-public enum _SectionBuilder {
+public enum _SectionBuilder<Key> {
   public static func buildExpression(
     _ expression: Never?
-  ) -> _Sectioning? {
+  ) -> _Sectioning<Key>? {
     nil
   }
 
+  @_disfavoredOverload
   public static func buildExpression(
-    _ expression: some QueryExpression<some _OptionalPromotable<String?>>
-  ) -> _Sectioning {
+    _ expression: some QueryExpression<some _OptionalPromotable<Key>>
+  ) -> _Sectioning<Key> {
     _Sectioning(expression)
   }
 
   public static func buildExpression(
-    _ orderingTerm: _OrderingTerm<some _OptionalPromotable<String?>>
-  ) -> _Sectioning {
+    _ orderingTerm: _OrderingTerm<some _OptionalPromotable<Key>>
+  ) -> _Sectioning<Key> {
     _Sectioning(orderingTerm)
   }
 
-  public static func buildBlock(_ component: _Sectioning) -> _Sectioning {
+  public static func buildBlock(_ component: _Sectioning<Key>) -> _Sectioning<Key> {
     component
   }
 
   @_disfavoredOverload
-  public static func buildBlock(_ component: _Sectioning?) -> _Sectioning? {
+  public static func buildBlock(_ component: _Sectioning<Key>?) -> _Sectioning<Key>? {
     component
   }
 
-  public static func buildOptional(_ component: _Sectioning?) -> _Sectioning? {
+  public static func buildOptional(_ component: _Sectioning<Key>?) -> _Sectioning<Key>? {
     component
   }
 
-  public static func buildEither(first component: _Sectioning) -> _Sectioning {
+  public static func buildEither(first component: _Sectioning<Key>) -> _Sectioning<Key> {
     component
   }
 
-  public static func buildEither(second component: _Sectioning) -> _Sectioning {
+  public static func buildEither(second component: _Sectioning<Key>) -> _Sectioning<Key> {
     component
   }
 }
 
-struct FetchAllSectionedStatementValueRequest<Value: QueryRepresentable>: FetchKeyRequest
-where Value.QueryOutput: Sendable {
-  let statement: SQLQueryExpression<(Value, String?)>
+struct FetchAllSectionedStatementValueRequest<
+  Value: QueryRepresentable,
+  Key: QueryRepresentable
+>: FetchKeyRequest
+where Value.QueryOutput: Sendable, Key.QueryOutput: Hashable & Sendable {
+  let statement: SQLQueryExpression<(Value, Key)>
 
   init(
     statement: Select<(), Value, ()>,
-    sectionBy: _Sectioning
+    sectionBy: _Sectioning<Key>
   ) where Value: StructuredQueriesCore.Table {
-    let prefix: Select<(Value, String?), Value, ()> = sectionedColumns(of: Value.self, sectionBy)
-    let sectioned: Select<(Value, String?), Value, ()> = prefix + statement
+    let prefix: Select<(Value, Key), Value, ()> = sectionedColumns(of: Value.self, sectionBy)
+    let sectioned: Select<(Value, Key), Value, ()> = prefix + statement
     self.statement = SQLQueryExpression(sectioned)
   }
 
   init<From: StructuredQueriesCore.Table, each J: StructuredQueriesCore.Table>(
     statement: Select<Value, From, (repeat each J)>,
-    sectionBy: _Sectioning
+    sectionBy: _Sectioning<Key>
   ) {
     let ordered: Select<Value, From, (repeat each J)> =
       sectionedOrder(of: From.self, sectionBy) + statement
-    let sectioned: Select<(Value, String?), From, (repeat each J)> =
+    let sectioned: Select<(Value, Key), From, (repeat each J)> =
       ordered + sectionedColumn(of: From.self, sectionBy)
     self.statement = SQLQueryExpression(sectioned)
   }
 
-  func fetch(_ db: Database) throws -> ResultsSectionCollection<Value.QueryOutput, String?> {
+  func fetch(_ db: Database) throws -> ResultsSectionCollection<Value.QueryOutput, Key.QueryOutput>
+  {
     try ResultsSectionCollection(
-      cursor: QuerySectionedValueCursor<Value>(db: db, query: statement.queryFragment)
+      cursor: QuerySectionedCursor<Value, Key>(db: db, query: statement.queryFragment)
     )
   }
 
