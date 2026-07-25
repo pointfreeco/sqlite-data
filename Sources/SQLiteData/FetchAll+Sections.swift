@@ -182,6 +182,19 @@ extension FetchAll {
     )
   }
 
+  /// Initializes this property with a query associated with the wrapped value, grouping results
+  /// into sections.
+  ///
+  /// The query can select custom values and join other tables. The sectioning closure is handed
+  /// the columns of every table in the query.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
   public init<
     V: QueryRepresentable, From: StructuredQueriesCore.Table
   >(
@@ -207,6 +220,17 @@ extension FetchAll {
     )
   }
 
+  /// Initializes this property with a query associated with the wrapped value, grouping results
+  /// into sections.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  @_documentation(visibility: private)
   public init<
     V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
   >(
@@ -233,6 +257,17 @@ extension FetchAll {
     )
   }
 
+  /// Initializes this property with a query associated with the wrapped value, grouping results
+  /// into sections.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  @_documentation(visibility: private)
   public init<
     V: QueryRepresentable,
     From: StructuredQueriesCore.Table,
@@ -322,6 +357,18 @@ extension FetchAll {
     )
   }
 
+  /// Replaces the wrapped value with data from the given query, grouping results into sections.
+  ///
+  /// The query can select custom values and join other tables. The sectioning closure is handed
+  /// the columns of every table in the query.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<
     V: QueryRepresentable, From: StructuredQueriesCore.Table
@@ -345,6 +392,16 @@ extension FetchAll {
     )
   }
 
+  /// Replaces the wrapped value with data from the given query, grouping results into sections.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  /// - Returns: A subscription associated with the observation.
+  @_documentation(visibility: private)
   @discardableResult
   public func load<
     V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
@@ -369,6 +426,16 @@ extension FetchAll {
     )
   }
 
+  /// Replaces the wrapped value with data from the given query, grouping results into sections.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  /// - Returns: A subscription associated with the observation.
+  @_documentation(visibility: private)
   @discardableResult
   public func load<
     V: QueryRepresentable,
@@ -630,6 +697,21 @@ extension FetchAll {
     )
   }
 
+  /// Initializes this property with a query associated with the wrapped value, grouping results
+  /// into sections.
+  ///
+  /// The query can select custom values and join other tables. The sectioning closure is handed
+  /// the columns of every table in the query.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
   public init<
     V: QueryRepresentable, From: StructuredQueriesCore.Table
   >(
@@ -656,6 +738,19 @@ extension FetchAll {
     )
   }
 
+  /// Initializes this property with a query associated with the wrapped value, grouping results
+  /// into sections.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  @_documentation(visibility: private)
   public init<
     V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
   >(
@@ -683,6 +778,19 @@ extension FetchAll {
     )
   }
 
+  /// Initializes this property with a query associated with the wrapped value, grouping results
+  /// into sections.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default collection to associate with this property.
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  @_documentation(visibility: private)
   public init<
     V: QueryRepresentable,
     From: StructuredQueriesCore.Table,
@@ -780,6 +888,20 @@ extension FetchAll {
     )
   }
 
+  /// Replaces the wrapped value with data from the given query, grouping results into sections.
+  ///
+  /// The query can select custom values and join other tables. The sectioning closure is handed
+  /// the columns of every table in the query.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<
     V: QueryRepresentable, From: StructuredQueriesCore.Table
@@ -804,6 +926,18 @@ extension FetchAll {
     )
   }
 
+  /// Replaces the wrapped value with data from the given query, grouping results into sections.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  /// - Returns: A subscription associated with the observation.
+  @_documentation(visibility: private)
   @discardableResult
   public func load<
     V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
@@ -829,6 +963,18 @@ extension FetchAll {
     )
   }
 
+  /// Replaces the wrapped value with data from the given query, grouping results into sections.
+  ///
+  /// - Parameters:
+  ///   - statement: A query associated with the wrapped value.
+  ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+  ///     results by, or `nil` for no grouping.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  /// - Returns: A subscription associated with the observation.
+  @_documentation(visibility: private)
   @discardableResult
   public func load<
     V: QueryRepresentable,
@@ -991,6 +1137,21 @@ extension FetchAll {
       )
     }
 
+    /// Initializes this property with a query associated with the wrapped value, grouping results
+    /// into sections.
+    ///
+    /// The query can select custom values and join other tables. The sectioning closure is handed
+    /// the columns of every table in the query.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: A default collection to associate with this property.
+    ///   - statement: A query associated with the wrapped value.
+    ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+    ///     results by, or `nil` for no grouping.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init<
       V: QueryRepresentable, From: StructuredQueriesCore.Table
@@ -1014,6 +1175,19 @@ extension FetchAll {
       )
     }
 
+    /// Initializes this property with a query associated with the wrapped value, grouping results
+    /// into sections.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: A default collection to associate with this property.
+    ///   - statement: A query associated with the wrapped value.
+    ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+    ///     results by, or `nil` for no grouping.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    @_documentation(visibility: private)
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init<
       V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
@@ -1038,6 +1212,19 @@ extension FetchAll {
       )
     }
 
+    /// Initializes this property with a query associated with the wrapped value, grouping results
+    /// into sections.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: A default collection to associate with this property.
+    ///   - statement: A query associated with the wrapped value.
+    ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+    ///     results by, or `nil` for no grouping.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    @_documentation(visibility: private)
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init<
       V: QueryRepresentable,
@@ -1135,6 +1322,20 @@ extension FetchAll {
       )
     }
 
+    /// Replaces the wrapped value with data from the given query, grouping results into sections.
+    ///
+    /// The query can select custom values and join other tables. The sectioning closure is handed
+    /// the columns of every table in the query.
+    ///
+    /// - Parameters:
+    ///   - statement: A query associated with the wrapped value.
+    ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+    ///     results by, or `nil` for no grouping.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    /// - Returns: A subscription associated with the observation.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load<
@@ -1157,6 +1358,18 @@ extension FetchAll {
       )
     }
 
+    /// Replaces the wrapped value with data from the given query, grouping results into sections.
+    ///
+    /// - Parameters:
+    ///   - statement: A query associated with the wrapped value.
+    ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+    ///     results by, or `nil` for no grouping.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    /// - Returns: A subscription associated with the observation.
+    @_documentation(visibility: private)
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load<
@@ -1180,6 +1393,18 @@ extension FetchAll {
       )
     }
 
+    /// Replaces the wrapped value with data from the given query, grouping results into sections.
+    ///
+    /// - Parameters:
+    ///   - statement: A query associated with the wrapped value.
+    ///   - sectioning: A closure that returns a string expression, or an ordering of one, to group
+    ///     results by, or `nil` for no grouping.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    /// - Returns: A subscription associated with the observation.
+    @_documentation(visibility: private)
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load<

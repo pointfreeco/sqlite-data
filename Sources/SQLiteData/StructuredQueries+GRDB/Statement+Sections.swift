@@ -41,6 +41,7 @@ extension Select {
   ///   - sectioning: A closure that returns an expression, or an ordering of one, to group results
   ///     by.
   /// - Returns: A collection of all values decoded from the database, grouped into sections.
+  @_documentation(visibility: private)
   @_disfavoredOverload
   public func fetchAll<Key: QueryRepresentable, each J: StructuredQueriesCore.Table>(
     _ db: Database,
@@ -62,6 +63,7 @@ extension Select {
   ///   - sectioning: A closure that returns an expression, or an ordering of one, to group results
   ///     by.
   /// - Returns: A collection of all values decoded from the database, grouped into sections.
+  @_documentation(visibility: private)
   public func fetchAll<Key: QueryRepresentable>(
     _ db: Database,
     @_SectionBuilder<Key> sectionBy sectioning: (
