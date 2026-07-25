@@ -29,6 +29,24 @@ extension SelectStatement where QueryValue == (), Joins == () {
     let sectioned: Select<(From, Key), From, ()> = prefix + statement
     return try sectionedResults(From.self, Key.self, db: db, query: sectioned.query)
   }
+
+  /// Returns all values fetched from the database, grouped into sections.
+  ///
+  /// See ``StructuredQueriesCore/SelectStatement/fetchAll(_:sectionBy:)`` for more information.
+  ///
+  /// - Parameters:
+  ///   - db: A database connection.
+  ///   - sectionKeyPath: A key path to a column to group results by.
+  /// - Returns: A collection of all values decoded from the database, grouped into sections.
+  public func fetchAll<Key: QueryRepresentable>(
+    _ db: Database,
+    sectionBy sectionKeyPath: KeyPath<
+      From.TableColumns, some QueryExpression<some _OptionalPromotable<Key>>
+    >
+  ) throws -> ResultsSectionCollection<From.QueryOutput, Key.QueryOutput>
+  where Key.QueryOutput: Hashable {
+    try fetchAll(db, sectionBy: { $0[keyPath: sectionKeyPath] })
+  }
 }
 
 extension Select {
@@ -77,6 +95,24 @@ extension Select {
   {
     let sectionBy = sectioning(From.columns, Joins.columns)
     return try sectionedResults(db, statement: self, sectionBy: sectionBy)
+  }
+
+  /// Returns all values fetched from the database, grouped into sections.
+  ///
+  /// See ``StructuredQueriesCore/SelectStatement/fetchAll(_:sectionBy:)`` for more information.
+  ///
+  /// - Parameters:
+  ///   - db: A database connection.
+  ///   - sectionKeyPath: A key path to a column to group results by.
+  /// - Returns: A collection of all values decoded from the database, grouped into sections.
+  public func fetchAll<Key: QueryRepresentable>(
+    _ db: Database,
+    sectionBy sectionKeyPath: KeyPath<
+      From.TableColumns, some QueryExpression<some _OptionalPromotable<Key>>
+    >
+  ) throws -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
+  where QueryValue: QueryRepresentable, Joins == (), Key.QueryOutput: Hashable {
+    try fetchAll(db, sectionBy: { $0[keyPath: sectionKeyPath] })
   }
 }
 

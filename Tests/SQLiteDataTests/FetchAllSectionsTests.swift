@@ -547,6 +547,27 @@ struct StatementSectionsTests {
     #expect(sections[sectionName: 3]?.map(\.title) == ["Groceries"])
   }
 
+  @Test func selectionKeyPath() async throws {
+    let sections = try await database.read { db in
+      try SectionedReminder
+        .order(by: \.id)
+        .select { SectionedRow.Columns(title: $0.title, label: $0.category) }
+        .fetchAll(db, sectionBy: \.category)
+    }
+
+    #expect(sections.sectionNames == ["Errands", "Home", "Work"])
+    #expect(sections[sectionName: "Home"]?.map(\.title) == ["Dishes", "Laundry"])
+  }
+
+  @Test func nullableKeyPath() async throws {
+    let sections = try await database.read { db in
+      try SectionedReminder.order(by: \.id).fetchAll(db, sectionBy: \.priority)
+    }
+
+    #expect(sections.sectionNames == [nil, "high", "low"])
+    #expect(sections[sectionName: nil]?.map(\.title) == ["Laundry", "Review"])
+  }
+
   @Test func joinedSections() async throws {
     let sections = try await database.read { db in
       try SectionedReminder
