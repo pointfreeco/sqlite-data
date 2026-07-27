@@ -204,7 +204,7 @@ struct RemindersByCategory: FetchKeyRequest {
   func fetch(_ db: Database) throws -> ResultsSectionCollection<Reminder, String?> {
     try Reminder
       .order(by: \.title)
-      .fetchAll(db, sectionBy: { $0.category })
+      .fetchAll(db, sectionBy: \.category)
   }
 }
 ```
