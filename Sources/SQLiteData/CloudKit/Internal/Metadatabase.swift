@@ -9,7 +9,7 @@
   func defaultMetadatabase(
     logger: Logger,
     url: URL,
-    observesSuspensionNotifications: Bool
+    configuration: Configuration
   ) throws -> any DatabaseWriter {
     logger.debug(
       """
@@ -25,11 +25,11 @@
       throw InMemoryDatabase()
     }
 
-    var configuration = Configuration()
-    configuration.observesSuspensionNotifications = observesSuspensionNotifications
+    var metadatabaseConfiguration = Configuration()
+    metadatabaseConfiguration.observesSuspensionNotifications = configuration.observesSuspensionNotifications
     let metadatabase = try DatabasePool(
       path: url.path(percentEncoded: false),
-      configuration: configuration
+      configuration: metadatabaseConfiguration
     )
     try migrate(metadatabase: metadatabase)
     return metadatabase

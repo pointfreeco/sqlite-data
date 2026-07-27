@@ -270,8 +270,7 @@
           databasePath: userDatabase.path,
           containerIdentifier: container.containerIdentifier
         ),
-        observesSuspensionNotifications:
-          userDatabase.configuration.observesSuspensionNotifications
+        configuration: userDatabase.configuration
       )
       self.tablesByName = Dictionary(
         uniqueKeysWithValues: self.tables.map { ($0.base.tableName, $0) }
