@@ -31,7 +31,8 @@ public struct ResultsSectionCollection<Element, SectionName: Hashable> {
   let elements: [Element]
   private let elementIndicesBySectionName: OrderedDictionary<SectionName, ElementIndices>
 
-  init() {
+  /// Creates an empty collection of sections.
+  public init() {
     elements = []
     elementIndicesBySectionName = [:]
   }
@@ -71,10 +72,10 @@ public struct ResultsSectionCollection<Element, SectionName: Hashable> {
   }
 }
 
-extension ResultsSectionCollection where SectionName == String? {
-  init(cursor: QueryCursor<(Element, String?)>) throws {
+extension ResultsSectionCollection {
+  init(cursor: QueryCursor<(Element, SectionName)>) throws {
     var elements: [Element] = []
-    var elementIndicesBySectionName: OrderedDictionary<String?, ElementIndices> = [:]
+    var elementIndicesBySectionName: OrderedDictionary<SectionName, ElementIndices> = [:]
     while let (element, sectionName) = try cursor.next() {
       let index = elements.count
       elementIndicesBySectionName[sectionName, default: ElementIndices(range: index..<index)]

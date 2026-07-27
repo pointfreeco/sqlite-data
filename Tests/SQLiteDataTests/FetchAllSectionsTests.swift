@@ -488,6 +488,143 @@ struct FetchAllSectionsTests {
     #expect(reminders.isEmpty)
     #expect($reminders.sections.isEmpty)
   }
+
+  @Suite
+  struct StatementSectionsTests {
+    @Dependency(\.defaultDatabase) var database
+
+    @Test func wholeTable() async throws {
+      let sections = try await database.read { db in
+        try SectionedReminder.order(by: \.id).fetchAll(db, sectionBy: { $0.category })
+      }
+
+      #expect(sections.sectionNames == ["Errands", "Home", "Work"])
+      #expect(sections[sectionName: "Home"]?.map(\.title) == ["Dishes", "Laundry"])
+      #expect(sections[sectionName: "Work"]?.map(\.title) == ["Standup", "Review"])
+      #expect(sections[sectionName: "Errands"]?.map(\.title) == ["Groceries"])
+    }
+
+    @Test func sectionOrderingWinsOverQueryOrdering() async throws {
+      let sections = try await database.read { db in
+        try SectionedReminder.order { $0.title.desc() }.fetchAll(db, sectionBy: { $0.category })
+      }
+
+      #expect(sections.sectionNames == ["Errands", "Home", "Work"])
+      #expect(sections[sectionName: "Home"]?.map(\.title) == ["Laundry", "Dishes"])
+    }
+
+    @Test func descendingSections() async throws {
+      let sections = try await database.read { db in
+        try SectionedReminder.order(by: \.id).fetchAll(db, sectionBy: { $0.category.desc() })
+      }
+
+      #expect(sections.sectionNames == ["Work", "Home", "Errands"])
+    }
+
+    @Test func nullSections() async throws {
+      let sections = try await database.read { db in
+        try SectionedReminder.order(by: \.id).fetchAll(db, sectionBy: { $0.priority })
+      }
+
+      #expect(sections.sectionNames == [nil, "high", "low"])
+      #expect(sections[sectionName: nil]?.map(\.title) == ["Laundry", "Review"])
+      #expect(sections[sectionName: "high"]?.map(\.title) == ["Dishes", "Standup"])
+    }
+
+    @Test func integerSections() async throws {
+      let sections = try await database.read { db in
+        try SectionedReminder
+          .order(by: \.id)
+          .join(SectionedCategory.all) { $0.category.eq($1.name) }
+          .select { SectionedRow.Columns(title: $0.title, label: $1.label) }
+          .fetchAll(db, sectionBy: { $1.id })
+      }
+
+      #expect(sections.sectionNames == [1, 2, 3])
+      #expect(sections[sectionName: 1]?.map(\.title) == ["Dishes", "Laundry"])
+      #expect(sections[sectionName: 2]?.map(\.title) == ["Standup", "Review"])
+      #expect(sections[sectionName: 3]?.map(\.title) == ["Groceries"])
+    }
+
+    @Test func selectionKeyPath() async throws {
+      let sections = try await database.read { db in
+        try SectionedReminder
+          .order(by: \.id)
+          .select { SectionedRow.Columns(title: $0.title, label: $0.category) }
+          .fetchAll(db, sectionBy: \.category)
+      }
+
+      #expect(sections.sectionNames == ["Errands", "Home", "Work"])
+      #expect(sections[sectionName: "Home"]?.map(\.title) == ["Dishes", "Laundry"])
+    }
+
+    @Test func nullableKeyPath() async throws {
+      let sections = try await database.read { db in
+        try SectionedReminder.order(by: \.id).fetchAll(db, sectionBy: \.priority)
+      }
+
+      #expect(sections.sectionNames == [nil, "high", "low"])
+      #expect(sections[sectionName: nil]?.map(\.title) == ["Laundry", "Review"])
+    }
+
+    @Test func joinedSections() async throws {
+      let sections = try await database.read { db in
+        try SectionedReminder
+          .order(by: \.id)
+          .join(SectionedCategory.all) { $0.category.eq($1.name) }
+          .select { SectionedRow.Columns(title: $0.title, label: $1.label) }
+          .fetchAll(db, sectionBy: { $1.label })
+      }
+
+      #expect(sections.sectionNames == ["At Home", "At Work", "Out & About"])
+      #expect(sections[sectionName: "At Home"]?.map(\.title) == ["Dishes", "Laundry"])
+    }
+
+    @Test func multipleJoins() async throws {
+      let sections = try await database.read { db in
+        try SectionedReminder
+          .order(by: \.id)
+          .join(SectionedCategory.all) { $0.category.eq($1.name) }
+          .join(SectionedPriority.all) { reminder, _, priority in
+            reminder.priority.eq(priority.name)
+          }
+          .select { reminder, category, _ in
+            SectionedRow.Columns(title: reminder.title, label: category.label)
+          }
+          .fetchAll(db, sectionBy: { _, _, priority in priority.label })
+      }
+
+      #expect(sections.sectionNames == ["High!", "Low!"])
+      #expect(sections[sectionName: "High!"]?.map(\.title) == ["Dishes", "Standup"])
+      #expect(sections[sectionName: "Low!"]?.map(\.title) == ["Groceries"])
+    }
+
+    @Test func selectionWithoutJoins() async throws {
+      let sections = try await database.read { db in
+        try SectionedReminder
+          .order(by: \.id)
+          .select { SectionedRow.Columns(title: $0.title, label: $0.category) }
+          .fetchAll(db, sectionBy: { $0.category })
+      }
+
+      #expect(sections.sectionNames == ["Errands", "Home", "Work"])
+      #expect(sections[sectionName: "Home"]?.map(\.label) == ["Home", "Home"])
+    }
+
+    @Test func fetchKeyRequest() async throws {
+      struct Request: FetchKeyRequest {
+        func fetch(_ db: Database) throws -> ResultsSectionCollection<SectionedReminder, String?> {
+          try SectionedReminder.order(by: \.id).fetchAll(db, sectionBy: { $0.category })
+        }
+      }
+
+      @Fetch(Request()) var sections = ResultsSectionCollection<SectionedReminder, String?>()
+      try await $sections.load()
+
+      #expect(sections.sectionNames == ["Errands", "Home", "Work"])
+      #expect(sections[sectionName: "Home"]?.map(\.title) == ["Dishes", "Laundry"])
+    }
+  }
 }
 
 @Table
