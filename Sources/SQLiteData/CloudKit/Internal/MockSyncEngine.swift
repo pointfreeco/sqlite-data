@@ -49,6 +49,7 @@
           accum,
           zoneID in
           accum += ((state.storage[zoneID]?.records.values).map { Array($0) } ?? [])
+            .map { $0.copy() as! CKRecord }
             .filter {
               precondition(
                 $0._recordChangeTag != nil,
