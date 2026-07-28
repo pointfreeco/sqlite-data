@@ -1,6 +1,8 @@
 #if canImport(CloudKit)
   import CloudKit
   import Foundation
+  import StructuredQueries
+  import StructuredQueriesSQLite
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTable {

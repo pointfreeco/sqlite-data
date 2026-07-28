@@ -37,7 +37,7 @@ nonisolated struct SpeechClient: DependencyKey {
       requestAuthorization: { .authorized },
       startTask: {
         AsyncThrowingStream { continuation in
-          Task { @MainActor in
+          _ = Task { @MainActor in
             isRecording.setValue(true)
             var finalText = """
               Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor \

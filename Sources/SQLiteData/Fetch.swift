@@ -1,10 +1,13 @@
-import Sharing
+public import GRDB
+public import Sharing
+import StructuredQueriesCore
+public import Sharing
 
 #if canImport(Combine)
-  import Combine
+  public import Combine
 #endif
 #if canImport(SwiftUI)
-  import SwiftUI
+  public import SwiftUI
 #endif
 
 /// A property that can query for data in a SQLite database.
@@ -205,7 +208,7 @@ extension Fetch: Equatable where Value: Equatable {
     public func load(
       _ request: some FetchKeyRequest<Value>,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription {
       try await sharedReader.load(.fetch(request, database: database, animation: animation))
       return FetchSubscription(sharedReader: sharedReader)

@@ -96,7 +96,7 @@ struct CounterRow: View {
   }
 
   func shareButtonTapped() {
-    Task {
+    _ = Task {
       sharedRecord = try await syncEngine.share(record: row.counter) { share in
         share[CKShare.SystemFieldKey.title] = "Join my counter!"
       }

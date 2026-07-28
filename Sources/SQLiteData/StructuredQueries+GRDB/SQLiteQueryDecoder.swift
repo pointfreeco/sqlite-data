@@ -1,6 +1,6 @@
-import Foundation
-import GRDBSQLite
-import StructuredQueriesCore
+public import Foundation
+public import GRDBSQLite
+public import StructuredQueriesCore
 
 @usableFromInline
 struct SQLiteQueryDecoder: QueryDecoder {

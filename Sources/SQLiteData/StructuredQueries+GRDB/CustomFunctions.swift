@@ -1,5 +1,11 @@
 import Foundation
 import GRDBSQLite
+public import StructuredQueriesSQLiteCore
+
+#if EXCLUDE_EXPORTS
+  // NB: This 'public import' breaks the '@_exported import'.
+  public import class GRDB.Database
+#endif
 
 extension Database {
   /// Adds a user-defined scalar `@DatabaseFunction` to a connection.

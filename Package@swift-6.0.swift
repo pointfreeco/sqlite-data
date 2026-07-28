@@ -28,7 +28,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
-    .package(url: "https://github.com/pointfreeco/swift-structured-queries", from: "0.31.0"),
+    .package(url: "https://github.com/pointfreeco/swift-structured-queries", from: "0.34.0"),
     .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.5.0"),
   ],
   targets: [
@@ -70,18 +70,19 @@ let package = Package(
   swiftLanguageModes: [.v6]
 )
 
-let swiftSettings: [SwiftSetting] = [
-  .enableUpcomingFeature("MemberImportVisibility")
-  // .unsafeFlags([
-  //   "-Xfrontend",
-  //   "-warn-long-function-bodies=50",
-  //   "-Xfrontend",
-  //   "-warn-long-expression-type-checking=50",
-  // ])
-]
-
-for index in package.targets.indices {
-  package.targets[index].swiftSettings = swiftSettings
+for target in package.targets {
+  target.swiftSettings = target.swiftSettings ?? []
+  target.swiftSettings?.append(contentsOf: [
+    .enableUpcomingFeature("ExistentialAny"),
+    .enableUpcomingFeature("ImmutableWeakCaptures"),
+    .enableUpcomingFeature("InferIsolatedConformances"),
+  ])
+  if target.type != .test {
+    target.swiftSettings?.append(contentsOf: [
+      .enableUpcomingFeature("InternalImportsByDefault"),
+      .enableUpcomingFeature("MemberImportVisibility"),
+    ])
+  }
 }
 
 #if !os(Windows)

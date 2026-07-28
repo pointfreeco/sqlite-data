@@ -1,7 +1,7 @@
-import Foundation
-import GRDB
+public import Foundation
+public import GRDB
 import GRDBSQLite
-import StructuredQueriesCore
+public import StructuredQueriesCore
 
 /// A cursor of a structured query.
 ///
@@ -67,6 +67,38 @@ final class QueryValueCursor<QueryValue: QueryRepresentable>: QueryCursor<QueryV
       let element = try QueryValue(decoder: &decoder).queryOutput
       decoder.next()
       return element
+    } catch QueryDecodingError.missingRequiredColumn {
+      let columnIndex = Int(decoder.currentIndex) - 1
+      throw DecodingError(
+        columnIndex: columnIndex,
+        columnName: _statement.columnNames[columnIndex],
+        sql: _statement.sql
+      )
+    }
+  }
+}
+
+@usableFromInline
+final class QuerySectionedCursor<
+  Element: QueryRepresentable,
+  SectionName: QueryRepresentable
+>: QueryCursor<(Element.QueryOutput, SectionName.QueryOutput)> {
+  // NB: Required to workaround a "Legacy previews execution" bug
+  //     https://github.com/pointfreeco/sqlite-data/pull/60
+  @usableFromInline
+  override init(db: Database, query: QueryFragment) throws {
+    try super.init(db: db, query: query)
+  }
+
+  @inlinable
+  public override func _element(
+    sqliteStatement _: SQLiteStatement
+  ) throws -> (Element.QueryOutput, SectionName.QueryOutput) {
+    do {
+      let element = try Element(decoder: &decoder).queryOutput
+      let sectionName = try SectionName(decoder: &decoder).queryOutput
+      decoder.next()
+      return (element, sectionName)
     } catch QueryDecodingError.missingRequiredColumn {
       let columnIndex = Int(decoder.currentIndex) - 1
       throw DecodingError(

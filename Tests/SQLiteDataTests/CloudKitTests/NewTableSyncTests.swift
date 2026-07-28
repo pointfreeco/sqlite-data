@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
+  import ConcurrencyExtrasTestSupport
   import CustomDump
   import SQLiteDataTestSupport
   import Foundation
@@ -7,11 +8,12 @@
   import SQLiteData
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
 
   extension BaseCloudKitTests {
     @MainActor
     @Suite(
-      .prepareDatabase { userDatabase in
+      $prepareDatabase.set { userDatabase in
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")

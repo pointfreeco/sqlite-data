@@ -1,5 +1,7 @@
 #if canImport(CloudKit)
-  import CloudKit
+  package import ConcurrencyExtras
+  package import CloudKit
+  import Dependencies
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockCloudContainer: CloudContainer {
@@ -50,7 +52,8 @@
       let rootRecord: CKRecord? = database.state.withValue {
         $0.storage[share.recordID.zoneID]?.records.values.first { record in
           record.share?.recordID == share.recordID
-        }
+        }?
+          .copy() as? CKRecord
       }
 
       return ShareMetadata(
