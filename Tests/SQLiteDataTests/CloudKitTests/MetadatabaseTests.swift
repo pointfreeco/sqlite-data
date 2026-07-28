@@ -13,7 +13,8 @@
 
       let metadatabase = try defaultMetadatabase(
         logger: Logger(subsystem: "test", category: "test"),
-        url: url
+        url: url,
+        configuration: Configuration()
       )
       let mainDatabaseFile = try metadatabase.read { db in
         try String.fetchOne(db, sql: "SELECT file FROM pragma_database_list WHERE name = 'main'")
