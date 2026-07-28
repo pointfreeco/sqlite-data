@@ -18,8 +18,7 @@
       let mainDatabaseFile = try metadatabase.read { db in
         try String.fetchOne(db, sql: "SELECT file FROM pragma_database_list WHERE name = 'main'")
       }
-      // NB: SQLite reports an empty file path for in-memory databases. A non-empty path
-      //     means the metadatabase was silently created on disk.
+      // Metadatabase is in-memory
       #expect(mainDatabaseFile == "")
     }
   }
