@@ -93,25 +93,25 @@
   }
 
   extension CKRecord {
-    fileprivate func encodeMockSystemFieldsIfNeeded(with coder: NSKeyedArchiver) {
+    fileprivate func encodeMockSystemFieldsIfNeeded(with archiver: NSKeyedArchiver) {
       guard isTesting else { return }
-      coder.encode(
+      archiver.encode(
         self._recordChangeTag,
         forKey: "_recordChangeTag"
       )
-      coder.encode(
+      archiver.encode(
         self._modificationDate.map { $0 as NSDate },
         forKey: "_modificationDate"
       )
     }
 
-    fileprivate func decodeMockSystemFieldsIfNeeded(from coder: NSKeyedUnarchiver) {
+    fileprivate func decodeMockSystemFieldsIfNeeded(from unarchiver: NSKeyedUnarchiver) {
       guard isTesting else { return }
-      self._recordChangeTag = coder.decodeObject(
+      self._recordChangeTag = unarchiver.decodeObject(
         of: NSNumber.self,
         forKey: "_recordChangeTag"
       )?.intValue
-      self._modificationDate = coder.decodeObject(
+      self._modificationDate = unarchiver.decodeObject(
         of: NSDate.self,
         forKey: "_modificationDate"
       ) as Date?
