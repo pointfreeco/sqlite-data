@@ -1463,12 +1463,12 @@ public struct _Sectioning<Key>: Hashable, Sendable {
   let select: QueryFragment
   let order: QueryFragment
 
-  package init(_ expression: some QueryExpression<some _OptionalPromotable<Key>>) {
+  package init(_ expression: some QueryExpression) {
     self.select = expression.queryFragment
     self.order = expression.queryFragment
   }
 
-  package init(_ orderingTerm: _OrderingTerm<some _OptionalPromotable<Key>>) {
+  package init<Value>(_ orderingTerm: _OrderingTerm<Value>) {
     self.select = orderingTerm.baseQueryFragment
     self.order = orderingTerm.queryFragment
   }
@@ -1476,6 +1476,41 @@ public struct _Sectioning<Key>: Hashable, Sendable {
 
 @resultBuilder
 public enum _SectionBuilder<Key> {
+  public static func buildExpression(
+    _ expression: some QueryExpression<Key>
+  ) -> _Sectioning<Key> {
+    _Sectioning(expression)
+  }
+
+  public static func buildExpression(
+    _ orderingTerm: _OrderingTerm<Key>
+  ) -> _Sectioning<Key> {
+    _Sectioning(orderingTerm)
+  }
+
+  public static func buildBlock(_ component: _Sectioning<Key>) -> _Sectioning<Key> {
+    component
+  }
+
+  @available(
+    *,
+    unavailable,
+    message: "Sectioning is required here. Add an 'else' branch, or section by an optional key."
+  )
+  public static func buildOptional(_ component: _Sectioning<Key>?) -> _Sectioning<Key> {
+    fatalError()
+  }
+
+  public static func buildEither(first component: _Sectioning<Key>) -> _Sectioning<Key> {
+    component
+  }
+
+  public static func buildEither(second component: _Sectioning<Key>) -> _Sectioning<Key> {
+    component
+  }
+}
+
+extension _SectionBuilder where Key: _OptionalProtocol {
   public static func buildExpression(
     _ expression: Never?
   ) -> _Sectioning<Key>? {
@@ -1485,18 +1520,15 @@ public enum _SectionBuilder<Key> {
   @_disfavoredOverload
   public static func buildExpression(
     _ expression: some QueryExpression<some _OptionalPromotable<Key>>
-  ) -> _Sectioning<Key> {
+  ) -> _Sectioning<Key>? {
     _Sectioning(expression)
   }
 
+  @_disfavoredOverload
   public static func buildExpression(
     _ orderingTerm: _OrderingTerm<some _OptionalPromotable<Key>>
-  ) -> _Sectioning<Key> {
+  ) -> _Sectioning<Key>? {
     _Sectioning(orderingTerm)
-  }
-
-  public static func buildBlock(_ component: _Sectioning<Key>) -> _Sectioning<Key> {
-    component
   }
 
   @_disfavoredOverload
@@ -1504,15 +1536,17 @@ public enum _SectionBuilder<Key> {
     component
   }
 
-  public static func buildOptional(_ component: _Sectioning<Key>?) -> _Sectioning<Key>? {
+  public static func buildOptional(_ component: _Sectioning<Key>??) -> _Sectioning<Key>? {
+    component ?? nil
+  }
+
+  @_disfavoredOverload
+  public static func buildEither(first component: _Sectioning<Key>?) -> _Sectioning<Key>? {
     component
   }
 
-  public static func buildEither(first component: _Sectioning<Key>) -> _Sectioning<Key> {
-    component
-  }
-
-  public static func buildEither(second component: _Sectioning<Key>) -> _Sectioning<Key> {
+  @_disfavoredOverload
+  public static func buildEither(second component: _Sectioning<Key>?) -> _Sectioning<Key>? {
     component
   }
 }

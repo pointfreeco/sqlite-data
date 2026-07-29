@@ -41,7 +41,7 @@ extension SelectStatement where QueryValue == (), Joins == () {
   public func fetchAll<Key: QueryRepresentable>(
     _ db: Database,
     sectionBy sectionKeyPath: KeyPath<
-      From.TableColumns, some QueryExpression<some _OptionalPromotable<Key>>
+      From.TableColumns, some QueryExpression<Key>
     >
   ) throws -> ResultsSectionCollection<From.QueryOutput, Key.QueryOutput>
   where Key.QueryOutput: Hashable {
@@ -108,7 +108,7 @@ extension Select {
   public func fetchAll<Key: QueryRepresentable>(
     _ db: Database,
     sectionBy sectionKeyPath: KeyPath<
-      From.TableColumns, some QueryExpression<some _OptionalPromotable<Key>>
+      From.TableColumns, some QueryExpression<Key>
     >
   ) throws -> ResultsSectionCollection<QueryValue.QueryOutput, Key.QueryOutput>
   where QueryValue: QueryRepresentable, Joins == (), Key.QueryOutput: Hashable {
