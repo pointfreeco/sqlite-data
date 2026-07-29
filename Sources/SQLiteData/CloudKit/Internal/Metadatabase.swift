@@ -8,7 +8,8 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   func defaultMetadatabase(
     logger: Logger,
-    url: URL
+    url: URL,
+    configuration: Configuration
   ) throws -> any DatabaseWriter {
     logger.debug(
       """
@@ -24,7 +25,12 @@
       throw InMemoryDatabase()
     }
 
-    let metadatabase = try DatabasePool(path: url.path(percentEncoded: false))
+    var metadatabaseConfiguration = Configuration()
+    metadatabaseConfiguration.observesSuspensionNotifications = configuration.observesSuspensionNotifications
+    let metadatabase = try DatabasePool(
+      path: url.path(percentEncoded: false),
+      configuration: metadatabaseConfiguration
+    )
     try migrate(metadatabase: metadatabase)
     return metadatabase
   }
