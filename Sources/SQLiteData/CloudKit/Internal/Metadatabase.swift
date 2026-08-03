@@ -27,10 +27,18 @@
 
     var metadatabaseConfiguration = Configuration()
     metadatabaseConfiguration.observesSuspensionNotifications = configuration.observesSuspensionNotifications
-    let metadatabase = try DatabasePool(
-      path: url.path(percentEncoded: false),
-      configuration: metadatabaseConfiguration
-    )
+    let metadatabase: any DatabaseWriter =
+      if url.isInMemory {
+        try DatabaseQueue(
+          path: url.absoluteString,
+          configuration: metadatabaseConfiguration
+        )
+      } else {
+        try DatabasePool(
+          path: url.path(percentEncoded: false),
+          configuration: metadatabaseConfiguration
+        )
+      }
     try migrate(metadatabase: metadatabase)
     return metadatabase
   }

@@ -6,10 +6,10 @@ import PackageDescription
 let package = Package(
   name: "sqlite-data",
   platforms: [
-    .iOS(.v13),
-    .macOS(.v10_15),
-    .tvOS(.v13),
-    .watchOS(.v7),
+    .iOS(.v16),
+    .macOS(.v13),
+    .tvOS(.v16),
+    .watchOS(.v9),
   ],
   products: [
     .library(
@@ -29,6 +29,13 @@ let package = Package(
     .trait(
       name: "CasePaths",
       description: "Introduce support for enum tables."
+    ),
+    .trait(
+      name: "SuppressPlatformSQLiteAvailability",
+      description: """
+        Suppress '@available' checks on APIs that depend on a newer version of SQLite than the one \
+        bundled with the platform.
+        """
     ),
     .trait(
       name: "Tagged",
@@ -51,13 +58,17 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.34.0",
+      from: "0.35.0",
       traits: [
+        .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
         .trait(
           name: "LazyInitializableByDefault",
           condition: .when(traits: ["LazyInitializableByDefault"])
         ),
-        .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
+        .trait(
+          name: "SuppressPlatformSQLiteAvailability",
+          condition: .when(traits: ["SuppressPlatformSQLiteAvailability"])
+        ),
         .trait(name: "Tagged", condition: .when(traits: ["Tagged"])),
       ]
     ),
