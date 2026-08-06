@@ -31,6 +31,10 @@ let package = Package(
       description: "Introduce support for enum tables."
     ),
     .trait(
+      name: "GRDBDynamic",
+      description: "Link the GRDB-dynamic library instead of the static GRDB library."
+    ),
+    .trait(
       name: "SuppressPlatformSQLiteAvailability",
       description: """
         Suppress '@available' checks on APIs that depend on a newer version of SQLite than the one \
@@ -82,6 +86,11 @@ let package = Package(
         .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "GRDB", package: "GRDB.swift"),
+        .product(
+          name: "GRDB-dynamic",
+          package: "GRDB.swift",
+          condition: .when(traits: ["GRDBDynamic"])
+        ),
         .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
         .product(name: "OrderedCollections", package: "swift-collections"),
         .product(name: "Perception", package: "swift-perception"),
