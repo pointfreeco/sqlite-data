@@ -43,6 +43,32 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(arguments: [false, true])
+      func metadatabaseInheritsSuspensionNotificationConfiguration(
+        _ observesSuspensionNotifications: Bool
+      ) async throws {
+        var configuration = Configuration()
+        configuration.observesSuspensionNotifications = observesSuspensionNotifications
+        let syncEngine = try await SyncEngine(
+          container: MockCloudContainer(
+            containerIdentifier: "test",
+            privateCloudDatabase: MockCloudDatabase(databaseScope: .private),
+            sharedCloudDatabase: MockCloudDatabase(databaseScope: .shared)
+          ),
+          userDatabase: UserDatabase(
+            database: try DatabaseQueue(configuration: configuration)
+          ),
+          tables: [],
+          startImmediately: false
+        )
+
+        #expect(
+          syncEngine.metadatabase.configuration.observesSuspensionNotifications
+            == observesSuspensionNotifications
+        )
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test(.dependency(\.context, .live))
       func inMemoryUserDatabase_LiveContext() async throws {
         let error = await #expect(throws: (any Error).self) {
