@@ -133,11 +133,13 @@ struct SQLiteQueryDecoder: QueryDecoder {
       let key = "\(currentIndex)|\(sql)"
       guard reportedTypeMismatches.withValue({ $0.insert(key).inserted })
       else { return }
-      let columnName = sqlite3_column_name(statement, currentIndex).map { String(cString: $0) }
+      let columnName =
+        sqlite3_column_name(statement, currentIndex)
+        .map { " (\(String(cString: $0).debugDescription))" }
+        ?? ""
       reportIssue(
         """
-        Expected column \(currentIndex) (\((columnName ?? "").debugDescription)) to decode \
-        \(columnType), but found \
+        Expected column \(currentIndex)\(columnName ?? "") to decode \(columnType), but found \
         \(storageClassName(sqlite3_column_type(statement, currentIndex))): ...
 
         \(sql)
