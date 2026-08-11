@@ -1,11 +1,5 @@
 import GRDBSQLite
 
-#if !StrictDecoding
-  import ConcurrencyExtras
-
-  let reportedTypeMismatches = LockIsolated<Set<String>>([])
-#endif
-
 @usableFromInline
 func storageClassName(_ type: Int32) -> String {
   switch type {

@@ -3,7 +3,6 @@ public import GRDBSQLite
 public import StructuredQueriesCore
 
 #if !StrictDecoding
-  import ConcurrencyExtras
   import IssueReporting
 #endif
 
@@ -13,19 +12,29 @@ struct SQLiteFunctionDecoder: QueryDecoder {
   let name: String
 
   @usableFromInline
-  let argumentCount: Int32
+  var argumentCount: Int32 = 0
 
   @usableFromInline
-  let arguments: UnsafeMutablePointer<OpaquePointer?>?
+  var arguments: UnsafeMutablePointer<OpaquePointer?>?
 
   @usableFromInline
   var currentIndex: Int32 = 0
 
+  #if !StrictDecoding
+    @usableFromInline
+    var reportedTypeMismatches: Set<Int32> = []
+  #endif
+
   @usableFromInline
-  init(name: String, argumentCount: Int32, arguments: UnsafeMutablePointer<OpaquePointer?>?) {
+  init(name: String) {
     self.name = name
+  }
+
+  @usableFromInline
+  mutating func reset(argumentCount: Int32, arguments: UnsafeMutablePointer<OpaquePointer?>?) {
     self.argumentCount = argumentCount
     self.arguments = arguments
+    self.currentIndex = 0
   }
 
   @inlinable
@@ -141,12 +150,11 @@ struct SQLiteFunctionDecoder: QueryDecoder {
   }
 
   @usableFromInline
-  func reportTypeMismatch(_ columnType: Any.Type) throws(QueryDecodingError) {
+  mutating func reportTypeMismatch(_ columnType: Any.Type) throws(QueryDecodingError) {
     #if StrictDecoding
       throw QueryDecodingError.typeMismatch(columnType)
     #else
-      let key = "\(currentIndex)|\(name)"
-      guard reportedTypeMismatches.withValue({ $0.insert(key).inserted })
+      guard reportedTypeMismatches.insert(currentIndex).inserted
       else { return }
       let value = arguments?[Int(currentIndex)]
       reportIssue(

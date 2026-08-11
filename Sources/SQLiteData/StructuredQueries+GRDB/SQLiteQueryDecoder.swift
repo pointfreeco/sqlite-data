@@ -3,7 +3,6 @@ public import GRDBSQLite
 public import StructuredQueriesCore
 
 #if !StrictDecoding
-  import ConcurrencyExtras
   import IssueReporting
 #endif
 
@@ -14,6 +13,11 @@ struct SQLiteQueryDecoder: QueryDecoder {
 
   @usableFromInline
   var currentIndex: Int32 = 0
+
+  #if !StrictDecoding
+    @usableFromInline
+    var reportedTypeMismatches: Set<Int32> = []
+  #endif
 
   @usableFromInline
   init(statement: OpaquePointer) {
@@ -125,13 +129,11 @@ struct SQLiteQueryDecoder: QueryDecoder {
   }
 
   @usableFromInline
-  func reportTypeMismatch(_ columnType: Any.Type) throws(QueryDecodingError) {
+  mutating func reportTypeMismatch(_ columnType: Any.Type) throws(QueryDecodingError) {
     #if StrictDecoding
       throw QueryDecodingError.typeMismatch(columnType)
     #else
-      let sql = sqlite3_sql(statement).map { String(cString: $0) } ?? ""
-      let key = "\(currentIndex)|\(sql)"
-      guard reportedTypeMismatches.withValue({ $0.insert(key).inserted })
+      guard reportedTypeMismatches.insert(currentIndex).inserted
       else { return }
       let columnName =
         sqlite3_column_name(statement, currentIndex)
@@ -139,10 +141,10 @@ struct SQLiteQueryDecoder: QueryDecoder {
         ?? ""
       reportIssue(
         """
-        Expected column \(currentIndex)\(columnName ?? "") to decode \(columnType), but found \
+        Expected column \(currentIndex)\(columnName) to decode \(columnType), but found \
         \(storageClassName(sqlite3_column_type(statement, currentIndex))): ...
 
-        \(sql)
+        \(sqlite3_sql(statement).map { String(cString: $0) } ?? "")
         """
       )
     #endif
