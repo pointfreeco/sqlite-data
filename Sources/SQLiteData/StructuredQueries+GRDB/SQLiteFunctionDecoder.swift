@@ -63,8 +63,8 @@ struct SQLiteFunctionDecoder: QueryDecoder {
 
   @usableFromInline
   mutating func decode(_ columnType: Date.Type) throws(QueryDecodingError) -> Date? {
+    guard let iso8601String = try decode(String.self) else { return nil }
     do {
-      guard let iso8601String = try decode(String.self) else { return nil }
       return try Date(iso8601String: iso8601String)
     } catch {
       throw .other(error)
