@@ -41,16 +41,16 @@
       try? self.init(data: Data(bytes))
     }
 
-    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws(QueryDecodingError) {
       try self.init(data: try Data(decoder: &decoder))
     }
 
-    private init(data: Data) throws {
-      let coder = try NSKeyedUnarchiver(forReadingFrom: data)
+    private init(data: Data) throws(QueryDecodingError) {
+      guard let coder = try? NSKeyedUnarchiver(forReadingFrom: data)
+      else { throw .dataCorrupted }
       coder.requiresSecureCoding = true
-      guard let queryOutput = Record(coder: coder) else {
-        throw DecodingError()
-      }
+      guard let queryOutput = Record(coder: coder)
+      else { throw .dataCorrupted }
       if isTesting {
         queryOutput._recordChangeTag =
           coder
@@ -58,8 +58,6 @@
       }
       self.init(queryOutput: queryOutput)
     }
-
-    private struct DecodingError: Error {}
   }
 
   public struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
@@ -83,15 +81,16 @@
       try? self.init(data: Data(bytes))
     }
 
-    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws(QueryDecodingError) {
       try self.init(data: try Data(decoder: &decoder))
     }
 
-    private init(data: Data) throws {
-      let coder = try NSKeyedUnarchiver(forReadingFrom: data)
+    private init(data: Data) throws(QueryDecodingError) {
+      guard let coder = try? NSKeyedUnarchiver(forReadingFrom: data)
+      else { throw .dataCorrupted }
       coder.requiresSecureCoding = true
       guard let queryOutput = Record(coder: coder) else {
-        throw DecodingError()
+        throw .dataCorrupted
       }
       if isTesting {
         queryOutput._recordChangeTag =
@@ -117,16 +116,14 @@
         guard case .int(let rawValue) = queryBinding else { return nil }
         try? self.init(rawValue: Int(rawValue))
       }
-      public init(decoder: inout some QueryDecoder) throws {
+      public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
         try self.init(rawValue: Int(decoder: &decoder))
       }
-      private init(rawValue: Int) throws {
-        guard let queryOutput = CKDatabase.Scope(rawValue: rawValue) else {
-          throw DecodingError()
-        }
+      private init(rawValue: Int) throws(QueryDecodingError) {
+        guard let queryOutput = CKDatabase.Scope(rawValue: rawValue)
+        else { throw .dataCorrupted }
         self.init(queryOutput: queryOutput)
       }
-      private struct DecodingError: Error {}
     }
   }
 
