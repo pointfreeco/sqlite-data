@@ -13,7 +13,7 @@
 
   extension BaseCloudKitTests {
     @MainActor
-    @Suite($attachMetadatabase.set(false))
+    @Suite(.taskLocal($attachMetadatabase, false))
     final class AttachedMetadatabaseTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func basics() async throws {
