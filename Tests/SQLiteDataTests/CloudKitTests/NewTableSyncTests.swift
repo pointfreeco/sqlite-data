@@ -13,7 +13,7 @@
   extension BaseCloudKitTests {
     @MainActor
     @Suite(
-      $prepareDatabase.set { userDatabase in
+      .taskLocal($prepareDatabase) { userDatabase in
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")

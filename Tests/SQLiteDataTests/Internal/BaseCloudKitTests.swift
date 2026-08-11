@@ -7,7 +7,7 @@
   import SQLiteData
   import SnapshotTesting
   import Testing
-import TestLocals
+  import TestLocals
   import os
 
   @Suite(
@@ -17,7 +17,7 @@ import TestLocals
       $0.continuousClock = TestClock<Duration>()
       $0.dataManager = InMemoryDataManager()
     },
-    $attachMetadatabase.set(false)
+    .taskLocal($attachMetadatabase, false)
   )
   class BaseCloudKitTests: @unchecked Sendable {
     let userDatabase: UserDatabase
