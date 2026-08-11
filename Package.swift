@@ -38,6 +38,13 @@ let package = Package(
         """
     ),
     .trait(
+      name: "StrictDecoding",
+      description: """
+        Throw an error, rather than coerce, when decoding a column whose storage type does not \
+        match the expected type.
+        """
+    ),
+    .trait(
       name: "Tagged",
       description: "Introduce SQLiteData conformances to the swift-tagged package."
     ),
@@ -58,8 +65,12 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.35.0",
+      from: "0.36.0",
       traits: [
+        .trait(
+          name: "LazyInitializableByDefault",
+          condition: .when(traits: ["LazyInitializableByDefault"])
+        ),
         .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
         .trait(
           name: "LazyInitializableByDefault",

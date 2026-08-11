@@ -1,5 +1,5 @@
 {
-  "originHash" : "688f63393a7436307eb0f4f8a2e5bf155eb604781201924d1c58b3634e1ab647",
+  "originHash" : "c23a65a671a050ad4a9a14e2506d4c5d127c928aa245e735949f4e4891331401",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-concurrency-extras",
       "state" : {
-        "revision" : "a90e2e40a7a840a853dd29e57cbef5dbb72c9d5b",
-        "version" : "1.4.0"
+        "revision" : "5fa253428866f2360c3754e88537f700ed2656b5",
+        "version" : "1.4.1"
       }
     },
     {
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-custom-dump",
       "state" : {
-        "revision" : "a8cd6c976f335ed361dcecddb0dc39ebda51bc3e",
-        "version" : "1.6.1"
+        "revision" : "e9c34fd54ece006b491a0e6d23fe9a6024b9a828",
+        "version" : "1.7.0"
       }
     },
     {
@@ -114,8 +114,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-snapshot-testing",
       "state" : {
-        "revision" : "1bc16f430d8410e7f087d4c787767b26fd32fe30",
-        "version" : "1.19.3"
+        "revision" : "59a99c458de4d2dee580529b61b4f78dca7b7fa6",
+        "version" : "1.19.4"
       }
     },
     {
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-structured-queries",
       "state" : {
-        "revision" : "fb25c16d0bde460ffc01fe19ab911bb26f40f26b",
-        "version" : "0.35.0"
+        "revision" : "8a733f414adc1224c5185c3a35c30ee1ef217171",
+        "version" : "0.36.0"
       }
     },
     {

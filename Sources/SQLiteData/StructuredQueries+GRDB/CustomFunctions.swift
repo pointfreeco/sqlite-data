@@ -20,12 +20,12 @@ extension Database {
       Unmanaged.passRetained(ScalarDatabaseFunctionDefinition(function)).toOpaque(),
       { context, argumentCount, arguments in
         do {
-          var decoder = SQLiteFunctionDecoder(argumentCount: argumentCount, arguments: arguments)
-          try Unmanaged<ScalarDatabaseFunctionDefinition>
+          let definition = Unmanaged<ScalarDatabaseFunctionDefinition>
             .fromOpaque(sqlite3_user_data(context))
             .takeUnretainedValue()
-            .function
-            .invoke(&decoder)
+          definition.decoder.reset(argumentCount: argumentCount, arguments: arguments)
+          try definition.function
+            .invoke(&definition.decoder)
             .result(db: context)
         } catch {
           QueryBinding.invalid(error).result(db: context)
@@ -53,10 +53,10 @@ extension Database {
       body,
       nil,
       { context, argumentCount, arguments in
-        var decoder = SQLiteFunctionDecoder(argumentCount: argumentCount, arguments: arguments)
         let function = AggregateDatabaseFunctionContext[context].takeUnretainedValue()
+        function.decoder.reset(argumentCount: argumentCount, arguments: arguments)
         do {
-          try function.iterator.step(&decoder)
+          try function.iterator.step(&function.decoder)
         } catch {
           sqlite3_result_error(context, error.localizedDescription, -1)
         }
@@ -109,8 +109,10 @@ extension DatabaseFunction {
 
 private final class ScalarDatabaseFunctionDefinition {
   let function: any ScalarDatabaseFunction
+  var decoder: SQLiteFunctionDecoder
   init(_ function: some ScalarDatabaseFunction) {
     self.function = function
+    self.decoder = SQLiteFunctionDecoder(name: function.name)
   }
 }
 
@@ -143,8 +145,10 @@ private final class AggregateDatabaseFunctionContext {
     }
   }
   let iterator: any AggregateDatabaseFunctionIteratorProtocol
+  var decoder: SQLiteFunctionDecoder
   init(_ body: some AggregateDatabaseFunction) {
     self.iterator = AggregateDatabaseFunctionIterator(body)
+    self.decoder = SQLiteFunctionDecoder(name: body.name)
   }
 }
 
