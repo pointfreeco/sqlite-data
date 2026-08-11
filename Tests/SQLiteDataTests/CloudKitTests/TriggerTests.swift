@@ -1420,7 +1420,7 @@
               FOR EACH ROW WHEN (("new"."zoneName") <> ("old"."zoneName")) OR (("new"."ownerName") <> ("old"."ownerName")) BEGIN
                 UPDATE "sqlitedata_icloud_metadata"
                 SET "zoneName" = "new"."zoneName", "ownerName" = "new"."ownerName", "lastKnownServerRecord" = NULL, "_lastKnownServerRecordAllFields" = NULL
-                WHERE (("sqlitedata_icloud_metadata"."recordName") IN ((WITH "descendantMetadatas" AS (
+                WHERE (("sqlitedata_icloud_metadata"."recordName") IN (WITH "descendantMetadatas" AS (
                   SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", NULL AS "parentRecordName"
                   FROM "sqlitedata_icloud_metadata"
                   WHERE (("sqlitedata_icloud_metadata"."recordName") = ("new"."recordName"))
@@ -1430,7 +1430,7 @@
                   JOIN "descendantMetadatas" ON ("sqlitedata_icloud_metadata"."parentRecordName") = ("descendantMetadatas"."recordName")
                 )
                 SELECT "descendantMetadatas"."recordName"
-                FROM "descendantMetadatas")));
+                FROM "descendantMetadatas"));
               END
               """
             ]
