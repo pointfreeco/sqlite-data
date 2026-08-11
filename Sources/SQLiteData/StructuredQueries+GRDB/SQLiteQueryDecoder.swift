@@ -52,8 +52,9 @@ struct SQLiteQueryDecoder: QueryDecoder {
 
   @inlinable
   mutating func decode(_ columnType: Date.Type) throws(QueryDecodingError) -> Date? {
+    guard let iso8601String = try decode(String.self) else { return nil }
     do {
-      return try decode(String.self).map { try Date(iso8601String: $0) }
+      return try Date(iso8601String: iso8601String) }
     } catch {
       throw .other(error)
     }
