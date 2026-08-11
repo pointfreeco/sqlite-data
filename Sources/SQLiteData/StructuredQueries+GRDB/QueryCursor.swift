@@ -124,12 +124,7 @@ final class QuerySectionedCursor<
       decoder.next()
       return (element, sectionName)
     } catch QueryDecodingError.missingRequiredColumn {
-      let columnIndex = Int(decoder.currentIndex) - 1
-      throw DecodingError(
-        columnIndex: columnIndex,
-        columnName: _statement.columnNames[columnIndex],
-        sql: _statement.sql
-      )
+      throw missingRequiredColumnError()
     }
   }
 }
