@@ -43,7 +43,7 @@ extension Color {
       return .int(hexValue)
     }
 
-    public init(decoder: inout some QueryDecoder) throws {
+    public init(decoder: inout some QueryDecoder) throws(QueryDecodingError) {
       try self.init(hexValue: Int64(decoder: &decoder))
     }
   }

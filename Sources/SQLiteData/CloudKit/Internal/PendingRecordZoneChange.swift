@@ -48,15 +48,18 @@
         try? self.init(data: Data(bytes))
       }
 
-      package init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+      package init(
+        decoder: inout some StructuredQueriesCore.QueryDecoder
+      ) throws(QueryDecodingError) {
         try self.init(data: Data(decoder: &decoder))
       }
 
-      private init(data: Data) throws {
-        let coder = try NSKeyedUnarchiver(forReadingFrom: data)
+      private init(data: Data) throws(QueryDecodingError) {
+        guard let coder = try? NSKeyedUnarchiver(forReadingFrom: data)
+        else { throw .dataCorrupted }
         coder.requiresSecureCoding = true
         guard let recordID = CKRecord.ID(coder: coder) else {
-          throw DecodingError()
+          throw .dataCorrupted
         }
         let changeType = coder.decodeObject(of: NSString.self, forKey: "changeType") as? String
         switch changeType {
@@ -65,12 +68,11 @@
         case "deleteRecord":
           self.init(queryOutput: .deleteRecord(recordID))
         default:
-          throw DecodingError()
+          throw .dataCorrupted
         }
       }
     }
 
-    private struct DecodingError: Error {}
     private struct BindingError: Error {}
   }
 #endif
