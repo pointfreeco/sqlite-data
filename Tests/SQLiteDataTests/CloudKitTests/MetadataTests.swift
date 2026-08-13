@@ -625,7 +625,7 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test($attachMetadatabase.set(true))
+      @Test(.taskLocal($attachMetadatabase, true))
       func observation() async throws {
         let remindersList = RemindersList(id: 1, title: "Personal")
         try await userDatabase.userWrite { db in
@@ -654,7 +654,7 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test($attachMetadatabase.set(true))
+      @Test(.taskLocal($attachMetadatabase, true))
       func observation_GeneratedColumn() async throws {
         let remindersList = RemindersList(id: 1, title: "Personal")
         try await userDatabase.userWrite { db in

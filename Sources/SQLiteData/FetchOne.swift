@@ -134,6 +134,51 @@ public struct FetchOne<Value: Sendable>: Sendable {
     )
   }
 
+  /// Initializes this property with a query that fetches the first row from a table.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+    Value: StructuredQueriesCore._OptionalProtocol,
+    Value: PrimaryKeyedTable,
+    Value.QueryOutput == Value
+  {
+    let statement = Value.all.selectStar().asSelect().limit(1)
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
+    )
+  }
+
+  /// Initializes this property with a query that observes the given row from a table.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+    Value: PrimaryKeyedTable & QueryRepresentable, Value.QueryOutput == Value
+  {
+    let statement = Value.all
+      .selectStar()
+      .asSelect()
+      .find(Value.PrimaryKey(queryOutput: wrappedValue.primaryKey))
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
+    )
+  }
+
   /// Initializes this property with a query associated with the wrapped value.
   ///
   /// - Parameters:
@@ -446,6 +491,20 @@ extension FetchOne {
 
   @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
   public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Value: _Selection,
+    Value: PrimaryKeyedTable,
+    Value.QueryOutput == Value
+  {
+    sharedReader = SharedReader(value: wrappedValue)
+  }
+
+  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  public init(
     wrappedValue: sending Value = Value._none,
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
@@ -508,6 +567,65 @@ extension FetchOne {
       wrappedValue: wrappedValue,
       .fetch(
         FetchOneStatementOptionalProtocolRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
+    )
+  }
+
+  /// Initializes this property with a query that fetches the first row from a table.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Value: StructuredQueriesCore._OptionalProtocol,
+    Value: PrimaryKeyedTable,
+    Value.QueryOutput == Value
+  {
+    let statement = Value.all.selectStar().asSelect().limit(1)
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementOptionalProtocolRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
+    )
+  }
+
+  /// Initializes this property with a query that observes the given row from a table.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Value: PrimaryKeyedTable & QueryRepresentable, Value.QueryOutput == Value
+  {
+    let statement = Value.all
+      .selectStar()
+      .asSelect()
+      .find(Value.PrimaryKey(queryOutput: wrappedValue.primaryKey))
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
         database: database,
         scheduler: scheduler
       )
@@ -923,6 +1041,20 @@ extension FetchOne: Equatable where Value: Equatable {
 
     @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
     public init(
+      wrappedValue: sending Value,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+      Value: _Selection,
+      Value: PrimaryKeyedTable,
+      Value.QueryOutput == Value
+    {
+      sharedReader = SharedReader(value: wrappedValue)
+    }
+
+    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    public init(
       wrappedValue: sending Value = Value._none,
       database: (any DatabaseReader)? = nil,
       animation: Animation
@@ -973,6 +1105,48 @@ extension FetchOne: Equatable where Value: Equatable {
       Value: StructuredQueriesCore._OptionalProtocol,
       Value: StructuredQueriesCore.Table,
       Value.QueryOutput == Value
+    {
+      self.init(wrappedValue: wrappedValue, database: database, scheduler: .animation(animation))
+    }
+
+    /// Initializes this property with a query that fetches the first row from a table.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: A default value to associate with this property.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    public init(
+      wrappedValue: sending Value,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+      Value: StructuredQueriesCore._OptionalProtocol,
+      Value: PrimaryKeyedTable,
+      Value.QueryOutput == Value
+    {
+      self.init(wrappedValue: wrappedValue, database: database, scheduler: .animation(animation))
+    }
+
+    /// Initializes this property with a query that observes the given row from a table.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: A default value to associate with this property.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    public init(
+      wrappedValue: sending Value,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+      Value: PrimaryKeyedTable & QueryRepresentable, Value.QueryOutput == Value
     {
       self.init(wrappedValue: wrappedValue, database: database, scheduler: .animation(animation))
     }
