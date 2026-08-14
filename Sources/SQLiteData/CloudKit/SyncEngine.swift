@@ -1703,6 +1703,28 @@
           await clearServerRecord()
 
         case .referenceViolation:
+          // A missing parent on the server does not always mean the parent was
+          // deleted remotely: the parent's own save may have been dropped after
+          // a terminal failure (e.g. 'quotaExceeded'). Locally cascading in
+          // that situation destroys rows that exist nowhere else. So when the
+          // parent has never been uploaded, re-enqueue it (and this record)
+          // instead of deleting local data.
+          if let parentRecordID = failedRecord.parent?.recordID {
+            let parentNeverSynced =
+              await withErrorReporting(.sqliteDataCloudKitFailure) {
+                try await metadatabase.read { db in
+                  try SyncMetadata
+                    .find(parentRecordID)
+                    .where { !$0.hasLastKnownServerRecord }
+                    .fetchCount(db) > 0
+                }
+              } ?? false
+            if parentNeverSynced {
+              newPendingRecordZoneChanges.append(.saveRecord(parentRecordID))
+              newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
+              continue
+            }
+          }
           guard
             let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
             let table = tablesByName[failedRecord.recordType],

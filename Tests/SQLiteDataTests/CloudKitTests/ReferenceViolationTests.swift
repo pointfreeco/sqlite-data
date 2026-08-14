@@ -243,6 +243,48 @@
         }
       }
 
+      // * Parent's record save was dropped after a terminal failure (e.g. quota exceeded)
+      //   and never reached the server.
+      // * Child is saved afterwards; server rejects it with a reference violation.
+      // => Local rows are preserved and the parent is re-enqueued so the next send heals
+      //    the hierarchy, instead of cascading the deletion locally.
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func childSaveFails_ParentNeverUploaded() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            Reminder(id: 1, title: "Get milk", remindersListID: 1)
+          }
+        }
+        // Simulate the parent save being dropped, as happens after a terminal
+        // CloudKit error like 'quotaExceeded'.
+        syncEngine.private.state.remove(
+          pendingRecordZoneChanges: [.saveRecord(RemindersList.recordID(for: 1))]
+        )
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await userDatabase.read { db in
+          try #expect(Reminder.find(1).fetchCount(db) == 1)
+          try #expect(RemindersList.find(1).fetchCount(db) == 1)
+        }
+        #expect(
+          syncEngine.private.state.pendingRecordZoneChanges.contains(
+            .saveRecord(RemindersList.recordID(for: 1))
+          )
+        )
+
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let zoneRecords = syncEngine.private.database.state
+          .storage[syncEngine.defaultZone.zoneID]?.records
+        #expect(zoneRecords?[RemindersList.recordID(for: 1)] != nil)
+        #expect(zoneRecords?[Reminder.recordID(for: 1)] != nil)
+        try await userDatabase.read { db in
+          try #expect(Reminder.find(1).fetchCount(db) == 1)
+          try #expect(RemindersList.find(1).fetchCount(db) == 1)
+        }
+      }
+
       // * Local client move child to parent.
       // * Remote client deletes parent.
       // * Local data is sync'd first, then remote data syncs.
