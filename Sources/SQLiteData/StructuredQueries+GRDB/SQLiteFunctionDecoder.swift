@@ -133,7 +133,9 @@ struct SQLiteFunctionDecoder: QueryDecoder {
       try reportTypeMismatch(String.self)
     }
     defer { currentIndex += 1 }
-    return String(cString: sqlite3_value_text(value))
+    let text = sqlite3_value_text(value)
+    let byteCount = Int(sqlite3_value_bytes(value))
+    return String(decoding: UnsafeBufferPointer(start: text, count: byteCount), as: UTF8.self)
   }
 
   @inlinable
