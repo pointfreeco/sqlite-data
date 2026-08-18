@@ -155,9 +155,6 @@ func resizedAndOptimizedImageData(from data: Data, maxWidth: CGFloat = 1000) -> 
   return resizedImage?.jpegData(compressionQuality: 0.8)
 }
 
-// NB: A 'PreviewProvider' is used instead of the '#Preview' macro because macro-generated
-//     members, such as '@Table''s 'Draft' type, cannot be referenced from inside another macro
-//     due to a known Xcode issue.
 struct RemindersListFormPreviews: PreviewProvider {
   static var previews: some View {
     let _ = try! prepareDependencies {

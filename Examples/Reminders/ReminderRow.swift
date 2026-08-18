@@ -158,9 +158,9 @@ struct ReminderRow: View {
 #Preview(
   traits: .dependencies { $0.defaultDatabase = try Reminders.appDatabase() }
 ) {
+  @Dependency(\.defaultDatabase) var database
   let (reminder, remindersList) = {
-    @Dependency(\.defaultDatabase) var database
-    return try! database.read { db in
+    try! database.read { db in
       (try Reminder.fetchOne(db)!, try RemindersList.fetchOne(db)!)
     }
   }()
