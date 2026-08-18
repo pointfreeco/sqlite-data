@@ -1495,38 +1495,39 @@ extension FetchOne: Equatable where Value: Equatable {
   }
 #endif
 
-private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
-  let statement: SQLQueryExpression<Value>
-  init(statement: some StructuredQueriesCore.Statement<Value>) {
-    self.statement = SQLQueryExpression(statement)
+private struct FetchOneStatementValueRequest<QueryValue: QueryRepresentable>: StatementKeyRequest {
+  let prepared: PreparedQuery
+  init(statement: some StructuredQueriesCore.Statement<QueryValue>) {
+    self.prepared = PreparedQuery(statement.query)
   }
-  func fetch(_ db: Database) throws -> Value.QueryOutput {
-    guard let result = try statement.fetchOne(db)
+  func fetch(_ db: Database) throws -> QueryValue.QueryOutput {
+    guard
+      let result = try QueryValueCursor<QueryValue>(db: db, prepared: prepared, cached: true).next()
     else { throw NotFound() }
     return result
   }
 }
 
-private struct FetchOneStatementOptionalValueRequest<Value: QueryRepresentable>:
+private struct FetchOneStatementOptionalValueRequest<QueryValue: QueryRepresentable>:
   StatementKeyRequest
 {
-  let statement: SQLQueryExpression<Value>
-  init(statement: some StructuredQueriesCore.Statement<Value>) {
-    self.statement = SQLQueryExpression(statement)
+  let prepared: PreparedQuery
+  init(statement: some StructuredQueriesCore.Statement<QueryValue>) {
+    self.prepared = PreparedQuery(statement.query)
   }
-  func fetch(_ db: Database) throws -> Value.QueryOutput? {
-    try statement.fetchOne(db)
+  func fetch(_ db: Database) throws -> QueryValue.QueryOutput? {
+    try QueryValueCursor<QueryValue>(db: db, prepared: prepared, cached: true).next()
   }
 }
 
 private struct FetchOneStatementOptionalProtocolRequest<
-  Value: QueryRepresentable & StructuredQueriesCore._OptionalProtocol
->: StatementKeyRequest where Value.QueryOutput: StructuredQueriesCore._OptionalProtocol {
-  let statement: SQLQueryExpression<Value>
-  init(statement: some StructuredQueriesCore.Statement<Value>) {
-    self.statement = SQLQueryExpression(statement)
+  QueryValue: QueryRepresentable & StructuredQueriesCore._OptionalProtocol
+>: StatementKeyRequest where QueryValue.QueryOutput: StructuredQueriesCore._OptionalProtocol {
+  let prepared: PreparedQuery
+  init(statement: some StructuredQueriesCore.Statement<QueryValue>) {
+    self.prepared = PreparedQuery(statement.query)
   }
-  func fetch(_ db: Database) throws -> Value.QueryOutput {
-    try statement.fetchOne(db) ?? ._none
+  func fetch(_ db: Database) throws -> QueryValue.QueryOutput {
+    try QueryValueCursor<QueryValue>(db: db, prepared: prepared, cached: true).next() ?? ._none
   }
 }

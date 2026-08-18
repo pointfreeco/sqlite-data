@@ -597,12 +597,15 @@ extension FetchAll: Equatable where Element: Equatable {
   }
 #endif
 
-struct FetchAllStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
-  let statement: SQLQueryExpression<Value>
-  init(statement: some StructuredQueriesCore.Statement<Value>) {
-    self.statement = SQLQueryExpression(statement)
+struct FetchAllStatementValueRequest<QueryValue: QueryRepresentable>: StatementKeyRequest {
+  let prepared: PreparedQuery
+  init(statement: some StructuredQueriesCore.Statement<QueryValue>) {
+    self.prepared = PreparedQuery(statement.query)
   }
-  func fetch(_ db: Database) throws -> [Value.QueryOutput] {
-    try statement.fetchAll(db)
+  func fetch(_ db: Database) throws -> [QueryValue.QueryOutput] {
+    let cursor = try QueryValueCursor<QueryValue>(db: db, prepared: prepared, cached: true)
+    var output: [QueryValue.QueryOutput] = []
+    try cursor.forEach { output.append($0) }
+    return output
   }
 }
