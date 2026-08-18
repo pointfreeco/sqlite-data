@@ -206,7 +206,9 @@ extension QueryBinding {
     case .bool(let bool):
       result = sqlite3_bind_int64(statement, index, bool ? 1 : 0)
     case .date(let date):
-      result = date.iso8601String.bind(to: statement, at: index)
+      result = date.iso8601String.withUTF8Text {
+        sqlite3_bind_text(statement, index, $0, $1, SQLITE_TRANSIENT)
+      }
     case .double(let double):
       result = sqlite3_bind_double(statement, index, double)
     case .int(let int):
@@ -214,13 +216,17 @@ extension QueryBinding {
     case .null:
       result = sqlite3_bind_null(statement, index)
     case .text(let text):
-      result = text.bind(to: statement, at: index)
+      result = text.withUTF8Text {
+        sqlite3_bind_text(statement, index, $0, $1, SQLITE_TRANSIENT)
+      }
     case .uint(let uint) where uint <= UInt64(Int64.max):
       result = sqlite3_bind_int64(statement, index, Int64(uint))
     case .uint(let uint):
       throw Int64OverflowError(unsignedInteger: uint)
     case .uuid(let uuid):
-      result = uuid.bind(to: statement, at: index)
+      result = uuid.withLowercasedUTF8Text {
+        sqlite3_bind_text(statement, index, $0, $1, SQLITE_TRANSIENT)
+      }
     case .invalid(let error):
       throw error
     }
@@ -230,20 +236,20 @@ extension QueryBinding {
 }
 
 extension String {
-  fileprivate func bind(to statement: SQLiteStatement, at index: Int32) -> Int32 {
+  func withUTF8Text<R>(_ body: (UnsafePointer<CChar>, Int32) -> R) -> R {
     var text = self
     return text.withUTF8 { utf8 in
       guard let base = utf8.baseAddress
-      else { return sqlite3_bind_text(statement, index, "", 0, SQLITE_TRANSIENT) }
+      else { return withUnsafePointer(to: 0 as CChar) { body($0, 0) } }
       return base.withMemoryRebound(to: CChar.self, capacity: utf8.count) {
-        sqlite3_bind_text(statement, index, $0, Int32(utf8.count), SQLITE_TRANSIENT)
+        body($0, Int32(utf8.count))
       }
     }
   }
 }
 
 extension UUID {
-  fileprivate func bind(to statement: SQLiteStatement, at index: Int32) -> Int32 {
+  func withLowercasedUTF8Text<R>(_ body: (UnsafePointer<CChar>, Int32) -> R) -> R {
     withUnsafeTemporaryAllocation(of: UInt8.self, capacity: 36) { utf8 in
       withUnsafeBytes(of: uuid) { bytes in
         var offset = 0
@@ -258,7 +264,7 @@ extension UUID {
         }
       }
       return utf8.baseAddress!.withMemoryRebound(to: CChar.self, capacity: 36) {
-        sqlite3_bind_text(statement, index, $0, 36, SQLITE_TRANSIENT)
+        body($0, 36)
       }
     }
   }
