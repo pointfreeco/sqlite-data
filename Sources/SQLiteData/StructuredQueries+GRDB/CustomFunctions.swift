@@ -255,7 +255,7 @@ extension QueryBinding {
     case .null:
       sqlite3_result_null(db)
     case .text(let text):
-      sqlite3_result_text(db, text, -1, SQLITE_TRANSIENT)
+      sqlite3_result_text(db, text, Int32(text.utf8.count), SQLITE_TRANSIENT)
     case .uint(let uint) where uint <= UInt64(Int64.max):
       sqlite3_result_int64(db, Int64(uint))
     case .uint(let uint):
