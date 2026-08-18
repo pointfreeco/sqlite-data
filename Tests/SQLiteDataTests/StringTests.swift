@@ -14,25 +14,19 @@ struct NulStringTests {
     }
   }
 
-  // We currently cannot insert strings with NUL characters until
-  // https://github.com/groue/GRDB.swift/pull/1880 is merged.
   @Test func `bind and fetch NUL strings`() throws {
-    withKnownIssue("Binding strings with NUL's doesn't work") {
-      try database.read { db in
-        let back = try #sql("SELECT \(bind: stringWithNul)", as: String.self).fetchOne(db)
-        #expect(back == stringWithNul)
+    try database.read { db in
+      let back = try #sql("SELECT \(bind: stringWithNul)", as: String.self).fetchOne(db)
+      #expect(back == stringWithNul)
+    }
+    let insertedRecord = try #require(
+      try database.write { db in
+        try Record.insert { Record.Draft(value: stringWithNul) }
+          .returning(\.self)
+          .fetchOne(db)
       }
-    }
-    withKnownIssue("Inserting strings with NUL's doesn't work") {
-      let insertedRecord = try #require(
-        try database.write { db in
-          try Record.insert { Record.Draft(value: stringWithNul) }
-            .returning(\.self)
-            .fetchOne(db)
-        }
-      )
-      #expect(insertedRecord.value == stringWithNul)
-    }
+    )
+    #expect(insertedRecord.value == stringWithNul)
   }
 }
 
