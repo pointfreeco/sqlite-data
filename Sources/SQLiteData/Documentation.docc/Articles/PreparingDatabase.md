@@ -281,9 +281,13 @@ possible in the application's lifecycle.
 
 It is also important to prepare the database in Xcode previews. This can be done using the
 `.dependencies` preview trait from the
-[Dependencies](https://github.com/pointfreeco/swift-dependencies) library:
+[Dependencies](https://github.com/pointfreeco/swift-dependencies) library, which is automatically
+included with SQLiteData:
 
 ```swift
+import Dependencies 
+import SQLiteData
+
 #Preview(
   traits: .dependencies {
     $0.defaultDatabase = try appDatabase()
