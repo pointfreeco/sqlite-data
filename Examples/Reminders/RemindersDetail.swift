@@ -363,7 +363,10 @@ extension RemindersDetailModel.DetailType {
 
 #Preview(
   "All",
-  traits: .dependencies { $0.defaultDatabase = try Reminders.appDatabase() }
+  traits: .dependencies {
+    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.defaultDatabase.seedSampleData()
+  }
 ) {
   NavigationStack {
     RemindersDetailView(model: RemindersDetailModel(detailType: .all))
@@ -372,7 +375,10 @@ extension RemindersDetailModel.DetailType {
 
 #Preview(
   "Reminders list",
-  traits: .dependencies { $0.defaultDatabase = try Reminders.appDatabase() }
+  traits: .dependencies {
+    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.defaultDatabase.seedSampleData()
+  }
 ) {
   let remindersList = {
     @Dependency(\.defaultDatabase) var database
@@ -387,12 +393,15 @@ extension RemindersDetailModel.DetailType {
 
 #Preview(
   "Tags",
-  traits: .dependencies { $0.defaultDatabase = try Reminders.appDatabase() }
+  traits: .dependencies {
+    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.defaultDatabase.seedSampleData()
+  }
 ) {
   let tag = {
     @Dependency(\.defaultDatabase) var database
     return try! database.read { db in
-      try Tag.fetchOne(db)!
+      try Tag.offset(2).fetchOne(db)!
     }
   }()
   NavigationStack {
