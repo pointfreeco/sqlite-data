@@ -1556,7 +1556,7 @@ struct FetchAllSectionedStatementValueRequest<
   Key: QueryRepresentable
 >: FetchKeyRequest
 where Value.QueryOutput: Sendable, Key.QueryOutput: Hashable & Sendable {
-  let statement: SQLQueryExpression<(Value, Key)>
+  let prepared: PreparedQuery
 
   init(
     statement: Select<(), Value, ()>,
@@ -1564,7 +1564,7 @@ where Value.QueryOutput: Sendable, Key.QueryOutput: Hashable & Sendable {
   ) where Value: StructuredQueriesCore.Table {
     let prefix: Select<(Value, Key), Value, ()> = sectionedColumns(of: Value.self, sectionBy)
     let sectioned: Select<(Value, Key), Value, ()> = prefix + statement
-    self.statement = SQLQueryExpression(sectioned)
+    self.prepared = PreparedQuery(sectioned.query)
   }
 
   init<From: StructuredQueriesCore.Table, each J: StructuredQueriesCore.Table>(
@@ -1575,21 +1575,21 @@ where Value.QueryOutput: Sendable, Key.QueryOutput: Hashable & Sendable {
       sectionedOrder(of: From.self, sectionBy) + statement
     let sectioned: Select<(Value, Key), From, (repeat each J)> =
       ordered + sectionedColumn(of: From.self, sectionBy)
-    self.statement = SQLQueryExpression(sectioned)
+    self.prepared = PreparedQuery(sectioned.query)
   }
 
   func fetch(_ db: Database) throws -> ResultsSectionCollection<Value.QueryOutput, Key.QueryOutput>
   {
     try ResultsSectionCollection(
-      cursor: QuerySectionedCursor<Value, Key>(db: db, query: statement.queryFragment)
+      cursor: QuerySectionedCursor<Value, Key>(db: db, prepared: prepared, cached: true)
     )
   }
 
   static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.statement.query == rhs.statement.query
+    lhs.prepared == rhs.prepared
   }
 
   func hash(into hasher: inout Hasher) {
-    hasher.combine(statement.query)
+    hasher.combine(prepared)
   }
 }
