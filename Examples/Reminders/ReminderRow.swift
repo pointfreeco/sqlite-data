@@ -156,7 +156,10 @@ struct ReminderRow: View {
 }
 
 #Preview(
-  traits: .dependencies { $0.defaultDatabase = try Reminders.appDatabase() }
+  traits: .dependencies {
+    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.defaultDatabase.seedSampleData()
+  }
 ) {
   @Dependency(\.defaultDatabase) var database
   let (reminder, remindersList) = {
