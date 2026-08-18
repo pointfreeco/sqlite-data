@@ -98,10 +98,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 }
 
-#Preview {
-  let _ = prepareDependencies {
-    $0.defaultDatabase = .transactionDemoDatabase
-  }
+#Preview(traits: .dependencies { $0.defaultDatabase = .transactionDemoDatabase }) {
   NavigationStack {
     CaseStudyView {
       TransactionDemo()

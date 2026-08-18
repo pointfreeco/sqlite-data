@@ -361,27 +361,41 @@ extension RemindersDetailModel.DetailType {
   }
 }
 
-struct RemindersDetailPreview: PreviewProvider {
-  static var previews: some View {
-    let (remindersList, tag) = try! prepareDependencies {
-      $0.defaultDatabase = try Reminders.appDatabase()
-      return try $0.defaultDatabase.read { db in
-        (
-          try RemindersList.fetchOne(db)!,
-          try Tag.fetchOne(db)!
-        )
-      }
+#Preview(
+  "All",
+  traits: .dependencies { $0.defaultDatabase = try Reminders.appDatabase() }
+) {
+  NavigationStack {
+    RemindersDetailView(model: RemindersDetailModel(detailType: .all))
+  }
+}
+
+#Preview(
+  "Reminders list",
+  traits: .dependencies { $0.defaultDatabase = try Reminders.appDatabase() }
+) {
+  let remindersList = {
+    @Dependency(\.defaultDatabase) var database
+    return try! database.read { db in
+      try RemindersList.fetchOne(db)!
     }
-    let detailTypes: [RemindersDetailModel.DetailType] = [
-      .all,
-      .remindersList(remindersList),
-      .tags([tag]),
-    ]
-    ForEach(detailTypes, id: \.self) { detailType in
-      NavigationStack {
-        RemindersDetailView(model: RemindersDetailModel(detailType: detailType))
-      }
-      .previewDisplayName(detailType.navigationTitle)
+  }()
+  NavigationStack {
+    RemindersDetailView(model: RemindersDetailModel(detailType: .remindersList(remindersList)))
+  }
+}
+
+#Preview(
+  "Tags",
+  traits: .dependencies { $0.defaultDatabase = try Reminders.appDatabase() }
+) {
+  let tag = {
+    @Dependency(\.defaultDatabase) var database
+    return try! database.read { db in
+      try Tag.fetchOne(db)!
     }
+  }()
+  NavigationStack {
+    RemindersDetailView(model: RemindersDetailModel(detailType: .tags([tag])))
   }
 }

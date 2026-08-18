@@ -72,10 +72,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 }
 
-#Preview {
-  let _ = prepareDependencies {
-    $0.defaultDatabase = .animationDatabase
-  }
+#Preview(traits: .dependencies { $0.defaultDatabase = .animationDatabase }) {
   NavigationStack {
     CaseStudyView {
       AnimationsCaseStudy()

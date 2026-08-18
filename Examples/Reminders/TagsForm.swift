@@ -164,11 +164,12 @@ private struct TagView: View {
   }
 }
 
-#Preview {
-  @Previewable @State var tags: [Tag] = []
-  let _ = try! prepareDependencies {
+#Preview(
+  traits: .dependencies {
     try $0.bootstrapDatabase()
     try? $0.defaultDatabase.seedSampleData()
   }
+) {
+  @Previewable @State var tags: [Tag] = []
   TagsView(selectedTags: $tags)
 }

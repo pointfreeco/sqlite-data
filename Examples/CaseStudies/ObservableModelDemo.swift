@@ -112,10 +112,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 }
 
-#Preview {
-  let _ = prepareDependencies {
-    $0.defaultDatabase = .observableModelDatabase
-  }
+#Preview(traits: .dependencies { $0.defaultDatabase = .observableModelDatabase }) {
   NavigationStack {
     CaseStudyView {
       ObservableModelDemo()

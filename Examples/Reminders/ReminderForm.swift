@@ -203,6 +203,9 @@ extension Optional {
   }
 }
 
+// NB: A 'PreviewProvider' is used instead of the '#Preview' macro because macro-generated
+//     members, such as '@Table''s 'Draft' type, cannot be referenced from inside another macro
+//     due to a known Xcode issue.
 struct ReminderFormPreview: PreviewProvider {
   static var previews: some View {
     let (remindersList, reminder) = try! prepareDependencies {
