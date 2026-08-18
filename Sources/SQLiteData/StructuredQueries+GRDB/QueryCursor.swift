@@ -206,8 +206,7 @@ extension QueryBinding {
     case .bool(let bool):
       result = sqlite3_bind_int64(statement, index, bool ? 1 : 0)
     case .date(let date):
-      let text = date.iso8601String
-      result = sqlite3_bind_text(statement, index, text, Int32(text.utf8.count), SQLITE_TRANSIENT)
+      result = date.iso8601String.bind(to: statement, at: index)
     case .double(let double):
       result = sqlite3_bind_double(statement, index, double)
     case .int(let int):
@@ -215,14 +214,13 @@ extension QueryBinding {
     case .null:
       result = sqlite3_bind_null(statement, index)
     case .text(let text):
-      result = sqlite3_bind_text(statement, index, text, Int32(text.utf8.count), SQLITE_TRANSIENT)
+      result = text.bind(to: statement, at: index)
     case .uint(let uint) where uint <= UInt64(Int64.max):
       result = sqlite3_bind_int64(statement, index, Int64(uint))
     case .uint(let uint):
       throw Int64OverflowError(unsignedInteger: uint)
     case .uuid(let uuid):
-      let text = uuid.uuidString.lowercased()
-      result = sqlite3_bind_text(statement, index, text, Int32(text.utf8.count), SQLITE_TRANSIENT)
+      result = uuid.bind(to: statement, at: index)
     case .invalid(let error):
       throw error
     }
@@ -230,6 +228,43 @@ extension QueryBinding {
     else { throw DatabaseError(resultCode: ResultCode(rawValue: result)) }
   }
 }
+
+extension String {
+  fileprivate func bind(to statement: SQLiteStatement, at index: Int32) -> Int32 {
+    var text = self
+    return text.withUTF8 { utf8 in
+      guard let base = utf8.baseAddress
+      else { return sqlite3_bind_text(statement, index, "", 0, SQLITE_TRANSIENT) }
+      return base.withMemoryRebound(to: CChar.self, capacity: utf8.count) {
+        sqlite3_bind_text(statement, index, $0, Int32(utf8.count), SQLITE_TRANSIENT)
+      }
+    }
+  }
+}
+
+extension UUID {
+  fileprivate func bind(to statement: SQLiteStatement, at index: Int32) -> Int32 {
+    withUnsafeTemporaryAllocation(of: UInt8.self, capacity: 36) { utf8 in
+      withUnsafeBytes(of: uuid) { bytes in
+        var offset = 0
+        for (byteIndex, byte) in bytes.enumerated() {
+          if byteIndex == 4 || byteIndex == 6 || byteIndex == 8 || byteIndex == 10 {
+            utf8[offset] = UInt8(ascii: "-")
+            offset += 1
+          }
+          utf8[offset] = hexDigits[Int(byte >> 4)]
+          utf8[offset + 1] = hexDigits[Int(byte & 0xF)]
+          offset += 2
+        }
+      }
+      return utf8.baseAddress!.withMemoryRebound(to: CChar.self, capacity: 36) {
+        sqlite3_bind_text(statement, index, $0, 36, SQLITE_TRANSIENT)
+      }
+    }
+  }
+}
+
+private let hexDigits = Array("0123456789abcdef".utf8)
 
 @usableFromInline
 struct Int64OverflowError: Error {
