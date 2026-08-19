@@ -18,6 +18,9 @@
 		DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = DC5FA7472D4C63D60082743E /* DependenciesMacros */; };
 		DCB8AD4A30363D3800ACF09E /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = DCB8AD4930363D3800ACF09E /* SQLiteData */; };
 		DCB8AD4C30363DB100ACF09E /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = DCB8AD4B30363DB100ACF09E /* UIKitNavigation */; };
+		DCB8AD4E30363F2100ACF09E /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = DCB8AD4D30363F2100ACF09E /* SQLiteData */; };
+		DCB8AD5030363F2600ACF09E /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = DCB8AD4F30363F2600ACF09E /* SQLiteData */; };
+		DCB8AD5230363F2A00ACF09E /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = DCB8AD5130363F2A00ACF09E /* SQLiteData */; };
 		DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = DCBE8A132D4842BF0071F499 /* CasePaths */; };
 		DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */ = {isa = PBXBuildFile; productRef = DCF267382D48437300B680BE /* SwiftUINavigation */; };
 /* End PBXBuildFile section */
@@ -182,6 +185,7 @@
 		CAF836952D4735620047AEB5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				DCB8AD4E30363F2100ACF09E /* SQLiteData in Frameworks */,
 				CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */,
 			);
 		};
@@ -193,6 +197,7 @@
 		CAF836D52D4735AB0047AEB5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				DCB8AD5030363F2600ACF09E /* SQLiteData in Frameworks */,
 				CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */,
 				CA5E46912DEBB8570069E0F8 /* SwiftUINavigation in Frameworks */,
 			);
@@ -209,6 +214,7 @@
 			files = (
 				DCF267392D48437300B680BE /* SwiftUINavigation in Frameworks */,
 				DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */,
+				DCB8AD5230363F2A00ACF09E /* SQLiteData in Frameworks */,
 				DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */,
 			);
 		};
@@ -346,6 +352,7 @@
 			name = CaseStudies;
 			packageProductDependencies = (
 				CA2908C82D4AF70E003F165F /* UIKitNavigation */,
+				DCB8AD4D30363F2100ACF09E /* SQLiteData */,
 			);
 			productName = Examples;
 			productReference = CAF836982D4735620047AEB5 /* CaseStudies.app */;
@@ -389,6 +396,7 @@
 			packageProductDependencies = (
 				CA14DBC82DA884C400E36852 /* CasePaths */,
 				CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */,
+				DCB8AD4F30363F2600ACF09E /* SQLiteData */,
 			);
 			productName = Reminders;
 			productReference = CAF836D82D4735AB0047AEB5 /* Reminders.app */;
@@ -434,6 +442,7 @@
 				DCBE8A132D4842BF0071F499 /* CasePaths */,
 				DCF267382D48437300B680BE /* SwiftUINavigation */,
 				DC5FA7472D4C63D60082743E /* DependenciesMacros */,
+				DCB8AD5130363F2A00ACF09E /* SQLiteData */,
 			);
 			productName = SyncUps;
 			productReference = DCBE89CC2D483FB90071F499 /* SyncUps.app */;
@@ -1321,6 +1330,18 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */;
 			productName = UIKitNavigation;
+		};
+		DCB8AD4D30363F2100ACF09E /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SQLiteData;
+		};
+		DCB8AD4F30363F2600ACF09E /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SQLiteData;
+		};
+		DCB8AD5130363F2A00ACF09E /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SQLiteData;
 		};
 		DCBE8A132D4842BF0071F499 /* CasePaths */ = {
 			isa = XCSwiftPackageProductDependency;
