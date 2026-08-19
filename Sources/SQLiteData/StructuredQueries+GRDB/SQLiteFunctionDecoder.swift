@@ -147,8 +147,22 @@ struct SQLiteFunctionDecoder: QueryDecoder {
 
   @usableFromInline
   mutating func decode(_ columnType: UUID.Type) throws(QueryDecodingError) -> UUID? {
-    guard let uuidString = try decode(String.self) else { return nil }
-    return UUID(uuidString: uuidString)
+    precondition(argumentCount > currentIndex)
+    let value = arguments?[Int(currentIndex)]
+    switch sqlite3_value_type(value) {
+    case SQLITE_NULL:
+      currentIndex += 1
+      return nil
+    case SQLITE_TEXT:
+      break
+    default:
+      try reportTypeMismatch(UUID.self)
+    }
+    defer { currentIndex += 1 }
+    let text = sqlite3_value_text(value)
+    let byteCount = Int(sqlite3_value_bytes(value))
+    let utf8 = UnsafeBufferPointer(start: text, count: byteCount)
+    return UUID(uuidUTF8: utf8) ?? UUID(uuidString: String(decoding: utf8, as: UTF8.self))
   }
 
   @usableFromInline
