@@ -8,8 +8,18 @@ struct CountersListView: View {
       .leftJoin(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
       .select {
         Row.Columns(counter: $0, isShared: $1.isShared.ifnull(false))
-      }
-  ) var rows
+      },
+    sectionBy: { _, metadata in
+      Case()
+        .when(metadata.isShared.eq(true), then: "Shared")
+        .else("Private")
+        .desc()
+    }
+  )
+  var rows
+
+  @State var sharedRecord: SharedRecord?
+
   @Dependency(\.defaultDatabase) var database
   @Dependency(\.defaultSyncEngine) var syncEngine
 
@@ -20,10 +30,12 @@ struct CountersListView: View {
 
   var body: some View {
     List {
-      if !rows.isEmpty {
-        Section {
-          ForEach(rows, id: \.counter.id) { row in
-            CounterRow(row: row)
+      ForEach($rows.sections) { section in
+        Section(section.name ?? "Private") {
+          ForEach(section, id: \.counter.id) { row in
+            CounterRow(row: row) {
+              shareButtonTapped(row: row)
+            }
               .buttonStyle(.borderless)
           }
           .onDelete { indexSet in
@@ -49,6 +61,9 @@ struct CountersListView: View {
         }
       }
     }
+    .sheet(item: $sharedRecord) { sharedRecord in
+      CloudSharingView(sharedRecord: sharedRecord)
+    }
   }
 
   func deleteRows(at indexSet: IndexSet) {
@@ -61,11 +76,19 @@ struct CountersListView: View {
       }
     }
   }
+
+  func shareButtonTapped(row: Row) {
+    _ = Task {
+      sharedRecord = try await syncEngine.share(record: row.counter) { share in
+        share[CKShare.SystemFieldKey.title] = "Join my counter!"
+      }
+    }
+  }
 }
 
 struct CounterRow: View {
   let row: CountersListView.Row
-  @State var sharedRecord: SharedRecord?
+  let onShare: () -> Void
   @Dependency(\.defaultDatabase) var database
   @Dependency(\.defaultSyncEngine) var syncEngine
 
@@ -84,21 +107,10 @@ struct CounterRow: View {
         }
         Spacer()
         Button {
-          shareButtonTapped()
+          onShare()
         } label: {
           Image(systemName: "square.and.arrow.up")
         }
-      }
-    }
-    .sheet(item: $sharedRecord) { sharedRecord in
-      CloudSharingView(sharedRecord: sharedRecord)
-    }
-  }
-
-  func shareButtonTapped() {
-    _ = Task {
-      sharedRecord = try await syncEngine.share(record: row.counter) { share in
-        share[CKShare.SystemFieldKey.title] = "Join my counter!"
       }
     }
   }
