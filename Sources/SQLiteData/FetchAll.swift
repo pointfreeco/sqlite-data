@@ -41,7 +41,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
       state.wrappedValue.sectionedReader
     }
 
-    var sectioning: LockIsolated<_Sectioning?> {
+    var sectioning: LockIsolated<_Sectioning<String?>?> {
       state.wrappedValue.sectioning
     }
 
@@ -58,7 +58,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
     let sectionedReader: SharedReader<ResultsSectionCollection<Element, String?>> =
       SharedReader(value: ResultsSectionCollection())
 
-    let sectioning = LockIsolated<_Sectioning?>(nil)
+    let sectioning = LockIsolated<_Sectioning<String?>?>(nil)
   #endif
 
   /// A collection of data associated with the underlying query.
@@ -647,12 +647,15 @@ extension FetchAll: Equatable where Element: Equatable {
   }
 #endif
 
-struct FetchAllStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
-  let statement: SQLQueryExpression<Value>
-  init(statement: some StructuredQueriesCore.Statement<Value>) {
-    self.statement = SQLQueryExpression(statement)
+struct FetchAllStatementValueRequest<QueryValue: QueryRepresentable>: StatementKeyRequest {
+  let prepared: PreparedQuery
+  init(statement: some StructuredQueriesCore.Statement<QueryValue>) {
+    self.prepared = PreparedQuery(statement.query)
   }
-  func fetch(_ db: Database) throws -> [Value.QueryOutput] {
-    try statement.fetchAll(db)
+  func fetch(_ db: Database) throws -> [QueryValue.QueryOutput] {
+    let cursor = try QueryValueCursor<QueryValue>(db: db, prepared: prepared, cached: true)
+    var output: [QueryValue.QueryOutput] = []
+    try cursor.forEach { output.append($0) }
+    return output
   }
 }

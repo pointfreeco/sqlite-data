@@ -582,7 +582,7 @@
         // * Start sync engine
         // * Verify that data is sent to CloudKit database and cached locally.
         @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-        @Test($startImmediately.set(false))
+        @Test(.taskLocal($startImmediately, false))
         func writeAndThenStart() async throws {
           try await userDatabase.userWrite { db in
             try db.seed {

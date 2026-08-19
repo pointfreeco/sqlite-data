@@ -20,10 +20,9 @@ extension PrimaryKeyedTable where PrimaryKey.QueryOutput: IdentifierStringConver
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 extension SyncEngine {
-  struct ModifyRecordsCallback<ReturnValue> {
-    fileprivate let operation: @Sendable () async -> ReturnValue
-    @discardableResult
-    func notify() async -> ReturnValue {
+  struct ModifyRecordsCallback {
+    fileprivate let operation: @Sendable () async -> Void
+    func notify() async {
       await operation()
     }
   }
@@ -32,12 +31,7 @@ extension SyncEngine {
     scope: CKDatabase.Scope,
     saving recordZonesToSave: [CKRecordZone] = [],
     deleting recordZoneIDsToDelete: [CKRecordZone.ID] = []
-  ) throws -> ModifyRecordsCallback<
-    (
-      saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
-      deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
-    )
-  > {
+  ) throws -> ModifyRecordsCallback {
     let syncEngine = syncEngine(for: scope)
 
     let (saveResults, deleteResults) = try syncEngine.database.modifyRecordZones(
@@ -58,7 +52,6 @@ extension SyncEngine {
           ),
           syncEngine: syncEngine
         )
-      return (saveResults, deleteResults)
     }
   }
 
@@ -67,12 +60,7 @@ extension SyncEngine {
     saving recordsToSave: [CKRecord] = [],
     deleting recordIDsToDelete: [CKRecord.ID] = [],
     atomically: Bool = true
-  ) throws -> ModifyRecordsCallback<
-    (
-      saveResults: [CKRecord.ID: Result<CKRecord, any Error>],
-      deleteResults: [CKRecord.ID: Result<Void, any Error>]
-    )
-  > {
+  ) throws -> ModifyRecordsCallback {
     let syncEngine = syncEngine(for: scope)
     let recordsToDeleteByID = Dictionary(
       grouping: syncEngine.database.state.withValue { state in
@@ -91,20 +79,30 @@ extension SyncEngine {
     )
 
     return ModifyRecordsCallback {
+      let savedRecordIDs = saveResults.compactMap { recordID, result in
+        (try? result.get()) != nil ? recordID : nil
+      }
+      let deletedRecordIDs = deleteResults.compactMap { recordID, result in
+        (try? result.get()) != nil ? recordID : nil
+      }
+      let freshRecords =
+        (try? syncEngine.database.records(
+          for: savedRecordIDs + deletedRecordIDs,
+          desiredKeys: nil
+        )) ?? [:]
       await syncEngine.parentSyncEngine.handleEvent(
         .fetchedRecordZoneChanges(
-          modifications: saveResults.values.compactMap { try? $0.get() },
-          deletions: deleteResults.compactMap { recordID, result in
-            (recordsToDeleteByID[recordID]?.recordType).flatMap { recordType in
-              (try? result.get()) != nil
-                ? (recordID, recordType)
-                : nil
-            }
+          modifications: savedRecordIDs.compactMap { recordID in
+            try? freshRecords[recordID]?.get()
+          },
+          deletions: deletedRecordIDs.compactMap { recordID in
+            guard (try? freshRecords[recordID]?.get()) == nil else { return nil }
+            guard let record = recordsToDeleteByID[recordID] else { return nil }
+            return (recordID, record.recordType)
           }
         ),
         syncEngine: syncEngine
       )
-      return (saveResults, deleteResults)
     }
   }
 }

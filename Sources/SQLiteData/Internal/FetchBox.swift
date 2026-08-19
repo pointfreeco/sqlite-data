@@ -47,7 +47,7 @@
   final class FetchAllBox<Element: Sendable>: Sendable {
     let sharedReader: SharedReader<[Element]>
     let sectionedReader: SharedReader<ResultsSectionCollection<Element, String?>>
-    let sectioning = LockIsolated<_Sectioning?>(nil)
+    let sectioning = LockIsolated<_Sectioning<String?>?>(nil)
     private let storage = LockIsolated(Storage())
 
     var fetchKeyID: FetchKeyID? {

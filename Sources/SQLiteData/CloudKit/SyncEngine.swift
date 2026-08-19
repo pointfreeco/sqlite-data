@@ -269,7 +269,8 @@
         url: try URL.metadatabase(
           databasePath: userDatabase.path,
           containerIdentifier: container.containerIdentifier
-        )
+        ),
+        configuration: userDatabase.configuration
       )
       self.tablesByName = Dictionary(
         uniqueKeysWithValues: self.tables.map { ($0.base.tableName, $0) }

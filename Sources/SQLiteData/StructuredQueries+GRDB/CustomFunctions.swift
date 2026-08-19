@@ -20,12 +20,12 @@ extension Database {
       Unmanaged.passRetained(ScalarDatabaseFunctionDefinition(function)).toOpaque(),
       { context, argumentCount, arguments in
         do {
-          var decoder = SQLiteFunctionDecoder(argumentCount: argumentCount, arguments: arguments)
-          try Unmanaged<ScalarDatabaseFunctionDefinition>
+          let definition = Unmanaged<ScalarDatabaseFunctionDefinition>
             .fromOpaque(sqlite3_user_data(context))
             .takeUnretainedValue()
-            .function
-            .invoke(&decoder)
+          definition.decoder.reset(argumentCount: argumentCount, arguments: arguments)
+          try definition.function
+            .invoke(&definition.decoder)
             .result(db: context)
         } catch {
           QueryBinding.invalid(error).result(db: context)
@@ -53,10 +53,10 @@ extension Database {
       body,
       nil,
       { context, argumentCount, arguments in
-        var decoder = SQLiteFunctionDecoder(argumentCount: argumentCount, arguments: arguments)
         let function = AggregateDatabaseFunctionContext[context].takeUnretainedValue()
+        function.decoder.reset(argumentCount: argumentCount, arguments: arguments)
         do {
-          try function.iterator.step(&decoder)
+          try function.iterator.step(&function.decoder)
         } catch {
           sqlite3_result_error(context, error.localizedDescription, -1)
         }
@@ -109,8 +109,10 @@ extension DatabaseFunction {
 
 private final class ScalarDatabaseFunctionDefinition {
   let function: any ScalarDatabaseFunction
+  var decoder: SQLiteFunctionDecoder
   init(_ function: some ScalarDatabaseFunction) {
     self.function = function
+    self.decoder = SQLiteFunctionDecoder(name: function.name)
   }
 }
 
@@ -143,8 +145,10 @@ private final class AggregateDatabaseFunctionContext {
     }
   }
   let iterator: any AggregateDatabaseFunctionIteratorProtocol
+  var decoder: SQLiteFunctionDecoder
   init(_ body: some AggregateDatabaseFunction) {
     self.iterator = AggregateDatabaseFunctionIterator(body)
+    self.decoder = SQLiteFunctionDecoder(name: body.name)
   }
 }
 
@@ -239,25 +243,35 @@ extension QueryBinding {
   fileprivate func result(db: OpaquePointer?) {
     switch self {
     case .blob(let blob):
-      sqlite3_result_blob(db, Array(blob), Int32(blob.count), SQLITE_TRANSIENT)
+      if blob.isEmpty {
+        sqlite3_result_zeroblob(db, 0)
+      } else {
+        sqlite3_result_blob(db, blob, Int32(blob.count), SQLITE_TRANSIENT)
+      }
     case .bool(let bool):
       sqlite3_result_int64(db, bool ? 1 : 0)
     case .double(let double):
       sqlite3_result_double(db, double)
     case .date(let date):
-      sqlite3_result_text(db, date.iso8601String, -1, SQLITE_TRANSIENT)
+      date.iso8601String.withUTF8Text {
+        sqlite3_result_text(db, $0, $1, SQLITE_TRANSIENT)
+      }
     case .int(let int):
       sqlite3_result_int64(db, int)
     case .null:
       sqlite3_result_null(db)
     case .text(let text):
-      sqlite3_result_text(db, text, -1, SQLITE_TRANSIENT)
+      text.withUTF8Text {
+        sqlite3_result_text(db, $0, $1, SQLITE_TRANSIENT)
+      }
     case .uint(let uint) where uint <= UInt64(Int64.max):
       sqlite3_result_int64(db, Int64(uint))
     case .uint(let uint):
       sqlite3_result_error(db, "Unsigned integer \(uint) overflows Int64.max", -1)
     case .uuid(let uuid):
-      sqlite3_result_text(db, uuid.uuidString.lowercased(), -1, SQLITE_TRANSIENT)
+      uuid.withLowercasedUTF8Text {
+        sqlite3_result_text(db, $0, $1, SQLITE_TRANSIENT)
+      }
     case .invalid(let error):
       sqlite3_result_error(db, error.underlyingError.localizedDescription, -1)
     }
