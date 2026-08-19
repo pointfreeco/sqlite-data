@@ -33,6 +33,7 @@ private struct FactsListView: View {
   @FetchAll private var facts: [Fact]
 
   init(isFavoritesOnly: Bool) {
+    print("FactsListView.init")
     if isFavoritesOnly {
       _facts = FetchAll(Fact.where(\.isFavorite))
     } else {
@@ -65,7 +66,13 @@ nonisolated private struct Fact: Identifiable {
 
 extension DatabaseWriter where Self == DatabaseQueue {
   static var parentDrivenQueryDatabase: Self {
-    let databaseQueue = try! DatabaseQueue()
+    var configuration = Configuration()
+    configuration.prepareDatabase {
+      $0.trace {
+        print($0.description)
+      }
+    }
+    let databaseQueue = try! DatabaseQueue(configuration: configuration)
     var migrator = DatabaseMigrator()
     migrator.registerMigration("Create 'facts' table") { db in
       try #sql(
