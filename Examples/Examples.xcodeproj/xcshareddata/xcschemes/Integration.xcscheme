@@ -15,9 +15,8 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "CA2BDD9C2E71C30B000974D3"
-               BuildableName = "CloudKitDemo.app"
-               BlueprintName = "CloudKitDemo"
+               BlueprintIdentifier = "DC1584A530363595009DD95C"
+               BuildableName = "Integration.app"
                ReferencedContainer = "container:Examples.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -45,9 +44,8 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "CA2BDD9C2E71C30B000974D3"
-            BuildableName = "CloudKitDemo.app"
-            BlueprintName = "CloudKitDemo"
+            BlueprintIdentifier = "DC1584A530363595009DD95C"
+            BuildableName = "Integration.app"
             ReferencedContainer = "container:Examples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,9 +60,8 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "CA2BDD9C2E71C30B000974D3"
-            BuildableName = "CloudKitDemo.app"
-            BlueprintName = "CloudKitDemo"
+            BlueprintIdentifier = "DC1584A530363595009DD95C"
+            BuildableName = "Integration.app"
             ReferencedContainer = "container:Examples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

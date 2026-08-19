@@ -37,7 +37,7 @@ final class SyncUpDetailModel: HashableObject {
     self.destination = destination
     _attendees = FetchAll(Attendee.where { $0.syncUpID.eq(syncUp.id) })
     _meetings = FetchAll(Meeting.where { $0.syncUpID.eq(syncUp.id) })
-    _syncUp = FetchOne(wrappedValue: syncUp, SyncUp.find(syncUp.id))
+    _syncUp = FetchOne(wrappedValue: syncUp)
   }
 
   func deleteMeetings(atOffsets indices: IndexSet) {
