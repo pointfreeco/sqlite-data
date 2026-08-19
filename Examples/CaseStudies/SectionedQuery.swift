@@ -4,22 +4,15 @@ import SwiftUI
 struct SectionedQueryDemo: SwiftUICaseStudy {
   let readMe = """
     This demonstrates how to group the results of a `@FetchAll` query into sections by providing \
-    a `sectionBy:` argument. Results are ordered and grouped into a section for each distinct \
-    value of the sectioning expression, and the sections are accessed from the property's \
-    projected value.
+    a `sectionBy:` argument.
 
     Use the picker to change how the reminders are sectioned: by category, by priority, or with \
-    no sectioning at all. This is done by invoking the `load` method defined on the `@FetchAll` \
-    projected value with a `sectionBy:` closure that can return a different expression depending \
-    on state, or `nil` for no grouping. Reminders without a priority are grouped into a section \
-    with a `nil` name. You can also delete rows by swiping on a row and tapping the "Delete" \
-    button.
+    no sectioning at all. When grouping by priority, the section of reminders with no priority \
+    are ordered to the bottom of the list.
     """
   let caseStudyTitle = "Sectioned Queries"
 
-  @FetchAll(Reminder.order(by: \.title), sectionBy: \.category, animation: .default)
-  private var reminders
-
+  @FetchAll(Reminder.none) private var reminders
   @State private var sectioning = Sectioning.category
 
   @Dependency(\.defaultDatabase) var database
@@ -57,15 +50,15 @@ struct SectionedQueryDemo: SwiftUICaseStudy {
             }
           }
         } header: {
-          if let name = section.name {
-            Text(name)
+          if sectioning != .none {
+            Text(section.name ?? "None")
           }
         }
       }
     }
     .task(id: sectioning) {
       await withErrorReporting {
-        try await $reminders.load(
+        _ = try await $reminders.load(
           Reminder.order(by: \.title),
           sectionBy: {
             switch sectioning {
