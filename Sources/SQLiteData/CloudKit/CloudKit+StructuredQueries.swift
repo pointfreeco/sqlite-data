@@ -1,7 +1,9 @@
 #if canImport(CloudKit)
-  import CloudKit
+  public import CloudKit
   import CryptoKit
-  import StructuredQueriesCore
+  import Dependencies
+  import IssueReporting
+  public import StructuredQueriesCore
 
   extension CKRecord {
     public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<CKRecord>
@@ -190,7 +192,7 @@
     }
 
     @discardableResult
-    package func setValue(
+    package func setBytes(
       _ newValue: [UInt8],
       forKey key: CKRecord.FieldKey,
       at userModificationTime: Int64
@@ -252,7 +254,7 @@
           let value = Value(queryOutput: row[keyPath: keyPath])
           switch value.queryBinding {
           case .blob(let value):
-            setValue(value, forKey: column.name, at: userModificationTime)
+            setBytes(value, forKey: column.name, at: userModificationTime)
           case .bool(let value):
             setValue(value, forKey: column.name, at: userModificationTime)
           case .double(let value):

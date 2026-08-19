@@ -1,5 +1,7 @@
 #if canImport(CloudKit)
-  import CloudKit
+  public import CloudKit
+  import StructuredQueries
+  public import StructuredQueriesCore
 
   /// A table that tracks metadata related to synchronized data.
   ///
@@ -8,7 +10,7 @@
   /// application is the number of rows this one single table holds. However, this table is held
   /// in a database separate from your app's database.
   ///
-  /// See <doc:CloudKit#Accessing-CloudKit-metadata> for more info.
+  /// See <doc:CloudKitSync#Accessing-CloudKit-metadata> for more info.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   @Table("sqlitedata_icloud_metadata")
   public struct SyncMetadata: Hashable, Identifiable, Sendable {

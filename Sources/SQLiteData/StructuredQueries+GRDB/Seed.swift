@@ -1,5 +1,6 @@
 import Dependencies
-import StructuredQueriesCore
+public import GRDB
+public import StructuredQueriesCore
 
 extension Database {
   /// Seeds a database with the given values.

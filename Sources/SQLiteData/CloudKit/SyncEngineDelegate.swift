@@ -1,6 +1,7 @@
 #if canImport(CloudKit)
-  import CloudKit
+  public import CloudKit
   import CustomDump
+  import IssueReporting
 
   /// An interface for observing ``SyncEngine`` events and customizing ``SyncEngine`` behavior.
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

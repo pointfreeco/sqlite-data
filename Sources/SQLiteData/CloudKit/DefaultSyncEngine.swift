@@ -1,6 +1,7 @@
 #if canImport(CloudKit)
   import CloudKit
-  import Dependencies
+  import GRDB
+  public import Dependencies
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension DependencyValues {

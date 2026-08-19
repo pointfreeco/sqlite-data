@@ -1,10 +1,12 @@
-import Sharing
+public import GRDB
+public import Sharing
+public import StructuredQueriesCore
 
 #if canImport(Combine)
-  import Combine
+  public import Combine
 #endif
 #if canImport(SwiftUI)
-  import SwiftUI
+  public import SwiftUI
 #endif
 
 /// A property that can query for a value in a SQLite database.
@@ -19,11 +21,31 @@ import Sharing
 @dynamicMemberLookup
 @propertyWrapper
 public struct FetchOne<Value: Sendable>: Sendable {
-  /// The underlying shared reader powering the property wrapper.
-  ///
-  /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing) package,
-  /// a general solution to observing and persisting changes to external data sources.
-  public var sharedReader: SharedReader<Value>
+  #if canImport(SwiftUI)
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public var sharedReader: SharedReader<Value> {
+      @storageRestrictions(initializes: box, state)
+      init(initialValue) {
+        let box = FetchBox(sharedReader: initialValue)
+        self.box = box
+        state = SwiftUI.State(wrappedValue: box)
+      }
+      get { state.wrappedValue.sharedReader }
+    }
+
+    private let box: FetchBox<Value>
+    private let state: SwiftUI.State<FetchBox<Value>>
+    private let generation = SwiftUI.State(wrappedValue: 0)
+  #else
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public let sharedReader: SharedReader<Value>
+  #endif
 
   /// A value associated with the underlying query.
   public var wrappedValue: Value {
@@ -104,10 +126,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
     Value: StructuredQueriesCore.Table & QueryRepresentable, Value.QueryOutput == Value
   {
     let statement = Value.all.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query that fetches the first row from a table.
@@ -126,9 +150,56 @@ public struct FetchOne<Value: Sendable>: Sendable {
     Value.QueryOutput == Value
   {
     let statement = Value.all.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(request, database: database)
+    )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
+  }
+
+  /// Initializes this property with a query that fetches the first row from a table.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+    Value: StructuredQueriesCore._OptionalProtocol,
+    Value: PrimaryKeyedTable,
+    Value.QueryOutput == Value
+  {
+    let statement = Value.all.selectStar().asSelect().limit(1)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
       .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
+    )
+  }
+
+  /// Initializes this property with a query that observes the given row from a table.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil
+  )
+  where
+    Value: PrimaryKeyedTable & QueryRepresentable, Value.QueryOutput == Value
+  {
+    let statement = Value.all
+      .selectStar()
+      .asSelect()
+      .find(Value.PrimaryKey(queryOutput: wrappedValue.primaryKey))
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
     )
   }
 
@@ -168,10 +239,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
   where
     Value == V.QueryOutput
   {
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -189,10 +262,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
   where
     Value == V.QueryOutput?
   {
+    let request = FetchOneStatementOptionalValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -211,10 +286,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
     Value: QueryRepresentable,
     Value == S.QueryValue.QueryOutput
   {
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -236,10 +313,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementOptionalValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -260,13 +339,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
     S.QueryValue: StructuredQueriesCore._OptionalProtocol,
     Value == S.QueryValue.QueryOutput
   {
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementOptionalProtocolRequest(statement: statement),
-        database: database
-      )
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -286,10 +364,12 @@ public struct FetchOne<Value: Sendable>: Sendable {
     Value: StructuredQueriesCore._OptionalProtocol,
     Value.QueryOutput == Value
   {
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -426,10 +506,29 @@ public struct FetchOne<Value: Sendable>: Sendable {
     )
     return FetchSubscription(sharedReader: sharedReader)
   }
+
+  #if !canImport(SwiftUI)
+    @_transparent
+  #endif
+  private func setFetchKeyID<V: Sendable>(
+    for request: some FetchKeyRequest<V>,
+    database: (any DatabaseReader)?,
+    scheduler: (any ValueObservationScheduler & Hashable)?
+  ) {
+    #if canImport(SwiftUI)
+      box.fetchKeyID = FetchKey(request: request, database: database, scheduler: scheduler).id
+    #endif
+  }
 }
 
 extension FetchOne {
-  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  @available(
+    *,
+    deprecated,
+    message: """
+      '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+      """
+  )
   public init(
     wrappedValue: sending Value,
     database: (any DatabaseReader)? = nil,
@@ -437,6 +536,26 @@ extension FetchOne {
   )
   where
     Value: _Selection,
+    Value.QueryOutput == Value
+  {
+    sharedReader = SharedReader(value: wrappedValue)
+  }
+
+  @available(
+    *,
+    deprecated,
+    message: """
+      '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+      """
+  )
+  public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Value: _Selection,
+    Value: PrimaryKeyedTable,
     Value.QueryOutput == Value
   {
     sharedReader = SharedReader(value: wrappedValue)
@@ -473,14 +592,12 @@ extension FetchOne {
     Value: StructuredQueriesCore.Table & QueryRepresentable, Value.QueryOutput == Value
   {
     let statement = Value.all.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query that fetches the first row from a table.
@@ -502,10 +619,67 @@ extension FetchOne {
     Value.QueryOutput == Value
   {
     let statement = Value.all.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(request, database: database, scheduler: scheduler)
+    )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
+  }
+
+  /// Initializes this property with a query that fetches the first row from a table.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Value: StructuredQueriesCore._OptionalProtocol,
+    Value: PrimaryKeyedTable,
+    Value.QueryOutput == Value
+  {
+    let statement = Value.all.selectStar().asSelect().limit(1)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
       .fetch(
         FetchOneStatementOptionalProtocolRequest(statement: statement),
+        database: database,
+        scheduler: scheduler
+      )
+    )
+  }
+
+  /// Initializes this property with a query that observes the given row from a table.
+  ///
+  /// - Parameters:
+  ///   - wrappedValue: A default value to associate with this property.
+  ///   - database: The database to read from. A value of `nil` will use the default database
+  ///     (`@Dependency(\.defaultDatabase)`).
+  ///   - scheduler: The scheduler to observe from. By default, database observation is performed
+  ///     asynchronously on the main queue.
+  public init(
+    wrappedValue: sending Value,
+    database: (any DatabaseReader)? = nil,
+    scheduler: some ValueObservationScheduler & Hashable
+  )
+  where
+    Value: PrimaryKeyedTable & QueryRepresentable, Value.QueryOutput == Value
+  {
+    let statement = Value.all
+      .selectStar()
+      .asSelect()
+      .find(Value.PrimaryKey(queryOutput: wrappedValue.primaryKey))
+    sharedReader = SharedReader(
+      wrappedValue: wrappedValue,
+      .fetch(
+        FetchOneStatementValueRequest(statement: statement),
         database: database,
         scheduler: scheduler
       )
@@ -554,14 +728,12 @@ extension FetchOne {
   where
     Value == V.QueryOutput
   {
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -582,14 +754,12 @@ extension FetchOne {
   where
     Value == V.QueryOutput?
   {
+    let request = FetchOneStatementOptionalValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementOptionalValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -611,14 +781,12 @@ extension FetchOne {
     Value: QueryRepresentable,
     Value == S.QueryValue.QueryOutput
   {
+    let request = FetchOneStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -643,14 +811,12 @@ extension FetchOne {
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect().limit(1)
+    let request = FetchOneStatementOptionalValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementOptionalValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -674,14 +840,12 @@ extension FetchOne {
     S.QueryValue: StructuredQueriesCore._OptionalProtocol,
     Value == S.QueryValue.QueryOutput
   {
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementOptionalProtocolRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with an optional value.
@@ -704,14 +868,12 @@ extension FetchOne {
     Value: StructuredQueriesCore._OptionalProtocol,
     Value.QueryOutput == Value
   {
+    let request = FetchOneStatementOptionalProtocolRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchOneStatementOptionalProtocolRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -903,10 +1065,20 @@ extension FetchOne: Equatable where Value: Equatable {
 #if canImport(SwiftUI)
   extension FetchOne: DynamicProperty {
     public func update() {
-      sharedReader.update()
+      let persisted = state.wrappedValue
+      if persisted !== box {
+        persisted.update(from: box)
+      }
+      persisted.subscribe(generation: generation)
     }
 
-    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    @available(
+      *,
+      deprecated,
+      message: """
+        '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+        """
+    )
     public init(
       wrappedValue: sending Value,
       database: (any DatabaseReader)? = nil,
@@ -914,6 +1086,26 @@ extension FetchOne: Equatable where Value: Equatable {
     )
     where
       Value: _Selection,
+      Value.QueryOutput == Value
+    {
+      sharedReader = SharedReader(value: wrappedValue)
+    }
+
+    @available(
+      *,
+      deprecated,
+      message: """
+        '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+        """
+    )
+    public init(
+      wrappedValue: sending Value,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+      Value: _Selection,
+      Value: PrimaryKeyedTable,
       Value.QueryOutput == Value
     {
       sharedReader = SharedReader(value: wrappedValue)
@@ -971,6 +1163,48 @@ extension FetchOne: Equatable where Value: Equatable {
       Value: StructuredQueriesCore._OptionalProtocol,
       Value: StructuredQueriesCore.Table,
       Value.QueryOutput == Value
+    {
+      self.init(wrappedValue: wrappedValue, database: database, scheduler: .animation(animation))
+    }
+
+    /// Initializes this property with a query that fetches the first row from a table.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: A default value to associate with this property.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    public init(
+      wrappedValue: sending Value,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+      Value: StructuredQueriesCore._OptionalProtocol,
+      Value: PrimaryKeyedTable,
+      Value.QueryOutput == Value
+    {
+      self.init(wrappedValue: wrappedValue, database: database, scheduler: .animation(animation))
+    }
+
+    /// Initializes this property with a query that observes the given row from a table.
+    ///
+    /// - Parameters:
+    ///   - wrappedValue: A default value to associate with this property.
+    ///   - database: The database to read from. A value of `nil` will use the default database
+    ///     (`@Dependency(\.defaultDatabase)`).
+    ///   - animation: The animation to use for user interface changes that result from changes to
+    ///     the fetched results.
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    public init(
+      wrappedValue: sending Value,
+      database: (any DatabaseReader)? = nil,
+      animation: Animation
+    )
+    where
+      Value: PrimaryKeyedTable & QueryRepresentable, Value.QueryOutput == Value
     {
       self.init(wrappedValue: wrappedValue, database: database, scheduler: .animation(animation))
     }
@@ -1189,7 +1423,7 @@ extension FetchOne: Equatable where Value: Equatable {
     public func load<S: SelectStatement>(
       _ statement: S,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Value == S.From.QueryOutput,
@@ -1213,7 +1447,7 @@ extension FetchOne: Equatable where Value: Equatable {
     public func load<V: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Value == V.QueryOutput
@@ -1235,7 +1469,7 @@ extension FetchOne: Equatable where Value: Equatable {
     public func load<V: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Value == V.QueryOutput?
@@ -1257,7 +1491,7 @@ extension FetchOne: Equatable where Value: Equatable {
     public func load<S: SelectStatement>(
       _ statement: S,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Value: StructuredQueriesCore._OptionalProtocol,
@@ -1282,7 +1516,7 @@ extension FetchOne: Equatable where Value: Equatable {
     public func load<S: StructuredQueriesCore.Statement>(
       _ statement: S,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Value: StructuredQueriesCore._OptionalProtocol,
@@ -1307,7 +1541,7 @@ extension FetchOne: Equatable where Value: Equatable {
     public func load(
       _ statement: some StructuredQueriesCore.Statement<Value>,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Value: QueryRepresentable,
@@ -1319,38 +1553,39 @@ extension FetchOne: Equatable where Value: Equatable {
   }
 #endif
 
-private struct FetchOneStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
-  let statement: SQLQueryExpression<Value>
-  init(statement: some StructuredQueriesCore.Statement<Value>) {
-    self.statement = SQLQueryExpression(statement)
+private struct FetchOneStatementValueRequest<QueryValue: QueryRepresentable>: StatementKeyRequest {
+  let prepared: PreparedQuery
+  init(statement: some StructuredQueriesCore.Statement<QueryValue>) {
+    self.prepared = PreparedQuery(statement.query)
   }
-  func fetch(_ db: Database) throws -> Value.QueryOutput {
-    guard let result = try statement.fetchOne(db)
+  func fetch(_ db: Database) throws -> QueryValue.QueryOutput {
+    guard
+      let result = try QueryValueCursor<QueryValue>(db: db, prepared: prepared, cached: true).next()
     else { throw NotFound() }
     return result
   }
 }
 
-private struct FetchOneStatementOptionalValueRequest<Value: QueryRepresentable>:
+private struct FetchOneStatementOptionalValueRequest<QueryValue: QueryRepresentable>:
   StatementKeyRequest
 {
-  let statement: SQLQueryExpression<Value>
-  init(statement: some StructuredQueriesCore.Statement<Value>) {
-    self.statement = SQLQueryExpression(statement)
+  let prepared: PreparedQuery
+  init(statement: some StructuredQueriesCore.Statement<QueryValue>) {
+    self.prepared = PreparedQuery(statement.query)
   }
-  func fetch(_ db: Database) throws -> Value.QueryOutput? {
-    try statement.fetchOne(db)
+  func fetch(_ db: Database) throws -> QueryValue.QueryOutput? {
+    try QueryValueCursor<QueryValue>(db: db, prepared: prepared, cached: true).next()
   }
 }
 
 private struct FetchOneStatementOptionalProtocolRequest<
-  Value: QueryRepresentable & StructuredQueriesCore._OptionalProtocol
->: StatementKeyRequest where Value.QueryOutput: StructuredQueriesCore._OptionalProtocol {
-  let statement: SQLQueryExpression<Value>
-  init(statement: some StructuredQueriesCore.Statement<Value>) {
-    self.statement = SQLQueryExpression(statement)
+  QueryValue: QueryRepresentable & StructuredQueriesCore._OptionalProtocol
+>: StatementKeyRequest where QueryValue.QueryOutput: StructuredQueriesCore._OptionalProtocol {
+  let prepared: PreparedQuery
+  init(statement: some StructuredQueriesCore.Statement<QueryValue>) {
+    self.prepared = PreparedQuery(statement.query)
   }
-  func fetch(_ db: Database) throws -> Value.QueryOutput {
-    try statement.fetchOne(db) ?? ._none
+  func fetch(_ db: Database) throws -> QueryValue.QueryOutput {
+    try QueryValueCursor<QueryValue>(db: db, prepared: prepared, cached: true).next() ?? ._none
   }
 }

@@ -716,7 +716,7 @@
           let personalListRecord = try syncEngine.private.database.record(
             for: RemindersList.recordID(for: 1)
           )
-          personalListRecord.setValue(Array("image".utf8), forKey: "image", at: now)
+          personalListRecord.setBytes(Array("image".utf8), forKey: "image", at: now)
 
           try await syncEngine.modifyRecords(
             scope: .private,
@@ -775,15 +775,15 @@
           let personalListRecord = try syncEngine.private.database.record(
             for: RemindersList.recordID(for: 1)
           )
-          personalListRecord.setValue(Array("personal-image".utf8), forKey: "image", at: now)
+          personalListRecord.setBytes(Array("personal-image".utf8), forKey: "image", at: now)
           let businessListRecord = try syncEngine.private.database.record(
             for: RemindersList.recordID(for: 2)
           )
-          businessListRecord.setValue(Array("business-image".utf8), forKey: "image", at: now)
+          businessListRecord.setBytes(Array("business-image".utf8), forKey: "image", at: now)
           let secretListRecord = try syncEngine.private.database.record(
             for: RemindersList.recordID(for: 3)
           )
-          secretListRecord.setValue(Array("secret-image".utf8), forKey: "image", at: now)
+          secretListRecord.setBytes(Array("secret-image".utf8), forKey: "image", at: now)
 
           try await syncEngine.modifyRecords(
             scope: .private,
@@ -837,7 +837,7 @@
             recordType: "images",
             recordID: Image.recordID(for: 1)
           )
-          imageRecord.setValue("1", forKey: "id", at: now)
+          imageRecord.setValue(1, forKey: "id", at: now)
           imageRecord.setValue("A good image", forKey: "caption", at: now)
           imageRecord.setValue(Data("image".utf8), forKey: "image", at: now)
 
@@ -854,7 +854,7 @@
             try #sql(
               """
               CREATE TABLE "images" (
-                "id" TEXT NOT NULL PRIMARY KEY ON CONFLICT REPLACE DEFAULT (uuid()),
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT,
                 "caption" TEXT NOT NULL,
                 "image" BLOB NOT NULL
               )
@@ -892,7 +892,7 @@
                     parent: nil,
                     share: nil,
                     caption: "A good image",
-                    id: "1",
+                    id: 1,
                     image: Data(5 bytes)
                   )
                 ]

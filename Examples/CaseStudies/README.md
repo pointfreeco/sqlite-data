@@ -9,6 +9,8 @@ SQLiteData, including:
     query, such as when searching for rows in a table that contains a fragment of text.
   * [@Observable Models](ObservableModelDemo.swift): Shows how to use the tools of this library
     in an `@Observable` model.
+  * [Sectioned Queries](SectionedQuery.swift): Shows how to group the results of a query into
+    sections using the `sectionBy:` argument of `@FetchAll`.
   * [SwiftUI](SwiftUIDemo.swift): Shows how to use the tools of this library directly in a SwiftUI
     view.
   * [Database Transactions](TransactionDemo.swift): Shows how to execute multiple queries within

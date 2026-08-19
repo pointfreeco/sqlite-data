@@ -1,7 +1,8 @@
 #if canImport(CloudKit)
-  import CloudKit
+  package import ConcurrencyExtras
+  package import CloudKit
   import IssueReporting
-  import OrderedCollections
+  package import OrderedCollections
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockSyncEngine: SyncEngineProtocol {
@@ -48,6 +49,7 @@
           accum,
           zoneID in
           accum += ((state.storage[zoneID]?.records.values).map { Array($0) } ?? [])
+            .map { $0.copy() as! CKRecord }
             .filter {
               precondition(
                 $0._recordChangeTag != nil,

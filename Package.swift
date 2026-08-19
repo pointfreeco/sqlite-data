@@ -1,14 +1,15 @@
 // swift-tools-version: 6.1
 
+import Foundation
 import PackageDescription
 
 let package = Package(
   name: "sqlite-data",
   platforms: [
-    .iOS(.v13),
-    .macOS(.v10_15),
-    .tvOS(.v13),
-    .watchOS(.v7),
+    .iOS(.v16),
+    .macOS(.v13),
+    .tvOS(.v16),
+    .watchOS(.v9),
   ],
   products: [
     .library(
@@ -22,14 +23,45 @@ let package = Package(
   ],
   traits: [
     .trait(
-      name: "SQLiteDataTagged",
+      name: "CasePaths",
+      description: "Introduce support for enum tables."
+    ),
+    .trait(
+      name: "ColumnCoding",
+      description: "Align the Codable coding of tables and selections with their column names."
+    ),
+    .trait(
+      name: "LazyInitializableByDefault",
+      description: "Optionalize draft properties that have no default."
+    ),
+    .trait(
+      name: "SuppressPlatformSQLiteAvailability",
+      description: """
+        Suppress '@available' checks on APIs that depend on a newer version of SQLite than the one \
+        bundled with the platform.
+        """
+    ),
+    .trait(
+      name: "StrictDecoding",
+      description: """
+        Throw an error, rather than coerce, when decoding a column whose storage type does not \
+        match the expected type.
+        """
+    ),
+    .trait(
+      name: "Tagged",
       description: "Introduce SQLiteData conformances to the swift-tagged package."
-    )
+    ),
+    .trait(
+      name: "SQLiteDataTagged",
+      description: "A deprecated alias for the 'Tagged' trait.",
+      enabledTraits: ["Tagged"]
+    ),
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-collections", from: "1.0.0"),
     .package(url: "https://github.com/groue/GRDB.swift", from: "7.6.0"),
-    .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.0.0"),
+    .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.4.0"),
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.3"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
     .package(url: "https://github.com/pointfreeco/swift-perception", from: "2.0.0"),
@@ -37,9 +69,19 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.31.0",
+      from: "0.36.0",
       traits: [
-        .trait(name: "StructuredQueriesTagged", condition: .when(traits: ["SQLiteDataTagged"]))
+        .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
+        .trait(name: "ColumnCoding", condition: .when(traits: ["ColumnCoding"])),
+        .trait(
+          name: "LazyInitializableByDefault",
+          condition: .when(traits: ["LazyInitializableByDefault"])
+        ),
+        .trait(
+          name: "SuppressPlatformSQLiteAvailability",
+          condition: .when(traits: ["SuppressPlatformSQLiteAvailability"])
+        ),
+        .trait(name: "Tagged", condition: .when(traits: ["Tagged"])),
       ]
     ),
     .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
@@ -60,7 +102,7 @@ let package = Package(
         .product(
           name: "Tagged",
           package: "swift-tagged",
-          condition: .when(traits: ["SQLiteDataTagged"])
+          condition: .when(traits: ["Tagged"])
         ),
       ]
     ),
@@ -69,6 +111,7 @@ let package = Package(
       dependencies: [
         "SQLiteData",
         .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
+        .product(name: "ConcurrencyExtrasTestSupport", package: "swift-concurrency-extras"),
         .product(name: "CustomDump", package: "swift-custom-dump"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
@@ -80,28 +123,38 @@ let package = Package(
       dependencies: [
         "SQLiteData",
         "SQLiteDataTestSupport",
+        "TestLocals",
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),
         .product(name: "InlineSnapshotTesting", package: "swift-snapshot-testing"),
         .product(name: "SnapshotTestingCustomDump", package: "swift-snapshot-testing"),
         .product(name: "StructuredQueries", package: "swift-structured-queries"),
       ]
     ),
+    .target(
+      name: "TestLocals",
+      dependencies: ["SQLiteData"]
+    ),
   ],
   swiftLanguageModes: [.v6]
 )
 
-let swiftSettings: [SwiftSetting] = [
-  .enableUpcomingFeature("MemberImportVisibility")
-  // .unsafeFlags([
-  //   "-Xfrontend",
-  //   "-warn-long-function-bodies=50",
-  //   "-Xfrontend",
-  //   "-warn-long-expression-type-checking=50",
-  // ])
-]
-
-for index in package.targets.indices {
-  package.targets[index].swiftSettings = swiftSettings
+for target in package.targets {
+  target.swiftSettings = target.swiftSettings ?? []
+  target.swiftSettings?.append(contentsOf: [
+    .enableUpcomingFeature("ExistentialAny"),
+    .enableUpcomingFeature("ImmutableWeakCaptures"),
+    .enableUpcomingFeature("InferIsolatedConformances"),
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+  ])
+  if target.type != .test {
+    target.swiftSettings?.append(contentsOf: [
+      .enableUpcomingFeature("InternalImportsByDefault"),
+      .enableUpcomingFeature("MemberImportVisibility"),
+    ])
+    if ProcessInfo.processInfo.environment.keys.contains("EXCLUDE_EXPORTS") {
+      target.swiftSettings?.append(.define("EXCLUDE_EXPORTS"))
+    }
+  }
 }
 
 #if !os(Windows)

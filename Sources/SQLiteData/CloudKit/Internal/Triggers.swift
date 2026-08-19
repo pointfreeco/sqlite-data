@@ -1,6 +1,8 @@
 #if canImport(CloudKit)
   import CloudKit
   import Foundation
+  import StructuredQueries
+  import StructuredQueriesSQLite
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PrimaryKeyedTable {
@@ -539,6 +541,7 @@
     }
   }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension QueryExpression<String> {
     fileprivate var isValidCloudKitRecordName: some QueryExpression<Bool> {
       substr(1, 1).neq("_") && octetLength().lte(255) && octetLength().eq(length())

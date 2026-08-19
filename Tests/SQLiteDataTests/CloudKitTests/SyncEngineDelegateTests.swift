@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
+  import ConcurrencyExtrasTestSupport
   import CustomDump
   import DependenciesTestSupport
   import Foundation
@@ -8,13 +9,14 @@
   import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
 
   extension BaseCloudKitTests {
     @MainActor
     final class SyncEngineDelegateTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 
-      @Test(.syncEngineDelegate(MyDelegate()))
+      @Test(.taskLocal($syncEngineDelegate, MyDelegate()))
       func accountChanged() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
@@ -173,7 +175,7 @@
         try await syncEngine.processPendingDatabaseChanges(scope: .private)
       }
 
-      @Test(.syncEngineDelegate(DefaultImplementationDelegate()))
+      @Test(.taskLocal($syncEngineDelegate, DefaultImplementationDelegate()))
       func accountChanged_DefaultImplementation() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
@@ -230,7 +232,7 @@
       wasCalled.withValue { $0 = true }
     }
     deinit {
-      guard wasCalled.withValue(\.self)
+      guard wasCalled.withValue(\.self) || Test.current == nil
       else {
         Issue.record("Delegate method 'syncEngine(_:accountChanged:)' was not called.")
         return
