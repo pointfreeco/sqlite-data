@@ -2,13 +2,13 @@ import Dependencies
 import DependenciesTestSupport
 import Foundation
 import InlineSnapshotTesting
+import SQLiteData
 import SnapshotTestingCustomDump
 import Testing
 
 @testable import Reminders
 
 extension BaseTestSuite {
-  @MainActor
   struct RemindersListsTests {
     @Dependency(\.defaultDatabase) var database
     @Dependency(\.defaultSyncEngine) var syncEngine

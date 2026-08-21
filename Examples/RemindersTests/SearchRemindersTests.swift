@@ -1,13 +1,13 @@
 import Dependencies
 import DependenciesTestSupport
 import InlineSnapshotTesting
+import SQLiteData
 import SnapshotTestingCustomDump
 import Testing
 
 @testable import Reminders
 
 extension BaseTestSuite {
-  @MainActor
   @Suite(
     .snapshots(record: .missing)
   )

@@ -2,7 +2,6 @@ import IssueReporting
 import SQLiteData
 import SwiftUI
 
-@MainActor
 @Observable
 class SearchRemindersModel {
   var showCompletedInSearchResults = false {

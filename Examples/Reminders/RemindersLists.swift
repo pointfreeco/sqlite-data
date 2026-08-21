@@ -4,7 +4,6 @@ import SwiftUI
 import SwiftUINavigation
 import TipKit
 
-@MainActor
 @Observable
 class RemindersListsModel {
   @ObservationIgnored

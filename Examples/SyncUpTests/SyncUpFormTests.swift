@@ -1,12 +1,12 @@
 import Dependencies
 import DependenciesTestSupport
 import Foundation
+import SQLiteData
 import StructuredQueries
 import Testing
 
 @testable import SyncUps
 
-@MainActor
 @Suite(
   .dependencies {
     try $0.bootstrapDatabase()
