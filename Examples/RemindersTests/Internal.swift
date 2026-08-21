@@ -13,7 +13,7 @@ import Testing
   .dependencies {
     try await $0.bootstrapDatabase()
     try await $0.defaultSyncEngine.start()
-    try await $0.defaultDatabase.seedSampleData()
+    try await $0.defaultDatabase.seedTestData()
     try await $0.defaultSyncEngine.sendChanges()
   },
   .snapshots(record: .missing)

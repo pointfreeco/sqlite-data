@@ -1,9 +1,11 @@
 import CloudKit
+import DebugSnapshots
 import SQLiteData
 import SwiftUI
 import SwiftUINavigation
 import TipKit
 
+@DebugSnapshot
 @Observable
 class RemindersListsModel {
   @ObservationIgnored
@@ -48,8 +50,8 @@ class RemindersListsModel {
   )
   var stats = Stats()
 
-  var destination: Destination?
-  var searchRemindersModel = SearchRemindersModel()
+  @DebugSnapshotConvertible var destination: Destination?
+  @DebugSnapshotConvertible var searchRemindersModel = SearchRemindersModel()
   var seedDatabaseTip: SeedDatabaseTip?
 
   @ObservationIgnored
@@ -149,7 +151,9 @@ class RemindersListsModel {
   #endif
 
   @CasePathable
+  @DebugSnapshot
   enum Destination {
+    @DebugSnapshotConvertible
     case detail(RemindersDetailModel)
     case reminderForm(Reminder.Draft, remindersList: RemindersList)
     case remindersListForm(RemindersList.Draft)

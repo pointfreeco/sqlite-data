@@ -1,7 +1,9 @@
+import DebugSnapshots
 import IssueReporting
 import SQLiteData
 import SwiftUI
 
+@DebugSnapshot
 @Observable
 class SearchRemindersModel {
   var showCompletedInSearchResults = false {
@@ -39,6 +41,7 @@ class SearchRemindersModel {
     !searchText.isEmpty || !searchTokens.isEmpty
   }
 
+  @DebugSnapshotIgnored
   var searchTask: Task<Void, any Error>? {
     willSet {
       searchTask?.cancel()
@@ -114,12 +117,12 @@ class SearchRemindersModel {
   @Selection
   struct Row: Identifiable {
     var id: Reminder.ID { reminder.id }
-    let isPastDue: Bool
-    let notes: String
-    let reminder: Reminders.Reminder
-    let remindersList: RemindersList
-    let tags: String
-    let title: String
+    var isPastDue: Bool
+    var notes: String
+    var reminder: Reminders.Reminder
+    var remindersList: RemindersList
+    var tags: String
+    var title: String
   }
 
   struct SearchRequest: FetchKeyRequest {
