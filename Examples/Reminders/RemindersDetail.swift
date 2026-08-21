@@ -1,11 +1,12 @@
 import CasePaths
 import CloudKit
+import DebugSnapshots
 import SQLiteData
 import Sharing
 import SwiftUI
 import SwiftUINavigation
 
-@MainActor
+@DebugSnapshot
 @Observable
 class RemindersDetailModel: HashableObject {
   @ObservationIgnored @FetchAll var reminderRows: [Row]
@@ -165,11 +166,11 @@ class RemindersDetailModel: HashableObject {
   @Selection
   struct Row: Identifiable {
     var id: Reminder.ID { reminder.id }
-    let reminder: Reminder
-    let remindersList: RemindersList
-    let isPastDue: Bool
-    let notes: String
-    let tags: String
+    var reminder: Reminder
+    var remindersList: RemindersList
+    var isPastDue: Bool
+    var notes: String
+    var tags: String
   }
 }
 

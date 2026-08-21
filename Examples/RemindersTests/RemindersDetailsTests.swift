@@ -1,94 +1,70 @@
+import DebugSnapshots
 import Dependencies
 import DependenciesTestSupport
+import Foundation
 import InlineSnapshotTesting
+import SQLiteData
 import SnapshotTestingCustomDump
 import Testing
 
 @testable import Reminders
 
 extension BaseTestSuite {
-  @MainActor
   struct RemindersDetailsTests {
     @Dependency(\.defaultDatabase) var database
 
     @Test func basics() async throws {
       let remindersList = try await database.read { try RemindersList.fetchOne($0)! }
       let model = RemindersDetailModel(detailType: .remindersList(remindersList))
-      try await model.$reminderRows.load()
-      assertInlineSnapshot(of: model.reminderRows, as: .customDump) {
-        #"""
-        [
-          [0]: RemindersDetailModel.Row(
+      try await expect(model) {
+        try await model.$reminderRows.load()
+      } changes: {
+        $0.reminderRows = [
+          RemindersDetailModel.Row(
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000004),
-              dueDate: Date(2009-02-11T23:31:30.000Z),
+              id: UUID(4),
+              dueDate: Date(timeIntervalSince1970: 1_234_395_090),
               isFlagged: true,
-              notes: "",
               position: 2,
-              priority: nil,
-              remindersListID: UUID(00000000-0000-0000-0000-000000000000),
-              status: .incomplete,
+              remindersListID: UUID(0),
               title: "Haircut"
             ),
-            remindersList: RemindersList(
-              id: UUID(00000000-0000-0000-0000-000000000000),
-              color: 1218047999,
-              position: 1,
-              title: "Personal"
-            ),
+            remindersList: remindersList,
             isPastDue: true,
             notes: "",
             tags: "#someday #optional"
           ),
-          [1]: RemindersDetailModel.Row(
+          RemindersDetailModel.Row(
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000005),
-              dueDate: Date(2009-02-13T23:31:30.000Z),
-              isFlagged: false,
+              id: UUID(5),
+              dueDate: Date(timeIntervalSince1970: 1_234_567_890),
               notes: "Ask about diet",
               position: 3,
               priority: .high,
-              remindersListID: UUID(00000000-0000-0000-0000-000000000000),
-              status: .incomplete,
+              remindersListID: UUID(0),
               title: "Doctor appointment"
             ),
-            remindersList: RemindersList(
-              id: UUID(00000000-0000-0000-0000-000000000000),
-              color: 1218047999,
-              position: 1,
-              title: "Personal"
-            ),
+            remindersList: remindersList,
             isPastDue: false,
             notes: "Ask about diet",
             tags: "#adulting"
           ),
-          [2]: RemindersDetailModel.Row(
+          RemindersDetailModel.Row(
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000007),
-              dueDate: Date(2009-02-13T23:31:30.000Z),
-              isFlagged: false,
-              notes: "",
+              id: UUID(7),
+              dueDate: Date(timeIntervalSince1970: 1_234_567_890),
               position: 5,
-              priority: nil,
-              remindersListID: UUID(00000000-0000-0000-0000-000000000000),
-              status: .incomplete,
+              remindersListID: UUID(0),
               title: "Buy concert tickets"
             ),
-            remindersList: RemindersList(
-              id: UUID(00000000-0000-0000-0000-000000000000),
-              color: 1218047999,
-              position: 1,
-              title: "Personal"
-            ),
+            remindersList: remindersList,
             isPastDue: false,
             notes: "",
             tags: "#social #night"
           ),
-          [3]: RemindersDetailModel.Row(
+          RemindersDetailModel.Row(
             reminder: Reminder(
-              id: UUID(00000000-0000-0000-0000-000000000003),
-              dueDate: nil,
-              isFlagged: false,
+              id: UUID(3),
               notes: """
                 Milk
                 Eggs
@@ -97,23 +73,15 @@ extension BaseTestSuite {
                 Spinach
                 """,
               position: 1,
-              priority: nil,
-              remindersListID: UUID(00000000-0000-0000-0000-000000000000),
-              status: .incomplete,
+              remindersListID: UUID(0),
               title: "Groceries"
             ),
-            remindersList: RemindersList(
-              id: UUID(00000000-0000-0000-0000-000000000000),
-              color: 1218047999,
-              position: 1,
-              title: "Personal"
-            ),
+            remindersList: remindersList,
             isPastDue: false,
             notes: "Milk Eggs Apples Oatmeal Spinach",
             tags: "#someday #optional #adulting"
-          )
+          ),
         ]
-        """#
       }
     }
 
@@ -122,44 +90,32 @@ extension BaseTestSuite {
       let model = RemindersDetailModel(detailType: .remindersList(remindersList))
 
       try await model.$reminderRows.load()
-      #expect(model.ordering == .dueDate)
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Haircut",
-          [1]: "Doctor appointment",
-          [2]: "Buy concert tickets",
-          [3]: "Groceries"
-        ]
-        """
+      expect(model) {
+        $0.ordering = .dueDate
+        $0.reminderRows[0].reminder.title = "Haircut"
+        $0.reminderRows[1].reminder.title = "Doctor appointment"
+        $0.reminderRows[2].reminder.title = "Buy concert tickets"
+        $0.reminderRows[3].reminder.title = "Groceries"
       }
 
       await model.orderingButtonTapped(.priority)
       try await model.$reminderRows.load()
-      #expect(model.ordering == .priority)
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Doctor appointment",
-          [1]: "Haircut",
-          [2]: "Groceries",
-          [3]: "Buy concert tickets"
-        ]
-        """
+      expect(model) {
+        $0.ordering = .priority
+        $0.reminderRows[0].reminder.title = "Doctor appointment"
+        $0.reminderRows[1].reminder.title = "Haircut"
+        $0.reminderRows[2].reminder.title = "Groceries"
+        $0.reminderRows[3].reminder.title = "Buy concert tickets"
       }
 
       await model.orderingButtonTapped(.title)
       try await model.$reminderRows.load()
-      #expect(model.ordering == .title)
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Buy concert tickets",
-          [1]: "Doctor appointment",
-          [2]: "Groceries",
-          [3]: "Haircut"
-        ]
-        """
+      expect(model) {
+        $0.ordering = .title
+        $0.reminderRows[0].reminder.title = "Buy concert tickets"
+        $0.reminderRows[1].reminder.title = "Doctor appointment"
+        $0.reminderRows[2].reminder.title = "Groceries"
+        $0.reminderRows[3].reminder.title = "Haircut"
       }
     }
 
@@ -168,45 +124,33 @@ extension BaseTestSuite {
       let model = RemindersDetailModel(detailType: .remindersList(remindersList))
 
       try await model.$reminderRows.load()
-      #expect(model.showCompleted == false)
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Haircut",
-          [1]: "Doctor appointment",
-          [2]: "Buy concert tickets",
-          [3]: "Groceries"
-        ]
-        """
+      expect(model) {
+        $0.showCompleted = false
+        $0.reminderRows[0].reminder.title = "Haircut"
+        $0.reminderRows[1].reminder.title = "Doctor appointment"
+        $0.reminderRows[2].reminder.title = "Buy concert tickets"
+        $0.reminderRows[3].reminder.title = "Groceries"
       }
 
       await model.showCompletedButtonTapped()
       try await model.$reminderRows.load()
-      #expect(model.showCompleted == true)
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Haircut",
-          [1]: "Doctor appointment",
-          [2]: "Buy concert tickets",
-          [3]: "Groceries",
-          [4]: "Take a walk"
-        ]
-        """
+      expect(model) {
+        $0.showCompleted = true
+        $0.reminderRows[0].reminder.title = "Haircut"
+        $0.reminderRows[1].reminder.title = "Doctor appointment"
+        $0.reminderRows[2].reminder.title = "Buy concert tickets"
+        $0.reminderRows[3].reminder.title = "Groceries"
+        $0.reminderRows[4].reminder.title = "Take a walk"
       }
 
       await model.showCompletedButtonTapped()
       try await model.$reminderRows.load()
-      #expect(model.showCompleted == false)
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Haircut",
-          [1]: "Doctor appointment",
-          [2]: "Buy concert tickets",
-          [3]: "Groceries"
-        ]
-        """
+      expect(model) {
+        $0.showCompleted = false
+        $0.reminderRows[0].reminder.title = "Haircut"
+        $0.reminderRows[1].reminder.title = "Doctor appointment"
+        $0.reminderRows[2].reminder.title = "Buy concert tickets"
+        $0.reminderRows[3].reminder.title = "Groceries"
       }
     }
 
@@ -215,106 +159,78 @@ extension BaseTestSuite {
       let model = RemindersDetailModel(detailType: .remindersList(remindersList))
 
       try await model.$reminderRows.load()
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Haircut",
-          [1]: "Doctor appointment",
-          [2]: "Buy concert tickets",
-          [3]: "Groceries"
-        ]
-        """
+      expect(model) {
+        $0.reminderRows[0].reminder.title = "Haircut"
+        $0.reminderRows[1].reminder.title = "Doctor appointment"
+        $0.reminderRows[2].reminder.title = "Buy concert tickets"
+        $0.reminderRows[3].reminder.title = "Groceries"
       }
 
       await model.move(from: [2], to: 0)
       try await model.$reminderRows.load()
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Buy concert tickets",
-          [1]: "Haircut",
-          [2]: "Doctor appointment",
-          [3]: "Groceries"
-        ]
-        """
+      expect(model) {
+        $0.ordering = .manual
+        $0.reminderRows[0].reminder.title = "Buy concert tickets"
+        $0.reminderRows[1].reminder.title = "Haircut"
+        $0.reminderRows[2].reminder.title = "Doctor appointment"
+        $0.reminderRows[3].reminder.title = "Groceries"
       }
-      #expect(model.ordering == .manual)
     }
 
     @Test func all() async throws {
       let model = RemindersDetailModel(detailType: .all)
       try await model.$reminderRows.load()
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Haircut",
-          [1]: "Doctor appointment",
-          [2]: "Buy concert tickets",
-          [3]: "Pick up kids from school",
-          [4]: "Call accountant",
-          [5]: "Prepare for WWDC",
-          [6]: "Take out trash",
-          [7]: "Groceries"
-        ]
-        """
+      expect(model) {
+        $0.reminderRows[0].reminder.title = "Haircut"
+        $0.reminderRows[1].reminder.title = "Doctor appointment"
+        $0.reminderRows[2].reminder.title = "Buy concert tickets"
+        $0.reminderRows[3].reminder.title = "Pick up kids from school"
+        $0.reminderRows[4].reminder.title = "Call accountant"
+        $0.reminderRows[5].reminder.title = "Prepare for WWDC"
+        $0.reminderRows[6].reminder.title = "Take out trash"
+        $0.reminderRows[7].reminder.title = "Groceries"
       }
     }
 
     @Test func completed() async throws {
       let model = RemindersDetailModel(detailType: .completed)
       try await model.$reminderRows.load()
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Take a walk",
-          [1]: "Get laundry",
-          [2]: "Send weekly emails"
-        ]
-        """
+      expect(model) {
+        $0.reminderRows[0].reminder.title = "Take a walk"
+        $0.reminderRows[1].reminder.title = "Get laundry"
+        $0.reminderRows[2].reminder.title = "Send weekly emails"
       }
     }
 
     @Test func flagged() async throws {
       let model = RemindersDetailModel(detailType: .flagged)
       try await model.$reminderRows.load()
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Haircut",
-          [1]: "Pick up kids from school"
-        ]
-        """
+      expect(model) {
+        $0.reminderRows[0].reminder.title = "Haircut"
+        $0.reminderRows[1].reminder.title = "Pick up kids from school"
       }
     }
 
     @Test func scheduled() async throws {
       let model = RemindersDetailModel(detailType: .scheduled)
       try await model.$reminderRows.load()
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Haircut",
-          [1]: "Doctor appointment",
-          [2]: "Buy concert tickets",
-          [3]: "Pick up kids from school",
-          [4]: "Call accountant",
-          [5]: "Prepare for WWDC",
-          [6]: "Take out trash"
-        ]
-        """
+      expect(model) {
+        $0.reminderRows[0].reminder.title = "Haircut"
+        $0.reminderRows[1].reminder.title = "Doctor appointment"
+        $0.reminderRows[2].reminder.title = "Buy concert tickets"
+        $0.reminderRows[3].reminder.title = "Pick up kids from school"
+        $0.reminderRows[4].reminder.title = "Call accountant"
+        $0.reminderRows[5].reminder.title = "Prepare for WWDC"
+        $0.reminderRows[6].reminder.title = "Take out trash"
       }
     }
 
     @Test func today() async throws {
       let model = RemindersDetailModel(detailType: .today)
       try await model.$reminderRows.load()
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Doctor appointment",
-          [1]: "Buy concert tickets"
-        ]
-        """
+      expect(model) {
+        $0.reminderRows[0].reminder.title = "Doctor appointment"
+        $0.reminderRows[1].reminder.title = "Buy concert tickets"
       }
     }
 
@@ -322,13 +238,9 @@ extension BaseTestSuite {
       let tag = try await database.read { try Tag.find($0, key: "someday") }
       let model = RemindersDetailModel(detailType: .tags([tag]))
       try await model.$reminderRows.load()
-      assertInlineSnapshot(of: model.reminderRows.map(\.reminder.title), as: .customDump) {
-        """
-        [
-          [0]: "Haircut",
-          [1]: "Groceries"
-        ]
-        """
+      expect(model) {
+        $0.reminderRows[0].reminder.title = "Haircut"
+        $0.reminderRows[1].reminder.title = "Groceries"
       }
     }
   }
