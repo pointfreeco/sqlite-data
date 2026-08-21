@@ -77,7 +77,11 @@ struct RemindersListForm: View {
         Button("Save") {
           Task { [remindersList, coverImageData] in
             await withErrorReporting {
-              try await database.write { db in
+              try await database.writeWithUndoGroup(
+                remindersList.id == nil
+                  ? "Create list"
+                  : "Edit list"
+              ) { db in
                 let remindersListID =
                   try RemindersList
                   .upsert { remindersList }

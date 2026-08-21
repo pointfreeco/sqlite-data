@@ -64,7 +64,7 @@ class SearchRemindersModel {
 
   func deleteCompletedReminders(monthsAgo: Int? = nil) {
     withErrorReporting {
-      try database.write { db in
+      try database.writeWithUndoGroup("Clear completed reminders") { db in
         try Reminder
           .where {
             $0.isCompleted
