@@ -82,6 +82,13 @@
           )
           """#
         }
+
+        let recoverable = try #require(error as? any SyncEngine.RecoverableSharingError)
+        assertInlineSnapshot(of: recoverable.recoveryAction, as: .customDump) {
+        """
+        SyncEngine.RecoveryAction.startAndRetry
+        """
+        }
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
@@ -315,6 +322,13 @@
             debugDescription: "No sync metadata found for record. Has the record been saved to the database and synchronized to iCloud? Invoke \'SyncEngine.sendChanges()\' to force synchronization."
           )
           """#
+        }
+
+        let recoverable = try #require(error as? any SyncEngine.RecoverableSharingError)
+        assertInlineSnapshot(of: recoverable.recoveryAction, as: .customDump) {
+        """
+        SyncEngine.RecoveryAction.sendChangesAndRetry
+        """
         }
       }
 
