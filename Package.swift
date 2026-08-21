@@ -69,7 +69,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.36.0",
+      branch: "custom-collations",
       traits: [
         .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
         .trait(name: "ColumnCoding", condition: .when(traits: ["ColumnCoding"])),
