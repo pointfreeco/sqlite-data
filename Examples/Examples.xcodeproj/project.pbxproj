@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		CA0923FC3037ED040053D2D7 /* DebugSnapshots in Frameworks */ = {isa = PBXBuildFile; productRef = CA0923FB3037ED040053D2D7 /* DebugSnapshots */; };
+		CA0923FE3037ED040053D2D7 /* DebugSnapshots in Frameworks */ = {isa = PBXBuildFile; productRef = CA0923FD3037ED040053D2D7 /* DebugSnapshots */; };
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
 		CA2BDE2A2E71C469000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE292E71C469000974D3 /* SQLiteData */; };
@@ -218,6 +219,7 @@
 				DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */,
 				DCB8AD5230363F2A00ACF09E /* SQLiteData in Frameworks */,
 				DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */,
+				CA0923FE3037ED040053D2D7 /* DebugSnapshots in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -446,6 +448,7 @@
 				DCF267382D48437300B680BE /* SwiftUINavigation */,
 				DC5FA7472D4C63D60082743E /* DependenciesMacros */,
 				DCB8AD5130363F2A00ACF09E /* SQLiteData */,
+				CA0923FD3037ED040053D2D7 /* DebugSnapshots */,
 			);
 			productName = SyncUps;
 			productReference = DCBE89CC2D483FB90071F499 /* SyncUps.app */;
@@ -1293,6 +1296,11 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		CA0923FB3037ED040053D2D7 /* DebugSnapshots */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA0923FA3037ED040053D2D7 /* XCRemoteSwiftPackageReference "swift-debug-snapshots" */;
+			productName = DebugSnapshots;
+		};
+		CA0923FD3037ED040053D2D7 /* DebugSnapshots */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = CA0923FA3037ED040053D2D7 /* XCRemoteSwiftPackageReference "swift-debug-snapshots" */;
 			productName = DebugSnapshots;
