@@ -41,6 +41,7 @@ struct SyncUpFormTests {
       $0.attendees.append(SyncUpFormModel.AttendeeDraft(id: UUID(2)))
       $0.focus = .attendee(UUID(2))
     }
+
     model.attendees[0].name = "Blob"
     model.attendees[1].name = "Blob Jr."
     expect(model) {
