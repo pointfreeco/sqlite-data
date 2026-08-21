@@ -33,7 +33,48 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
-    private struct SharingError: LocalizedError {
+    /// Describes an action that can be performed by the caller to recover from
+    /// an error and retry the failed operation.
+    public enum SharingErrorRecoveryAction {
+      /// No sync metadata found for record. Has the record been saved to the database
+      /// and synchronized to iCloud? Invoke 'SyncEngine.sendChanges()' to force
+      /// synchronization.
+      case sendChangesAndRetry
+      /// Sync engine is not running. Make sure engine is running by invoking the 'start()'
+      /// method, or using the 'startImmediately' argument when initializing the engine.
+      case startAndRetry
+    }
+
+    /// A protocol for errors that provide a system-defined recovery action.
+    ///
+    /// A conforming error may provide a recovery action when the failed
+    /// operation can potentially succeed after performing an additional
+    /// synchronization operation.
+    public protocol RecoverableSharingError: LocalizedError {
+      /// The recovery action that can be performed before retrying the
+      /// failed operation, or `nil` when no automatic recovery action
+      /// is available.
+      var recoveryAction: SharingErrorRecoveryAction? { get }
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncEngine.SharingError: SyncEngine.RecoverableSharingError {
+    var recoveryAction: SyncEngine.SharingErrorRecoveryAction? {
+      switch reason {
+      case .shareCouldNotBeCreated: nil
+      case .recordMetadataNotFound: .sendChangesAndRetry
+      case .recordNotRoot: nil
+      case .recordTableNotSynchronized: nil
+      case .recordTablePrivate: nil
+      case .syncEngineNotRunning: .startAndRetry
+      }
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncEngine {
+    fileprivate struct SharingError: LocalizedError {
       enum Reason {
         case shareCouldNotBeCreated
         case recordMetadataNotFound
