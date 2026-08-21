@@ -126,10 +126,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 }
 
-#Preview {
-  let _ = prepareDependencies {
-    $0.defaultDatabase = .dynamicQueryDatabase
-  }
+#Preview(traits: .dependencies { $0.defaultDatabase = .dynamicQueryDatabase }) {
   NavigationStack {
     CaseStudyView {
       DynamicQueryDemo()

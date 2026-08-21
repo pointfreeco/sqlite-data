@@ -81,10 +81,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 }
 
-#Preview {
-  let _ = prepareDependencies {
-    $0.defaultDatabase = .swiftUIDatabase
-  }
+#Preview(traits: .dependencies { $0.defaultDatabase = .swiftUIDatabase }) {
   NavigationStack {
     CaseStudyView {
       SwiftUIDemo()

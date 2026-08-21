@@ -113,12 +113,13 @@ extension DependencyValues {
         case .preview:
           return """
             A blank, in-memory database is being used. To set the database that is used by \
-            'SQLiteData' in a preview, use a tool like 'prepareDependencies':
+            'SQLiteData' in a preview, use the '.dependencies' preview trait:
 
-                #Preview {
-                  let _ = prepareDependencies {
-                    $0.defaultDatabase = try! DatabaseQueue(/* ... */)
+                #Preview(
+                  traits: .dependencies {
+                    $0.defaultDatabase = try DatabaseQueue(/* ... */)
                   }
+                ) {
                   // ...
                 }
             """
