@@ -132,8 +132,8 @@ class RemindersListsModel {
             let (first, rest) = (ids.first!, ids.dropFirst())
             $0.position =
               rest
-              .reduce(Case($0.id).when(first.element, then: first.offset)) { cases, id in
-                cases.when(id.element, then: id.offset)
+              .reduce(Case($0.id).when(first.element, then: first.offset + 1)) { cases, id in
+                cases.when(id.element, then: id.offset + 1)
               }
               .else($0.position)
           }

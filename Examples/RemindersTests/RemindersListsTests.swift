@@ -74,19 +74,23 @@ extension BaseTestSuite {
 
     @Test func move() async throws {
       let model = RemindersListsModel()
-      try await model.$remindersLists.load()
-      expect(model) {
+
+      try await expect(model) {
+        try await model.$remindersLists.load()
+      } changes: {
         $0.remindersLists[0].remindersList.title = "Personal"
         $0.remindersLists[1].remindersList.title = "Family"
         $0.remindersLists[2].remindersList.title = "Business"
       }
 
-      model.move(from: [2], to: 0)
-      try await model.$remindersLists.load()
-      expect(model) {
-        $0.remindersLists[0].remindersList.title = "Business"
-        $0.remindersLists[1].remindersList.title = "Personal"
-        $0.remindersLists[2].remindersList.title = "Family"
+      try await expect(model) {
+        model.move(from: [2], to: 0)
+        try await model.$remindersLists.load()
+      } changes: {
+        $0.remindersLists.move(fromOffsets: [2], toOffset: 0)
+        $0.remindersLists[0].remindersList.position = 1
+        $0.remindersLists[1].remindersList.position = 2
+        $0.remindersLists[2].remindersList.position = 3
       }
     }
 
@@ -98,18 +102,19 @@ extension BaseTestSuite {
           try RemindersList.find(UUID(0)).fetchOne(db)
         }
       )
-      let sharedRecord = try await syncEngine.share(
+      let share = try await syncEngine.share(
         record: personalRemindersList,
         configure: { _ in }
       )
+        .share
 
-      try await model.$remindersLists.load()
-      expect(model) {
+      try await expect(model) {
+        try await model.$remindersLists.load()
+      } changes: {
         $0.remindersLists[0].remindersList.title = "Personal"
-        $0.remindersLists[1].share = nil
-        $0.remindersLists[2].share = nil
+        $0.remindersLists[0].share = model.remindersLists[0].share
+        #expect($0.remindersLists[0].share?.recordID == share.recordID)
       }
-      #expect(model.remindersLists[0].share?.recordID == sharedRecord.share.recordID)
     }
   }
 }
