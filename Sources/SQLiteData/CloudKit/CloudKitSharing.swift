@@ -33,7 +33,33 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine {
-    private struct SharingError: LocalizedError {
+    public enum RecoveryAction {
+      case sendChangesAndRetry
+      case startAndRetry
+    }
+
+    public protocol RecoverableSharingError: LocalizedError {
+      var recoveryAction: RecoveryAction? { get }
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncEngine.SharingError: SyncEngine.RecoverableSharingError {
+    var recoveryAction: SyncEngine.RecoveryAction? {
+      switch reason {
+      case .shareCouldNotBeCreated: nil
+      case .recordMetadataNotFound: .sendChangesAndRetry
+      case .recordNotRoot: nil
+      case .recordTableNotSynchronized: nil
+      case .recordTablePrivate: nil
+      case .syncEngineNotRunning: .startAndRetry
+      }
+    }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension SyncEngine {
+    fileprivate struct SharingError: LocalizedError {
       enum Reason {
         case shareCouldNotBeCreated
         case recordMetadataNotFound
