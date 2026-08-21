@@ -86,7 +86,7 @@
         let recoverable = try #require(error as? any SyncEngine.RecoverableSharingError)
         assertInlineSnapshot(of: recoverable.recoveryAction, as: .customDump) {
         """
-        SyncEngine.RecoveryAction.startAndRetry
+        SyncEngine.SharingErrorRecoveryAction.startAndRetry
         """
         }
       }
@@ -327,7 +327,7 @@
         let recoverable = try #require(error as? any SyncEngine.RecoverableSharingError)
         assertInlineSnapshot(of: recoverable.recoveryAction, as: .customDump) {
         """
-        SyncEngine.RecoveryAction.sendChangesAndRetry
+        SyncEngine.SharingErrorRecoveryAction.sendChangesAndRetry
         """
         }
       }

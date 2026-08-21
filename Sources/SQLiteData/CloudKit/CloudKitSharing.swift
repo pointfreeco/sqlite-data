@@ -35,7 +35,7 @@
   extension SyncEngine {
     /// Describes an action that can be performed by the caller to recover from
     /// an error and retry the failed operation.
-    public enum RecoveryAction {
+    public enum SharingErrorRecoveryAction {
       /// No sync metadata found for record. Has the record been saved to the database
       /// and synchronized to iCloud? Invoke 'SyncEngine.sendChanges()' to force
       /// synchronization.
@@ -54,13 +54,13 @@
       /// The recovery action that can be performed before retrying the
       /// failed operation, or `nil` when no automatic recovery action
       /// is available.
-      var recoveryAction: RecoveryAction? { get }
+      var recoveryAction: SharingErrorRecoveryAction? { get }
     }
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension SyncEngine.SharingError: SyncEngine.RecoverableSharingError {
-    var recoveryAction: SyncEngine.RecoveryAction? {
+    var recoveryAction: SyncEngine.SharingErrorRecoveryAction? {
       switch reason {
       case .shareCouldNotBeCreated: nil
       case .recordMetadataNotFound: .sendChangesAndRetry
