@@ -3,10 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 100;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CA0923FC3037ED040053D2D7 /* DebugSnapshots in Frameworks */ = {isa = PBXBuildFile; productRef = CA0923FB3037ED040053D2D7 /* DebugSnapshots */; };
+		CA0923FE3037ED040053D2D7 /* DebugSnapshots in Frameworks */ = {isa = PBXBuildFile; productRef = CA0923FD3037ED040053D2D7 /* DebugSnapshots */; };
 		CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */ = {isa = PBXBuildFile; productRef = CA14DBC82DA884C400E36852 /* CasePaths */; };
 		CA2908C92D4AF70E003F165F /* UIKitNavigation in Frameworks */ = {isa = PBXBuildFile; productRef = CA2908C82D4AF70E003F165F /* UIKitNavigation */; };
 		CA2BDE2A2E71C469000974D3 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = CA2BDE292E71C469000974D3 /* SQLiteData */; };
@@ -197,6 +199,7 @@
 		CAF836D52D4735AB0047AEB5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				CA0923FC3037ED040053D2D7 /* DebugSnapshots in Frameworks */,
 				DCB8AD5030363F2600ACF09E /* SQLiteData in Frameworks */,
 				CA14DBC92DA884C400E36852 /* CasePaths in Frameworks */,
 				CA5E46912DEBB8570069E0F8 /* SwiftUINavigation in Frameworks */,
@@ -216,6 +219,7 @@
 				DC5FA7482D4C63D60082743E /* DependenciesMacros in Frameworks */,
 				DCB8AD5230363F2A00ACF09E /* SQLiteData in Frameworks */,
 				DCBE8A142D4842BF0071F499 /* CasePaths in Frameworks */,
+				CA0923FE3037ED040053D2D7 /* DebugSnapshots in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -397,6 +401,7 @@
 				CA14DBC82DA884C400E36852 /* CasePaths */,
 				CA5E46902DEBB8570069E0F8 /* SwiftUINavigation */,
 				DCB8AD4F30363F2600ACF09E /* SQLiteData */,
+				CA0923FB3037ED040053D2D7 /* DebugSnapshots */,
 			);
 			productName = Reminders;
 			productReference = CAF836D82D4735AB0047AEB5 /* Reminders.app */;
@@ -443,6 +448,7 @@
 				DCF267382D48437300B680BE /* SwiftUINavigation */,
 				DC5FA7472D4C63D60082743E /* DependenciesMacros */,
 				DCB8AD5130363F2A00ACF09E /* SQLiteData */,
+				CA0923FD3037ED040053D2D7 /* DebugSnapshots */,
 			);
 			productName = SyncUps;
 			productReference = DCBE89CC2D483FB90071F499 /* SyncUps.app */;
@@ -502,6 +508,7 @@
 				DC5FA7462D4C63D60082743E /* XCRemoteSwiftPackageReference "swift-dependencies" */,
 				CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
 				DCB8AD4830363D3800ACF09E /* XCLocalSwiftPackageReference "../../sqlite-data" */,
+				CA0923FA3037ED040053D2D7 /* XCRemoteSwiftPackageReference "swift-debug-snapshots" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CAF836992D4735620047AEB5 /* Products */;
@@ -1243,6 +1250,16 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		CA0923FA3037ED040053D2D7 /* XCRemoteSwiftPackageReference "swift-debug-snapshots" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-debug-snapshots.git";
+			requirement = {
+				branch = "even-better-inference";
+				kind = branch;
+			};
+			traits = (
+			);
+		};
 		CA5E47052DECEF0F0069E0F8 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing.git";
@@ -1278,6 +1295,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		CA0923FB3037ED040053D2D7 /* DebugSnapshots */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA0923FA3037ED040053D2D7 /* XCRemoteSwiftPackageReference "swift-debug-snapshots" */;
+			productName = DebugSnapshots;
+		};
+		CA0923FD3037ED040053D2D7 /* DebugSnapshots */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA0923FA3037ED040053D2D7 /* XCRemoteSwiftPackageReference "swift-debug-snapshots" */;
+			productName = DebugSnapshots;
+		};
 		CA14DBC82DA884C400E36852 /* CasePaths */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */;
