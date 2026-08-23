@@ -111,7 +111,9 @@ struct SQLiteQueryDecoder: QueryDecoder {
       try reportTypeMismatch(String.self)
     }
     defer { currentIndex += 1 }
-    return String(cString: sqlite3_column_text(statement, currentIndex))
+    let text = sqlite3_column_text(statement, currentIndex)
+    let byteCount = Int(sqlite3_column_bytes(statement, currentIndex))
+    return String(decoding: UnsafeBufferPointer(start: text, count: byteCount), as: UTF8.self)
   }
 
   @inlinable
@@ -123,8 +125,22 @@ struct SQLiteQueryDecoder: QueryDecoder {
 
   @inlinable
   mutating func decode(_ columnType: UUID.Type) throws(QueryDecodingError) -> UUID? {
-    guard let uuidString = try decode(String.self) else { return nil }
-    guard let uuid = UUID(uuidString: uuidString) else { throw .other(InvalidUUID()) }
+    switch sqlite3_column_type(statement, currentIndex) {
+    case SQLITE_NULL:
+      currentIndex += 1
+      return nil
+    case SQLITE_TEXT:
+      break
+    default:
+      try reportTypeMismatch(UUID.self)
+    }
+    defer { currentIndex += 1 }
+    let text = sqlite3_column_text(statement, currentIndex)
+    let byteCount = Int(sqlite3_column_bytes(statement, currentIndex))
+    let utf8 = UnsafeBufferPointer(start: text, count: byteCount)
+    if let uuid = UUID(uuidUTF8: utf8) { return uuid }
+    guard let uuid = UUID(uuidString: String(decoding: utf8, as: UTF8.self))
+    else { throw .other(InvalidUUID()) }
     return uuid
   }
 

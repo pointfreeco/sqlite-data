@@ -14,7 +14,7 @@ struct ReminderFormView: View {
   @Environment(\.dismiss) var dismiss
 
   init(reminder: Reminder.Draft, remindersList: RemindersList) {
-    _remindersList = FetchOne(wrappedValue: remindersList, RemindersList.find(remindersList.id))
+    _remindersList = FetchOne(wrappedValue: remindersList)
     self.reminder = reminder
   }
 
