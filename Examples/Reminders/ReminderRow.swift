@@ -155,30 +155,29 @@ struct ReminderRow: View {
   }
 }
 
-struct ReminderRowPreview: PreviewProvider {
-  static var previews: some View {
-    var reminder: Reminder!
-    var remindersList: RemindersList!
-    let _ = try! prepareDependencies {
-      $0.defaultDatabase = try Reminders.appDatabase()
-      try $0.defaultDatabase.read { db in
-        reminder = try Reminder.fetchOne(db)
-        remindersList = try RemindersList.fetchOne(db)!
-      }
+#Preview(
+  traits: .dependencies {
+    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.defaultDatabase.seedSampleData()
+  }
+) {
+  @Dependency(\.defaultDatabase) var database
+  let (reminder, remindersList) = {
+    try! database.read { db in
+      (try Reminder.fetchOne(db)!, try RemindersList.fetchOne(db)!)
     }
-
-    NavigationStack {
-      List {
-        ReminderRow(
-          color: remindersList.color,
-          isPastDue: false,
-          notes: reminder.notes.replacingOccurrences(of: "\n", with: " "),
-          reminder: reminder,
-          remindersList: remindersList,
-          showCompleted: true,
-          tags: "#point-free #adulting"
-        )
-      }
+  }()
+  NavigationStack {
+    List {
+      ReminderRow(
+        color: remindersList.color,
+        isPastDue: false,
+        notes: reminder.notes.replacingOccurrences(of: "\n", with: " "),
+        reminder: reminder,
+        remindersList: remindersList,
+        showCompleted: true,
+        tags: "#point-free #adulting"
+      )
     }
   }
 }

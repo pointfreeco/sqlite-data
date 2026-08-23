@@ -138,11 +138,12 @@ struct CounterRow: View {
   }
 }
 
-#Preview {
-  let _ = try! prepareDependencies {
+#Preview(
+  traits: .dependencies {
     try $0.bootstrapDatabase()
     try? $0.defaultDatabase.seedSampleData()
   }
+) {
   NavigationStack {
     CountersListView()
   }
