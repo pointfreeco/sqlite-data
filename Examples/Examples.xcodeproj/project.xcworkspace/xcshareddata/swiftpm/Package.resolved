@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-dependencies",
       "state" : {
-        "branch" : "bring-back-preview-traits",
-        "revision" : "3cb1ec4890e38fabedf0d0636f0d6992ed26e255"
+        "branch" : "eager-preview-trait-fix",
+        "revision" : "d6b5392b6f8e4493863a5ca14092e2f8535a94fc"
       }
     },
     {

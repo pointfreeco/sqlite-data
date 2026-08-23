@@ -43,7 +43,7 @@ struct TransactionDemo: SwiftUICaseStudy {
           number += 1
           let fact = try await String(
             decoding: URLSession.shared
-              .data(from: URL(string: "http://numberapi.com/\(number)")!).0,
+              .data(from: URL(string: "http://number-trivia.com/\(number)")!).0,
             as: UTF8.self
           )
           try await database.write { db in
