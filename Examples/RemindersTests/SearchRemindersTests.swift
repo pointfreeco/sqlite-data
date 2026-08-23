@@ -15,7 +15,6 @@ extension BaseTestSuite {
 
     @Test func basics() async throws {
       let model = SearchRemindersModel()
-      try await model.$searchResults.load()
 
       try await expect(model) {
         model.searchText = "Take"
@@ -50,12 +49,13 @@ extension BaseTestSuite {
 
     @Test func showCompleted() async throws {
       let model = SearchRemindersModel()
-      model.searchText = "Take"
-      try await model.showCompletedButtonTapped()
-      try await model.searchTask?.value
-      try await model.$searchResults.load()
 
-      expect(model) {
+      try await expect(model) {
+        model.searchText = "Take"
+        try await model.showCompletedButtonTapped()
+        try await model.searchTask?.value
+        try await model.$searchResults.load()
+      } changes: {
         $0.searchText = "Take"
         $0.showCompletedInSearchResults = true
         $0.searchResults.completedCount = 1
@@ -106,12 +106,14 @@ extension BaseTestSuite {
 
     @Test func deleteCompleted() async throws {
       let model = SearchRemindersModel()
-      model.searchText = "Take"
-      try await model.showCompletedButtonTapped()
-      model.deleteCompletedReminders()
-      try await model.searchTask?.value
-      try await model.$searchResults.load()
-      expect(model) {
+
+      try await expect(model) {
+        model.searchText = "Take"
+        try await model.showCompletedButtonTapped()
+        model.deleteCompletedReminders()
+        try await model.searchTask?.value
+        try await model.$searchResults.load()
+      } changes: {
         $0.searchText = "Take"
         $0.showCompletedInSearchResults = true
         $0.searchResults.completedCount = 0
