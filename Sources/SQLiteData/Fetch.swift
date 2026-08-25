@@ -39,12 +39,16 @@ public struct Fetch<Value: Sendable>: Sendable {
     private let box: FetchBox<Value>
     private let state: SwiftUI.State<FetchBox<Value>>
     private let generation = SwiftUI.State(wrappedValue: 0)
+
+    var loadGeneration: LoadGeneration { state.wrappedValue.loadGeneration }
   #else
     /// The underlying shared reader powering the property wrapper.
     ///
     /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
     /// package, a general solution to observing and persisting changes to external data sources.
     public let sharedReader: SharedReader<Value>
+
+    let loadGeneration = LoadGeneration()
   #endif
 
   /// Data associated with the underlying query.
@@ -58,7 +62,10 @@ public struct Fetch<Value: Sendable>: Sendable {
   /// ``isLoading``, and ``publisher``.
   public var projectedValue: Self {
     get { self }
-    nonmutating set { sharedReader.projectedValue = newValue.sharedReader.projectedValue }
+    nonmutating set {
+      loadGeneration.invalidate()
+      sharedReader.projectedValue = newValue.sharedReader.projectedValue
+    }
   }
 
   /// Returns a ``sharedReader`` for the given key path.
@@ -127,8 +134,15 @@ public struct Fetch<Value: Sendable>: Sendable {
     _ request: some FetchKeyRequest<Value>,
     database: (any DatabaseReader)? = nil
   ) async throws -> FetchSubscription {
-    try await sharedReader.load(.fetch(request, database: database))
-    return FetchSubscription(sharedReader: sharedReader)
+    try await withSubscription {
+      try await sharedReader.load(.fetch(request, database: database))
+    }
+  }
+
+  private func withSubscription(_ load: () async throws -> Void) async throws -> FetchSubscription {
+    let token = loadGeneration.begin()
+    try await load()
+    return FetchSubscription(sharedReader: sharedReader, token: token)
   }
 
   #if !canImport(SwiftUI)
@@ -183,8 +197,9 @@ extension Fetch {
     database: (any DatabaseReader)? = nil,
     scheduler: some ValueObservationScheduler & Hashable
   ) async throws -> FetchSubscription {
-    try await sharedReader.load(.fetch(request, database: database, scheduler: scheduler))
-    return FetchSubscription(sharedReader: sharedReader)
+    try await withSubscription {
+      try await sharedReader.load(.fetch(request, database: database, scheduler: scheduler))
+    }
   }
 }
 
@@ -249,8 +264,9 @@ extension Fetch: Equatable where Value: Equatable {
       database: (any DatabaseReader)? = nil,
       animation: Animation?
     ) async throws -> FetchSubscription {
-      try await sharedReader.load(.fetch(request, database: database, animation: animation))
-      return FetchSubscription(sharedReader: sharedReader)
+      try await withSubscription {
+        try await sharedReader.load(.fetch(request, database: database, animation: animation))
+      }
     }
   }
 #endif
