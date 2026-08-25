@@ -1,48 +1,31 @@
 import Foundation
 
-final class LoadGeneration: Sendable {
-  private let count = LockIsolated(0)
+final class LoadGeneration: @unchecked Sendable {
+  private let lock = NSLock()
+  private var count = 0
 
   func begin() -> Token {
-    Token(
-      count: count,
-      generation: count.withLock {
-        $0 += 1
-        return $0
-      }
-    )
+    lock.lock()
+    defer { lock.unlock() }
+    count += 1
+    return Token(loadGeneration: self, generation: count)
   }
 
   func invalidate() {
-    count.withLock { $0 += 1 }
+    lock.lock()
+    defer { lock.unlock() }
+    count += 1
   }
 
   struct Token: Sendable {
-    fileprivate let count: LockIsolated<Int>
+    fileprivate let loadGeneration: LoadGeneration
     fileprivate let generation: Int
 
-    func ifCurrent(_ body: sending () -> Void) {
-      count.withLock {
-        guard $0 == generation else { return }
-        body()
-      }
+    func ifCurrent(_ body: () -> Void) {
+      loadGeneration.lock.lock()
+      defer { loadGeneration.lock.unlock() }
+      guard loadGeneration.count == generation else { return }
+      body()
     }
-  }
-}
-
-private final class LockIsolated<Value>: @unchecked Sendable {
-  private var _value: Value
-  private let lock = NSLock()
-  init(_ value: sending Value) {
-    self._value = value
-  }
-  func withLock<T>(
-    _ operation: sending (inout sending Value) throws -> sending T
-  ) rethrows -> sending T {
-    lock.lock()
-    defer { lock.unlock() }
-    var value = _value
-    defer { _value = value }
-    return try operation(&value)
   }
 }
