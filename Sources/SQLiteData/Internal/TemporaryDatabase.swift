@@ -14,11 +14,23 @@ func temporaryDatabasePool(configuration: Configuration = Configuration()) throw
 }
 
 private let temporaryDatabaseDirectory: URL = {
-  atexit {
-    try? FileManager.default.removeItem(at: temporaryDatabaseDirectory)
+  let directory = URL.temporaryDirectory.appending(
+    path: "co.pointfree.SQLiteData",
+    directoryHint: .isDirectory
+  )
+  let processDirectories =
+    (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil))
+    ?? []
+  for processDirectory in processDirectories {
+    guard
+      let processIdentifier = pid_t(processDirectory.lastPathComponent),
+      kill(processIdentifier, 0) != 0,
+      errno == ESRCH
+    else { continue }
+    try? FileManager.default.removeItem(at: processDirectory)
   }
-  return URL.temporaryDirectory.appending(
-    path: "co.pointfree.SQLiteData/\(ProcessInfo.processInfo.processIdentifier)",
+  return directory.appending(
+    path: "\(ProcessInfo.processInfo.processIdentifier)",
     directoryHint: .isDirectory
   )
 }()
