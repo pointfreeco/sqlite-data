@@ -96,7 +96,7 @@ class SearchRemindersModel {
         let existingTags = searchTokens.compactMap { $0.kind == .tag ? $0.rawValue : nil }
         try await $tags.load(
           Tag
-            .where { $0.title.hasPrefix(searchText.dropFirst()) && !$0.title.in(existingTags) }
+            .where { $0.title.like("\(searchText.dropFirst())%") && !$0.title.in(existingTags) }
             .order(by: \.title)
         )
       } else {

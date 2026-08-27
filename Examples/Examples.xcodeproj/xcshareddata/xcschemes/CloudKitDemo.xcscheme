@@ -17,6 +17,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "CA2BDD9C2E71C30B000974D3"
                BuildableName = "CloudKitDemo.app"
+               BlueprintName = "CloudKitDemo"
                ReferencedContainer = "container:Examples.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -46,6 +47,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CA2BDD9C2E71C30B000974D3"
             BuildableName = "CloudKitDemo.app"
+            BlueprintName = "CloudKitDemo"
             ReferencedContainer = "container:Examples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,6 +64,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CA2BDD9C2E71C30B000974D3"
             BuildableName = "CloudKitDemo.app"
+            BlueprintName = "CloudKitDemo"
             ReferencedContainer = "container:Examples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

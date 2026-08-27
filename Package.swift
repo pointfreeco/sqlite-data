@@ -6,9 +6,9 @@ import PackageDescription
 let package = Package(
   name: "sqlite-data",
   platforms: [
-    .iOS(.v15),
-    .macOS(.v12),
-    .tvOS(.v15),
+    .iOS(.v16),
+    .macOS(.v13),
+    .tvOS(.v16),
     .watchOS(.v9),
   ],
   products: [
@@ -25,6 +25,28 @@ let package = Package(
     .trait(
       name: "CasePaths",
       description: "Introduce support for enum tables."
+    ),
+    .trait(
+      name: "ColumnCoding",
+      description: "Align the Codable coding of tables and selections with their column names."
+    ),
+    .trait(
+      name: "LazyInitializableByDefault",
+      description: "Optionalize draft properties that have no default."
+    ),
+    .trait(
+      name: "SuppressPlatformSQLiteAvailability",
+      description: """
+        Suppress '@available' checks on APIs that depend on a newer version of SQLite than the one \
+        bundled with the platform.
+        """
+    ),
+    .trait(
+      name: "StrictDecoding",
+      description: """
+        Throw an error, rather than coerce, when decoding a column whose storage type does not \
+        match the expected type.
+        """
     ),
     .trait(
       name: "Tagged",
@@ -48,9 +70,18 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.32.0",
+      from: "0.36.0",
       traits: [
         .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
+        .trait(name: "ColumnCoding", condition: .when(traits: ["ColumnCoding"])),
+        .trait(
+          name: "LazyInitializableByDefault",
+          condition: .when(traits: ["LazyInitializableByDefault"])
+        ),
+        .trait(
+          name: "SuppressPlatformSQLiteAvailability",
+          condition: .when(traits: ["SuppressPlatformSQLiteAvailability"])
+        ),
         .trait(name: "Tagged", condition: .when(traits: ["Tagged"])),
       ]
     ),

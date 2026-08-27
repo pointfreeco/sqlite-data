@@ -89,7 +89,7 @@ struct DynamicQueryDemo: SwiftUICaseStudy {
     func fetch(_ db: Database) throws -> Value {
       let search =
         Fact
-        .where { $0.body.contains(query) }
+        .where { $0.body.like("%\(query)%") }
         .order { $0.id.desc() }
       return try Value(
         facts: search.fetchAll(db),

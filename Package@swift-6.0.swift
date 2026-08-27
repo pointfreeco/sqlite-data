@@ -5,10 +5,10 @@ import PackageDescription
 let package = Package(
   name: "sqlite-data",
   platforms: [
-    .iOS(.v13),
-    .macOS(.v10_15),
-    .tvOS(.v13),
-    .watchOS(.v7),
+    .iOS(.v16),
+    .macOS(.v13),
+    .tvOS(.v16),
+    .watchOS(.v9),
   ],
   products: [
     .library(
@@ -26,10 +26,10 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.0.0"),
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.3"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
-    .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.13.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
-    .package(url: "https://github.com/pointfreeco/swift-structured-queries", from: "0.31.0"),
+    .package(url: "https://github.com/pointfreeco/swift-structured-queries", from: "0.35.0"),
+    .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.13.0"),
   ],
   targets: [
     .target(
