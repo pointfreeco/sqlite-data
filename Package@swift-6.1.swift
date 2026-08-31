@@ -27,6 +27,28 @@ let package = Package(
       description: "Introduce support for enum tables."
     ),
     .trait(
+      name: "ColumnCoding",
+      description: "Align the Codable coding of tables and selections with their column names."
+    ),
+    .trait(
+      name: "LazyInitializableByDefault",
+      description: "Optionalize draft properties that have no default."
+    ),
+    .trait(
+      name: "SuppressPlatformSQLiteAvailability",
+      description: """
+        Suppress '@available' checks on APIs that depend on a newer version of SQLite than the one \
+        bundled with the platform.
+        """
+    ),
+    .trait(
+      name: "StrictDecoding",
+      description: """
+        Throw an error, rather than coerce, when decoding a column whose storage type does not \
+        match the expected type.
+        """
+    ),
+    .trait(
       name: "Tagged",
       description: "Introduce SQLiteData conformances to the swift-tagged package."
     ),
@@ -47,7 +69,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
-      from: "0.32.0",
+      from: "0.39.1",
       traits: [
         .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
         .trait(name: "Tagged", condition: .when(traits: ["Tagged"])),

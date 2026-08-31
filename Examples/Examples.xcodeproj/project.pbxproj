@@ -51,7 +51,6 @@
 
 /* Begin PBXFileReference section */
 		CA2BDD9D2E71C30B000974D3 /* CloudKitDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CloudKitDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CA2BDE272E71C42B000974D3 /* sqlite-data */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "sqlite-data"; path = "/Users/brandon/projects/sqlite-data"; sourceTree = "<absolute>"; };
 		CA5E46962DEBFE410069E0F8 /* RemindersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemindersTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA5F37542D5AFBBC002E1A9E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		CAD0017D2D874E6F00FA977A /* SyncUpTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SyncUpTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -257,7 +256,6 @@
 			isa = PBXGroup;
 			children = (
 				DC55FADE30363BB000F2D8D3 /* sqlite-data */,
-				CA2BDE272E71C42B000974D3 /* sqlite-data */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -1256,7 +1254,7 @@
 			repositoryURL = "https://github.com/pointfreeco/swift-dependencies";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.7.0;
+				minimumVersion = 1.17.1;
 			};
 		};
 		DCBE8A122D4842BF0071F499 /* XCRemoteSwiftPackageReference "swift-case-paths" */ = {
@@ -1264,7 +1262,7 @@
 			repositoryURL = "https://github.com/pointfreeco/swift-case-paths";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.6.0;
+				minimumVersion = 1.10.0;
 			};
 		};
 		DCF267372D48437300B680BE /* XCRemoteSwiftPackageReference "swift-navigation" */ = {
@@ -1272,7 +1270,7 @@
 			repositoryURL = "https://github.com/pointfreeco/swift-navigation";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.2.3;
+				minimumVersion = 2.11.2;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

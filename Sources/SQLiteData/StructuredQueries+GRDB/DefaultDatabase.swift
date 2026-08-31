@@ -19,6 +19,10 @@ public func defaultDatabase(
   path: String? = nil,
   configuration: Configuration = Configuration()
 ) throws -> any DatabaseWriter {
+  var configuration = configuration
+  configuration.prepareDatabase { db in
+    db.add(collation: .canonical)
+  }
   let database: any DatabaseWriter
   @Dependency(\.context) var context
   switch context {
