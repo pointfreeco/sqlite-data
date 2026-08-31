@@ -1,4 +1,4 @@
-// swift-tools-version: 6.4
+// swift-tools-version: 6.1
 
 import Foundation
 import PackageDescription
@@ -27,28 +27,6 @@ let package = Package(
       description: "Introduce support for enum tables."
     ),
     .trait(
-      name: "ColumnCoding",
-      description: "Align the Codable coding of tables and selections with their column names."
-    ),
-    .trait(
-      name: "LazyInitializableByDefault",
-      description: "Optionalize draft properties that have no default."
-    ),
-    .trait(
-      name: "SuppressPlatformSQLiteAvailability",
-      description: """
-        Suppress '@available' checks on APIs that depend on a newer version of SQLite than the one \
-        bundled with the platform.
-        """
-    ),
-    .trait(
-      name: "StrictDecoding",
-      description: """
-        Throw an error, rather than coerce, when decoding a column whose storage type does not \
-        match the expected type.
-        """
-    ),
-    .trait(
       name: "Tagged",
       description: "Introduce SQLiteData conformances to the swift-tagged package."
     ),
@@ -64,7 +42,6 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.4.0"),
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "1.3.3"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
-    .package(url: "https://github.com/pointfreeco/swift-issue-reporting", from: "2.1.0"),
     .package(url: "https://github.com/pointfreeco/swift-perception", from: "2.0.0"),
     .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
@@ -73,19 +50,11 @@ let package = Package(
       from: "0.39.0",
       traits: [
         .trait(name: "CasePaths", condition: .when(traits: ["CasePaths"])),
-        .trait(name: "ColumnCoding", condition: .when(traits: ["ColumnCoding"])),
-        .trait(
-          name: "LazyInitializableByDefault",
-          condition: .when(traits: ["LazyInitializableByDefault"])
-        ),
-        .trait(
-          name: "SuppressPlatformSQLiteAvailability",
-          condition: .when(traits: ["SuppressPlatformSQLiteAvailability"])
-        ),
         .trait(name: "Tagged", condition: .when(traits: ["Tagged"])),
       ]
     ),
     .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
+    .package(url: "https://github.com/pointfreeco/xctest-dynamic-overlay", from: "1.13.0"),
   ],
   targets: [
     .target(
@@ -94,7 +63,7 @@ let package = Package(
         .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "GRDB", package: "GRDB.swift"),
-        .product(name: "IssueReporting", package: "swift-issue-reporting"),
+        .product(name: "IssueReporting", package: "xctest-dynamic-overlay"),
         .product(name: "OrderedCollections", package: "swift-collections"),
         .product(name: "Perception", package: "swift-perception"),
         .product(name: "Sharing", package: "swift-sharing"),
