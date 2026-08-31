@@ -18,18 +18,25 @@ public struct FetchSubscription: Sendable {
   let cancellable = LockIsolated<Task<Void, any Error>?>(nil)
   let onCancel: @Sendable () -> Void
 
-  init<Value>(sharedReader: SharedReader<Value>) {
-    onCancel = { sharedReader.projectedValue = SharedReader(value: sharedReader.wrappedValue) }
+  init<Value>(sharedReader: SharedReader<Value>, token: LoadGeneration.Token) {
+    onCancel = {
+      token.ifCurrent {
+        sharedReader.projectedValue = SharedReader(value: sharedReader.wrappedValue)
+      }
+    }
   }
 
   init<Element: Sendable>(
     sharedReader: SharedReader<[Element]>,
-    sectionedReader: SharedReader<ResultsSectionCollection<Element, String?>>
+    sectionedReader: SharedReader<ResultsSectionCollection<Element, String?>>,
+    token: LoadGeneration.Token
   ) {
     onCancel = {
-      let sections = sectionedReader.wrappedValue
-      sectionedReader.projectedValue = SharedReader(value: sections)
-      sharedReader.projectedValue = SharedReader(value: sections.elements)
+      token.ifCurrent {
+        let sections = sectionedReader.wrappedValue
+        sectionedReader.projectedValue = SharedReader(value: sections)
+        sharedReader.projectedValue = SharedReader(value: sections.elements)
+      }
     }
   }
 
