@@ -945,9 +945,6 @@ information about CloudKit synchronization, see <doc:CloudKitSync>.
 
 ### Supported Apple platforms
 
-SwiftData and the `@Query` macro require iOS 17, macOS 14, tvOS 17, watchOS 10 and higher, and
-some newer features require even more recent versions of iOS.
-
-Meanwhile, SQLiteData has a broad set of deployment targets supporting all the way back to iOS 13,
-macOS 10.15, tvOS 13, and watchOS 6. This means you can use these tools on essentially any
-application today with no restrictions.
+SQLiteData has a broad set of deployment targets supporting all the way back to the iOS 16 family
+of releases. This means you can use these tools on essentially any application today with no
+restrictions.

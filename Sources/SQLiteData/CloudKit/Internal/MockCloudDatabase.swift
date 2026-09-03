@@ -188,21 +188,22 @@
                 return
               }
 
-              guard let copy = recordToSave.copy() as? CKRecord
+              guard let databaseCopy = recordToSave.copy() as? CKRecord
               else { fatalError("Could not copy CKRecord.") }
-              copy._recordChangeTag = state.nextRecordChangeTag()
+              databaseCopy._recordChangeTag = state.nextRecordChangeTag()
 
-              for key in copy.allKeys() {
-                guard let assetURL = (copy[key] as? CKAsset)?.fileURL
+              for key in databaseCopy.allKeys() {
+                guard let assetURL = (databaseCopy[key] as? CKAsset)?.fileURL
                 else { continue }
-                state.assets[AssetID(recordID: copy.recordID, key: key)] =
+                state.assets[AssetID(recordID: databaseCopy.recordID, key: key)] =
                   try? dataManager.wrappedValue
                   .load(assetURL)
               }
 
               // TODO: This should merge copy's values to more accurately reflect reality
-              state.storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID] = copy
-              saveResults[recordToSave.recordID] = .success(copy)
+              state.storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID] =
+                databaseCopy
+              saveResults[recordToSave.recordID] = .success(databaseCopy.copy() as! CKRecord)
 
               // NB: "Touch" parent records when saving a child:
               if let parent = recordToSave.parent,

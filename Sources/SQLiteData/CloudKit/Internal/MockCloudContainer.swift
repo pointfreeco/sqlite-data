@@ -52,7 +52,8 @@
       let rootRecord: CKRecord? = database.state.withValue {
         $0.storage[share.recordID.zoneID]?.records.values.first { record in
           record.share?.recordID == share.recordID
-        }
+        }?
+          .copy() as? CKRecord
       }
 
       return ShareMetadata(

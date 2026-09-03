@@ -1,7 +1,6 @@
 public import GRDB
 public import Sharing
 import StructuredQueriesCore
-public import Sharing
 
 #if canImport(Combine)
   public import Combine
@@ -22,11 +21,31 @@ public import Sharing
 @dynamicMemberLookup
 @propertyWrapper
 public struct Fetch<Value: Sendable>: Sendable {
-  /// The underlying shared reader powering the property wrapper.
-  ///
-  /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing) package,
-  /// a general solution to observing and persisting changes to external data sources.
-  public var sharedReader: SharedReader<Value>
+  #if canImport(SwiftUI)
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public var sharedReader: SharedReader<Value> {
+      @storageRestrictions(initializes: box, state)
+      init(initialValue) {
+        let box = FetchBox(sharedReader: initialValue)
+        self.box = box
+        state = SwiftUI.State(wrappedValue: box)
+      }
+      get { state.wrappedValue.sharedReader }
+    }
+
+    private let box: FetchBox<Value>
+    private let state: SwiftUI.State<FetchBox<Value>>
+    private let generation = SwiftUI.State(wrappedValue: 0)
+  #else
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public let sharedReader: SharedReader<Value>
+  #endif
 
   /// Data associated with the underlying query.
   public var wrappedValue: Value {
@@ -93,6 +112,7 @@ public struct Fetch<Value: Sendable>: Sendable {
     database: (any DatabaseReader)? = nil
   ) {
     sharedReader = SharedReader(wrappedValue: wrappedValue, .fetch(request, database: database))
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Replaces the wrapped value with data from the given request.
@@ -109,6 +129,19 @@ public struct Fetch<Value: Sendable>: Sendable {
   ) async throws -> FetchSubscription {
     try await sharedReader.load(.fetch(request, database: database))
     return FetchSubscription(sharedReader: sharedReader)
+  }
+
+  #if !canImport(SwiftUI)
+    @_transparent
+  #endif
+  private func setFetchKeyID<V: Sendable>(
+    for request: some FetchKeyRequest<V>,
+    database: (any DatabaseReader)?,
+    scheduler: (any ValueObservationScheduler & Hashable)?
+  ) {
+    #if canImport(SwiftUI)
+      box.fetchKeyID = FetchKey(request: request, database: database, scheduler: scheduler).id
+    #endif
   }
 }
 
@@ -132,6 +165,7 @@ extension Fetch {
       wrappedValue: wrappedValue,
       .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Replaces the wrapped value with data from the given request.
@@ -169,7 +203,11 @@ extension Fetch: Equatable where Value: Equatable {
 #if canImport(SwiftUI)
   extension Fetch: DynamicProperty {
     public func update() {
-      sharedReader.update()
+      let persisted = state.wrappedValue
+      if persisted !== box {
+        persisted.update(from: box)
+      }
+      persisted.subscribe(generation: generation)
     }
 
     /// Initializes this property with a request associated with the wrapped value.
@@ -192,6 +230,7 @@ extension Fetch: Equatable where Value: Equatable {
         wrappedValue: wrappedValue,
         .fetch(request, database: database, animation: animation)
       )
+      setFetchKeyID(for: request, database: database, scheduler: .animation(animation))
     }
 
     /// Replaces the wrapped value with data from the given request.
