@@ -1,6 +1,5 @@
 #if canImport(CloudKit)
   public import CloudKit
-  import CustomDump
   import IssueReporting
 
   /// An interface for observing ``SyncEngine`` events and customizing ``SyncEngine`` behavior.
