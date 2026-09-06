@@ -66,7 +66,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.0"),
     .package(url: "https://github.com/pointfreeco/swift-issue-reporting", from: "2.1.0"),
     .package(url: "https://github.com/pointfreeco/swift-perception", from: "2.0.0"),
-    .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.3.0"),
+    .package(url: "https://github.com/pointfreeco/swift-sharing", from: "2.10.1", traits: []),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.4"),
     .package(
       url: "https://github.com/pointfreeco/swift-structured-queries",
