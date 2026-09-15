@@ -379,6 +379,10 @@
       get { self[#function] }
       set { self[#function] = newValue }
     }
+
+    var hasBeenSavedToServer: Bool {
+      recordChangeTag != nil || _recordChangeTag != nil
+    }
   }
 
   extension DataProtocol {
