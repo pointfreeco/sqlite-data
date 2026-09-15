@@ -43,7 +43,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetDefaults')));
               END
               """,
@@ -72,7 +72,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetNulls')));
               END
               """,
@@ -101,7 +101,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelAs')));
               END
               """,
@@ -130,7 +130,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelBs')));
               END
               """,
@@ -159,7 +159,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelCs')));
               END
               """,
@@ -188,7 +188,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('parents')));
               END
               """,
@@ -217,7 +217,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminderTags')));
               END
               """,
@@ -246,7 +246,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListAssets')));
               END
               """,
@@ -275,7 +275,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListPrivates')));
               END
               """,
@@ -304,7 +304,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersLists')));
               END
               """,
@@ -333,7 +333,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminders')));
               END
               """,
@@ -362,14 +362,14 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('scopedModels')));
               END
               """,
               [24]: """
               CREATE TRIGGER "sqlitedata_icloud_after_delete_on_sqlitedata_icloud_metadata"
-              AFTER UPDATE OF "_isDeleted" ON "sqlitedata_icloud_metadata"
-              FOR EACH ROW WHEN ((NOT ("old"."_isDeleted")) AND ("new"."_isDeleted")) AND (NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) BEGIN
+              AFTER UPDATE OF "_pendingStatus" ON "sqlitedata_icloud_metadata"
+              FOR EACH ROW WHEN (((("old"."_pendingStatus") IS (NULL)) OR (("old"."_pendingStatus") <> (0))) AND (("new"."_pendingStatus") = (0))) AND (NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) BEGIN
                 SELECT "sqlitedata_icloud_didDelete"("new"."recordName", coalesce("new"."lastKnownServerRecord", (
                   WITH "ancestorMetadatas" AS (
                     SELECT "sqlitedata_icloud_metadata"."recordName" AS "recordName", "sqlitedata_icloud_metadata"."parentRecordName" AS "parentRecordName", "sqlitedata_icloud_metadata"."lastKnownServerRecord" AS "lastKnownServerRecord"
@@ -411,7 +411,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."title")) AND (("sqlitedata_icloud_metadata"."recordType") = ('tags')));
               END
               """,
@@ -439,6 +439,9 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."parentID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('parents'))))), '__defaultOwner__'), "new"."parentID", 'parents'
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetDefaults'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [28]: """
@@ -465,6 +468,9 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."parentID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('parents'))))), '__defaultOwner__'), "new"."parentID", 'parents'
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetNulls'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [29]: """
@@ -487,6 +493,9 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'modelAs', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelAs'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [30]: """
@@ -513,6 +522,9 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."modelAID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelAs'))))), '__defaultOwner__'), "new"."modelAID", 'modelAs'
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelBs'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [31]: """
@@ -539,6 +551,9 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."modelBID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelBs'))))), '__defaultOwner__'), "new"."modelBID", 'modelBs'
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelCs'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [32]: """
@@ -561,6 +576,9 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'parents', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('parents'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [33]: """
@@ -583,6 +601,9 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'reminderTags', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminderTags'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [34]: """
@@ -609,6 +630,9 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersLists'))))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminders'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [35]: """
@@ -635,6 +659,9 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersLists'))))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListAssets'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [36]: """
@@ -661,6 +688,9 @@
                 FROM "sqlitedata_icloud_metadata"
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersLists'))))), '__defaultOwner__'), "new"."remindersListID", 'remindersLists'
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListPrivates'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [37]: """
@@ -683,6 +713,9 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'remindersLists', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersLists'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [38]: """
@@ -705,6 +738,9 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."id", 'scopedModels', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('scopedModels'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [39]: """
@@ -736,6 +772,9 @@
                 ("recordPrimaryKey", "recordType", "zoneName", "ownerName", "parentRecordPrimaryKey", "parentRecordType")
                 SELECT "new"."title", 'tags', coalesce("sqlitedata_icloud_currentZoneName"(), 'zone'), coalesce("sqlitedata_icloud_currentOwnerName"(), '__defaultOwner__'), NULL, NULL
                 ON CONFLICT DO NOTHING;
+                UPDATE "sqlitedata_icloud_metadata"
+                SET "_pendingStatus" = 1, "userModificationTime" = "sqlitedata_icloud_currentTime"()
+                WHERE (((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."title")) AND (("sqlitedata_icloud_metadata"."recordType") = ('tags'))) AND (("sqlitedata_icloud_metadata"."_pendingStatus") = (0)));
               END
               """,
               [41]: """
@@ -755,7 +794,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetDefaults')));
               END
               """,
@@ -776,7 +815,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetNulls')));
               END
               """,
@@ -797,7 +836,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelAs')));
               END
               """,
@@ -818,7 +857,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelBs')));
               END
               """,
@@ -839,7 +878,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelCs')));
               END
               """,
@@ -860,7 +899,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('parents')));
               END
               """,
@@ -881,7 +920,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminderTags')));
               END
               """,
@@ -902,7 +941,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminders')));
               END
               """,
@@ -923,7 +962,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListAssets')));
               END
               """,
@@ -944,7 +983,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListPrivates')));
               END
               """,
@@ -965,7 +1004,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersLists')));
               END
               """,
@@ -986,7 +1025,7 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('scopedModels')));
               END
               """,
@@ -1007,11 +1046,18 @@
                 FROM "rootShares"
                 WHERE (((NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) AND (("rootShares"."parentRecordName") IS (NULL))) AND (NOT ("sqlitedata_icloud_hasPermission"("rootShares"."share"))));
                 UPDATE "sqlitedata_icloud_metadata"
-                SET "_isDeleted" = 1
+                SET "_pendingStatus" = 0
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("old"."title")) AND (("sqlitedata_icloud_metadata"."recordType") = ('tags')));
               END
               """,
               [54]: """
+              CREATE TRIGGER "sqlitedata_icloud_after_reinsert_on_sqlitedata_icloud_metadata"
+              AFTER UPDATE OF "_pendingStatus" ON "sqlitedata_icloud_metadata"
+              FOR EACH ROW WHEN ((("old"."_pendingStatus") = (0)) AND (("new"."_pendingStatus") = (1))) AND (NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) BEGIN
+                SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", "new"."zoneName", "new"."ownerName", "new"."zoneName", "new"."ownerName", NULL);
+              END
+              """,
+              [55]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_childWithOnDeleteSetDefaults"
               AFTER UPDATE ON "childWithOnDeleteSetDefaults"
               FOR EACH ROW BEGIN
@@ -1044,7 +1090,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetDefaults')));
               END
               """,
-              [55]: """
+              [56]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_childWithOnDeleteSetNulls"
               AFTER UPDATE ON "childWithOnDeleteSetNulls"
               FOR EACH ROW BEGIN
@@ -1077,7 +1123,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('childWithOnDeleteSetNulls')));
               END
               """,
-              [56]: """
+              [57]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelAs"
               AFTER UPDATE ON "modelAs"
               FOR EACH ROW BEGIN
@@ -1102,7 +1148,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelAs')));
               END
               """,
-              [57]: """
+              [58]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelBs"
               AFTER UPDATE ON "modelBs"
               FOR EACH ROW BEGIN
@@ -1135,7 +1181,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelBs')));
               END
               """,
-              [58]: """
+              [59]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_modelCs"
               AFTER UPDATE ON "modelCs"
               FOR EACH ROW BEGIN
@@ -1168,7 +1214,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('modelCs')));
               END
               """,
-              [59]: """
+              [60]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_parents"
               AFTER UPDATE ON "parents"
               FOR EACH ROW BEGIN
@@ -1193,7 +1239,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('parents')));
               END
               """,
-              [60]: """
+              [61]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_reminderTags"
               AFTER UPDATE ON "reminderTags"
               FOR EACH ROW BEGIN
@@ -1218,7 +1264,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminderTags')));
               END
               """,
-              [61]: """
+              [62]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_reminders"
               AFTER UPDATE ON "reminders"
               FOR EACH ROW BEGIN
@@ -1251,7 +1297,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('reminders')));
               END
               """,
-              [62]: """
+              [63]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersListAssets"
               AFTER UPDATE ON "remindersListAssets"
               FOR EACH ROW BEGIN
@@ -1284,7 +1330,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListAssets')));
               END
               """,
-              [63]: """
+              [64]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersListPrivates"
               AFTER UPDATE ON "remindersListPrivates"
               FOR EACH ROW BEGIN
@@ -1317,7 +1363,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."remindersListID")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersListPrivates')));
               END
               """,
-              [64]: """
+              [65]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_remindersLists"
               AFTER UPDATE ON "remindersLists"
               FOR EACH ROW BEGIN
@@ -1342,7 +1388,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('remindersLists')));
               END
               """,
-              [65]: """
+              [66]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_scopedModels"
               AFTER UPDATE ON "scopedModels"
               FOR EACH ROW BEGIN
@@ -1367,10 +1413,10 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."id")) AND (("sqlitedata_icloud_metadata"."recordType") = ('scopedModels')));
               END
               """,
-              [66]: """
+              [67]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_sqlitedata_icloud_metadata"
               AFTER UPDATE ON "sqlitedata_icloud_metadata"
-              FOR EACH ROW WHEN (("old"."_isDeleted") = ("new"."_isDeleted")) AND (NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) BEGIN
+              FOR EACH ROW WHEN (("old"."_pendingStatus") IS ("new"."_pendingStatus")) AND (NOT ("sqlitedata_icloud_syncEngineIsSynchronizingChanges"())) BEGIN
                 SELECT RAISE(ABORT, 'co.pointfree.SQLiteData.CloudKit.invalid-record-name-error')
                 WHERE NOT (((substr("new"."recordName", 1, 1)) <> ('_')) AND ((octet_length("new"."recordName")) <= (255))) AND ((octet_length("new"."recordName")) = (length("new"."recordName")));
                 SELECT "sqlitedata_icloud_didUpdate"("new"."recordName", "new"."zoneName", "new"."ownerName", "old"."zoneName", "old"."ownerName", CASE WHEN (("new"."zoneName") <> ("old"."zoneName")) OR (("new"."ownerName") <> ("old"."ownerName")) THEN (
@@ -1389,7 +1435,7 @@
                 ) END);
               END
               """,
-              [67]: """
+              [68]: """
               CREATE TRIGGER "sqlitedata_icloud_after_update_on_tags"
               AFTER UPDATE ON "tags"
               FOR EACH ROW BEGIN
@@ -1414,7 +1460,7 @@
                 WHERE ((("sqlitedata_icloud_metadata"."recordPrimaryKey") = ("new"."title")) AND (("sqlitedata_icloud_metadata"."recordType") = ('tags')));
               END
               """,
-              [68]: """
+              [69]: """
               CREATE TRIGGER "sqlitedata_icloud_after_zone_update_on_sqlitedata_icloud_metadata"
               AFTER UPDATE OF "zoneName", "ownerName" ON "sqlitedata_icloud_metadata"
               FOR EACH ROW WHEN (("new"."zoneName") <> ("old"."zoneName")) OR (("new"."ownerName") <> ("old"."ownerName")) BEGIN

@@ -65,7 +65,7 @@
           │     title: "Personal"                                              │
           │   ),                                                               │
           │   share: nil,                                                      │
-          │   _isDeleted: false,                                               │
+          │   _pendingStatus: nil,                                             │
           │   _hasLastKnownServerRecord: true,                                 │
           │   _isShared: false,                                                │
           │   userModificationTime: 0                                          │
@@ -139,7 +139,7 @@
           │     title: "Personal"                                              │
           │   ),                                                               │
           │   share: nil,                                                      │
-          │   _isDeleted: false,                                               │
+          │   _pendingStatus: nil,                                             │
           │   _hasLastKnownServerRecord: true,                                 │
           │   _isShared: false,                                                │
           │   userModificationTime: 0                                          │
