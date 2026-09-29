@@ -1,14 +1,17 @@
+import StructuredQueriesCore
+
 protocol StatementKeyRequest<QueryValue>: FetchKeyRequest {
   associatedtype QueryValue
-  var statement: SQLQueryExpression<QueryValue> { get }
+  var prepared: PreparedQuery { get }
 }
 
 extension StatementKeyRequest {
   static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.statement.query == rhs.statement.query
+    lhs.prepared.sql == rhs.prepared.sql && lhs.prepared.bindings == rhs.prepared.bindings
   }
 
   func hash(into hasher: inout Hasher) {
-    hasher.combine(statement.query)
+    hasher.combine(prepared.sql)
+    hasher.combine(prepared.bindings)
   }
 }

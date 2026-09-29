@@ -21,6 +21,8 @@ body:
   attributes:
     label: Checklist
     options:
+    - label: I wrote this in my own words, and aimed to be as succinct as possible, even if I used AI to help research its content.
+      required: true
     - label: I have determined whether this bug is also reproducible in a vanilla SwiftUI project.
       required: false
     - label: I have determined whether this bug is also reproducible in a vanilla GRDB project.

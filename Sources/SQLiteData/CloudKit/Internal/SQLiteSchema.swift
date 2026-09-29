@@ -1,4 +1,9 @@
 #if canImport(CloudKit)
+  import StructuredQueries
+  #if EXCLUDE_EXPORTS
+    package import StructuredQueriesCore
+  #endif
+
   @Table("sqlite_schema")
   package struct SQLiteSchema {
     package let type: ObjectType

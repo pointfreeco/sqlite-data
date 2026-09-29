@@ -1,5 +1,5 @@
 #if canImport(CloudKit)
-  import CloudKit
+  package import CloudKit
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package protocol SyncEngineProtocol<Database, State>: AnyObject, Sendable {

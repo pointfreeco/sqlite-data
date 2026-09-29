@@ -290,9 +290,14 @@ It is also important to prepare the database in Xcode previews. This can be done
 }
 ```
 
-And similarly, in tests, this can be done using the `.dependency` testing trait:
+And similarly, in tests, this can be done using the `.dependency` testing trait 
+from [DependenciesTestSupport](https://github.com/pointfreeco/swift-dependencies):
 
 ```swift
+import DependenciesTestSupport
+import SQLiteData
+import Testing
+
 @Test(.dependency(\.defaultDatabase, try appDatabase())
 func feature() {
   // ...
@@ -303,4 +308,4 @@ func feature() {
 
 If you plan on synchronizing your local database to CloudKit so that your user's data is available
 on all of their devices, there is an additional step you must take. See
-<doc:CloudKit> for more information.
+<doc:CloudKitSync> for more information.

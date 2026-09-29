@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   import CloudKit
+  import ConcurrencyExtrasTestSupport
   import CustomDump
   import Foundation
   import InlineSnapshotTesting
@@ -11,8 +12,8 @@
 
   extension BaseCloudKitTests {
     @MainActor
-    @Suite(.printTimestamps) final class MergeConflictTests: BaseCloudKitTests, @unchecked Sendable
-    {
+    @Suite(.taskLocal(CKRecord._$printTimestamps, true))
+    final class MergeConflictTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func merge_clientRecordUpdatedBeforeServerRecord() async throws {
         try await userDatabase.userWrite { db in

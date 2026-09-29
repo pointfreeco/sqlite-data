@@ -1,6 +1,10 @@
-import Foundation
-import GRDBSQLite
-import StructuredQueriesCore
+public import Foundation
+public import GRDBSQLite
+public import StructuredQueriesCore
+
+#if !StrictDecoding
+  import IssueReporting
+#endif
 
 @usableFromInline
 struct SQLiteQueryDecoder: QueryDecoder {
@@ -9,6 +13,11 @@ struct SQLiteQueryDecoder: QueryDecoder {
 
   @usableFromInline
   var currentIndex: Int32 = 0
+
+  #if !StrictDecoding
+    @usableFromInline
+    var reportedTypeMismatches: Set<Int32> = []
+  #endif
 
   @usableFromInline
   init(statement: OpaquePointer) {
@@ -21,9 +30,17 @@ struct SQLiteQueryDecoder: QueryDecoder {
   }
 
   @inlinable
-  mutating func decode(_ columnType: [UInt8].Type) throws -> [UInt8]? {
+  mutating func decode(_ columnType: [UInt8].Type) throws(QueryDecodingError) -> [UInt8]? {
+    switch sqlite3_column_type(statement, currentIndex) {
+    case SQLITE_NULL:
+      currentIndex += 1
+      return nil
+    case SQLITE_BLOB:
+      break
+    default:
+      try reportTypeMismatch([UInt8].self)
+    }
     defer { currentIndex += 1 }
-    guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
     return [UInt8](
       UnsafeRawBufferPointer(
         start: sqlite3_column_blob(statement, currentIndex),
@@ -33,53 +50,120 @@ struct SQLiteQueryDecoder: QueryDecoder {
   }
 
   @inlinable
-  mutating func decode(_ columnType: Bool.Type) throws -> Bool? {
+  mutating func decode(_ columnType: Bool.Type) throws(QueryDecodingError) -> Bool? {
     try decode(Int64.self).map { $0 != 0 }
   }
 
   @inlinable
-  mutating func decode(_ columnType: Date.Type) throws -> Date? {
-    try decode(String.self).map { try Date(iso8601String: $0) }
+  mutating func decode(_ columnType: Date.Type) throws(QueryDecodingError) -> Date? {
+    guard let iso8601String = try decode(String.self) else { return nil }
+    do {
+      return try Date(iso8601String: iso8601String)
+    } catch {
+      throw .other(error)
+    }
   }
 
   @inlinable
-  mutating func decode(_ columnType: Double.Type) throws -> Double? {
+  mutating func decode(_ columnType: Double.Type) throws(QueryDecodingError) -> Double? {
+    switch sqlite3_column_type(statement, currentIndex) {
+    case SQLITE_NULL:
+      currentIndex += 1
+      return nil
+    case SQLITE_FLOAT:
+      break
+    default:
+      try reportTypeMismatch(Double.self)
+    }
     defer { currentIndex += 1 }
-    guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
     return sqlite3_column_double(statement, currentIndex)
   }
 
   @inlinable
-  mutating func decode(_ columnType: Int.Type) throws -> Int? {
+  mutating func decode(_ columnType: Int.Type) throws(QueryDecodingError) -> Int? {
     try decode(Int64.self).map(Int.init)
   }
 
   @inlinable
-  mutating func decode(_ columnType: Int64.Type) throws -> Int64? {
+  mutating func decode(_ columnType: Int64.Type) throws(QueryDecodingError) -> Int64? {
+    switch sqlite3_column_type(statement, currentIndex) {
+    case SQLITE_NULL:
+      currentIndex += 1
+      return nil
+    case SQLITE_INTEGER:
+      break
+    default:
+      try reportTypeMismatch(Int64.self)
+    }
     defer { currentIndex += 1 }
-    guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
     return sqlite3_column_int64(statement, currentIndex)
   }
 
   @inlinable
-  mutating func decode(_ columnType: String.Type) throws -> String? {
+  mutating func decode(_ columnType: String.Type) throws(QueryDecodingError) -> String? {
+    switch sqlite3_column_type(statement, currentIndex) {
+    case SQLITE_NULL:
+      currentIndex += 1
+      return nil
+    case SQLITE_TEXT:
+      break
+    default:
+      try reportTypeMismatch(String.self)
+    }
     defer { currentIndex += 1 }
-    guard sqlite3_column_type(statement, currentIndex) != SQLITE_NULL else { return nil }
-    return String(cString: sqlite3_column_text(statement, currentIndex))
+    let text = sqlite3_column_text(statement, currentIndex)
+    let byteCount = Int(sqlite3_column_bytes(statement, currentIndex))
+    return String(decoding: UnsafeBufferPointer(start: text, count: byteCount), as: UTF8.self)
   }
 
   @inlinable
-  mutating func decode(_ columnType: UInt64.Type) throws -> UInt64? {
+  mutating func decode(_ columnType: UInt64.Type) throws(QueryDecodingError) -> UInt64? {
     guard let n = try decode(Int64.self) else { return nil }
-    guard n >= 0 else { throw UInt64OverflowError(signedInteger: n) }
+    guard n >= 0 else { throw .other(UInt64OverflowError(signedInteger: n)) }
     return UInt64(n)
   }
 
   @inlinable
-  mutating func decode(_ columnType: UUID.Type) throws -> UUID? {
-    guard let uuidString = try decode(String.self) else { return nil }
-    guard let uuid = UUID(uuidString: uuidString) else { throw InvalidUUID() }
+  mutating func decode(_ columnType: UUID.Type) throws(QueryDecodingError) -> UUID? {
+    switch sqlite3_column_type(statement, currentIndex) {
+    case SQLITE_NULL:
+      currentIndex += 1
+      return nil
+    case SQLITE_TEXT:
+      break
+    default:
+      try reportTypeMismatch(UUID.self)
+    }
+    defer { currentIndex += 1 }
+    let text = sqlite3_column_text(statement, currentIndex)
+    let byteCount = Int(sqlite3_column_bytes(statement, currentIndex))
+    let utf8 = UnsafeBufferPointer(start: text, count: byteCount)
+    if let uuid = UUID(uuidUTF8: utf8) { return uuid }
+    guard let uuid = UUID(uuidString: String(decoding: utf8, as: UTF8.self))
+    else { throw .other(InvalidUUID()) }
     return uuid
+  }
+
+  @usableFromInline
+  mutating func reportTypeMismatch(_ columnType: Any.Type) throws(QueryDecodingError) {
+    #if StrictDecoding
+      throw QueryDecodingError.typeMismatch(columnType)
+    #else
+      guard reportedTypeMismatches.insert(currentIndex).inserted
+      else { return }
+      let columnName =
+        sqlite3_column_name(statement, currentIndex)
+        .map { " (\(String(cString: $0).debugDescription))" }
+        ?? ""
+      reportIssue(
+        """
+        Expected column \(currentIndex)\(columnName) to decode \(columnType), but found \
+        \(storageClassName(sqlite3_column_type(statement, currentIndex))): ...
+
+        \(sqlite3_sql(statement).map { String(cString: $0) } ?? "")
+        """
+      )
+    #endif
   }
 }
 

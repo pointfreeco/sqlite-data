@@ -599,7 +599,7 @@
       // * Create 3 reminders lists and a reminder
       // * Sync to CloudKit
       // * Move reminder to different list on CloudKit, do not synchronize it right away.
-      // * A moment ater, move local reminder to different list
+      // * A moment after, move local reminder to different list
       // * Sync CloudKit to local
       // * Then send local to CloudKit
       // => Local edit wins
@@ -695,7 +695,7 @@
       // * Create 3 reminders lists and a reminder
       // * Sync to CloudKit
       // * Move reminder to different list on CloudKit, do not synchronize it right away.
-      // * A moment ater, move local reminder to different list
+      // * A moment after, move local reminder to different list
       // * Send local data to CloudKit
       // * The synchronize CloudKit to local
       // => Local edit wins

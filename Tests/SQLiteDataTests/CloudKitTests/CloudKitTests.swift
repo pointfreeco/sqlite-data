@@ -365,6 +365,39 @@
                   type: "TEXT"
                 )
               ]
+            ),
+            [12]: RecordType(
+              tableName: "scopedModels",
+              schema: """
+                CREATE TABLE "scopedModels" (
+                  "id" INT PRIMARY KEY NOT NULL,
+                  "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
+                  "isDeleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+                ) STRICT
+                """,
+              tableInfo: [
+                [0]: TableInfo(
+                  defaultValue: nil,
+                  isPrimaryKey: true,
+                  name: "id",
+                  isNotNull: true,
+                  type: "INT"
+                ),
+                [1]: TableInfo(
+                  defaultValue: "0",
+                  isPrimaryKey: false,
+                  name: "isDeleted",
+                  isNotNull: true,
+                  type: "INTEGER"
+                ),
+                [2]: TableInfo(
+                  defaultValue: "\'\'",
+                  isPrimaryKey: false,
+                  name: "title",
+                  isNotNull: true,
+                  type: "TEXT"
+                )
+              ]
             )
           ]
           """#

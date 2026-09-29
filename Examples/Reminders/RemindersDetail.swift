@@ -88,7 +88,7 @@ class RemindersDetailModel: HashableObject {
     }
   }
 
-  private var remindersQuery: some StructuredQueriesCore.Statement<Row> {
+  private var remindersQuery: some Statement<Row> {
     Reminder
       .where {
         if !showCompleted {

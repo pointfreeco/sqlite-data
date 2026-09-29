@@ -1,4 +1,5 @@
-import StructuredQueriesCore
+public import GRDB
+public import StructuredQueriesCore
 
 extension StructuredQueriesCore.Table {
   /// Returns an array of all values fetched from the database.

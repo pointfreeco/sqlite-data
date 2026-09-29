@@ -1,4 +1,5 @@
-import StructuredQueriesCore
+public import GRDB
+public import StructuredQueriesCore
 
 extension StructuredQueriesCore.Statement {
   /// Executes a structured query on the given database connection.
@@ -17,7 +18,7 @@ extension StructuredQueriesCore.Statement {
   /// - Parameter db: A database connection.
   @inlinable
   public func execute(_ db: Database) throws where QueryValue == () {
-    try QueryVoidCursor(db: db, query: query).next()
+    try QueryVoidCursor(db: db, query: query, cached: true).next()
   }
 
   /// Returns an array of all values fetched from the database.
@@ -40,7 +41,7 @@ extension StructuredQueriesCore.Statement {
   @inlinable
   public func fetchAll(_ db: Database) throws -> [QueryValue.QueryOutput]
   where QueryValue: QueryRepresentable {
-    let cursor = try QueryValueCursor<QueryValue>(db: db, query: query)
+    let cursor = try QueryValueCursor<QueryValue>(db: db, query: query, cached: true)
     var output: [QueryValue.QueryOutput] = []
     try cursor.forEach { output.append($0) }
     return output
@@ -68,7 +69,7 @@ extension StructuredQueriesCore.Statement {
   @inlinable
   public func fetchOne(_ db: Database) throws -> QueryValue.QueryOutput?
   where QueryValue: QueryRepresentable {
-    try fetchCursor(db).next()
+    try QueryValueCursor<QueryValue>(db: db, query: query, cached: true).next()
   }
 
   /// Returns a cursor to all values fetched from the database.
@@ -91,7 +92,7 @@ extension StructuredQueriesCore.Statement {
   @inlinable
   public func fetchCursor(_ db: Database) throws -> QueryCursor<QueryValue.QueryOutput>
   where QueryValue: QueryRepresentable {
-    try QueryValueCursor<QueryValue>(db: db, query: query)
+    try QueryValueCursor<QueryValue>(db: db, query: query, cached: false)
   }
 }
 
@@ -107,7 +108,7 @@ extension StructuredQueriesCore.Statement {
     _ db: Database
   ) throws -> [(repeat (each Value).QueryOutput)]
   where QueryValue == (repeat each Value) {
-    let cursor = try fetchCursor(db)
+    let cursor = try QueryPackCursor<repeat each Value>(db: db, query: query, cached: true)
     return try Array(cursor)
   }
 
@@ -121,7 +122,7 @@ extension StructuredQueriesCore.Statement {
     _ db: Database
   ) throws -> (repeat (each Value).QueryOutput)?
   where QueryValue == (repeat each Value) {
-    let cursor = try fetchCursor(db)
+    let cursor = try QueryPackCursor<repeat each Value>(db: db, query: query, cached: true)
     return try cursor.next()
   }
 
@@ -135,7 +136,7 @@ extension StructuredQueriesCore.Statement {
     _ db: Database
   ) throws -> QueryCursor<(repeat (each Value).QueryOutput)>
   where QueryValue == (repeat each Value) {
-    try QueryPackCursor<repeat each Value>(db: db, query: query)
+    try QueryPackCursor<repeat each Value>(db: db, query: query, cached: false)
   }
 }
 
@@ -159,7 +160,7 @@ extension SelectStatement where QueryValue == (), Joins == () {
   @_documentation(visibility: private)
   @inlinable
   public func fetchAll(_ db: Database) throws -> [From.QueryOutput] {
-    let cursor = try QueryValueCursor<From>(db: db, query: query)
+    let cursor = try QueryValueCursor<From>(db: db, query: query, cached: true)
     var output: [From.QueryOutput] = []
     try cursor.forEach { output.append($0) }
     return output
@@ -172,7 +173,7 @@ extension SelectStatement where QueryValue == (), Joins == () {
   @_documentation(visibility: private)
   @inlinable
   public func fetchOne(_ db: Database) throws -> From.QueryOutput? {
-    try asSelect().limit(1).fetchCursor(db).next()
+    try QueryValueCursor<From>(db: db, query: asSelect().limit(1).query, cached: true).next()
   }
 
   /// Returns a cursor to all values fetched from the database.
@@ -182,7 +183,7 @@ extension SelectStatement where QueryValue == (), Joins == () {
   @_documentation(visibility: private)
   @inlinable
   public func fetchCursor(_ db: Database) throws -> QueryCursor<From.QueryOutput> {
-    try QueryValueCursor<From>(db: db, query: query)
+    try QueryValueCursor<From>(db: db, query: query, cached: false)
   }
 }
 
@@ -217,7 +218,7 @@ extension SelectStatement where QueryValue == () {
     _ db: Database
   ) throws -> [(From.QueryOutput, repeat (each J).QueryOutput)]
   where Joins == (repeat each J) {
-    try Array(fetchCursor(db))
+    try Array(QueryPackCursor<From, repeat each J>(db: db, query: query, cached: true))
   }
 
   /// Returns a single value fetched from the database.
@@ -230,7 +231,10 @@ extension SelectStatement where QueryValue == () {
     _ db: Database
   ) throws -> (From.QueryOutput, repeat (each J).QueryOutput)?
   where Joins == (repeat each J) {
-    try asSelect().limit(1).fetchCursor(db).next()
+    try QueryPackCursor<From, repeat each J>(
+      db: db, query: asSelect().limit(1).query, cached: true
+    )
+    .next()
   }
 
   /// Returns a cursor to all values fetched from the database.
@@ -243,6 +247,6 @@ extension SelectStatement where QueryValue == () {
     _ db: Database
   ) throws -> QueryCursor<(From.QueryOutput, repeat (each J).QueryOutput)>
   where Joins == (repeat each J) {
-    try QueryPackCursor<From, repeat each J>(db: db, query: query)
+    try QueryPackCursor<From, repeat each J>(db: db, query: query, cached: false)
   }
 }

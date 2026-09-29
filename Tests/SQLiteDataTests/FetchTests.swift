@@ -45,16 +45,16 @@ struct FetchTests {
   }
 
   @Test func fetchOneWithDefault() async throws {
-    @FetchOne var record = Record(id: 0)
+    @FetchOne var record = Record(id: 2)
     try await $record.load()
-    #expect(record == Record(id: 1))
+    #expect(record == Record(id: 2))
 
     try await database.write { try Record.delete().execute($0) }
     await #expect(throws: NotFound.self) {
       try await $record.load()
     }
     #expect($record.loadError is NotFound)
-    #expect(record == Record(id: 1))
+    #expect(record == Record(id: 2))
   }
 
   @Test func fetchOneOptional_SQL() async throws {

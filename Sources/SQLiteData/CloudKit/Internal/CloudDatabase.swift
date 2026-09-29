@@ -1,5 +1,5 @@
 #if canImport(CloudKit)
-  import CloudKit
+  public import CloudKit
 
   package protocol CloudDatabase: AnyObject, Hashable, Sendable {
     var databaseScope: CKDatabase.Scope { get }

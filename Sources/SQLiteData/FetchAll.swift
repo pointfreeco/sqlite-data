@@ -1,10 +1,13 @@
-import Sharing
+import ConcurrencyExtras
+public import GRDB
+public import Sharing
+public import StructuredQueriesCore
 
 #if canImport(Combine)
-  import Combine
+  public import Combine
 #endif
 #if canImport(SwiftUI)
-  import SwiftUI
+  public import SwiftUI
 #endif
 
 /// A property that can query for a collection of data in a SQLite database.
@@ -19,11 +22,44 @@ import Sharing
 @dynamicMemberLookup
 @propertyWrapper
 public struct FetchAll<Element: Sendable>: Sendable {
-  /// The underlying shared reader powering the property wrapper.
-  ///
-  /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing) package,
-  /// a general solution to observing and persisting changes to external data sources.
-  public var sharedReader: SharedReader<[Element]> = SharedReader(value: [])
+  #if canImport(SwiftUI)
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public var sharedReader: SharedReader<[Element]> {
+      @storageRestrictions(initializes: box, state)
+      init(initialValue) {
+        let box = FetchAllBox(sharedReader: initialValue)
+        self.box = box
+        state = SwiftUI.State(wrappedValue: box)
+      }
+      get { state.wrappedValue.sharedReader }
+    }
+
+    var sectionedReader: SharedReader<ResultsSectionCollection<Element, String?>> {
+      state.wrappedValue.sectionedReader
+    }
+
+    var sectioning: LockIsolated<_Sectioning<String?>?> {
+      state.wrappedValue.sectioning
+    }
+
+    private let box: FetchAllBox<Element>
+    private let state: SwiftUI.State<FetchAllBox<Element>>
+    private let generation = SwiftUI.State(wrappedValue: 0)
+  #else
+    /// The underlying shared reader powering the property wrapper.
+    ///
+    /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
+    /// package, a general solution to observing and persisting changes to external data sources.
+    public let sharedReader: SharedReader<[Element]>
+
+    let sectionedReader: SharedReader<ResultsSectionCollection<Element, String?>> =
+      SharedReader(value: ResultsSectionCollection())
+
+    let sectioning = LockIsolated<_Sectioning<String?>?>(nil)
+  #endif
 
   /// A collection of data associated with the underlying query.
   public var wrappedValue: [Element] {
@@ -36,7 +72,11 @@ public struct FetchAll<Element: Sendable>: Sendable {
   /// ``isLoading``, and ``publisher``.
   public var projectedValue: Self {
     get { self }
-    nonmutating set { sharedReader.projectedValue = newValue.sharedReader.projectedValue }
+    nonmutating set {
+      sharedReader.projectedValue = newValue.sharedReader.projectedValue
+      sectionedReader.projectedValue = newValue.sectionedReader.projectedValue
+      sectioning.setValue(newValue.sectioning.value)
+    }
   }
 
   /// Returns a ``sharedReader`` for the given key path.
@@ -136,13 +176,12 @@ public struct FetchAll<Element: Sendable>: Sendable {
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
   {
+    let request = FetchAllStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database
-      )
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -161,13 +200,12 @@ public struct FetchAll<Element: Sendable>: Sendable {
     Element: QueryRepresentable,
     Element == S.QueryValue.QueryOutput
   {
+    let request = FetchAllStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database
-      )
+      .fetch(request, database: database)
     )
+    setFetchKeyID(for: request, database: database, scheduler: nil)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -188,7 +226,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar()
+    let statement: Select<S.From, S.From, ()> = statement.selectStar()
     return try await load(statement, database: database)
   }
 
@@ -208,6 +246,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
   {
+    removeSections()
     try await sharedReader.load(
       .fetch(
         FetchAllStatementValueRequest(statement: statement),
@@ -216,10 +255,35 @@ public struct FetchAll<Element: Sendable>: Sendable {
     )
     return FetchSubscription(sharedReader: sharedReader)
   }
+
+  #if !canImport(SwiftUI)
+    @_transparent
+  #endif
+  func setFetchKeyID<V: Sendable>(
+    for request: some FetchKeyRequest<V>,
+    database: (any DatabaseReader)?,
+    scheduler: (any ValueObservationScheduler & Hashable)?
+  ) {
+    #if canImport(SwiftUI)
+      box.fetchKeyID = FetchKey(request: request, database: database, scheduler: scheduler).id
+    #endif
+  }
+
+  func removeSections() {
+    guard sectioning.value != nil else { return }
+    sectioning.setValue(nil)
+    sectionedReader.projectedValue = SharedReader(value: ResultsSectionCollection())
+  }
 }
 
 extension FetchAll {
-  @available(*, deprecated, message: "Remove unused parameters: 'database', 'scheduler'.")
+  @available(
+    *,
+    deprecated,
+    message: """
+      '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+      """
+  )
   public init(
     wrappedValue: [Element] = [],
     database: (any DatabaseReader)? = nil,
@@ -291,14 +355,12 @@ extension FetchAll {
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
   {
+    let request = FetchAllStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Initializes this property with a query associated with the wrapped value.
@@ -320,14 +382,12 @@ extension FetchAll {
     Element: QueryRepresentable,
     Element == S.QueryValue.QueryOutput
   {
+    let request = FetchAllStatementValueRequest(statement: statement)
     sharedReader = SharedReader(
       wrappedValue: wrappedValue,
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
-      )
+      .fetch(request, database: database, scheduler: scheduler)
     )
+    setFetchKeyID(for: request, database: database, scheduler: scheduler)
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -351,7 +411,7 @@ extension FetchAll {
     S.From.QueryOutput: Sendable,
     S.Joins == ()
   {
-    let statement = statement.selectStar()
+    let statement: Select<S.From, S.From, ()> = statement.selectStar()
     return try await load(statement, database: database, scheduler: scheduler)
   }
 
@@ -374,6 +434,7 @@ extension FetchAll {
     Element == V.QueryOutput,
     V.QueryOutput: Sendable
   {
+    removeSections()
     try await sharedReader.load(
       .fetch(
         FetchAllStatementValueRequest(statement: statement),
@@ -393,17 +454,27 @@ extension FetchAll: CustomReflectable {
 
 extension FetchAll: Equatable where Element: Equatable {
   public static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.sharedReader == rhs.sharedReader
+    lhs.sharedReader == rhs.sharedReader && lhs.sectioning.value == rhs.sectioning.value
   }
 }
 
 #if canImport(SwiftUI)
   extension FetchAll: DynamicProperty {
     public func update() {
-      sharedReader.update()
+      let persisted = state.wrappedValue
+      if persisted !== box {
+        persisted.update(from: box)
+      }
+      persisted.subscribe(generation: generation)
     }
 
-    @available(*, deprecated, message: "Remove unused parameters: 'database', 'animation'.")
+    @available(
+      *,
+      deprecated,
+      message: """
+        '@Selection' type requires a query to be fetched; provide one or remove unused parameters: 'database', 'scheduler'.
+        """
+    )
     public init(
       wrappedValue: [Element] = [],
       database: (any DatabaseReader)? = nil,
@@ -531,7 +602,7 @@ extension FetchAll: Equatable where Element: Equatable {
     public func load<S: SelectStatement>(
       _ statement: S,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Element == S.From.QueryOutput,
@@ -539,7 +610,7 @@ extension FetchAll: Equatable where Element: Equatable {
       S.From.QueryOutput: Sendable,
       S.Joins == ()
     {
-      let statement = statement.selectStar()
+      let statement: Select<S.From, S.From, ()> = statement.selectStar()
       return try await load(statement, database: database, animation: animation)
     }
 
@@ -557,12 +628,13 @@ extension FetchAll: Equatable where Element: Equatable {
     public func load<V: QueryRepresentable>(
       _ statement: some StructuredQueriesCore.Statement<V>,
       database: (any DatabaseReader)? = nil,
-      animation: Animation
+      animation: Animation?
     ) async throws -> FetchSubscription
     where
       Element == V.QueryOutput,
       V.QueryOutput: Sendable
     {
+      removeSections()
       try await sharedReader.load(
         .fetch(
           FetchAllStatementValueRequest(statement: statement),
@@ -575,12 +647,15 @@ extension FetchAll: Equatable where Element: Equatable {
   }
 #endif
 
-private struct FetchAllStatementValueRequest<Value: QueryRepresentable>: StatementKeyRequest {
-  let statement: SQLQueryExpression<Value>
-  init(statement: some StructuredQueriesCore.Statement<Value>) {
-    self.statement = SQLQueryExpression(statement)
+struct FetchAllStatementValueRequest<QueryValue: QueryRepresentable>: StatementKeyRequest {
+  let prepared: PreparedQuery
+  init(statement: some StructuredQueriesCore.Statement<QueryValue>) {
+    self.prepared = PreparedQuery(statement.query)
   }
-  func fetch(_ db: Database) throws -> [Value.QueryOutput] {
-    try statement.fetchAll(db)
+  func fetch(_ db: Database) throws -> [QueryValue.QueryOutput] {
+    let cursor = try QueryValueCursor<QueryValue>(db: db, prepared: prepared, cached: true)
+    var output: [QueryValue.QueryOutput] = []
+    try cursor.forEach { output.append($0) }
+    return output
   }
 }

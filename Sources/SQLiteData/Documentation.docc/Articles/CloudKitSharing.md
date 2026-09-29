@@ -179,7 +179,7 @@ you can share root records, like reminders lists. If you do invoke
 ``SyncEngine/share(record:configure:)`` with a non-root record, an error will be thrown.
 
 > Note: A reminder can still be shared as an association to a shared reminders list, as discussed
-> [in the next section](<doc:CloudKit#Sharing-foreign-key-relationships>). However, a single
+> [in the next section](<doc:CloudKitSync#Sharing-foreign-key-relationships>). However, a single
 > reminder cannot be shared on its own.
 
 For a more complex example, consider the following diagrammatic schema for a reminders app:
@@ -336,7 +336,7 @@ excels at.
 
 One-to-"at most one" relationships in SQLite allow you to associate zero or one records with
 another record. For an example of this, suppose we wanted to hold onto a cover image for reminders
-lists (see <doc:CloudKit#Assets> for more information on synchronizing assets such as images). It
+lists (see <doc:CloudKitSync#Assets> for more information on synchronizing assets such as images). It
 is perfectly fine to hold onto large binary data in SQLite, such as image data, but typically one
 should put this data in a separate table.
 
@@ -384,7 +384,7 @@ do {
 }
 ```
 
-See <doc:CloudKit#Accessing-CloudKit-metadata> for more information on accessing the metadata
+See <doc:CloudKitSync#Accessing-CloudKit-metadata> for more information on accessing the metadata
 associated with your user's data.
 
 Ideally your app would not allow the user to write to records that they do not have permissions for.

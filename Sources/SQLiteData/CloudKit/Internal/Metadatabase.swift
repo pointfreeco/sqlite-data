@@ -1,21 +1,21 @@
 #if canImport(CloudKit)
+  import Dependencies
+  import GRDB
   import Foundation
   import os
+  import StructuredQueries
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   func defaultMetadatabase(
     logger: Logger,
-    url: URL
+    url: URL,
+    configuration: Configuration
   ) throws -> any DatabaseWriter {
     logger.debug(
       """
       Metadatabase connection:
       open "\(url.path(percentEncoded: false))"
       """
-    )
-    try FileManager.default.createDirectory(
-      at: .applicationSupportDirectory,
-      withIntermediateDirectories: true
     )
 
     @Dependency(\.context) var context
@@ -25,7 +25,20 @@
       throw InMemoryDatabase()
     }
 
-    let metadatabase = try DatabasePool(path: url.path(percentEncoded: false))
+    var metadatabaseConfiguration = Configuration()
+    metadatabaseConfiguration.observesSuspensionNotifications = configuration.observesSuspensionNotifications
+    let metadatabase: any DatabaseWriter =
+      if url.isInMemory {
+        try DatabaseQueue(
+          path: url.absoluteString,
+          configuration: metadatabaseConfiguration
+        )
+      } else {
+        try DatabasePool(
+          path: url.path(percentEncoded: false),
+          configuration: metadatabaseConfiguration
+        )
+      }
     try migrate(metadatabase: metadatabase)
     return metadatabase
   }

@@ -17,16 +17,26 @@ import Testing
   }
 
   @Test func tableInit() async throws {
-    @FetchOne var record = Record(id: 0)
+    @FetchOne var record = Record(id: 2)
     try await $record.load()
-    #expect(record == Record(id: 1))
+    #expect(record == Record(id: 2))
     #expect($record.loadError == nil)
+    try await database.write { try Record.find(2).update { $0.parentID = #bind(1) }.execute($0) }
+    try await $record.load()
+    #expect(record == Record(id: 2, parentID: 1))
     try await database.write { try Record.delete().execute($0) }
     await #expect(throws: NotFound.self) {
       try await $record.load()
     }
-    #expect(record == Record(id: 1))
+    #expect(record == Record(id: 2, parentID: 1))
     #expect($record.loadError is NotFound)
+  }
+
+  @Test func nonPrimaryKeyedTableInit() async throws {
+    @FetchOne var log = Log(message: "")
+    try await $log.load()
+    #expect(log == Log(message: "first"))
+    #expect($log.loadError == nil)
   }
 
   @Test func optionalTableInit() async throws {
@@ -222,6 +232,11 @@ private struct Row {
   let id: Int
 }
 
+@Table
+private struct Log: Equatable {
+  var message = ""
+}
+
 extension DatabaseWriter where Self == DatabaseQueue {
   fileprivate static func database() throws -> DatabaseQueue {
     let database = try DatabaseQueue()
@@ -240,6 +255,15 @@ extension DatabaseWriter where Self == DatabaseQueue {
       for _ in 1...3 {
         _ = try Record.insert { Record.Draft() }.execute(db)
       }
+      try #sql(
+        """
+        CREATE TABLE "logs" (
+          "message" TEXT NOT NULL
+        )
+        """
+      )
+      .execute(db)
+      try Log.insert { [Log(message: "first"), Log(message: "second")] }.execute(db)
     }
     return database
   }

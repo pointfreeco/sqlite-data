@@ -11,6 +11,7 @@ rows, or fetch a single row (_e.g._, an aggregate computation), or if you want t
 queries in a single transaction.
 
   * [`@FetchAll`](#FetchAll)
+    * [Sectioning](#Sectioning)
   * [`@FetchOne`](#FetchOne)
   * [`@Fetch`](#Fetch)
 
@@ -144,6 +145,88 @@ var records
 This is a very efficient query that selects only the bare essentials of data that the feature
 needs to do its job. This kind of query is a lot more cumbersome to perform in SwiftData because
 you must construct a dedicated `FetchDescriptor` value and set its `propertiesToFetch`.
+
+#### Sectioning
+
+It is also possible to group the results of a query into sections by providing a `sectionBy:`
+expression, similar to SwiftData's `@Query(sectionBy:)`. For example, given a `Reminder` table
+with a string `category` column:
+
+```swift
+@FetchAll(Reminder.order(by: \.title), sectionBy: \.category)
+var reminders
+```
+
+The projected value's ``FetchAll/sections`` property groups results into a
+``ResultsSectionCollection``, which can be used to drive a sectioned list:
+
+```swift
+List {
+  ForEach($reminders.sections) { section in
+    Section(section.name ?? "Uncategorized") {
+      ForEach(section) { reminder in
+        Text(reminder.title)
+      }
+    }
+  }
+}
+```
+
+The section expression is prepended to the query's `ORDER BY` clause and evaluated by the database,
+which groups results into a section for each of its distinct values. Sections are ordered by the
+expression, and elements within a section follow the query's order. The expression can be ordered
+explicitly to control the direction and `NULL` ordering of sections:
+
+```swift
+@FetchAll(Reminder.order(by: \.title), sectionBy: { $0.category.desc() })
+var reminders
+```
+
+The expression is not limited to columns: any string SQL expression can be used to section a query,
+and its value names each section:
+
+```swift
+@FetchAll(
+  Reminder.order(by: \.title),
+  sectionBy: {
+    Case().when($0.dueDate.isNot(nil), then: "Scheduled").else("Unscheduled").desc()
+  }
+)
+var reminders
+```
+
+Sections are not limited to `@FetchAll`. Any query can be fetched into a
+``ResultsSectionCollection`` directly, which is useful when defining a custom
+``FetchKeyRequest``:
+
+```swift
+struct RemindersByCategory: FetchKeyRequest {
+  func fetch(_ db: Database) throws -> ResultsSectionCollection<Reminder, String?> {
+    try Reminder
+      .order(by: \.title)
+      .fetchAll(db, sectionBy: \.category)
+  }
+}
+```
+
+The request can be observed with ``Fetch``, and its sections drive a list just like
+``FetchAll/sections`` does:
+
+```swift
+@Fetch(RemindersByCategory()) var sections = ResultsSectionCollection<Reminder, String?>()
+```
+
+And while `@FetchAll` always names its sections with strings, this form can section by any
+`Hashable` value the database can decode, and supports joins and custom selections:
+
+```swift
+try Reminder
+  .order(by: \.title)
+  .join(RemindersList.all) { $0.listID.eq($1.id) }
+  .select { ReminderRow.Columns(title: $0.title, list: $1.name) }
+  .fetchAll(db, sectionBy: { $1.id })
+// ResultsSectionCollection<ReminderRow, Int?>
+```
 
 [sq-safe-sql-strings]: https://swiftpackageindex.com/pointfreeco/swift-structured-queries/~/documentation/structuredqueriescore/safesqlstrings
 [structured-queries-gh]: https://github.com/pointfreeco/swift-structured-queries

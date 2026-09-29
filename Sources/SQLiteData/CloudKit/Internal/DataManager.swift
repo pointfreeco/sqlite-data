@@ -1,7 +1,8 @@
 #if canImport(CloudKit) && canImport(CryptoKit)
+  package import ConcurrencyExtras
   import CryptoKit
   import Dependencies
-  import Foundation
+  package import Foundation
 
   @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   package protocol DataManager: Sendable {
@@ -96,7 +97,7 @@
 
   @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   extension DependencyValues {
-    package var dataManager: DataManager {
+    package var dataManager: any DataManager {
       get { self[DataManagerKey.self] }
       set { self[DataManagerKey.self] = newValue }
     }

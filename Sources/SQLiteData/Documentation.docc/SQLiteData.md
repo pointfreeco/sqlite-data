@@ -204,7 +204,7 @@ struct MyApp: App {
 ```
 
 > For more information on synchronizing the database to CloudKit and sharing records with iCloud
-> users, see <doc:CloudKit>.
+> users, see <doc:CloudKitSync>.
 
 This is all you need to know to get started with SQLiteData, but there's much more to learn. Read
 the [articles](#Essentials) below to learn how to best utilize this library.
@@ -287,6 +287,7 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 - <doc:DynamicQueries>
 - <doc:AddingToGRDB>
 - <doc:ComparisonWithSwiftData>
+- <doc:Traits>
 
 ### Database configuration and access
 
@@ -311,7 +312,7 @@ with SQLite to take full advantage of GRDB and SQLiteData.
 
 ### CloudKit synchronization and sharing
 
-- <doc:CloudKit>
+- <doc:CloudKitSync>
 - <doc:CloudKitSharing>
 - ``SyncEngine``
 - ``SyncEngineDelegate``

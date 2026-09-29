@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// A type that can be represented by a string identifier.
 ///

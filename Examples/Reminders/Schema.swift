@@ -36,6 +36,7 @@ nonisolated struct Reminder: Hashable, Identifiable {
   var notes = ""
   var position = 0
   var priority: Priority?
+  @Column(lazyInitializable: false)
   var remindersListID: RemindersList.ID
   var status: Status = .incomplete
   var title = ""
@@ -390,7 +391,7 @@ nonisolated func handleReminderStatusUpdate() {
 
 @DatabaseFunction
 nonisolated func createDefaultRemindersList() {
-  Task {
+  _ = Task {
     @Dependency(\.defaultDatabase) var database
     try await database.write { db in
       try RemindersList.insert {

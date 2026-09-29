@@ -37,14 +37,14 @@ final class SyncUpDetailModel: HashableObject {
     self.destination = destination
     _attendees = FetchAll(Attendee.where { $0.syncUpID.eq(syncUp.id) })
     _meetings = FetchAll(Meeting.where { $0.syncUpID.eq(syncUp.id) })
-    _syncUp = FetchOne(wrappedValue: syncUp, SyncUp.find(syncUp.id))
+    _syncUp = FetchOne(wrappedValue: syncUp)
   }
 
   func deleteMeetings(atOffsets indices: IndexSet) {
     withErrorReporting {
       try database.write { db in
         let ids = indices.map { meetings[$0].id }
-        try Meeting.where { ids.contains($0.id) }.delete().execute(db)
+        try Meeting.where { $0.id.in(ids) }.delete().execute(db)
       }
     }
   }
