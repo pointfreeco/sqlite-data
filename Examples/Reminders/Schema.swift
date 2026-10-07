@@ -14,11 +14,17 @@ nonisolated struct RemindersList: Hashable, Identifiable {
   var position = 0
   var title = ""
 
-  static var defaultColor: Color { Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255) }
+  static var defaultColor: Color { .personal }
   static var defaultTitle: String { "Personal" }
 }
 
 extension RemindersList.Draft: Identifiable {}
+
+nonisolated extension Color {
+  static let personal = Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255)
+  static let family = Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255)
+  static let business = Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255)
+}
 
 @Table
 nonisolated struct RemindersListAsset: Hashable, Identifiable {
@@ -424,17 +430,17 @@ nonisolated private let logger = Logger(subsystem: "Reminders", category: "Datab
         try db.seed {
           RemindersList(
             id: remindersListIDs[0],
-            color: Color(red: 0x4a / 255, green: 0x99 / 255, blue: 0xef / 255),
+            color: .personal,
             title: "Personal"
           )
           RemindersList(
             id: remindersListIDs[1],
-            color: Color(red: 0xed / 255, green: 0x89 / 255, blue: 0x35 / 255),
+            color: .family,
             title: "Family"
           )
           RemindersList(
             id: remindersListIDs[2],
-            color: Color(red: 0xb2 / 255, green: 0x5d / 255, blue: 0xd3 / 255),
+            color: .business,
             title: "Business"
           )
           Reminder(

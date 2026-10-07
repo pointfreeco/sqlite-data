@@ -43,7 +43,6 @@ struct ObservableModelDemo: SwiftUICaseStudy {
 }
 
 @Observable
-@MainActor
 private class Model {
   @ObservationIgnored
   @FetchAll(Fact.order { $0.id.desc() }, animation: .default)

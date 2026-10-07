@@ -23,10 +23,10 @@ extension Color {
     public var hexValue: Int64? {
       guard let components = UIColor(queryOutput).cgColor.components
       else { return nil }
-      let r = Int64(components[0] * 0xFF) << 24
-      let g = Int64(components[1] * 0xFF) << 16
-      let b = Int64(components[2] * 0xFF) << 8
-      let a = Int64((components.indices.contains(3) ? components[3] : 1) * 0xFF)
+      let r = Int64((components[0] * 0xFF).rounded()) << 24
+      let g = Int64((components[1] * 0xFF).rounded()) << 16
+      let b = Int64((components[2] * 0xFF).rounded()) << 8
+      let a = Int64(((components.indices.contains(3) ? components[3] : 1) * 0xFF).rounded())
       return r | g | b | a
     }
 

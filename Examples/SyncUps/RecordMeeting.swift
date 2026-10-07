@@ -4,7 +4,6 @@ import Speech
 import SwiftUI
 import SwiftUINavigation
 
-@MainActor
 @Observable
 final class RecordMeetingModel: HashableObject {
   var alert: AlertState<AlertAction>?

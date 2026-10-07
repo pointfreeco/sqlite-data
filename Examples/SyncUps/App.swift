@@ -2,7 +2,6 @@ import CasePaths
 import SQLiteData
 import SwiftUI
 
-@MainActor
 @Observable
 class AppModel {
   var path: [Path] {
