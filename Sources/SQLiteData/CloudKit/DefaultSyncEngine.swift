@@ -55,11 +55,7 @@
     }
 
     public static var testValue: SyncEngine {
-      try! SyncEngine(
-        for: DatabasePool(
-          path: URL.temporaryDirectory.appending(path: "\(UUID().uuidString).sqlite").path()
-        )
-      )
+      try! SyncEngine(for: temporaryDatabasePool())
     }
   }
 #endif
