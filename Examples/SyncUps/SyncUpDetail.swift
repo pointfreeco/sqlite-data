@@ -270,14 +270,18 @@ struct MeetingView: View {
   }
 }
 
-#Preview {
-  let syncUp = try! prepareDependencies {
+#Preview(
+  traits: .dependencies {
     try $0.bootstrapDatabase()
     try? $0.defaultDatabase.seedSampleData()
-    return try $0.defaultDatabase.read { db in
+  }
+) {
+  let syncUp = {
+    @Dependency(\.defaultDatabase) var database
+    return try! database.read { db in
       try SyncUp.fetchOne(db)!
     }
-  }
+  }()
   NavigationStack {
     SyncUpDetailView(model: SyncUpDetailModel(syncUp: syncUp))
   }

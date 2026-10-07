@@ -93,10 +93,11 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 }
 
-#Preview {
-  let _ = prepareDependencies {
+#Preview(
+  traits: .dependencies {
     $0.defaultDatabase = .childIdentityResetDatabase
   }
+) {
   NavigationStack {
     CaseStudyView {
       ChildIdentityResetCaseStudy()

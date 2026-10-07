@@ -151,11 +151,12 @@ private struct SeedDatabaseTip: Tip {
   }
 }
 
-#Preview {
-  let _ = try! prepareDependencies {
+#Preview(
+  traits: .dependencies {
     try $0.bootstrapDatabase()
     try? $0.defaultDatabase.seedSampleData()
   }
+) {
   NavigationStack {
     SyncUpsList(model: SyncUpsListModel())
   }

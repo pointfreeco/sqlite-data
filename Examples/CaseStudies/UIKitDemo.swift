@@ -90,7 +90,7 @@ final class UIKitCaseStudyViewController: UICollectionViewController, UIKitCaseS
         number += 1
         let fact = try? await String(
           decoding: URLSession.shared
-            .data(from: URL(string: "http://numberapi.com/\(number)")!).0,
+            .data(from: URL(string: "http://number-trivia.com/\(number)")!).0,
           as: UTF8.self
         )
         if let fact {
@@ -138,9 +138,10 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 }
 
-#Preview {
-  let _ = prepareDependencies {
+#Preview(
+  traits: .dependencies {
     $0.defaultDatabase = .uiKitDemoDatabase
   }
+) {
   UINavigationController(caseStudy: UIKitCaseStudyViewController())
 }
