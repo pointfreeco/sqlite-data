@@ -14,6 +14,35 @@
     @Suite
     final class FetchRecordZoneChangeTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func applyRecordsFetchedOutsideTheEngine() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            Reminder(id: 1, title: "Get milk", remindersListID: 1)
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
+        record.setValue("Buy milk", forKey: "title", at: 60)
+        let (saveResults, _) = try syncEngine.private.database.modifyRecords(
+          saving: [record],
+          deleting: [],
+          atomically: true
+        )
+        let serverRecord = try #require(try saveResults[record.recordID]?.get())
+
+        await syncEngine.applyFetchedRecordZoneChanges(modifications: [serverRecord], scope: .private)
+        await syncEngine.applyFetchedRecordZoneChanges(modifications: [serverRecord], scope: .private)
+
+        let title = try await userDatabase.read { db in
+          try Reminder.find(1).select(\.title).fetchOne(db)
+        }
+        #expect(title == "Buy milk")
+        #expect(syncEngine.private.state.pendingRecordZoneChanges.isEmpty)
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func saveExtraFieldsToSyncMetadata() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
