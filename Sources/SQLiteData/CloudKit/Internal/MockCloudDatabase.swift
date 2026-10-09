@@ -16,6 +16,7 @@
       package var storage: [CKRecordZone.ID: Zone] = [:]
       var assets: [AssetID: Data] = [:]
       var deletedRecords: [(CKRecord.ID, CKRecord.RecordType)] = []
+      package var isQuotaExceeded = false
       mutating func nextRecordChangeTag() -> Int {
         lastRecordChangeTag += 1
         return lastRecordChangeTag
@@ -157,6 +158,12 @@
               guard !hasReferenceViolation
               else {
                 saveResults[recordToSave.recordID] = .failure(CKError(.referenceViolation))
+                return
+              }
+
+              guard !state.isQuotaExceeded
+              else {
+                saveResults[recordToSave.recordID] = .failure(CKError(.quotaExceeded))
                 return
               }
 

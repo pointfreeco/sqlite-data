@@ -1671,6 +1671,10 @@
         syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
+      let unsavedParentRecordIDs = await unsavedParentRecordIDs(
+        referencedBy: failedRecordSaves.filter { $0.error.code == .referenceViolation }
+      )
+      let failedRecordIDs = Set(failedRecordSaves.map(\.record.recordID))
       for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() async {
           await withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -1703,6 +1707,15 @@
           await clearServerRecord()
 
         case .referenceViolation:
+          if let parentRecordID = failedRecord.parent?.recordID,
+            unsavedParentRecordIDs.contains(parentRecordID)
+          {
+            if !failedRecordIDs.contains(parentRecordID) {
+              newPendingRecordZoneChanges.append(.saveRecord(parentRecordID))
+              newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
+            }
+            continue
+          }
           guard
             let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
             let table = tablesByName[failedRecord.recordType],
@@ -1788,7 +1801,7 @@
             try await open(table)
           }
 
-        case .batchRequestFailed:
+        case .batchRequestFailed, .quotaExceeded:
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
           break
 
@@ -1797,7 +1810,7 @@
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
-          .badDatabase, .quotaExceeded, .limitExceeded, .userDeletedZone, .tooManyParticipants,
+          .badDatabase, .limitExceeded, .userDeletedZone, .tooManyParticipants,
           .alreadyShared, .managedAccountRestricted, .participantMayNeedVerification,
           .serverResponseLost, .assetNotAvailable, .accountTemporarilyUnavailable:
           continue
@@ -1853,6 +1866,36 @@
       if enqueuedUnsyncedRecordID {
         await handleFetchedRecordZoneChanges(syncEngine: syncEngine)
       }
+    }
+
+    private func unsavedParentRecordIDs(
+      referencedBy failedRecordSaves: [(record: CKRecord, error: CKError)]
+    ) async -> Set<CKRecord.ID> {
+      let parentRecordIDs = Set(failedRecordSaves.compactMap(\.record.parent?.recordID))
+      guard !parentRecordIDs.isEmpty
+      else { return [] }
+
+      let parents =
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await metadatabase.read { db in
+            try SyncMetadata
+              .findAll(parentRecordIDs)
+              .where { !$0._isDeleted }
+              .select { ($0.recordName, $0.zoneName, $0.ownerName, $0.lastKnownServerRecord) }
+              .fetchAll(db)
+          }
+        }
+        ?? []
+      return Set(
+        parents.compactMap { recordName, zoneName, ownerName, lastKnownServerRecord in
+          guard lastKnownServerRecord?.hasBeenSavedToServer != true
+          else { return nil }
+          return CKRecord.ID(
+            recordName: recordName,
+            zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
+          )
+        }
+      )
     }
 
     private func cacheShare(_ share: CKShare) async throws {
