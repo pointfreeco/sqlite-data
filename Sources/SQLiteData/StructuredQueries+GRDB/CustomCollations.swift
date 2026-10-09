@@ -78,7 +78,7 @@ public nonisolated struct CanonicalCollation: DatabaseCollation, Sendable {
     _ lhs: UnsafeRawBufferPointer, _ rhs: UnsafeRawBufferPointer
   ) -> CollationOrder {
     #if compiler(>=6.2)
-      if #available(iOS 26, macOS 26, tvOS 26, watchOS 26, *) {
+      if #available(iOS 26, macOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
         do {
           let lhsSpan = try UTF8Span(validating: lhs.assumingMemoryBound(to: UInt8.self).span)
           let rhsSpan = try UTF8Span(validating: rhs.assumingMemoryBound(to: UInt8.self).span)
