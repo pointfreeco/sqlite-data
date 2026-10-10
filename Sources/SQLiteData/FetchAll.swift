@@ -48,6 +48,8 @@ public struct FetchAll<Element: Sendable>: Sendable {
     private let box: FetchAllBox<Element>
     private let state: SwiftUI.State<FetchAllBox<Element>>
     private let generation = SwiftUI.State(wrappedValue: 0)
+
+    var loadGeneration: LoadGeneration { state.wrappedValue.loadGeneration }
   #else
     /// The underlying shared reader powering the property wrapper.
     ///
@@ -59,6 +61,8 @@ public struct FetchAll<Element: Sendable>: Sendable {
       SharedReader(value: ResultsSectionCollection())
 
     let sectioning = LockIsolated<_Sectioning<String?>?>(nil)
+
+    let loadGeneration = LoadGeneration()
   #endif
 
   /// A collection of data associated with the underlying query.
@@ -73,6 +77,7 @@ public struct FetchAll<Element: Sendable>: Sendable {
   public var projectedValue: Self {
     get { self }
     nonmutating set {
+      loadGeneration.invalidate()
       sharedReader.projectedValue = newValue.sharedReader.projectedValue
       sectionedReader.projectedValue = newValue.sectionedReader.projectedValue
       sectioning.setValue(newValue.sectioning.value)
@@ -247,13 +252,22 @@ public struct FetchAll<Element: Sendable>: Sendable {
     V.QueryOutput: Sendable
   {
     removeSections()
-    try await sharedReader.load(
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database
+    return try await withSubscription {
+      try await sharedReader.load(
+        .fetch(
+          FetchAllStatementValueRequest(statement: statement),
+          database: database
+        )
       )
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    }
+  }
+
+  func withSubscription(_ load: () async throws -> Void) async throws -> FetchSubscription {
+    let token = loadGeneration.begin()
+    try await load()
+    return sectioning.value == nil
+      ? FetchSubscription(sharedReader: sharedReader, token: token)
+      : FetchSubscription(sharedReader: sharedReader, sectionedReader: sectionedReader, token: token)
   }
 
   #if !canImport(SwiftUI)
@@ -435,14 +449,15 @@ extension FetchAll {
     V.QueryOutput: Sendable
   {
     removeSections()
-    try await sharedReader.load(
-      .fetch(
-        FetchAllStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
+    return try await withSubscription {
+      try await sharedReader.load(
+        .fetch(
+          FetchAllStatementValueRequest(statement: statement),
+          database: database,
+          scheduler: scheduler
+        )
       )
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    }
   }
 }
 
@@ -635,14 +650,15 @@ extension FetchAll: Equatable where Element: Equatable {
       V.QueryOutput: Sendable
     {
       removeSections()
-      try await sharedReader.load(
-        .fetch(
-          FetchAllStatementValueRequest(statement: statement),
-          database: database,
-          animation: animation
+      return try await withSubscription {
+        try await sharedReader.load(
+          .fetch(
+            FetchAllStatementValueRequest(statement: statement),
+            database: database,
+            animation: animation
+          )
         )
-      )
-      return FetchSubscription(sharedReader: sharedReader)
+      }
     }
   }
 #endif

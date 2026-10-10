@@ -53,6 +53,24 @@ import Testing
     #expect(didComplete.value)
   }
 
+  @Test func staleCancellationDoesNotStopNewerLoad() async throws {
+    @FetchAll var records: [Record]
+
+    let firstSubscription = try await $records.load(Record.all)
+    let task = Task {
+      try? await firstSubscription.task
+    }
+    try await $records.load(Record.where { $0.id > 0 })
+    task.cancel()
+    await task.value
+
+    try await database.write { db in
+      try Record.insert { Record.Draft() }.execute(db)
+    }
+    try await $records.load()
+    #expect(records.count == 1)
+  }
+
   @Test func cancellingOneFetchDoesNotCancelAnother() async throws {
     @FetchAll var records1: [Record]
     #expect(records1.count == 0)

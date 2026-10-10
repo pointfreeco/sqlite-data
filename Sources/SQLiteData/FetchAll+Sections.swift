@@ -196,7 +196,8 @@ extension FetchAll {
   ///   - database: The database to read from. A value of `nil` will use the default database
   ///     (`@Dependency(\.defaultDatabase)`).
   public init<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table
   >(
     wrappedValue: [Element] = [],
     _ statement: Select<V, From, ()>,
@@ -232,7 +233,9 @@ extension FetchAll {
   ///     (`@Dependency(\.defaultDatabase)`).
   @_documentation(visibility: private)
   public init<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table,
+    J: StructuredQueriesCore.Table
   >(
     wrappedValue: [Element] = [],
     _ statement: Select<V, From, J>,
@@ -371,7 +374,8 @@ extension FetchAll {
   /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table
   >(
     _ statement: Select<V, From, ()>,
     @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> _Sectioning<String?>?,
@@ -404,7 +408,9 @@ extension FetchAll {
   @_documentation(visibility: private)
   @discardableResult
   public func load<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table,
+    J: StructuredQueriesCore.Table
   >(
     _ statement: Select<V, From, J>,
     @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns, J.TableColumns) ->
@@ -522,14 +528,15 @@ extension FetchAll {
     guard let sectioning else {
       removeSections()
       let statement: Select<From, From, ()> = statement.selectStar()
-      try await sharedReader.load(
-        FetchKey(
-          request: FetchAllStatementValueRequest(statement: statement),
-          database: database,
-          scheduler: scheduler
+      return try await withSubscription {
+        try await sharedReader.load(
+          FetchKey(
+            request: FetchAllStatementValueRequest(statement: statement),
+            database: database,
+            scheduler: scheduler
+          )
         )
-      )
-      return FetchSubscription(sharedReader: sharedReader)
+      }
     }
     return try await loadSections(
       request: FetchAllSectionedStatementValueRequest(statement: statement, sectionBy: sectioning),
@@ -553,14 +560,15 @@ extension FetchAll {
     defer {
       sharedReader.projectedValue = sectionedReader.elements.projectedValue
     }
-    try await sectionedReader.load(
-      FetchKey(
-        request: request,
-        database: database,
-        scheduler: scheduler
+    return try await withSubscription {
+      try await sectionedReader.load(
+        FetchKey(
+          request: request,
+          database: database,
+          scheduler: scheduler
+        )
       )
-    )
-    return FetchSubscription(sharedReader: sharedReader, sectionedReader: sectionedReader)
+    }
   }
 }
 
@@ -714,7 +722,8 @@ extension FetchAll {
   ///   - scheduler: The scheduler to observe from. By default, database observation is performed
   ///     asynchronously on the main queue.
   public init<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table
   >(
     wrappedValue: [Element] = [],
     _ statement: Select<V, From, ()>,
@@ -753,7 +762,9 @@ extension FetchAll {
   ///     asynchronously on the main queue.
   @_documentation(visibility: private)
   public init<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table,
+    J: StructuredQueriesCore.Table
   >(
     wrappedValue: [Element] = [],
     _ statement: Select<V, From, J>,
@@ -905,7 +916,8 @@ extension FetchAll {
   /// - Returns: A subscription associated with the observation.
   @discardableResult
   public func load<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table
   >(
     _ statement: Select<V, From, ()>,
     @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> _Sectioning<String?>?,
@@ -941,7 +953,9 @@ extension FetchAll {
   @_documentation(visibility: private)
   @discardableResult
   public func load<
-    V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
+    V: QueryRepresentable,
+    From: StructuredQueriesCore.Table,
+    J: StructuredQueriesCore.Table
   >(
     _ statement: Select<V, From, J>,
     @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns, J.TableColumns) ->
@@ -1155,7 +1169,8 @@ extension FetchAll {
     ///     the fetched results.
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init<
-      V: QueryRepresentable, From: StructuredQueriesCore.Table
+      V: QueryRepresentable,
+      From: StructuredQueriesCore.Table
     >(
       wrappedValue: [Element] = [],
       _ statement: Select<V, From, ()>,
@@ -1191,7 +1206,9 @@ extension FetchAll {
     @_documentation(visibility: private)
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     public init<
-      V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
+      V: QueryRepresentable,
+      From: StructuredQueriesCore.Table,
+      J: StructuredQueriesCore.Table
     >(
       wrappedValue: [Element] = [],
       _ statement: Select<V, From, J>,
@@ -1340,7 +1357,8 @@ extension FetchAll {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load<
-      V: QueryRepresentable, From: StructuredQueriesCore.Table
+      V: QueryRepresentable,
+      From: StructuredQueriesCore.Table
     >(
       _ statement: Select<V, From, ()>,
       @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns) -> _Sectioning<String?>?,
@@ -1374,7 +1392,9 @@ extension FetchAll {
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     @discardableResult
     public func load<
-      V: QueryRepresentable, From: StructuredQueriesCore.Table, J: StructuredQueriesCore.Table
+      V: QueryRepresentable,
+      From: StructuredQueriesCore.Table,
+      J: StructuredQueriesCore.Table
     >(
       _ statement: Select<V, From, J>,
       @_SectionBuilder<String?> sectionBy sectioning: (From.TableColumns, J.TableColumns) ->
