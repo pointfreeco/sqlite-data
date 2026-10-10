@@ -18,7 +18,7 @@ struct TagRow: View {
     .swipeActions {
       Button {
         withErrorReporting {
-          try database.write { db in
+          try database.writeWithUndoGroup("Delete tag") { db in
             try Tag.delete(tag)
               .execute(db)
           }
