@@ -672,13 +672,14 @@ struct MySuite {
 }
 ```
 
-And in previews you can use it like so:
+And in previews you can use it with the `.dependencies` preview trait like so:
 
 ```swift
-#Preview {
-  try! prepareDependencies {
-    try! $0.bootstrapDatabase()
+#Preview(
+  traits: .dependencies {
+    try $0.bootstrapDatabase()
   }
+) {
   // ...
 }
 ```

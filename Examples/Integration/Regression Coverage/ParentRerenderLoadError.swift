@@ -63,10 +63,11 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 }
 
-#Preview {
-  let _ = prepareDependencies {
+#Preview(
+  traits: .dependencies {
     $0.defaultDatabase = .parentRerenderLoadErrorDatabase
   }
+) {
   NavigationStack {
     CaseStudyView {
       ParentRerenderLoadErrorCaseStudy()
