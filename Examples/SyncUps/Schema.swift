@@ -11,7 +11,7 @@ nonisolated struct SyncUp: Hashable, Identifiable {
 }
 
 @Table
-nonisolated struct Attendee: Hashable, Identifiable {
+nonisolated struct Attendee: Codable, Hashable, Identifiable {
   let id: UUID
   var name = ""
   var syncUpID: SyncUp.ID

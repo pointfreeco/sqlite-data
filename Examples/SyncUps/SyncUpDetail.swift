@@ -2,7 +2,6 @@ import SQLiteData
 import SwiftUI
 import SwiftUINavigation
 
-@MainActor
 @Observable
 final class SyncUpDetailModel: HashableObject {
   var destination: Destination?

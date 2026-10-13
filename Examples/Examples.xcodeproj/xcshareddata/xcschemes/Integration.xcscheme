@@ -17,6 +17,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "DC1584A530363595009DD95C"
                BuildableName = "Integration.app"
+               BlueprintName = "Integration"
                ReferencedContainer = "container:Examples.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -46,6 +47,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "DC1584A530363595009DD95C"
             BuildableName = "Integration.app"
+            BlueprintName = "Integration"
             ReferencedContainer = "container:Examples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,6 +64,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "DC1584A530363595009DD95C"
             BuildableName = "Integration.app"
+            BlueprintName = "Integration"
             ReferencedContainer = "container:Examples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

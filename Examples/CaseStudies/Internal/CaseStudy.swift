@@ -1,7 +1,6 @@
 import SwiftUI
 import UIKitNavigation
 
-@MainActor
 protocol CaseStudy {
   var readMe: String { get }
   var caseStudyTitle: String { get }
@@ -17,7 +16,6 @@ extension CaseStudy {
 }
 
 @resultBuilder
-@MainActor
 enum CaseStudyViewBuilder {
   @ViewBuilder
   static func buildBlock() -> some View {}

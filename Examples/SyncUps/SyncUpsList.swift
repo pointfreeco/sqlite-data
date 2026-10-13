@@ -3,7 +3,6 @@ import SwiftUI
 import SwiftUINavigation
 import TipKit
 
-@MainActor
 @Observable
 final class SyncUpsListModel {
   var addSyncUp: SyncUpFormModel?
