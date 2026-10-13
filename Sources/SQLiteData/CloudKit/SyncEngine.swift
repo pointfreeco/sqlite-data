@@ -436,10 +436,19 @@
           $0 = nil
         }
       #endif
-      observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
+      let released = observationRegistrar.withMutation(of: self, keyPath: \.isRunning) {
         syncEngines.withValue {
+          let released = ($0.private, $0.shared)
           $0 = SyncEngines()
+          return released
         }
+      }
+      // Released engines never balance the activity counts, so they would stay stuck above zero.
+      fetchingChangesCount = 0
+      sendingChangesCount = 0
+      Task {
+        await released.0?.cancelOperations()
+        await released.1?.cancelOperations()
       }
     }
 
@@ -573,6 +582,31 @@
       async let `private`: Void = privateSyncEngine.fetchChanges(options)
       async let shared: Void = sharedSyncEngine.fetchChanges(options)
       _ = try await (`private`, shared)
+    }
+
+    /// Applies records fetched from CloudKit outside the sync engine, through the same path the
+    /// engine's own `fetchedRecordZoneChanges` events take.
+    ///
+    /// A manual `CKSyncEngine.fetchChanges` skips the server unless a push, a scheduled sync or an
+    /// app activation already flagged changes. This lets an app read a zone's changes itself and
+    /// still keep the sync metadata consistent. Applying a record the engine later delivers again
+    /// is a no-op.
+    public func applyFetchedRecordZoneChanges(
+      modifications: [CKRecord],
+      deletions: [(recordID: CKRecord.ID, recordType: CKRecord.RecordType)] = [],
+      scope: CKDatabase.Scope
+    ) async {
+      await startTask.withValue(\.self)?.value
+      let syncEngine: (any SyncEngineProtocol)? = syncEngines.withValue {
+        guard $0.isRunning else { return nil }
+        return scope == .shared ? $0.shared : $0.private
+      }
+      guard let syncEngine else { return }
+      await handleFetchedRecordZoneChanges(
+        modifications: modifications,
+        deletions: deletions,
+        syncEngine: syncEngine
+      )
     }
 
     /// Sends pending local changes to the server.
@@ -997,6 +1031,13 @@
       await handleEvent(event, syncEngine: syncEngine)
     }
 
+    private func isCurrent(_ syncEngine: any SyncEngineProtocol) -> Bool {
+      syncEngines.withValue {
+        guard $0.isRunning else { return false }
+        return $0.private === syncEngine || $0.shared === syncEngine
+      }
+    }
+
     package func handleEvent(_ event: Event, syncEngine: any SyncEngineProtocol) async {
       #if DEBUG
         logger.log(event, syncEngine: syncEngine)
@@ -1006,6 +1047,9 @@
       case .accountChange(let changeType):
         await handleAccountChange(changeType: changeType, syncEngine: syncEngine)
       case .stateUpdate(let stateSerialization):
+        // An engine released by `stop()` can still report state; saving it would overwrite the
+        // running engine's state.
+        guard isCurrent(syncEngine) else { return }
         await handleStateUpdate(stateSerialization: stateSerialization, syncEngine: syncEngine)
       case .fetchedDatabaseChanges(let modifications, let deletions):
         await handleFetchedDatabaseChanges(
@@ -1036,28 +1080,34 @@
         )
 
       case .willFetchRecordZoneChanges:
+        guard isCurrent(syncEngine) else { return }
         await MainActor.run {
           fetchingChangesCount += 1
         }
       case .didFetchRecordZoneChanges:
+        guard isCurrent(syncEngine) else { return }
         await MainActor.run {
           fetchingChangesCount -= 1
         }
 
       case .willFetchChanges:
+        guard isCurrent(syncEngine) else { return }
         await MainActor.run {
           fetchingChangesCount += 1
         }
       case .didFetchChanges:
+        guard isCurrent(syncEngine) else { return }
         await MainActor.run {
           fetchingChangesCount -= 1
         }
 
       case .willSendChanges:
+        guard isCurrent(syncEngine) else { return }
         await MainActor.run {
           sendingChangesCount += 1
         }
       case .didSendChanges:
+        guard isCurrent(syncEngine) else { return }
         await MainActor.run {
           sendingChangesCount -= 1
         }
