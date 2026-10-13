@@ -112,6 +112,11 @@
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    func setQuotaExceeded(_ isQuotaExceeded: Bool) {
+      container.privateCloudDatabase.state.withValue { $0.isQuotaExceeded = isQuotaExceeded }
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     func softSignOut() async {
       container._accountStatus.withValue { $0 = .temporarilyUnavailable }
     }
