@@ -99,8 +99,7 @@
       defaultZone: CKRecordZone = CKRecordZone(zoneName: "co.pointfree.SQLiteData.defaultZone"),
       startImmediately: Bool? = nil,
       delegate: (any SyncEngineDelegate)? = nil,
-      logger: Logger = isTesting
-        ? Logger(.disabled) : Logger(subsystem: "SQLiteData", category: "CloudKit")
+      logger: Logger = isTesting ? Logger.disabled : Logger.default
     ) throws
     where
       repeat (each T1).PrimaryKey.QueryOutput: IdentifierStringConvertible,
