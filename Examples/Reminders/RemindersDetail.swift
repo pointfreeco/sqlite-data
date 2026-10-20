@@ -51,7 +51,7 @@ class RemindersDetailModel: HashableObject {
 
   func move(from source: IndexSet, to destination: Int) async {
     withErrorReporting {
-      try database.write { db in
+      try database.writeWithUndoGroup("Reorder reminders") { db in
         var ids = reminderRows.map(\.reminder.id)
         ids.move(fromOffsets: source, toOffset: destination)
         try Reminder
@@ -253,6 +253,9 @@ struct RemindersDetailView: View {
             }
           }
           Menu {
+            UndoMenuItems()
+              .tint(model.detailType.color)
+            Divider()
             Group {
               Menu {
                 ForEach(RemindersDetailModel.Ordering.allCases, id: \.self) { ordering in
