@@ -6,16 +6,20 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockCloudDatabase: CloudDatabase {
-    package let state = LockIsolated(State())
+    package let state: LockIsolated<State>
     package let databaseScope: CKDatabase.Scope
     let _container = IsolatedWeakVar<MockCloudContainer>()
     let dataManager = Dependency(\.dataManager)
+    let clock: AnyClock<Duration>
 
     package struct State {
       private var lastRecordChangeTag = 0
       package var storage: [CKRecordZone.ID: Zone] = [:]
       var assets: [AssetID: Data] = [:]
       var deletedRecords: [(CKRecord.ID, CKRecord.RecordType)] = []
+      package var rateLimit: Int
+      package var rateLimitDuration: Duration
+      fileprivate var requestTimestamps: [AnyClock<Duration>.Instant] = []
       mutating func nextRecordChangeTag() -> Int {
         lastRecordChangeTag += 1
         return lastRecordChangeTag
@@ -32,8 +36,15 @@
       package var records: [CKRecord.ID: CKRecord] = [:]
     }
 
-    package init(databaseScope: CKDatabase.Scope) {
+    package init(
+      databaseScope: CKDatabase.Scope,
+      rateLimit: Int = .max,
+      rateLimitDuration: Duration = .seconds(1)
+    ) {
       self.databaseScope = databaseScope
+      @Dependency(\.continuousClock) var clock
+      self.clock = AnyClock(clock)
+      self.state = LockIsolated(State(rateLimit: rateLimit, rateLimitDuration: rateLimitDuration))
     }
 
     package func set(container: MockCloudContainer) {
@@ -48,6 +59,7 @@
       let accountStatus = container.accountStatus()
       guard accountStatus == .available
       else { throw ckError(forAccountStatus: accountStatus) }
+      try updateRateLimit()
       let record = try state.withValue { state in
         guard let zone = state.storage[recordID.zoneID]
         else { throw CKError(.zoneNotFound) }
@@ -78,13 +90,16 @@
       let accountStatus = container.accountStatus()
       guard accountStatus == .available
       else { throw ckError(forAccountStatus: accountStatus) }
+      try updateRateLimit()
 
       guard ids.count < 200
       else { throw CKError(.limitExceeded) }
 
       var results: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
-      for id in ids {
-        results[id] = Result { try record(for: id) }
+      $_isRateLimitingDisabled.withValue(true) {
+        for id in ids {
+          results[id] = Result { try record(for: id) }
+        }
       }
       return results
     }
@@ -101,6 +116,7 @@
       let accountStatus = container.accountStatus()
       guard accountStatus == .available
       else { throw ckError(forAccountStatus: accountStatus) }
+      try updateRateLimit()
 
       guard (recordsToSave.count + recordIDsToDelete.count) < 200
       else {
@@ -367,6 +383,7 @@
       let accountStatus = container.accountStatus()
       guard accountStatus == .available
       else { throw ckError(forAccountStatus: accountStatus) }
+      try updateRateLimit()
 
       return state.withValue { state in
         var saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>] = [:]
@@ -392,6 +409,26 @@
       }
     }
 
+    private func updateRateLimit() throws {
+      guard !_isRateLimitingDisabled else { return }
+      try state.withValue { state in
+        guard state.rateLimit != .max
+        else { return }
+        let now = clock.now
+        state.requestTimestamps.removeAll { $0.duration(to: now) >= state.rateLimitDuration }
+        let isRateLimited = state.requestTimestamps.count >= state.rateLimit
+        state.requestTimestamps.append(now)
+        guard !isRateLimited
+        else {
+          let (seconds, _) = state.rateLimitDuration.components
+          throw CKError(
+            .requestRateLimited,
+            userInfo: [CKErrorRetryAfterKey: Double(seconds)]
+          )
+        }
+      }
+    }
+
     package nonisolated static func == (lhs: MockCloudDatabase, rhs: MockCloudDatabase) -> Bool {
       lhs === rhs
     }
@@ -400,6 +437,8 @@
       hasher.combine(ObjectIdentifier(self))
     }
   }
+
+  @TaskLocal package var _isRateLimitingDisabled = false
 
   @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
   private func ckError(forAccountStatus accountStatus: CKAccountStatus) -> CKError {
@@ -414,4 +453,5 @@
       fatalError()
     }
   }
+
 #endif

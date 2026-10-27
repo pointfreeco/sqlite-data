@@ -288,7 +288,7 @@ func appDatabase() throws -> any DatabaseWriter {
 
     try RemindersList.createTemporaryTrigger(
       after: .delete { _ in
-        Values($createDefaultRemindersList())
+        Select($createDefaultRemindersList())
       } when: { _ in
         !RemindersList.exists()
       }
@@ -365,7 +365,7 @@ func appDatabase() throws -> any DatabaseWriter {
       after: .update {
         $0.status
       } forEachRow: { _, _ in
-        Values($handleReminderStatusUpdate())
+        Select($handleReminderStatusUpdate())
       } when: { _, new in
         new.status.eq(#bind(.completing))
       }

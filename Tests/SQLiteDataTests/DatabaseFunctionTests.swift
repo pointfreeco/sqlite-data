@@ -15,7 +15,7 @@ struct DatabaseFunctionTests {
       db.add(function: $exclaim)
     }
     let database = try DatabaseQueue(configuration: configuration)
-    assertQuery(Values($exclaim("Blob")), database: database) {
+    assertQuery(Select($exclaim("Blob")), database: database) {
       """
       ┌─────────┐
       │ "Blob!" │
