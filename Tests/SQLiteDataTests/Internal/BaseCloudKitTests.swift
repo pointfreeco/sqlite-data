@@ -55,8 +55,16 @@
         )
       )
       try await prepareDatabase(userDatabase)
-      let privateDatabase = MockCloudDatabase(databaseScope: .private)
-      let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+      let privateDatabase = MockCloudDatabase(
+        databaseScope: .private,
+        rateLimit: rateLimit,
+        rateLimitDuration: rateLimitDuration
+      )
+      let sharedDatabase = MockCloudDatabase(
+        databaseScope: .shared,
+        rateLimit: rateLimit,
+        rateLimitDuration: rateLimitDuration
+      )
       let container = MockCloudContainer(
         accountStatus: accountStatus,
         containerIdentifier: testContainerIdentifier,
