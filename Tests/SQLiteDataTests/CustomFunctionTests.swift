@@ -15,7 +15,7 @@ import Testing
     }
     let database = try DatabaseQueue(configuration: configuration)
     let date = try database.read { db in
-      try Values($customDate())
+      try Select($customDate())
         .fetchOne(db)
     }
     #expect(date?.timeIntervalSinceReferenceDate == 0)
@@ -25,7 +25,7 @@ import Testing
     }
     #expect(throws: (any Error).self) {
       try database.read { db in
-        _ = try Values($customDate()).fetchOne(db)
+        _ = try Select($customDate()).fetchOne(db)
       }
     }
   }

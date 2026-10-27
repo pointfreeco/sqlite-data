@@ -1530,7 +1530,7 @@
 
       let unsyncedRecords =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          var unsyncedRecordIDs = try await userDatabase.write { db in
+          var unsyncedRecordIDs = try await metadatabase.read { db in
             Set(
               try UnsyncedRecordID.all
                 .fetchAll(db)
