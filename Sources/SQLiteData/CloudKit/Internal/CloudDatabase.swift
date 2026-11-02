@@ -109,7 +109,9 @@
       deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
     ) {
       try await rawValue.modifyRecordZones(
-        saving: recordZonesToSave, deleting: recordZoneIDsToDelete)
+        saving: recordZonesToSave,
+        deleting: recordZoneIDsToDelete
+      )
     }
 
     static func == (lhs: AnyCloudDatabase, rhs: AnyCloudDatabase) -> Bool {
