@@ -79,7 +79,7 @@
       for ids: [CKRecord.ID],
       desiredKeys: [CKRecord.FieldKey]?
     ) async throws -> [CKRecord.ID: Result<CKRecord, any Error>] {
-      try await rawValue.records(for: ids)
+      try await rawValue.records(for: ids, desiredKeys: desiredKeys)
     }
 
     @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
