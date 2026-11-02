@@ -143,6 +143,7 @@
               """
           )
         }
+        // TODO: rate limit
         return try await container.database(for: lastKnownServerRecord.recordID)
           .record(for: lastKnownServerRecord.recordID)
       }()
@@ -160,6 +161,7 @@
             return nil
           }
           do {
+            // TODO: rate limit
             return try await container.database(for: lastKnownServerRecord.recordID)
               .record(for: shareRecordID) as? CKShare
           } catch let error as CKError where error.code == .unknownItem {
@@ -179,6 +181,7 @@
         )
 
       configure(sharedRecord)
+      // TODO: rate limit
       let (saveResults, _) = try await container.database(for: sharedRecord.recordID).modifyRecords(
         saving: [sharedRecord, lastKnownServerRecord],
         deleting: []
@@ -241,6 +244,7 @@
     }
 
     func unshare(share: CKShare) async throws {
+      // TODO: rate limited
       let result = try await syncEngines.private?.database.modifyRecords(
         saving: [],
         deleting: [share.recordID]

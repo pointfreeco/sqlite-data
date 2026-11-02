@@ -143,8 +143,7 @@
                 continue
               }
             } else if databaseScope == .shared,
-              recordToSave.parent == nil,
-              recordToSave.share == nil
+              recordToSave.parent == nil || recordToSave.share == nil
             {
               // NB: Emit 'permissionFailure' if saving to shared database with no parent reference
               //     or share reference.

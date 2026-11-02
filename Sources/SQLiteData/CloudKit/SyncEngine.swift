@@ -715,14 +715,18 @@
           .map(\.name)
           let lastKnownServerRecords = try await metadatabase.read { db in
             try SyncMetadata
-              .where { $0.recordType.eq(tableName) }
+              .where {
+                $0.recordType.eq(tableName)
+                  .and($0._lastKnownServerRecordAllFields.isNot(nil))
+              }
               .select(\._lastKnownServerRecordAllFields)
               .fetchAll(db)
           }
-          for case .some(let lastKnownServerRecord) in lastKnownServerRecords {
+          // TODO: batch these since updateQuery loads an asset
+          for lastKnownServerRecord in lastKnownServerRecords {
             let query = try await updateQuery(
               for: table,
-              record: lastKnownServerRecord,
+              record: lastKnownServerRecord!,
               columnNames: T.TableColumns.writableColumns.map(\.name),
               changedColumnNames: changedColumns
             )
@@ -1510,6 +1514,7 @@
           }
           await open(table)
         } else if recordType == CKRecord.SystemType.share {
+          // TODO: delete record IDs in one query/cloudkit request instead of individual
           for shareRecordID in recordIDs {
             await withErrorReporting(.sqliteDataCloudKitFailure) {
               try await deleteShare(shareRecordID: shareRecordID)
@@ -1620,6 +1625,8 @@
                 try await self.cacheShare(share)
               }
             case .reference(let shareReference):
+              // TODO: load all shares together in one request, batched, rate limited
+              // TODO: general tool for batching and rate limiting
               guard
                 let record = try? await syncEngine.database.record(for: shareReference.recordID),
                 let share = record as? CKShare
@@ -1770,9 +1777,16 @@
           else { continue }
           func open<T>(_: some SynchronizableTable<T>) async throws {
             do {
-              let serverRecord = try await container.sharedCloudDatabase.record(
-                for: failedRecord.recordID
-              )
+              let serverRecord: CKRecord
+              // TODO: verify this is populated
+              if let record = error.serverRecord {
+                serverRecord = record
+              } else {
+                // TODO: rate limit
+                serverRecord = try await container.sharedCloudDatabase.record(
+                  for: failedRecord.recordID
+                )
+              }
               await upsertFromServerRecord(serverRecord, force: true)
             } catch let error as CKError where error.code == .unknownItem {
               try await userDatabase.write { db in
@@ -1881,6 +1895,7 @@
         recordName: recordName,
         zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
       )
+      // TODO: rate limited
       let rootRecord = try await container.privateCloudDatabase.record(for: rootRecordID)
       try await userDatabase.write { db in
         try SyncMetadata
