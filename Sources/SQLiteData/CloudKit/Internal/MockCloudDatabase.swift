@@ -21,6 +21,7 @@
       package var rateLimit: Int
       package var rateLimitDuration: Duration
       fileprivate var requestTimestamps: [AnyClock<Duration>.Instant] = []
+      package var fetchedRecordIDs: [CKRecord.ID] = []
       mutating func nextRecordChangeTag() -> Int {
         lastRecordChangeTag += 1
         return lastRecordChangeTag
@@ -90,6 +91,8 @@
       try updateRateLimit()
       guard ids.count < 200
       else { throw CKError(.limitExceeded) }
+
+      state.withValue { $0.fetchedRecordIDs.append(contentsOf: ids) }
 
       return state.withValue { state in
         var result: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
