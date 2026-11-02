@@ -67,7 +67,7 @@
         _ = try database.record(for: recordID)
         #expect(throws: CKError.self) { try database.record(for: self.recordID) }
 
-        await testClock.advance(by: .seconds(10))
+        await cloudKitClock.advance(by: .seconds(10))
         _ = try database.record(for: recordID)
       }
 
@@ -75,10 +75,10 @@
       @Test(.taskLocal($rateLimit, 2))
       func slidingWindow() async throws {
         _ = try database.record(for: recordID)
-        await testClock.advance(by: .seconds(5))
+        await cloudKitClock.advance(by: .seconds(5))
         _ = try database.record(for: recordID)
 
-        await testClock.advance(by: .seconds(5))
+        await cloudKitClock.advance(by: .seconds(5))
         _ = try database.record(for: recordID)
         #expect(throws: CKError.self) { try database.record(for: self.recordID) }
       }
@@ -87,10 +87,10 @@
       @Test(.taskLocal($rateLimit, 1))
       func rejectedRequestsCountAgainstRateLimit() async throws {
         _ = try database.record(for: recordID)
-        await testClock.advance(by: .seconds(5))
+        await cloudKitClock.advance(by: .seconds(5))
         #expect(throws: CKError.self) { try database.record(for: self.recordID) }
 
-        await testClock.advance(by: .seconds(5))
+        await cloudKitClock.advance(by: .seconds(5))
         #expect(throws: CKError.self) { try database.record(for: self.recordID) }
       }
 
@@ -101,7 +101,7 @@
           _ = try database.record(for: recordID)
         }
         for _ in 1...5 {
-          await testClock.advance(by: .seconds(1))
+          await cloudKitClock.advance(by: .seconds(1))
           #expect(throws: CKError.self) { try database.record(for: self.recordID) }
         }
         let error = #expect(throws: CKError.self) {
@@ -109,7 +109,7 @@
         }
         let retryAfterSeconds = try #require(error?.retryAfterSeconds)
 
-        await testClock.advance(by: .seconds(retryAfterSeconds))
+        await cloudKitClock.advance(by: .seconds(retryAfterSeconds))
         _ = try database.record(for: recordID)
       }
 

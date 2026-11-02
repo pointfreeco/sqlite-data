@@ -49,7 +49,7 @@
       rateLimitDuration: Duration = .seconds(1)
     ) {
       self.databaseScope = databaseScope
-      @Dependency(\.continuousClock) var clock
+      @Dependency(\.cloudKitClock) var clock
       self.clock = AnyClock(clock)
       self.state = LockIsolated(State(rateLimit: rateLimit, rateLimitDuration: rateLimitDuration))
     }
