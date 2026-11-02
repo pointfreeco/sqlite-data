@@ -269,6 +269,127 @@
           """
         }
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func uncachedUnsyncedRecordIDsAreFetchedInBatches() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let reminderRecords = (1...151).map { id in
+          let reminderRecord = CKRecord(
+            recordType: Reminder.tableName,
+            recordID: Reminder.recordID(for: id)
+          )
+          reminderRecord.setValue(id, forKey: "id", at: now)
+          reminderRecord.setValue("Reminder \(id)", forKey: "title", at: now)
+          reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+          reminderRecord.parent = CKRecord.Reference(
+            recordID: RemindersList.recordID(for: 1),
+            action: .none
+          )
+          return reminderRecord
+        }
+        _ = try syncEngine.modifyRecords(scope: .private, saving: reminderRecords)
+        try await syncEngine.metadatabase.write { db in
+          try UnsyncedRecordID.insert {
+            for reminderRecord in reminderRecords {
+              UnsyncedRecordID(recordID: reminderRecord.recordID)
+            }
+          }
+          .execute(db)
+        }
+
+        syncEngine.private.database.state.withValue { $0.rateLimit = 2 }
+        await syncEngine.handleEvent(
+          .fetchedRecordZoneChanges(modifications: [], deletions: []),
+          syncEngine: syncEngine.private
+        )
+
+        assertQuery(Reminder.count(), database: userDatabase.database) {
+          """
+          ┌─────┐
+          │ 151 │
+          └─────┘
+          """
+        }
+        assertQuery(UnsyncedRecordID.count(), database: syncEngine.metadatabase) {
+          """
+          ┌───┐
+          │ 0 │
+          └───┘
+          """
+        }
+      }
+
+      @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
+      @Test func uncachedUnsyncedRecordIDsAreFetchedAfterRateLimit() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let reminderRecords = (1...151).map { id in
+          let reminderRecord = CKRecord(
+            recordType: Reminder.tableName,
+            recordID: Reminder.recordID(for: id)
+          )
+          reminderRecord.setValue(id, forKey: "id", at: now)
+          reminderRecord.setValue("Reminder \(id)", forKey: "title", at: now)
+          reminderRecord.setValue(1, forKey: "remindersListID", at: now)
+          reminderRecord.parent = CKRecord.Reference(
+            recordID: RemindersList.recordID(for: 1),
+            action: .none
+          )
+          return reminderRecord
+        }
+        _ = try syncEngine.modifyRecords(scope: .private, saving: reminderRecords)
+        try await syncEngine.metadatabase.write { db in
+          try UnsyncedRecordID.insert {
+            for reminderRecord in reminderRecords {
+              UnsyncedRecordID(recordID: reminderRecord.recordID)
+            }
+          }
+          .execute(db)
+        }
+
+        syncEngine.private.database.state.withValue {
+          $0.rateLimit = 1
+          $0.rateLimitDuration = .seconds(10)
+        }
+        let task = Task.immediate {
+          await syncEngine.handleEvent(
+            .fetchedRecordZoneChanges(modifications: [], deletions: []),
+            syncEngine: syncEngine.private
+          )
+        }
+
+        await cloudKitClock.advance(by: .seconds(9))
+        #expect(syncEngine.private.database.state.fetchedRecordIDs.count == 150)
+
+        await cloudKitClock.advance(by: .seconds(1))
+        await task.value
+
+        assertQuery(Reminder.count(), database: userDatabase.database) {
+          """
+          ┌─────┐
+          │ 151 │
+          └─────┘
+          """
+        }
+        assertQuery(UnsyncedRecordID.count(), database: syncEngine.metadatabase) {
+          """
+          ┌───┐
+          │ 0 │
+          └───┘
+          """
+        }
+      }
     }
   }
 #endif

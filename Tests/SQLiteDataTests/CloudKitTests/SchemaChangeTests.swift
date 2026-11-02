@@ -829,6 +829,66 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func addAssetToRemindersList_RedownloadInBatches() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            RemindersList(id: 2, title: "Business")
+            RemindersList(id: 3, title: "Secret")
+          }
+        }
+
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await withDependencies {
+          $0.currentTime.now += 60
+        } operation: {
+          let records = try (1...3).map {
+            let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: $0))
+            record.setBytes(Array("image-\($0)".utf8), forKey: "image", at: now)
+            return record
+          }
+          try await syncEngine.modifyRecords(scope: .private, saving: records).notify()
+
+          inMemoryDataManager.storage.withValue { $0.removeAll() }
+
+          try await userDatabase.userWrite { db in
+            try #sql(
+              """
+              ALTER TABLE "remindersLists" 
+              ADD COLUMN "image" BLOB NOT NULL ON CONFLICT REPLACE DEFAULT X''
+              """
+            )
+            .execute(db)
+          }
+
+          syncEngine.private.database.state.withValue { $0.rateLimit = 1 }
+          let relaunchedSyncEngine = try await SyncEngine(
+            container: syncEngine.container,
+            userDatabase: syncEngine.userDatabase,
+            tables: syncEngine.tables
+              .filter { $0.base != RemindersList.self }
+              + [SynchronizedTable(for: RemindersListWithData.self)],
+            privateTables: syncEngine.privateTables
+          )
+          defer { _ = relaunchedSyncEngine }
+
+          let remindersLists = try await userDatabase.read { db in
+            try RemindersListWithData.order(by: \.id).fetchAll(db)
+          }
+
+          expectNoDifference(
+            remindersLists,
+            [
+              RemindersListWithData(id: 1, image: Data("image-1".utf8), title: "Personal"),
+              RemindersListWithData(id: 2, image: Data("image-2".utf8), title: "Business"),
+              RemindersListWithData(id: 3, image: Data("image-3".utf8), title: "Secret"),
+            ]
+          )
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func newTable() async throws {
         try await withDependencies {
           $0.currentTime.now += 60

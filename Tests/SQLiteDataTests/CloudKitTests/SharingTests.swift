@@ -3243,6 +3243,107 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func deleteMultipleSharesInBatches() async throws {
+        let personalList = RemindersList(id: 1, title: "Personal")
+        let businessList = RemindersList(id: 2, title: "Business")
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            personalList
+            businessList
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let personalShare = try await syncEngine.share(record: personalList, configure: { _ in })
+        let businessShare = try await syncEngine.share(record: businessList, configure: { _ in })
+
+        let modifications = try syncEngine.modifyRecords(
+          scope: .private,
+          deleting: [personalShare.share.recordID, businessShare.share.recordID]
+        )
+        syncEngine.private.database.state.withValue { $0.rateLimit = 1 }
+        await modifications.notify()
+
+        assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase) {
+          """
+          ┌─────┐
+          │ nil │
+          │ nil │
+          └─────┘
+          """
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func receiveMultipleSharedRecordsFetchesSharesInBatches() async throws {
+        let personalList = RemindersList(id: 1, title: "Personal")
+        let businessList = RemindersList(id: 2, title: "Business")
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            personalList
+            businessList
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let personalShare = try await syncEngine.share(record: personalList, configure: { _ in })
+        let businessShare = try await syncEngine.share(record: businessList, configure: { _ in })
+
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          let shares = try [personalShare, businessShare].map {
+            let share = try #require(
+              try syncEngine.private.database.record(for: $0.share.recordID) as? CKShare
+            )
+            share[CKShare.SystemFieldKey.title] = "Updated"
+            return share
+          }
+          _ = try syncEngine.modifyRecords(scope: .private, saving: shares)
+
+          let records = try [1, 2].map {
+            let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: $0))
+            record.setValue("List \($0)", forKey: "title", at: now)
+            return record
+          }
+          let modifications = try syncEngine.modifyRecords(scope: .private, saving: records)
+          syncEngine.private.database.state.withValue { $0.rateLimit = 1 }
+          await modifications.notify()
+        }
+
+        assertQuery(
+          RemindersList.order(by: \.id),
+          database: userDatabase.database
+        ) {
+          """
+          ┌───────────────────┐
+          │ RemindersList(    │
+          │   id: 1,          │
+          │   title: "List 1" │
+          │ )                 │
+          ├───────────────────┤
+          │ RemindersList(    │
+          │   id: 2,          │
+          │   title: "List 2" │
+          │ )                 │
+          └───────────────────┘
+          """
+        }
+        let cachedShareChangeTags = try await syncEngine.metadatabase.read { db in
+          try SyncMetadata
+            .order(by: \.recordName)
+            .fetchAll(db)
+            .map { $0.share?._recordChangeTag }
+        }
+        let serverShareChangeTags = try $_isRateLimitingDisabled.withValue(true) {
+          try [personalShare, businessShare].map {
+            try syncEngine.private.database.record(for: $0.share.recordID)._recordChangeTag
+          }
+        }
+        #expect(cachedShareChangeTags == serverShareChangeTags)
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func deleteShare() async throws {
         let remindersList = RemindersList(id: 1, title: "Personal")
         try await userDatabase.userWrite { db in
