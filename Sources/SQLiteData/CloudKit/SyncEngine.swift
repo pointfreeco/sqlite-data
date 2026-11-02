@@ -1629,45 +1629,41 @@
         )
       }
 
-      enum ShareOrReference {
-        case share(CKShare)
-        case reference(CKShare.Reference)
-      }
-      let shares: [ShareOrReference] =
+      let (fetchedShares, shareRecordIDs): ([CKShare], Set<CKRecord.ID>) =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.write { db in
-            var shares: [ShareOrReference] = []
+            var fetchedShares: [CKShare] = []
+            var shareRecordIDs: Set<CKRecord.ID> = []
             for record in modifications {
               if let share = record as? CKShare {
-                shares.append(.share(share))
+                fetchedShares.append(share)
               } else {
                 upsertFromServerRecord(record, db: db)
                 if let shareReference = record.share {
-                  shares.append(.reference(shareReference))
+                  shareRecordIDs.insert(shareReference.recordID)
                 }
               }
             }
-            return shares
+            shareRecordIDs.subtract(fetchedShares.map(\.recordID))
+            return (fetchedShares, shareRecordIDs)
           }
         }
-        ?? []
+        ?? ([], [])
+
+      var shares = fetchedShares
+      try? await syncEngine.database.records(for: shareRecordIDs) { results in
+        for result in results.values {
+          guard let share = try? result.get() as? CKShare
+          else { continue }
+          shares.append(share)
+        }
+      }
 
       await withTaskGroup(of: Void.self) { group in
         for share in shares {
           group.addTask {
-            switch share {
-            case .share(let share):
-              await withErrorReporting(.sqliteDataCloudKitFailure) {
-                try await self.cacheShare(share)
-              }
-            case .reference(let shareReference):
-              guard
-                let record = try? await syncEngine.database.record(for: shareReference.recordID),
-                let share = record as? CKShare
-              else { return }
-              await withErrorReporting(.sqliteDataCloudKitFailure) {
-                try await self.cacheShare(share)
-              }
+            await withErrorReporting(.sqliteDataCloudKitFailure) {
+              try await self.cacheShare(share)
             }
           }
         }
