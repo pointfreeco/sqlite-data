@@ -384,6 +384,66 @@
         }
       }
 
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func createRecordsWhenLocalHasPermissionsButCloudKitDoesNot_FetchesInBatches()
+        async throws
+      {
+        let externalZone = CKRecordZone(
+          zoneID: CKRecordZone.ID(
+            zoneName: "external.zone",
+            ownerName: "external.owner"
+          )
+        )
+        try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1, zoneID: externalZone.zoneID)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+        let share = CKShare(
+          rootRecord: remindersListRecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(remindersListRecord.recordID.recordName)",
+            zoneID: remindersListRecord.recordID.zoneID
+          )
+        )
+        share.publicPermission = .readWrite
+        share.currentUserParticipant?.permission = .readWrite
+
+        try await syncEngine
+          .acceptShare(
+            metadata: ShareMetadata(
+              containerIdentifier: container.containerIdentifier!,
+              hierarchicalRootRecordID: remindersListRecord.recordID,
+              rootRecord: remindersListRecord,
+              share: share
+            )
+          )
+
+        let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+        freshShare.publicPermission = .readOnly
+        freshShare.currentUserParticipant?.permission = .readOnly
+        let _ = try syncEngine.modifyRecords(scope: .shared, saving: [freshShare])
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          try await self.userDatabase.userWrite { db in
+            try db.seed {
+              Reminder(id: 1, title: "Get milk", remindersListID: 1)
+              Reminder(id: 2, title: "Take a walk", remindersListID: 1)
+            }
+          }
+        }
+        syncEngine.shared.database.state.withValue { $0.rateLimit = 1 }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
+
+        try await self.userDatabase.read { db in
+          try #expect(Reminder.all.fetchCount(db) == 0)
+        }
+      }
+
       // Edit a record while locally we think we have permission, but CloudKit has newer permissions
       // that are read only.
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

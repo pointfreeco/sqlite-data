@@ -1708,7 +1708,7 @@
         syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
-
+      var permissionFailedRecordTypes: [CKRecord.ID: String] = [:]
       for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() async {
           await withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -1803,28 +1803,10 @@
 
         case .permissionFailure:
           guard
-            let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
-            let table = tablesByName[failedRecord.recordType]
+            failedRecord.recordID.recordPrimaryKey != nil,
+            tablesByName[failedRecord.recordType] != nil
           else { continue }
-          func open<T>(_: some SynchronizableTable<T>) async throws {
-            do {
-              let serverRecord = try await container.sharedCloudDatabase.record(
-                for: failedRecord.recordID
-              )
-              await upsertFromServerRecord(serverRecord, force: true)
-            } catch let error as CKError where error.code == .unknownItem {
-              try await userDatabase.write { db in
-                try T
-                  .unscoped
-                  .where { #sql("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
-                  .delete()
-                  .execute(db)
-              }
-            }
-          }
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await open(table)
-          }
+          permissionFailedRecordTypes[failedRecord.recordID] = failedRecord.recordType
 
         case .batchRequestFailed:
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
@@ -1855,6 +1837,36 @@
         #endif
         @unknown default:
           continue
+        }
+      }
+
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await container.sharedCloudDatabase.records(
+          for: permissionFailedRecordTypes.keys
+        ) { results in
+          for (recordID, result) in results {
+            await withErrorReporting(.sqliteDataCloudKitFailure) {
+              do {
+                await upsertFromServerRecord(try result.get(), force: true)
+              } catch let error as CKError where error.code == .unknownItem {
+                guard
+                  let recordPrimaryKey = recordID.recordPrimaryKey,
+                  let recordType = permissionFailedRecordTypes[recordID],
+                  let table = tablesByName[recordType]
+                else { return }
+                func open<T>(_: some SynchronizableTable<T>) async throws {
+                  try await userDatabase.write { db in
+                    try T
+                      .unscoped
+                      .where { #sql("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
+                      .delete()
+                      .execute(db)
+                  }
+                }
+                try await open(table)
+              }
+            }
+          }
         }
       }
 
