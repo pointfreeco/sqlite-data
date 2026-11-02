@@ -23,7 +23,10 @@
       self.init(recordID: recordID, record: nil)
     }
     package init(record: CKRecord) {
-      self.init(recordID: record.recordID, record: record)
+      self.init(
+        recordID: record.recordID,
+        record: record.allKeys().contains { record[$0] is CKAsset } ? nil : record
+      )
     }
     package static func find(_ recordID: CKRecord.ID) -> Where<UnsyncedRecordID> {
       Self.where {
