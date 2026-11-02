@@ -8,13 +8,22 @@
     package let recordName: String
     package let zoneName: String
     package let ownerName: String
+    @Column(as: CKRecord?._AllFieldsRepresentation.self)
+    package let record: CKRecord?
   }
 
   extension UnsyncedRecordID {
-    package init(recordID: CKRecord.ID) {
+    private init(recordID: CKRecord.ID, record: CKRecord?) {
       recordName = recordID.recordName
       zoneName = recordID.zoneID.zoneName
       ownerName = recordID.zoneID.ownerName
+      self.record = record
+    }
+    package init(recordID: CKRecord.ID) {
+      self.init(recordID: recordID, record: nil)
+    }
+    package init(record: CKRecord) {
+      self.init(recordID: record.recordID, record: record)
     }
     package static func find(_ recordID: CKRecord.ID) -> Where<UnsyncedRecordID> {
       Self.where {

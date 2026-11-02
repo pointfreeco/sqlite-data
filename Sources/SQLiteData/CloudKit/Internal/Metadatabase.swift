@@ -138,6 +138,15 @@
       )
       .execute(db)
     }
+    migrator.registerMigration("Add 'record' to 'unsyncedRecordIDs'") { db in
+      try #sql(
+        """
+        ALTER TABLE "\(raw: .sqliteDataCloudKitSchemaName)_unsyncedRecordIDs"
+        ADD COLUMN "record" BLOB
+        """
+      )
+      .execute(db)
+    }
     #if DEBUG
       try metadatabase.read { db in
         let hasSchemaChanges = try migrator.hasSchemaChanges(db)
