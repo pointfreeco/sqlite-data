@@ -63,30 +63,10 @@
     }
 
     package func record(for recordID: CKRecord.ID) throws -> CKRecord {
-      let accountStatus = container.accountStatus()
-      guard accountStatus == .available
-      else { throw ckError(forAccountStatus: accountStatus) }
-      try updateRateLimit()
-      let record = try state.withValue { state in
-        guard let zone = state.storage[recordID.zoneID]
-        else { throw CKError(.zoneNotFound) }
-        guard let record = zone.records[recordID]
-        else { throw CKError(.unknownItem) }
-        guard let record = record.copy() as? CKRecord
-        else { fatalError("Could not copy CKRecord.") }
-        return record
+      guard let record = try records(for: [recordID], desiredKeys: nil).values.first?.get()
+      else {
+        throw CKError(.unknownItem)
       }
-
-      try state.withValue { state in
-        for key in record.allKeys() {
-          guard let assetData = state.assets[AssetID(recordID: record.recordID, key: key)]
-          else { continue }
-          let url = dataManager.wrappedValue.temporaryDirectory.appending(path: UUID().uuidString)
-          try dataManager.wrappedValue.save(assetData, to: url)
-          record[key] = CKAsset(fileURL: url)
-        }
-      }
-
       return record
     }
 
@@ -98,17 +78,33 @@
       guard accountStatus == .available
       else { throw ckError(forAccountStatus: accountStatus) }
       try updateRateLimit()
-
       guard ids.count < 200
       else { throw CKError(.limitExceeded) }
 
-      var results: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
-      $_isRateLimitingDisabled.withValue(true) {
-        for id in ids {
-          results[id] = Result { try record(for: id) }
+      return state.withValue { state in
+        var result: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
+        for recordID in ids {
+          result[recordID] = Result {
+            guard let zone = state.storage[recordID.zoneID]
+            else { throw CKError(.zoneNotFound) }
+            guard let record = zone.records[recordID]
+            else { throw CKError(.unknownItem) }
+            guard let record = record.copy() as? CKRecord
+            else { fatalError("Could not copy CKRecord.") }
+
+            for key in record.allKeys() {
+              guard let assetData = state.assets[AssetID(recordID: record.recordID, key: key)]
+              else { continue }
+              let url = dataManager.wrappedValue.temporaryDirectory.appending(path: UUID().uuidString)
+              try dataManager.wrappedValue.save(assetData, to: url)
+              record[key] = CKAsset(fileURL: url)
+            }
+
+            return record
+          }
         }
+        return result
       }
-      return results
     }
 
     package func modifyRecords(

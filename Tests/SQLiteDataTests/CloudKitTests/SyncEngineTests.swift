@@ -124,7 +124,7 @@
         withKnownIssue {
           _ = Reminder.createTemporaryTrigger(
             after: .insert { new in
-              Select(SyncEngine.isSynchronizing)
+              Values(SyncEngine.isSynchronizing)
             }
           )
         } matching: { issue in
@@ -137,7 +137,7 @@
         }
         _ = Reminder.createTemporaryTrigger(
           after: .insert { new in
-            Select(SyncEngine.$isSynchronizing)
+            Values(SyncEngine.$isSynchronizing)
           }
         )
       }
