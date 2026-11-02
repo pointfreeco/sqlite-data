@@ -393,9 +393,7 @@
           await remindersListModification.notify()
         } changes: {
           $0.append(
-            contentsOf: [
-              RemindersList.recordID(for: 1),
-            ]
+            RemindersList.recordID(for: 1)
           )
         }
         assertQuery(RemindersListAsset.all, database: userDatabase.database) {
