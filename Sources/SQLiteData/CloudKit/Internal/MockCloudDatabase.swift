@@ -10,6 +10,7 @@
     package let databaseScope: CKDatabase.Scope
     let _container = IsolatedWeakVar<MockCloudContainer>()
     let dataManager = Dependency(\.dataManager)
+    let uuid = Dependency(\.uuid)
     let clock: AnyClock<Duration>
 
     package struct State {
@@ -106,7 +107,9 @@
             for key in record.allKeys() {
               guard let assetData = state.assets[AssetID(recordID: record.recordID, key: key)]
               else { continue }
-              let url = dataManager.wrappedValue.temporaryDirectory.appending(path: UUID().uuidString)
+              let url = dataManager.wrappedValue.temporaryDirectory.appending(
+                path: uuid.wrappedValue().uuidString
+              )
               try dataManager.wrappedValue.save(assetData, to: url)
               record[key] = CKAsset(fileURL: url)
             }

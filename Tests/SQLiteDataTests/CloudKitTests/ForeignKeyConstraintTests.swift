@@ -161,6 +161,7 @@
           │   recordName: "1:modelCs",                                                       │
           │   zoneName: "zone",                                                              │
           │   ownerName: "__defaultOwner__",                                                 │
+          │   assets: [:],                                                                   │
           │   record: CKRecord(                                                              │
           │     recordID: CKRecord.ID(1:modelCs/zone/__defaultOwner__),                      │
           │     recordType: "modelCs",                                                       │

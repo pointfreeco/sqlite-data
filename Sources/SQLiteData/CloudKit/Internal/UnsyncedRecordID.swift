@@ -8,25 +8,44 @@
     package let recordName: String
     package let zoneName: String
     package let ownerName: String
+    @Column(as: [String: Data].JSONRepresentation.self)
+    package let assets: [String: Data]
     @Column(as: CKRecord?._AllFieldsRepresentation.self)
     package let record: CKRecord?
   }
 
   extension UnsyncedRecordID {
-    private init(recordID: CKRecord.ID, record: CKRecord?) {
+    private init(recordID: CKRecord.ID, assets: [String: Data], record: CKRecord?) {
       recordName = recordID.recordName
       zoneName = recordID.zoneID.zoneName
       ownerName = recordID.zoneID.ownerName
+      self.assets = assets
       self.record = record
     }
     package init(recordID: CKRecord.ID) {
-      self.init(recordID: recordID, record: nil)
+      self.init(recordID: recordID, assets: [:], record: nil)
     }
     package init(record: CKRecord) {
-      self.init(
-        recordID: record.recordID,
-        record: record.allKeys().contains { record[$0] is CKAsset } ? nil : record
-      )
+      do {
+        @Dependency(\.dataManager) var dataManager
+        let assets = try Dictionary(
+          uniqueKeysWithValues: record.allKeys().compactMap { key -> (String, Data)? in
+            guard
+              let asset = record[key] as? CKAsset,
+              let fileURL = asset.fileURL
+                else { return nil }
+            return (key, try dataManager.load(fileURL))
+          }
+        )
+
+        self.init(
+          recordID: record.recordID,
+          assets: assets,
+          record: record
+        )
+      } catch {
+        self.init(recordID: record.recordID)
+      }
     }
     package static func find(_ recordID: CKRecord.ID) -> Where<UnsyncedRecordID> {
       Self.where {

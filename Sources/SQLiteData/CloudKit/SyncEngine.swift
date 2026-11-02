@@ -40,6 +40,7 @@
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
     let dataManager = Dependency(\.dataManager)
+    let uuid = Dependency(\.uuid)
     private let observationRegistrar = ObservationRegistrar()
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
@@ -1525,19 +1526,30 @@
         }
       }
 
+      struct RecordAndAssets {
+        let record: CKRecord
+        let assets: [String: Data]
+      }
+
       let modificationRecordIDs = Set(modifications.map(\.recordID))
-      let (cachedUnsyncedRecords, unsyncedRecordIDs): ([CKRecord], Set<CKRecord.ID>) =
+      var (cachedUnsyncedRecords, unsyncedRecordIDs): ([RecordAndAssets], Set<CKRecord.ID>) =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.write { db in
             var unsyncedRecordIDsToDelete: Set<CKRecord.ID> = []
-            var cachedUnsyncedRecords: [CKRecord] = []
+            var cachedUnsyncedRecords: [RecordAndAssets] = []
             var unsyncedRecordIDs: Set<CKRecord.ID> = []
             for unsyncedRecordID in try UnsyncedRecordID.all.fetchAll(db) {
               let recordID = CKRecord.ID(unsyncedRecordID: unsyncedRecordID)
               if modificationRecordIDs.contains(recordID) {
                 unsyncedRecordIDsToDelete.insert(recordID)
-              } else if let record = unsyncedRecordID.record {
-                cachedUnsyncedRecords.append(record)
+              } else if let record = unsyncedRecordID.record?.copy() as? CKRecord {
+                cachedUnsyncedRecords
+                  .append(
+                    RecordAndAssets(
+                      record: record,
+                      assets: unsyncedRecordID.assets
+                    )
+                  )
               } else {
                 unsyncedRecordIDs.insert(recordID)
               }
@@ -1553,7 +1565,20 @@
         }
         ?? ([], [])
 
-      var unsyncedRecords = cachedUnsyncedRecords
+      var unsyncedRecords: [CKRecord] = []
+      for recordAndAssets in cachedUnsyncedRecords {
+        let (record, assets) = (recordAndAssets.record, recordAndAssets.assets)
+        do {
+          for (key, data) in assets {
+            let url = URL.temporaryDirectory.appendingPathComponent(uuid.wrappedValue().uuidString)
+            try dataManager.wrappedValue.save(data, to: url)
+            record[key] = CKAsset.init(fileURL: url)
+          }
+          unsyncedRecords.append(record)
+        } catch {
+          unsyncedRecordIDs.insert(record.recordID)
+        }
+      }
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         let batchSize = 150
         let orderedUnsyncedRecordIDs = unsyncedRecordIDs.sorted {
@@ -2049,6 +2074,7 @@
             } onConflict: {
               ($0.recordName, $0.zoneName, $0.ownerName)
             } doUpdate: {
+              $0.assets = $1.assets
               $0.record = $1.record
             }
             .execute(db)

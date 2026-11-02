@@ -371,9 +371,21 @@
           database: syncEngine.metadatabase
         ) {
           """
-          ┌─────────────────────────┬─────┐
-          │ "1:remindersListAssets" │ nil │
-          └─────────────────────────┴─────┘
+          ┌─────────────────────────┬───────────────────────────────────────────────────────────────────────────────────────┐
+          │ "1:remindersListAssets" │ CKRecord(                                                                             │
+          │                         │   recordID: CKRecord.ID(1:remindersListAssets/zone/__defaultOwner__),                 │
+          │                         │   recordType: "remindersListAssets",                                                  │
+          │                         │   parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)), │
+          │                         │   share: nil,                                                                         │
+          │                         │   coverImage_hash: Data(32 bytes),                                                    │
+          │                         │   id: 1,                                                                              │
+          │                         │   remindersListID: 1,                                                                 │
+          │                         │   coverImage: CKAsset(                                                                │
+          │                         │     fileURL: URL(file:///tmp/00000000-0000-0000-0000-000000000000),                   │
+          │                         │     dataString: "image"                                                               │
+          │                         │   )                                                                                   │
+          │                         │ )                                                                                     │
+          └─────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────┘
           """
         }
 
