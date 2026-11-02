@@ -721,10 +721,30 @@
               .select(\._lastKnownServerRecordAllFields)
               .fetchAll(db)
           }
+          var refreshedRecords: [CKRecord.ID: CKRecord] = [:]
+          for recordIDs in Dictionary(
+            grouping: lastKnownServerRecords.compactMap { record -> CKRecord.ID? in
+              guard
+                let record,
+                changedColumns.contains(where: {
+                  $0 != T.primaryKey.name && record.hasSet(key: $0) && record[$0] is CKAsset
+                })
+              else { return nil }
+              return record.recordID
+            },
+            by: { $0.zoneID.ownerName == CKCurrentUserDefaultName }
+          )
+          .values {
+            try await container.database(for: recordIDs[0]).records(for: recordIDs) { results in
+              for (recordID, result) in results {
+                refreshedRecords[recordID] = try result.get()
+              }
+            }
+          }
           for case .some(let lastKnownServerRecord) in lastKnownServerRecords {
-            let query = try await updateQuery(
+            let query = updateQuery(
               for: table,
-              record: lastKnownServerRecord,
+              record: refreshedRecords[lastKnownServerRecord.recordID] ?? lastKnownServerRecord,
               columnNames: T.TableColumns.writableColumns.map(\.name),
               changedColumnNames: changedColumns
             )
@@ -2106,7 +2126,7 @@
       record: CKRecord,
       columnNames: some Collection<String>,
       changedColumnNames: some Collection<String>
-    ) async throws -> QueryFragment {
+    ) -> QueryFragment {
       let nonPrimaryKeyChangedColumns =
         changedColumnNames
         .filter {
@@ -2117,14 +2137,6 @@
       else {
         return ""
       }
-      var record = record
-      let recordHasAsset = nonPrimaryKeyChangedColumns.contains { columnName in
-        record[columnName] is CKAsset
-      }
-      if recordHasAsset {
-        record = try await container.database(for: record.recordID).record(for: record.recordID)
-      }
-
       var query: QueryFragment = "INSERT INTO \(T.self) ("
       query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
       query.append(") VALUES (")
