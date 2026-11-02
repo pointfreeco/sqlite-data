@@ -15,6 +15,7 @@
     .dependencies {
       $0.currentTime.now = 0
       $0.continuousClock = TestClock<Duration>()
+      $0.cloudKitClock = TestClock<Duration>()
       $0.dataManager = InMemoryDataManager()
     },
     .taskLocal($attachMetadatabase, false)
@@ -33,6 +34,7 @@
     var testClock: TestClock<Duration> {
       clock as! TestClock<Duration>
     }
+    @Dependency(\.cloudKitClock, as: TestClock<Duration>.self) var cloudKitClock
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
     var container: MockCloudContainer {
@@ -55,8 +57,16 @@
         )
       )
       try await prepareDatabase(userDatabase)
-      let privateDatabase = MockCloudDatabase(databaseScope: .private)
-      let sharedDatabase = MockCloudDatabase(databaseScope: .shared)
+      let privateDatabase = MockCloudDatabase(
+        databaseScope: .private,
+        rateLimit: rateLimit,
+        rateLimitDuration: rateLimitDuration
+      )
+      let sharedDatabase = MockCloudDatabase(
+        databaseScope: .shared,
+        rateLimit: rateLimit,
+        rateLimitDuration: rateLimitDuration
+      )
       let container = MockCloudContainer(
         accountStatus: accountStatus,
         containerIdentifier: testContainerIdentifier,
