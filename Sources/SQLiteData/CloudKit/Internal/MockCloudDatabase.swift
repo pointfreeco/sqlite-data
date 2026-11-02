@@ -24,6 +24,13 @@
         lastRecordChangeTag += 1
         return lastRecordChangeTag
       }
+      init(
+        rateLimit: Int,
+        rateLimitDuration: Duration
+      ) {
+        self.rateLimit = rateLimit
+        self.rateLimitDuration = rateLimitDuration
+      }
     }
 
     struct AssetID: Hashable {
