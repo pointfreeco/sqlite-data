@@ -111,6 +111,29 @@
       }
 
       @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
+      @Test(arguments: [CKError.Code.requestRateLimited, .serviceUnavailable])
+      func retriesAfterRetryAfterSeconds(code: CKError.Code) async throws {
+        let attempts = LockIsolated(0)
+        let task = Task.immediate {
+          try await withRateLimiting {
+            let attempt = attempts.withValue {
+              $0 += 1
+              return $0
+            }
+            guard attempt > 1
+            else { throw CKError(code, userInfo: [CKErrorRetryAfterKey: 3.0]) }
+          }
+        }
+
+        await cloudKitClock.advance(by: .milliseconds(2999))
+        #expect(attempts.value == 1)
+
+        await cloudKitClock.advance(by: .milliseconds(1))
+        try await task.value
+        #expect(attempts.value == 2)
+      }
+
+      @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
       @Test func defaultsToOneSecondWithoutRetryAfterSeconds() async throws {
         let attempts = LockIsolated(0)
         let task = Task.immediate {

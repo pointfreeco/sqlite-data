@@ -12,7 +12,10 @@
     while true {
       do {
         return try await operation()
-      } catch let error as CKError where error.code == .requestRateLimited && retries < maxRetries {
+      } catch let error as CKError
+        where [.requestRateLimited, .serviceUnavailable].contains(error.code)
+        && retries < maxRetries
+      {
         retries += 1
         try await clock.sleep(for: .seconds(error.retryAfterSeconds ?? 1))
       }
