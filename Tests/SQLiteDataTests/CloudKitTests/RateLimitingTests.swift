@@ -52,10 +52,10 @@
           }
         }
 
-        await testClock.advance(by: .seconds(9))
+        await cloudKitClock.advance(by: .seconds(9))
         #expect(attempts.value == 1)
 
-        await testClock.advance(by: .seconds(1))
+        await cloudKitClock.advance(by: .seconds(1))
         #expect(try await task.value == recordID)
         #expect(attempts.value == 2)
       }
@@ -71,9 +71,9 @@
           }
         }
 
-        await testClock.advance(by: .seconds(10))
+        await cloudKitClock.advance(by: .seconds(10))
         #expect(attempts.value == 2)
-        await testClock.advance(by: .seconds(10))
+        await cloudKitClock.advance(by: .seconds(10))
         #expect(attempts.value == 3)
 
         let error = await #expect(throws: CKError.self) {
@@ -124,10 +124,10 @@
           }
         }
 
-        await testClock.advance(by: .milliseconds(999))
+        await cloudKitClock.advance(by: .milliseconds(999))
         #expect(attempts.value == 1)
 
-        await testClock.advance(by: .milliseconds(1))
+        await cloudKitClock.advance(by: .milliseconds(1))
         try await task.value
         #expect(attempts.value == 2)
       }
@@ -143,7 +143,7 @@
           }
         }
 
-        await testClock.advance(by: .seconds(1))
+        await cloudKitClock.advance(by: .seconds(1))
         task.cancel()
 
         await #expect(throws: CancellationError.self) {
