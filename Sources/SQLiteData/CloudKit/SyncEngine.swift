@@ -1482,7 +1482,7 @@
         },
         by: \.recordType
       )
-      .mapValues { $0.map(\.recordID) }
+      .mapValues { OrderedSet($0.map(\.recordID)) }
       for (recordType, recordIDs) in deletedRecordIDsByRecordType {
         if let table = tablesByName[recordType] {
           func open<T>(_: some SynchronizableTable<T>) async {
@@ -1508,10 +1508,8 @@
           }
           await open(table)
         } else if recordType == CKRecord.SystemType.share {
-          for shareRecordID in recordIDs {
-            await withErrorReporting(.sqliteDataCloudKitFailure) {
-              try await deleteShare(shareRecordID: shareRecordID)
-            }
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await deleteShares(shareRecordIDs: recordIDs)
           }
         } else {
           // NB: Deleting a record from a table we do not currently recognize.
@@ -1941,34 +1939,37 @@
       }
     }
 
-    func deleteShare(shareRecordID: CKRecord.ID) async throws {
-      let shareAndRecordNameAndZone = try await metadatabase.read { db in
+    func deleteShares(shareRecordIDs: OrderedSet<CKRecord.ID>) async throws {
+      let shareRecordIDs = Set(shareRecordIDs)
+      let rootRecordIDs = try await metadatabase.read { db in
         try SyncMetadata
           .where(\.isShared)
           .select { ($0.share, $0.recordName, $0.zoneName, $0.ownerName) }
           .fetchAll(db)
-          .first(where: { share, _, _, _ in share?.recordID == shareRecordID }) ?? nil
-      }
-      guard let (_, recordName, zoneName, ownerName) = shareAndRecordNameAndZone
-      else { return }
-      let rootRecordID = CKRecord.ID(
-        recordName: recordName,
-        zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
-      )
-      let rootRecord = try await container.privateCloudDatabase.record(for: rootRecordID)
-      try await userDatabase.write { db in
-        try SyncMetadata
-          .find(
-            CKRecord.ID(
+          .compactMap { share, recordName, zoneName, ownerName -> CKRecord.ID? in
+            guard let share, shareRecordIDs.contains(share.recordID)
+            else { return nil }
+            return CKRecord.ID(
               recordName: recordName,
               zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
             )
-          )
-          .update {
-            $0.setLastKnownServerRecord(rootRecord)
-            $0.share = #bind(nil)
           }
-          .execute(db)
+      }
+      try await container.privateCloudDatabase.records(for: rootRecordIDs) { results in
+        try await userDatabase.write { db in
+          for (rootRecordID, result) in results {
+            withErrorReporting(.sqliteDataCloudKitFailure) {
+              let rootRecord = try result.get()
+              try SyncMetadata
+                .find(rootRecordID)
+                .update {
+                  $0.setLastKnownServerRecord(rootRecord)
+                  $0.share = #bind(nil)
+                }
+                .execute(db)
+            }
+          }
+        }
       }
     }
 
