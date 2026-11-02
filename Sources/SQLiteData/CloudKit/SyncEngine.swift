@@ -1580,7 +1580,6 @@
         }
       }
       await withErrorReporting(.sqliteDataCloudKitFailure) {
-        let batchSize = 150
         let orderedUnsyncedRecordIDs = unsyncedRecordIDs.sorted {
           topologicallyAscending(
             lhsTableName: $0.tableName,
@@ -1588,12 +1587,7 @@
             rootFirst: true
           )
         }
-        for start in stride(from: 0, to: orderedUnsyncedRecordIDs.count, by: batchSize) {
-          let recordIDsBatch =
-            orderedUnsyncedRecordIDs
-            .dropFirst(start)
-            .prefix(batchSize)
-          let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
+        try await syncEngine.database.records(for: orderedUnsyncedRecordIDs) { results in
           for (recordID, result) in results {
             switch result {
             case .success(let record):
