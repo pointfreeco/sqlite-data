@@ -395,7 +395,6 @@
           $0.append(
             contentsOf: [
               RemindersList.recordID(for: 1),
-              RemindersListAsset.recordID(for: 1),
             ]
           )
         }
