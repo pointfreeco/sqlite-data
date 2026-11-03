@@ -1,5 +1,6 @@
 #if canImport(CloudKit)
   package import CloudKit
+  import Dependencies
   import StructuredQueries
   package import StructuredQueriesCore
 
