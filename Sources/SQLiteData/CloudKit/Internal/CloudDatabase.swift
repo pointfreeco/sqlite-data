@@ -59,11 +59,10 @@
 
     @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
     package func records(
-      for ids: some Collection<CKRecord.ID>,
+      for ids: [CKRecord.ID],
       batchSize: Int = 150,
       forEachBatch body: ([CKRecord.ID: Result<CKRecord, any Error>]) async throws -> Void
     ) async throws {
-      let ids = Array(ids)
       for start in stride(from: 0, to: ids.count, by: batchSize) {
         let batch = Array(ids[start..<min(start + batchSize, ids.count)])
         try await body(withRateLimiting { try await records(for: batch) })

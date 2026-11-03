@@ -1651,7 +1651,7 @@
         ?? ([], [])
 
       var shares = fetchedShares
-      try? await syncEngine.database.records(for: shareRecordIDs) { results in
+      try? await syncEngine.database.records(for: Array(shareRecordIDs)) { results in
         for result in results.values {
           guard let share = try? result.get() as? CKShare
           else { continue }
@@ -1842,7 +1842,7 @@
 
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await container.sharedCloudDatabase.records(
-          for: permissionFailedRecordTypes.keys
+          for: Array(permissionFailedRecordTypes.keys)
         ) { results in
           for (recordID, result) in results {
             await withErrorReporting(.sqliteDataCloudKitFailure) {
