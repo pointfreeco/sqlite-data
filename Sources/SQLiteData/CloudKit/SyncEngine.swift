@@ -1690,11 +1690,7 @@
           }
           guard let isExceeded
                   else { return }
-          delegate?.syncEngine(
-            self,
-            quotaExceeded: isExceeded,
-            scope: scope
-          )
+          delegate?.syncEngine(self, quotaExceeded: isExceeded, scope: scope)
         }
       }
 

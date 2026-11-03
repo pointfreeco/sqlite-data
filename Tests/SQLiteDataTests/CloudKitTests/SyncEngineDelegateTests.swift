@@ -408,6 +408,46 @@
             ]
           )
         }
+
+        try await userDatabase.userWrite { db in
+          try RemindersList.upsert {
+            RemindersList.Draft(id: 1, title: "My Stuff")
+          }
+          .execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  title: "My Stuff"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+
+        delegate.state.withValue {
+          #expect(
+            $0 == [
+              QuotaExceededDelegate.State(quotaExceeded: true, scope: .private),
+              QuotaExceededDelegate.State(quotaExceeded: false, scope: .private),
+            ]
+          )
+        }
       }
     }
   }
