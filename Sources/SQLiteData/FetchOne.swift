@@ -39,12 +39,16 @@ public struct FetchOne<Value: Sendable>: Sendable {
     private let box: FetchBox<Value>
     private let state: SwiftUI.State<FetchBox<Value>>
     private let generation = SwiftUI.State(wrappedValue: 0)
+
+    var loadGeneration: LoadGeneration { state.wrappedValue.loadGeneration }
   #else
     /// The underlying shared reader powering the property wrapper.
     ///
     /// Shared readers come from the [Sharing](https://github.com/pointfreeco/swift-sharing)
     /// package, a general solution to observing and persisting changes to external data sources.
     public let sharedReader: SharedReader<Value>
+
+    let loadGeneration = LoadGeneration()
   #endif
 
   /// A value associated with the underlying query.
@@ -58,7 +62,10 @@ public struct FetchOne<Value: Sendable>: Sendable {
   /// ``isLoading``, and ``publisher``.
   public var projectedValue: Self {
     get { self }
-    nonmutating set { sharedReader.projectedValue = newValue.sharedReader.projectedValue }
+    nonmutating set {
+      loadGeneration.invalidate()
+      sharedReader.projectedValue = newValue.sharedReader.projectedValue
+    }
   }
 
   /// Returns a ``sharedReader`` for the given key path.
@@ -408,10 +415,11 @@ public struct FetchOne<Value: Sendable>: Sendable {
   where
     Value == V.QueryOutput
   {
-    try await sharedReader.load(
-      .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    try await withSubscription {
+      try await sharedReader.load(
+        .fetch(FetchOneStatementValueRequest(statement: statement), database: database)
+      )
+    }
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -429,10 +437,11 @@ public struct FetchOne<Value: Sendable>: Sendable {
   where
     Value == V.QueryOutput?
   {
-    try await sharedReader.load(
-      .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    try await withSubscription {
+      try await sharedReader.load(
+        .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
+      )
+    }
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -454,10 +463,11 @@ public struct FetchOne<Value: Sendable>: Sendable {
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect().limit(1)
-    try await sharedReader.load(
-      .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    return try await withSubscription {
+      try await sharedReader.load(
+        .fetch(FetchOneStatementOptionalValueRequest(statement: statement), database: database)
+      )
+    }
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -478,10 +488,11 @@ public struct FetchOne<Value: Sendable>: Sendable {
     S.QueryValue: StructuredQueriesCore._OptionalProtocol,
     Value == S.QueryValue.QueryOutput
   {
-    try await sharedReader.load(
-      .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    try await withSubscription {
+      try await sharedReader.load(
+        .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
+      )
+    }
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -501,10 +512,17 @@ public struct FetchOne<Value: Sendable>: Sendable {
     Value: StructuredQueriesCore._OptionalProtocol,
     Value.QueryOutput == Value
   {
-    try await sharedReader.load(
-      .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    try await withSubscription {
+      try await sharedReader.load(
+        .fetch(FetchOneStatementOptionalProtocolRequest(statement: statement), database: database)
+      )
+    }
+  }
+
+  private func withSubscription(_ load: () async throws -> Void) async throws -> FetchSubscription {
+    let token = loadGeneration.begin()
+    try await load()
+    return FetchSubscription(sharedReader: sharedReader, token: token)
   }
 
   #if !canImport(SwiftUI)
@@ -918,14 +936,15 @@ extension FetchOne {
   where
     Value == V.QueryOutput
   {
-    try await sharedReader.load(
-      .fetch(
-        FetchOneStatementValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
+    try await withSubscription {
+      try await sharedReader.load(
+        .fetch(
+          FetchOneStatementValueRequest(statement: statement),
+          database: database,
+          scheduler: scheduler
+        )
       )
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    }
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -946,14 +965,15 @@ extension FetchOne {
   where
     Value == V.QueryOutput?
   {
-    try await sharedReader.load(
-      .fetch(
-        FetchOneStatementOptionalValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
+    try await withSubscription {
+      try await sharedReader.load(
+        .fetch(
+          FetchOneStatementOptionalValueRequest(statement: statement),
+          database: database,
+          scheduler: scheduler
+        )
       )
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    }
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -978,14 +998,15 @@ extension FetchOne {
     S.Joins == ()
   {
     let statement = statement.selectStar().asSelect().limit(1)
-    try await sharedReader.load(
-      .fetch(
-        FetchOneStatementOptionalValueRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
+    return try await withSubscription {
+      try await sharedReader.load(
+        .fetch(
+          FetchOneStatementOptionalValueRequest(statement: statement),
+          database: database,
+          scheduler: scheduler
+        )
       )
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    }
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -1009,14 +1030,15 @@ extension FetchOne {
     S.QueryValue: StructuredQueriesCore._OptionalProtocol,
     Value == S.QueryValue.QueryOutput
   {
-    try await sharedReader.load(
-      .fetch(
-        FetchOneStatementOptionalProtocolRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
+    try await withSubscription {
+      try await sharedReader.load(
+        .fetch(
+          FetchOneStatementOptionalProtocolRequest(statement: statement),
+          database: database,
+          scheduler: scheduler
+        )
       )
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    }
   }
 
   /// Replaces the wrapped value with data from the given query.
@@ -1039,14 +1061,15 @@ extension FetchOne {
     Value: StructuredQueriesCore._OptionalProtocol,
     Value.QueryOutput == Value
   {
-    try await sharedReader.load(
-      .fetch(
-        FetchOneStatementOptionalProtocolRequest(statement: statement),
-        database: database,
-        scheduler: scheduler
+    try await withSubscription {
+      try await sharedReader.load(
+        .fetch(
+          FetchOneStatementOptionalProtocolRequest(statement: statement),
+          database: database,
+          scheduler: scheduler
+        )
       )
-    )
-    return FetchSubscription(sharedReader: sharedReader)
+    }
   }
 }
 
