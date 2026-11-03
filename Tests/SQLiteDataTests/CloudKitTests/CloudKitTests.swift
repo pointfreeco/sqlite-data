@@ -927,5 +927,31 @@
         }
       }
     }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func sendParentsBeforeChildren() async throws {
+      try await userDatabase.userWrite { db in
+        for id in 1...30 {
+          try RemindersList.insert { RemindersList(id: id, title: "List \(id)") }.execute(db)
+        }
+        for id in 1...30 {
+          try ScopedModel.insert { ScopedModel(id: id, title: "Model \(id)") }.execute(db)
+        }
+        for id in 1...30 {
+          try Reminder.insert {
+            Reminder(id: id, title: "Reminder \(id)", remindersListID: id)
+          }
+          .execute(db)
+        }
+      }
+
+      let batch = try #require(
+        await syncEngine.nextRecordZoneChangeBatch(syncEngine: syncEngine.private)
+      )
+      let recordTypes = batch.recordsToSave.map(\.recordType)
+      let lastListIndex = try #require(recordTypes.lastIndex(of: RemindersList.tableName))
+      let firstReminderIndex = try #require(recordTypes.firstIndex(of: Reminder.tableName))
+      #expect(lastListIndex < firstReminderIndex)
+    }
   }
 #endif
