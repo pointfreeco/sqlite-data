@@ -34,7 +34,7 @@
     let foreignKeysByTableName: [String: [ForeignKey]]
     package let syncEngines = LockIsolated<SyncEngines>(SyncEngines())
     package let defaultZone: CKRecordZone
-    let delegate: (any SyncEngineDelegate)?
+    package let delegate: (any SyncEngineDelegate)?
     let defaultSyncEngines:
       @Sendable (any DatabaseReader, SyncEngine)
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
@@ -44,6 +44,7 @@
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
+    private let quotaExceeded = LockIsolated([CKDatabase.Scope.private: false, .shared: false])
     #if DEBUG && canImport(DeveloperToolsSupport)
       private let previewTimerTask = LockIsolated<Task<Void, Never>?>(nil)
     #endif
@@ -592,6 +593,7 @@
       }
       guard let privateSyncEngine, let sharedSyncEngine
       else { return }
+      try await enqueueLocallyPendingChanges()
       async let `private`: Void = privateSyncEngine.sendChanges(options)
       async let shared: Void = sharedSyncEngine.sendChanges(options)
       _ = try await (`private`, shared)
@@ -629,8 +631,6 @@
     ) async throws {
       try await enqueueLocallyPendingChanges()
       try await userDatabase.write { db in
-        try PendingRecordZoneChange.delete().execute(db)
-
         let newTableNames = currentRecordTypeByTableName.keys.filter { tableName in
           previousRecordTypeByTableName[tableName] == nil
         }
@@ -644,9 +644,10 @@
     }
 
     private func enqueueLocallyPendingChanges() async throws {
-      let pendingRecordZoneChanges = try await metadatabase.read { db in
+      let pendingRecordZoneChanges = try await metadatabase.write { db in
         try PendingRecordZoneChange
-          .select(\.pendingRecordZoneChange)
+          .delete()
+          .returning(\.pendingRecordZoneChange)
           .fetchAll(db)
       }
       let changesByIsPrivate = Dictionary(grouping: pendingRecordZoneChanges) {
@@ -1666,7 +1667,37 @@
       defer {
         syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
+
+        let hasQuotaExceededFailure = failedRecordSaves
+          .contains(where: { $0.error.code == .quotaExceeded })
+        if hasQuotaExceededFailure {
+          updateQuotaExceeded(
+            isExceeded: true,
+            scope: syncEngine.database.databaseScope
+          )
+        } else if !savedRecords.isEmpty {
+          updateQuotaExceeded(
+            isExceeded: false,
+            scope: syncEngine.database.databaseScope
+          )
+        }
+
+        func updateQuotaExceeded(isExceeded: Bool, scope: CKDatabase.Scope) {
+          let isExceeded = self.quotaExceeded.withValue { quotaExceeded -> Bool? in
+            guard isExceeded != quotaExceeded[scope] else { return nil }
+            defer { quotaExceeded[scope] = isExceeded }
+            return isExceeded
+          }
+          guard let isExceeded
+                  else { return }
+          delegate?.syncEngine(
+            self,
+            quotaExceeded: isExceeded,
+            scope: scope
+          )
+        }
       }
+
       for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() async {
           await withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -1788,12 +1819,22 @@
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
           break
 
+        case .quotaExceeded:
+          await withErrorReporting {
+            try await metadatabase.write { db in
+              try PendingRecordZoneChange.insert {
+                PendingRecordZoneChange(.saveRecord(failedRecord.recordID))
+              }
+              .execute(db)
+            }
+          }
+
         case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable,
           .notAuthenticated, .operationCancelled,
           .internalError, .partialFailure, .badContainer, .requestRateLimited, .missingEntitlement,
           .invalidArguments, .resultsTruncated, .assetFileNotFound,
           .assetFileModified, .incompatibleVersion, .constraintViolation, .changeTokenExpired,
-          .badDatabase, .quotaExceeded, .limitExceeded, .userDeletedZone, .tooManyParticipants,
+          .badDatabase, .limitExceeded, .userDeletedZone, .tooManyParticipants,
           .alreadyShared, .managedAccountRestricted, .participantMayNeedVerification,
           .serverResponseLost, .assetNotAvailable, .accountTemporarilyUnavailable:
           continue

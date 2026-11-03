@@ -59,11 +59,13 @@
       try await prepareDatabase(userDatabase)
       let privateDatabase = MockCloudDatabase(
         databaseScope: .private,
+        quota: quota,
         rateLimit: rateLimit,
         rateLimitDuration: rateLimitDuration
       )
       let sharedDatabase = MockCloudDatabase(
         databaseScope: .shared,
+        quota: quota,
         rateLimit: rateLimit,
         rateLimitDuration: rateLimitDuration
       )
@@ -157,7 +159,8 @@
         syncEngine.private.assertAcceptedShareMetadata([])
 
         try! syncEngine.metadatabase.read { db in
-          try #expect(UnsyncedRecordID.count().fetchOne(db) == 0)
+          try #expect(UnsyncedRecordID.fetchCount(db) == 0)
+          try #expect(PendingRecordZoneChange.fetchCount(db) == 0)
         }
       } else {
         Issue.record("Tests must be run on iOS 17+, macOS 14+, tvOS 17+ and watchOS 10+.")
