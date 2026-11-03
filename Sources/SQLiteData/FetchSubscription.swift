@@ -20,7 +20,7 @@ public struct FetchSubscription: Sendable {
 
   init<Value>(sharedReader: SharedReader<Value>, token: LoadGeneration.Token) {
     onCancel = {
-      token.ifCurrent {
+      token.ifValid {
         sharedReader.projectedValue = SharedReader(value: sharedReader.wrappedValue)
       }
     }
@@ -32,7 +32,7 @@ public struct FetchSubscription: Sendable {
     token: LoadGeneration.Token
   ) {
     onCancel = {
-      token.ifCurrent {
+      token.ifValid {
         let sections = sectionedReader.wrappedValue
         sectionedReader.projectedValue = SharedReader(value: sections)
         sharedReader.projectedValue = SharedReader(value: sections.elements)
