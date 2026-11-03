@@ -1667,31 +1667,6 @@
       defer {
         syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
-
-        let hasQuotaExceededFailure = failedRecordSaves
-          .contains(where: { $0.error.code == .quotaExceeded })
-        if hasQuotaExceededFailure {
-          updateQuotaExceeded(
-            isExceeded: true,
-            scope: syncEngine.database.databaseScope
-          )
-        } else if !savedRecords.isEmpty {
-          updateQuotaExceeded(
-            isExceeded: false,
-            scope: syncEngine.database.databaseScope
-          )
-        }
-
-        func updateQuotaExceeded(isExceeded: Bool, scope: CKDatabase.Scope) {
-          let isExceeded = self.quotaExceeded.withValue { quotaExceeded -> Bool? in
-            guard isExceeded != quotaExceeded[scope] else { return nil }
-            defer { quotaExceeded[scope] = isExceeded }
-            return isExceeded
-          }
-          guard let isExceeded
-                  else { return }
-          delegate?.syncEngine(self, quotaExceeded: isExceeded, scope: scope)
-        }
       }
 
       for (failedRecord, error) in failedRecordSaves {
@@ -1885,6 +1860,46 @@
         ?? false
       if enqueuedUnsyncedRecordID {
         await handleFetchedRecordZoneChanges(syncEngine: syncEngine)
+      }
+
+      await updateQuotaExceeded(
+        syncEngine: syncEngine,
+        savedRecords: savedRecords,
+        failedRecordSaves: failedRecordSaves
+      )
+    }
+
+    private func updateQuotaExceeded(
+      syncEngine: any SyncEngineProtocol,
+      savedRecords: [CKRecord],
+      failedRecordSaves: [(record: CKRecord, error: CKError)]
+    ) async {
+      let hasQuotaExceededFailure =
+        failedRecordSaves
+        .contains(where: { $0.error.code == .quotaExceeded })
+      if hasQuotaExceededFailure {
+        updateQuotaExceeded(
+          isExceeded: true,
+          scope: syncEngine.database.databaseScope
+        )
+      } else if !savedRecords.isEmpty {
+        updateQuotaExceeded(
+          isExceeded: false,
+          scope: syncEngine.database.databaseScope
+        )
+        await withErrorReporting(.sqliteDataCloudKitFailure) {
+          try await enqueueLocallyPendingChanges()
+        }
+      }
+      func updateQuotaExceeded(isExceeded: Bool, scope: CKDatabase.Scope) {
+        let isExceeded = self.quotaExceeded.withValue { quotaExceeded -> Bool? in
+          guard isExceeded != quotaExceeded[scope] else { return nil }
+          defer { quotaExceeded[scope] = isExceeded }
+          return isExceeded
+        }
+        guard let isExceeded
+        else { return }
+        delegate?.syncEngine(self, quotaExceeded: isExceeded, scope: scope)
       }
     }
 
