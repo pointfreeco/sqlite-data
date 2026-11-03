@@ -1090,27 +1090,23 @@
       changes.sort { lhs, rhs in
         switch (lhs, rhs) {
         case (.saveRecord(let lhs), .saveRecord(let rhs)):
-          guard
-            let lhsRecordType = lhs.tableName,
-            let lhsIndex = tablesByOrder[lhsRecordType],
-            let rhsRecordType = rhs.tableName,
-            let rhsIndex = tablesByOrder[rhsRecordType]
-          else { return true }
-          return lhsIndex < rhsIndex
+          return topologicallyAscending(
+            lhsTableName: lhs.tableName,
+            rhsTableName: rhs.tableName,
+            rootFirst: true
+          )
         case (.deleteRecord(let lhs), .deleteRecord(let rhs)):
-          guard
-            let lhsRecordType = lhs.tableName,
-            let lhsIndex = tablesByOrder[lhsRecordType],
-            let rhsRecordType = rhs.tableName,
-            let rhsIndex = tablesByOrder[rhsRecordType]
-          else { return true }
-          return lhsIndex > rhsIndex
+          return topologicallyAscending(
+            lhsTableName: lhs.tableName,
+            rhsTableName: rhs.tableName,
+            rootFirst: false
+          )
         case (.saveRecord, .deleteRecord):
           return false
         case (.deleteRecord, .saveRecord):
           return true
         default:
-          return true
+          return false
         }
       }
 

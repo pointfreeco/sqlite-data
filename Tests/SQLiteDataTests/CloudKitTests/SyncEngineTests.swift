@@ -142,21 +142,21 @@
         )
       }
     }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test func testSyncEngine() throws {
+      @Dependency(\.defaultSyncEngine) var syncEngine
+      _ = syncEngine
+    }
+
+    @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+    @Test(.dependency(\.context, .preview)) func previewSyncEngine() throws {
+      @Dependency(\.defaultSyncEngine) var syncEngine
+      _ = syncEngine
+    }
   }
 
   private func databaseWithForeignKeys() throws -> any DatabaseWriter {
     try DatabaseQueue()
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Test func testSyncEngine() throws {
-    @Dependency(\.defaultSyncEngine) var syncEngine
-    _ = syncEngine
-  }
-
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  @Test(.dependency(\.context, .preview)) func previewSyncEngine() throws {
-    @Dependency(\.defaultSyncEngine) var syncEngine
-    _ = syncEngine
   }
 #endif

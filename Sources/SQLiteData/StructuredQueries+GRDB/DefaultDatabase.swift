@@ -19,6 +19,10 @@ public func defaultDatabase(
   path: String? = nil,
   configuration: Configuration = Configuration()
 ) throws -> any DatabaseWriter {
+  var configuration = configuration
+  configuration.prepareDatabase { db in
+    db.add(collation: .canonical)
+  }
   let database: any DatabaseWriter
   @Dependency(\.context) var context
   switch context {
@@ -36,10 +40,7 @@ public func defaultDatabase(
     }
     database = try DatabasePool(path: path ?? defaultPath, configuration: configuration)
   case .preview, .test:
-    database = try DatabasePool(
-      path: "\(NSTemporaryDirectory())\(UUID().uuidString).db",
-      configuration: configuration
-    )
+    database = try temporaryDatabasePool(configuration: configuration)
   }
   return database
 }
@@ -113,12 +114,13 @@ extension DependencyValues {
         case .preview:
           return """
             A blank, in-memory database is being used. To set the database that is used by \
-            'SQLiteData' in a preview, use a tool like 'prepareDependencies':
+            'SQLiteData' in a preview, use the '.dependencies' preview trait:
 
-                #Preview {
-                  let _ = prepareDependencies {
-                    $0.defaultDatabase = try! DatabaseQueue(/* ... */)
+                #Preview(
+                  traits: .dependencies {
+                    $0.defaultDatabase = try DatabaseQueue(/* ... */)
                   }
+                ) {
                   // ...
                 }
             """

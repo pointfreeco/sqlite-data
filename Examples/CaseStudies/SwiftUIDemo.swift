@@ -40,7 +40,7 @@ struct SwiftUIDemo: SwiftUICaseStudy {
           number += 1
           let fact = try await String(
             decoding: URLSession.shared
-              .data(from: URL(string: "http://numberapi.com/\(number)")!).0,
+              .data(from: URL(string: "http://number-trivia.com/\(number)")!).0,
             as: UTF8.self
           )
           try await database.write { db in
@@ -81,10 +81,7 @@ extension DatabaseWriter where Self == DatabaseQueue {
   }
 }
 
-#Preview {
-  let _ = prepareDependencies {
-    $0.defaultDatabase = .swiftUIDatabase
-  }
+#Preview(traits: .dependencies { $0.defaultDatabase = .swiftUIDatabase }) {
   NavigationStack {
     CaseStudyView {
       SwiftUIDemo()

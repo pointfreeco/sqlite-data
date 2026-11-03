@@ -49,7 +49,7 @@ extension SelectStatement where QueryValue == (), Joins == () {
   }
 }
 
-extension Select {
+extension Select where From: StructuredQueriesCore.Table {
   /// Returns all values fetched from the database, grouped into sections.
   ///
   /// See ``StructuredQueriesCore/SelectStatement/fetchAll(_:sectionBy:)`` for more information.

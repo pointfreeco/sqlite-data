@@ -2,7 +2,6 @@ import CasePaths
 import SQLiteData
 import SwiftUI
 
-@MainActor
 @Observable
 class AppModel {
   var path: [Path] {
@@ -76,10 +75,12 @@ struct AppView: View {
   }
 }
 
-#Preview("Happy path") {
-  let _ = try! prepareDependencies {
+#Preview(
+  "Happy path",
+  traits: .dependencies {
     try $0.bootstrapDatabase()
     try? $0.defaultDatabase.seedSampleData()
   }
+) {
   AppView(model: AppModel())
 }

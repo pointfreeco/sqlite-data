@@ -1,11 +1,12 @@
 import CasePaths
 import CloudKit
+import DebugSnapshots
 import SQLiteData
 import Sharing
 import SwiftUI
 import SwiftUINavigation
 
-@MainActor
+@DebugSnapshot
 @Observable
 class RemindersDetailModel: HashableObject {
   @ObservationIgnored @FetchAll var reminderRows: [Row]
@@ -165,11 +166,11 @@ class RemindersDetailModel: HashableObject {
   @Selection
   struct Row: Identifiable {
     var id: Reminder.ID { reminder.id }
-    let reminder: Reminder
-    let remindersList: RemindersList
-    let isPastDue: Bool
-    let notes: String
-    let tags: String
+    var reminder: Reminder
+    var remindersList: RemindersList
+    var isPastDue: Bool
+    var notes: String
+    var tags: String
   }
 }
 
@@ -361,27 +362,50 @@ extension RemindersDetailModel.DetailType {
   }
 }
 
-struct RemindersDetailPreview: PreviewProvider {
-  static var previews: some View {
-    let (remindersList, tag) = try! prepareDependencies {
-      $0.defaultDatabase = try Reminders.appDatabase()
-      return try $0.defaultDatabase.read { db in
-        (
-          try RemindersList.fetchOne(db)!,
-          try Tag.fetchOne(db)!
-        )
-      }
+#Preview(
+  "All",
+  traits: .dependencies {
+    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.defaultDatabase.seedSampleData()
+  }
+) {
+  NavigationStack {
+    RemindersDetailView(model: RemindersDetailModel(detailType: .all))
+  }
+}
+
+#Preview(
+  "Reminders list",
+  traits: .dependencies {
+    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.defaultDatabase.seedSampleData()
+  }
+) {
+  let remindersList = {
+    @Dependency(\.defaultDatabase) var database
+    return try! database.read { db in
+      try RemindersList.fetchOne(db)!
     }
-    let detailTypes: [RemindersDetailModel.DetailType] = [
-      .all,
-      .remindersList(remindersList),
-      .tags([tag]),
-    ]
-    ForEach(detailTypes, id: \.self) { detailType in
-      NavigationStack {
-        RemindersDetailView(model: RemindersDetailModel(detailType: detailType))
-      }
-      .previewDisplayName(detailType.navigationTitle)
+  }()
+  NavigationStack {
+    RemindersDetailView(model: RemindersDetailModel(detailType: .remindersList(remindersList)))
+  }
+}
+
+#Preview(
+  "Tags",
+  traits: .dependencies {
+    $0.defaultDatabase = try Reminders.appDatabase()
+    try $0.defaultDatabase.seedSampleData()
+  }
+) {
+  let tag = {
+    @Dependency(\.defaultDatabase) var database
+    return try! database.read { db in
+      try Tag.offset(2).fetchOne(db)!
     }
+  }()
+  NavigationStack {
+    RemindersDetailView(model: RemindersDetailModel(detailType: .tags([tag])))
   }
 }
