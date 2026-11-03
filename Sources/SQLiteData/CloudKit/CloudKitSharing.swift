@@ -3,6 +3,7 @@
   import ConcurrencyExtras
   import GRDB
   import IssueReporting
+  import OrderedCollections
   public import StructuredQueries
 
   #if canImport(SwiftUI) && canImport(UIKit) && !os(tvOS) && !os(watchOS)
