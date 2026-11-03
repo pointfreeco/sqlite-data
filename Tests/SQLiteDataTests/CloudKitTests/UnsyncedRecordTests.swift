@@ -7,6 +7,7 @@
   import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
 
   extension BaseCloudKitTests {
     @MainActor
@@ -271,7 +272,8 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func uncachedUnsyncedRecordIDsAreFetchedInBatches() async throws {
+      @Test(.taskLocal($rateLimit, 2))
+      func uncachedUnsyncedRecordIDsAreFetchedInBatches() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")
@@ -303,7 +305,6 @@
           .execute(db)
         }
 
-        syncEngine.private.database.state.withValue { $0.rateLimit = 2 }
         await syncEngine.handleEvent(
           .fetchedRecordZoneChanges(modifications: [], deletions: []),
           syncEngine: syncEngine.private
@@ -326,7 +327,8 @@
       }
 
       @available(iOS 26, macOS 26, tvOS 26, watchOS 26, *)
-      @Test func uncachedUnsyncedRecordIDsAreFetchedAfterRateLimit() async throws {
+      @Test(.taskLocal($rateLimit, 1), .taskLocal($rateLimitDuration, .seconds(10)))
+      func uncachedUnsyncedRecordIDsAreFetchedAfterRateLimit() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")
@@ -358,10 +360,6 @@
           .execute(db)
         }
 
-        syncEngine.private.database.state.withValue {
-          $0.rateLimit = 1
-          $0.rateLimitDuration = .seconds(10)
-        }
         let task = Task.immediate {
           await syncEngine.handleEvent(
             .fetchedRecordZoneChanges(modifications: [], deletions: []),

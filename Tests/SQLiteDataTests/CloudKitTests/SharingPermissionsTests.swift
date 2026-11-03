@@ -7,6 +7,7 @@
   import SQLiteData
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
 
   extension BaseCloudKitTests {
     @MainActor
@@ -385,7 +386,8 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func createRecordsWhenLocalHasPermissionsButCloudKitDoesNot_FetchesInBatches()
+      @Test(.taskLocal($rateLimit, 1))
+      func createRecordsWhenLocalHasPermissionsButCloudKitDoesNot_FetchesInBatches()
         async throws
       {
         let externalZone = CKRecordZone(
@@ -412,17 +414,21 @@
         share.publicPermission = .readWrite
         share.currentUserParticipant?.permission = .readWrite
 
-        try await syncEngine
-          .acceptShare(
-            metadata: ShareMetadata(
-              containerIdentifier: container.containerIdentifier!,
-              hierarchicalRootRecordID: remindersListRecord.recordID,
-              rootRecord: remindersListRecord,
-              share: share
+        try await $_isRateLimitingDisabled.withValue(true) {
+          try await syncEngine
+            .acceptShare(
+              metadata: ShareMetadata(
+                containerIdentifier: container.containerIdentifier!,
+                hierarchicalRootRecordID: remindersListRecord.recordID,
+                rootRecord: remindersListRecord,
+                share: share
+              )
             )
-          )
+        }
 
-        let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+        let freshShare = try $_isRateLimitingDisabled.withValue(true) {
+          try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+        }
         freshShare.publicPermission = .readOnly
         freshShare.currentUserParticipant?.permission = .readOnly
         let _ = try syncEngine.modifyRecords(scope: .shared, saving: [freshShare])
@@ -436,7 +442,6 @@
             }
           }
         }
-        syncEngine.shared.database.state.withValue { $0.rateLimit = 1 }
         try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
 
         try await self.userDatabase.read { db in

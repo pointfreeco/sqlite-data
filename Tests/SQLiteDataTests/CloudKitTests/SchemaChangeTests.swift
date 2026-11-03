@@ -7,6 +7,7 @@
   import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
 
   extension BaseCloudKitTests {
     final class SchemaChangeTests: BaseCloudKitTests, @unchecked Sendable {
@@ -829,7 +830,8 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func addAssetToRemindersList_RedownloadInBatches() async throws {
+      @Test(.taskLocal($rateLimit, 1))
+      func addAssetToRemindersList_RedownloadInBatches() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "Personal")
@@ -843,10 +845,14 @@
         try await withDependencies {
           $0.currentTime.now += 60
         } operation: {
-          let records = try (1...3).map {
-            let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: $0))
-            record.setBytes(Array("image-\($0)".utf8), forKey: "image", at: now)
-            return record
+          let records = try $_isRateLimitingDisabled.withValue(true) {
+            try (1...3).map {
+              let record = try syncEngine.private.database.record(
+                for: RemindersList.recordID(for: $0)
+              )
+              record.setBytes(Array("image-\($0)".utf8), forKey: "image", at: now)
+              return record
+            }
           }
           try await syncEngine.modifyRecords(scope: .private, saving: records).notify()
 
@@ -862,7 +868,6 @@
             .execute(db)
           }
 
-          syncEngine.private.database.state.withValue { $0.rateLimit = 1 }
           let relaunchedSyncEngine = try await SyncEngine(
             container: syncEngine.container,
             userDatabase: syncEngine.userDatabase,
