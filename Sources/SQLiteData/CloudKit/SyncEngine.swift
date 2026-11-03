@@ -759,17 +759,26 @@
     /// > Important: It is only appropriate to call this method when the device's iCloud account
     /// > logs out or changes.
     public func deleteLocalData() async throws {
+      try await refreshLocalData(shouldReset: true)
+    }
+
+    /// Restarts the sync engine and triggers a new synchronization cycle.
+    /// This works around a known `CKSyncEngine` behavior where pending
+    /// remote changes may not be fetched until another sync trigger occurs.
+    public func refreshLocalData(shouldReset: Bool = false) async throws {
       stop()
       try tearDownSyncEngine()
       await withErrorReporting(.sqliteDataCloudKitFailure) {
         try await userDatabase.write { db in
-          for table in tables {
-            func open<T>(_: some SynchronizableTable<T>) {
-              withErrorReporting(.sqliteDataCloudKitFailure) {
-                try T.delete().execute(db)
+          if shouldReset {
+            for table in tables {
+              func open<T>(_: some SynchronizableTable<T>) {
+                withErrorReporting(.sqliteDataCloudKitFailure) {
+                  try T.delete().execute(db)
+                }
               }
+              open(table)
             }
-            open(table)
           }
           try setUpSyncEngine(writableDB: db)
         }
