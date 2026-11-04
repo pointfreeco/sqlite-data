@@ -74,6 +74,7 @@
       queryOutput.encode(with: archiver)
       if isTesting {
         archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
+        archiver.encode(queryOutput._modificationDate, forKey: "_modificationDate")
       }
       return archiver.encodedData.queryBinding
     }
@@ -101,6 +102,9 @@
         queryOutput._recordChangeTag =
           coder
           .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+        queryOutput._modificationDate =
+          coder
+          .decodeObject(of: NSDate.self, forKey: "_modificationDate") as Date?
       }
       self.init(queryOutput: queryOutput)
     }
@@ -386,7 +390,9 @@
 
     package var _modificationDate: Date? {
       get { modificationDate ?? self[#function]  }
-      set { self[#function] = newValue }
+      set {
+        self[#function] = newValue
+      }
     }
   }
 
