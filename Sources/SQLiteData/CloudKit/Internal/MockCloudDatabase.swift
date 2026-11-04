@@ -106,7 +106,9 @@
             for key in record.allKeys() {
               guard let assetData = state.assets[AssetID(recordID: record.recordID, key: key)]
               else { continue }
-              let url = dataManager.wrappedValue.temporaryDirectory.appending(path: UUID().uuidString)
+              let url = dataManager.wrappedValue.temporaryDirectory.appending(
+                path: UUID().uuidString
+              )
               try dataManager.wrappedValue.save(assetData, to: url)
               record[key] = CKAsset(fileURL: url)
             }
@@ -248,6 +250,9 @@
                   as? CKRecord
               {
                 parentRecord._recordChangeTag = state.nextRecordChangeTag()
+                parentRecord._modificationDate = Date(
+                  timeIntervalSince1970: Double(now.wrappedValue)
+                )
                 state.storage[parent.recordID.zoneID]?.records[parent.recordID] = parentRecord
               }
             }
