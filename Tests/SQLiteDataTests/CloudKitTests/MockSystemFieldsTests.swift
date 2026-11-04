@@ -6,12 +6,15 @@
   @Suite struct MockSystemFieldsTests {
     @Test func systemFieldsOverride() {
       let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "A"))
+      #expect(record.recordChangeTag == nil)
       #expect(record.modificationDate == nil)
 
       let mocked = record.copyWithMockSystemFields(
+        recordChangeTag: "ab",
         modificationDate: Date(timeIntervalSinceReferenceDate: 1)
       )
 
+      #expect(mocked.recordChangeTag == "ab")
       #expect(mocked.modificationDate == Date(timeIntervalSinceReferenceDate: 1))
     }
 
@@ -21,6 +24,7 @@
       record.encryptedValues["encryptedValue"] = 42
 
       let mocked = record.copyWithMockSystemFields(
+        recordChangeTag: "ab",
         modificationDate: Date(timeIntervalSinceReferenceDate: 1)
       )
 
@@ -34,53 +38,72 @@
       )
 
       let mocked = share.copyWithMockSystemFields(
+        recordChangeTag: "ab",
         modificationDate: Date(timeIntervalSinceReferenceDate: 1)
       )
 
+      #expect(mocked.recordChangeTag == "ab")
       #expect(mocked.modificationDate == Date(timeIntervalSinceReferenceDate: 1))
     }
 
     @Test func subsequentSystemFieldsOverride() {
       let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "A"))
-        .copyWithMockSystemFields(modificationDate: Date(timeIntervalSinceReferenceDate: 1))
+        .copyWithMockSystemFields(
+          recordChangeTag: "ab",
+          modificationDate: Date(timeIntervalSinceReferenceDate: 1)
+        )
 
       let mocked = record.copyWithMockSystemFields(
+        recordChangeTag: "ac",
         modificationDate: Date(timeIntervalSinceReferenceDate: 2)
       )
 
+      #expect(mocked.recordChangeTag == "ac")
       #expect(mocked.modificationDate == Date(timeIntervalSinceReferenceDate: 2))
     }
 
     @Test func copyPreservesMockSystemFields() throws {
       let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "A"))
-        .copyWithMockSystemFields(modificationDate: Date(timeIntervalSinceReferenceDate: 1))
+        .copyWithMockSystemFields(
+          recordChangeTag: "ab",
+          modificationDate: Date(timeIntervalSinceReferenceDate: 1)
+        )
 
       let copy = try #require(record.copy() as? CKRecord)
 
+      #expect(copy.recordChangeTag == "ab")
       #expect(copy.modificationDate == Date(timeIntervalSinceReferenceDate: 1))
     }
 
     @Test func systemFieldsRepresentationRoundtrip() throws {
       let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "A"))
-        .copyWithMockSystemFields(modificationDate: Date(timeIntervalSinceReferenceDate: 1))
+        .copyWithMockSystemFields(
+          recordChangeTag: "ab",
+          modificationDate: Date(timeIntervalSinceReferenceDate: 1)
+        )
 
       let representation = CKRecord.SystemFieldsRepresentation(queryOutput: record)
       let result = try #require(
         CKRecord.SystemFieldsRepresentation(queryBinding: representation.queryBinding)
       )
 
+      #expect(result.queryOutput.recordChangeTag == "ab")
       #expect(result.queryOutput.modificationDate == Date(timeIntervalSinceReferenceDate: 1))
     }
 
     @Test func allFieldsRepresentationRoundtrip() throws {
       let record = CKRecord(recordType: "A", recordID: CKRecord.ID(recordName: "A"))
-        .copyWithMockSystemFields(modificationDate: Date(timeIntervalSinceReferenceDate: 1))
+        .copyWithMockSystemFields(
+          recordChangeTag: "ab",
+          modificationDate: Date(timeIntervalSinceReferenceDate: 1)
+        )
 
       let representation = CKRecord._AllFieldsRepresentation(queryOutput: record)
       let result = try #require(
         CKRecord._AllFieldsRepresentation(queryBinding: representation.queryBinding)
       )
 
+      #expect(result.queryOutput.recordChangeTag == "ab")
       #expect(result.queryOutput.modificationDate == Date(timeIntervalSinceReferenceDate: 1))
     }
   }

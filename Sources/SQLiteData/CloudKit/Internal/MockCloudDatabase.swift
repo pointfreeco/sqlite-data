@@ -213,10 +213,12 @@
                 return
               }
 
+              let recordChangeTag = state.nextRecordChangeTag()
               let databaseCopy = recordToSave.copyWithMockSystemFields(
+                recordChangeTag: "\(recordChangeTag)",
                 modificationDate: batchModificationDate
               )
-              databaseCopy._recordChangeTag = state.nextRecordChangeTag()
+              databaseCopy._recordChangeTag = recordChangeTag
 
               for key in databaseCopy.allKeys() {
                 guard let assetURL = (databaseCopy[key] as? CKAsset)?.fileURL
