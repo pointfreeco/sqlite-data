@@ -21,9 +21,9 @@
       package var rateLimit: Int
       package var rateLimitDuration: Duration
       fileprivate var requestTimestamps: [AnyClock<Duration>.Instant] = []
-      mutating func nextRecordChangeTag() -> Int {
+      mutating func nextRecordChangeTag() -> String {
         lastRecordChangeTag += 1
-        return lastRecordChangeTag
+        return "\(lastRecordChangeTag)"
       }
       mutating func nextModificationDate() -> Date {
         defer { modificationDateCounter += 1 }
@@ -213,12 +213,10 @@
                 return
               }
 
-              let recordChangeTag = state.nextRecordChangeTag()
               let databaseCopy = recordToSave.copyWithMockSystemFields(
-                recordChangeTag: "\(recordChangeTag)",
+                recordChangeTag: state.nextRecordChangeTag(),
                 modificationDate: batchModificationDate
               )
-              databaseCopy._recordChangeTag = recordChangeTag
 
               for key in databaseCopy.allKeys() {
                 guard let assetURL = (databaseCopy[key] as? CKAsset)?.fileURL
@@ -238,22 +236,24 @@
                 // If the parent isn't also being saved in this batch.
                 !recordsToSave.contains(where: { $0.recordID == parent.recordID }),
                 // And if the parent is in the database.
-                let parentRecord = state.storage[parent.recordID.zoneID]?.records[parent.recordID]?
-                  .copy()
-                  as? CKRecord
+                let parentRecord = state.storage[parent.recordID.zoneID]?.records[parent.recordID]
               {
-                parentRecord._recordChangeTag = state.nextRecordChangeTag()
-                state.storage[parent.recordID.zoneID]?.records[parent.recordID] = parentRecord
+                let touchedParentRecord = parentRecord.copyWithMockSystemFields(
+                  recordChangeTag: state.nextRecordChangeTag(),
+                  modificationDate: batchModificationDate
+                )
+                state.storage[parent.recordID.zoneID]?.records[parent.recordID] =
+                  touchedParentRecord
               }
             }
 
-            switch (existingRecord, recordToSave._recordChangeTag) {
+            switch (existingRecord, recordToSave.recordChangeTag) {
             case (.some(let existingRecord), .some(let recordToSaveChangeTag)):
               // We are trying to save a record with a change tag that also already exists in the
               // DB. If the tags match, we can save the record. Otherwise, we notify the sync engine
               // that the server record has changed since it was last synced.
-              if existingRecord._recordChangeTag == recordToSaveChangeTag {
-                precondition(existingRecord._recordChangeTag != nil)
+              if existingRecord.recordChangeTag == recordToSaveChangeTag {
+                precondition(existingRecord.recordChangeTag != nil)
                 saveRecordToDatabase()
               } else {
                 saveResults[recordToSave.recordID] = .failure(

@@ -26,9 +26,6 @@
     public var queryBinding: QueryBinding {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encodeSystemFields(with: archiver)
-      if isTesting {
-        archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
-      }
       return archiver.encodedData.queryBinding
     }
 
@@ -50,11 +47,6 @@
       coder.requiresSecureCoding = true
       guard let queryOutput = Record(coder: coder) else {
         throw DecodingError()
-      }
-      if isTesting {
-        queryOutput._recordChangeTag =
-          coder
-          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
       }
       self.init(queryOutput: queryOutput)
     }
@@ -68,9 +60,6 @@
     public var queryBinding: QueryBinding {
       let archiver = NSKeyedArchiver(requiringSecureCoding: true)
       queryOutput.encode(with: archiver)
-      if isTesting {
-        archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
-      }
       return archiver.encodedData.queryBinding
     }
 
@@ -92,11 +81,6 @@
       coder.requiresSecureCoding = true
       guard let queryOutput = Record(coder: coder) else {
         throw DecodingError()
-      }
-      if isTesting {
-        queryOutput._recordChangeTag =
-          coder
-          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
       }
       self.init(queryOutput: queryOutput)
     }
@@ -373,13 +357,6 @@
   }
 
   private struct Unbindable: Error {}
-
-  extension CKRecord {
-    package var _recordChangeTag: Int? {
-      get { self[#function] }
-      set { self[#function] = newValue }
-    }
-  }
 
   extension DataProtocol {
     fileprivate var sha256: Data {
