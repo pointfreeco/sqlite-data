@@ -6,6 +6,7 @@
 
   final class FetchBox<Value: Sendable>: Sendable {
     let sharedReader: SharedReader<Value>
+    let loadGeneration = LoadGeneration()
     private let storage = LockIsolated(Storage())
 
     var fetchKeyID: FetchKeyID? {
@@ -25,6 +26,7 @@
         return true
       }
       guard isAdopted else { return }
+      loadGeneration.invalidate()
       sharedReader.projectedValue = other.sharedReader.projectedValue
     }
 
@@ -48,6 +50,7 @@
     let sharedReader: SharedReader<[Element]>
     let sectionedReader: SharedReader<ResultsSectionCollection<Element, String?>>
     let sectioning = LockIsolated<_Sectioning<String?>?>(nil)
+    let loadGeneration = LoadGeneration()
     private let storage = LockIsolated(Storage())
 
     var fetchKeyID: FetchKeyID? {
@@ -68,6 +71,7 @@
         return true
       }
       guard isAdopted else { return }
+      loadGeneration.invalidate()
       sharedReader.projectedValue = other.sharedReader.projectedValue
       sectionedReader.projectedValue = other.sectionedReader.projectedValue
       sectioning.setValue(other.sectioning.value)

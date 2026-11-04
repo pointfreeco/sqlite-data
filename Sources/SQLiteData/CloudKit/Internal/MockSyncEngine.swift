@@ -267,12 +267,14 @@
         return SendRecordsCallback {}
       }
 
-      let (saveResults, deleteResults) = try syncEngine.database.modifyRecords(
-        saving: batch.recordsToSave,
-        deleting: batch.recordIDsToDelete,
-        savePolicy: .ifServerRecordUnchanged,
-        atomically: batch.atomicByZone
-      )
+      let (saveResults, deleteResults) = try $_isRateLimitingDisabled.withValue(true) {
+        try syncEngine.database.modifyRecords(
+          saving: batch.recordsToSave,
+          deleting: batch.recordIDsToDelete,
+          savePolicy: .ifServerRecordUnchanged,
+          atomically: batch.atomicByZone
+        )
+      }
 
       var savedRecords: [CKRecord] = []
       var failedRecordSaves: [(record: CKRecord, error: CKError)] = []
@@ -395,10 +397,12 @@
         (
           saveResults: [CKRecordZone.ID: Result<CKRecordZone, any Error>],
           deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
-        ) = try syncEngine.database.modifyRecordZones(
-          saving: zonesToSave,
-          deleting: zoneIDsToDelete
-        )
+        ) = try $_isRateLimitingDisabled.withValue(true) {
+          try syncEngine.database.modifyRecordZones(
+            saving: zonesToSave,
+            deleting: zoneIDsToDelete
+          )
+        }
       var savedZones: [CKRecordZone] = []
       var failedZoneSaves: [(zone: CKRecordZone, error: CKError)] = []
       var deletedZoneIDs: [CKRecordZone.ID] = []

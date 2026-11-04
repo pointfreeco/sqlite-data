@@ -1,7 +1,9 @@
+import DebugSnapshots
 import SQLiteData
 import SwiftUI
 import SwiftUINavigation
 
+@DebugSnapshot
 @Observable
 final class SyncUpFormModel: Identifiable {
   var attendees: [AttendeeDraft] = []
