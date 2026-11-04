@@ -58,7 +58,7 @@
           .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
         queryOutput._modificationDate =
           coder
-          .decodeObject(of: NSDate.self, forKey: "_recordChangeTag") as Date?
+          .decodeObject(of: NSDate.self, forKey: "_modificationDate") as Date?
       }
       self.init(queryOutput: queryOutput)
     }

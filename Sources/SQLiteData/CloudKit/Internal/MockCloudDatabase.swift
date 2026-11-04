@@ -219,6 +219,8 @@
 
               guard let databaseCopy = recordToSave.copy() as? CKRecord
               else { fatalError("Could not copy CKRecord.") }
+              @Dependency(\.currentTime.now) var now
+              databaseCopy._modificationDate = Date(timeIntervalSinceReferenceDate: Double(now))
               databaseCopy._recordChangeTag = state.nextRecordChangeTag()
 
               for key in databaseCopy.allKeys() {
