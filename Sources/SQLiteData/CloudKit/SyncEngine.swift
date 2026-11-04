@@ -2059,8 +2059,8 @@
               .execute(db)
           }
 
-          if let lastKnownDate = metadata?.lastKnownServerRecord?.modificationDate {
-            if let recordDate = record.modificationDate, lastKnownDate < recordDate {
+          if let lastKnownDate = metadata?.lastKnownServerRecord?._modificationDate {
+            if let recordDate = record._modificationDate, lastKnownDate < recordDate {
               try updateLastKnownServerRecord()
             }
           } else {

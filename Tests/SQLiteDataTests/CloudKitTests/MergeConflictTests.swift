@@ -69,9 +69,7 @@
 
         let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
         record.setValue("Buy milk", forKey: "title", at: 60)
-        let modificationCallback = try {
-          try syncEngine.modifyRecords(scope: .private, saving: [record])
-        }()
+        let modificationCallback = try syncEngine.modifyRecords(scope: .private, saving: [record])
 
         try await withDependencies {
           $0.currentTime.now += 30
