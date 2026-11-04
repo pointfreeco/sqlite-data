@@ -1129,6 +1129,136 @@
         }
       }
 
+      @Test func sameFieldChange_conflictOnSend_equalValues_clientNewer() async throws {
+        // Step 1: Seed and initial sync
+        try await userDatabase.userWrite { db in
+          try db.seed { Post(id: 1, title: "Hello") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 2: Server edits title @ t=30
+        let record = try syncEngine.private.database.record(for: Post.recordID(for: 1))
+        record.setValue("Hello from both", forKey: "title", at: 30)
+        let fetchedRecordZoneChangesCallback = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [record]
+        )
+
+        // Step 3: Client edits title to the same value @ t=60
+        try await withDependencies {
+          $0.currentTime.now = 60
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Post.find(1).update { $0.title = "Hello from both" }.execute(db)
+          }
+        }
+
+        // Step 4: Send (rejected, merged locally)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 5: Retry send
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 6: Fetch arrives (no-op, conflict already resolved)
+        await fetchedRecordZoneChangesCallback.notify()
+
+        assertQuery(
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
+          database: userDatabase.database
+        ) {
+          """
+          ┌───────────────────────────────┐
+          │ SyncedRow(                    │
+          │   row: Post(                  │
+          │     id: 1,                    │
+          │     title: "Hello from both", │
+          │     body: nil,                │
+          │     isPublished: false        │
+          │   ),                          │
+          │   userModificationTime: 60    │
+          │ )                             │
+          └───────────────────────────────┘
+          """
+        }
+        withKnownIssue(
+          "Per-field timestamp should reflect the client's newer edit even though the value matches the server's"
+        ) {
+          let recordID = Post.recordID(for: 1)
+          let record = try syncEngine.private.database.record(for: recordID)
+          #expect(record.encryptedValues[at: "title"] == 60)
+        }
+      }
+
+      @Test func sameFieldChange_conflictOnSend_equalValues_serverNewer() async throws {
+        // Step 1: Seed and initial sync
+        try await userDatabase.userWrite { db in
+          try db.seed { Post(id: 1, title: "Hello") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 2: Client edits title @ t=30
+        try await withDependencies {
+          $0.currentTime.now = 30
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try Post.find(1).update { $0.title = "Hello from both" }.execute(db)
+          }
+        }
+
+        // Step 3: Server edits title to the same value @ t=60
+        let record = try syncEngine.private.database.record(for: Post.recordID(for: 1))
+        record.setValue("Hello from both", forKey: "title", at: 60)
+        let fetchedRecordZoneChangesCallback = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [record]
+        )
+
+        // Step 4: Send (rejected, merged locally)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 5: Retry send
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        // Step 6: Fetch arrives (no-op, conflict already resolved)
+        await fetchedRecordZoneChangesCallback.notify()
+
+        assertQuery(
+          Post.find(1)
+            .join(SyncMetadata.all) { $0.syncMetadataID.eq($1.id) }
+            .select {
+              SyncedRow<Post>.Columns(
+                row: $0,
+                userModificationTime: $1.userModificationTime
+              )
+            },
+          database: userDatabase.database
+        ) {
+          """
+          ┌───────────────────────────────┐
+          │ SyncedRow(                    │
+          │   row: Post(                  │
+          │     id: 1,                    │
+          │     title: "Hello from both", │
+          │     body: nil,                │
+          │     isPublished: false        │
+          │   ),                          │
+          │   userModificationTime: 60    │
+          │ )                             │
+          └───────────────────────────────┘
+          """
+        }
+        let recordID = Post.recordID(for: 1)
+        let serverRecord = try syncEngine.private.database.record(for: recordID)
+        #expect(serverRecord.encryptedValues[at: "title"] == 60)
+      }
+
       @Test func sameFieldChange_conflictOnSend_equalTimestamps() async throws {
         // Step 1: Seed and initial sync
         try await userDatabase.userWrite { db in
@@ -1710,7 +1840,9 @@
           └────────────────────────────┘
           """
         }
-        withKnownIssue("Per-field timestamp should reflect the newer removal") {
+        withKnownIssue(
+          "Per-field timestamp should reflect the client's newer removal even though the server also removed the value"
+        ) {
           let recordID = Post.recordID(for: 1)
           let record = try syncEngine.private.database.record(for: recordID)
           #expect(record.encryptedValues[at: "body"] == 60)
