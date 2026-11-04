@@ -390,9 +390,7 @@
 
     package var _modificationDate: Date? {
       get { modificationDate ?? self[#function]  }
-      set {
-        self[#function] = newValue
-      }
+      set { self[#function] = newValue }
     }
   }
 

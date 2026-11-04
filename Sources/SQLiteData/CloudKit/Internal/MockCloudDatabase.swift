@@ -10,6 +10,7 @@
     package let databaseScope: CKDatabase.Scope
     let _container = IsolatedWeakVar<MockCloudContainer>()
     let dataManager = Dependency(\.dataManager)
+    let now = Dependency(\.currentTime.now)
     let clock: AnyClock<Duration>
 
     package struct State {
@@ -219,8 +220,9 @@
 
               guard let databaseCopy = recordToSave.copy() as? CKRecord
               else { fatalError("Could not copy CKRecord.") }
-              @Dependency(\.currentTime.now) var now
-              databaseCopy._modificationDate = Date(timeIntervalSinceReferenceDate: Double(now))
+              databaseCopy._modificationDate = Date(
+                timeIntervalSinceReferenceDate: Double(now.wrappedValue)
+              )
               databaseCopy._recordChangeTag = state.nextRecordChangeTag()
 
               for key in databaseCopy.allKeys() {
