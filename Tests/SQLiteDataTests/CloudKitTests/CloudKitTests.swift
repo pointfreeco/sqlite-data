@@ -700,8 +700,8 @@
         let record = try syncEngine.private.database
           .record(for: RemindersList.recordID(for: 1))
           .copyWithMockSystemFields(
-            recordChangeTag: "9999",
-            modificationDate: Date(timeIntervalSinceReferenceDate: 9999)
+            recordChangeTag: "zz",
+            modificationDate: Date(timeIntervalSinceReferenceDate: 42)
           )
         record.setValue("Work", forKey: "title", at: now)
         try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()

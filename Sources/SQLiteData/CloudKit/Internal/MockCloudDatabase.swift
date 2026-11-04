@@ -13,7 +13,7 @@
     let clock: AnyClock<Duration>
 
     package struct State {
-      private var lastRecordChangeTag = 0
+      private var changeTagCounter = 0
       private var modificationDateCounter = 0
       package var storage: [CKRecordZone.ID: Zone] = [:]
       var assets: [AssetID: Data] = [:]
@@ -21,9 +21,10 @@
       package var rateLimit: Int
       package var rateLimitDuration: Duration
       fileprivate var requestTimestamps: [AnyClock<Duration>.Instant] = []
+      // NB: CloudKit uses base-36 change tags (0…9, a…z, 10…zz, 100…).
       mutating func nextRecordChangeTag() -> String {
-        lastRecordChangeTag += 1
-        return "\(lastRecordChangeTag)"
+        defer { changeTagCounter += 1 }
+        return String(changeTagCounter, radix: 36)
       }
       mutating func nextModificationDate() -> Date {
         defer { modificationDateCounter += 1 }
