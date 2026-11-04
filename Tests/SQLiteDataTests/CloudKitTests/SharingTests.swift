@@ -175,7 +175,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersListPrivates/zone/__defaultOwner__),
@@ -274,7 +275,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
@@ -373,7 +375,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
@@ -450,7 +453,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
@@ -499,7 +503,8 @@
           │     recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),                     │
           │     recordType: "cloudkit.share",                                                                   │
           │     parent: nil,                                                                                    │
-          │     share: nil                                                                                      │
+          │     share: nil,                                                                                     │
+          │     cloudkit.title: nil                                                                             │
           │   ),                                                                                                │
           │   _isDeleted: false,                                                                                │
           │   _hasLastKnownServerRecord: true,                                                                  │
@@ -582,7 +587,8 @@
           │     recordID: CKRecord.ID(share-1:modelAs/external.zone/external.owner),                     │
           │     recordType: "cloudkit.share",                                                            │
           │     parent: nil,                                                                             │
-          │     share: nil                                                                               │
+          │     share: nil,                                                                              │
+          │     cloudkit.title: nil                                                                      │
           │   ),                                                                                         │
           │   _isDeleted: false,                                                                         │
           │   _hasLastKnownServerRecord: true,                                                           │
@@ -676,7 +682,8 @@
                   recordID: CKRecord.ID(share-1:modelAs/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:modelAs/external.zone/external.owner),
@@ -772,7 +779,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
@@ -811,7 +819,8 @@
           │   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__), │   │
           │   recordType: "cloudkit.share",                                        │   │
           │   parent: nil,                                                         │   │
-          │   share: nil                                                           │   │
+          │   share: nil,                                                          │   │
+          │   cloudkit.title: nil                                                  │   │
           │ )                                                                      │   │
           └────────────────────────────────────────────────────────────────────────┴───┘
           """
@@ -827,7 +836,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
@@ -880,7 +890,8 @@
           │   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__), │   │
           │   recordType: "cloudkit.share",                                        │   │
           │   parent: nil,                                                         │   │
-          │   share: nil                                                           │   │
+          │   share: nil,                                                          │   │
+          │   cloudkit.title: nil                                                  │   │
           │ )                                                                      │   │
           ├────────────────────────────────────────────────────────────────────────┼───┤
           │ nil                                                                    │ 0 │
@@ -898,7 +909,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
@@ -957,7 +969,8 @@
           │   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__), │
           │   recordType: "cloudkit.share",                                        │
           │   parent: nil,                                                         │
-          │   share: nil                                                           │
+          │   share: nil,                                                          │
+          │   cloudkit.title: "Please join my list!"                               │
           │ )                                                                      │
           └────────────────────────────────────────────────────────────────────────┘
           """
@@ -1070,7 +1083,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
@@ -1138,7 +1152,8 @@
           │   recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner), │
           │   recordType: "cloudkit.share",                                               │
           │   parent: nil,                                                                │
-          │   share: nil                                                                  │
+          │   share: nil,                                                                 │
+          │   cloudkit.title: nil                                                         │
           │ )                                                                             │
           └───────────────────────────────────────────────────────────────────────────────┘
           """
@@ -1158,7 +1173,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:remindersLists/external.zone/external.owner),
@@ -1248,7 +1264,8 @@
           │     recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),                     │
           │     recordType: "cloudkit.share",                                                                   │
           │     parent: nil,                                                                                    │
-          │     share: nil                                                                                      │
+          │     share: nil,                                                                                     │
+          │     cloudkit.title: nil                                                                             │
           │   ),                                                                                                │
           │   _isDeleted: false,                                                                                │
           │   _hasLastKnownServerRecord: true,                                                                  │
@@ -1308,7 +1325,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
@@ -1360,7 +1378,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
@@ -1474,7 +1493,8 @@
                   recordID: CKRecord.ID(share-1:remindersLists/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(1:reminders/external.zone/external.owner),
@@ -1967,7 +1987,8 @@
           │     recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),                     │
           │     recordType: "cloudkit.share",                                                            │
           │     parent: nil,                                                                             │
-          │     share: nil                                                                               │
+          │     share: nil,                                                                              │
+          │     cloudkit.title: nil                                                                      │
           │   ),                                                                                         │
           │   _isDeleted: false,                                                                         │
           │   _hasLastKnownServerRecord: true,                                                           │
@@ -2070,7 +2091,8 @@
                   recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),
@@ -2272,7 +2294,8 @@
           │     recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),                     │
           │     recordType: "cloudkit.share",                                                            │
           │     parent: nil,                                                                             │
-          │     share: nil                                                                               │
+          │     share: nil,                                                                              │
+          │     cloudkit.title: nil                                                                      │
           │   ),                                                                                         │
           │   _isDeleted: false,                                                                         │
           │   _hasLastKnownServerRecord: true,                                                           │
@@ -2375,7 +2398,8 @@
                   recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),
@@ -2577,7 +2601,8 @@
           │     recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),                     │
           │     recordType: "cloudkit.share",                                                            │
           │     parent: nil,                                                                             │
-          │     share: nil                                                                               │
+          │     share: nil,                                                                              │
+          │     cloudkit.title: nil                                                                      │
           │   ),                                                                                         │
           │   _isDeleted: false,                                                                         │
           │   _hasLastKnownServerRecord: true,                                                           │
@@ -2680,7 +2705,8 @@
                   recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),
@@ -2862,7 +2888,8 @@
           │     recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),                     │
           │     recordType: "cloudkit.share",                                                            │
           │     parent: nil,                                                                             │
-          │     share: nil                                                                               │
+          │     share: nil,                                                                              │
+          │     cloudkit.title: nil                                                                      │
           │   ),                                                                                         │
           │   _isDeleted: false,                                                                         │
           │   _hasLastKnownServerRecord: true,                                                           │
@@ -2939,7 +2966,8 @@
                   recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),
@@ -3105,7 +3133,8 @@
           │     recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),                     │
           │     recordType: "cloudkit.share",                                                            │
           │     parent: nil,                                                                             │
-          │     share: nil                                                                               │
+          │     share: nil,                                                                              │
+          │     cloudkit.title: nil                                                                      │
           │   ),                                                                                         │
           │   _isDeleted: false,                                                                         │
           │   _hasLastKnownServerRecord: true,                                                           │
@@ -3208,7 +3237,8 @@
                   recordID: CKRecord.ID(share-2:modelAs/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 ),
                 [1]: CKRecord(
                   recordID: CKRecord.ID(2:modelAs/external.zone/external.owner),
@@ -3244,7 +3274,7 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.taskLocal($rateLimit, 1))
+      @Test
       func deleteMultipleSharesInBatches() async throws {
         let personalList = RemindersList(id: 1, title: "Personal")
         let businessList = RemindersList(id: 2, title: "Business")
@@ -3256,18 +3286,14 @@
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        let (personalShare, businessShare) = try await $_isRateLimitingDisabled.withValue(true) {
-          (
-            try await syncEngine.share(record: personalList, configure: { _ in }),
-            try await syncEngine.share(record: businessList, configure: { _ in })
-          )
-        }
+        let personalShare = try await syncEngine.share(record: personalList, configure: { _ in })
+        let businessShare = try await syncEngine.share(record: businessList, configure: { _ in })
 
-        let modifications = try syncEngine.modifyRecords(
+        try await syncEngine.modifyRecords(
           scope: .private,
           deleting: [personalShare.share.recordID, businessShare.share.recordID]
         )
-        await modifications.notify()
+        .notify()
 
         assertQuery(SyncMetadata.select(\.share), database: syncEngine.metadatabase) {
           """
@@ -3280,7 +3306,7 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test(.taskLocal($rateLimit, 1))
+      @Test
       func receiveMultipleSharedRecordsFetchesSharesInBatches() async throws {
         let personalList = RemindersList(id: 1, title: "Personal")
         let businessList = RemindersList(id: 2, title: "Business")
@@ -3292,69 +3318,76 @@
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        let (personalShare, businessShare) = try await $_isRateLimitingDisabled.withValue(true) {
-          (
-            try await syncEngine.share(record: personalList, configure: { _ in }),
-            try await syncEngine.share(record: businessList, configure: { _ in })
-          )
-        }
+        let personalShare = try await syncEngine.share(record: personalList, configure: { _ in })
+        let businessShare = try await syncEngine.share(record: businessList, configure: { _ in })
 
         try await withDependencies {
           $0.currentTime.now += 1
         } operation: {
-          let (shares, records) = try $_isRateLimitingDisabled.withValue(true) {
-            (
-              try [personalShare, businessShare].map {
-                let share = try #require(
-                  try syncEngine.private.database.record(for: $0.share.recordID) as? CKShare
-                )
-                share[CKShare.SystemFieldKey.title] = "Updated"
-                return share
-              },
-              try [1, 2].map {
-                let record = try syncEngine.private.database.record(
-                  for: RemindersList.recordID(for: $0)
-                )
-                record.setValue("List \($0)", forKey: "title", at: now)
-                return record
-              }
-            )
-          }
-          _ = try syncEngine.modifyRecords(scope: .private, saving: shares)
-          let modifications = try syncEngine.modifyRecords(scope: .private, saving: records)
-          await modifications.notify()
+          let personalShare = try #require(
+            try syncEngine.private.database.record(for: personalShare.share.recordID) as? CKShare
+          )
+          personalShare[CKShare.SystemFieldKey.title] = "Sharing My Stuff!"
+          let businessShare = try #require(
+            try syncEngine.private.database.record(for: businessShare.share.recordID) as? CKShare
+          )
+          businessShare[CKShare.SystemFieldKey.title] = "Sharing My Biz!"
+          let personalListRecord = try syncEngine.private.database.record(
+            for: RemindersList.recordID(for: personalList.id)
+          )
+          personalListRecord.setValue("My Stuff", forKey: "title", at: now)
+          let businessListRecord = try syncEngine.private.database.record(
+            for: RemindersList.recordID(for: businessList.id)
+          )
+          businessListRecord.setValue("Biz Stuff", forKey: "title", at: now)
+          _ = try syncEngine.modifyRecords(scope: .private, saving: [personalShare, businessShare])
+          try await syncEngine
+            .modifyRecords(scope: .private, saving: [personalListRecord, businessListRecord])
+            .notify()
         }
 
         assertQuery(
-          RemindersList.order(by: \.id),
+          RemindersList.all,
           database: userDatabase.database
         ) {
           """
-          ┌───────────────────┐
-          │ RemindersList(    │
-          │   id: 1,          │
-          │   title: "List 1" │
-          │ )                 │
-          ├───────────────────┤
-          │ RemindersList(    │
-          │   id: 2,          │
-          │   title: "List 2" │
-          │ )                 │
-          └───────────────────┘
+          ┌──────────────────────┐
+          │ RemindersList(       │
+          │   id: 1,             │
+          │   title: "My Stuff"  │
+          │ )                    │
+          ├──────────────────────┤
+          │ RemindersList(       │
+          │   id: 2,             │
+          │   title: "Biz Stuff" │
+          │ )                    │
+          └──────────────────────┘
           """
         }
-        let cachedShareChangeTags = try await syncEngine.metadatabase.read { db in
-          try SyncMetadata
-            .order(by: \.recordName)
-            .fetchAll(db)
-            .map { $0.share?._recordChangeTag }
+        assertQuery(
+          SyncMetadata.select(\.share),
+          database: userDatabase.database
+        ) {
+          """
+          ┌────────────────────────────────────────────────────────────────────────┐
+          │ CKRecord(                                                              │
+          │   recordID: CKRecord.ID(share-1:remindersLists/zone/__defaultOwner__), │
+          │   recordType: "cloudkit.share",                                        │
+          │   parent: nil,                                                         │
+          │   share: nil,                                                          │
+          │   cloudkit.title: "Sharing My Stuff!"                                  │
+          │ )                                                                      │
+          ├────────────────────────────────────────────────────────────────────────┤
+          │ CKRecord(                                                              │
+          │   recordID: CKRecord.ID(share-2:remindersLists/zone/__defaultOwner__), │
+          │   recordType: "cloudkit.share",                                        │
+          │   parent: nil,                                                         │
+          │   share: nil,                                                          │
+          │   cloudkit.title: "Sharing My Biz!"                                    │
+          │ )                                                                      │
+          └────────────────────────────────────────────────────────────────────────┘
+          """
         }
-        let serverShareChangeTags = try $_isRateLimitingDisabled.withValue(true) {
-          try [personalShare, businessShare].map {
-            try syncEngine.private.database.record(for: $0.share.recordID)._recordChangeTag
-          }
-        }
-        #expect(cachedShareChangeTags == serverShareChangeTags)
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
