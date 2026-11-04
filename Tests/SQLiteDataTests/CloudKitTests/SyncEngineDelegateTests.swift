@@ -16,7 +16,7 @@
     final class SyncEngineDelegateTests: BaseCloudKitTests, @unchecked Sendable {
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 
-      @Test(.taskLocal($syncEngineDelegate, MyDelegate()))
+      @Test(.taskLocal($syncEngineDelegate, AccountChangedDelegate()))
       func accountChanged() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
@@ -220,10 +220,357 @@
           """
         }
       }
+
+      @Test(.taskLocal($quota, 1), .taskLocal($syncEngineDelegate, QuotaExceededDelegate()))
+      func quotaNotExceeded() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          ┌─────────────────────┐
+          │ RemindersList(      │
+          │   id: 1,            │
+          │   title: "Personal" │
+          │ )                   │
+          └─────────────────────┘
+          """
+        }
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                      │
+          │   id: SyncMetadata.ID(                                             │
+          │     recordPrimaryKey: "1",                                         │
+          │     recordType: "remindersLists"                                   │
+          │   ),                                                               │
+          │   zoneName: "zone",                                                │
+          │   ownerName: "__defaultOwner__",                                   │
+          │   recordName: "1:remindersLists",                                  │
+          │   parentRecordID: nil,                                             │
+          │   parentRecordName: nil,                                           │
+          │   lastKnownServerRecord: CKRecord(                                 │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil                                                     │
+          │   ),                                                               │
+          │   _lastKnownServerRecordAllFields: CKRecord(                       │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil,                                                    │
+          │     id: 1,                                                         │
+          │     title: "Personal"                                              │
+          │   ),                                                               │
+          │   share: nil,                                                      │
+          │   _isDeleted: false,                                               │
+          │   _hasLastKnownServerRecord: true,                                 │
+          │   _isShared: false,                                                │
+          │   userModificationTime: 0                                          │
+          │ )                                                                  │
+          └────────────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+      }
+
+      @Test(.taskLocal($quota, 0), .taskLocal($syncEngineDelegate, QuotaExceededDelegate()))
+      func quotaExceeded() async throws {
+        let delegate = try #require(syncEngine.delegate as? QuotaExceededDelegate)
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          ┌─────────────────────┐
+          │ RemindersList(      │
+          │   id: 1,            │
+          │   title: "Personal" │
+          │ )                   │
+          └─────────────────────┘
+          """
+        }
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                      │
+          │   id: SyncMetadata.ID(                                             │
+          │     recordPrimaryKey: "1",                                         │
+          │     recordType: "remindersLists"                                   │
+          │   ),                                                               │
+          │   zoneName: "zone",                                                │
+          │   ownerName: "__defaultOwner__",                                   │
+          │   recordName: "1:remindersLists",                                  │
+          │   parentRecordID: nil,                                             │
+          │   parentRecordName: nil,                                           │
+          │   lastKnownServerRecord: CKRecord(                                 │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil                                                     │
+          │   ),                                                               │
+          │   _lastKnownServerRecordAllFields: CKRecord(                       │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil,                                                    │
+          │     id: 1,                                                         │
+          │     title: "Personal"                                              │
+          │   ),                                                               │
+          │   share: nil,                                                      │
+          │   _isDeleted: false,                                               │
+          │   _hasLastKnownServerRecord: true,                                 │
+          │   _isShared: false,                                                │
+          │   userModificationTime: 0                                          │
+          │ )                                                                  │
+          └────────────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+        delegate.state.withValue {
+          #expect($0 == [QuotaExceededDelegate.State(quotaExceeded: true, scope: .private)])
+        }
+
+        syncEngine.private.database.state.withValue { $0.quota = 1 }
+        try await syncEngine.sendChanges()
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+        delegate.state.withValue {
+          #expect(
+            $0 == [
+              QuotaExceededDelegate.State(quotaExceeded: true, scope: .private),
+              QuotaExceededDelegate.State(quotaExceeded: false, scope: .private),
+            ]
+          )
+        }
+
+        try await userDatabase.userWrite { db in
+          try RemindersList.upsert {
+            RemindersList.Draft(id: 1, title: "My Stuff")
+          }
+          .execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  title: "My Stuff"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+
+        delegate.state.withValue {
+          #expect(
+            $0 == [
+              QuotaExceededDelegate.State(quotaExceeded: true, scope: .private),
+              QuotaExceededDelegate.State(quotaExceeded: false, scope: .private),
+            ]
+          )
+        }
+      }
+
+      @Test(.taskLocal($quota, 0), .taskLocal($syncEngineDelegate, QuotaExceededDelegate()))
+      func pendingChangesSendOnceQuotaIsNoLongerExceeded() async throws {
+        let delegate = try #require(syncEngine.delegate as? QuotaExceededDelegate)
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        assertQuery(RemindersList.all, database: userDatabase.database) {
+          """
+          ┌─────────────────────┐
+          │ RemindersList(      │
+          │   id: 1,            │
+          │   title: "Personal" │
+          │ )                   │
+          └─────────────────────┘
+          """
+        }
+        assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
+          """
+          ┌────────────────────────────────────────────────────────────────────┐
+          │ SyncMetadata(                                                      │
+          │   id: SyncMetadata.ID(                                             │
+          │     recordPrimaryKey: "1",                                         │
+          │     recordType: "remindersLists"                                   │
+          │   ),                                                               │
+          │   zoneName: "zone",                                                │
+          │   ownerName: "__defaultOwner__",                                   │
+          │   recordName: "1:remindersLists",                                  │
+          │   parentRecordID: nil,                                             │
+          │   parentRecordName: nil,                                           │
+          │   lastKnownServerRecord: CKRecord(                                 │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil                                                     │
+          │   ),                                                               │
+          │   _lastKnownServerRecordAllFields: CKRecord(                       │
+          │     recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__), │
+          │     recordType: "remindersLists",                                  │
+          │     parent: nil,                                                   │
+          │     share: nil,                                                    │
+          │     id: 1,                                                         │
+          │     title: "Personal"                                              │
+          │   ),                                                               │
+          │   share: nil,                                                      │
+          │   _isDeleted: false,                                               │
+          │   _hasLastKnownServerRecord: true,                                 │
+          │   _isShared: false,                                                │
+          │   userModificationTime: 0                                          │
+          │ )                                                                  │
+          └────────────────────────────────────────────────────────────────────┘
+          """
+        }
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: []
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+        delegate.state.withValue {
+          #expect($0 == [QuotaExceededDelegate.State(quotaExceeded: true, scope: .private)])
+        }
+
+        syncEngine.private.database.state.withValue { $0.quota = 1 }
+
+        try await userDatabase.userWrite { db in
+          try RemindersList.upsert {
+            RemindersList.Draft(id: 1, title: "My Stuff")
+          }
+          .execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  title: "My Stuff"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
+        }
+
+        delegate.state.withValue {
+          #expect(
+            $0 == [
+              QuotaExceededDelegate.State(quotaExceeded: true, scope: .private),
+              QuotaExceededDelegate.State(quotaExceeded: false, scope: .private),
+            ]
+          )
+        }
+      }
     }
   }
 
-  final class MyDelegate: SyncEngineDelegate {
+  final class AccountChangedDelegate: SyncEngineDelegate {
     let wasCalled = LockIsolated(false)
     func syncEngine(
       _ syncEngine: SQLiteData.SyncEngine,
@@ -241,5 +588,16 @@
   }
 
   final class DefaultImplementationDelegate: SyncEngineDelegate {
+  }
+
+  final class QuotaExceededDelegate: SyncEngineDelegate {
+    struct State: Equatable {
+      var quotaExceeded: Bool
+      var scope: CKDatabase.Scope
+    }
+    let state = LockIsolated([State]())
+    func syncEngine(_ syncEngine: SyncEngine, quotaExceeded: Bool, scope: CKDatabase.Scope) {
+      state.withValue { $0.append(State(quotaExceeded: quotaExceeded, scope: scope)) }
+    }
   }
 #endif

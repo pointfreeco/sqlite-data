@@ -17,6 +17,7 @@
       package var storage: [CKRecordZone.ID: Zone] = [:]
       var assets: [AssetID: Data] = [:]
       var deletedRecords: [(CKRecord.ID, CKRecord.RecordType)] = []
+      package var quota: Int
       package var rateLimit: Int
       package var rateLimitDuration: Duration
       fileprivate var requestTimestamps: [AnyClock<Duration>.Instant] = []
@@ -25,9 +26,11 @@
         return lastRecordChangeTag
       }
       init(
+        quota: Int = .max,
         rateLimit: Int,
         rateLimitDuration: Duration
       ) {
+        self.quota = quota
         self.rateLimit = rateLimit
         self.rateLimitDuration = rateLimitDuration
       }
@@ -45,13 +48,20 @@
 
     package init(
       databaseScope: CKDatabase.Scope,
+      quota: Int = .max,
       rateLimit: Int = .max,
       rateLimitDuration: Duration = .seconds(1)
     ) {
       self.databaseScope = databaseScope
       @Dependency(\.cloudKitClock) var clock
       self.clock = AnyClock(clock)
-      self.state = LockIsolated(State(rateLimit: rateLimit, rateLimitDuration: rateLimitDuration))
+      self.state = LockIsolated(
+        State(
+          quota: quota,
+          rateLimit: rateLimit,
+          rateLimitDuration: rateLimitDuration
+        )
+      )
     }
 
     package func set(container: MockCloudContainer) {
@@ -337,6 +347,20 @@
           }
         }
 
+        // Emulate quotas by reverting all saves if the total number of records stored exceeds
+        // the quota.
+        guard state.storage.totalRecords <= state.quota
+        else {
+          state.storage = previousStorage
+          for saveSuccessRecordID in saveResults.keys {
+            saveResults[saveSuccessRecordID] = .failure(CKError(.quotaExceeded))
+          }
+          for deleteSuccessRecordID in deleteResults.keys {
+            state.storage[deleteSuccessRecordID.zoneID]?.records[deleteSuccessRecordID] = nil
+          }
+          return (saveResults: saveResults, deleteResults: deleteResults)
+        }
+
         guard atomically
         else {
           return (saveResults: saveResults, deleteResults: deleteResults)
@@ -457,4 +481,12 @@
     }
   }
 
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  extension [CKRecordZone.ID: MockCloudDatabase.Zone] {
+    fileprivate var totalRecords: Int {
+      values.reduce(into: 0) { total, zone in
+        total += zone.records.count
+      }
+    }
+  }
 #endif
