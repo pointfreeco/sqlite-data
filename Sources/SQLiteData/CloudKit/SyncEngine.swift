@@ -722,7 +722,7 @@
               .fetchAll(db)
           }
           var refreshedRecords: [CKRecord.ID: CKRecord] = [:]
-          for recordIDs in Dictionary(
+          let recordIDsByDatabaseScope = Dictionary(
             grouping: lastKnownServerRecords.compactMap { record -> CKRecord.ID? in
               guard
                 let record,
@@ -732,10 +732,12 @@
               else { return nil }
               return record.recordID
             },
-            by: { $0.zoneID.ownerName == CKCurrentUserDefaultName }
+            by: {
+              $0.zoneID.ownerName == CKCurrentUserDefaultName ? CKDatabase.Scope.private : .shared
+            }
           )
-          .values {
-            try await container.database(for: recordIDs[0]).records(for: recordIDs) { results in
+          for (scope, recordIDs) in recordIDsByDatabaseScope {
+            try await container.database(for: scope).records(for: recordIDs) { results in
               for (recordID, result) in results {
                 refreshedRecords[recordID] = try result.get()
               }
@@ -1970,7 +1972,6 @@
     }
 
     func deleteShares(shareRecordIDs: OrderedSet<CKRecord.ID>) async throws {
-      let shareRecordIDs = Set(shareRecordIDs)
       let rootRecordIDs = try await metadatabase.read { db in
         try SyncMetadata
           .where(\.isShared)

@@ -10,7 +10,7 @@
   extension BaseCloudKitTests {
     @MainActor
     @Suite(.taskLocal($rateLimitDuration, .seconds(10)))
-    final class RateLimitRetriesTests: BaseCloudKitTests, @unchecked Sendable {
+    final class RateLimitingTests: BaseCloudKitTests, @unchecked Sendable {
       let recordID = CKRecord.ID(
         recordName: "A",
         zoneID: SyncEngine.defaultTestZone.zoneID
