@@ -92,6 +92,7 @@
         ModelB.self,
         ModelC.self,
         ScopedModel.self,
+        Post.self,
         privateTables: RemindersListPrivate.self,
         startImmediately: startImmediately
       )
