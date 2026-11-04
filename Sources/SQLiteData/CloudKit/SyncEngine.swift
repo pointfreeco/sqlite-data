@@ -1701,6 +1701,19 @@
           await clearServerRecord()
 
         case .referenceViolation:
+          // NB: The server does not have this record's parent. That only means the parent was
+          //     deleted if the server ever confirmed it. A parent the server never confirmed was
+          //     never uploaded (for example, its save failed with an error that is not retried),
+          //     so applying the 'ON DELETE' action here would delete the child and every record
+          //     that cascades from it. Queue both again instead: parents sort before their
+          //     children, so the parent is sent first.
+          if let parentRecordID = failedRecord.parent?.recordID,
+            await isAwaitingFirstUpload(parentRecordID)
+          {
+            newPendingRecordZoneChanges.append(.saveRecord(parentRecordID))
+            newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
+            continue
+          }
           guard
             let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
             let table = tablesByName[failedRecord.recordType],
@@ -2046,6 +2059,23 @@
         }
         try open(table)
       }
+    }
+
+    /// Whether a record exists locally but the server has never confirmed a save of it.
+    ///
+    /// Only records returned by the server carry a change tag. A last known server record without
+    /// one was built locally for a send that never succeeded.
+    private func isAwaitingFirstUpload(_ recordID: CKRecord.ID) async -> Bool {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await metadatabase.read { db in
+          guard
+            let metadata = try SyncMetadata.find(recordID).fetchOne(db),
+            !metadata._isDeleted
+          else { return false }
+          return !(metadata.lastKnownServerRecord?.hasServerChangeTag ?? false)
+        }
+      }
+        ?? false
     }
 
     private func refreshLastKnownServerRecord(_ record: CKRecord) async {

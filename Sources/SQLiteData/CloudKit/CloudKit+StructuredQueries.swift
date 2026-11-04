@@ -379,6 +379,12 @@
       get { self[#function] }
       set { self[#function] = newValue }
     }
+
+    /// Whether this record came back from the server: only saved records carry a change tag.
+    /// (The mock database stores its change tag in `_recordChangeTag`.)
+    package var hasServerChangeTag: Bool {
+      recordChangeTag != nil || _recordChangeTag != nil
+    }
   }
 
   extension DataProtocol {
