@@ -696,10 +696,14 @@
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        let record = try syncEngine.private.database.record(for: RemindersList.recordID(for: 1))
+        // NB: Manually setting the system fields simulates another device saving a record.
+        let record = try syncEngine.private.database
+          .record(for: RemindersList.recordID(for: 1))
+          .copyWithMockSystemFields(
+            recordChangeTag: "zz",
+            modificationDate: Date(timeIntervalSinceReferenceDate: 42)
+          )
         record.setValue("Work", forKey: "title", at: now)
-        // NB: Manually setting '_recordChangeTag' simulates another device saving a record.
-        record._recordChangeTag = .random(in: 9999 ... .max)
         try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
 
         assertQuery(Reminder.all, database: userDatabase.database) {

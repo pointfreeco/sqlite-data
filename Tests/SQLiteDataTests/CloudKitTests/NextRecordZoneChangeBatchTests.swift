@@ -312,7 +312,7 @@
                       recordType: "remindersLists",
                       parent: nil,
                       share: nil,
-                      recordChangeTag: 3,
+                      recordChangeTag: "2",
                       id: 1,
                       id🗓️: 0,
                       title: "Personal 3",

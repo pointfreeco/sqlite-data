@@ -51,11 +51,12 @@
           accum += ((state.storage[zoneID]?.records.values).map { Array($0) } ?? [])
             .map { $0.copy() as! CKRecord }
             .filter {
-              precondition(
-                $0._recordChangeTag != nil,
-                "Records stored in database should have their 'recordChangeTag' assigned."
-              )
-              return $0._recordChangeTag! > self.state.changeTag.value
+              guard let changeTag = $0.recordChangeTag else {
+                fatalError(
+                  "Records stored in database should have their 'recordChangeTag' assigned."
+                )
+              }
+              return changeTag.isNewerChangeTag(than: self.state.currentChangeTag.value)
             }
         }
       }
@@ -73,8 +74,12 @@
       guard !modifications.isEmpty || !deletions.isEmpty
       else { return }
 
-      state.changeTag.withValue { changeTag in
-        changeTag = modifications.compactMap(\._recordChangeTag).max() ?? changeTag
+      state.currentChangeTag.withValue { currentChangeTag in
+        for changeTag in modifications.compactMap(\.recordChangeTag) {
+          if changeTag.isNewerChangeTag(than: currentChangeTag) {
+            currentChangeTag = changeTag
+          }
+        }
       }
 
       await parentSyncEngine.handleEvent(
@@ -136,7 +141,7 @@
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockSyncEngineState: CKSyncEngineStateProtocol {
-    package let changeTag = LockIsolated(0)
+    package let currentChangeTag = LockIsolated<String?>(nil)
     package let _pendingRecordZoneChanges = LockIsolated<
       OrderedSet<CKSyncEngine.PendingRecordZoneChange>
     >([]
@@ -461,6 +466,13 @@
       @unknown default:
         fatalError("Unknown database scope not supported in sync engines.")
       }
+    }
+  }
+
+  extension String {
+    package func isNewerChangeTag(than other: String?) -> Bool {
+      guard let other else { return true }
+      return self.count != other.count ? self.count > other.count : self > other
     }
   }
 #endif

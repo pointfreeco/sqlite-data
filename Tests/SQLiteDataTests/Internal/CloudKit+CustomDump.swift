@@ -56,7 +56,6 @@
         }
       let nonEncryptedKeys = Set(allKeys())
         .subtracting(encryptedValues.allKeys())
-        .subtracting(["_recordChangeTag"])
       var baseChildren = [
         ("recordID", recordID as Any),
         ("recordType", recordType as Any),
@@ -64,7 +63,7 @@
         ("share", share as Any),
       ]
       if Self.printRecordChangeTag {
-        baseChildren.append(("recordChangeTag", _recordChangeTag as Any))
+        baseChildren.append(("recordChangeTag", recordChangeTag as Any))
       }
       return Mirror(
         self,

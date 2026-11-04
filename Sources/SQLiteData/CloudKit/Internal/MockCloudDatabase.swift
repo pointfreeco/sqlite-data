@@ -13,16 +13,22 @@
     let clock: AnyClock<Duration>
 
     package struct State {
-      private var lastRecordChangeTag = 0
+      private var changeTagCounter = 0
+      private var modificationDateCounter = 0
       package var storage: [CKRecordZone.ID: Zone] = [:]
       var assets: [AssetID: Data] = [:]
       var deletedRecords: [(CKRecord.ID, CKRecord.RecordType)] = []
       package var rateLimit: Int
       package var rateLimitDuration: Duration
       fileprivate var requestTimestamps: [AnyClock<Duration>.Instant] = []
-      mutating func nextRecordChangeTag() -> Int {
-        lastRecordChangeTag += 1
-        return lastRecordChangeTag
+      // NB: CloudKit uses base-36 change tags (0…9, a…z, 10…zz, 100…).
+      mutating func nextRecordChangeTag() -> String {
+        defer { changeTagCounter += 1 }
+        return String(changeTagCounter, radix: 36)
+      }
+      mutating func nextModificationDate() -> Date {
+        defer { modificationDateCounter += 1 }
+        return Date(timeIntervalSinceReferenceDate: TimeInterval(modificationDateCounter))
       }
       init(
         rateLimit: Int,
@@ -133,6 +139,7 @@
 
         switch savePolicy {
         case .ifServerRecordUnchanged:
+          let batchModificationDate = state.nextModificationDate()
           for recordToSave in recordsToSave {
             if let share = recordToSave as? CKShare {
               let isSavingRootRecord = recordsToSave.contains(where: {
@@ -207,9 +214,10 @@
                 return
               }
 
-              guard let databaseCopy = recordToSave.copy() as? CKRecord
-              else { fatalError("Could not copy CKRecord.") }
-              databaseCopy._recordChangeTag = state.nextRecordChangeTag()
+              let databaseCopy = recordToSave.copyWithMockSystemFields(
+                recordChangeTag: state.nextRecordChangeTag(),
+                modificationDate: batchModificationDate
+              )
 
               for key in databaseCopy.allKeys() {
                 guard let assetURL = (databaseCopy[key] as? CKAsset)?.fileURL
@@ -229,22 +237,24 @@
                 // If the parent isn't also being saved in this batch.
                 !recordsToSave.contains(where: { $0.recordID == parent.recordID }),
                 // And if the parent is in the database.
-                let parentRecord = state.storage[parent.recordID.zoneID]?.records[parent.recordID]?
-                  .copy()
-                  as? CKRecord
+                let parentRecord = state.storage[parent.recordID.zoneID]?.records[parent.recordID]
               {
-                parentRecord._recordChangeTag = state.nextRecordChangeTag()
-                state.storage[parent.recordID.zoneID]?.records[parent.recordID] = parentRecord
+                let touchedParentRecord = parentRecord.copyWithMockSystemFields(
+                  recordChangeTag: state.nextRecordChangeTag(),
+                  modificationDate: batchModificationDate
+                )
+                state.storage[parent.recordID.zoneID]?.records[parent.recordID] =
+                  touchedParentRecord
               }
             }
 
-            switch (existingRecord, recordToSave._recordChangeTag) {
+            switch (existingRecord, recordToSave.recordChangeTag) {
             case (.some(let existingRecord), .some(let recordToSaveChangeTag)):
               // We are trying to save a record with a change tag that also already exists in the
               // DB. If the tags match, we can save the record. Otherwise, we notify the sync engine
               // that the server record has changed since it was last synced.
-              if existingRecord._recordChangeTag == recordToSaveChangeTag {
-                precondition(existingRecord._recordChangeTag != nil)
+              if existingRecord.recordChangeTag == recordToSaveChangeTag {
+                precondition(existingRecord.recordChangeTag != nil)
                 saveRecordToDatabase()
               } else {
                 saveResults[recordToSave.recordID] = .failure(
