@@ -156,13 +156,22 @@
         }
         assertQuery(UnsyncedRecordID.all, database: syncEngine.metadatabase) {
           """
-          ┌─────────────────────────────────┐
-          │ UnsyncedRecordID(               │
-          │   recordName: "1:modelCs",      │
-          │   zoneName: "zone",             │
-          │   ownerName: "__defaultOwner__" │
-          │ )                               │
-          └─────────────────────────────────┘
+          ┌──────────────────────────────────────────────────────────────────────────────────┐
+          │ UnsyncedRecordID(                                                                │
+          │   recordName: "1:modelCs",                                                       │
+          │   zoneName: "zone",                                                              │
+          │   ownerName: "__defaultOwner__",                                                 │
+          │   assets: [:],                                                                   │
+          │   record: CKRecord(                                                              │
+          │     recordID: CKRecord.ID(1:modelCs/zone/__defaultOwner__),                      │
+          │     recordType: "modelCs",                                                       │
+          │     parent: CKReference(recordID: CKRecord.ID(1:modelBs/zone/__defaultOwner__)), │
+          │     share: nil,                                                                  │
+          │     id: 1,                                                                       │
+          │     modelBID: 1                                                                  │
+          │   )                                                                              │
+          │ )                                                                                │
+          └──────────────────────────────────────────────────────────────────────────────────┘
           """
         }
 

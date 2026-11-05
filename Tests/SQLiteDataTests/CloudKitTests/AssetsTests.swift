@@ -328,7 +328,89 @@
           └─────────────────────────────┘
           """
         }
+      }
 
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func assetReceivedBeforeParentRecord_RecordNotCached() async throws {
+        let remindersListRecord = CKRecord(
+          recordType: RemindersList.tableName,
+          recordID: RemindersList.recordID(for: 1)
+        )
+        remindersListRecord.setValue(1, forKey: "id", at: now)
+        remindersListRecord.setValue("Personal", forKey: "title", at: now)
+
+        let remindersListAssetRecord = CKRecord(
+          recordType: RemindersListAsset.tableName,
+          recordID: RemindersListAsset.recordID(for: 1)
+        )
+        remindersListAssetRecord.setValue(1, forKey: "id", at: now)
+        remindersListAssetRecord.setBytes(
+          Array("image".utf8),
+          forKey: "coverImage",
+          at: now
+        )
+        remindersListAssetRecord.setValue(
+          1,
+          forKey: "remindersListID",
+          at: now
+        )
+        remindersListAssetRecord.parent = CKRecord.Reference(
+          record: remindersListRecord,
+          action: .none
+        )
+
+        let remindersListModification = try syncEngine.modifyRecords(
+          scope: .private,
+          saving: [remindersListRecord]
+        )
+        try await syncEngine.modifyRecords(scope: .private, saving: [remindersListAssetRecord])
+          .notify()
+
+        assertQuery(
+          UnsyncedRecordID.select { ($0.recordName, $0.record) },
+          database: syncEngine.metadatabase
+        ) {
+          """
+          ┌─────────────────────────┬───────────────────────────────────────────────────────────────────────────────────────┐
+          │ "1:remindersListAssets" │ CKRecord(                                                                             │
+          │                         │   recordID: CKRecord.ID(1:remindersListAssets/zone/__defaultOwner__),                 │
+          │                         │   recordType: "remindersListAssets",                                                  │
+          │                         │   parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)), │
+          │                         │   share: nil,                                                                         │
+          │                         │   coverImage_hash: Data(32 bytes),                                                    │
+          │                         │   id: 1,                                                                              │
+          │                         │   remindersListID: 1,                                                                 │
+          │                         │   coverImage: CKAsset(                                                                │
+          │                         │     fileURL: URL(file:///tmp/00000000-0000-0000-0000-000000000000),                   │
+          │                         │     dataString: "image"                                                               │
+          │                         │   )                                                                                   │
+          │                         │ )                                                                                     │
+          └─────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────┘
+          """
+        }
+
+        await expectDifference(syncEngine.private.database.state.fetchedRecordIDs) {
+          await remindersListModification.notify()
+        } changes: {
+          $0.append(
+            RemindersList.recordID(for: 1)
+          )
+        }
+        assertQuery(RemindersListAsset.all, database: userDatabase.database) {
+          """
+          ┌─────────────────────────────┐
+          │ RemindersListAsset(         │
+          │   remindersListID: 1,       │
+          │   coverImage: Data(5 bytes) │
+          │ )                           │
+          └─────────────────────────────┘
+          """
+        }
+        assertQuery(UnsyncedRecordID.all, database: syncEngine.metadatabase) {
+          """
+          (No results)
+          """
+        }
       }
     }
   }

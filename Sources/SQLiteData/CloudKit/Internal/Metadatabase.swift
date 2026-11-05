@@ -138,6 +138,22 @@
       )
       .execute(db)
     }
+    migrator.registerMigration("Add 'record' and 'assets' to 'unsyncedRecordIDs'") { db in
+      try #sql(
+        """
+        ALTER TABLE "\(raw: .sqliteDataCloudKitSchemaName)_unsyncedRecordIDs"
+        ADD COLUMN "record" BLOB
+        """
+      )
+      .execute(db)
+      try #sql(
+        """
+        ALTER TABLE "\(raw: .sqliteDataCloudKitSchemaName)_unsyncedRecordIDs"
+        ADD COLUMN "assets" TEXT NOT NULL DEFAULT '{}'
+        """
+      )
+      .execute(db)
+    }
     #if DEBUG
       try metadatabase.read { db in
         let hasSchemaChanges = try migrator.hasSchemaChanges(db)

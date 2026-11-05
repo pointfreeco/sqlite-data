@@ -11,6 +11,7 @@
     let _container = IsolatedWeakVar<MockCloudContainer>()
     let dataManager = Dependency(\.dataManager)
     let now = Dependency(\.currentTime.now)
+    let uuid = Dependency(\.uuid)
     let clock: AnyClock<Duration>
 
     package struct State {
@@ -22,6 +23,7 @@
       package var rateLimit: Int
       package var rateLimitDuration: Duration
       fileprivate var requestTimestamps: [AnyClock<Duration>.Instant] = []
+      package var fetchedRecordIDs: [CKRecord.ID] = []
       mutating func nextRecordChangeTag() -> Int {
         lastRecordChangeTag += 1
         return lastRecordChangeTag
@@ -106,11 +108,14 @@
             for key in record.allKeys() {
               guard let assetData = state.assets[AssetID(recordID: record.recordID, key: key)]
               else { continue }
-              let url = dataManager.wrappedValue.temporaryDirectory.appending(path: UUID().uuidString)
+              let url = dataManager.wrappedValue.temporaryDirectory.appending(
+                path: uuid.wrappedValue().uuidString
+              )
               try dataManager.wrappedValue.save(assetData, to: url)
               record[key] = CKAsset(fileURL: url)
             }
 
+            state.fetchedRecordIDs.append(recordID)
             return record
           }
         }

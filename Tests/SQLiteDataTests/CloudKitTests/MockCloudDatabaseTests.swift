@@ -502,7 +502,8 @@
                   recordID: CKRecord.ID(share/zone/__defaultOwner__),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 )
               ]
             ),
@@ -595,7 +596,8 @@
                   recordID: CKRecord.ID(share/external.zone/external.owner),
                   recordType: "cloudkit.share",
                   parent: nil,
-                  share: nil
+                  share: nil,
+                  cloudkit.title: nil
                 )
               ]
             )

@@ -197,5 +197,4 @@ extension MockSyncEngineState {
       $0.removeAll()
     }
   }
-
 }
