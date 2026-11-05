@@ -647,7 +647,7 @@
     }
 
     private func enqueueLocallyPendingChanges(scope: CKDatabase.Scope? = nil) async throws {
-      let pendingRecordZoneChanges = try await metadatabase.write { db in
+      let pendingRecordZoneChanges = try await userDatabase.write { db in
         try PendingRecordZoneChange
           .where {
             $0.databaseScope.is(#bind(scope))
@@ -1813,7 +1813,7 @@
 
         case .quotaExceeded:
           await withErrorReporting {
-            try await metadatabase.write { db in
+            try await userDatabase.write { db in
               try PendingRecordZoneChange.insert {
                 PendingRecordZoneChange(
                   .saveRecord(failedRecord.recordID),
