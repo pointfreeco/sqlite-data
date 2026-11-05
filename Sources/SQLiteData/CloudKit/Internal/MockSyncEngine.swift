@@ -136,8 +136,8 @@
     package struct State: Sendable {
       package var changeTag = 0
       package var hasPendingUntrackedChanges = false
-      package var pendingDatabaseChanges: OrderedDictionary<CKRecord.ID, CKSyncEngine.PendingDatabaseChange> = []
-      package var pendingRecordZoneChanges: OrderedDictionary<CKRecord.ID, CKSyncEngine.PendingRecordZoneChange> = []
+      package var pendingDatabaseChanges: OrderedDictionary<CKRecordZone.ID, CKSyncEngine.PendingDatabaseChange> = [:]
+      package var pendingRecordZoneChanges: OrderedDictionary<CKRecord.ID, CKSyncEngine.PendingRecordZoneChange> = [:]
     }
 
     private let state = LockIsolated(State())
@@ -186,44 +186,44 @@
     }
 
     package func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
-      withState {
-        for change in $0.pendingRecordZoneChanges {
+      withState { state in
+        for change in pendingRecordZoneChanges {
           guard let id = change.id
           else { fatalError("Unsupported pendingRecordZoneChange: \(change)") }
-          $0.pendingRecordZoneChanges[id] = change
+          state.pendingRecordZoneChanges[id] = change
         }
       }
     }
 
     package func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
-      withState {
-        for change in $0.pendingRecordZoneChanges {
+      withState { state in
+        for change in pendingRecordZoneChanges {
           guard let id = change.id
           else { fatalError("Unsupported pendingRecordZoneChange: \(change)") }
-          if $0.pendingRecordZoneChanges[id] == change {
-            $0.pendingRecordZoneChanges.removeValue(forKey: id)
+          if state.pendingRecordZoneChanges[id] == change {
+            state.pendingRecordZoneChanges.removeValue(forKey: id)
           }
         }
       }
     }
 
     package func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
-      self._pendingDatabaseChanges.withValue { changes in
-        for change in $0.pendingRecordZoneChanges {
+      withState { state in
+        for change in pendingDatabaseChanges {
           guard let zoneID = change.zoneID
           else { fatalError("Unsupported pendingDatabaseChange: \(change)") }
-          $0.pendingRecordZoneChanges[zoneID] = change
+          state.pendingDatabaseChanges[zoneID] = change
         }
       }
     }
 
     package func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
-      withState {
+      withState { state in
         for change in pendingDatabaseChanges {
           guard let zoneID = change.zoneID
           else { fatalError("Unsupported pendingDatabaseChange: \(change)") }
-          if $0.pendingRecordZoneChanges[zoneID] == change {
-            $0.pendingRecordZoneChanges.removeValue(forKey: zoneID)
+          if state.pendingDatabaseChanges[zoneID] == change {
+            state.pendingDatabaseChanges.removeValue(forKey: zoneID)
           }
         }
       }
@@ -429,7 +429,7 @@
           return changes
         }
 
-        for pendingDatabaseChange in syncEngineState.pendingDatabaseChanges {
+        for (_, pendingDatabaseChange) in syncEngineState.pendingDatabaseChanges {
           switch pendingDatabaseChange {
           case .saveZone(let zone):
             changes.zonesToSave.append(zone)
