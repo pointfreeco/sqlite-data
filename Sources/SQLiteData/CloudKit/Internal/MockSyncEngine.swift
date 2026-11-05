@@ -136,8 +136,10 @@
     package struct State: Sendable {
       package var changeTag = 0
       package var hasPendingUntrackedChanges = false
-      package var pendingDatabaseChanges: OrderedDictionary<CKRecordZone.ID, CKSyncEngine.PendingDatabaseChange> = [:]
-      package var pendingRecordZoneChanges: OrderedDictionary<CKRecord.ID, CKSyncEngine.PendingRecordZoneChange> = [:]
+      package var pendingDatabaseChanges:
+        OrderedDictionary<CKRecordZone.ID, CKSyncEngine.PendingDatabaseChange> = [:]
+      package var pendingRecordZoneChanges:
+        OrderedDictionary<CKRecord.ID, CKSyncEngine.PendingRecordZoneChange> = [:]
     }
 
     private let state = LockIsolated(State())
@@ -454,7 +456,9 @@
           case .success(let zone):
             changes.savedZones.append(zone)
           case .failure(let error as CKError):
-            changes.failedZoneSaves.append((changes.zonesToSave.first(where: { $0.zoneID == zoneID })!, error))
+            changes.failedZoneSaves.append(
+              (changes.zonesToSave.first(where: { $0.zoneID == zoneID })!, error)
+            )
           case .failure(let error):
             reportIssue("Error thrown not CKError: \(error)")
           }
@@ -474,7 +478,9 @@
       }
 
       syncEngine.state.remove(pendingDatabaseChanges: changes.savedZones.map { .saveZone($0) })
-      syncEngine.state.remove(pendingDatabaseChanges: changes.deletedZoneIDs.map { .deleteZone($0) })
+      syncEngine.state.remove(
+        pendingDatabaseChanges: changes.deletedZoneIDs.map { .deleteZone($0) }
+      )
       await syncEngine.parentSyncEngine
         .handleEvent(
           .sentDatabaseChanges(
