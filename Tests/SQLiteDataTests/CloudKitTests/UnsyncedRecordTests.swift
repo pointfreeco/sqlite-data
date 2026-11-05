@@ -7,6 +7,7 @@
   import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
 
   extension BaseCloudKitTests {
     @MainActor

@@ -28,6 +28,9 @@
       queryOutput.encodeSystemFields(with: archiver)
       if isTesting {
         archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
+        if queryOutput is CKShare {
+          archiver.encode(queryOutput[CKShare.SystemFieldKey.title], forKey: CKShare.SystemFieldKey.title)
+        }
       }
       return archiver.encodedData.queryBinding
     }
@@ -55,6 +58,10 @@
         queryOutput._recordChangeTag =
           coder
           .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+        if queryOutput is CKShare {
+          queryOutput[CKShare.SystemFieldKey.title] = coder
+            .decodeObject(of: NSString.self, forKey: CKShare.SystemFieldKey.title)
+        }
       }
       self.init(queryOutput: queryOutput)
     }

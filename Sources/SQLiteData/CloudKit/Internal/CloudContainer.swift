@@ -52,6 +52,14 @@
         ? privateCloudDatabase
         : sharedCloudDatabase
     }
+    package func database(for scope: CKDatabase.Scope) -> any CloudDatabase {
+      switch scope {
+      case .private: privateCloudDatabase
+      case .shared: sharedCloudDatabase
+      case .public: fatalError("Public database not supported in sync engines.")
+      @unknown default: fatalError("Unknown database scope not supported in sync engines.")
+      }
+    }
   }
 
   @available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
