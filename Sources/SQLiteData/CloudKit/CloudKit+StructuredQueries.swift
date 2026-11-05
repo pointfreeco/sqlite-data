@@ -28,6 +28,7 @@
       queryOutput.encodeSystemFields(with: archiver)
       if isTesting {
         archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
+        archiver.encode(queryOutput._modificationDate, forKey: "_modificationDate")
         if queryOutput is CKShare {
           archiver.encode(queryOutput[CKShare.SystemFieldKey.title], forKey: CKShare.SystemFieldKey.title)
         }
@@ -58,6 +59,9 @@
         queryOutput._recordChangeTag =
           coder
           .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+        queryOutput._modificationDate =
+          coder
+          .decodeObject(of: NSDate.self, forKey: "_modificationDate") as Date?
         if queryOutput is CKShare {
           queryOutput[CKShare.SystemFieldKey.title] = coder
             .decodeObject(of: NSString.self, forKey: CKShare.SystemFieldKey.title)
@@ -77,6 +81,10 @@
       queryOutput.encode(with: archiver)
       if isTesting {
         archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
+        archiver.encode(queryOutput._modificationDate, forKey: "_modificationDate")
+        if queryOutput is CKShare {
+          archiver.encode(queryOutput[CKShare.SystemFieldKey.title], forKey: CKShare.SystemFieldKey.title)
+        }
       }
       return archiver.encodedData.queryBinding
     }
@@ -104,6 +112,13 @@
         queryOutput._recordChangeTag =
           coder
           .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+        queryOutput._modificationDate =
+          coder
+          .decodeObject(of: NSDate.self, forKey: "_modificationDate") as Date?
+        if queryOutput is CKShare {
+          queryOutput[CKShare.SystemFieldKey.title] = coder
+            .decodeObject(of: NSString.self, forKey: CKShare.SystemFieldKey.title)
+        }
       }
       self.init(queryOutput: queryOutput)
     }
@@ -384,6 +399,11 @@
   extension CKRecord {
     package var _recordChangeTag: Int? {
       get { self[#function] }
+      set { self[#function] = newValue }
+    }
+
+    package var _modificationDate: Date? {
+      get { modificationDate ?? self[#function]  }
       set { self[#function] = newValue }
     }
   }

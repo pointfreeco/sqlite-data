@@ -56,7 +56,7 @@
         }
       var nonEncryptedKeys = Set(allKeys())
         .subtracting(encryptedValues.allKeys())
-        .subtracting(["_recordChangeTag"])
+        .subtracting(["_modificationDate", "_recordChangeTag"])
       if self is CKShare {
         nonEncryptedKeys.insert(CKShare.SystemFieldKey.title)
       }
