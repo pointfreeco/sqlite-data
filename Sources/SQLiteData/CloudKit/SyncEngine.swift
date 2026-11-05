@@ -651,7 +651,7 @@
         try PendingRecordZoneChange
           .where {
             $0.databaseScope.is(#bind(scope))
-              .or(BindQueryExpression(scope, as: CKDatabase.Scope?.RawRepresentation.self).is(nil))
+              .or(#bind(scope, as: CKDatabase.Scope?.RawRepresentation.self).is(nil))
           }
           .delete()
           .returning(\.pendingRecordZoneChange)
@@ -2171,7 +2171,8 @@
         return id
       @unknown default:
         reportIssue("""
-          Unrecognized PendingRecordZoneChange
+          Unrecognized 'PendingRecordZoneChange'. Open an issue on \
+          https://github.com/pointfreeco/sqlite-data if you run into this.
           """)
         return nil
       }
