@@ -2172,7 +2172,7 @@
       @unknown default:
         reportIssue(
           """
-          Unrecognized 'PendingRecordZoneChange'. Open an issue on \
+          Unrecognized 'PendingRecordZoneChange'. Open an issue at \
           https://github.com/pointfreeco/sqlite-data if you run into this.
           """
         )
