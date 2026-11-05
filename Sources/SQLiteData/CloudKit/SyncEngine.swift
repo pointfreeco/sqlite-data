@@ -643,24 +643,41 @@
       }
     }
 
-    private func enqueueLocallyPendingChanges() async throws {
+    private func enqueueLocallyPendingChanges(scope: CKDatabase.Scope? = nil) async throws {
       let pendingRecordZoneChanges = try await metadatabase.write { db in
         try PendingRecordZoneChange
           .delete()
           .returning(\.pendingRecordZoneChange)
           .fetchAll(db)
       }
-      let changesByIsPrivate = Dictionary(grouping: pendingRecordZoneChanges) {
+      let changesByScope = [CKDatabase.Scope?: _](grouping: pendingRecordZoneChanges) {
         switch $0 {
         case .deleteRecord(let recordID), .saveRecord(let recordID):
           recordID.zoneID.ownerName == CKCurrentUserDefaultName
+            ? CKDatabase.Scope.private
+            : .shared
         @unknown default:
-          false
+          nil
         }
       }
-      syncEngines.withValue {
-        $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
-        $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
+      switch scope {
+      case .private:
+        syncEngines.withValue {
+          $0.private?.state.add(pendingRecordZoneChanges: changesByScope[.private] ?? [])
+        }
+      case .shared:
+        syncEngines.withValue {
+          $0.shared?.state.add(pendingRecordZoneChanges: changesByScope[.shared] ?? [])
+        }
+      case .none:
+        syncEngines.withValue {
+          $0.private?.state.add(pendingRecordZoneChanges: changesByScope[.private] ?? [])
+          $0.shared?.state.add(pendingRecordZoneChanges: changesByScope[.shared] ?? [])
+        }
+      case .public:
+        fatalError("Only 'private' and 'shared' scopes are supported.")
+      @unknown default:
+        fatalError("Only 'private' and 'shared' scopes are supported.")
       }
     }
 
@@ -1087,7 +1104,6 @@
       var changes = await pendingRecordZoneChanges(options: options, syncEngine: syncEngine)
       guard !changes.isEmpty
       else { return nil }
-
       changes.sort { lhs, rhs in
         switch (lhs, rhs) {
         case (.saveRecord(let lhs), .saveRecord(let rhs)):
@@ -1238,6 +1254,9 @@
       options: CKSyncEngine.SendChangesOptions,
       syncEngine: any SyncEngineProtocol
     ) async -> [CKSyncEngine.PendingRecordZoneChange] {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await enqueueLocallyPendingChanges(scope: syncEngine.database.databaseScope)
+      }
       var changes = syncEngine.state.pendingRecordZoneChanges.filter(options.scope.contains)
       guard !changes.isEmpty
       else { return [] }
@@ -1888,7 +1907,7 @@
           scope: syncEngine.database.databaseScope
         )
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await enqueueLocallyPendingChanges()
+          try await enqueueLocallyPendingChanges(scope: syncEngine.database.databaseScope)
         }
       }
       func updateQuotaExceeded(isExceeded: Bool, scope: CKDatabase.Scope) {

@@ -7,6 +7,7 @@
   import SQLiteDataTestSupport
   import SnapshotTestingCustomDump
   import Testing
+  import TestLocals
 
   extension BaseCloudKitTests {
     @MainActor
@@ -406,6 +407,70 @@
               Parent.all.fetchAll(db) == [Parent(id: 0), Parent(id: 1)]
             )
           }
+        }
+      }
+
+      // * The user's iCloud storage is full.
+      // * Local client creates a list and a reminder in it. Both saves fail with
+      //   'quotaExceeded' and wait until a later save succeeds.
+      // * The user frees up space, then adds another reminder to the list.
+      // => The new reminder is kept, and the list and both reminders are uploaded.
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.taskLocal($quota, 0))
+      func addReminderAfterListFailedToSaveWithQuotaExceeded() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        syncEngine.private.database.state.withValue { $0.quota = .max }
+        try await userDatabase.userWrite { db in
+          try Reminder.insert { Reminder(id: 1, title: "Get milk", remindersListID: 1) }
+            .execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let reminders = try await userDatabase.read { db in
+          try Reminder.order(by: \.id).fetchAll(db)
+        }
+        expectNoDifference(
+          reminders,
+          [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
+        )
+        assertInlineSnapshot(of: container, as: .customDump) {
+          """
+          MockCloudContainer(
+            privateCloudDatabase: MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:reminders/zone/__defaultOwner__),
+                  recordType: "reminders",
+                  parent: CKReference(recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__)),
+                  share: nil,
+                  id: 1,
+                  isCompleted: 0,
+                  remindersListID: 1,
+                  title: "Get milk"
+                ),
+                [1]: CKRecord(
+                  recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                  recordType: "remindersLists",
+                  parent: nil,
+                  share: nil,
+                  id: 1,
+                  title: "Personal"
+                )
+              ]
+            ),
+            sharedCloudDatabase: MockCloudDatabase(
+              databaseScope: .shared,
+              storage: []
+            )
+          )
+          """
         }
       }
     }

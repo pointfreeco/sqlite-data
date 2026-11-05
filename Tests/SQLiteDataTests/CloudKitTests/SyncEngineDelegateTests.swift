@@ -533,7 +533,6 @@
           .execute(db)
         }
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
         assertInlineSnapshot(of: container, as: .customDump) {
           """
           MockCloudContainer(
