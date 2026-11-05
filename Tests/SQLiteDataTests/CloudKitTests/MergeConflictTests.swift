@@ -67,11 +67,13 @@
           """
         }
 
-        let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
-        record.setValue("Buy milk", forKey: "title", at: 60)
-        let modificationCallback = try {
-          try syncEngine.modifyRecords(scope: .private, saving: [record])
-        }()
+        let modificationCallback = try withDependencies {
+          $0.currentTime.now += 60
+        } operation: {
+          let record = try syncEngine.private.database.record(for: Reminder.recordID(for: 1))
+          record.setValue("Buy milk", forKey: "title", at: now)
+          return try syncEngine.modifyRecords(scope: .private, saving: [record])
+        }
 
         try await withDependencies {
           $0.currentTime.now += 30
@@ -79,8 +81,8 @@
           try await userDatabase.userWrite { db in
             try Reminder.find(1).update { $0.isCompleted = true }.execute(db)
           }
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
         }
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
         assertInlineSnapshot(of: container, as: .customDump) {
           """
@@ -126,8 +128,16 @@
           """
         }
 
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
-        await modificationCallback.notify()
+        try await withDependencies {
+          $0.currentTime.now += 30
+        } operation: {
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        }
+        await withDependencies {
+          $0.currentTime.now += 60
+        } operation: {
+          await modificationCallback.notify()
+        }
 
         assertInlineSnapshot(of: container, as: .customDump) {
           """

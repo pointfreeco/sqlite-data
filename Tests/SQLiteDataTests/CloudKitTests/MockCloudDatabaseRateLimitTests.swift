@@ -21,8 +21,18 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      override init() async throws {
-        try await super.init()
+      override init(
+        fileID: StaticString = #fileID,
+        filePath: StaticString = #filePath,
+        line: UInt = #line,
+        column: UInt = #column
+      ) async throws {
+        try await super.init(
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
         try $_isRateLimitingDisabled.withValue(true) {
           _ = try database.modifyRecords(
             saving: [CKRecord(recordType: "A", recordID: recordID)],

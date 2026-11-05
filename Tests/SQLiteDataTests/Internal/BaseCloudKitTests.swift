@@ -17,6 +17,7 @@
       $0.continuousClock = TestClock<Duration>()
       $0.cloudKitClock = TestClock<Duration>()
       $0.dataManager = InMemoryDataManager()
+      $0.uuid = .incrementing
     },
     .taskLocal($attachMetadatabase, false)
   )
@@ -24,6 +25,10 @@
     let userDatabase: UserDatabase
     private let _syncEngine: any Sendable
     private let _container: any Sendable
+    private let filePath: StaticString
+    private let fileID: StaticString
+    private let line: UInt
+    private let column: UInt
 
     @Dependency(\.continuousClock) var clock
     @Dependency(\.currentTime.now) var now
@@ -47,7 +52,16 @@
     }
 
     @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-    init() async throws {
+    init(
+      fileID: StaticString = #fileID,
+      filePath: StaticString = #filePath,
+      line: UInt = #line,
+      column: UInt = #column
+    ) async throws {
+      self.fileID = fileID
+      self.filePath = filePath
+      self.line = line
+      self.column = column
       let testContainerIdentifier = "iCloud.co.pointfree.Testing.\(UUID())"
 
       self.userDatabase = UserDatabase(
@@ -149,14 +163,80 @@
         guard syncEngine.isRunning
         else { return }
 
-        syncEngine.shared.assertFetchChangesScopes([])
-        syncEngine.shared.state.assertPendingDatabaseChanges([])
-        syncEngine.shared.state.assertPendingRecordZoneChanges([])
-        syncEngine.shared.assertAcceptedShareMetadata([])
-        syncEngine.private.assertFetchChangesScopes([])
-        syncEngine.private.state.assertPendingDatabaseChanges([])
-        syncEngine.private.state.assertPendingRecordZoneChanges([])
-        syncEngine.private.assertAcceptedShareMetadata([])
+        syncEngine.shared.assertFetchChangesScopes(
+          [],
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        syncEngine.shared.state.assertPendingDatabaseChanges(
+          [],
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        syncEngine.shared.state.assertPendingRecordZoneChanges(
+          [],
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        syncEngine.shared.assertAcceptedShareMetadata(
+          [],
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        syncEngine.private.assertFetchChangesScopes(
+          [],
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        syncEngine.private.state.assertPendingDatabaseChanges(
+          [],
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        syncEngine.private.state.assertPendingRecordZoneChanges(
+          [],
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        syncEngine.private.assertAcceptedShareMetadata(
+          [],
+          fileID: fileID,
+          filePath: filePath,
+          line: line,
+          column: column
+        )
+        #expect(
+          !syncEngine.private.state.hasPendingUntrackedChanges,
+          sourceLocation: SourceLocation(
+            fileID: String(describing: fileID),
+            filePath: String(describing: filePath),
+            line: Int(line),
+            column: Int(column)
+          )
+        )
+        #expect(
+          !syncEngine.shared.state.hasPendingUntrackedChanges,
+          sourceLocation: SourceLocation(
+            fileID: String(describing: fileID),
+            filePath: String(describing: filePath),
+            line: Int(line),
+            column: Int(column)
+          )
+        )
 
         try! syncEngine.metadatabase.read { db in
           try #expect(UnsyncedRecordID.fetchCount(db) == 0)

@@ -10,12 +10,18 @@
   package struct PendingRecordZoneChange {
     @Column(as: CKSyncEngine.PendingRecordZoneChange.DataRepresentation.self)
     package let pendingRecordZoneChange: CKSyncEngine.PendingRecordZoneChange
+    @Column(as: CKDatabase.Scope?.RawRepresentation.self)
+    package let databaseScope: CKDatabase.Scope?
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   extension PendingRecordZoneChange {
-    package init(_ pendingRecordZoneChange: CKSyncEngine.PendingRecordZoneChange) {
+    package init(
+      _ pendingRecordZoneChange: CKSyncEngine.PendingRecordZoneChange,
+      databaseScope: CKDatabase.Scope?
+    ) {
       self.pendingRecordZoneChange = pendingRecordZoneChange
+      self.databaseScope = databaseScope
     }
   }
 
