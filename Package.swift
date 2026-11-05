@@ -53,6 +53,10 @@ let package = Package(
       description: "Introduce SQLiteData conformances to the swift-tagged package."
     ),
     .trait(
+        name: "SQLiteDataSwiftLog",
+        description: "Use swift-log instead of OSLog for logging."
+     ),
+	.trait(
       name: "SQLiteDataTagged",
       description: "A deprecated alias for the 'Tagged' trait.",
       enabledTraits: ["Tagged"]
@@ -87,6 +91,7 @@ let package = Package(
       ]
     ),
     .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
+    .package(url: "https://github.com/apple/swift-log", from: "1.6.0")
   ],
   targets: [
     .target(
@@ -106,6 +111,11 @@ let package = Package(
           package: "swift-tagged",
           condition: .when(traits: ["Tagged"])
         ),
+        .product(
+            name: "Logging",
+            package: "swift-log",
+            condition: .when(traits: ["SQLiteDataSwiftLog"])
+        )
       ]
     ),
     .target(
