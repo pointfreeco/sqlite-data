@@ -165,16 +165,16 @@ extension MockSyncEngineState {
     line: UInt = #line,
     column: UInt = #column
   ) {
-    _pendingRecordZoneChanges.withValue {
+    withState {
       expectNoDifference(
         Set(changes),
-        Set($0),
+        Set($0.pendingRecordZoneChanges),
         fileID: fileID,
         filePath: filePath,
         line: line,
         column: column
       )
-      $0.removeAll()
+      $0.pendingRecordZoneChanges.removeAll()
     }
   }
 
@@ -185,16 +185,16 @@ extension MockSyncEngineState {
     line: UInt = #line,
     column: UInt = #column
   ) {
-    _pendingDatabaseChanges.withValue {
+    withState {
       expectNoDifference(
         Set(changes),
-        Set($0),
+        Set($0.pendingDatabaseChanges),
         fileID: fileID,
         filePath: filePath,
         line: line,
         column: column
       )
-      $0.removeAll()
+      $0.pendingDatabaseChanges.removeAll()
     }
   }
 
