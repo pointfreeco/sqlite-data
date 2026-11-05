@@ -40,6 +40,7 @@
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
     let dataManager = Dependency(\.dataManager)
+    let uuid = Dependency(\.uuid)
     private let observationRegistrar = ObservationRegistrar()
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
@@ -731,10 +732,32 @@
               .select(\._lastKnownServerRecordAllFields)
               .fetchAll(db)
           }
+          var refreshedRecords: [CKRecord.ID: CKRecord] = [:]
+          let recordIDsByDatabaseScope = Dictionary(
+            grouping: lastKnownServerRecords.compactMap { record -> CKRecord.ID? in
+              guard
+                let record,
+                changedColumns.contains(where: {
+                  $0 != T.primaryKey.name && record.hasSet(key: $0) && record[$0] is CKAsset
+                })
+              else { return nil }
+              return record.recordID
+            },
+            by: {
+              $0.zoneID.ownerName == CKCurrentUserDefaultName ? CKDatabase.Scope.private : .shared
+            }
+          )
+          for (scope, recordIDs) in recordIDsByDatabaseScope {
+            try await container.database(for: scope).records(for: recordIDs) { results in
+              for (recordID, result) in results {
+                refreshedRecords[recordID] = try result.get()
+              }
+            }
+          }
           for case .some(let lastKnownServerRecord) in lastKnownServerRecords {
-            let query = try await updateQuery(
+            let query = updateQuery(
               for: table,
-              record: lastKnownServerRecord,
+              record: refreshedRecords[lastKnownServerRecord.recordID] ?? lastKnownServerRecord,
               columnNames: T.TableColumns.writableColumns.map(\.name),
               changedColumnNames: changedColumns
             )
@@ -1504,7 +1527,7 @@
         },
         by: \.recordType
       )
-      .mapValues { $0.map(\.recordID) }
+      .mapValues { OrderedSet($0.map(\.recordID)) }
       for (recordType, recordIDs) in deletedRecordIDsByRecordType {
         if let table = tablesByName[recordType] {
           func open<T>(_: some SynchronizableTable<T>) async {
@@ -1530,10 +1553,8 @@
           }
           await open(table)
         } else if recordType == CKRecord.SystemType.share {
-          for shareRecordID in recordIDs {
-            await withErrorReporting(.sqliteDataCloudKitFailure) {
-              try await deleteShare(shareRecordID: shareRecordID)
-            }
+          await withErrorReporting(.sqliteDataCloudKitFailure) {
+            try await deleteShares(shareRecordIDs: recordIDs)
           }
         } else {
           // NB: Deleting a record from a table we do not currently recognize.
@@ -1548,57 +1569,82 @@
         }
       }
 
-      let unsyncedRecords =
+      struct RecordAndAssets {
+        let record: CKRecord
+        let assets: [String: Data]
+      }
+
+      let modificationRecordIDs = Set(modifications.map(\.recordID))
+      var (cachedUnsyncedRecords, unsyncedRecordIDs): ([RecordAndAssets], Set<CKRecord.ID>) =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          var unsyncedRecordIDs = try await userDatabase.write { db in
-            Set(
-              try UnsyncedRecordID.all
-                .fetchAll(db)
-                .map(CKRecord.ID.init(unsyncedRecordID:))
-            )
-          }
-          let modificationRecordIDs = Set(modifications.map(\.recordID))
-          let unsyncedRecordIDsToDelete = modificationRecordIDs.intersection(unsyncedRecordIDs)
-          unsyncedRecordIDs.subtract(modificationRecordIDs)
-          if !unsyncedRecordIDsToDelete.isEmpty {
-            try await userDatabase.write { db in
+          try await userDatabase.write { db in
+            var unsyncedRecordIDsToDelete: Set<CKRecord.ID> = []
+            var cachedUnsyncedRecords: [RecordAndAssets] = []
+            var unsyncedRecordIDs: Set<CKRecord.ID> = []
+            for unsyncedRecordID in try UnsyncedRecordID.all.fetchAll(db) {
+              let recordID = CKRecord.ID(unsyncedRecordID: unsyncedRecordID)
+              if modificationRecordIDs.contains(recordID) {
+                unsyncedRecordIDsToDelete.insert(recordID)
+              } else if let record = unsyncedRecordID.record?.copy() as? CKRecord {
+                cachedUnsyncedRecords
+                  .append(
+                    RecordAndAssets(
+                      record: record,
+                      assets: unsyncedRecordID.assets
+                    )
+                  )
+              } else {
+                unsyncedRecordIDs.insert(recordID)
+              }
+            }
+            if !unsyncedRecordIDsToDelete.isEmpty {
               try UnsyncedRecordID
                 .findAll(unsyncedRecordIDsToDelete)
                 .delete()
                 .execute(db)
             }
+            return (cachedUnsyncedRecords, unsyncedRecordIDs)
           }
-          let batchSize = 150
-          let orderedUnsyncedRecordIDs = unsyncedRecordIDs.sorted {
-            topologicallyAscending(
-              lhsTableName: $0.tableName,
-              rhsTableName: $1.tableName,
-              rootFirst: true
-            )
+        }
+        ?? ([], [])
+
+      var unsyncedRecords: [CKRecord] = []
+      for recordAndAssets in cachedUnsyncedRecords {
+        let (record, assets) = (recordAndAssets.record, recordAndAssets.assets)
+        do {
+          for (key, data) in assets {
+            let url = URL.temporaryDirectory.appendingPathComponent(uuid.wrappedValue().uuidString)
+            try dataManager.wrappedValue.save(data, to: url)
+            record[key] = CKAsset.init(fileURL: url)
           }
-          var unsyncedRecords: [CKRecord] = []
-          for start in stride(from: 0, to: orderedUnsyncedRecordIDs.count, by: batchSize) {
-            let recordIDsBatch =
-              orderedUnsyncedRecordIDs
-              .dropFirst(start)
-              .prefix(batchSize)
-            let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
-            for (recordID, result) in results {
-              switch result {
-              case .success(let record):
-                unsyncedRecords.append(record)
-              case .failure(let error as CKError) where error.code == .unknownItem:
-                try await userDatabase.write { db in
-                  try UnsyncedRecordID.find(recordID).delete().execute(db)
-                }
-              case .failure:
-                continue
+          unsyncedRecords.append(record)
+        } catch {
+          unsyncedRecordIDs.insert(record.recordID)
+        }
+      }
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        let orderedUnsyncedRecordIDs = unsyncedRecordIDs.sorted {
+          topologicallyAscending(
+            lhsTableName: $0.tableName,
+            rhsTableName: $1.tableName,
+            rootFirst: true
+          )
+        }
+        try await syncEngine.database.records(for: orderedUnsyncedRecordIDs) { results in
+          for (recordID, result) in results {
+            switch result {
+            case .success(let record):
+              unsyncedRecords.append(record)
+            case .failure(let error as CKError) where error.code == .unknownItem:
+              try await userDatabase.write { db in
+                try UnsyncedRecordID.find(recordID).delete().execute(db)
               }
+            case .failure:
+              continue
             }
           }
-          return unsyncedRecords
         }
-        ?? [CKRecord]()
+      }
 
       let modifications = (modifications + unsyncedRecords).sorted { lhs, rhs in
         topologicallyAscending(
@@ -1608,45 +1654,41 @@
         )
       }
 
-      enum ShareOrReference {
-        case share(CKShare)
-        case reference(CKShare.Reference)
-      }
-      let shares: [ShareOrReference] =
+      let (fetchedShares, shareRecordIDs): ([CKShare], Set<CKRecord.ID>) =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
           try await userDatabase.write { db in
-            var shares: [ShareOrReference] = []
+            var fetchedShares: [CKShare] = []
+            var shareRecordIDs: Set<CKRecord.ID> = []
             for record in modifications {
               if let share = record as? CKShare {
-                shares.append(.share(share))
+                fetchedShares.append(share)
               } else {
                 upsertFromServerRecord(record, db: db)
                 if let shareReference = record.share {
-                  shares.append(.reference(shareReference))
+                  shareRecordIDs.insert(shareReference.recordID)
                 }
               }
             }
-            return shares
+            shareRecordIDs.subtract(fetchedShares.map(\.recordID))
+            return (fetchedShares, shareRecordIDs)
           }
         }
-        ?? []
+        ?? ([], [])
+
+      var shares = fetchedShares
+      try? await syncEngine.database.records(for: Array(shareRecordIDs)) { results in
+        for result in results.values {
+          guard let share = try? result.get() as? CKShare
+          else { continue }
+          shares.append(share)
+        }
+      }
 
       await withTaskGroup(of: Void.self) { group in
         for share in shares {
           group.addTask {
-            switch share {
-            case .share(let share):
-              await withErrorReporting(.sqliteDataCloudKitFailure) {
-                try await self.cacheShare(share)
-              }
-            case .reference(let shareReference):
-              guard
-                let record = try? await syncEngine.database.record(for: shareReference.recordID),
-                let share = record as? CKShare
-              else { return }
-              await withErrorReporting(.sqliteDataCloudKitFailure) {
-                try await self.cacheShare(share)
-              }
+            await withErrorReporting(.sqliteDataCloudKitFailure) {
+              try await self.cacheShare(share)
             }
           }
         }
@@ -1691,7 +1733,7 @@
         syncEngine.state.add(pendingDatabaseChanges: newPendingDatabaseChanges)
         syncEngine.state.add(pendingRecordZoneChanges: newPendingRecordZoneChanges)
       }
-
+      var permissionFailedRecordTypes: [CKRecord.ID: String] = [:]
       for (failedRecord, error) in failedRecordSaves {
         func clearServerRecord() async {
           await withErrorReporting(.sqliteDataCloudKitFailure) {
@@ -1786,28 +1828,10 @@
 
         case .permissionFailure:
           guard
-            let recordPrimaryKey = failedRecord.recordID.recordPrimaryKey,
-            let table = tablesByName[failedRecord.recordType]
+            failedRecord.recordID.recordPrimaryKey != nil,
+            tablesByName[failedRecord.recordType] != nil
           else { continue }
-          func open<T>(_: some SynchronizableTable<T>) async throws {
-            do {
-              let serverRecord = try await container.sharedCloudDatabase.record(
-                for: failedRecord.recordID
-              )
-              await upsertFromServerRecord(serverRecord, force: true)
-            } catch let error as CKError where error.code == .unknownItem {
-              try await userDatabase.write { db in
-                try T
-                  .unscoped
-                  .where { #sql("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
-                  .delete()
-                  .execute(db)
-              }
-            }
-          }
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await open(table)
-          }
+          permissionFailedRecordTypes[failedRecord.recordID] = failedRecord.recordType
 
         case .batchRequestFailed:
           newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
@@ -1841,6 +1865,36 @@
         #endif
         @unknown default:
           continue
+        }
+      }
+
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await container.sharedCloudDatabase.records(
+          for: Array(permissionFailedRecordTypes.keys)
+        ) { results in
+          for (recordID, result) in results {
+            await withErrorReporting(.sqliteDataCloudKitFailure) {
+              do {
+                await upsertFromServerRecord(try result.get(), force: true)
+              } catch let error as CKError where error.code == .unknownItem {
+                guard
+                  let recordPrimaryKey = recordID.recordPrimaryKey,
+                  let recordType = permissionFailedRecordTypes[recordID],
+                  let table = tablesByName[recordType]
+                else { return }
+                func open<T>(_: some SynchronizableTable<T>) async throws {
+                  try await userDatabase.write { db in
+                    try T
+                      .unscoped
+                      .where { #sql("\($0.primaryKey) = \(bind: recordPrimaryKey)") }
+                      .delete()
+                      .execute(db)
+                  }
+                }
+                try await open(table)
+              }
+            }
+          }
         }
       }
 
@@ -1930,7 +1984,9 @@
     }
 
     private func cacheShare(_ share: CKShare) async throws {
-      let metadata = try await container.shareMetadata(for: share, shouldFetchRootRecord: false)
+      let metadata = try await withRateLimiting {
+        try await container.shareMetadata(for: share, shouldFetchRootRecord: false)
+      }
       guard let rootRecordID = metadata.hierarchicalRootRecordID
       else { return }
       try await userDatabase.write { db in
@@ -1941,34 +1997,36 @@
       }
     }
 
-    func deleteShare(shareRecordID: CKRecord.ID) async throws {
-      let shareAndRecordNameAndZone = try await metadatabase.read { db in
+    func deleteShares(shareRecordIDs: OrderedSet<CKRecord.ID>) async throws {
+      let rootRecordIDs = try await metadatabase.read { db in
         try SyncMetadata
           .where(\.isShared)
           .select { ($0.share, $0.recordName, $0.zoneName, $0.ownerName) }
           .fetchAll(db)
-          .first(where: { share, _, _, _ in share?.recordID == shareRecordID }) ?? nil
-      }
-      guard let (_, recordName, zoneName, ownerName) = shareAndRecordNameAndZone
-      else { return }
-      let rootRecordID = CKRecord.ID(
-        recordName: recordName,
-        zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
-      )
-      let rootRecord = try await container.privateCloudDatabase.record(for: rootRecordID)
-      try await userDatabase.write { db in
-        try SyncMetadata
-          .find(
-            CKRecord.ID(
+          .compactMap { share, recordName, zoneName, ownerName -> CKRecord.ID? in
+            guard let share, shareRecordIDs.contains(share.recordID)
+            else { return nil }
+            return CKRecord.ID(
               recordName: recordName,
               zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: ownerName)
             )
-          )
-          .update {
-            $0.setLastKnownServerRecord(rootRecord)
-            $0.share = #bind(nil)
           }
-          .execute(db)
+      }
+      try await container.privateCloudDatabase.records(for: rootRecordIDs) { results in
+        try await userDatabase.write { db in
+          for (rootRecordID, result) in results {
+            withErrorReporting(.sqliteDataCloudKitFailure) {
+              let rootRecord = try result.get()
+              try SyncMetadata
+                .find(rootRecordID)
+                .update {
+                  $0.setLastKnownServerRecord(rootRecord)
+                  $0.share = #bind(nil)
+                }
+                .execute(db)
+            }
+          }
+        }
       }
     }
 
@@ -2064,8 +2122,12 @@
               throw error
             }
             try UnsyncedRecordID.insert {
-              UnsyncedRecordID(recordID: serverRecord.recordID)
-            } onConflictDoUpdate: { _ in
+              UnsyncedRecordID(record: serverRecord)
+            } onConflict: {
+              ($0.recordName, $0.zoneName, $0.ownerName)
+            } doUpdate: {
+              $0.assets = $1.assets
+              $0.record = $1.record
             }
             .execute(db)
           }
@@ -2101,7 +2163,7 @@
       record: CKRecord,
       columnNames: some Collection<String>,
       changedColumnNames: some Collection<String>
-    ) async throws -> QueryFragment {
+    ) -> QueryFragment {
       let nonPrimaryKeyChangedColumns =
         changedColumnNames
         .filter {
@@ -2112,14 +2174,6 @@
       else {
         return ""
       }
-      var record = record
-      let recordHasAsset = nonPrimaryKeyChangedColumns.contains { columnName in
-        record[columnName] is CKAsset
-      }
-      if recordHasAsset {
-        record = try await container.database(for: record.recordID).record(for: record.recordID)
-      }
-
       var query: QueryFragment = "INSERT INTO \(T.self) ("
       query.append(columnNames.map { "\(quote: $0)" }.joined(separator: ", "))
       query.append(") VALUES (")

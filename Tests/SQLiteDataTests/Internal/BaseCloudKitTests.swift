@@ -17,6 +17,7 @@
       $0.continuousClock = TestClock<Duration>()
       $0.cloudKitClock = TestClock<Duration>()
       $0.dataManager = InMemoryDataManager()
+      $0.uuid = .incrementing
     },
     .taskLocal($attachMetadatabase, false)
   )

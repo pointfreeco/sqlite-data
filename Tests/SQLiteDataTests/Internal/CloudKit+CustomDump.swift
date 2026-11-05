@@ -54,9 +54,12 @@
             : rhs
           return (baseLHS, lhsHasPrefix ? 1 : 0) < (baseRHS, rhsHasPrefix ? 1 : 0)
         }
-      let nonEncryptedKeys = Set(allKeys())
+      var nonEncryptedKeys = Set(allKeys())
         .subtracting(encryptedValues.allKeys())
         .subtracting(["_recordChangeTag"])
+      if self is CKShare {
+        nonEncryptedKeys.insert(CKShare.SystemFieldKey.title)
+      }
       var baseChildren = [
         ("recordID", recordID as Any),
         ("recordType", recordType as Any),

@@ -56,6 +56,18 @@
     ) async throws -> [CKRecord.ID: Result<CKRecord, any Error>] {
       try await records(for: ids, desiredKeys: nil)
     }
+
+    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
+    package func records(
+      for ids: [CKRecord.ID],
+      batchSize: Int = 150,
+      forEachBatch body: ([CKRecord.ID: Result<CKRecord, any Error>]) async throws -> Void
+    ) async throws {
+      for start in stride(from: 0, to: ids.count, by: batchSize) {
+        let batch = Array(ids[start..<min(start + batchSize, ids.count)])
+        try await body(withRateLimiting { try await records(for: batch) })
+      }
+    }
   }
 
   extension CKDatabase: CloudDatabase {}
@@ -79,7 +91,7 @@
       for ids: [CKRecord.ID],
       desiredKeys: [CKRecord.FieldKey]?
     ) async throws -> [CKRecord.ID: Result<CKRecord, any Error>] {
-      try await rawValue.records(for: ids)
+      try await rawValue.records(for: ids, desiredKeys: desiredKeys)
     }
 
     @available(macOS 12, iOS 15, tvOS 15, watchOS 8, *)
@@ -109,7 +121,9 @@
       deleteResults: [CKRecordZone.ID: Result<Void, any Error>]
     ) {
       try await rawValue.modifyRecordZones(
-        saving: recordZonesToSave, deleting: recordZoneIDsToDelete)
+        saving: recordZonesToSave,
+        deleting: recordZoneIDsToDelete
+      )
     }
 
     static func == (lhs: AnyCloudDatabase, rhs: AnyCloudDatabase) -> Bool {
