@@ -2170,10 +2170,12 @@
       case .deleteRecord(let id):
         return id
       @unknown default:
-        reportIssue("""
+        reportIssue(
+          """
           Unrecognized 'PendingRecordZoneChange'. Open an issue on \
           https://github.com/pointfreeco/sqlite-data if you run into this.
-          """)
+          """
+        )
         return nil
       }
     }
@@ -2202,11 +2204,11 @@
     }
   }
 
-extension CKRecordZone.ID {
-  fileprivate var databaseScope: CKDatabase.Scope {
-    ownerName == CKCurrentUserDefaultName ? .private : .shared
+  extension CKRecordZone.ID {
+    fileprivate var databaseScope: CKDatabase.Scope {
+      ownerName == CKCurrentUserDefaultName ? .private : .shared
+    }
   }
-}
 
   extension String {
     package static let sqliteDataCloudKitSchemaName = "sqlitedata_icloud"
