@@ -249,7 +249,7 @@
               {
                 parentRecord._recordChangeTag = state.nextRecordChangeTag()
                 parentRecord._modificationDate = Date(
-                  timeIntervalSince1970: Double(now.wrappedValue)
+                  timeIntervalSinceReferenceDate: Double(now.wrappedValue)
                 )
                 state.storage[parent.recordID.zoneID]?.records[parent.recordID] = parentRecord
               }
