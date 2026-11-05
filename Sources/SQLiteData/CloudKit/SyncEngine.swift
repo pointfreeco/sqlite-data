@@ -594,7 +594,12 @@
       }
       guard let privateSyncEngine, let sharedSyncEngine
       else { return }
-      try await enqueueLocallyPendingChanges()
+      privateSyncEngine.state.hasPendingUntrackedChanges = true
+      sharedSyncEngine.state.hasPendingUntrackedChanges = true
+      defer {
+        privateSyncEngine.state.hasPendingUntrackedChanges = false
+        sharedSyncEngine.state.hasPendingUntrackedChanges = false
+      }
       async let `private`: Void = privateSyncEngine.sendChanges(options)
       async let shared: Void = sharedSyncEngine.sendChanges(options)
       _ = try await (`private`, shared)
@@ -644,24 +649,30 @@
       }
     }
 
-    private func enqueueLocallyPendingChanges() async throws {
-      let pendingRecordZoneChanges = try await metadatabase.write { db in
+    private func enqueueLocallyPendingChanges(scope: CKDatabase.Scope? = nil) async throws {
+      let pendingRecordZoneChanges = try await userDatabase.write { db in
         try PendingRecordZoneChange
+          .where {
+            $0.databaseScope.is(#bind(scope))
+              .or(#bind(scope, as: CKDatabase.Scope?.RawRepresentation.self).is(nil))
+          }
           .delete()
           .returning(\.pendingRecordZoneChange)
           .fetchAll(db)
       }
-      let changesByIsPrivate = Dictionary(grouping: pendingRecordZoneChanges) {
+      let changesByScope = [CKDatabase.Scope?: _](grouping: pendingRecordZoneChanges) {
         switch $0 {
         case .deleteRecord(let recordID), .saveRecord(let recordID):
           recordID.zoneID.ownerName == CKCurrentUserDefaultName
+            ? CKDatabase.Scope.private
+            : .shared
         @unknown default:
-          false
+          nil
         }
       }
       syncEngines.withValue {
-        $0.private?.state.add(pendingRecordZoneChanges: changesByIsPrivate[true] ?? [])
-        $0.shared?.state.add(pendingRecordZoneChanges: changesByIsPrivate[false] ?? [])
+        $0.private?.state.add(pendingRecordZoneChanges: changesByScope[.private] ?? [])
+        $0.shared?.state.add(pendingRecordZoneChanges: changesByScope[.shared] ?? [])
       }
     }
 
@@ -853,7 +864,10 @@
               try PendingRecordZoneChange
                 .insert {
                   for change in changes {
-                    PendingRecordZoneChange(change)
+                    PendingRecordZoneChange(
+                      change,
+                      databaseScope: change.id?.zoneID.databaseScope
+                    )
                   }
                 }
                 .execute(db)
@@ -895,7 +909,14 @@
           await withErrorReporting(.sqliteDataCloudKitFailure) {
             try await userDatabase.write { db in
               try PendingRecordZoneChange
-                .insert { changes.map { PendingRecordZoneChange($0) } }
+                .insert {
+                  changes.map { change in
+                    PendingRecordZoneChange(
+                      change,
+                      databaseScope: change.id?.zoneID.databaseScope
+                    )
+                  }
+                }
                 .execute(db)
             }
           }
@@ -1110,7 +1131,6 @@
       var changes = await pendingRecordZoneChanges(options: options, syncEngine: syncEngine)
       guard !changes.isEmpty
       else { return nil }
-
       changes.sort { lhs, rhs in
         switch (lhs, rhs) {
         case (.saveRecord(let lhs), .saveRecord(let rhs)):
@@ -1261,6 +1281,9 @@
       options: CKSyncEngine.SendChangesOptions,
       syncEngine: any SyncEngineProtocol
     ) async -> [CKSyncEngine.PendingRecordZoneChange] {
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        try await enqueueLocallyPendingChanges(scope: syncEngine.database.databaseScope)
+      }
       var changes = syncEngine.state.pendingRecordZoneChanges.filter(options.scope.contains)
       guard !changes.isEmpty
       else { return [] }
@@ -1816,9 +1839,12 @@
 
         case .quotaExceeded:
           await withErrorReporting {
-            try await metadatabase.write { db in
+            try await userDatabase.write { db in
               try PendingRecordZoneChange.insert {
-                PendingRecordZoneChange(.saveRecord(failedRecord.recordID))
+                PendingRecordZoneChange(
+                  .saveRecord(failedRecord.recordID),
+                  databaseScope: failedRecord.recordID.zoneID.databaseScope
+                )
               }
               .execute(db)
             }
@@ -1942,7 +1968,7 @@
           scope: syncEngine.database.databaseScope
         )
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          try await enqueueLocallyPendingChanges()
+          try await enqueueLocallyPendingChanges(scope: syncEngine.database.databaseScope)
         }
       }
       func updateQuotaExceeded(isExceeded: Bool, scope: CKDatabase.Scope) {
@@ -2200,6 +2226,12 @@
       case .deleteRecord(let id):
         return id
       @unknown default:
+        reportIssue(
+          """
+          Unrecognized 'PendingRecordZoneChange'. Open an issue at \
+          https://github.com/pointfreeco/sqlite-data if you run into this.
+          """
+        )
         return nil
       }
     }
@@ -2225,6 +2257,12 @@
         !recordPrimaryKeyBytes.isEmpty
       else { return nil }
       return String(Substring(recordPrimaryKeyBytes))
+    }
+  }
+
+  extension CKRecordZone.ID {
+    fileprivate var databaseScope: CKDatabase.Scope {
+      ownerName == CKCurrentUserDefaultName ? .private : .shared
     }
   }
 

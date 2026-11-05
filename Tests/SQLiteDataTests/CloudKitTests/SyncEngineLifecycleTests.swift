@@ -201,11 +201,12 @@
 
           assertQuery(PendingRecordZoneChange.all, database: syncEngine.metadatabase) {
             """
-            ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-            │ PendingRecordZoneChange(                                                                    │
-            │   pendingRecordZoneChange: .saveRecord(CKRecord.ID(1:remindersLists/zone/__defaultOwner__)) │
-            │ )                                                                                           │
-            └─────────────────────────────────────────────────────────────────────────────────────────────┘
+            ┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+            │ PendingRecordZoneChange(                                                                     │
+            │   pendingRecordZoneChange: .saveRecord(CKRecord.ID(1:remindersLists/zone/__defaultOwner__)), │
+            │   databaseScope: .private                                                                    │
+            │ )                                                                                            │
+            └──────────────────────────────────────────────────────────────────────────────────────────────┘
             """
           }
           assertQuery(RemindersList.all, database: userDatabase.database) {
