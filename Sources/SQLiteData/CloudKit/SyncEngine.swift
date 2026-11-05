@@ -598,6 +598,8 @@
       async let `private`: Void = privateSyncEngine.sendChanges(options)
       async let shared: Void = sharedSyncEngine.sendChanges(options)
       _ = try await (`private`, shared)
+      // TODO: revert hasPendingUntrackedChanges
+      // TODO: fail in deinit of base test if hasPendingUntrackedChanges is true
     }
 
     /// Synchronizes local and remote pending changes.
