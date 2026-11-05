@@ -593,7 +593,8 @@
       }
       guard let privateSyncEngine, let sharedSyncEngine
       else { return }
-      try await enqueueLocallyPendingChanges()
+      privateSyncEngine.state.hasPendingUntrackedChanges = true
+      sharedSyncEngine.state.hasPendingUntrackedChanges = true
       async let `private`: Void = privateSyncEngine.sendChanges(options)
       async let shared: Void = sharedSyncEngine.sendChanges(options)
       _ = try await (`private`, shared)
@@ -646,6 +647,10 @@
     private func enqueueLocallyPendingChanges(scope: CKDatabase.Scope? = nil) async throws {
       let pendingRecordZoneChanges = try await metadatabase.write { db in
         try PendingRecordZoneChange
+          .where {
+            $0.databaseScope.is(#bind(scope))
+              .or(BindQueryExpression(scope, as: CKDatabase.Scope?.RawRepresentation.self).is(nil))
+          }
           .delete()
           .returning(\.pendingRecordZoneChange)
           .fetchAll(db)
@@ -660,24 +665,9 @@
           nil
         }
       }
-      switch scope {
-      case .private:
-        syncEngines.withValue {
-          $0.private?.state.add(pendingRecordZoneChanges: changesByScope[.private] ?? [])
-        }
-      case .shared:
-        syncEngines.withValue {
-          $0.shared?.state.add(pendingRecordZoneChanges: changesByScope[.shared] ?? [])
-        }
-      case .none:
-        syncEngines.withValue {
-          $0.private?.state.add(pendingRecordZoneChanges: changesByScope[.private] ?? [])
-          $0.shared?.state.add(pendingRecordZoneChanges: changesByScope[.shared] ?? [])
-        }
-      case .public:
-        fatalError("Only 'private' and 'shared' scopes are supported.")
-      @unknown default:
-        fatalError("Only 'private' and 'shared' scopes are supported.")
+      syncEngines.withValue {
+        $0.private?.state.add(pendingRecordZoneChanges: changesByScope[.private] ?? [])
+        $0.shared?.state.add(pendingRecordZoneChanges: changesByScope[.shared] ?? [])
       }
     }
 
@@ -847,7 +837,10 @@
               try PendingRecordZoneChange
                 .insert {
                   for change in changes {
-                    PendingRecordZoneChange(change)
+                    PendingRecordZoneChange(
+                      change,
+                      databaseScope: change.id?.zoneID.databaseScope
+                    )
                   }
                 }
                 .execute(db)
@@ -889,7 +882,14 @@
           await withErrorReporting(.sqliteDataCloudKitFailure) {
             try await userDatabase.write { db in
               try PendingRecordZoneChange
-                .insert { changes.map { PendingRecordZoneChange($0) } }
+                .insert {
+                  changes.map { change in
+                    PendingRecordZoneChange(
+                      change,
+                      databaseScope: change.id?.zoneID.databaseScope
+                    )
+                  }
+                }
                 .execute(db)
             }
           }
@@ -1813,7 +1813,10 @@
           await withErrorReporting {
             try await metadatabase.write { db in
               try PendingRecordZoneChange.insert {
-                PendingRecordZoneChange(.saveRecord(failedRecord.recordID))
+                PendingRecordZoneChange(
+                  .saveRecord(failedRecord.recordID),
+                  databaseScope: failedRecord.recordID.zoneID.databaseScope
+                )
               }
               .execute(db)
             }
@@ -2165,6 +2168,9 @@
       case .deleteRecord(let id):
         return id
       @unknown default:
+        reportIssue("""
+          Unrecognized PendingRecordZoneChange
+          """)
         return nil
       }
     }
@@ -2192,6 +2198,12 @@
       return String(Substring(recordPrimaryKeyBytes))
     }
   }
+
+extension CKRecordZone.ID {
+  fileprivate var databaseScope: CKDatabase.Scope {
+    ownerName == CKCurrentUserDefaultName ? .private : .shared
+  }
+}
 
   extension String {
     package static let sqliteDataCloudKitSchemaName = "sqlitedata_icloud"

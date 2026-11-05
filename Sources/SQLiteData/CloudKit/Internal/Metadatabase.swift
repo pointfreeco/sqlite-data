@@ -138,6 +138,15 @@
       )
       .execute(db)
     }
+    migrator.registerMigration("Add 'databaseScope' to 'pendingRecordZoneChanges'") { db in
+      try #sql(
+        """
+        ALTER TABLE "\(raw: .sqliteDataCloudKitSchemaName)_pendingRecordZoneChanges"
+        ADD COLUMN "databaseScope" INTEGER
+        """
+      )
+      .execute(db)
+    }
     #if DEBUG
       try metadatabase.read { db in
         let hasSchemaChanges = try migrator.hasSchemaChanges(db)
