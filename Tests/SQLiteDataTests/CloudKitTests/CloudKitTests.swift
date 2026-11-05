@@ -601,12 +601,44 @@
         }
         #expect(remindersList?.title == "Reinserted")
 
-        withKnownIssue {
-          let record = try container.privateCloudDatabase.record(
-            for: RemindersList.recordID(for: 1)
-          )
-          #expect(record.encryptedValues["title"] as? String == "Reinserted")
+        let record = try container.privateCloudDatabase.record(
+          for: RemindersList.recordID(for: 1)
+        )
+        #expect(record.encryptedValues["title"] as? String == "Reinserted")
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.bug("https://github.com/pointfreeco/sqlite-data/issues/418"))
+      func `reinserting a deleted record with a new parent before sending updates its parent`()
+        async throws
+      {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            RemindersList(id: 2, title: "Work")
+            Reminder(id: 1, title: "Groceries", remindersListID: 1)
+          }
         }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await userDatabase.userWrite { db in
+          try Reminder.find(1).delete().execute(db)
+        }
+        try await userDatabase.userWrite { db in
+          try Reminder.insert {
+            Reminder(id: 1, title: "Groceries", remindersListID: 2)
+          }
+          .execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let metadata = try await syncEngine.metadatabase.read { db in
+          try SyncMetadata.find(Reminder.recordID(for: 1)).fetchOne(db)
+        }
+        #expect(metadata?.parentRecordName == RemindersList.recordName(for: 2))
+
+        let record = try container.privateCloudDatabase.record(for: Reminder.recordID(for: 1))
+        #expect(record.parent?.recordID == RemindersList.recordID(for: 2))
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)

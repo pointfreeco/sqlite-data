@@ -412,6 +412,93 @@
           """
         }
       }
+      
+      // * Delete asset row, then insert a new asset row with the same primary key before sending
+      // => New asset is saved to CloudKit
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.bug("https://github.com/pointfreeco/sqlite-data/issues/418"))
+      func deleteThenReinsertAsset() async throws {
+        try await seedRemindersListWithAsset()
+
+        try await userDatabase.userWrite { db in
+          try RemindersListAsset.find(1).delete().execute(db)
+        }
+        try await userDatabase.userWrite { db in
+          try RemindersListAsset.insert {
+            RemindersListAsset(remindersListID: 1, coverImage: Data("new-image".utf8))
+          }
+          .execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        #expect(try cloudKitCoverImage(remindersListID: 1) == Data("new-image".utf8))
+      }
+
+      // * Delete and reinsert asset row in a single transaction before sending
+      // => New asset is saved to CloudKit
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.bug("https://github.com/pointfreeco/sqlite-data/issues/418"))
+      func deleteThenReinsertAsset_SameTransaction() async throws {
+        try await seedRemindersListWithAsset()
+
+        try await userDatabase.userWrite { db in
+          try RemindersListAsset.find(1).delete().execute(db)
+          try RemindersListAsset.insert {
+            RemindersListAsset(remindersListID: 1, coverImage: Data("new-image".utf8))
+          }
+          .execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        #expect(try cloudKitCoverImage(remindersListID: 1) == Data("new-image".utf8))
+      }
+
+      // * Delete reminders list (cascading to its asset), then reinsert both before sending
+      // => List and new asset are saved to CloudKit
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.bug("https://github.com/pointfreeco/sqlite-data/issues/418"))
+      func deleteThenReinsertParentAndAsset() async throws {
+        try await seedRemindersListWithAsset()
+
+        try await userDatabase.userWrite { db in
+          try RemindersList.find(1).delete().execute(db)
+        }
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            RemindersListAsset(remindersListID: 1, coverImage: Data("new-image".utf8))
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        #expect(
+          try container.privateCloudDatabase.record(for: RemindersList.recordID(for: 1))
+            .encryptedValues["title"] as? String == "Personal"
+        )
+        #expect(try cloudKitCoverImage(remindersListID: 1) == Data("new-image".utf8))
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      private func seedRemindersListWithAsset() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            RemindersListAsset(remindersListID: 1, coverImage: Data("image".utf8))
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        #expect(try cloudKitCoverImage(remindersListID: 1) == Data("image".utf8))
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      private func cloudKitCoverImage(remindersListID: Int) throws -> Data? {
+        let record = try container.privateCloudDatabase.record(
+          for: RemindersListAsset.recordID(for: remindersListID)
+        )
+        guard let asset = record["coverImage"] as? CKAsset, let fileURL = asset.fileURL
+        else { return nil }
+        return inMemoryDataManager.storage.withValue { $0[fileURL] }
+      }
     }
   }
 #endif

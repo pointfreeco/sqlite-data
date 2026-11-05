@@ -206,7 +206,15 @@
           parentRecordPrimaryKey,
           parentRecordType
         )
-      } onConflictDoUpdate: { _ in
+      } onConflictDoUpdate: {
+        $0._isDeleted = false
+        $0.userModificationTime = $currentTime()
+        $0.zoneName = zoneName ?? $0.zoneName
+        $0.ownerName = ownerName ?? $0.ownerName
+        $0.parentRecordPrimaryKey = parentRecordPrimaryKey
+        $0.parentRecordType = parentRecordType
+      } where: {
+        $0._isDeleted
       }
     }
 
@@ -325,7 +333,7 @@
             )
           )
         } when: { old, new in
-          old._isDeleted.eq(new._isDeleted) && !SyncEngine.$isSynchronizing
+          !new._isDeleted && !SyncEngine.$isSynchronizing
         }
       )
     }
