@@ -581,6 +581,36 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.bug("https://github.com/pointfreeco/sqlite-data/issues/418"))
+      func `reinserting a deleted record before sending saves it to CloudKit`() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed { RemindersList(id: 1, title: "Original") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await userDatabase.userWrite { db in
+          try RemindersList.find(1).delete().execute(db)
+        }
+        try await userDatabase.userWrite { db in
+          try RemindersList.insert { RemindersList(id: 1, title: "Reinserted") }.execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let remindersList = try await userDatabase.read { db in
+          try RemindersList.find(1).fetchOne(db)
+        }
+        #expect(remindersList?.title == "Reinserted")
+
+        withKnownIssue {
+          let record = try #require(
+            try? container.privateCloudDatabase.record(for: RemindersList.recordID(for: 1)),
+            "Reinserted record is missing from CloudKit"
+          )
+          #expect(record.encryptedValues["title"] as? String == "Reinserted")
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func remoteServerRecordUpdate() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
