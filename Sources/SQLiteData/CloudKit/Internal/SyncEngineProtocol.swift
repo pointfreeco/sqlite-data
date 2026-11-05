@@ -22,6 +22,7 @@
   package protocol CKSyncEngineStateProtocol: Sendable {
     var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] { get }
     var pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] { get }
+    var hasPendingUntrackedChanges: Bool { get nonmutating set }
     func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange])
     func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange])
     func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange])

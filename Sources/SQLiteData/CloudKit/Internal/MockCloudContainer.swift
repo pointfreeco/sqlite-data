@@ -36,10 +36,6 @@
       fatalError("This should never be called in tests.")
     }
 
-    package func accountStatus() async throws -> CKAccountStatus {
-      _accountStatus.withValue { $0 }
-    }
-
     package func shareMetadata(
       for share: CKShare,
       shouldFetchRootRecord: Bool
