@@ -40,6 +40,7 @@
         -> (private: any SyncEngineProtocol, shared: any SyncEngineProtocol)
     package let container: any CloudContainer
     let dataManager = Dependency(\.dataManager)
+    let uuid = Dependency(\.uuid)
     private let observationRegistrar = ObservationRegistrar()
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
     private let activityCounts = LockIsolated(ActivityCounts())
@@ -1525,57 +1526,88 @@
         }
       }
 
-      let unsyncedRecords =
+      struct RecordAndAssets {
+        let record: CKRecord
+        let assets: [String: Data]
+      }
+
+      let modificationRecordIDs = Set(modifications.map(\.recordID))
+      var (cachedUnsyncedRecords, unsyncedRecordIDs): ([RecordAndAssets], Set<CKRecord.ID>) =
         await withErrorReporting(.sqliteDataCloudKitFailure) {
-          var unsyncedRecordIDs = try await userDatabase.write { db in
-            Set(
-              try UnsyncedRecordID.all
-                .fetchAll(db)
-                .map(CKRecord.ID.init(unsyncedRecordID:))
-            )
-          }
-          let modificationRecordIDs = Set(modifications.map(\.recordID))
-          let unsyncedRecordIDsToDelete = modificationRecordIDs.intersection(unsyncedRecordIDs)
-          unsyncedRecordIDs.subtract(modificationRecordIDs)
-          if !unsyncedRecordIDsToDelete.isEmpty {
-            try await userDatabase.write { db in
+          try await userDatabase.write { db in
+            var unsyncedRecordIDsToDelete: Set<CKRecord.ID> = []
+            var cachedUnsyncedRecords: [RecordAndAssets] = []
+            var unsyncedRecordIDs: Set<CKRecord.ID> = []
+            for unsyncedRecordID in try UnsyncedRecordID.all.fetchAll(db) {
+              let recordID = CKRecord.ID(unsyncedRecordID: unsyncedRecordID)
+              if modificationRecordIDs.contains(recordID) {
+                unsyncedRecordIDsToDelete.insert(recordID)
+              } else if let record = unsyncedRecordID.record?.copy() as? CKRecord {
+                cachedUnsyncedRecords
+                  .append(
+                    RecordAndAssets(
+                      record: record,
+                      assets: unsyncedRecordID.assets
+                    )
+                  )
+              } else {
+                unsyncedRecordIDs.insert(recordID)
+              }
+            }
+            if !unsyncedRecordIDsToDelete.isEmpty {
               try UnsyncedRecordID
                 .findAll(unsyncedRecordIDsToDelete)
                 .delete()
                 .execute(db)
             }
+            return (cachedUnsyncedRecords, unsyncedRecordIDs)
           }
-          let batchSize = 150
-          let orderedUnsyncedRecordIDs = unsyncedRecordIDs.sorted {
-            topologicallyAscending(
-              lhsTableName: $0.tableName,
-              rhsTableName: $1.tableName,
-              rootFirst: true
-            )
+        }
+        ?? ([], [])
+
+      var unsyncedRecords: [CKRecord] = []
+      for recordAndAssets in cachedUnsyncedRecords {
+        let (record, assets) = (recordAndAssets.record, recordAndAssets.assets)
+        do {
+          for (key, data) in assets {
+            let url = URL.temporaryDirectory.appendingPathComponent(uuid.wrappedValue().uuidString)
+            try dataManager.wrappedValue.save(data, to: url)
+            record[key] = CKAsset.init(fileURL: url)
           }
-          var unsyncedRecords: [CKRecord] = []
-          for start in stride(from: 0, to: orderedUnsyncedRecordIDs.count, by: batchSize) {
-            let recordIDsBatch =
-              orderedUnsyncedRecordIDs
-              .dropFirst(start)
-              .prefix(batchSize)
-            let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
-            for (recordID, result) in results {
-              switch result {
-              case .success(let record):
-                unsyncedRecords.append(record)
-              case .failure(let error as CKError) where error.code == .unknownItem:
-                try await userDatabase.write { db in
-                  try UnsyncedRecordID.find(recordID).delete().execute(db)
-                }
-              case .failure:
-                continue
+          unsyncedRecords.append(record)
+        } catch {
+          unsyncedRecordIDs.insert(record.recordID)
+        }
+      }
+      await withErrorReporting(.sqliteDataCloudKitFailure) {
+        let batchSize = 150
+        let orderedUnsyncedRecordIDs = unsyncedRecordIDs.sorted {
+          topologicallyAscending(
+            lhsTableName: $0.tableName,
+            rhsTableName: $1.tableName,
+            rootFirst: true
+          )
+        }
+        for start in stride(from: 0, to: orderedUnsyncedRecordIDs.count, by: batchSize) {
+          let recordIDsBatch =
+            orderedUnsyncedRecordIDs
+            .dropFirst(start)
+            .prefix(batchSize)
+          let results = try await syncEngine.database.records(for: Array(recordIDsBatch))
+          for (recordID, result) in results {
+            switch result {
+            case .success(let record):
+              unsyncedRecords.append(record)
+            case .failure(let error as CKError) where error.code == .unknownItem:
+              try await userDatabase.write { db in
+                try UnsyncedRecordID.find(recordID).delete().execute(db)
               }
+            case .failure:
+              continue
             }
           }
-          return unsyncedRecords
         }
-        ?? [CKRecord]()
+      }
 
       let modifications = (modifications + unsyncedRecords).sorted { lhs, rhs in
         topologicallyAscending(
@@ -2038,8 +2070,12 @@
               throw error
             }
             try UnsyncedRecordID.insert {
-              UnsyncedRecordID(recordID: serverRecord.recordID)
-            } onConflictDoUpdate: { _ in
+              UnsyncedRecordID(record: serverRecord)
+            } onConflict: {
+              ($0.recordName, $0.zoneName, $0.ownerName)
+            } doUpdate: {
+              $0.assets = $1.assets
+              $0.record = $1.record
             }
             .execute(db)
           }
