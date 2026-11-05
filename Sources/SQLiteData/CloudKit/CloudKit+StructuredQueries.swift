@@ -1,0 +1,416 @@
+#if canImport(CloudKit)
+  public import CloudKit
+  import CryptoKit
+  import Dependencies
+  import IssueReporting
+  public import StructuredQueriesCore
+
+  extension CKRecord {
+    public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<CKRecord>
+    public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKRecord>
+  }
+
+  extension CKShare {
+    public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<CKShare>
+    public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<CKShare>
+  }
+
+  extension Optional where Wrapped: CKRecord {
+    public typealias _AllFieldsRepresentation = SQLiteData._AllFieldsRepresentation<Wrapped>?
+    public typealias SystemFieldsRepresentation = _SystemFieldsRepresentation<Wrapped>?
+  }
+
+  public struct _SystemFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
+    public let queryOutput: Record
+
+    public var queryBinding: QueryBinding {
+      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
+      queryOutput.encodeSystemFields(with: archiver)
+      if isTesting {
+        archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
+        archiver.encode(queryOutput._modificationDate, forKey: "_modificationDate")
+        if queryOutput is CKShare {
+          archiver.encode(queryOutput[CKShare.SystemFieldKey.title], forKey: CKShare.SystemFieldKey.title)
+        }
+      }
+      return archiver.encodedData.queryBinding
+    }
+
+    public init(queryOutput: Record) {
+      self.queryOutput = queryOutput
+    }
+
+    public init?(queryBinding: QueryBinding) {
+      guard case .blob(let bytes) = queryBinding else { return nil }
+      try? self.init(data: Data(bytes))
+    }
+
+    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+      try self.init(data: try Data(decoder: &decoder))
+    }
+
+    private init(data: Data) throws {
+      let coder = try NSKeyedUnarchiver(forReadingFrom: data)
+      coder.requiresSecureCoding = true
+      guard let queryOutput = Record(coder: coder) else {
+        throw DecodingError()
+      }
+      if isTesting {
+        queryOutput._recordChangeTag =
+          coder
+          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+        queryOutput._modificationDate =
+          coder
+          .decodeObject(of: NSDate.self, forKey: "_modificationDate") as Date?
+        if queryOutput is CKShare {
+          queryOutput[CKShare.SystemFieldKey.title] = coder
+            .decodeObject(of: NSString.self, forKey: CKShare.SystemFieldKey.title)
+        }
+      }
+      self.init(queryOutput: queryOutput)
+    }
+
+    private struct DecodingError: Error {}
+  }
+
+  public struct _AllFieldsRepresentation<Record: CKRecord>: QueryBindable, QueryRepresentable {
+    public let queryOutput: Record
+
+    public var queryBinding: QueryBinding {
+      let archiver = NSKeyedArchiver(requiringSecureCoding: true)
+      queryOutput.encode(with: archiver)
+      if isTesting {
+        archiver.encode(queryOutput._recordChangeTag, forKey: "_recordChangeTag")
+        archiver.encode(queryOutput._modificationDate, forKey: "_modificationDate")
+        if queryOutput is CKShare {
+          archiver.encode(queryOutput[CKShare.SystemFieldKey.title], forKey: CKShare.SystemFieldKey.title)
+        }
+      }
+      return archiver.encodedData.queryBinding
+    }
+
+    public init(queryOutput: Record) {
+      self.queryOutput = queryOutput
+    }
+
+    public init?(queryBinding: QueryBinding) {
+      guard case .blob(let bytes) = queryBinding else { return nil }
+      try? self.init(data: Data(bytes))
+    }
+
+    public init(decoder: inout some StructuredQueriesCore.QueryDecoder) throws {
+      try self.init(data: try Data(decoder: &decoder))
+    }
+
+    private init(data: Data) throws {
+      let coder = try NSKeyedUnarchiver(forReadingFrom: data)
+      coder.requiresSecureCoding = true
+      guard let queryOutput = Record(coder: coder) else {
+        throw DecodingError()
+      }
+      if isTesting {
+        queryOutput._recordChangeTag =
+          coder
+          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+        queryOutput._modificationDate =
+          coder
+          .decodeObject(of: NSDate.self, forKey: "_modificationDate") as Date?
+        if queryOutput is CKShare {
+          queryOutput[CKShare.SystemFieldKey.title] = coder
+            .decodeObject(of: NSString.self, forKey: CKShare.SystemFieldKey.title)
+        }
+      }
+      self.init(queryOutput: queryOutput)
+    }
+
+    private struct DecodingError: Error {}
+  }
+
+  extension CKDatabase.Scope {
+    public struct RawValueRepresentation: QueryBindable, QueryRepresentable {
+      public let queryOutput: CKDatabase.Scope
+      public var queryBinding: QueryBinding {
+        queryOutput.rawValue.queryBinding
+      }
+      public init(queryOutput: CKDatabase.Scope) {
+        self.queryOutput = queryOutput
+      }
+      public init?(queryBinding: QueryBinding) {
+        guard case .int(let rawValue) = queryBinding else { return nil }
+        try? self.init(rawValue: Int(rawValue))
+      }
+      public init(decoder: inout some QueryDecoder) throws {
+        try self.init(rawValue: Int(decoder: &decoder))
+      }
+      private init(rawValue: Int) throws {
+        guard let queryOutput = CKDatabase.Scope(rawValue: rawValue) else {
+          throw DecodingError()
+        }
+        self.init(queryOutput: queryOutput)
+      }
+      private struct DecodingError: Error {}
+    }
+  }
+
+  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+  extension CKRecordKeyValueSetting {
+    fileprivate subscript(at key: String) -> Int64 {
+      get {
+        self["\(CKRecord.userModificationTimeKey)_\(key)"] as? Int64 ?? -1
+      }
+      set {
+        self["\(CKRecord.userModificationTimeKey)_\(key)"] = max(self[at: key], newValue)
+      }
+    }
+    fileprivate subscript(hash key: String) -> Data? {
+      get { self["\(key)_hash"] as? Data }
+      set { self["\(key)_hash"] = newValue }
+    }
+  }
+
+  @available(macOS 13, iOS 16, tvOS 16, watchOS 9, *)
+  extension CKRecord {
+    func hasSet(key: String) -> Bool {
+      self.encryptedValues["\(CKRecord.userModificationTimeKey)_\(key)"] != nil
+    }
+
+    @discardableResult
+    package func setValue(
+      _ newValue: some CKRecordValueProtocol & Equatable,
+      forKey key: CKRecord.FieldKey,
+      at userModificationTime: Int64
+    ) -> Bool {
+      guard
+        encryptedValues[at: key] <= userModificationTime,
+        encryptedValues[key] != newValue
+      else { return false }
+      encryptedValues[key] = newValue
+      encryptedValues[at: key] = userModificationTime
+      self.userModificationTime = userModificationTime
+      return true
+    }
+
+    @discardableResult
+    package func setAsset(
+      _ newValue: CKAsset,
+      forKey key: CKRecord.FieldKey,
+      at userModificationTime: Int64
+    ) -> Bool {
+      @Dependency(\.dataManager) var dataManager
+      guard
+        let fileURL = newValue.fileURL,
+        let hash = dataManager.sha256(of: fileURL)
+      else { return false }
+      guard
+        encryptedValues[at: key] <= userModificationTime,
+        encryptedValues[hash: key] != hash
+      else { return false }
+
+      self[key] = newValue
+      encryptedValues[hash: key] = hash
+      encryptedValues[at: key] = userModificationTime
+      self.userModificationTime = userModificationTime
+      return true
+    }
+
+    @discardableResult
+    package func setBytes(
+      _ newValue: [UInt8],
+      forKey key: CKRecord.FieldKey,
+      at userModificationTime: Int64
+    ) -> Bool {
+      guard encryptedValues[at: key] <= userModificationTime
+      else { return false }
+
+      @Dependency(\.dataManager) var dataManager
+      let hash = newValue.sha256
+      let fileURL = dataManager.temporaryDirectory.appending(
+        component:
+          hash
+          .compactMap { String(format: "%02hhx", $0) }
+          .joined()
+      )
+      let asset = CKAsset(fileURL: fileURL)
+      return withErrorReporting(.sqliteDataCloudKitFailure) {
+        try dataManager.save(Data(newValue), to: fileURL)
+        self[key] = asset
+        encryptedValues[at: key] = userModificationTime
+        encryptedValues[hash: key] = hash
+        self.userModificationTime = userModificationTime
+        return true
+      }
+        ?? false
+    }
+
+    @discardableResult
+    package func removeValue(
+      forKey key: CKRecord.FieldKey,
+      at userModificationTime: Int64
+    ) -> Bool {
+      guard encryptedValues[at: key] <= userModificationTime
+      else {
+        return false
+      }
+      if encryptedValues[key] != nil {
+        encryptedValues[key] = nil
+        encryptedValues[at: key] = userModificationTime
+        self.userModificationTime = userModificationTime
+        return true
+      } else if self[key] != nil {
+        self[key] = nil
+        encryptedValues[at: key] = userModificationTime
+        self.userModificationTime = userModificationTime
+        return true
+      } else if !hasSet(key: key) {
+        encryptedValues[at: key] = userModificationTime
+        self.userModificationTime = userModificationTime
+      }
+      return false
+    }
+
+    func update<T: PrimaryKeyedTable>(with row: T, userModificationTime: Int64) {
+      for column in T.TableColumns.writableColumns {
+        func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
+          let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
+          let column = column as! any WritableTableColumnExpression<T, Value>
+          let value = Value(queryOutput: row[keyPath: keyPath])
+          switch value.queryBinding {
+          case .blob(let value):
+            setBytes(value, forKey: column.name, at: userModificationTime)
+          case .bool(let value):
+            setValue(value, forKey: column.name, at: userModificationTime)
+          case .double(let value):
+            setValue(value, forKey: column.name, at: userModificationTime)
+          case .date(let value):
+            setValue(value, forKey: column.name, at: userModificationTime)
+          case .int(let value):
+            setValue(value, forKey: column.name, at: userModificationTime)
+          case .null:
+            removeValue(forKey: column.name, at: userModificationTime)
+          case .text(let value):
+            setValue(value, forKey: column.name, at: userModificationTime)
+          case .uint(let value):
+            setValue(value, forKey: column.name, at: userModificationTime)
+          case .uuid(let value):
+            setValue(
+              value.uuidString.lowercased(),
+              forKey: column.name,
+              at: userModificationTime
+            )
+          case .invalid(let error):
+            reportIssue(error)
+          }
+        }
+        open(column)
+      }
+    }
+
+    func update<T: PrimaryKeyedTable>(
+      with other: CKRecord,
+      row: T,
+      columnNames: inout [String],
+      parentForeignKey: ForeignKey?
+    ) {
+      typealias EquatableCKRecordValueProtocol = CKRecordValueProtocol & Equatable
+
+      self.userModificationTime = other.userModificationTime
+      for column in T.TableColumns.writableColumns {
+        func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
+          let key = column.name
+          let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
+          let didSet: Bool
+          if let value = other[key] as? CKAsset {
+            didSet = setAsset(value, forKey: key, at: other.encryptedValues[at: key])
+          } else if let value = other.encryptedValues[key] as? any EquatableCKRecordValueProtocol {
+            didSet = setValue(value, forKey: key, at: other.encryptedValues[at: key])
+          } else if other.encryptedValues[key] == nil {
+            didSet = removeValue(forKey: key, at: other.encryptedValues[at: key])
+          } else {
+            didSet = false
+          }
+          /// The row value has been modified more recently than the last known record.
+          var isRowValueModified: Bool {
+            switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
+            case .blob(let value):
+              return other.encryptedValues[hash: key] != value.sha256
+            case .bool(let value):
+              return other.encryptedValues[key] != value
+            case .double(let value):
+              return other.encryptedValues[key] != value
+            case .date(let value):
+              return other.encryptedValues[key] != value
+            case .int(let value):
+              return other.encryptedValues[key] != value
+            case .null:
+              return other.encryptedValues[key] != nil
+            case .text(let value):
+              return other.encryptedValues[key] != value
+            case .uint(let value):
+              return other.encryptedValues[key] != value
+            case .uuid(let value):
+              return other.encryptedValues[key] != value.uuidString.lowercased()
+            case .invalid(let error):
+              reportIssue(error)
+              return false
+            }
+          }
+          if didSet || isRowValueModified {
+            columnNames.removeAll(where: { $0 == key })
+            if didSet, let parentForeignKey, key == parentForeignKey.from {
+              self.parent = other.parent
+            }
+          }
+        }
+        open(column)
+      }
+    }
+
+    package var userModificationTime: Int64 {
+      get { encryptedValues[Self.userModificationTimeKey] as? Int64 ?? -1 }
+      set {
+        encryptedValues[Self.userModificationTimeKey] = Swift.max(userModificationTime, newValue)
+      }
+    }
+
+    package static let userModificationTimeKey =
+      "\(String.sqliteDataCloudKitSchemaName)_userModificationTime"
+  }
+
+  extension __CKRecordObjCValue {
+    var queryFragment: QueryFragment {
+      if let value = self as? Int64 {
+        return value.queryFragment
+      } else if let value = self as? Double {
+        return value.queryFragment
+      } else if let value = self as? String {
+        return value.queryFragment
+      } else if let value = self as? Data {
+        return value.queryFragment
+      } else if let value = self as? Date {
+        return value.queryFragment
+      } else {
+        return "\(.invalid(Unbindable()))"
+      }
+    }
+  }
+
+  private struct Unbindable: Error {}
+
+  extension CKRecord {
+    package var _recordChangeTag: Int? {
+      get { self[#function] }
+      set { self[#function] = newValue }
+    }
+
+    package var _modificationDate: Date? {
+      get { modificationDate ?? self[#function]  }
+      set { self[#function] = newValue }
+    }
+  }
+
+  extension DataProtocol {
+    fileprivate var sha256: Data {
+      Data(SHA256.hash(data: self))
+    }
+  }
+#endif
