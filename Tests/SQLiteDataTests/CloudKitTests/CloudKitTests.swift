@@ -602,9 +602,8 @@
         #expect(remindersList?.title == "Reinserted")
 
         withKnownIssue {
-          let record = try #require(
-            try? container.privateCloudDatabase.record(for: RemindersList.recordID(for: 1)),
-            "Reinserted record is missing from CloudKit"
+          let record = try container.privateCloudDatabase.record(
+            for: RemindersList.recordID(for: 1)
           )
           #expect(record.encryptedValues["title"] as? String == "Reinserted")
         }
