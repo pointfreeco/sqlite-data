@@ -3,6 +3,7 @@
   package import ConcurrencyExtras
   import Dependencies
   public import GRDB
+  import GRDBSQLite
   public import IssueReporting
   import OrderedCollections
   public import OSLog
@@ -1221,18 +1222,25 @@
           return nil
         }
         func open<T>(_: some SynchronizableTable<T>) async -> CKRecord? {
+          var storedBlobs: [String: [UInt8]] = [:]
           let row =
             await withErrorReporting(.sqliteDataCloudKitFailure) {
               // NB: Fake 'sending' result.
               nonisolated(unsafe) var result: T.QueryOutput?
-              try await userDatabase.read { db in
-                result =
+              storedBlobs = try await userDatabase.read { db in
+                let cursor =
                   try T
                   .unscoped
                   .where {
                     #sql("\($0.primaryKey) = \(bind: metadata.recordPrimaryKey)")
                   }
-                  .fetchOne(db)
+                  .select { #sql("\($0), \(quote: T.tableName).*", as: T.self) }
+                  .fetchCursor(db)
+                result = try cursor.next()
+                guard result != nil else { return [:] }
+                return storedBlobValues(
+                  in: cursor._statement, startingAt: T.TableColumns.allColumns.count
+                )
               }
               return result
             }
@@ -1266,6 +1274,7 @@
 
           record.update(
             with: T(queryOutput: row),
+            storedBlobs: storedBlobs,
             userModificationTime: metadata.userModificationTime
           )
           await refreshLastKnownServerRecord(record)
@@ -2091,17 +2100,24 @@
         func open<T>(_ table: some SynchronizableTable<T>) throws {
           var columnNames: [String] = T.TableColumns.writableColumns.map(\.name)
           if !force,
-            let allFields = metadata._lastKnownServerRecordAllFields,
-            let row = try T.unscoped.find(#sql("\(bind: metadata.recordPrimaryKey)")).fetchOne(db)
+            let allFields = metadata._lastKnownServerRecordAllFields
           {
-            serverRecord.update(
-              with: allFields,
-              row: T(queryOutput: row),
-              columnNames: &columnNames,
-              parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
-                ? foreignKeysByTableName[T.tableName]?.first
-                : nil
-            )
+            let cursor = try T.unscoped.find(#sql("\(bind: metadata.recordPrimaryKey)"))
+              .select { #sql("\($0), \(quote: T.tableName).*", as: T.self) }
+              .fetchCursor(db)
+            if let row = try cursor.next() {
+              serverRecord.update(
+                with: allFields,
+                row: T(queryOutput: row),
+                storedBlobs: storedBlobValues(
+                  in: cursor._statement, startingAt: T.TableColumns.allColumns.count
+                ),
+                columnNames: &columnNames,
+                parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
+                  ? foreignKeysByTableName[T.tableName]?.first
+                  : nil
+              )
+            }
           }
 
           do {
@@ -2601,6 +2617,28 @@
         )
       }
     }
+  }
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private func storedBlobValues(
+    in statement: GRDB.Statement,
+    startingAt columnIndex: Int
+  ) -> [String: [UInt8]] {
+    // The trailing columns are unconverted storage values, alongside the typed selection.
+    return Dictionary(
+      uniqueKeysWithValues: (columnIndex..<statement.columnCount).compactMap { index in
+        let index = Int32(index)
+        guard sqlite3_column_type(statement.sqliteStatement, index) == SQLITE_BLOB
+        else { return nil }
+        let bytes = [UInt8](
+          UnsafeRawBufferPointer(
+            start: sqlite3_column_blob(statement.sqliteStatement, index),
+            count: Int(sqlite3_column_bytes(statement.sqliteStatement, index))
+          )
+        )
+        return (statement.columnNames[Int(index)], bytes)
+      }
+    )
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
