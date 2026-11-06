@@ -144,8 +144,10 @@
 
       return state.withValue { state in
         let previousStorage = state.storage
+        let previousAssets = state.assets
         var saveResults: [CKRecord.ID: Result<CKRecord, any Error>] = [:]
         var deleteResults: [CKRecord.ID: Result<Void, any Error>] = [:]
+        var touchedParentRecordIDs: [CKRecord.ID: CKRecord.ID] = [:]
 
         switch savePolicy {
         case .ifServerRecordUnchanged:
@@ -257,6 +259,7 @@
                   timeIntervalSinceReferenceDate: Double(now.wrappedValue)
                 )
                 state.storage[parent.recordID.zoneID]?.records[parent.recordID] = parentRecord
+                touchedParentRecordIDs[recordToSave.recordID] = parent.recordID
               }
             }
 
@@ -359,18 +362,72 @@
           }
         }
 
-        // Emulate quotas by reverting all saves if the total number of records stored exceeds
-        // the quota.
-        guard state.storage.totalRecords <= state.quota
-        else {
-          state.storage = previousStorage
-          for saveSuccessRecordID in saveResults.keys {
-            saveResults[saveSuccessRecordID] = .failure(CKError(.quotaExceeded))
+        func isSaved(_ recordID: CKRecord.ID) -> Bool {
+          (try? saveResults[recordID]?.get()) != nil
+        }
+        func revertSave(of recordID: CKRecord.ID, error: CKError.Code) {
+          state.storage[recordID.zoneID]?.records[recordID] =
+            previousStorage[recordID.zoneID]?.records[recordID]
+          for assetID in state.assets.keys where assetID.recordID == recordID {
+            state.assets[assetID] = previousAssets[assetID]
           }
-          for deleteSuccessRecordID in deleteResults.keys {
-            state.storage[deleteSuccessRecordID.zoneID]?.records[deleteSuccessRecordID] = nil
+          saveResults[recordID] = .failure(CKError(error))
+        }
+
+        if state.usage > state.quota {
+          let savedRecords = recordsToSave.compactMap { recordToSave in
+            isSaved(recordToSave.recordID)
+              ? state.storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID]
+              : nil
           }
-          return (saveResults: saveResults, deleteResults: deleteResults)
+          let savedAssets = state.assets
+          for savedRecord in savedRecords {
+            revertSave(of: savedRecord.recordID, error: .quotaExceeded)
+          }
+          for savedRecord in savedRecords {
+            let recordID = savedRecord.recordID
+            let previousRecord = state.storage[recordID.zoneID]?.records[recordID]
+            let previousRecordAssets = state.assets.filter { $0.key.recordID == recordID }
+            state.storage[recordID.zoneID]?.records[recordID] = savedRecord
+            for (assetID, data) in savedAssets where assetID.recordID == recordID {
+              state.assets[assetID] = data
+            }
+            if state.usage <= state.quota {
+              saveResults[recordID] = .success(savedRecord.copy() as! CKRecord)
+            } else {
+              state.storage[recordID.zoneID]?.records[recordID] = previousRecord
+              for assetID in state.assets.keys where assetID.recordID == recordID {
+                state.assets[assetID] = previousRecordAssets[assetID]
+              }
+            }
+          }
+        }
+
+        var hasNewReferenceViolations = true
+        while hasNewReferenceViolations {
+          hasNewReferenceViolations = false
+          for recordToSave in recordsToSave {
+            guard
+              isSaved(recordToSave.recordID),
+              let parent = recordToSave.parent,
+              state.storage[parent.recordID.zoneID]?.records[parent.recordID] == nil
+            else { continue }
+            revertSave(of: recordToSave.recordID, error: .referenceViolation)
+            hasNewReferenceViolations = true
+          }
+        }
+
+        let touchedParentRecordIDsOfSavedRecords = Set(
+          touchedParentRecordIDs.compactMap { isSaved($0.key) ? $0.value : nil }
+        )
+        let parentRecordIDs = Set(touchedParentRecordIDs.values)
+          .subtracting(touchedParentRecordIDsOfSavedRecords)
+          .filter {
+            state.storage[$0.zoneID]?.records[$0] != nil
+          }
+        for parentRecordID in parentRecordIDs {
+          state.storage[parentRecordID.zoneID]?.records[parentRecordID] =
+            previousStorage[parentRecordID.zoneID]?.records[parentRecordID]
         }
 
         guard atomically
@@ -494,10 +551,16 @@
   }
 
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension [CKRecordZone.ID: MockCloudDatabase.Zone] {
-    fileprivate var totalRecords: Int {
-      values.reduce(into: 0) { total, zone in
-        total += zone.records.count
+  extension MockCloudDatabase.State {
+    fileprivate var usage: Int {
+      storage.values.reduce(into: 0) { total, zone in
+        for record in zone.records.values {
+          total += 1
+          for key in record.allKeys() where record[key] is CKAsset {
+            total +=
+              assets[MockCloudDatabase.AssetID(recordID: record.recordID, key: key)]?.count ?? 0
+          }
+        }
       }
     }
   }
