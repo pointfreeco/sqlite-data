@@ -676,6 +676,28 @@
       }
     }
 
+    private func savePendingRecordZoneChangesWhileStopped(
+      _ changes: [CKSyncEngine.PendingRecordZoneChange]
+    ) {
+      guard !changes.isEmpty
+      else { return }
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        try userDatabase.unsafeReentrantWrite { db in
+          precondition(db.isInsideTransaction)
+          try PendingRecordZoneChange
+            .insert {
+              for change in changes {
+                PendingRecordZoneChange(
+                  change,
+                  databaseScope: change.id?.zoneID.databaseScope
+                )
+              }
+            }
+            .execute(db)
+        }
+      }
+    }
+
     private func enqueueUnknownRecordsForCloudKit() async throws {
       try await userDatabase.write { db in
         try $_isSynchronizingChanges.withValue(false) {
@@ -857,23 +879,7 @@
       }
 
       guard isRunning else {
-        // TODO: Perform this work in a trigger instead of a task.
-        Task { [changes = oldChanges + newChanges] in
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await userDatabase.write { db in
-              try PendingRecordZoneChange
-                .insert {
-                  for change in changes {
-                    PendingRecordZoneChange(
-                      change,
-                      databaseScope: change.id?.zoneID.databaseScope
-                    )
-                  }
-                }
-                .execute(db)
-            }
-          }
-        }
+        savePendingRecordZoneChangesWhileStopped(oldChanges + newChanges)
         return
       }
       let oldSyncEngine = self.syncEngines.withValue {
@@ -905,22 +911,7 @@
         changes.append(.deleteRecord(share.recordID))
       }
       guard isRunning else {
-        Task { [changes] in
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await userDatabase.write { db in
-              try PendingRecordZoneChange
-                .insert {
-                  changes.map { change in
-                    PendingRecordZoneChange(
-                      change,
-                      databaseScope: change.id?.zoneID.databaseScope
-                    )
-                  }
-                }
-                .execute(db)
-            }
-          }
-        }
+        savePendingRecordZoneChangesWhileStopped(changes)
         return
       }
 
