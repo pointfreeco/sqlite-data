@@ -651,14 +651,17 @@
 
     private func enqueueLocallyPendingChanges(scope: CKDatabase.Scope? = nil) async throws {
       let pendingRecordZoneChanges = try await userDatabase.write { db in
-        try PendingRecordZoneChange
-          .where {
-            $0.databaseScope.is(#bind(scope))
-              .or(#bind(scope, as: CKDatabase.Scope?.RawRepresentation.self).is(nil))
-          }
-          .delete()
-          .returning(\.pendingRecordZoneChange)
+        let scopedPendingRecordZoneChanges = PendingRecordZoneChange.where {
+          $0.databaseScope.is(#bind(scope))
+            .or(#bind(scope, as: CKDatabase.Scope?.RawRepresentation.self).is(nil))
+        }
+        let changes =
+          try scopedPendingRecordZoneChanges
+          .order { _ in #sql("rowid") }
+          .select(\.pendingRecordZoneChange)
           .fetchAll(db)
+        try scopedPendingRecordZoneChanges.delete().execute(db)
+        return changes
       }
       let changesByScope = [CKDatabase.Scope?: _](grouping: pendingRecordZoneChanges) {
         switch $0 {
