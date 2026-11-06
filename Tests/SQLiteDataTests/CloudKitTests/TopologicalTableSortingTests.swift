@@ -21,7 +21,9 @@
             "modelAs": 8,
             "modelBs": 9,
             "modelCs": 10,
-            "remindersListPrivates": 11,
+            "albums": 11,
+            "tracks": 12,
+            "remindersListPrivates": 13,
           ]
         )
       }

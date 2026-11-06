@@ -108,6 +108,8 @@
         ModelB.self,
         ModelC.self,
         ScopedModel.self,
+        Album.self,
+        Track.self,
         privateTables: RemindersListPrivate.self,
         startImmediately: startImmediately
       )

@@ -81,6 +81,16 @@ import SQLiteData
 extension ScopedModel {
   static let all = Self.where { !$0.isDeleted }
 }
+@Table struct Album: Equatable, Identifiable {
+  let id: Int
+  var title = ""
+  var coverArt: Data
+}
+@Table struct Track: Equatable, Identifiable {
+  let id: Int
+  var title = ""
+  var albumID: Album.ID
+}
 
 @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
 func database(
@@ -242,6 +252,26 @@ func database(
         "id" INT PRIMARY KEY NOT NULL,
         "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
         "isDeleted" INTEGER NOT NULL ON CONFLICT REPLACE DEFAULT 0
+      ) STRICT
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TABLE "albums" (
+        "id" INT PRIMARY KEY NOT NULL,
+        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
+        "coverArt" BLOB NOT NULL
+      ) STRICT
+      """
+    )
+    .execute(db)
+    try #sql(
+      """
+      CREATE TABLE "tracks" (
+        "id" INT PRIMARY KEY NOT NULL,
+        "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
+        "albumID" INTEGER NOT NULL REFERENCES "albums"("id") ON DELETE CASCADE
       ) STRICT
       """
     )

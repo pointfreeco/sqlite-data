@@ -473,6 +473,48 @@
           """
         }
       }
+
+      // * The user's iCloud storage is almost full.
+      // * Local client creates an album with large cover art. Its save fails with
+      //   'quotaExceeded'.
+      // * Local client adds a small track to the album. The album is sent again and fails with
+      //   'quotaExceeded', and the track fits in the quota but fails with 'referenceViolation'
+      //   because the album is not on the server.
+      // => The track is kept locally.
+      // * The user frees up space and edits the album.
+      // => The album and track are uploaded.
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.taskLocal($quota, 100))
+      func addTrackToAlbumWithAssetThatExceededQuota() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            Album(id: 1, title: "Rubber Soul", coverArt: Data(repeating: 0, count: 1_000))
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await userDatabase.userWrite { db in
+          try Track.insert { Track(id: 1, title: "Drive My Car", albumID: 1) }.execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await userDatabase.read { db in
+          try #expect(Track.all.fetchAll(db) == [Track(id: 1, title: "Drive My Car", albumID: 1)])
+        }
+
+        syncEngine.private.database.state.withValue { $0.quota = .max }
+        try await userDatabase.userWrite { db in
+          try Album.find(1).update { $0.title = "Revolver" }.execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        #expect(throws: Never.self) {
+          try self.syncEngine.private.database.record(for: Album.recordID(for: 1))
+        }
+        #expect(throws: Never.self) {
+          try self.syncEngine.private.database.record(for: Track.recordID(for: 1))
+        }
+      }
     }
   }
 #endif

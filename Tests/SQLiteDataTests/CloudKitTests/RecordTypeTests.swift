@@ -396,6 +396,72 @@
                   type: "TEXT"
                 )
               ]
+            ),
+            [13]: RecordType(
+              tableName: "albums",
+              schema: """
+                CREATE TABLE "albums" (
+                  "id" INT PRIMARY KEY NOT NULL,
+                  "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
+                  "coverArt" BLOB NOT NULL
+                ) STRICT
+                """,
+              tableInfo: [
+                [0]: TableInfo(
+                  defaultValue: nil,
+                  isPrimaryKey: false,
+                  name: "coverArt",
+                  isNotNull: true,
+                  type: "BLOB"
+                ),
+                [1]: TableInfo(
+                  defaultValue: nil,
+                  isPrimaryKey: true,
+                  name: "id",
+                  isNotNull: true,
+                  type: "INT"
+                ),
+                [2]: TableInfo(
+                  defaultValue: "\'\'",
+                  isPrimaryKey: false,
+                  name: "title",
+                  isNotNull: true,
+                  type: "TEXT"
+                )
+              ]
+            ),
+            [14]: RecordType(
+              tableName: "tracks",
+              schema: """
+                CREATE TABLE "tracks" (
+                  "id" INT PRIMARY KEY NOT NULL,
+                  "title" TEXT NOT NULL ON CONFLICT REPLACE DEFAULT '',
+                  "albumID" INTEGER NOT NULL REFERENCES "albums"("id") ON DELETE CASCADE
+                ) STRICT
+                """,
+              tableInfo: [
+                [0]: TableInfo(
+                  defaultValue: nil,
+                  isPrimaryKey: false,
+                  name: "albumID",
+                  isNotNull: true,
+                  type: "INTEGER"
+                ),
+                [1]: TableInfo(
+                  defaultValue: nil,
+                  isPrimaryKey: true,
+                  name: "id",
+                  isNotNull: true,
+                  type: "INT"
+                ),
+                [2]: TableInfo(
+                  defaultValue: "\'\'",
+                  isPrimaryKey: false,
+                  name: "title",
+                  isNotNull: true,
+                  type: "TEXT"
+                )
+              ]
             )
           ]
           """#
