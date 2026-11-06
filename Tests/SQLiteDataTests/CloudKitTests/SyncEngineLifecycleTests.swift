@@ -31,8 +31,6 @@
             }
           }
 
-          try await Task.sleep(for: .seconds(1))
-
           assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
             """
             ┌──────────────────────────────────────────┐
@@ -153,8 +151,6 @@
             try RemindersList.find(1).delete().execute(db)
           }
 
-          try await Task.sleep(for: .seconds(1))
-
           try await syncEngine.start()
           try await syncEngine.processPendingDatabaseChanges(scope: .private)
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
@@ -197,7 +193,6 @@
               try RemindersList.find(1).update { $0.title += "!" }.execute(db)
             }
           }
-          try await Task.sleep(for: .seconds(0.5))
 
           assertQuery(PendingRecordZoneChange.all, database: syncEngine.metadatabase) {
             """
@@ -254,6 +249,83 @@
           }
         }
 
+        // * Stop sync engine
+        // * Delete list
+        // * Reinsert list with same ID
+        // * Start sync engine
+        // => Pending changes are recorded in order, and list is saved to CloudKit
+        @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+        @Test(.bug("https://github.com/pointfreeco/sqlite-data/issues/418"))
+        func addRemindersList_StopSyncEngine_DeleteAndReinsert_StartSyncEngine() async throws {
+          try await userDatabase.userWrite { db in
+            try db.seed {
+              RemindersList(id: 1, title: "Personal")
+            }
+          }
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+          syncEngine.stop()
+
+          try await userDatabase.userWrite { db in
+            try RemindersList.find(1).delete().execute(db)
+          }
+          try await userDatabase.userWrite { db in
+            try RemindersList.insert { RemindersList(id: 1, title: "My Stuff") }.execute(db)
+          }
+
+          try await syncEngine.start()
+          try await syncEngine.processPendingDatabaseChanges(scope: .private)
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+          assertInlineSnapshot(of: container, as: .customDump) {
+            """
+            MockCloudContainer(
+              privateCloudDatabase: MockCloudDatabase(
+                databaseScope: .private,
+                storage: [
+                  [0]: CKRecord(
+                    recordID: CKRecord.ID(1:remindersLists/zone/__defaultOwner__),
+                    recordType: "remindersLists",
+                    parent: nil,
+                    share: nil,
+                    id: 1,
+                    title: "My Stuff"
+                  )
+                ]
+              ),
+              sharedCloudDatabase: MockCloudDatabase(
+                databaseScope: .shared,
+                storage: []
+              )
+            )
+            """
+          }
+        }
+
+        // * Stop sync engine
+        // * Edit list in a transaction that is rolled back
+        // => No pending changes are recorded
+        @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+        @Test func addRemindersList_StopSyncEngine_EditTitleAndRollBack() async throws {
+          struct RollBack: Error {}
+
+          try await userDatabase.userWrite { db in
+            try db.seed {
+              RemindersList(id: 1, title: "Personal")
+            }
+          }
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+          syncEngine.stop()
+
+          await #expect(throws: RollBack.self) {
+            try await self.userDatabase.userWrite { db in
+              try RemindersList.find(1).update { $0.title = "Work" }.execute(db)
+              throw RollBack()
+            }
+          }
+        }
+
         @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
         @Test func getSharedRecord_StopSyncEngine_WriteToSharedRecord_StartSyncing() async throws {
           let externalZoneID = CKRecordZone.ID(
@@ -295,7 +367,6 @@
             }
           }
 
-          try await Task.sleep(for: .seconds(1))
           assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
             """
             ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -362,7 +433,6 @@
             """
           }
 
-          try await Task.sleep(for: .seconds(0.5))
           try await syncEngine.start()
           try await syncEngine.processPendingDatabaseChanges(scope: .private)
           try await syncEngine.processPendingRecordZoneChanges(scope: .shared)
@@ -481,7 +551,6 @@
           try await userDatabase.userWrite { db in
             try RemindersList.find(1).delete().execute(db)
           }
-          try await Task.sleep(for: .seconds(1))
 
           try await syncEngine.start()
           try await syncEngine.processPendingDatabaseChanges(scope: .private)
@@ -559,7 +628,6 @@
             try RemindersList.find(1).delete().execute(db)
           }
 
-          try await Task.sleep(for: .seconds(0.5))
           try await syncEngine.start()
           try await syncEngine.processPendingDatabaseChanges(scope: .private)
           try await syncEngine.processPendingRecordZoneChanges(scope: .private)
@@ -595,7 +663,6 @@
               Reminder(id: 1, title: "Get milk", remindersListID: 1)
             }
           }
-          try await Task.sleep(for: .seconds(1))
 
           assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
             """

@@ -136,8 +136,10 @@
     package struct State: Sendable {
       package var changeTag = 0
       package var hasPendingUntrackedChanges = false
-      package var pendingDatabaseChanges: OrderedSet<CKSyncEngine.PendingDatabaseChange> = []
-      package var pendingRecordZoneChanges: OrderedSet<CKSyncEngine.PendingRecordZoneChange> = []
+      package var pendingDatabaseChanges:
+        OrderedDictionary<CKRecordZone.ID, CKSyncEngine.PendingDatabaseChange> = [:]
+      package var pendingRecordZoneChanges:
+        OrderedDictionary<CKRecord.ID, CKSyncEngine.PendingRecordZoneChange> = [:]
     }
 
     private let state = LockIsolated(State())
@@ -165,11 +167,11 @@
     }
 
     package var pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] {
-      withState { Array($0.pendingRecordZoneChanges) }
+      withState { Array($0.pendingRecordZoneChanges.values) }
     }
 
     package var pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange] {
-      withState { Array($0.pendingDatabaseChanges) }
+      withState { Array($0.pendingDatabaseChanges.values) }
     }
 
     package var hasPendingUntrackedChanges: Bool {
@@ -186,26 +188,46 @@
     }
 
     package func add(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
-      withState {
-        $0.pendingRecordZoneChanges.append(contentsOf: pendingRecordZoneChanges)
+      withState { state in
+        for change in pendingRecordZoneChanges {
+          guard let id = change.id
+          else { fatalError("Unsupported pendingRecordZoneChange: \(change)") }
+          state.pendingRecordZoneChanges[id] = change
+        }
       }
     }
 
     package func remove(pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]) {
-      withState {
-        $0.pendingRecordZoneChanges.subtract(pendingRecordZoneChanges)
+      withState { state in
+        for change in pendingRecordZoneChanges {
+          guard let id = change.id
+          else { fatalError("Unsupported pendingRecordZoneChange: \(change)") }
+          if state.pendingRecordZoneChanges[id] == change {
+            state.pendingRecordZoneChanges.removeValue(forKey: id)
+          }
+        }
       }
     }
 
     package func add(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
-      withState {
-        $0.pendingDatabaseChanges.append(contentsOf: pendingDatabaseChanges)
+      withState { state in
+        for change in pendingDatabaseChanges {
+          guard let zoneID = change.zoneID
+          else { fatalError("Unsupported pendingDatabaseChange: \(change)") }
+          state.pendingDatabaseChanges[zoneID] = change
+        }
       }
     }
 
     package func remove(pendingDatabaseChanges: [CKSyncEngine.PendingDatabaseChange]) {
-      withState {
-        $0.pendingDatabaseChanges.subtract(pendingDatabaseChanges)
+      withState { state in
+        for change in pendingDatabaseChanges {
+          guard let zoneID = change.zoneID
+          else { fatalError("Unsupported pendingDatabaseChange: \(change)") }
+          if state.pendingDatabaseChanges[zoneID] == change {
+            state.pendingDatabaseChanges.removeValue(forKey: zoneID)
+          }
+        }
       }
     }
   }
@@ -409,7 +431,7 @@
           return changes
         }
 
-        for pendingDatabaseChange in syncEngineState.pendingDatabaseChanges {
+        for (_, pendingDatabaseChange) in syncEngineState.pendingDatabaseChanges {
           switch pendingDatabaseChange {
           case .saveZone(let zone):
             changes.zonesToSave.append(zone)
@@ -434,7 +456,9 @@
           case .success(let zone):
             changes.savedZones.append(zone)
           case .failure(let error as CKError):
-            changes.failedZoneSaves.append((changes.zonesToSave.first(where: { $0.zoneID == zoneID })!, error))
+            changes.failedZoneSaves.append(
+              (changes.zonesToSave.first(where: { $0.zoneID == zoneID })!, error)
+            )
           case .failure(let error):
             reportIssue("Error thrown not CKError: \(error)")
           }
@@ -454,7 +478,9 @@
       }
 
       syncEngine.state.remove(pendingDatabaseChanges: changes.savedZones.map { .saveZone($0) })
-      syncEngine.state.remove(pendingDatabaseChanges: changes.deletedZoneIDs.map { .deleteZone($0) })
+      syncEngine.state.remove(
+        pendingDatabaseChanges: changes.deletedZoneIDs.map { .deleteZone($0) }
+      )
       await syncEngine.parentSyncEngine
         .handleEvent(
           .sentDatabaseChanges(

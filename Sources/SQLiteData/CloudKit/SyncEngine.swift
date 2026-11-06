@@ -43,6 +43,9 @@
     let uuid = Dependency(\.uuid)
     private let observationRegistrar = ObservationRegistrar()
     private let notificationsObserver = LockIsolated<(any NSObjectProtocol)?>(nil)
+    private let pendingRecordZoneChangesObserver =
+      LockIsolated<PendingRecordZoneChangesObserver?>(nil)
+    private let hasUncommittedPendingRecordZoneChanges = LockIsolated(false)
     private let activityCounts = LockIsolated(ActivityCounts())
     private let startTask = LockIsolated<Task<Void, Never>?>(nil)
     private let quotaExceeded = LockIsolated([CKDatabase.Scope.private: false, .shared: false])
@@ -368,6 +371,10 @@
       db.add(function: $currentZoneName)
       db.add(function: $currentOwnerName)
 
+      let pendingRecordZoneChangesObserver = PendingRecordZoneChangesObserver(syncEngine: self)
+      db.add(transactionObserver: pendingRecordZoneChangesObserver, extent: .observerLifetime)
+      self.pendingRecordZoneChangesObserver.withValue { $0 = pendingRecordZoneChangesObserver }
+
       for trigger in SyncMetadata.callbackTriggers(for: self) {
         try trigger.execute(db)
       }
@@ -651,15 +658,33 @@
 
     private func enqueueLocallyPendingChanges(scope: CKDatabase.Scope? = nil) async throws {
       let pendingRecordZoneChanges = try await userDatabase.write { db in
-        try PendingRecordZoneChange
-          .where {
-            $0.databaseScope.is(#bind(scope))
-              .or(#bind(scope, as: CKDatabase.Scope?.RawRepresentation.self).is(nil))
-          }
-          .delete()
-          .returning(\.pendingRecordZoneChange)
-          .fetchAll(db)
+        try takePendingRecordZoneChanges(scope: scope, db: db)
       }
+      addToSyncEngines(pendingRecordZoneChanges: pendingRecordZoneChanges)
+    }
+
+    private func takePendingRecordZoneChanges(
+      scope: CKDatabase.Scope?,
+      db: Database
+    ) throws -> [CKSyncEngine.PendingRecordZoneChange] {
+      let scopedPendingRecordZoneChanges = PendingRecordZoneChange.where {
+        $0.databaseScope.is(#bind(scope))
+          .or(#bind(scope, as: CKDatabase.Scope?.RawRepresentation.self).is(nil))
+      }
+      let changes =
+        try scopedPendingRecordZoneChanges
+        .order { _ in #sql("rowid") }
+        .select(\.pendingRecordZoneChange)
+        .fetchAll(db)
+      try scopedPendingRecordZoneChanges.delete().execute(db)
+      return changes
+    }
+
+    private func addToSyncEngines(
+      pendingRecordZoneChanges: [CKSyncEngine.PendingRecordZoneChange]
+    ) {
+      guard !pendingRecordZoneChanges.isEmpty
+      else { return }
       let changesByScope = [CKDatabase.Scope?: _](grouping: pendingRecordZoneChanges) {
         switch $0 {
         case .deleteRecord(let recordID), .saveRecord(let recordID):
@@ -674,6 +699,47 @@
         $0.private?.state.add(pendingRecordZoneChanges: changesByScope[.private] ?? [])
         $0.shared?.state.add(pendingRecordZoneChanges: changesByScope[.shared] ?? [])
       }
+    }
+
+    private func savePendingRecordZoneChanges(
+      _ changes: [CKSyncEngine.PendingRecordZoneChange]
+    ) {
+      guard !changes.isEmpty
+      else { return }
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        try userDatabase.unsafeReentrantWrite { db in
+          try PendingRecordZoneChange
+            .insert {
+              for change in changes {
+                PendingRecordZoneChange(
+                  change,
+                  databaseScope: change.id?.zoneID.databaseScope
+                )
+              }
+            }
+            .execute(db)
+        }
+        hasUncommittedPendingRecordZoneChanges.withValue { $0 = true }
+      }
+    }
+
+    fileprivate func databaseDidCommit(db: Database) {
+      let hasPendingRecordZoneChanges = hasUncommittedPendingRecordZoneChanges.withValue {
+        defer { $0 = false }
+        return $0
+      }
+      guard hasPendingRecordZoneChanges, isRunning
+      else { return }
+      withErrorReporting(.sqliteDataCloudKitFailure) {
+        let pendingRecordZoneChanges = try $_isSynchronizingChanges.withValue(true) {
+          try takePendingRecordZoneChanges(scope: nil, db: db)
+        }
+        addToSyncEngines(pendingRecordZoneChanges: pendingRecordZoneChanges)
+      }
+    }
+
+    fileprivate func databaseDidRollback() {
+      hasUncommittedPendingRecordZoneChanges.withValue { $0 = false }
     }
 
     private func enqueueUnknownRecordsForCloudKit() async throws {
@@ -779,6 +845,13 @@
         for trigger in SyncMetadata.callbackTriggers(for: self).reversed() {
           try trigger.drop().execute(db)
         }
+        let pendingRecordZoneChangesObserver = pendingRecordZoneChangesObserver.withValue {
+          defer { $0 = nil }
+          return $0
+        }
+        if let pendingRecordZoneChangesObserver {
+          db.remove(transactionObserver: pendingRecordZoneChangesObserver)
+        }
       }
       try metadatabase.erase()
       try migrate(metadatabase: metadatabase)
@@ -856,34 +929,7 @@
         )
       }
 
-      guard isRunning else {
-        // TODO: Perform this work in a trigger instead of a task.
-        Task { [changes = oldChanges + newChanges] in
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await userDatabase.write { db in
-              try PendingRecordZoneChange
-                .insert {
-                  for change in changes {
-                    PendingRecordZoneChange(
-                      change,
-                      databaseScope: change.id?.zoneID.databaseScope
-                    )
-                  }
-                }
-                .execute(db)
-            }
-          }
-        }
-        return
-      }
-      let oldSyncEngine = self.syncEngines.withValue {
-        oldZoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-      }
-      let syncEngine = self.syncEngines.withValue {
-        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-      }
-      oldSyncEngine?.state.add(pendingRecordZoneChanges: oldChanges)
-      syncEngine?.state.add(pendingRecordZoneChanges: newChanges)
+      savePendingRecordZoneChanges(oldChanges + newChanges)
     }
 
     @DatabaseFunction(
@@ -904,30 +950,7 @@
       if let share {
         changes.append(.deleteRecord(share.recordID))
       }
-      guard isRunning else {
-        Task { [changes] in
-          await withErrorReporting(.sqliteDataCloudKitFailure) {
-            try await userDatabase.write { db in
-              try PendingRecordZoneChange
-                .insert {
-                  changes.map { change in
-                    PendingRecordZoneChange(
-                      change,
-                      databaseScope: change.id?.zoneID.databaseScope
-                    )
-                  }
-                }
-                .execute(db)
-            }
-          }
-        }
-        return
-      }
-
-      let syncEngine = self.syncEngines.withValue {
-        zoneID.ownerName == CKCurrentUserDefaultName ? $0.private : $0.shared
-      }
-      syncEngine?.state.add(pendingRecordZoneChanges: changes)
+      savePendingRecordZoneChanges(changes)
     }
 
     package func acceptShare(metadata: ShareMetadata) async throws {
@@ -2237,6 +2260,20 @@
     }
   }
 
+  @available(macOS 14, iOS 17, tvOS 17, watchOS 10, *)
+  extension CKSyncEngine.PendingDatabaseChange {
+    var zoneID: CKRecordZone.ID? {
+      switch self {
+      case .saveZone(let zone):
+        return zone.zoneID
+      case .deleteZone(let id):
+        return id
+      @unknown default:
+        return nil
+      }
+    }
+  }
+
   extension CKRecord.ID {
     var tableName: String? {
       guard
@@ -2705,4 +2742,24 @@
       }
     }
   #endif
+
+  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+  private final class PendingRecordZoneChangesObserver: TransactionObserver, @unchecked Sendable {
+    weak var syncEngine: SyncEngine?
+
+    init(syncEngine: SyncEngine) {
+      self.syncEngine = syncEngine
+    }
+
+    func observes(eventsOfKind eventKind: DatabaseEventKind) -> Bool { false }
+    func databaseDidChange(with event: DatabaseEvent) {}
+
+    func databaseDidCommit(_ db: Database) {
+      syncEngine?.databaseDidCommit(db: db)
+    }
+
+    func databaseDidRollback(_ db: Database) {
+      syncEngine?.databaseDidRollback()
+    }
+  }
 #endif
