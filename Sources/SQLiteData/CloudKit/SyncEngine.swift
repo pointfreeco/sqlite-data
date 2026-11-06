@@ -725,8 +725,9 @@
 
     fileprivate func databaseDidCommit(db: Database) {
       let hasPendingRecordZoneChanges = hasUncommittedPendingRecordZoneChanges.withValue {
-        defer { $0 = false }
-        return $0
+        hasUncommittedPendingRecordZoneChanges in
+        defer { hasUncommittedPendingRecordZoneChanges = false }
+        return hasUncommittedPendingRecordZoneChanges
       }
       guard hasPendingRecordZoneChanges, isRunning
       else { return }
@@ -846,8 +847,9 @@
           try trigger.drop().execute(db)
         }
         let pendingRecordZoneChangesObserver = pendingRecordZoneChangesObserver.withValue {
-          defer { $0 = nil }
-          return $0
+          pendingRecordZoneChangesObserver in
+          defer { pendingRecordZoneChangesObserver = nil }
+          return pendingRecordZoneChangesObserver
         }
         if let pendingRecordZoneChangesObserver {
           db.remove(transactionObserver: pendingRecordZoneChangesObserver)

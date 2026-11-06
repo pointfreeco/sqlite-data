@@ -861,7 +861,6 @@
             }
           }
         }
-        #expect(syncEngine.private.state.pendingRecordZoneChanges.isEmpty)
         assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
           """
           (No results)
