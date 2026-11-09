@@ -27,12 +27,7 @@
         line: UInt = #line,
         column: UInt = #column
       ) async throws {
-        try await super.init(
-          fileID: fileID,
-          filePath: filePath,
-          line: line,
-          column: column
-        )
+        try await super.init(fileID: fileID, filePath: filePath, line: line, column: column)
         try $_isRateLimitingDisabled.withValue(true) {
           _ = try database.modifyRecords(
             saving: [CKRecord(recordType: "A", recordID: recordID)],
