@@ -581,6 +581,195 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func `writes outside of a transaction are sent to CloudKit`() async throws {
+        try await userDatabase.database.writeWithoutTransaction { db in
+          #expect(!db.isInsideTransaction)
+          try RemindersList.insert { RemindersList(id: 1, title: "Personal") }.execute(db)
+        }
+        #expect(
+          syncEngine.private.state.pendingRecordZoneChanges == [
+            .saveRecord(RemindersList.recordID(for: 1))
+          ]
+        )
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        let record = try container.privateCloudDatabase.record(for: RemindersList.recordID(for: 1))
+        #expect(record.encryptedValues["title"] as? String == "Personal")
+
+        try await userDatabase.database.writeWithoutTransaction { db in
+          #expect(!db.isInsideTransaction)
+          try RemindersList.find(1).delete().execute(db)
+        }
+        #expect(
+          syncEngine.private.state.pendingRecordZoneChanges == [
+            .deleteRecord(RemindersList.recordID(for: 1))
+          ]
+        )
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        #expect(throws: CKError.self) {
+          try container.privateCloudDatabase.record(for: RemindersList.recordID(for: 1))
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func `delete rolled back to a savepoint is not sent to CloudKit`() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            RemindersList(id: 2, title: "Work")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await userDatabase.userWrite { db in
+          try db.inSavepoint {
+            try RemindersList.find(1).delete().execute(db)
+            return .rollback
+          }
+          try RemindersList.find(2).update { $0.title = "Business" }.execute(db)
+        }
+        #expect(
+          syncEngine.private.state.pendingRecordZoneChanges == [
+            .saveRecord(RemindersList.recordID(for: 2))
+          ]
+        )
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let record = try container.privateCloudDatabase.record(for: RemindersList.recordID(for: 1))
+        #expect(record.encryptedValues["title"] as? String == "Personal")
+        let metadata = try await syncEngine.metadatabase.read { db in
+          try SyncMetadata.find(RemindersList.recordID(for: 1)).fetchOne(db)
+        }
+        #expect(metadata != nil)
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func `rolled back delete is not sent to CloudKit`() async throws {
+        struct RollBack: Error {}
+
+        try await userDatabase.userWrite { db in
+          try db.seed { RemindersList(id: 1, title: "Personal") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        await #expect(throws: RollBack.self) {
+          try await self.userDatabase.userWrite { db in
+            try RemindersList.find(1).delete().execute(db)
+            throw RollBack()
+          }
+        }
+        #expect(syncEngine.private.state.pendingRecordZoneChanges.isEmpty)
+
+        let remindersList = try await userDatabase.read { db in
+          try RemindersList.find(1).fetchOne(db)
+        }
+        #expect(remindersList?.title == "Personal")
+
+        let metadata = try await syncEngine.metadatabase.read { db in
+          try SyncMetadata.find(RemindersList.recordID(for: 1)).fetchOne(db)
+        }
+        #expect(metadata != nil)
+
+        let record = try container.privateCloudDatabase.record(for: RemindersList.recordID(for: 1))
+        #expect(record.encryptedValues["title"] as? String == "Personal")
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func `rolled back reinsert does not cancel a committed delete`() async throws {
+        struct RollBack: Error {}
+
+        try await userDatabase.userWrite { db in
+          try db.seed { RemindersList(id: 1, title: "Personal") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await userDatabase.userWrite { db in
+          try RemindersList.find(1).delete().execute(db)
+        }
+        await #expect(throws: RollBack.self) {
+          try await self.userDatabase.userWrite { db in
+            try RemindersList.insert { RemindersList(id: 1, title: "Reinserted") }.execute(db)
+            throw RollBack()
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let remindersList = try await userDatabase.read { db in
+          try RemindersList.find(1).fetchOne(db)
+        }
+        #expect(remindersList == nil)
+
+        let metadata = try await syncEngine.metadatabase.read { db in
+          try SyncMetadata.find(RemindersList.recordID(for: 1)).fetchOne(db)
+        }
+        #expect(metadata == nil)
+
+        #expect(throws: (any Error).self) {
+          try container.privateCloudDatabase.record(for: RemindersList.recordID(for: 1))
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.bug("https://github.com/pointfreeco/sqlite-data/issues/418"))
+      func `reinserting a deleted record before sending saves it to CloudKit`() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed { RemindersList(id: 1, title: "Original") }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await userDatabase.userWrite { db in
+          try RemindersList.find(1).delete().execute(db)
+        }
+        try await userDatabase.userWrite { db in
+          try RemindersList.insert { RemindersList(id: 1, title: "Reinserted") }.execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let remindersList = try await userDatabase.read { db in
+          try RemindersList.find(1).fetchOne(db)
+        }
+        #expect(remindersList?.title == "Reinserted")
+
+        let record = try container.privateCloudDatabase.record(
+          for: RemindersList.recordID(for: 1)
+        )
+        #expect(record.encryptedValues["title"] as? String == "Reinserted")
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.bug("https://github.com/pointfreeco/sqlite-data/issues/418"))
+      func `reinserting a deleted record with a new parent before sending updates its parent`()
+        async throws
+      {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+            RemindersList(id: 2, title: "Work")
+            Reminder(id: 1, title: "Groceries", remindersListID: 1)
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await userDatabase.userWrite { db in
+          try Reminder.find(1).delete().execute(db)
+        }
+        try await userDatabase.userWrite { db in
+          try Reminder.insert {
+            Reminder(id: 1, title: "Groceries", remindersListID: 2)
+          }
+          .execute(db)
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let metadata = try await syncEngine.metadatabase.read { db in
+          try SyncMetadata.find(Reminder.recordID(for: 1)).fetchOne(db)
+        }
+        #expect(metadata?.parentRecordName == RemindersList.recordName(for: 2))
+
+        let record = try container.privateCloudDatabase.record(for: Reminder.recordID(for: 1))
+        #expect(record.parent?.recordID == RemindersList.recordID(for: 2))
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func remoteServerRecordUpdate() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {

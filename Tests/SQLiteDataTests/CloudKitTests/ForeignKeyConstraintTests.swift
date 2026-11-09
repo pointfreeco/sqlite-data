@@ -861,7 +861,6 @@
             }
           }
         }
-        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
         assertQuery(SyncMetadata.all, database: syncEngine.metadatabase) {
           """
           (No results)

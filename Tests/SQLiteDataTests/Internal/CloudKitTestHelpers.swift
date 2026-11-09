@@ -168,7 +168,7 @@ extension MockSyncEngineState {
     withState {
       expectNoDifference(
         Set(changes),
-        Set($0.pendingRecordZoneChanges),
+        Set($0.pendingRecordZoneChanges.values),
         fileID: fileID,
         filePath: filePath,
         line: line,
@@ -188,7 +188,7 @@ extension MockSyncEngineState {
     withState {
       expectNoDifference(
         Set(changes),
-        Set($0.pendingDatabaseChanges),
+        Set($0.pendingDatabaseChanges.values),
         fileID: fileID,
         filePath: filePath,
         line: line,

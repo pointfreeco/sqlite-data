@@ -1,6 +1,7 @@
 #if canImport(CloudKit)
   import CustomDump
   import CloudKit
+  import OrderedCollections
   import SQLiteData
 
   extension CKDatabase.Scope: @retroactive CustomDumpStringConvertible {
@@ -179,13 +180,13 @@
           [
             (
               "pendingRecordZoneChanges",
-              $0.pendingRecordZoneChanges
+              $0.pendingRecordZoneChanges.values
                 .sorted(by: comparePendingRecordZoneChange)
               as any Sendable
             ),
             (
               "pendingDatabaseChanges",
-              $0.pendingDatabaseChanges
+              $0.pendingDatabaseChanges.values
                 .sorted(by: comparePendingDatabaseChange)
               as any Sendable
             ),
