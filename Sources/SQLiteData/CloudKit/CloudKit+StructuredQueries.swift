@@ -268,13 +268,17 @@
       return false
     }
 
-    func update<T: PrimaryKeyedTable>(with row: T, userModificationTime: Int64) {
+    func update<T: PrimaryKeyedTable>(
+      with row: T,
+      storedBlobs: [String: [UInt8]],
+      userModificationTime: Int64
+    ) {
       for column in T.TableColumns.writableColumns {
         func open<Root, Value>(_ column: some WritableTableColumnExpression<Root, Value>) {
           let keyPath = column.keyPath as! KeyPath<T, Value.QueryOutput>
           let column = column as! any WritableTableColumnExpression<T, Value>
           let value = Value(queryOutput: row[keyPath: keyPath])
-          switch value.queryBinding {
+          switch storedBlobs[column.name].map(QueryBinding.blob) ?? value.queryBinding {
           case .blob(let value):
             setBytes(value, forKey: column.name, at: userModificationTime)
           case .bool(let value):
@@ -308,6 +312,7 @@
     func update<T: PrimaryKeyedTable>(
       with other: CKRecord,
       row: T,
+      storedBlobs: [String: [UInt8]],
       columnNames: inout [String],
       parentForeignKey: ForeignKey?
     ) {
@@ -330,7 +335,9 @@
           }
           /// The row value has been modified more recently than the last known record.
           var isRowValueModified: Bool {
-            switch Value(queryOutput: row[keyPath: keyPath]).queryBinding {
+            switch storedBlobs[key].map(QueryBinding.blob)
+              ?? Value(queryOutput: row[keyPath: keyPath]).queryBinding
+            {
             case .blob(let value):
               return other.encryptedValues[hash: key] != value.sha256
             case .bool(let value):
