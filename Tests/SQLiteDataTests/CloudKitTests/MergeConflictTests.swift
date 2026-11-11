@@ -416,7 +416,8 @@
       }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-      @Test func serverRecordEditedAfterClientButProcessedBeforeClient() async throws {
+      @Test(.bug("https://github.com/pointfreeco/sqlite-data/issues/354"))
+      func serverRecordEditedAfterClientButProcessedBeforeClient() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {
             RemindersList(id: 1, title: "")
@@ -453,7 +454,7 @@
           │   dueDate: nil,       │
           │   isCompleted: false, │
           │   priority: nil,      │
-          │   title: "Get milk",  │
+          │   title: "Buy milk",  │
           │   remindersListID: 1  │
           │ )                     │
           └───────────────────────┘
@@ -478,7 +479,7 @@
                   priority🗓️: 0,
                   remindersListID: 1,
                   remindersListID🗓️: 0,
-                  title: "Get milk",
+                  title: "Buy milk",
                   title🗓️: 60,
                   🗓️: 60
                 ),
