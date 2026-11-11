@@ -58,7 +58,7 @@
       if isTesting {
         queryOutput._recordChangeTag =
           coder
-          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+          .decodeObject(of: NSString.self, forKey: "_recordChangeTag") as String?
         queryOutput._modificationDate =
           coder
           .decodeObject(of: NSDate.self, forKey: "_modificationDate") as Date?
@@ -111,7 +111,7 @@
       if isTesting {
         queryOutput._recordChangeTag =
           coder
-          .decodeObject(of: NSNumber.self, forKey: "_recordChangeTag")?.intValue
+          .decodeObject(of: NSString.self, forKey: "_recordChangeTag") as String?
         queryOutput._modificationDate =
           coder
           .decodeObject(of: NSDate.self, forKey: "_modificationDate") as Date?
@@ -397,7 +397,7 @@
   private struct Unbindable: Error {}
 
   extension CKRecord {
-    package var _recordChangeTag: Int? {
+    package var _recordChangeTag: String? {
       get { self[#function] }
       set { self[#function] = newValue }
     }
