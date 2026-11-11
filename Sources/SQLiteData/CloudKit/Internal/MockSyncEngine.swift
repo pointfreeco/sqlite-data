@@ -45,17 +45,18 @@
       }
 
       modifications = state.withState { syncEngineState in
-        let currentChangeTag = syncEngineState.changeTag
+        let currentChangeTag = syncEngineState.currentChangeTag
         return database.state.withValue { dbState in
           zoneIDs.reduce(into: [CKRecord]()) { accum, zoneID in
             accum += ((dbState.storage[zoneID]?.records.values).map { Array($0) } ?? [])
               .map { $0.copy() as! CKRecord }
               .filter {
-                precondition(
-                  $0._recordChangeTag != nil,
-                  "Records stored in database should have their 'recordChangeTag' assigned."
-                )
-                return $0._recordChangeTag! > currentChangeTag
+                guard let changeTag = $0._recordChangeTag else {
+                  fatalError(
+                    "Records stored in database should have their 'recordChangeTag' assigned."
+                  )
+                }
+                return changeTag.isNewerChangeTag(than: currentChangeTag)
               }
           }
         }
@@ -75,7 +76,11 @@
       else { return }
 
       state.withState {
-        $0.changeTag = modifications.compactMap(\._recordChangeTag).max() ?? $0.changeTag
+        for changeTag in modifications.compactMap(\._recordChangeTag) {
+          if changeTag.isNewerChangeTag(than: $0.currentChangeTag) {
+            $0.currentChangeTag = changeTag
+          }
+        }
       }
 
       await parentSyncEngine.handleEvent(
@@ -134,7 +139,7 @@
   @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
   package final class MockSyncEngineState: CKSyncEngineStateProtocol {
     package struct State: Sendable {
-      package var changeTag = 0
+      package var currentChangeTag: String?
       package var hasPendingUntrackedChanges = false
       package var pendingDatabaseChanges:
         OrderedDictionary<CKRecordZone.ID, CKSyncEngine.PendingDatabaseChange> = [:]
@@ -511,6 +516,13 @@
       @unknown default:
         fatalError("Unknown database scope not supported in sync engines.")
       }
+    }
+  }
+
+  extension String {
+    package func isNewerChangeTag(than other: String?) -> Bool {
+      guard let other else { return true }
+      return self.count != other.count ? self.count > other.count : self > other
     }
   }
 #endif

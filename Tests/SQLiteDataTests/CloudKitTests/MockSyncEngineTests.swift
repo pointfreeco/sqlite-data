@@ -76,6 +76,24 @@
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
         #expect(!syncEngine.private.state.hasPendingUntrackedChanges)
       }
+
+      @Test func isNewerChangeTag() {
+        #expect("0".isNewerChangeTag(than: nil))
+
+        #expect(!"0".isNewerChangeTag(than: "0"))
+        #expect(!"z".isNewerChangeTag(than: "z"))
+
+        #expect("1".isNewerChangeTag(than: "0"))
+        #expect(!"0".isNewerChangeTag(than: "1"))
+        #expect("a".isNewerChangeTag(than: "9"))
+        #expect(!"9".isNewerChangeTag(than: "a"))
+        #expect("z".isNewerChangeTag(than: "a"))
+
+        #expect("10".isNewerChangeTag(than: "z"))
+        #expect(!"z".isNewerChangeTag(than: "10"))
+        #expect("100".isNewerChangeTag(than: "zz"))
+        #expect(!"zz".isNewerChangeTag(than: "100"))
+      }
     }
   }
 #endif
