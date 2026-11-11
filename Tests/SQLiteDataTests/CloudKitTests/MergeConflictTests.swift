@@ -255,30 +255,28 @@
           └────────────────────────────┘
           """
         }
-        withKnownIssue("Client edit to isPublished should keep its original timestamp instead of being restamped at merge time") {
-          assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
-            """
-            MockCloudDatabase(
-              databaseScope: .private,
-              storage: [
-                [0]: CKRecord(
-                  recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
-                  recordType: "posts",
-                  parent: nil,
-                  share: nil,
-                  body🗓️: 0,
-                  id: 1,
-                  id🗓️: 0,
-                  isPublished: 1,
-                  isPublished🗓️: 30,
-                  title: "Hello",
-                  title🗓️: 60,
-                  🗓️: 60
-                )
-              ]
-            )
-            """
-          }
+        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+          """
+          MockCloudDatabase(
+            databaseScope: .private,
+            storage: [
+              [0]: CKRecord(
+                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                recordType: "posts",
+                parent: nil,
+                share: nil,
+                body🗓️: 0,
+                id: 1,
+                id🗓️: 0,
+                isPublished: 1,
+                isPublished🗓️: 30,
+                title: "Hello",
+                title🗓️: 60,
+                🗓️: 60
+              )
+            ]
+          )
+          """
         }
       }
 
@@ -901,11 +899,9 @@
         // Step 6: Fetch arrives (no-op, conflict already resolved)
         await fetchedRecordZoneChangesCallback.notify()
 
-        await withKnownIssue("Server should win same-field conflict when it has a newer timestamp") {
-          try await userDatabase.read { db in
-            let post = try #require(try Post.find(1).fetchOne(db))
-            #expect(post.title == "Hello from server")
-          }
+        try await userDatabase.read { db in
+          let post = try #require(try Post.find(1).fetchOne(db))
+          #expect(post.title == "Hello from server")
         }
       }
 
@@ -1121,11 +1117,9 @@
         // Step 6: Retry send
         try await syncEngine.processPendingRecordZoneChanges(scope: .private)
 
-        await withKnownIssue("Server should win same-field conflict when it has a newer timestamp") {
-          try await userDatabase.read { db in
-            let post = try #require(try Post.find(1).fetchOne(db))
-            #expect(post.title == "Hello from server")
-          }
+        try await userDatabase.read { db in
+          let post = try #require(try Post.find(1).fetchOne(db))
+          #expect(post.title == "Hello from server")
         }
       }
 
@@ -1774,11 +1768,9 @@
         // Step 6: Fetch arrives (no-op, conflict already resolved)
         await fetchedRecordZoneChangesCallback.notify()
 
-        await withKnownIssue("Server should win same-field conflict when it has a newer timestamp") {
-          try await userDatabase.read { db in
-            let post = try #require(try Post.find(1).fetchOne(db))
-            #expect(post.body == "Server body")
-          }
+        try await userDatabase.read { db in
+          let post = try #require(try Post.find(1).fetchOne(db))
+          #expect(post.body == "Server body")
         }
       }
 
