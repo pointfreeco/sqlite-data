@@ -473,6 +473,50 @@
           """
         }
       }
+
+      // * The user's iCloud storage is nearly full: there is room for the small reminder but not
+      //   for the large list.
+      // * Local client creates both and sends them in one batch. The server rejects the list
+      //   with 'quotaExceeded' and the reminder with 'referenceViolation', because the
+      //   reminder's parent never reached the server.
+      // * The user frees up space, and the client sends again.
+      // => Nothing is deleted on the server, so both rows stay on the device and are uploaded
+      //    once there is room for them.
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(
+        .bug("https://github.com/pointfreeco/sqlite-data/issues/547"),
+        .taskLocal($quota, 1)
+      )
+      func listAndReminderRejectedWhileStorageIsFull() async throws {
+        let largeTitle = String(repeating: "Personal ", count: 512)
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: largeTitle)
+            Reminder(id: 1, title: "Get milk", remindersListID: 1)
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        try await userDatabase.read { db in
+          try #expect(RemindersList.all.fetchAll(db) == [RemindersList(id: 1, title: largeTitle)])
+          try #expect(
+            Reminder.all.fetchAll(db) == [Reminder(id: 1, title: "Get milk", remindersListID: 1)]
+          )
+        }
+
+        // The user frees up space.
+        syncEngine.private.database.state.withValue { $0.quota = .max }
+        for _ in 1...4
+        where !syncEngine.private.state.pendingRecordZoneChanges.isEmpty {
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        }
+
+        let serverRecordIDs = container.privateCloudDatabase.state.withValue { state in
+          Set(state.storage.values.flatMap(\.records.keys))
+        }
+        #expect(serverRecordIDs.contains(RemindersList.recordID(for: 1)))
+        #expect(serverRecordIDs.contains(Reminder.recordID(for: 1)))
+      }
     }
   }
 #endif
