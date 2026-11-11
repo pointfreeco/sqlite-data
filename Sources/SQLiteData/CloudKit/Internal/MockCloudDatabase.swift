@@ -359,19 +359,66 @@
           }
         }
 
-        // Emulate quotas by reverting all saves if the total number of records stored exceeds
-        // the quota.
+        // A record whose parent's save failed has no parent on the server, and CloudKit reports
+        // 'referenceViolation' for it instead of the parent's error. Rejecting it orphans its own
+        // children, so this repeats to a fixed point.
+        func rejectRecordsWithMissingParents() {
+          var didRejectRecord = true
+          while didRejectRecord {
+            didRejectRecord = false
+            for recordToSave in recordsToSave {
+              guard
+                let result = saveResults[recordToSave.recordID],
+                case .success = result,
+                let parentRecordID = recordToSave.parent?.recordID,
+                state.storage[parentRecordID.zoneID]?.records[parentRecordID] == nil
+              else { continue }
+              state.storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID] =
+                previousStorage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID]
+              saveResults[recordToSave.recordID] = .failure(CKError(.referenceViolation))
+              didRejectRecord = true
+            }
+          }
+        }
+
+        // Emulate quotas. An over-quota batch is not rejected as a whole: the server keeps what
+        // fits and fails the rest with 'quotaExceeded'.
         guard state.storage.totalRecords <= state.quota
         else {
-          state.storage = previousStorage
-          for saveSuccessRecordID in saveResults.keys {
-            saveResults[saveSuccessRecordID] = .failure(CKError(.quotaExceeded))
+          let newlySavedRecordIDs = Set(
+            recordsToSave
+              .map(\.recordID)
+              .filter { recordID in
+                previousStorage[recordID.zoneID]?.records[recordID] == nil
+                  && state.storage[recordID.zoneID]?.records[recordID] != nil
+              }
+          )
+          // Records already on the server, minus anything this batch deleted, take up the quota
+          // first. The room that is left goes to the smallest records, and the largest are
+          // rejected. The quota counts records, so size only orders the rejections.
+          var remaining = state.quota - (state.storage.totalRecords - newlySavedRecordIDs.count)
+          // Tie-break on the record name so that equal-size records reject in a fixed order.
+          let newlySavedRecords = recordsToSave
+            .filter { newlySavedRecordIDs.contains($0.recordID) }
+            .sorted {
+              ($0.estimatedSize, $0.recordID.recordName)
+                < ($1.estimatedSize, $1.recordID.recordName)
+            }
+          for recordToSave in newlySavedRecords {
+            guard remaining <= 0
+            else {
+              remaining -= 1
+              continue
+            }
+            state.storage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID] =
+              previousStorage[recordToSave.recordID.zoneID]?.records[recordToSave.recordID]
+            saveResults[recordToSave.recordID] = .failure(CKError(.quotaExceeded))
           }
-          for deleteSuccessRecordID in deleteResults.keys {
-            state.storage[deleteSuccessRecordID.zoneID]?.records[deleteSuccessRecordID] = nil
-          }
+          rejectRecordsWithMissingParents()
           return (saveResults: saveResults, deleteResults: deleteResults)
         }
+
+        rejectRecordsWithMissingParents()
 
         guard atomically
         else {
@@ -499,6 +546,26 @@
       values.reduce(into: 0) { total, zone in
         total += zone.records.count
       }
+    }
+  }
+
+  extension CKRecord {
+    /// A stand-in for the storage CloudKit charges for this record: the size of its encoded
+    /// form, plus the bytes of any assets, which that form leaves out. Only the relative order
+    /// matters, because it decides which records an over-quota batch rejects first.
+    fileprivate var estimatedSize: Int {
+      var size =
+        (try? NSKeyedArchiver.archivedData(withRootObject: self, requiringSecureCoding: true))?
+        .count ?? 0
+      for key in allKeys() {
+        guard
+          let asset = self[key] as? CKAsset,
+          let fileURL = asset.fileURL,
+          let fileSize = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize
+        else { continue }
+        size += fileSize
+      }
+      return size
     }
   }
 #endif
