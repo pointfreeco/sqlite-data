@@ -24,7 +24,6 @@
       package var rateLimitDuration: Duration
       fileprivate var requestTimestamps: [AnyClock<Duration>.Instant] = []
       package var fetchedRecordIDs: [CKRecord.ID] = []
-      // NB: CloudKit uses base-36 change tags (0…9, a…z, 10…zz, 100…).
       mutating func nextRecordChangeTag() -> String {
         defer { changeTagCounter += 1 }
         return String(changeTagCounter, radix: 36)
