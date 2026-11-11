@@ -308,6 +308,7 @@
     func update<T: PrimaryKeyedTable>(
       with other: CKRecord,
       row: T,
+      userModificationTime: Int64,
       columnNames: inout [String],
       parentForeignKey: ForeignKey?
     ) {
@@ -354,10 +355,16 @@
               return false
             }
           }
-          if didSet || isRowValueModified {
+          if didSet {
             columnNames.removeAll(where: { $0 == key })
-            if didSet, let parentForeignKey, key == parentForeignKey.from {
+            if let parentForeignKey, key == parentForeignKey.from {
               self.parent = other.parent
+            }
+          } else if isRowValueModified {
+            let hasServerValueChanged = encryptedValues[at: key] > other.encryptedValues[at: key]
+            let isRowValueNewer = userModificationTime >= encryptedValues[at: key]
+            if !hasServerValueChanged || isRowValueNewer {
+              columnNames.removeAll(where: { $0 == key })
             }
           }
         }
