@@ -2122,6 +2122,7 @@
             serverRecord.update(
               with: allFields,
               row: T(queryOutput: row),
+              userModificationTime: metadata.userModificationTime,
               columnNames: &columnNames,
               parentForeignKey: foreignKeysByTableName[T.tableName]?.count == 1
                 ? foreignKeysByTableName[T.tableName]?.first
