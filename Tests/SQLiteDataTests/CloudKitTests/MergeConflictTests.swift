@@ -559,28 +559,32 @@
           └────────────────────────────┘
           """
         }
-        assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
-          """
-          MockCloudDatabase(
-            databaseScope: .private,
-            storage: [
-              [0]: CKRecord(
-                recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
-                recordType: "posts",
-                parent: nil,
-                share: nil,
-                body🗓️: 0,
-                id: 1,
-                id🗓️: 0,
-                isPublished: 1,
-                isPublished🗓️: 60,
-                title: "Hello",
-                title🗓️: 60,
-                🗓️: 60
-              )
-            ]
-          )
-          """
+        withKnownIssue("Client edit to isPublished should keep its original timestamp instead of being restamped at merge time") {
+          assertInlineSnapshot(of: container.privateCloudDatabase, as: .customDump) {
+            """
+            MockCloudDatabase(
+              databaseScope: .private,
+              storage: [
+                [0]: CKRecord(
+                  recordID: CKRecord.ID(1:posts/zone/__defaultOwner__),
+                  recordType: "posts",
+                  parent: nil,
+                  share: nil,
+                  body🗓️: 0,
+                  id: 1,
+                  id🗓️: 0,
+                  isPublished: 1,
+                  isPublished🗓️: 30,
+                  title: "Hello",
+                  title🗓️: 60,
+                  🗓️: 60
+                )
+              ]
+            )
+            """
+          }
+        } matching: { issue in
+          issue.comments.contains { $0.rawValue.contains(/\+\s*isPublished🗓️: 60,/) }
         }
       }
 
