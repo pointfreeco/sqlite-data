@@ -206,7 +206,15 @@
           parentRecordPrimaryKey,
           parentRecordType
         )
-      } onConflictDoUpdate: { _ in
+      } onConflictDoUpdate: {
+        $0._isDeleted = false
+        $0.userModificationTime = $currentTime()
+        $0.zoneName = zoneName ?? $0.zoneName
+        $0.ownerName = ownerName ?? $0.ownerName
+        $0.parentRecordPrimaryKey = parentRecordPrimaryKey
+        $0.parentRecordType = parentRecordType
+      } where: {
+        $0._isDeleted
       }
     }
 
@@ -234,10 +242,7 @@
         $0.userModificationTime = $currentTime()
       }
     }
-  }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension SyncMetadata {
     static func callbackTriggers(for syncEngine: SyncEngine) -> [TemporaryTrigger<Self>] {
       [
         afterInsertTrigger(for: syncEngine),
@@ -325,7 +330,7 @@
             )
           )
         } when: { old, new in
-          old._isDeleted.eq(new._isDeleted) && !SyncEngine.$isSynchronizing
+          !new._isDeleted && !SyncEngine.$isSynchronizing
         }
       )
     }

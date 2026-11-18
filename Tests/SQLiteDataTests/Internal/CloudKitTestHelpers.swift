@@ -157,46 +157,44 @@
     }
   }
 
-  @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
-  extension MockSyncEngineState {
-    package func assertPendingRecordZoneChanges(
-      _ changes: OrderedSet<CKSyncEngine.PendingRecordZoneChange>,
-      fileID: StaticString = #fileID,
-      filePath: StaticString = #filePath,
-      line: UInt = #line,
-      column: UInt = #column
-    ) {
-      withState {
-        expectNoDifference(
-          Set(changes),
-          Set($0.pendingRecordZoneChanges),
-          fileID: fileID,
-          filePath: filePath,
-          line: line,
-          column: column
-        )
-        $0.pendingRecordZoneChanges.removeAll()
-      }
+@available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+extension MockSyncEngineState {
+  package func assertPendingRecordZoneChanges(
+    _ changes: OrderedSet<CKSyncEngine.PendingRecordZoneChange>,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+  ) {
+    withState {
+      expectNoDifference(
+        Set(changes),
+        Set($0.pendingRecordZoneChanges.values),
+        fileID: fileID,
+        filePath: filePath,
+        line: line,
+        column: column
+      )
+      $0.pendingRecordZoneChanges.removeAll()
     }
 
-    package func assertPendingDatabaseChanges(
-      _ changes: OrderedSet<CKSyncEngine.PendingDatabaseChange>,
-      fileID: StaticString = #fileID,
-      filePath: StaticString = #filePath,
-      line: UInt = #line,
-      column: UInt = #column
-    ) {
-      withState {
-        expectNoDifference(
-          Set(changes),
-          Set($0.pendingDatabaseChanges),
-          fileID: fileID,
-          filePath: filePath,
-          line: line,
-          column: column
-        )
-        $0.pendingDatabaseChanges.removeAll()
-      }
+  package func assertPendingDatabaseChanges(
+    _ changes: OrderedSet<CKSyncEngine.PendingDatabaseChange>,
+    fileID: StaticString = #fileID,
+    filePath: StaticString = #filePath,
+    line: UInt = #line,
+    column: UInt = #column
+  ) {
+    withState {
+      expectNoDifference(
+        Set(changes),
+        Set($0.pendingDatabaseChanges.values),
+        fileID: fileID,
+        filePath: filePath,
+        line: line,
+        column: column
+      )
+      $0.pendingDatabaseChanges.removeAll()
     }
   }
 #endif

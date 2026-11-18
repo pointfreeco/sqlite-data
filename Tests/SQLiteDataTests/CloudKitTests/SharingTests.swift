@@ -1844,6 +1844,87 @@
       //      }
 
       @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test func `move child record from private to shared parent, then rollback`() async throws {
+        struct RollBack: Error {}
+
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            ModelA.Draft(id: 1, count: 42)
+            ModelB.Draft(id: 1, isOn: true, modelAID: 1)
+            ModelC.Draft(id: 1, title: "Blob", modelBID: 1)
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+
+        let externalZone = CKRecordZone(
+          zoneID: CKRecordZone.ID(
+            zoneName: "external.zone",
+            ownerName: "external.owner"
+          )
+        )
+        try await syncEngine.modifyRecordZones(scope: .shared, saving: [externalZone]).notify()
+
+        let modelARecord = CKRecord(
+          recordType: ModelA.tableName,
+          recordID: ModelA.recordID(for: 2, zoneID: externalZone.zoneID)
+        )
+        modelARecord.setValue(2, forKey: "id", at: now)
+        modelARecord.setValue(1729, forKey: "count", at: now)
+        let share = CKShare(
+          rootRecord: modelARecord,
+          shareID: CKRecord.ID(
+            recordName: "share-\(modelARecord.recordID.recordName)",
+            zoneID: modelARecord.recordID.zoneID
+          )
+        )
+        _ = try syncEngine.modifyRecords(scope: .shared, saving: [share, modelARecord])
+        let freshShare = try syncEngine.shared.database.record(for: share.recordID) as! CKShare
+        let freshModelARecord = try syncEngine.shared.database.record(for: modelARecord.recordID)
+
+        try await syncEngine
+          .acceptShare(
+            metadata: ShareMetadata(
+              containerIdentifier: container.containerIdentifier!,
+              hierarchicalRootRecordID: freshModelARecord.recordID,
+              rootRecord: freshModelARecord,
+              share: freshShare
+            )
+          )
+
+        try await withDependencies {
+          $0.currentTime.now += 1
+        } operation: {
+          await #expect(throws: RollBack.self) {
+            try await self.userDatabase.userWrite { db in
+              try ModelB.find(1).update { $0.modelAID = 2 }.execute(db)
+              throw RollBack()
+            }
+          }
+        }
+        #expect(syncEngine.private.state.pendingRecordZoneChanges.isEmpty)
+        #expect(syncEngine.shared.state.pendingRecordZoneChanges.isEmpty)
+
+        let modelB = try await userDatabase.read { db in try ModelB.find(1).fetchOne(db) }
+        #expect(modelB?.modelAID == 1)
+
+        let metadata = try await syncEngine.metadatabase.read { db in
+          try SyncMetadata
+            .where { $0.recordType.in([ModelB.tableName, ModelC.tableName]) }
+            .order(by: \.recordType)
+            .fetchAll(db)
+        }
+        #expect(metadata.map(\.recordName) == ["1:modelBs", "1:modelCs"])
+        #expect(metadata.allSatisfy { $0.zoneName == syncEngine.defaultZone.zoneID.zoneName })
+
+        #expect(throws: Never.self) {
+          try container.privateCloudDatabase.record(for: ModelB.recordID(for: 1))
+        }
+        #expect(throws: Never.self) {
+          try container.privateCloudDatabase.record(for: ModelC.recordID(for: 1))
+        }
+      }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
       @Test func movesChildRecordFromPrivateParentToSharedParent() async throws {
         try await userDatabase.userWrite { db in
           try db.seed {

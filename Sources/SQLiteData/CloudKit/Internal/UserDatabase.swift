@@ -16,6 +16,14 @@
       database.configuration
     }
 
+    package func unsafeReentrantWrite<T>(_ updates: (Database) throws -> T) rethrows -> T {
+      try database.unsafeReentrantWrite { db in
+        try $_isSynchronizingChanges.withValue(true) {
+          try updates(db)
+        }
+      }
+    }
+
     package func write<T: Sendable>(
       _ updates: @Sendable (Database) throws -> T
     ) async throws -> T {
