@@ -433,6 +433,10 @@
       isSendingChanges || isFetchingChanges
     }
 
+    public var lastRecordZoneFetchError: CKError? {
+      recordZoneFetchError
+    }
+
     /// Stops the sync engine if it is running.
     ///
     /// All edits made after stopping the sync engine will not be synchronized to CloudKit.
@@ -1014,6 +1018,17 @@
         }
       }
     }
+    private var recordZoneFetchError: CKError? {
+      get {
+        observationRegistrar.access(self, keyPath: \.lastRecordZoneFetchError)
+        return activityCounts.withValue(\.recordZoneFetchError)
+      }
+      set {
+        observationRegistrar.withMutation(of: self, keyPath: \.lastRecordZoneFetchError) {
+          activityCounts.withValue { $0.recordZoneFetchError = newValue }
+        }
+      }
+    }
   }
 
   extension PrimaryKeyedTable {
@@ -1109,9 +1124,10 @@
         await MainActor.run {
           fetchingChangesCount += 1
         }
-      case .didFetchRecordZoneChanges:
+      case .didFetchRecordZoneChanges(_, let error):
         await MainActor.run {
           fetchingChangesCount -= 1
+          recordZoneFetchError = error
         }
 
       case .willFetchChanges:
@@ -2708,6 +2724,7 @@
   private struct ActivityCounts {
     var sendingChangesCount = 0
     var fetchingChangesCount = 0
+    var recordZoneFetchError: CKError?
   }
 
   #if DEBUG
