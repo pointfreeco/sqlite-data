@@ -745,6 +745,51 @@
         let record = CKRecord(recordType: "foo", recordID: CKRecord.ID(recordName: "bar"))
         try await syncEngine.modifyRecords(scope: .private, saving: [record]).notify()
       }
+
+      @available(iOS 17, macOS 14, tvOS 17, watchOS 10, *)
+      @Test(.bug("https://github.com/pointfreeco/sqlite-data/issues/585"))
+      func fetchedOlderRecordDoesNotReplaceLastKnownServerRecord() async throws {
+        try await userDatabase.userWrite { db in
+          try db.seed {
+            RemindersList(id: 1, title: "Personal")
+          }
+        }
+        try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        let olderRecord = try syncEngine.private.database
+          .record(for: RemindersList.recordID(for: 1))
+          .copy() as! CKRecord
+
+        try await withDependencies {
+          $0.currentTime.now += 60
+        } operation: {
+          try await userDatabase.userWrite { db in
+            try RemindersList.find(1).update { $0.title = "Work" }.execute(db)
+          }
+          try await syncEngine.processPendingRecordZoneChanges(scope: .private)
+        }
+        let newerModificationDate = try syncEngine.private.database
+          .record(for: RemindersList.recordID(for: 1))
+          ._modificationDate
+        #expect(try #require(olderRecord._modificationDate) < #require(newerModificationDate))
+
+        await syncEngine.handleEvent(
+          .fetchedRecordZoneChanges(modifications: [olderRecord], deletions: []),
+          syncEngine: syncEngine.private
+        )
+
+        let lastKnownModificationDate = try await syncEngine.metadatabase.read { db in
+          try SyncMetadata
+            .find(RemindersList.recordID(for: 1))
+            .fetchOne(db)?
+            .lastKnownServerRecord?
+            ._modificationDate
+        }
+        #expect(lastKnownModificationDate == newerModificationDate)
+        let title = try await userDatabase.read { db in
+          try RemindersList.find(1).select(\.title).fetchOne(db)
+        }
+        #expect(title == "Work")
+      }
     }
   }
 #endif
