@@ -2079,6 +2079,18 @@
           return
         }
 
+        // A fetch that started before a save finished can deliver the record as it was before that
+        // save.
+        let isOlderThanLastKnownServerRecord =
+          try SyncMetadata
+          .find(serverRecord.recordID)
+          .fetchOne(db)?
+          .lastKnownServerRecord?
+          ._modificationDate
+          .map { lastKnownDate in
+            serverRecord._modificationDate.map { lastKnownDate > $0 } ?? true
+          } ?? false
+
         try SyncMetadata.insert {
           SyncMetadata(
             recordPrimaryKey: recordPrimaryKey,
@@ -2095,7 +2107,7 @@
         } onConflict: {
           ($0.recordPrimaryKey, $0.recordType)
         } doUpdate: {
-          if tablesByName[serverRecord.recordType] == nil {
+          if tablesByName[serverRecord.recordType] == nil, !isOlderThanLastKnownServerRecord {
             $0.setLastKnownServerRecord(serverRecord)
           } else {
             $0.zoneName = serverRecord.recordID.zoneID.zoneName
@@ -2134,10 +2146,12 @@
               try #sql(upsert(table, record: serverRecord, columnNames: columnNames)).execute(db)
             }
             try UnsyncedRecordID.find(serverRecord.recordID).delete().execute(db)
-            try SyncMetadata
-              .find(serverRecord.recordID)
-              .update { $0.setLastKnownServerRecord(serverRecord) }
-              .execute(db)
+            if !isOlderThanLastKnownServerRecord {
+              try SyncMetadata
+                .find(serverRecord.recordID)
+                .update { $0.setLastKnownServerRecord(serverRecord) }
+                .execute(db)
+            }
           } catch {
             guard
               let error = error as? DatabaseError,
