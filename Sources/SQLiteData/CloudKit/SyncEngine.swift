@@ -521,11 +521,11 @@
 
       #if DEBUG && canImport(DeveloperToolsSupport)
         @Dependency(\.context) var context
-        @Dependency(\.continuousClock) var clock
         if context == .preview {
           previewTimerTask.withValue {
             $0?.cancel()
-            $0 = Task { @Sendable [weak self] in
+            $0 = Task { @MainActor [weak self] in
+            @Dependency(\.continuousClock) var clock
               await withErrorReporting {
                 while true {
                   guard let self else { break }
